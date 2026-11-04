@@ -12,7 +12,7 @@ Helpers that study the behavior of a Shopify store so Shoppen can be compatible 
 3. Copy `.env.example` to `.env` at the repo root and fill in `SHOPIFY_SHOP` (`name` or `name.myshopify.com`),
    `SHOPIFY_CLIENT_ID`, `SHOPIFY_CLIENT_SECRET`, and `SHOPIFY_STOREFRONT_PASSWORD` if the storefront is
    password-protected. `.env` is git-ignored.
-4. Install tools: bash, curl, jq, node 22, and run `pnpm install` at the repo root.
+4. Install tools: bash, curl, jq, node 22, and run `pnpm install` at the repo root. For the storefront capture, also install Playwright with Chromium: `npm install -g playwright && npx playwright install chromium`.
 5. Run everything: `bash scripts/re/run-all.sh`
 
 Use `ENV_FILE=/path/to/file` to load a different env file. `API_VERSION` defaults to `2026-10`.
