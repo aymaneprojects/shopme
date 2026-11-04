@@ -25,7 +25,7 @@ SHOP="${SHOPIFY_SHOP#http://}"; SHOP="${SHOP#https://}"; SHOP="${SHOP%%/*}"; SHO
 SHOP_HOST="${SHOP}.myshopify.com"
 API_VERSION="${API_VERSION:-2026-10}"
 
-RE_OUT="${RE_OUT:-$HOME/shoppen-re}"
+RE_OUT="${RE_OUT:-$HOME/shopme-re}"
 mkdir -p "$RE_OUT"
 RE_OUT="$(cd "$RE_OUT" && pwd -P)"
 # Refuse to write captured data inside the git repository.

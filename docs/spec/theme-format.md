@@ -5,7 +5,7 @@ Status: draft. Derived from public documentation and from two themes downloaded 
 described in our own words; file names, directory names, JSON keys, setting types and tag/object names are listed because
 compatibility requires them. Counts are from those two themes only ("H" = Horizon, "T" = test-data-main).
 
-A Shoppen theme loader must accept a directory (or zip) laid out as below and render it with the Liquid dialect described
+A ShopMe theme loader must accept a directory (or zip) laid out as below and render it with the Liquid dialect described
 in [liquid-compat.md](liquid-compat.md).
 
 ## 1. Directory layout
@@ -49,7 +49,7 @@ rendered into the string `content_for_layout` -> the layout is rendered with tha
 Required placeholders in a layout:
 
 - `{{ content_for_header }}`: inside `<head>`; the platform injects scripts, analytics/monitoring and editor hooks here.
-  Shoppen must provide this object even if it emits only its own minimal head content. Present in every layout of both themes.
+  ShopMe must provide this object even if it emits only its own minimal head content. Present in every layout of both themes.
 - `{{ content_for_layout }}`: inside `<body>`; the rendered template. Present in every layout.
 
 Other layout conventions seen:
@@ -61,7 +61,7 @@ Other layout conventions seen:
 - The gift card template is a Liquid template that begins with `{% layout none %}` and renders its own complete HTML document.
 - The layouts render many snippets for head content (meta tags, stylesheets, scripts, CSS variable generation from theme
   settings). One snippet emits an `importmap` mapping `@theme/...` names to `asset_url` URLs and one entry to a
-  platform-hosted script; Shoppen must either host a replacement or stub that module.
+  platform-hosted script; ShopMe must either host a replacement or stub that module.
 
 ## 3. Templates
 
@@ -77,7 +77,7 @@ H has 13 templates and T has 20 (including 7 under `customers/`). Names observed
 ### 3.2 JSON vs Liquid templates
 
 Template extension may be `.json` or `.liquid`. A JSON template cannot contain markup; it only composes sections. Liquid
-templates are still allowed (observed: `gift_card.liquid` in both). If both a JSON and a Liquid file exist for the same name, behavior is undefined here; Shoppen should reject such a theme or prefer JSON.
+templates are still allowed (observed: `gift_card.liquid` in both). If both a JSON and a Liquid file exist for the same name, behavior is undefined here; ShopMe should reject such a theme or prefer JSON.
 
 ### 3.3 Alternate templates and `templateSuffix`
 
@@ -214,7 +214,7 @@ Block schema keys (95 files): `name` (95), `settings` (93), `tag` (87; may be an
 Block-type counts across all accepted-block lists: `@theme` 29, `@app` 31, specific names 185 (H); `@app` 8, inline 64 (T).
 Blocks have no `enabled_on`/`disabled_on`, `max_blocks` or `limit` observed.
 
-App blocks (`@app`; per public docs their type strings use a `shopify://apps/...` form) are third-party: Shoppen can ignore them (render nothing)
+App blocks (`@app`; per public docs their type strings use a `shopify://apps/...` form) are third-party: ShopMe can ignore them (render nothing)
 until an app model exists.
 
 ## 7. Snippets (`snippets/*.liquid`)
@@ -335,7 +335,7 @@ Missing keys take the schema `default`. Liquid reads these as `settings.<id>`.
 
 - `assets/` is flat. Liquid references files with the `asset_url` filter (`{{ 'name.css' | asset_url }}`; 296 uses),
   often followed by `stylesheet_tag` (126) or placed in a `<script src>` / import map. The filter returns a CDN-style URL
-  that includes a version/cache-busting query string. Shoppen should serve `assets/` at a stable path with the same
+  that includes a version/cache-busting query string. ShopMe should serve `assets/` at a stable path with the same
   semantics (any URL is fine as long as it is stable per theme version).
 - `inline_asset_content` (111 uses in 46 files) inlines text of an asset, used mainly for small SVG icons.
 - `shopify_asset_url` (5 uses, gift card only) points to platform-hosted shared files (a QR code script and two
@@ -344,7 +344,7 @@ Missing keys take the schema `default`. Liquid reads these as `settings.<id>`.
 - Images from settings and resources go through `image_url` / `image_tag` with width/height params, i.e. need an
   image-resizing endpoint (P0 for any theme).
 - Fonts: `font_face`, `font_url`, `font_modify` take a `font_picker` setting value; the platform serves a font library.
-  Shoppen needs a font catalogue or a self-hosted mapping from font handle to files.
+  ShopMe needs a font catalogue or a self-hosted mapping from font handle to files.
 
 ## 12. Implementation checklist for the loader
 

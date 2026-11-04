@@ -1,4 +1,4 @@
-# @shoppen/ui
+# @shopme/ui
 
 Shared UI components and design tokens (MIT).
 

@@ -1,2 +1,2 @@
-export const name = '@shoppen/ui';
+export const name = '@shopme/ui';
 export * from './tokens';

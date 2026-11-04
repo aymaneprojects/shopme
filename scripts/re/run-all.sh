@@ -7,4 +7,4 @@ bash "$D/introspect.sh"
 bash "$D/fetch-samples.sh"
 bash "$D/dump-theme.sh" --all
 if [[ -f "$D/capture-storefront.mjs" ]]; then node "$D/capture-storefront.mjs"; fi
-echo "done. Output is in ${RE_OUT:-$HOME/shoppen-re} (outside the repo; keep it private)."
+echo "done. Output is in ${RE_OUT:-$HOME/shopme-re} (outside the repo; keep it private)."

@@ -1,6 +1,7 @@
 # Data model (PostgreSQL)
 
-Status: proposal. This is **our own design**, not a description of any vendor's storage. It is shaped by what the
+Status: proposal. The MVP implementation in `packages/core` simplifies this to a single store per installation (see
+[../dev/foundation.md](../dev/foundation.md), "Deviations"). This is **our own design**, not a description of any vendor's storage. It is shaped by what the
 Admin API subset in [admin-api-mvp.md](admin-api-mvp.md) must return and by what Liquid themes read
 ([liquid-compat.md](liquid-compat.md)). Names of API objects appear only to show which table backs them.
 
@@ -30,8 +31,8 @@ adapters, webhooks and apps get their own specs; hooks for them are noted at the
 
 ## 2. Multi-tenancy and row-level security
 
-- Roles: `shoppen_owner` (owns objects, runs migrations, not used at runtime), `shoppen_app` (runtime role; **no** `BYPASSRLS`,
-  not table owner), `shoppen_ops` (`BYPASSRLS`, used only by cross-tenant jobs such as billing or tenant provisioning).
+- Roles: `shopme_owner` (owns objects, runs migrations, not used at runtime), `shopme_app` (runtime role; **no** `BYPASSRLS`,
+  not table owner), `shopme_ops` (`BYPASSRLS`, used only by cross-tenant jobs such as billing or tenant provisioning).
 - Per request/job: open a transaction and run `select set_config('app.shop_id', '<id>', true)` (transaction-local, safe under
   connection pooling in transaction mode). A helper `app_shop_id()` returns `current_setting('app.shop_id', true)::bigint`.
 - For each tenant table:

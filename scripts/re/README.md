@@ -1,6 +1,6 @@
 # Reverse-engineering scripts
 
-Helpers that study the behavior of a Shopify store so Shoppen can be compatible with it. They read data from
+Helpers that study the behavior of a Shopify store so ShopMe can be compatible with it. They read data from
 **your own development store** and save it **outside this repository**. Read
 [docs/legal/clean-room.md](../../docs/legal/clean-room.md) first.
 
@@ -19,7 +19,7 @@ Use `ENV_FILE=/path/to/file` to load a different env file. `API_VERSION` default
 
 ## Where data goes
 
-`RE_OUT` (default `~/shoppen-re`). The scripts refuse to run if it is inside a git repository. Never copy this data
+`RE_OUT` (default `~/shopme-re`). The scripts refuse to run if it is inside a git repository. Never copy this data
 into the repo. The access token is cached in `$RE_OUT/.token.json` (mode 600) and never printed.
 
 ## Scripts

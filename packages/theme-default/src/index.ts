@@ -1,1 +1,1 @@
-export const name = '@shoppen/theme-default';
+export const name = '@shopme/theme-default';

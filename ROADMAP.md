@@ -1,11 +1,18 @@
 # Roadmap
 
-Shoppen is pre-alpha. Phases are goals, not promises.
+ShopMe is pre-alpha. Phases are goals, not promises.
 
 ## Phase 0 - Interface study & spec
-- [ ] Study public docs and our own dev store (clean-room, see `docs/legal/clean-room.md`)
-- [ ] Write specs in our own words (`docs/spec/`)
-- [ ] Record request/response pairs and build a conformance test suite
+- [x] Study public docs and our own dev store (clean-room, see `docs/legal/clean-room.md`)
+- [x] Write specs in our own words (`docs/spec/`)
+- [x] Record request/response pairs from our own dev store (kept private)
+- [ ] Build the conformance test suite (ShopMe responses vs recorded shapes)
+
+## Phase 0.5 - Foundation
+- [x] Single-container architecture: one Fastify process (`apps/server`) + PostgreSQL; embedded PGlite for zero-setup local runs
+- [x] Complete MVP database schema (Drizzle migrations), single store per installation (`shop_id` kept for a future ShopMe Cloud)
+- [x] Staff auth (sessions, API tokens), Admin GraphQL scaffolding, uploads, in-process job queue
+- [x] Docker image + Compose, install guides
 
 ## Phase 1 - MVP core
 - [ ] Products, variants, collections
@@ -49,9 +56,11 @@ Shoppen is pre-alpha. Phases are goals, not promises.
 - [ ] Security hardening
 - [ ] GDPR tooling
 - [ ] Observability
-- [ ] Docker Compose and Helm charts
+- [ ] Helm charts (Docker Compose already available)
 - [ ] One-click deploy templates
+- [ ] Desktop apps: Windows `.exe` and macOS `.dmg` (Electron + embedded server + PGlite), built by GitHub Actions
+- [ ] Export / import a whole store (e.g. build it in the desktop app, then move it to a server)
 - [ ] Documentation site
 
 ## Later
-- [ ] "Shoppen Cloud": a hosted offer
+- [ ] "ShopMe Cloud": a hosted offer

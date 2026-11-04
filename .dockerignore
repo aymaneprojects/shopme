@@ -1,0 +1,15 @@
+.git
+.github
+**/node_modules
+**/dist
+**/.turbo
+.turbo
+coverage
+data
+.env
+.env.*
+!.env.example
+*.har
+docs
+*.md
+!packages/**/README.md

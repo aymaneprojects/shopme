@@ -1,6 +1,6 @@
 # Storefront routes (observed behaviour)
 
-Status: observation notes for the Shoppen storefront router. Written in our own words
+Status: observation notes for the ShopMe storefront router. Written in our own words
 from black-box requests against a Shopify development store (fake data, one market,
 one language, USD, storefront password enabled). Status codes, paths and query
 parameter names are interoperability facts; no vendor code or doc text is copied.
@@ -62,7 +62,7 @@ that the theme ships (`templates/*.json`).
 
 ### Not found / absent
 
-- `/en`, `/en-us`, `/fr`, `/en/products/<h>`: all 404. **No locale or market URL prefix** is active on this store (single market, single language). `localization` and `cart_currency` cookies exist but no URL prefixing. Shoppen should treat `/<locale>/...` as an optional feature, off by default.
+- `/en`, `/en-us`, `/fr`, `/en/products/<h>`: all 404. **No locale or market URL prefix** is active on this store (single market, single language). `localization` and `cart_currency` cookies exist but no URL prefixing. ShopMe should treat `/<locale>/...` as an optional feature, off by default.
 - `/localization.json`, `/apple-touch-icon.png`: 404.
 - `/collections/nope`, `/products/nope`, `/pages/nope`, `/blogs/<b>/nope`, `/policies/nope`: HTML 404 (template `404`).
 
@@ -120,8 +120,8 @@ and clamps the line (an oversized cart line of 1,000,000 was reduced to the avai
 
 ## 6. Screenshots (private; not committed)
 
-Directory: `$RE_OUT/screenshots/storefront/` (default `~/shoppen-re/screenshots/storefront/`; in the
-authoring session `/home/user/shoppen-re/screenshots/storefront/`). Each name exists with a
+Directory: `$RE_OUT/screenshots/storefront/` (default `~/shopme-re/screenshots/storefront/`; in the
+authoring session `/home/user/shopme-re/screenshots/storefront/`). Each name exists with a
 `desktop-` (1440x900, scale 1, full page) and a `mobile-` (iPhone 13 profile, scale 1, full page) prefix:
 
 - `*-home.png` : `/`
@@ -152,7 +152,7 @@ Ajax doc's quirks about stock).
 9. `sort_by=<unknown>` is ignored (200).
 10. Search with zero results is 200 and the title says `0 results found`.
 11. `/cart/<variant>:<qty>` redirects (302) to the checkout URL after adding the lines; `/checkout` with an empty cart redirects to `/`.
-12. `/account/login` redirect when new customer accounts are on (Shoppen: configurable; legacy mode would render a local login form).
+12. `/account/login` redirect when new customer accounts are on (ShopMe: configurable; legacy mode would render a local login form).
 13. Password mode: all paths 302 -> `/password` except `/password` and `/robots.txt`; correct POST gives 302 -> `/` and subsequent requests succeed; `/cart.js` while locked gives the same 302.
 14. No locale prefix routing when only one market/language is configured (`/en` is a 404).
 15. `/robots.txt` and `/sitemap.xml` exist; `.atom` feeds exist for collections.

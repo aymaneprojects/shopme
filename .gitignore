@@ -8,3 +8,4 @@ coverage
 *.har
 re-private/
 .DS_Store
+data/

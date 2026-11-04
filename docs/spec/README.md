@@ -1,9 +1,9 @@
 # Interoperability specs
 
-These documents describe the interfaces Shoppen implements to be compatible with Shopify-format themes and with a subset
+These documents describe the interfaces ShopMe implements to be compatible with Shopify-format themes and with a subset
 of the Shopify Admin GraphQL API. They are the written contract between "what other tools expect" and "what our code does".
 
-> Shoppen is not affiliated with, endorsed by, or sponsored by Shopify Inc. Product and API names appear only to state
+> ShopMe is not affiliated with, endorsed by, or sponsored by Shopify Inc. Product and API names appear only to state
 > compatibility facts.
 
 ## Index
@@ -29,7 +29,7 @@ The policy is in [../legal/clean-room.md](../legal/clean-room.md). In short:
 2. **Our words.** Specs are written in English in our own words. We list names that interoperability requires (types,
    fields, enums, tags, filters, objects, file paths, JSON keys). We do not copy source code, markup, stylesheet rules,
    schema descriptions, or documentation prose. Examples in specs are written from scratch.
-3. **Private captures.** Raw captures live outside the repository (default `~/shoppen-re`) and are never committed.
+3. **Private captures.** Raw captures live outside the repository (default `~/shopme-re`) and are never committed.
    Specs contain numbers and structure derived from them (counts, key sets, type/field names), not the captures themselves.
 4. **Derived counts.** Counts in `theme-format.md` and `liquid-compat.md` come from throwaway analysis scripts run over the
    private theme downloads (a tokenizer for Liquid tags/outputs, a JSON walker for templates, schemas and settings) and from a
@@ -50,7 +50,7 @@ bash scripts/re/run-all.sh
 This fetches a token, saves the schema (`raw/admin-<version>/schema.graphql` and an introspection JSON), the sample
 responses (`raw/samples/{shop,products,collections,customers,orders}.json`), the theme files
 (`raw/theme/<theme-name>/...`) and, when present, the storefront capture. Output goes to `$RE_OUT` (default
-`~/shoppen-re`), which must be outside any git repository. `API_VERSION` defaults to `2026-10`.
+`~/shopme-re`), which must be outside any git repository. `API_VERSION` defaults to `2026-10`.
 
 ## Status and versioning of the specs
 

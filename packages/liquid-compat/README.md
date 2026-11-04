@@ -1,4 +1,4 @@
-# @shoppen/liquid-compat
+# @shopme/liquid-compat
 
 Liquid engine compatibility layer (LiquidJS-based) for Shopify-format themes.
 

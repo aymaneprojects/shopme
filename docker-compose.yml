@@ -1,0 +1,59 @@
+# ShopMe: app + PostgreSQL. `docker compose up -d --build`, then open http://localhost:3000/admin
+# Configure through a `.env` file next to this file (see .env.example). Nothing is required for a first try.
+services:
+  shopme:
+    build: .
+    image: shopme:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgres://shopme:${POSTGRES_PASSWORD:-shopme}@db:5432/shopme
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      # Generated and persisted in the data volume when empty. Set a fixed value in production.
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      # Set to true when a reverse proxy (Caddy, nginx) sits in front.
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+    volumes:
+      - shopme-data:/data # uploads + generated session secret
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shopme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shopme}
+      POSTGRES_DB: shopme
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shopme -d shopme"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Local mail catcher: `docker compose --profile dev up`, set SMTP_URL=smtp://mailpit:1025, UI on http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    profiles: ["dev"]
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+volumes:
+  shopme-data:
+  pgdata:

@@ -1,6 +1,6 @@
 # Security Policy
 
-Shoppen is pre-alpha and not yet intended for production use. We still take security reports seriously.
+ShopMe is pre-alpha and not yet intended for production use. We still take security reports seriously.
 
 ## Reporting a vulnerability
 

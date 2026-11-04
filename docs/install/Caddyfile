@@ -1,0 +1,6 @@
+# Caddy reverse proxy with automatic HTTPS. Replace the domain, point its DNS A/AAAA records at the server.
+# Set in .env: APP_URL=https://shop.example.com and TRUST_PROXY=true
+shop.example.com {
+	encode zstd gzip
+	reverse_proxy shopme:3000
+}

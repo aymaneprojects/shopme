@@ -1,18 +1,23 @@
 {
-  "name": "shoppen",
+  "name": "shopme",
   "private": true,
   "version": "0.0.0",
   "packageManager": "pnpm@9.15.0",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "pnpm --filter @shopme/server dev",
+    "start": "pnpm --filter @shopme/server start",
+    "seed": "pnpm --filter @shopme/core seed",
+    "db:generate": "pnpm --filter @shopme/core db:generate",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
-    "turbo": "2.3.3",
-    "typescript": "5.7.2"
+    "turbo": "2.11.9",
+    "typescript": "5.9.3"
   }
 }

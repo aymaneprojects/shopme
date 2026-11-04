@@ -1,1 +1,3 @@
-export const name = '@shoppen/shopify-compat';
+export * from './gid';
+export * from './money';
+export * from './errors';

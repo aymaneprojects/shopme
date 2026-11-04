@@ -3,7 +3,7 @@
 // HAR, screenshots and raw Ajax API exchanges. Output stays OUTSIDE the repo.
 //
 // Env: ENV_FILE (default <repo>/.env, KEY=VALUE), SHOPIFY_SHOP (name or name.myshopify.com),
-//      SHOPIFY_STOREFRONT_PASSWORD, RE_OUT (default $HOME/shoppen-re).
+//      SHOPIFY_STOREFRONT_PASSWORD, RE_OUT (default $HOME/shopme-re).
 // Never submits payment or places an order.
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
@@ -31,7 +31,7 @@ if (fs.existsSync(envFile)) {
 const shop = (env.SHOPIFY_SHOP || '').replace(/^https?:\/\//, '').replace(/\.myshopify\.com\/?$/, '');
 const password = env.SHOPIFY_STOREFRONT_PASSWORD || '';
 if (!shop) { console.error('SHOPIFY_SHOP missing'); process.exit(1); }
-const out = path.resolve(env.RE_OUT || path.join(os.homedir(), 'shoppen-re'));
+const out = path.resolve(env.RE_OUT || path.join(os.homedir(), 'shopme-re'));
 if (out === repo || out.startsWith(repo + path.sep)) { console.error('RE_OUT must not be inside the repo'); process.exit(1); }
 
 const BASE = `https://${shop}.myshopify.com`;

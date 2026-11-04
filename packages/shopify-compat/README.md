@@ -1,5 +1,4 @@
-# @shoppen/shopify-compat
+# @shopme/shopify-compat
 
-GID mapping and API shapes for compatibility with Shopify's APIs.
-
-Status: placeholder (pre-alpha).
+Interop helpers for Shopify-shaped APIs: GID helpers (`toGid`, `fromGid`, `parseId`), money formatting
+(minor units <-> `Money` / `Decimal` strings, money-format templates) and `userErrors` helpers.

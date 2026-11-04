@@ -1,1 +1,1 @@
-export const name = '@shoppen/payments';
+export const name = '@shopme/payments';

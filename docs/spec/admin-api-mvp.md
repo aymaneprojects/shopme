@@ -6,7 +6,7 @@ descriptive text of the original schema is reproduced. "Sampled" means a field a
 "proposed" means we add it because the MVP needs it or because common clients ask for it (taken from the schema, not
 from samples).
 
-Goal: let existing tools that speak the Shopify Admin GraphQL dialect work against Shoppen for the catalog, customer,
+Goal: let existing tools that speak the Shopify Admin GraphQL dialect work against ShopMe for the catalog, customer,
 inventory and order basics, with identical field names, types, nullability and error shapes where we implement them.
 Anything not implemented must fail in a predictable way (a standard GraphQL validation error for unknown fields).
 
@@ -18,10 +18,10 @@ Anything not implemented must fail in a predictable way (a standard GraphQL vali
   `{ "query", "variables", "operationName" }`. The credential travels in a request header (`X-Shopify-Access-Token`;
   public documentation).
 - Access tokens were obtained with the **client-credentials grant** (app id + secret exchanged for a token). Observed:
-  tokens **expire after 24 hours**, so clients must re-request; Shoppen should issue tokens with an `expires_in` and
+  tokens **expire after 24 hours**, so clients must re-request; ShopMe should issue tokens with an `expires_in` and
   reject expired ones.
 - **Versioning** is calendar based: `YYYY-MM`, one stable release per quarter (months 01, 04, 07, 10), each supported for
-  a limited window (public docs), plus `unstable`. We study **2026-10**. Shoppen should mount the same schema under every
+  a limited window (public docs), plus `unstable`. We study **2026-10**. ShopMe should mount the same schema under every
   version string it claims to support and answer unknown versions with the platform's fallback behavior (to be recorded).
 - Responses use HTTP 200 for GraphQL-level errors (an `errors` array next to or instead of `data`); transport and
   authentication problems use 4xx/5xx statuses.
@@ -34,7 +34,7 @@ Anything not implemented must fail in a predictable way (a standard GraphQL vali
   (the REST-style id). `Customer.numberOfOrders` is also an `UnsignedInt64` and serialises as a string.
 - `node(id: ID!)` and `nodes(ids: [ID!]!)` resolve any GID to a `Node` (221 object types implement `Node`); the type
   name inside the GID selects the resolver. Unknown ids resolve to null.
-- Inside a Shoppen database ids are plain `bigint` per table; the GID is a presentation format (see data-model.md).
+- Inside a ShopMe database ids are plain `bigint` per table; the GID is a presentation format (see data-model.md).
   Because queries use ids typed `ID`, parse leniently: accept the full GID, and reject a GID whose type name does not match
   the argument's expected type with a user-visible error.
 
@@ -72,7 +72,7 @@ Anything not implemented must fail in a predictable way (a standard GraphQL vali
   update/delete mutations are expected to produce a `userErrors` entry rather than a top-level error (to verify).
 - Payload objects also carry the mutated resource under a lower-camel field (`product`, `collection`, `customer`, ...) and,
   for deletes, a `deleted<Type>Id: ID`. Long operations return a `Job` or an `*Operation` (asynchronous) which clients
-  poll; Shoppen may complete work synchronously and return a finished job object.
+  poll; ShopMe may complete work synchronously and return a finished job object.
 - Mutations cost 10 points each in addition to selected fields (public docs).
 
 ### 1.5 Scalars and money
@@ -108,7 +108,7 @@ Observed behavior, confirmed on our store:
   plus the requested page size times the cost of the node selection, mutations 10. When the bucket cannot cover the
   requested cost the request is rejected with a throttled error (code `THROTTLED`) and the client should retry later;
   requests above the 1000 cap are rejected up front (`MAX_COST_EXCEEDED`).
-- Shoppen MVP: implement the accounting and the `extensions.cost` block; start with a per-token bucket in Redis.
+- ShopMe MVP: implement the accounting and the `extensions.cost` block; start with a per-token bucket in Redis.
 
 ### 1.7 Access scopes and error shapes
 
@@ -125,7 +125,7 @@ Observed behavior, confirmed on our store:
 
 ### 1.8 Deprecations in 2026-10 that matter
 
-The sampled queries use several fields that the 2026-10 schema marks deprecated. Shoppen must still serve them
+The sampled queries use several fields that the 2026-10 schema marks deprecated. ShopMe must still serve them
 (clients depend on them) but should document the replacements:
 
 - `Shop.billingAddress` (use `shopAddress`), `Shop.productTypes/productVendors/productTags` (use the root fields).

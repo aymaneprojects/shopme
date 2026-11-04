@@ -1,6 +1,6 @@
 # Storefront Ajax / cart API (observed behaviour)
 
-Status: observation notes for the Shoppen compatibility layer. Written in our own
+Status: observation notes for the ShopMe compatibility layer. Written in our own
 words from black-box captures of a Shopify development store (fake data, storefront
 password protected). Endpoint paths, parameter names, JSON field names and status
 codes are listed because they are interoperability facts. No vendor code or doc text

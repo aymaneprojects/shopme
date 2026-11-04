@@ -1,4 +1,4 @@
-# @shoppen/sdk
+# @shopme/sdk
 
 Client SDK (MIT).
 

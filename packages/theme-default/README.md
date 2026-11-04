@@ -1,5 +1,5 @@
-# @shoppen/theme-default
+# @shopme/theme-default
 
-Default Shoppen theme (MIT).
+Default ShopMe theme (MIT).
 
 Status: placeholder (pre-alpha).

@@ -1,1 +1,1 @@
-export const name = '@shoppen/sdk';
+export const name = '@shopme/sdk';

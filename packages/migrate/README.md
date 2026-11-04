@@ -1,4 +1,4 @@
-# @shoppen/migrate
+# @shopme/migrate
 
 One-click migration tooling from Shopify.
 

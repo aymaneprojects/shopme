@@ -1,1 +1,1 @@
-export const name = '@shoppen/liquid-compat';
+export const name = '@shopme/liquid-compat';

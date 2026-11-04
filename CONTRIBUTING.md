@@ -1,14 +1,17 @@
-# Contributing to Shoppen
+# Contributing to ShopMe
 
-Thanks for helping! Shoppen is pre-alpha; the structure will move quickly.
+Thanks for helping! ShopMe is pre-alpha; the structure will move quickly.
 
 ## Setup
 
 ```bash
 corepack enable
 pnpm install
-pnpm typecheck
+pnpm dev                  # server + embedded database, http://localhost:3000/admin
+pnpm turbo run typecheck test build
 ```
+
+Developer notes: [docs/dev/foundation.md](docs/dev/foundation.md).
 
 Requires Node 22 (see `.nvmrc`) and pnpm 9.
 
@@ -20,7 +23,7 @@ Requires Node 22 (see `.nvmrc`) and pnpm 9.
 
 ## Clean-room rule (important)
 
-Shoppen reproduces *behavior*, not third-party code. Read [docs/legal/clean-room.md](docs/legal/clean-room.md)
+ShopMe reproduces *behavior*, not third-party code. Read [docs/legal/clean-room.md](docs/legal/clean-room.md)
 before contributing. In short: never paste proprietary code, theme files, schema dumps, or documentation text
 into issues, PRs, or the repo, and never test against stores you do not own. PRs that violate this will be closed.
 

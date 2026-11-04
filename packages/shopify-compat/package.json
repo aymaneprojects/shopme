@@ -1,13 +1,16 @@
 {
-  "name": "@shoppen/shopify-compat",
+  "name": "@shopme/shopify-compat",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "build": "echo \"no build yet\"",
+    "build": "echo \"no build\"",
     "lint": "echo \"no lint yet\"",
-    "test": "echo \"no tests yet\"",
+    "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "vitest": "5.1.0"
   }
 }

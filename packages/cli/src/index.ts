@@ -1,1 +1,1 @@
-export const name = '@shoppen/cli';
+export const name = '@shopme/cli';

@@ -1,4 +1,4 @@
-# @shoppen/payments
+# @shopme/payments
 
 Payment provider adapters (Stripe, Mollie, PayPal).
 

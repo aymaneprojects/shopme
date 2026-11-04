@@ -1,4 +1,4 @@
-# @shoppen/cli
+# @shopme/cli
 
 Command-line tool: theme dev/push, store management.
 
