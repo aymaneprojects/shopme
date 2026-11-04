@@ -1,0 +1,32 @@
+/* Tailwind v4 theme bridge: maps ShopMe tokens (tokens.css) to utility names. Import after `@import "tailwindcss"`. */
+@import "./tokens.css";
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-subtle: var(--color-primary-subtle);
+  --color-on-primary: var(--color-primary-contrast);
+  --color-canvas: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-line: var(--color-border);
+  --color-fg: var(--color-text);
+  --color-muted: var(--color-text-muted);
+  --color-success: var(--color-success);
+  --color-success-subtle: var(--color-success-subtle);
+  --color-warning: var(--color-warning);
+  --color-warning-subtle: var(--color-warning-subtle);
+  --color-critical: var(--color-critical);
+  --color-critical-subtle: var(--color-critical-subtle);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --font-sans: var(--font-sans);
+}
+
+@layer base {
+  html { color-scheme: light dark; }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); }
+  :focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 1px; }
+}
