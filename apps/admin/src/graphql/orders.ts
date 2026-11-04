@@ -27,7 +27,7 @@ export const ORDER = /* GraphQL */ `
       id name createdAt email note tags cancelledAt closedAt displayFinancialStatus displayFulfillmentStatus
       lineItems(first: 100) {
         nodes {
-          id title variantTitle sku quantity refundableQuantity fulfillableQuantity
+          id title variantTitle sku quantity refundableQuantity unfulfilledQuantity
           originalUnitPriceSet { ${MONEY} }
           discountedTotalSet { ${MONEY} }
           variant { id image { url } }
@@ -48,7 +48,7 @@ export const ORDER = /* GraphQL */ `
       fulfillments { id status createdAt trackingInfo { company number url } }
       refunds { id createdAt note totalRefundedSet { ${MONEY} } }
       customer { id displayName defaultEmailAddress { emailAddress } numberOfOrders }
-      events(first: 100) { nodes { id message createdAt } }
+      events(first: 100) { nodes { ... on Node { id } message createdAt } }
     }
   }
 `;
@@ -80,7 +80,7 @@ export const REFUND_CREATE = /* GraphQL */ `
   mutation RefundCreate($input: RefundInput!) { refundCreate(input: $input) { refund { id } userErrors { field message } } }
 `;
 export const ORDER_TIMELINE_COMMENT_CREATE = /* GraphQL */ `
-  mutation OrderTimelineCommentCreate($orderId: ID!, $message: String!) {
-    orderTimelineCommentCreate(orderId: $orderId, message: $message) { event { id message createdAt } userErrors { field message } }
+  mutation OrderTimelineCommentCreate($id: ID!, $message: String!) {
+    orderTimelineCommentCreate(id: $id, message: $message) { event { id message createdAt } userErrors { field message } }
   }
 `;

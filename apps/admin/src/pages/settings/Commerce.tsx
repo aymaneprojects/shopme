@@ -18,24 +18,24 @@ import { TaxToggles } from './Settings';
 const errText = (e: Error) => (e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message);
 
 // ---------- Payments ----------
-interface Payments { bankTransfer: { enabled: boolean; instructions: string | null }; cod: { enabled: boolean }; stripe: { enabled: boolean }; stripeConfigured: boolean }
+interface Payments { bankTransfer: { enabled: boolean; instructions: string }; cod: { enabled: boolean }; stripe: { enabled: boolean; stripeConfigured: boolean } }
 
 export function PaymentsSettings() {
-  const q = useQuery({ queryKey: ['payment-settings'], queryFn: () => gql<{ paymentSettings: Payments }>(PAYMENT_SETTINGS) });
+  const q = useQuery({ queryKey: ['payment-settings'], queryFn: () => gql<{ shopmePaymentSettings: Payments }>(PAYMENT_SETTINGS) });
   if (q.isLoading) return <Skeleton className="h-64" />;
   if (q.error) return <Banner>{q.error.message}</Banner>;
-  return <PaymentsForm key={q.dataUpdatedAt} data={q.data!.paymentSettings} />;
+  return <PaymentsForm key={q.dataUpdatedAt} data={q.data!.shopmePaymentSettings} />;
 }
 
 function PaymentsForm({ data }: { data: Payments }) {
   const { t } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
-  const init = { bank: data.bankTransfer.enabled, instructions: data.bankTransfer.instructions ?? '', cod: data.cod.enabled, stripe: data.stripe.enabled };
+  const init = { bank: data.bankTransfer.enabled, instructions: data.bankTransfer.instructions, cod: data.cod.enabled, stripe: data.stripe.enabled };
   const [f, setF] = useState(init);
   const [error, setError] = useState<string | null>(null);
   const save = useMutation({
-    mutationFn: () => mutate(PAYMENT_SETTINGS_UPDATE, { input: { bankTransfer: { enabled: f.bank, instructions: f.instructions }, cod: { enabled: f.cod }, stripe: { enabled: f.stripe } } }, 'paymentSettingsUpdate'),
+    mutationFn: () => mutate(PAYMENT_SETTINGS_UPDATE, { input: { bankTransfer: { enabled: f.bank, instructions: f.instructions }, cod: { enabled: f.cod }, stripe: { enabled: f.stripe } } }, 'shopmePaymentSettingsUpdate'),
     onSuccess: () => { toast(t('settings.saved')); setError(null); void qc.invalidateQueries({ queryKey: ['payment-settings'] }); },
     onError: (e) => setError(errText(e)),
   });
@@ -44,10 +44,10 @@ function PaymentsForm({ data }: { data: Payments }) {
       <SaveBar dirty={JSON.stringify(f) !== JSON.stringify(init)} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => setF(init)} />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
       <div className="flex flex-col gap-4">
-        <Card title={t('payments.stripe')} actions={<Badge tone={data.stripeConfigured ? 'success' : 'warning'}>{data.stripeConfigured ? t('payments.configured') : t('payments.notConfigured')}</Badge>}>
+        <Card title={t('payments.stripe')} actions={<Badge tone={data.stripe.stripeConfigured ? 'success' : 'warning'}>{data.stripe.stripeConfigured ? t('payments.configured') : t('payments.notConfigured')}</Badge>}>
           <div className="flex flex-col gap-2">
             <Switch checked={f.stripe} onChange={(v) => setF({ ...f, stripe: v })} label={t('payments.stripeEnable')} />
-            {!data.stripeConfigured && <p className="text-sm text-muted">{t('payments.stripeHint')}</p>}
+            {!data.stripe.stripeConfigured && <p className="text-sm text-muted">{t('payments.stripeHint')}</p>}
           </div>
         </Card>
         <Card title={t('payments.bank')}>
@@ -63,18 +63,24 @@ function PaymentsForm({ data }: { data: Payments }) {
 }
 
 // ---------- Shipping ----------
-interface Rate { id?: string; name: string; price: string; condition: 'none' | 'subtotal' | 'weight'; min: string; max: string; estimatedDelivery: string }
-interface ApiRate { id: string; name: string; price: string; minSubtotal: string | null; maxSubtotal: string | null; minWeight: number | string | null; maxWeight: number | string | null; estimatedDelivery: string | null }
-interface Zone { id: string; name: string; countryCodes: string[]; rates: ApiRate[] }
+interface Rate { id?: string; name: string; price: string; condition: 'none' | 'subtotal' | 'weight'; min: string; max: string }
+type Money = { amount: string } | null;
+interface ApiRate { id: string; name: string; type: string; price: { amount: string }; minSubtotal: Money; maxSubtotal: Money; minWeight: number | null; maxWeight: number | null }
+interface Zone { id: string; name: string; countries: Array<{ countryCode: string; provinceCodes: string[] }>; rates: ApiRate[] }
 
 const toRate = (r: ApiRate): Rate => {
-  const sub = r.minSubtotal != null || r.maxSubtotal != null, w = r.minWeight != null || r.maxWeight != null;
-  return { id: r.id, name: r.name, price: r.price, condition: sub ? 'subtotal' : w ? 'weight' : 'none', min: String((sub ? r.minSubtotal : r.minWeight) ?? ''), max: String((sub ? r.maxSubtotal : r.maxWeight) ?? ''), estimatedDelivery: r.estimatedDelivery ?? '' };
+  const sub = r.type === 'PRICE_BASED', w = r.type === 'WEIGHT_BASED';
+  return {
+    id: r.id, name: r.name, price: r.price.amount, condition: sub ? 'subtotal' : w ? 'weight' : 'none',
+    min: String((sub ? r.minSubtotal?.amount : r.minWeight) ?? ''), max: String((sub ? r.maxSubtotal?.amount : r.maxWeight) ?? ''),
+  };
 };
+/** Maps a form rate to a ShopmeShippingRateInput. A rate without a condition is a flat rate. */
 export const rateInput = (r: Rate) => {
   const min = parseDecimal(r.min), max = parseDecimal(r.max);
+  const type = r.condition === 'subtotal' ? 'PRICE_BASED' : r.condition === 'weight' ? 'WEIGHT_BASED' : 'FLAT';
   return {
-    name: r.name.trim(), price: (parseDecimal(r.price) ?? 0).toFixed(2), estimatedDelivery: r.estimatedDelivery.trim() || null,
+    name: r.name.trim(), type, price: (parseDecimal(r.price) ?? 0).toFixed(2),
     minSubtotal: r.condition === 'subtotal' && min !== null ? min.toFixed(2) : null, maxSubtotal: r.condition === 'subtotal' && max !== null ? max.toFixed(2) : null,
     minWeight: r.condition === 'weight' ? min : null, maxWeight: r.condition === 'weight' ? max : null,
   };
@@ -86,7 +92,7 @@ export function ShippingSettings() {
   const { shop } = useShop();
   const toast = useToast();
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['shipping-zones'], queryFn: () => gql<{ shippingZones: { nodes: Zone[] } }>(SHIPPING_ZONES) });
+  const q = useQuery({ queryKey: ['shipping-zones'], queryFn: () => gql<{ shippingZones: Zone[] }>(SHIPPING_ZONES) });
   const [editing, setEditing] = useState<{ id: string | null; name: string; codes: string[]; rates: Rate[] } | null>(null);
   const [confirm, setConfirm] = useState<Zone | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -94,7 +100,7 @@ export function ShippingSettings() {
   const save = useMutation({
     mutationFn: () => {
       const e = editing!;
-      const input = { name: e.name.trim(), countryCodes: e.codes, rates: e.rates.map(rateInput) };
+      const input = { name: e.name.trim(), countries: e.codes.map((countryCode) => ({ countryCode, provinceCodes: [] })), rates: e.rates.map(rateInput) };
       return e.id ? mutate(SHIPPING_ZONE_UPDATE, { id: e.id, input }, 'shippingZoneUpdate') : mutate(SHIPPING_ZONE_CREATE, { input }, 'shippingZoneCreate');
     },
     onSuccess: () => { toast(t('settings.saved')); setEditing(null); setError(null); void refresh(); },
@@ -105,7 +111,7 @@ export function ShippingSettings() {
   const e = editing;
   const setRate = (i: number, p: Partial<Rate>) => setEditing({ ...e!, rates: e!.rates.map((r, j) => (j === i ? { ...r, ...p } : r)) });
   const valid = !!e && e.name.trim() !== '' && e.codes.length > 0 && e.rates.every((r) => r.name.trim() && parseDecimal(r.price) !== null);
-  const blankRate: Rate = { name: '', price: '', condition: 'none', min: '', max: '', estimatedDelivery: '' };
+  const blankRate: Rate = { name: '', price: '', condition: 'none', min: '', max: '' };
   const add = <Button variant="primary" onClick={() => { setError(null); setEditing({ id: null, name: '', codes: [], rates: [{ ...blankRate }] }); }}><Plus className="size-4" />{t('shipping.addZone')}</Button>;
 
   return (
@@ -113,16 +119,16 @@ export function ShippingSettings() {
       <div className="flex items-center justify-between"><h2 className="text-base font-semibold">{t('settings.shipping')}</h2>{add}</div>
       {q.isError && <Banner>{(q.error as Error).message}</Banner>}
       {q.isLoading && <Skeleton className="h-32" />}
-      {q.data?.shippingZones.nodes.length === 0 && <Card><EmptyState title={t('shipping.emptyTitle')} description={t('shipping.emptyBody')} action={add} /></Card>}
-      {q.data?.shippingZones.nodes.map((z) => (
-        <Card key={z.id} title={z.name} actions={<span className="flex gap-2"><Button size="sm" onClick={() => { setError(null); setEditing({ id: z.id, name: z.name, codes: z.countryCodes, rates: z.rates.map(toRate) }); }}>{t('common.edit')}</Button><Button size="sm" variant="danger" onClick={() => setConfirm(z)}>{t('common.delete')}</Button></span>}>
-          <p className="mb-2 text-sm text-muted">{z.countryCodes.map((c) => countryName(c, lang)).join(', ')}</p>
+      {q.data?.shippingZones.length === 0 && <Card><EmptyState title={t('shipping.emptyTitle')} description={t('shipping.emptyBody')} action={add} /></Card>}
+      {q.data?.shippingZones.map((z) => (
+        <Card key={z.id} title={z.name} actions={<span className="flex gap-2"><Button size="sm" onClick={() => { setError(null); setEditing({ id: z.id, name: z.name, codes: z.countries.map((c) => c.countryCode), rates: z.rates.map(toRate) }); }}>{t('common.edit')}</Button><Button size="sm" variant="danger" onClick={() => setConfirm(z)}>{t('common.delete')}</Button></span>}>
+          <p className="mb-2 text-sm text-muted">{z.countries.map((c) => countryName(c.countryCode, lang)).join(', ')}</p>
           <ul className="divide-y divide-line text-sm">
             {z.rates.map((r) => (
               <li key={r.id} className="flex flex-wrap items-center gap-2 py-1.5">
                 <span className="font-medium">{r.name}</span>
-                <span className="text-muted">{[r.minSubtotal != null && `≥ ${fmt.money({ amount: r.minSubtotal, currencyCode: shop.currency })}`, r.maxSubtotal != null && `≤ ${fmt.money({ amount: r.maxSubtotal, currencyCode: shop.currency })}`, r.minWeight != null && `≥ ${r.minWeight}`, r.maxWeight != null && `≤ ${r.maxWeight}`, r.estimatedDelivery].filter(Boolean).join(' · ')}</span>
-                <span className="ml-auto">{Number(r.price) === 0 ? t('shipping.free') : fmt.money({ amount: r.price, currencyCode: shop.currency })}</span>
+                <span className="text-muted">{[r.minSubtotal && `≥ ${fmt.money({ amount: r.minSubtotal.amount, currencyCode: shop.currency })}`, r.maxSubtotal && `≤ ${fmt.money({ amount: r.maxSubtotal.amount, currencyCode: shop.currency })}`, r.minWeight != null && `≥ ${r.minWeight}`, r.maxWeight != null && `≤ ${r.maxWeight}`].filter(Boolean).join(' · ')}</span>
+                <span className="ml-auto">{Number(r.price.amount) === 0 ? t('shipping.free') : fmt.money({ amount: r.price.amount, currencyCode: shop.currency })}</span>
               </li>
             ))}
           </ul>
@@ -150,7 +156,6 @@ export function ShippingSettings() {
                   <Select label={t('shipping.condition')} value={r.condition} onChange={(ev) => setRate(i, { condition: ev.target.value as Rate['condition'] })}>
                     <option value="none">{t('shipping.condNone')}</option><option value="subtotal">{t('shipping.condSubtotal')}</option><option value="weight">{t('shipping.condWeight')}</option>
                   </Select>
-                  <Input label={t('shipping.estimated')} value={r.estimatedDelivery} onChange={(ev) => setRate(i, { estimatedDelivery: ev.target.value })} />
                   {r.condition !== 'none' && <>
                     <Input label={t('shipping.min')} inputMode="decimal" value={r.min} onChange={(ev) => setRate(i, { min: ev.target.value })} />
                     <Input label={t('shipping.max')} inputMode="decimal" value={r.max} onChange={(ev) => setRate(i, { max: ev.target.value })} />
@@ -169,13 +174,13 @@ export function ShippingSettings() {
 }
 
 // ---------- Taxes ----------
-interface TaxRate { id: string; name: string; countryCode: string; province: string | null; rate: number | string }
+interface TaxRate { id: string; name: string; countryCode: string; provinceCode: string | null; rate: number | string }
 
 export function TaxesSettings() {
   const { t, lang } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['tax-rates'], queryFn: () => gql<{ taxRates: { nodes: TaxRate[] } }>(TAX_RATES) });
+  const q = useQuery({ queryKey: ['tax-rates'], queryFn: () => gql<{ taxRates: TaxRate[] }>(TAX_RATES) });
   const [editing, setEditing] = useState<{ id: string | null; name: string; countryCode: string; province: string; rate: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const refresh = () => qc.invalidateQueries({ queryKey: ['tax-rates'] });
@@ -184,7 +189,7 @@ export function TaxesSettings() {
   const save = useMutation({
     mutationFn: () => {
       const e = editing!;
-      const input = { name: e.name.trim(), countryCode: e.countryCode, province: e.province.trim() || null, rate };
+      const input = { name: e.name.trim(), countryCode: e.countryCode, provinceCode: e.province.trim() || null, rate };
       return e.id ? mutate(TAX_RATE_UPDATE, { id: e.id, input }, 'taxRateUpdate') : mutate(TAX_RATE_CREATE, { input }, 'taxRateCreate');
     },
     onSuccess: () => { toast(t('settings.saved')); setEditing(null); setError(null); void refresh(); },
@@ -197,15 +202,15 @@ export function TaxesSettings() {
       <TaxToggles />
       <Card title={t('taxes.rates')} actions={<Button size="sm" variant="primary" onClick={() => { setError(null); setEditing({ id: null, name: '', countryCode: '', province: '', rate: '' }); }}><Plus className="size-4" />{t('taxes.add')}</Button>}>
         {q.isError && <Banner>{(q.error as Error).message}</Banner>}
-        {q.data?.taxRates.nodes.length === 0 && <p className="text-sm text-muted">{t('taxes.empty')}</p>}
-        {(q.data?.taxRates.nodes.length ?? 0) > 0 && (
+        {q.data?.taxRates.length === 0 && <p className="text-sm text-muted">{t('taxes.empty')}</p>}
+        {(q.data?.taxRates.length ?? 0) > 0 && (
           <table className="w-full text-left text-sm">
             <thead className="text-xs text-muted"><tr><th className="py-1">{t('taxes.country')}</th><th>{t('taxes.province')}</th><th>{t('taxes.name')}</th><th>{t('taxes.rate')}</th><th /></tr></thead>
             <tbody>
-              {q.data!.taxRates.nodes.map((r) => (
+              {q.data!.taxRates.map((r) => (
                 <tr key={r.id} className="border-t border-line">
-                  <td className="py-1.5">{countryName(r.countryCode, lang)}</td><td>{r.province ?? '—'}</td><td>{r.name}</td><td>{Number(r.rate)} %</td>
-                  <td className="text-right"><Button size="sm" onClick={() => { setError(null); setEditing({ id: r.id, name: r.name, countryCode: r.countryCode, province: r.province ?? '', rate: String(Number(r.rate)) }); }}>{t('common.edit')}</Button>{' '}
+                  <td className="py-1.5">{countryName(r.countryCode, lang)}</td><td>{r.provinceCode ?? '—'}</td><td>{r.name}</td><td>{Number(r.rate)} %</td>
+                  <td className="text-right"><Button size="sm" onClick={() => { setError(null); setEditing({ id: r.id, name: r.name, countryCode: r.countryCode, province: r.provinceCode ?? '', rate: String(Number(r.rate)) }); }}>{t('common.edit')}</Button>{' '}
                     <Button size="sm" variant="danger" aria-label={`${t('common.delete')} ${r.name}`} onClick={() => del.mutate(r.id)}><Trash2 className="size-4" /></Button></td>
                 </tr>
               ))}

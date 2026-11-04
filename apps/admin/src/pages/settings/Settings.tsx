@@ -37,7 +37,7 @@ export const SettingsIndex = () => <Navigate to="/settings/general" replace />;
 export interface ShopData {
   name: string; email: string; description: string | null; currencyCode: string; ianaTimezone: string; weightUnit: string; taxesIncluded: boolean; taxShipping: boolean; locale: string;
   currencyFormats: { moneyFormat: string; moneyWithCurrencyFormat: string }; primaryDomain: { host: string; url: string } | null; myshopifyDomain: string;
-  storefrontPasswordEnabled: boolean; storefrontPassword: string | null;
+  storefront: { passwordEnabled: boolean; password: string };
 }
 export interface ShopForm {
   name: string; email: string; description: string; currencyCode: string; ianaTimezone: string; weightUnit: string; moneyFormat: string; moneyWithCurrencyFormat: string;
@@ -46,7 +46,7 @@ export interface ShopForm {
 const toForm = (s: ShopData): ShopForm => ({
   name: s.name, email: s.email, description: s.description ?? '', currencyCode: s.currencyCode, ianaTimezone: s.ianaTimezone, weightUnit: s.weightUnit,
   moneyFormat: s.currencyFormats.moneyFormat, moneyWithCurrencyFormat: s.currencyFormats.moneyWithCurrencyFormat,
-  storefrontPasswordEnabled: s.storefrontPasswordEnabled, storefrontPassword: s.storefrontPassword ?? '', taxesIncluded: s.taxesIncluded, taxShipping: s.taxShipping,
+  storefrontPasswordEnabled: s.storefront.passwordEnabled, storefrontPassword: s.storefront.password, taxesIncluded: s.taxesIncluded, taxShipping: s.taxShipping,
   primaryDomain: s.primaryDomain && s.primaryDomain.host !== s.myshopifyDomain ? s.primaryDomain.host : '', locale: s.locale,
 });
 
@@ -69,7 +69,7 @@ function ShopPanelForm({ shop, fields, children }: { shop: ShopData; fields: Arr
   const [error, setError] = useState<string | null>(null);
   const dirty = fields.some((k) => form[k] !== initial[k]);
   const save = useMutation({
-    mutationFn: () => mutate(SHOP_UPDATE, { input: Object.fromEntries(fields.map((k) => [k, form[k]])) }, 'shopUpdate'),
+    mutationFn: () => mutate(SHOP_UPDATE, { input: Object.fromEntries(fields.map((k) => [k, form[k]])) }, 'shopmeShopUpdate'),
     onSuccess: () => { toast(t('settings.saved')); setError(null); void qc.invalidateQueries({ queryKey: ['shop-settings'] }); },
     onError: (e) => setError(e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message),
   });

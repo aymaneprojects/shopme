@@ -12,7 +12,7 @@ import type { RefundLine } from '../../lib/refund';
 import { parseDecimal } from '../../format';
 
 export interface OrderLine {
-  id: string; title: string; variantTitle: string | null; sku: string | null; quantity: number; refundableQuantity: number; fulfillableQuantity: number;
+  id: string; title: string; variantTitle: string | null; sku: string | null; quantity: number; refundableQuantity: number; unfulfilledQuantity: number;
   originalUnitPriceSet: MoneySet; discountedTotalSet: MoneySet; variant: { id: string; image: { url: string } | null } | null;
 }
 
@@ -28,7 +28,7 @@ function useRun(done: () => void, ok: Key) {
 
 export function FulfillDialog({ open, onClose, orderId, lines, onDone }: { open: boolean; onClose: () => void; orderId: string; lines: OrderLine[]; onDone: () => void }) {
   const t = useT();
-  const [qty, setQty] = useState<Record<string, number>>(() => Object.fromEntries(lines.map((l) => [l.id, l.fulfillableQuantity])));
+  const [qty, setQty] = useState<Record<string, number>>(() => Object.fromEntries(lines.map((l) => [l.id, l.unfulfilledQuantity])));
   const [company, setCompany] = useState(''); const [number, setNumber] = useState(''); const [url, setUrl] = useState(''); const [notify, setNotify] = useState(true);
   const picked = lines.filter((l) => (qty[l.id] ?? 0) > 0);
   const run = useRun(() => { onDone(); onClose(); }, 'order.fulfilled');
@@ -49,8 +49,8 @@ export function FulfillDialog({ open, onClose, orderId, lines, onDone }: { open:
           {lines.map((l) => (
             <li key={l.id} className="flex items-center gap-3 py-2 text-sm">
               <span className="flex-1">{l.title}{l.variantTitle && <span className="text-muted"> · {l.variantTitle}</span>}</span>
-              <QtyInput label={`${t('order.quantity')} ${l.title}`} value={qty[l.id] ?? 0} max={l.fulfillableQuantity} onChange={(n) => setQty({ ...qty, [l.id]: n })} />
-              <span className="text-muted">/ {l.fulfillableQuantity}</span>
+              <QtyInput label={`${t('order.quantity')} ${l.title}`} value={qty[l.id] ?? 0} max={l.unfulfilledQuantity} onChange={(n) => setQty({ ...qty, [l.id]: n })} />
+              <span className="text-muted">/ {l.unfulfilledQuantity}</span>
             </li>
           ))}
         </ul>

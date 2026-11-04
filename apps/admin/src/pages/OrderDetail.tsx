@@ -63,7 +63,7 @@ function OrderView({ order: o }: { order: OrderData }) {
   });
   const saveNote = useMutation({ mutationFn: () => mutate(ORDER_UPDATE, { input: { id: o.id, note } }, 'orderUpdate'), onSuccess: () => { toast(t('order.updated')); void refresh(); }, onError: fail });
   const post = useMutation({
-    mutationFn: () => mutate(ORDER_TIMELINE_COMMENT_CREATE, { orderId: o.id, message: comment.trim() }, 'orderTimelineCommentCreate'),
+    mutationFn: () => mutate(ORDER_TIMELINE_COMMENT_CREATE, { id: o.id, message: comment.trim() }, 'orderTimelineCommentCreate'),
     onSuccess: () => { setComment(''); void refresh(); }, onError: fail,
   });
   const tags = useMutation({
@@ -76,7 +76,7 @@ function OrderView({ order: o }: { order: OrderData }) {
   });
 
   const lines = o.lineItems.nodes;
-  const unfulfilled = lines.filter((l) => l.fulfillableQuantity > 0);
+  const unfulfilled = lines.filter((l) => l.unfulfilledQuantity > 0);
   const cur = o.totalPriceSet.shopMoney.currencyCode;
   const paidCents = o.transactions.filter((x) => x.status === 'SUCCESS' && (x.kind === 'SALE' || x.kind === 'CAPTURE')).reduce((s, x) => s + toCents(x.amountSet.shopMoney.amount), 0);
   const refundedCents = toCents(o.totalRefundedSet.shopMoney.amount);
@@ -102,9 +102,9 @@ function OrderView({ order: o }: { order: OrderData }) {
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">
           {unfulfilled.length > 0 && (
-            <Card title={<span className="flex items-center gap-2"><Badge tone="warning">{t('ful.UNFULFILLED')}</Badge>{t('order.itemsCount', { n: unfulfilled.reduce((s, l) => s + l.fulfillableQuantity, 0) })}</span>}
+            <Card title={<span className="flex items-center gap-2"><Badge tone="warning">{t('ful.UNFULFILLED')}</Badge>{t('order.itemsCount', { n: unfulfilled.reduce((s, l) => s + l.unfulfilledQuantity, 0) })}</span>}
               actions={!o.cancelledAt && <Button variant="primary" size="sm" onClick={() => setDialog('fulfill')}>{t('order.markFulfilled')}</Button>}>
-              <LineList lines={unfulfilled} qty={(l) => l.fulfillableQuantity} />
+              <LineList lines={unfulfilled} qty={(l) => l.unfulfilledQuantity} />
               {o.shippingLines.nodes[0] && <p className="mt-2 text-xs text-muted">{t('order.shippingMethod')}: {o.shippingLines.nodes[0].title}</p>}
             </Card>
           )}

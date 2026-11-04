@@ -12,7 +12,7 @@ import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useShop } from '../session';
 
-interface Dash { totalSales: Money; ordersCount: number; averageOrderValue: Money; salesByDay: Array<{ date: string; total: string }>; topProducts: Array<{ title: string; quantity: number }> }
+interface Dash { totalSales: Money; ordersCount: number; averageOrderValue: Money; salesByDay: Array<{ date: string; sales: { amount: string } }>; topProducts: Array<{ title: string; quantity: number }> }
 const RANGES = ['TODAY', 'LAST_7_DAYS', 'LAST_30_DAYS'];
 
 /** Dependency-free bar chart. Bars have text alternatives through <title>. */
@@ -44,7 +44,7 @@ export function HomePage() {
   const q = useQuery({ queryKey: ['dashboard', range], queryFn: () => gql<{ shopmeDashboard: Dash }>(SHOPME_DASHBOARD, { range }) });
   const d = q.data?.shopmeDashboard;
   const kpi = (label: string, value: string) => <Card key={label} title={label}><p className="text-2xl font-semibold">{q.isLoading ? <Skeleton className="h-8 w-24" /> : value}</p></Card>;
-  const series = (d?.salesByDay ?? []).map((x) => ({ date: x.date, total: Number(x.total) }));
+  const series = (d?.salesByDay ?? []).map((x) => ({ date: x.date, total: Number(x.sales.amount) }));
   const maxQty = Math.max(1, ...(d?.topProducts ?? []).map((p) => p.quantity));
   const link = 'inline-flex items-center gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-sm font-medium hover:bg-surface';
 
