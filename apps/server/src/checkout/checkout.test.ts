@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import Stripe from 'stripe';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createLocalStorage, getPrimaryShop, schema as s, seedDemo, type Mail } from '@shopme/core';
+import { cancelOrder, createFulfillment, createLocalStorage, getPrimaryShop, schema as s, seedDemo, type Mail } from '@shopme/core';
 import { createStripeGateway } from '@shopme/payments';
 import { eq } from 'drizzle-orm';
 import { createTestApp, SETUP_BODY, type TestApp } from '../test-utils';
@@ -98,6 +98,32 @@ describe('checkout with bank transfer', () => {
     const again = await t.app.inject({ method: 'POST', url: `/checkouts/${token}/complete`, payload: form, headers: { 'content-type': 'application/x-www-form-urlencoded' } });
     expect(again.statusCode).toBe(303);
     expect(await db.select().from(s.orders)).toHaveLength(1);
+  });
+
+  it('fulfilling the order ships the committed stock (regression: on hand never went down)', async () => {
+    const db = t.dbHandle.db;
+    const [order] = await db.select().from(s.orders).where(eq(s.orders.name, '#1001'));
+    const before = await stock('JPG-50');
+    expect(before.committed).toBe(1);
+    const r = await createFulfillment(db, order!.shopId, order!.id, {});
+    expect(r.ok).toBe(true);
+    const after = await stock('JPG-50');
+    expect(after).toMatchObject({ committed: 0, onHand: before.onHand - 1, available: before.available });
+  });
+
+  it('cancelling an unfulfilled order with restock releases the commitment without inflating on hand', async () => {
+    const db = t.dbHandle.db;
+    const before = await stock('CPD-SL');
+    const { token } = await startCheckout('CPD-SL', 1);
+    const form = new URLSearchParams({ ...ADDRESS, paymentMethod: 'bank_transfer' }).toString();
+    await refresh(token, ADDRESS);
+    const done = await t.app.inject({ method: 'POST', url: `/checkouts/${token}/complete`, payload: form, headers: { 'content-type': 'application/x-www-form-urlencoded' } });
+    expect(done.statusCode).toBe(303);
+    const [order] = await db.select().from(s.orders).where(eq(s.orders.cartToken, token));
+    expect(await stock('CPD-SL')).toMatchObject({ available: before.available - 1, committed: before.committed + 1, onHand: before.onHand });
+    const r = await cancelOrder(db, order!.shopId, order!.id, { reason: 'CUSTOMER', restock: true });
+    expect(r.ok).toBe(true);
+    expect(await stock('CPD-SL')).toMatchObject({ available: before.available, committed: before.committed, onHand: before.onHand });
   });
 
   it('refuses to oversell at submit', async () => {

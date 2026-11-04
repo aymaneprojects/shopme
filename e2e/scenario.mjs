@@ -1,0 +1,631 @@
+// The full merchant + shopper journey, driven in a real Chromium. See e2e/run.mjs.
+import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { deflateSync } from 'node:zlib';
+
+// Playwright is preinstalled in the dev container (global module) or installed in CI; browsers are never downloaded here.
+const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODULE ?? 'playwright');
+
+const OWNER = { email: 'camille@maison-lumiere.fr', password: 'correct horse battery', first: 'Camille', last: 'Martin' };
+const SHOT_DIR = 'docs/assets/screenshots';
+const T = 15_000;
+
+/** Small valid PNG (a warm gradient) so the product has a real image without binary fixtures. */
+function makePng(w = 600, h = 600) {
+  const crc = (buf) => {
+    let c = ~0;
+    for (const b of buf) {
+      c ^= b;
+      for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
+    }
+    return ~c >>> 0;
+  };
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4);
+    len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type), data]);
+    const c = Buffer.alloc(4);
+    c.writeUInt32BE(crc(td));
+    return Buffer.concat([len, td, c]);
+  };
+  const raw = Buffer.alloc((w * 3 + 1) * h);
+  for (let y = 0; y < h; y++) {
+    raw[y * (w * 3 + 1)] = 0;
+    for (let x = 0; x < w; x++) {
+      const o = y * (w * 3 + 1) + 1 + x * 3;
+      raw[o] = 230 - Math.round((y / h) * 60);
+      raw[o + 1] = 190 - Math.round((x / w) * 60);
+      raw[o + 2] = 140 + Math.round((x / w) * 40);
+    }
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 2;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+}
+
+export async function runScenario({ baseUrl, root }) {
+  const shotDir = path.join(root, SHOT_DIR);
+  mkdirSync(shotDir, { recursive: true });
+  const work = mkdtempSync(path.join(tmpdir(), 'shopme-e2e-files-'));
+  const pngPath = path.join(work, 'bougie.png');
+  writeFileSync(pngPath, makePng());
+
+  const browser = await chromium.launch();
+  const pageErrors = [];
+  const serverErrors = [];
+  const newContext = async (opts = {}) => {
+    const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1, locale: 'en-US', colorScheme: 'light', ...opts });
+    ctx.on('page', (pg) => {
+      pg.on('pageerror', (e) => pageErrors.push(`${pg.url()}: ${e.message}`));
+    });
+    // Any GraphQL error payload or 5xx anywhere in the journey is a failure, even when the UI happens to look fine.
+    ctx.on('response', async (res) => {
+      try {
+        if (res.status() >= 500) serverErrors.push(`${res.status()} ${res.request().method()} ${res.url()}`);
+        else if (res.url().includes('/graphql.json') && res.status() === 200) {
+          const body = await res.json();
+          if (body.errors?.length) serverErrors.push(`GraphQL ${res.url()}: ${body.errors.map((e) => e.message).join('; ')}`);
+        }
+      } catch { /* body unavailable (navigation) */ }
+    });
+    return ctx;
+  };
+
+  let page;
+  const shot = async (name, p = page) => {
+    await p.screenshot({ path: path.join(shotDir, `e2e-${name}.png`) });
+  };
+  let current = '';
+  const step = async (name, fn) => {
+    current = name;
+    const t0 = Date.now();
+    try {
+      await fn();
+    } catch (err) {
+      try {
+        mkdirSync(path.join(root, 'e2e/failures'), { recursive: true });
+        const out = path.join(root, 'e2e/failures', `FAILED-${name.replace(/\W+/g, '_')}.png`);
+        await page.screenshot({ path: out });
+        console.error(`  failure screenshot: ${out} (url ${page.url()})`);
+      } catch { /* ignore */ }
+      err.message = `[${name}] ${err.message}`;
+      throw err;
+    }
+    console.log(`  ok  ${name} (${Date.now() - t0} ms)`);
+  };
+  const vis = (loc) => loc.first().waitFor({ state: 'visible', timeout: T });
+  const text = async (loc) => (await loc.first().innerText({ timeout: T })).replace(/\s+/g, ' ').trim();
+  /** Digits-only comparison of a price text, tolerant to nbsp / narrow nbsp / currency position. */
+  const norm = (s) => s.replace(/[\s  ]/g, '');
+
+  try {
+    const ctx = await newContext();
+    page = await ctx.newPage();
+
+    // ---------------------------------------------------------------- 1. setup wizard
+    await step('1 setup wizard', async () => {
+      await page.goto(`${baseUrl}/admin`);
+      await vis(page.getByRole('heading', { name: 'Set up your store' }));
+      await page.getByLabel('Language').selectOption('fr');
+      await vis(page.getByRole('heading', { name: 'Configurez votre boutique' }));
+      await page.getByLabel('Nom de la boutique').fill('Maison Lumière');
+      await page.getByLabel('Prénom').fill(OWNER.first);
+      await page.getByLabel('Nom', { exact: true }).fill(OWNER.last);
+      await page.getByLabel('E-mail').fill(OWNER.email);
+      await page.getByLabel('Mot de passe').fill(OWNER.password);
+      await page.getByLabel('Devise').selectOption('EUR');
+      await page.getByLabel('Pays').selectOption('FR');
+      await shot('01-setup');
+      await page.getByRole('button', { name: 'Créer la boutique' }).click();
+      await vis(page.getByRole('navigation', { name: /Main|Principale/ }));
+      await vis(page.getByText('Bienvenue, Camille'));
+      // Continue in English; the FR/EN switch is exercised again in step 8.
+      await page.getByRole('button', { name: 'Menu du compte' }).click();
+      await page.getByRole('menuitem', { name: /English/ }).click();
+      await vis(page.getByText('Welcome, Camille'));
+    });
+
+    // ---------------------------------------------------------------- 2. settings
+    await step('2a payments: bank transfer', async () => {
+      await page.goto(`${baseUrl}/admin/settings/payments`);
+      await page.getByLabel('Accept bank transfers').click();
+      await page.getByLabel('Payment instructions').fill('Virement sur IBAN FR76 3000 6000 0112 3456 7890 189, BIC AGRIFRPP. Indiquez le numéro de commande.');
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await page.reload();
+      await vis(page.getByLabel('Payment instructions'));
+      assert.match(await page.getByLabel('Payment instructions').inputValue(), /IBAN FR76/);
+    });
+
+    await step('2b shipping zone France', async () => {
+      await page.goto(`${baseUrl}/admin/settings/shipping`);
+      await page.getByRole('button', { name: 'Add shipping zone' }).first().click();
+      const dlg = page.getByRole('dialog');
+      await dlg.getByLabel('Zone name').fill('France');
+      await dlg.getByLabel('France', { exact: true }).check();
+      await dlg.getByLabel('Rate name').fill('Livraison standard');
+      await dlg.getByLabel('Price (EUR)').fill('4.90');
+      await dlg.getByRole('button', { name: 'Add rate' }).click();
+      await dlg.getByLabel('Rate name').nth(1).fill('Livraison offerte');
+      await dlg.getByLabel('Price (EUR)').nth(1).fill('0');
+      await dlg.getByLabel('Condition').nth(1).selectOption({ label: 'Based on order subtotal' });
+      await dlg.getByLabel(/Minimum/).fill('50');
+      await shot('02-shipping-zone');
+      await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(page.getByText('Livraison offerte'));
+      await vis(page.getByText('France').first());
+    });
+
+    await step('2c tax rate FR 20% included', async () => {
+      await page.goto(`${baseUrl}/admin/settings/taxes`);
+      await page.getByRole('button', { name: 'Add tax rate' }).click();
+      const dlg = page.getByRole('dialog');
+      await dlg.getByLabel('Country').selectOption('FR');
+      await dlg.getByLabel('Tax name').fill('TVA');
+      await dlg.getByLabel('Rate (%)').fill('20');
+      await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(page.getByText('TVA'));
+      const incl = page.getByLabel('Prices include tax');
+      if (!(await incl.isChecked())) await incl.check();
+      const save = page.getByRole('button', { name: 'Save', exact: true });
+      if (await save.isVisible()) await save.click();
+      await page.reload();
+      await vis(page.getByText('TVA'));
+      assert.equal(await page.getByLabel('Prices include tax').isChecked(), true);
+      await shot('03-taxes');
+    });
+
+    // ---------------------------------------------------------------- 3. catalog
+    let productUrl = '';
+    await step('3a product with 4 variants, image, active', async () => {
+      await page.goto(`${baseUrl}/admin/products/new`);
+      await page.getByLabel('Title', { exact: true }).fill('Bougie parfumée');
+      await page.locator('[contenteditable="true"]').first().fill('Bougie à la cire de soja, parfum au choix.');
+      await page.getByLabel('Vendor').fill('Maison Lumière');
+      await page.getByLabel('Status').selectOption({ label: 'Active' });
+      // image upload
+      const chooser = page.waitForEvent('filechooser');
+      await page.getByRole('button', { name: /Add images/ }).click();
+      await (await chooser).setFiles(pngPath);
+      await vis(page.locator('main img').first());
+      // options
+      await page.getByRole('button', { name: 'Add options like size or color' }).click();
+      await page.getByLabel('Option name').first().fill('Parfum');
+      await page.getByLabel('Option values').first().fill('Vanille');
+      await page.keyboard.press('Enter');
+      await page.getByLabel('Option values').first().fill('Figue');
+      await page.keyboard.press('Enter');
+      await page.getByRole('button', { name: 'Add another option' }).click();
+      await page.getByLabel('Option name').nth(1).fill('Taille');
+      await page.getByLabel('Option values').nth(1).fill('S');
+      await page.keyboard.press('Enter');
+      await page.getByLabel('Option values').nth(1).fill('L');
+      await page.keyboard.press('Enter');
+      await vis(page.getByText('4 variants'));
+      const prices = { 'Vanille / S': ['18.00', 'BOUG-VAN-S'], 'Vanille / L': ['32.00', 'BOUG-VAN-L'], 'Figue / S': ['19.00', 'BOUG-FIG-S'], 'Figue / L': ['34.00', 'BOUG-FIG-L'] };
+      for (const [label, [price, sku]] of Object.entries(prices)) {
+        const row = page.getByRole('row', { name: new RegExp(label) });
+        await row.getByLabel(new RegExp(`^Price ${label}`)).fill(price);
+        await row.getByLabel('Show details').click();
+        const panel = page.locator('tr', { has: page.getByLabel('SKU') }).last();
+        await panel.getByLabel('SKU').fill(sku);
+        await panel.getByLabel(/Available/).fill('10');
+        await row.getByLabel('Show details').click();
+      }
+      await shot('04-product-editor');
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await page.waitForURL(/\/admin\/products\/\d+|gid/, { timeout: T });
+      productUrl = page.url();
+      await page.reload();
+      await vis(page.getByRole('row', { name: /Figue \/ L/ }));
+      assert.equal(await page.getByLabel('Status').inputValue(), 'ACTIVE');
+      assert.equal(await page.getByRole('row', { name: /Figue \/ L/ }).getByLabel(/^Price/).inputValue(), '34.00');
+    });
+
+    await step('3b manual collection Bougies', async () => {
+      await page.goto(`${baseUrl}/admin/collections/new`);
+      await page.getByLabel('Title', { exact: true }).fill('Bougies');
+      await page.getByRole('button', { name: 'Add products' }).click();
+      const dlg = page.getByRole('dialog');
+      await vis(dlg.getByText('Bougie parfumée'));
+      await dlg.getByRole('checkbox').first().check();
+      await dlg.getByRole('button', { name: /^Add \(1\)/ }).click();
+      await vis(page.getByText('Bougie parfumée'));
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await page.waitForURL(/\/admin\/collections\/(?!new)/, { timeout: T });
+      await page.reload();
+      await vis(page.getByText('Bougie parfumée'));
+    });
+
+    // ---------------------------------------------------------------- 4. online store
+    const PRIMARY = '#c2410c';
+    await step('4a theme editor: primary colour', async () => {
+      await page.goto(`${baseUrl}/admin/online-store`);
+      await vis(page.getByText('Aurora'));
+      await page.getByRole('button', { name: 'Customize' }).click();
+      await vis(page.getByLabel('Primary color (hex)'));
+      await page.getByLabel('Primary color (hex)').fill(PRIMARY);
+      await shot('05-theme-editor');
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await page.reload();
+      await vis(page.getByLabel('Primary color (hex)'));
+      assert.equal((await page.getByLabel('Primary color (hex)').inputValue()).toLowerCase(), PRIMARY);
+    });
+
+    await step('4b page "À propos"', async () => {
+      await page.goto(`${baseUrl}/admin/online-store/pages/new`);
+      await page.getByLabel('Title', { exact: true }).fill('À propos');
+      await page.locator('[contenteditable="true"]').first().fill('Maison Lumière fabrique des bougies artisanales à Grasse.');
+      await page.getByRole('button', { name: 'Save', exact: true }).first().click();
+      await page.waitForURL(/\/online-store\/pages\/(?!new)/, { timeout: T });
+      await page.goto(`${baseUrl}/admin/online-store/pages`);
+      await vis(page.getByText('À propos'));
+    });
+
+    await step('4c main menu: add the page', async () => {
+      await page.goto(`${baseUrl}/admin/online-store/navigation`);
+      await page.getByLabel('Menu', { exact: true }).selectOption({ label: 'Menu principal' });
+      await page.getByRole('button', { name: 'Add menu item' }).click();
+      const dlg = page.getByRole('dialog');
+      await dlg.getByLabel('Link to').selectOption({ label: 'Page' });
+      await dlg.getByText('À propos').click();
+      await page.getByRole('button', { name: 'Save', exact: true }).first().click();
+      await page.reload();
+      await page.getByLabel('Menu', { exact: true }).selectOption({ label: 'Menu principal' });
+      await vis(page.getByText('Menu items'));
+      await page.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value === 'À propos'), null, { timeout: T });
+      assert.equal(await page.getByRole('button', { name: 'Delete' }).count(), 0, 'default menus cannot be deleted');
+    });
+
+    // ---------------------------------------------------------------- 5. discount
+    await step('5 discount BIENVENUE10', async () => {
+      await page.goto(`${baseUrl}/admin/discounts/new`);
+      await page.getByLabel('Discount code', { exact: true }).fill('BIENVENUE10');
+      await page.getByLabel('Discount type').selectOption({ label: 'Percentage' });
+      await page.getByLabel('%').fill('10');
+      await shot('06-discount');
+      await page.getByRole('button', { name: 'Save', exact: true }).first().click();
+      await page.waitForURL(/\/admin\/discounts\/(?!new)/, { timeout: T });
+      await page.goto(`${baseUrl}/admin/discounts`);
+      await vis(page.getByText('BIENVENUE10'));
+    });
+
+    // ---------------------------------------------------------------- 6. storefront + checkout (shopper, desktop, French)
+    const admin = page;
+    const shopperCtx = await newContext({ locale: 'fr-FR' });
+    const shop = await shopperCtx.newPage();
+    await step('6a storefront home shows product and collection', async () => {
+      page = shop;
+      const res = await shop.goto(`${baseUrl}/`);
+      assert.equal(res.status(), 200);
+      assert.match(await shop.title(), /Maison Lumière/);
+      await vis(shop.getByText('Bougie parfumée'));
+      await vis(shop.getByText('Bougies').first());
+      assert.equal(await shop.locator('html').getAttribute('lang'), 'fr');
+      // the primary colour set in the theme editor is applied
+      const css = await shop.content();
+      assert.ok(css.toLowerCase().includes(PRIMARY), 'theme primary colour is rendered on the storefront');
+      // the page added to the main menu is in the header
+      await vis(shop.locator('header').getByRole('link', { name: 'À propos' }));
+      await shot('07-storefront-home');
+    });
+
+    await step('6b collection and page', async () => {
+      await shop.goto(`${baseUrl}/collections/bougies`);
+      await vis(shop.getByRole('heading', { name: 'Bougies' }));
+      await vis(shop.getByText('Bougie parfumée'));
+      await shop.goto(`${baseUrl}/pages/a-propos`);
+      await vis(shop.getByText('bougies artisanales à Grasse'));
+    });
+
+    await step('6c product page: pick Figue / L and add to cart (Ajax)', async () => {
+      await shop.goto(`${baseUrl}/collections/bougies`);
+      await shop.getByText('Bougie parfumée').first().click();
+      await shop.waitForURL(/\/products\/bougie-parfumee/);
+      await vis(shop.getByRole('heading', { name: 'Bougie parfumée' }));
+      await shop.locator('label.option__label', { hasText: /^Figue$/ }).click();
+      await shop.locator('label.option__label', { hasText: /^L$/ }).click();
+      assert.equal(await shop.getByLabel('Figue', { exact: true }).isChecked(), true);
+      await vis(shop.locator('[data-product-price]').getByText(/34/));
+      assert.match(await text(shop.locator('[data-product-price]')), /34,00/);
+      await shot('08-storefront-product');
+      const count = shop.locator('[data-cart-count]').first();
+      const addReq = shop.waitForResponse((r) => r.url().includes('/cart/add') && r.request().method() === 'POST');
+      await shop.locator('[data-add-to-cart]').click();
+      assert.equal((await addReq).status(), 200);
+      await shop.waitForFunction(() => document.querySelector('[data-cart-count]')?.textContent?.trim() === '1', null, { timeout: T });
+      assert.equal(shop.url().includes('/cart'), false, 'add to cart stays on the product page (Ajax)');
+    });
+
+    await step('6d /cart.js sanity and cart page', async () => {
+      const cart = await (await shopperCtx.request.get(`${baseUrl}/cart.js`)).json();
+      assert.equal(cart.item_count, 1);
+      assert.equal(cart.currency, 'EUR');
+      assert.equal(cart.items.length, 1);
+      assert.equal(cart.items[0].variant_title, 'Figue / L');
+      assert.equal(cart.items[0].sku, 'BOUG-FIG-L');
+      assert.equal(cart.items[0].price, 3400);
+      assert.equal(cart.total_price, 3400);
+      await shop.goto(`${baseUrl}/cart`);
+      await vis(shop.getByText('Bougie parfumée'));
+      await vis(shop.getByText('Parfum: Figue'));
+      await vis(shop.getByText('Taille: L'));
+      await shot('09-storefront-cart');
+    });
+
+    await step('6e checkout page', async () => {
+      await shop.getByRole('link', { name: 'Commander' }).click();
+      await shop.waitForURL(/\/checkouts?\//, { timeout: T });
+      await shot('10-checkout-start');
+    });
+
+    await step('6f checkout: contact, address, shipping, discount, bank transfer', async () => {
+      await shop.locator('#email').fill('julie.dupont@example.fr');
+      await shop.getByLabel('Prénom').fill('Julie');
+      await shop.getByLabel('Nom', { exact: true }).fill('Dupont');
+      await shop.getByLabel('Adresse', { exact: true }).fill('12 rue de la Paix');
+      await shop.getByLabel('Code postal').fill('75002');
+      await shop.getByLabel('Ville').fill('Paris');
+      const phone = shop.getByLabel(/Téléphone/);
+      if (await phone.count()) await phone.fill('0142000000');
+      // shipping rates appear once the address is complete
+      const rates = shop.locator('#shipping-methods input[name="shippingRateId"]');
+      await rates.first().waitFor({ state: 'attached', timeout: T });
+      assert.equal(await rates.count(), 1, 'only the 4.90 rate is offered below 50 EUR');
+      await vis(shop.locator('#shipping-methods').getByText('Livraison standard'));
+      await vis(shop.locator('#shipping-methods').getByText(/4,90/));
+      // discount
+      await shop.locator('#discount-input').fill('BIENVENUE10');
+      await shop.locator('[data-discount-add]').click();
+      await vis(shop.locator('.tag', { hasText: 'BIENVENUE10' }));
+      const summary = await text(shop.locator('#summary-lines'));
+      assert.match(summary, /Sous-total 34,00 €/);
+      assert.match(summary, /-3,40 €|−3,40 €|-3,40/, `discount line: ${summary}`);
+      assert.match(summary, /4,90 €/);
+      assert.match(summary, /Total 35,50 €/, `total: ${summary}`);
+      // payment: bank transfer
+      await shop.locator('input[name="paymentMethod"][value="bank_transfer"]').check();
+      await shot('11-checkout-filled');
+      const statusAfter = shop.waitForURL(/thank|order|status/i, { timeout: 30_000 });
+      await shop.locator('#submit').click();
+      await statusAfter;
+    });
+
+    await step('6g thank-you page: order #1001 and totals', async () => {
+      await vis(shop.getByText('#1001').first());
+      const body = await text(shop.locator('main'));
+      assert.match(body, /#1001/);
+      assert.match(body, /IBAN FR76/, 'bank transfer instructions are shown');
+      assert.match(body, /Sous-total.*34,00 €/);
+      assert.match(body, /3,40 €/);
+      assert.match(body, /4,90 €/);
+      assert.match(body, /35,50 €/);
+      assert.match(body, /Dont taxes\s*5,10 €/, 'VAT included in 30.60 items (shipping untaxed by setting) = 5.10');
+      await shot('12-thank-you');
+    });
+
+    // ---------------------------------------------------------------- 7. back office: the order
+    await step('7a orders list: #1001 pending / unfulfilled', async () => {
+      page = admin;
+      await admin.goto(`${baseUrl}/admin/orders`);
+      const row = admin.getByRole('row', { name: /#1001/ });
+      await vis(row);
+      const t = await text(row);
+      assert.match(t, /#1001.*Julie Dupont €35\.50 Payment pending Unfulfilled 1/);
+      await shot('13-admin-orders');
+    });
+
+    await step('7b order detail', async () => {
+      await admin.getByRole('row', { name: /#1001/ }).getByText('#1001').click();
+      await admin.waitForURL(/\/admin\/orders\/\d+/);
+      await admin.waitForTimeout(1000);
+      await vis(admin.getByText('Order #1001 placed online'));
+      assert.match(await text(admin.locator('main')), /Taxes\s*€5\.10/);
+      await shot('14-admin-order-pending');
+    });
+
+    await step('7c mark as paid', async () => {
+      await admin.getByRole('button', { name: 'Mark as paid' }).first().click();
+      const dlg = admin.getByRole('dialog');
+      if (await dlg.count()) await dlg.getByRole('button', { name: /Mark as paid|Confirm|Save/ }).last().click();
+      await admin.waitForFunction(() => /#1001\s*Paid/.test(document.querySelector('main')?.innerText.replace(/\s+/g, ' ') ?? ''), null, { timeout: T });
+      await vis(admin.getByText(/marked as paid|payment/i).first());
+    });
+
+    await step('7d fulfil with tracking number', async () => {
+      await admin.getByRole('button', { name: 'Mark as fulfilled' }).first().click();
+      const dlg = admin.getByRole('dialog');
+      await dlg.getByLabel('Carrier').fill('Colissimo');
+      await dlg.getByLabel('Tracking number').fill('6A12345678901');
+      await dlg.getByRole('button', { name: 'Mark as fulfilled' }).click();
+      await admin.waitForFunction(() => /#1001\s*Paid\s*Fulfilled/.test(document.querySelector('main')?.innerText.replace(/\s+/g, ' ') ?? ''), null, { timeout: T });
+      await vis(admin.getByText('6A12345678901').first());
+    });
+
+    await step('7e timeline comment', async () => {
+      await admin.getByPlaceholder(/comment|Leave/i).fill('Colis préparé et remis au transporteur.');
+      await admin.getByRole('button', { name: 'Post' }).click();
+      await vis(admin.getByText('Colis préparé et remis au transporteur.'));
+      await admin.reload();
+      await vis(admin.getByText('Colis préparé et remis au transporteur.'));
+      await shot('15-admin-order-fulfilled');
+    });
+
+    await step('7f customer exists with 1 order', async () => {
+      await admin.goto(`${baseUrl}/admin/customers`);
+      const row = admin.getByRole('row', { name: /Julie Dupont/ });
+      await vis(row);
+      assert.match(await text(row), /Julie Dupont.*Paris, France 1 €35\.50/);
+      await shot('16-admin-customers');
+      await row.getByText('Julie Dupont').click();
+      await admin.waitForURL(/\/admin\/customers\/\d+/);
+      await vis(admin.getByText('julie.dupont@example.fr').first());
+      const detail = await text(admin.locator('main'));
+      assert.match(detail, /Orders 1/);
+      assert.match(detail, /Amount spent €35\.50/);
+      assert.match(detail, /#1001.*Paid.*Fulfilled.*€35\.50/);
+    });
+
+    await step('7g inventory of Figue / L is 9', async () => {
+      await admin.goto(`${baseUrl}/admin/inventory`);
+      const row = admin.getByRole('row', { name: /Figue \/ L/ });
+      await vis(row);
+      const cells = (await row.locator('td').allInnerTexts()).map((c) => c.trim());
+      // columns: product, SKU, committed, available, on hand (10 in stock, 1 sold and shipped)
+      assert.deepEqual(cells.slice(-3), ['0', '9', '9'], `committed/available/on hand: ${cells.join(' | ')}`);
+      const other = await text(admin.getByRole('row', { name: /Vanille \/ S/ }));
+      assert.match(other, /BOUG-VAN-S\s+0\s+10\s+10/);
+      await shot('17-admin-inventory');
+    });
+
+    await step('7h dashboard shows the sale', async () => {
+      await admin.goto(`${baseUrl}/admin`);
+      await vis(admin.getByText('Welcome').first());
+      await admin.waitForTimeout(1000);
+      const dash = await text(admin.locator('main'));
+      assert.match(dash, /Sales €35\.50/);
+      assert.match(dash, /Orders 1/);
+      assert.match(dash, /Average order value €35\.50/);
+      assert.match(dash, /Top products Bougie parfumée 1/);
+      await shot('18-admin-dashboard');
+    });
+
+    // ---------------------------------------------------------------- 8. auth, language, 404, JSON
+    await step('8a log out and back in', async () => {
+      await admin.goto(`${baseUrl}/admin`);
+      await admin.getByRole('button', { name: 'Account menu' }).click();
+      await admin.getByRole('menuitem', { name: 'Log out' }).click();
+      await vis(admin.getByRole('heading', { name: 'Log in' }));
+      // the session is really gone server-side
+      assert.equal((await admin.request.get(`${baseUrl}/admin/api/auth/me`)).status(), 401);
+      await admin.getByLabel('Email').fill(OWNER.email);
+      await admin.getByLabel('Password').fill('wrong password here');
+      await admin.getByRole('button', { name: 'Log in' }).click();
+      await vis(admin.getByText('Incorrect email or password.'));
+      await admin.getByLabel('Password').fill(OWNER.password);
+      await admin.getByRole('button', { name: 'Log in' }).click();
+      await vis(admin.getByText('Welcome, Camille'));
+    });
+
+    await step('8b language switch EN <-> FR', async () => {
+      await admin.getByRole('button', { name: 'Account menu' }).click();
+      await admin.getByRole('menuitem', { name: /Français/ }).click();
+      await vis(admin.getByText('Bienvenue, Camille'));
+      const nav = await text(admin.locator('nav').first());
+      for (const w of ['Accueil', 'Commandes', 'Produits', 'Clients', 'Réductions', 'Boutique en ligne', 'Paramètres']) assert.ok(nav.includes(w), `French nav has ${w}: ${nav}`);
+      await admin.goto(`${baseUrl}/admin/orders`);
+      await vis(admin.getByRole('row', { name: /#1001/ }));
+      const row = await text(admin.getByRole('row', { name: /#1001/ }));
+      assert.match(row, /Payé/);
+      assert.match(row, /Traitée|Expédié|Exécuté/i);
+      assert.match(row, /35,50\s*€/, `French money format: ${row}`);
+      await shot('19-admin-orders-fr');
+      await admin.getByRole('button', { name: 'Menu du compte' }).click();
+      await admin.getByRole('menuitem', { name: /English/ }).click();
+      await vis(admin.getByText('Orders', { exact: true }).first());
+    });
+
+    await step('8c 404 pages and JSON endpoints', async () => {
+      const r = await shop.goto(`${baseUrl}/pages/does-not-exist`);
+      assert.equal(r.status(), 404);
+      await vis(shop.getByRole('heading', { name: /introuvable|404/i }));
+      await shot('20-storefront-404', shop);
+      assert.equal((await shopperCtx.request.get(`${baseUrl}/products/nope`)).status(), 404);
+      assert.equal((await shopperCtx.request.get(`${baseUrl}/nope`)).status(), 404);
+      // after checkout the cart is empty
+      const cart = await (await shopperCtx.request.get(`${baseUrl}/cart.js`)).json();
+      assert.equal(cart.item_count, 0);
+      assert.deepEqual(cart.items, []);
+      assert.equal(cart.currency, 'EUR');
+      assert.equal((await shopperCtx.request.get(`${baseUrl}/products/bougie-parfumee.js`)).status(), 200);
+      const health = await (await shopperCtx.request.get(`${baseUrl}/healthz`)).json();
+      assert.equal(health.status, 'ok');
+      // unauthenticated admin API is refused
+      const anon = await browser.newContext();
+      assert.equal((await anon.request.post(`${baseUrl}/admin/api/2026-10/graphql.json`, { data: { query: '{ shop { name } }' } })).status(), 401);
+      await anon.close();
+      // admin SPA: unknown route
+      await admin.goto(`${baseUrl}/admin/definitely-not-here`);
+      await vis(admin.getByText('Page not found'));
+    });
+
+    // ---------------------------------------------------------------- 9. mobile pass: storefront + checkout
+    await step('9 mobile: browse, add to cart, checkout (order #1002)', async () => {
+      const mctx = await newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'fr-FR' });
+      const m = await mctx.newPage();
+      page = m;
+      const noHScroll = async (label) => {
+        const o = await m.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
+        assert.ok(o.sw <= o.iw + 1, `${label}: horizontal overflow (${o.sw} > ${o.iw})`);
+      };
+      await m.goto(`${baseUrl}/`);
+      await vis(m.getByText('Bougie parfumée'));
+      await noHScroll('home');
+      await shot('m-01-home', m);
+      await m.goto(`${baseUrl}/products/bougie-parfumee`);
+      await m.locator('label.option__label', { hasText: /^Vanille$/ }).click();
+      await m.locator('label.option__label', { hasText: /^S$/ }).click();
+      assert.match(await text(m.locator('[data-product-price]')), /18,00/);
+      await noHScroll('product');
+      await shot('m-02-product', m);
+      await m.locator('[data-add-to-cart]').click();
+      await m.waitForFunction(() => document.querySelector('[data-cart-count]')?.textContent?.trim() === '1', null, { timeout: T });
+      await m.goto(`${baseUrl}/cart`);
+      await vis(m.getByText('Parfum: Vanille'));
+      await noHScroll('cart');
+      await shot('m-03-cart', m);
+      await m.getByRole('link', { name: 'Commander' }).click();
+      await m.waitForURL(/\/checkouts?\//, { timeout: T });
+      await m.locator('#email').fill('marc.leroy@example.fr');
+      await m.getByLabel('Prénom').fill('Marc');
+      await m.getByLabel('Nom', { exact: true }).fill('Leroy');
+      await m.getByLabel('Adresse', { exact: true }).fill('5 place Bellecour');
+      await m.getByLabel('Code postal').fill('69002');
+      await m.getByLabel('Ville').fill('Lyon');
+      await m.locator('#shipping-methods input[name="shippingRateId"]').first().waitFor({ state: 'attached', timeout: T });
+      await m.locator('input[name="paymentMethod"][value="bank_transfer"]').check();
+      await noHScroll('checkout');
+      await shot('m-04-checkout', m);
+      await m.locator('#submit').click();
+      await m.waitForURL(/thank/i, { timeout: 30_000 });
+      const body = await text(m.locator('main'));
+      assert.match(body, /#1002/);
+      assert.match(body, /Total\s*22,90 €/, `18.00 + 4.90 shipping: ${body}`);
+      await noHScroll('thank-you');
+      await shot('m-05-thank-you', m);
+      await mctx.close();
+    });
+
+    await step('10 free shipping rate over 50 EUR applies at checkout', async () => {
+      const product = await (await shopperCtx.request.get(`${baseUrl}/products/bougie-parfumee.js`)).json();
+      const big = product.variants.find((v) => v.title === 'Vanille / L');
+      assert.equal(big.price, 3200);
+      const add = await shopperCtx.request.post(`${baseUrl}/cart/add.js`, { data: { id: big.id, quantity: 2 } });
+      assert.equal(add.status(), 200);
+      await shop.goto(`${baseUrl}/checkout`);
+      await shop.waitForURL(/\/checkouts\//, { timeout: T });
+      await shop.locator('#email').fill('julie.dupont@example.fr');
+      await shop.getByLabel('Prénom').fill('Julie');
+      await shop.getByLabel('Nom', { exact: true }).fill('Dupont');
+      await shop.getByLabel('Adresse', { exact: true }).fill('12 rue de la Paix');
+      await shop.getByLabel('Code postal').fill('75002');
+      await shop.getByLabel('Ville').fill('Paris');
+      await vis(shop.locator('#shipping-methods').getByText('Livraison offerte'));
+      assert.match(await text(shop.locator('#shipping-methods')), /Livraison offerte\s*Gratuit/i);
+      await shop.locator('#shipping-methods label', { hasText: 'Livraison offerte' }).locator('input').check();
+      await vis(shop.locator('#summary-lines').getByText(/Total\s*64,00 €/));
+    });
+
+    await shopperCtx.close();
+    await ctx.close();
+    assert.deepEqual(pageErrors, [], 'uncaught page errors');
+    assert.deepEqual(serverErrors, [], '5xx or GraphQL errors during the journey');
+  } finally {
+    await browser.close();
+  }
+}

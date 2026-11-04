@@ -11,3 +11,4 @@ re-private/
 /data/
 /apps/*/data/
 /packages/*/data/
+/e2e/failures/

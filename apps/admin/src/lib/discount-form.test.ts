@@ -44,6 +44,8 @@ describe('discount input mapping', () => {
   it('maps a percentage to a 0-1 fraction and round-trips from the API node', () => {
     const input = toDiscountInput({ ...valid(), minType: 'subtotal', minValue: '50' }) as Record<string, unknown>;
     expect(input.customerGets).toEqual({ value: { percentage: 0.1 }, items: { all: true } });
+    // DiscountCodeBasicInput has no `customerSelection` (server rejects the variable); only API-defined keys are sent
+    expect(Object.keys(input).sort()).toEqual(['appliesOncePerCustomer', 'code', 'combinesWith', 'customerGets', 'endsAt', 'minimumRequirement', 'startsAt', 'title', 'usageLimit']);
     expect(input.minimumRequirement).toEqual({ subtotal: { greaterThanOrEqualToSubtotal: '50.00' } });
     const back = fromDiscountNode({
       __typename: 'DiscountCodeBasic', title: 'SUMMER10', startsAt: '2026-06-01T10:00:00Z', endsAt: null, usageLimit: 5, appliesOncePerCustomer: true,

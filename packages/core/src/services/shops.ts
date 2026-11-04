@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import { defaultMoneyFormats } from '@shopme/shopify-compat';
-import { locations, shops, themes } from '../db/schema';
+import { locations, menus, shops, themes } from '../db/schema';
 import type { Db, Executor } from '../db/client';
 import { createStaffUser, MIN_PASSWORD_LENGTH } from './auth';
 import { addEvent } from './events';
@@ -55,6 +55,12 @@ export async function setupStore(db: Db, input: SetupInput) {
     await tx.insert(locations).values({ shopId: shop!.id, name: 'Shop location', countryCode: shop!.country });
     // Placeholder row; the storefront agent installs the default theme files into it.
     await tx.insert(themes).values({ shopId: shop!.id, name: 'Default', role: 'MAIN' });
+    // Default menus (the theme header and footer read these handles); they cannot be deleted later.
+    const fr = input.locale.toLowerCase().startsWith('fr');
+    await tx.insert(menus).values([
+      { shopId: shop!.id, handle: 'main-menu', title: fr ? 'Menu principal' : 'Main menu' },
+      { shopId: shop!.id, handle: 'footer', title: fr ? 'Menu de pied de page' : 'Footer menu' },
+    ]);
     await addEvent(tx, shop!.id, { subjectType: 'shop', subjectId: shop!.id, verb: 'shop.created', message: 'Store created', authorStaffUserId: owner.id });
     return { shop: shop!, owner };
   });

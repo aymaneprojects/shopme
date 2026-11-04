@@ -14,9 +14,11 @@
     "db:generate": "pnpm --filter @shopme/core db:generate",
     "lint": "turbo run lint",
     "test": "turbo run test",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "e2e": "node e2e/run.mjs"
   },
   "devDependencies": {
+    "playwright": "1.63.0",
     "turbo": "2.11.9",
     "typescript": "5.9.3"
   }

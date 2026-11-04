@@ -1,7 +1,7 @@
 // Online store operations: themes (settings editor), pages, navigation menus.
 
 export const THEMES = /* GraphQL */ `
-  query Themes { themes { nodes { id name role } } }
+  query Themes { themes(first: 50) { nodes { id name role } } }
 `;
 
 export const THEME_SETTINGS = /* GraphQL */ `
@@ -58,7 +58,7 @@ export const PAGE_DELETE = /* GraphQL */ `
 `;
 
 const ITEM = 'id title type url resourceId';
-const MENU = `id title handle items { ${ITEM} items { ${ITEM} items { ${ITEM} } } }`;
+const MENU = `id title handle isDefault items { ${ITEM} items { ${ITEM} items { ${ITEM} } } }`;
 export const MENUS = /* GraphQL */ `
   query Menus { menus(first: 50) { nodes { ${MENU} } } }
 `;

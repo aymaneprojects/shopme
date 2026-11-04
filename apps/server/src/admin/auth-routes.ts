@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { authenticateStaff, createSession, destroySession, getShop, needsSetup, publicStaff, setupStore, SetupError, type Shop } from '@shopme/core';
+import { authenticateStaff, createSession, destroySession, ensureDefaultTheme, getShop, needsSetup, publicStaff, setupStore, SetupError, type Shop } from '@shopme/core';
 import { authenticate, clearSessionCookie, sessionToken, setSessionCookie } from '../plugins/auth';
 import { FailureLimiter } from '../plugins/rate-limit';
 
@@ -34,6 +34,8 @@ export function registerAuthRoutes(app: FastifyInstance) {
     if (!body.success) return reply.code(422).send({ error: 'Invalid input', issues: body.error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })) });
     try {
       const { shop, owner } = await setupStore(db, body.data);
+      // Install Aurora now so the admin theme editor works before the storefront is ever visited.
+      await ensureDefaultTheme(db, shop.id, app.ctx.paths.themeDefaultDir);
       const session = await createSession(db, { shopId: shop.id, staffUserId: owner.id, ip: req.ip, userAgent: req.headers['user-agent'] });
       setSessionCookie(app, reply, session.token, session.expiresAt);
       return reply.code(201).send({ user: publicStaff(owner), shop: publicShop(shop) });
