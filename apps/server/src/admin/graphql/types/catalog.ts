@@ -10,7 +10,7 @@ import { getShop, type Shop } from '@shopme/core';
 import type { Collection, InventoryItem, InventoryLevel, Location, Media, Metafield, OptionWithValues, Product, Variant } from '@shopme/core';
 import { builder } from '../builder';
 import type { GraphQLContext } from '../context';
-import { defineConnection } from './connection';
+import { PageInfo, defineConnection, type Connection } from './connection';
 import { DisplayableError } from './errors';
 import { ERROR_CODES } from './error-codes';
 
@@ -44,6 +44,18 @@ export const SEO = builder.objectRef<{ title: string | null; description: string
 });
 export const Job = builder.objectRef<{ id: string; done: boolean }>('Job').implement({
   fields: (t) => ({ id: t.exposeID('id'), done: t.exposeBoolean('done') }),
+});
+
+/** Connection of plain strings (`StringConnection`, e.g. productTypes/productVendors/productTags). */
+export const StringEdge = builder.objectRef<{ cursor: string; node: string }>('StringEdge').implement({
+  fields: (t) => ({ cursor: t.exposeString('cursor'), node: t.exposeString('node') }),
+});
+export const StringConnection = builder.objectRef<Connection<string>>('StringConnection').implement({
+  fields: (t) => ({
+    edges: t.field({ type: [StringEdge], resolve: (c) => c.edges }),
+    nodes: t.stringList({ resolve: (c) => c.nodes }),
+    pageInfo: t.field({ type: PageInfo, resolve: (c) => c.pageInfo }),
+  }),
 });
 
 /** `WeightUnit` is registered by the shop module; referenced by name here. */

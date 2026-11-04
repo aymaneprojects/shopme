@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import type { UserError } from '@shopme/shopify-compat';
 import {
   files, inventoryItems, inventoryLevels, media, productMedia, productOptionValues, productOptions, productVariants, products, variantOptionValues,
@@ -184,6 +184,50 @@ export async function createProductMedia(db: Db, shopId: number, productId: numb
     await emit(tx, shopId, 'product', productId, 'products/update');
     return rows;
   });
+}
+
+/** Reorder a product's media: each move puts `mediaId` at `newPosition` (clamped to the end). Positions become 0..n-1. */
+export async function reorderProductMedia(db: Db, shopId: number, productId: number, moves: { mediaId: number | null; newPosition: string }[]): Promise<Result<true>> {
+  if (!(await getProduct(db, shopId, productId))) return errR(['id'], 'Product does not exist', 'PRODUCT_DOES_NOT_EXIST');
+  return txResult(db, async (tx) => {
+    const rows = await tx.select({ mediaId: productMedia.mediaId }).from(productMedia)
+      .where(and(eq(productMedia.shopId, shopId), eq(productMedia.productId, productId)))
+      .orderBy(asc(productMedia.position), asc(productMedia.mediaId));
+    const order = rows.map((r) => r.mediaId);
+    const errors: UserError[] = [];
+    for (const [i, m] of moves.entries()) {
+      if (m.mediaId == null || !order.includes(m.mediaId)) errors.push({ field: ['moves', String(i), 'id'], message: 'Media does not exist on product', code: 'MEDIA_DOES_NOT_EXIST_ON_PRODUCT' });
+      if (!/^\d+$/.test(m.newPosition)) errors.push({ field: ['moves', String(i), 'newPosition'], message: 'Position must be a non-negative integer', code: 'INVALID' });
+    }
+    if (errors.length) return { ok: false, errors };
+    for (const m of moves) {
+      const from = order.indexOf(m.mediaId!);
+      order.splice(from, 1);
+      order.splice(Math.min(Number(m.newPosition), order.length), 0, m.mediaId!);
+    }
+    for (const [position, mediaId] of order.entries()) {
+      await tx.update(productMedia).set({ position }).where(and(eq(productMedia.shopId, shopId), eq(productMedia.productId, productId), eq(productMedia.mediaId, mediaId)));
+    }
+    await tx.update(products).set({ updatedAt: new Date() }).where(eq(products.id, productId));
+    await emit(tx, shopId, 'product', productId, 'products/update');
+    return okR(true as const);
+  });
+}
+
+/* ------------------------------ product filter values ------------------------------ */
+
+/** One page (offset/limit) of the distinct non-empty product types, vendors or tags of the shop, sorted alphabetically. */
+export async function listProductFilterValues(db: Executor, shopId: number, field: 'productType' | 'vendor' | 'tag', o: { offset: number; limit: number }): Promise<string[]> {
+  if (field === 'tag') {
+    const tags = db.select({ value: sql<string>`unnest(${products.tags})`.as('value') }).from(products).where(eq(products.shopId, shopId)).as('shop_tags');
+    const rows = await db.selectDistinct({ value: tags.value }).from(tags).where(ne(tags.value, ''))
+      .orderBy(asc(tags.value)).limit(o.limit).offset(o.offset);
+    return rows.map((r) => r.value);
+  }
+  const col = field === 'vendor' ? products.vendor : products.productType;
+  const rows = await db.selectDistinct({ value: col }).from(products).where(and(eq(products.shopId, shopId), ne(col, '')))
+    .orderBy(asc(col)).limit(o.limit).offset(o.offset);
+  return rows.map((r) => r.value);
 }
 
 /* ------------------------------ options and variants ------------------------------ */

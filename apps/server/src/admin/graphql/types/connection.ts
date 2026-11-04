@@ -8,7 +8,7 @@ export interface PageInfoShape { hasNextPage: boolean; hasPreviousPage: boolean;
 export interface Connection<T> { edges: { cursor: string; node: T }[]; nodes: T[]; pageInfo: PageInfoShape }
 export interface PageArgs { first?: number | null; after?: string | null; last?: number | null; before?: string | null; reverse?: boolean | null }
 
-const PageInfo = builder.objectRef<PageInfoShape>('PageInfo').implement({
+export const PageInfo = builder.objectRef<PageInfoShape>('PageInfo').implement({
   fields: (t) => ({
     hasNextPage: t.exposeBoolean('hasNextPage'),
     hasPreviousPage: t.exposeBoolean('hasPreviousPage'),

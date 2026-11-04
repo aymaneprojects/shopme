@@ -1,18 +1,18 @@
 import {
   availableByVariant, bulkCreateVariants, bulkDeleteVariants, bulkUpdateVariants, changeTags, countProductMedia, countProducts, countVariants, createOptions, createProduct, createProductMedia,
   deleteProduct, duplicateProduct, getInventoryItemForVariant, getMedia, getProduct, getProductByHandle, getProductOptions, getProductSummary, getSelectedOptions, getVariant, listProductCollections,
-  listProductMedia, listProducts, listVariants, updateProduct,
+  listProductFilterValues, listProductMedia, listProducts, listVariants, reorderProductMedia, updateProduct,
   type BulkResult, type OptionInput, type Product, type ProductInput as ServiceProductInput, type Result, type Variant, type VariantInput,
 } from '@shopme/core';
 import { formatMoney, fromGid, parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
 import { GraphQLError } from 'graphql';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
-import { ConnectionArgs, paginate } from '../types/connection';
+import { ConnectionArgs, paginate, type PageArgs } from '../types/connection';
 import { Node, legacyId, registerNode } from '../types/node';
 import { Count, MoneyV2, moneyV2 } from '../types/money';
 import {
-  Collection_, CollectionConnection, InventoryItem_, MediaConnection, Media_, MetafieldInput, Product_, ProductConnection, ProductOption, ProductOptionValue, ProductVariant,
+  Collection_, CollectionConnection, InventoryItem_, Job, MediaConnection, Media_, MetafieldInput, Product_, ProductConnection, ProductOption, ProductOptionValue, ProductVariant, StringConnection,
   ProductVariantConnection, SEO, SEOInput, defineTypedPayload, prefixed, shopOf, typedError,
 } from '../types/catalog';
 import { definePayload } from '../types/errors';
@@ -269,12 +269,37 @@ const CreateMediaPayload = definePayload<{ product: Product | null; media: Media
 const TagsPayload = (name: string) => definePayload<{ node: unknown }>(name, (t) => ({ node: t.field({ type: Node, nullable: true, resolve: (p) => p.node as never }) }));
 const TagsAddPayload = TagsPayload('TagsAddPayload');
 const TagsRemovePayload = TagsPayload('TagsRemovePayload');
+const MoveInput = builder.inputType('MoveInput', {
+  fields: (t) => ({ id: t.id({ required: true }), newPosition: t.field({ type: 'UnsignedInt64', required: true }) }),
+});
+const ReorderMediaPayload = definePayload<{ job: { id: string; done: boolean } | null; mediaUserErrors: UserError[] }>('ProductReorderMediaPayload', (t) => ({
+  job: t.field({ type: Job, nullable: true, resolve: (p) => p.job }),
+  mediaUserErrors: t.field({ type: [typedMediaError()], resolve: (p) => p.mediaUserErrors }),
+}));
 
 function typedMediaError() { return typedError('MediaUserError'); }
 
 /* ------------------------------ queries ------------------------------ */
 
+/** Distinct non-empty product types / vendors / tags (Shopify Admin API `productTypes` etc.), one page at a time. */
+function filterValues(ctx: GraphQLContext, field: 'productType' | 'vendor' | 'tag', a: PageArgs) {
+  requireScope(ctx, 'read_products');
+  return paginate(a, { fetch: ({ offset, limit }) => listProductFilterValues(ctx.db, ctx.shopId, field, { offset, limit }) });
+}
+
 builder.queryFields((t) => ({
+  productTypes: t.field({
+    type: StringConnection, args: { first: t.arg.int({ required: true }), after: t.arg.string() },
+    resolve: (_r, a, ctx) => filterValues(ctx, 'productType', a),
+  }),
+  productVendors: t.field({
+    type: StringConnection, args: { first: t.arg.int({ required: true }), after: t.arg.string() },
+    resolve: (_r, a, ctx) => filterValues(ctx, 'vendor', a),
+  }),
+  productTags: t.field({
+    type: StringConnection, args: { first: t.arg.int({ required: true }), after: t.arg.string() },
+    resolve: (_r, a, ctx) => filterValues(ctx, 'tag', a),
+  }),
   product: t.field({
     type: Product_, nullable: true, args: { id: t.arg.id({ required: true }) },
     resolve: (_r, a, ctx) => { requireScope(ctx, 'read_products'); const id = parseId(String(a.id), 'Product'); return id ? getProduct(ctx.db, ctx.shopId, id) : null; },
@@ -431,6 +456,25 @@ builder.mutationFields((t) => ({
       if (r?.ok) return { product: await getProduct(ctx.db, ctx.shopId, id!), media: r.value, mediaUserErrors: [], userErrors: [] };
       const errors = r && !r.ok ? r.errors : noProduct(['productId']);
       return { product: null, media: null, mediaUserErrors: errors.map((e) => ({ ...e, code: 'INVALID' })), userErrors: errors };
+    },
+  }),
+  productReorderMedia: t.field({
+    type: ReorderMediaPayload, args: { id: t.arg.id({ required: true }), moves: t.arg({ type: [MoveInput], required: true }) },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_products');
+      const id = parsePid(a.id);
+      if (!id) return { job: null, mediaUserErrors: [], userErrors: noProduct(['id']) };
+      const moves = a.moves.map((m) => ({
+        mediaId: ['MediaImage', 'Video', 'ExternalVideo', 'Model3d'].map((type) => parseId(String(m.id), type)).find((n) => n != null) ?? null,
+        newPosition: String(m.newPosition),
+      }));
+      const r = await reorderProductMedia(ctx.db, ctx.shopId, id, moves);
+      if (r.ok) return { job: null, mediaUserErrors: [], userErrors: [] };
+      return {
+        job: null,
+        mediaUserErrors: r.errors.filter((e) => e.field?.[0] !== 'id'),
+        userErrors: r.errors.filter((e) => e.field?.[0] === 'id'),
+      };
     },
   }),
   tagsAdd: t.field({ type: TagsAddPayload, args: { id: t.arg.id({ required: true }), tags: t.arg.stringList({ required: true }) }, resolve: (_r, a, ctx) => tagsMutation(ctx, a.id, a.tags, 'add') }),

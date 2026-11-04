@@ -207,4 +207,44 @@ describe('products API', () => {
     const rows = await listEvents(t.dbHandle.db, 1, 'product', Number(p.id.split('/').pop()));
     expect(rows.map((r) => r.verb)).toContain('products/create');
   });
+
+  it('lists distinct product types, vendors and tags, sorted and paginated', async () => {
+    await create({ title: 'Filter A', productType: 'Shoe', vendor: 'Zeta', tags: ['sale', 'red'] });
+    await create({ title: 'Filter B', productType: 'Bag', vendor: 'Alpha', tags: ['red', ''] });
+    const d = await g(`{ productTypes(first: 250) { edges { cursor node } nodes pageInfo { hasNextPage } } productVendors(first: 250) { nodes } productTags(first: 250) { nodes } }`);
+    expect(d.productTypes.nodes).toEqual(expect.arrayContaining(['Bag', 'Shoe']));
+    expect(d.productVendors.nodes).toEqual(expect.arrayContaining(['Alpha', 'Zeta']));
+    expect(d.productTags.nodes).toEqual(expect.arrayContaining(['red', 'sale']));
+    for (const xs of [d.productTypes.nodes, d.productVendors.nodes, d.productTags.nodes] as string[][]) {
+      expect(xs).toEqual([...new Set(xs)].sort());
+      expect(xs).not.toContain('');
+    }
+    const p1 = await g(`{ productTags(first: 1) { edges { cursor node } nodes pageInfo { hasNextPage endCursor } } }`);
+    expect(p1.productTags.nodes).toEqual([d.productTags.nodes[0]]);
+    expect(p1.productTags.pageInfo.hasNextPage).toBe(true);
+    const p2 = await g(`{ productTags(first: 1, after: "${p1.productTags.pageInfo.endCursor}") { nodes } }`);
+    expect(p2.productTags.nodes).toEqual([d.productTags.nodes[1]]);
+    const bad = await gql(`{ productVendors { nodes } }`);
+    expect(bad.errors).toBeDefined();
+  });
+
+  it('reorders product media with productReorderMedia', async () => {
+    const d = await g(`mutation { productCreate(product: { title: "Reorder Me" }, media: [
+      { originalSource: "https://example.com/a.jpg", mediaContentType: IMAGE },
+      { originalSource: "https://example.com/b.jpg", mediaContentType: IMAGE },
+      { originalSource: "https://example.com/c.jpg", mediaContentType: IMAGE }]) {
+      product { id media(first: 10) { nodes { id } } } userErrors { message } } }`);
+    const pid: string = d.productCreate.product.id;
+    const [a, b, c]: string[] = d.productCreate.product.media.nodes.map((n: { id: string }) => n.id);
+    const mutation = `mutation ProductReorderMedia($id: ID!, $moves: [MoveInput!]!) {
+      productReorderMedia(id: $id, moves: $moves) { job { id done } mediaUserErrors { field message code } userErrors { field message } } }`;
+    const r = await g(mutation, { id: pid, moves: [{ id: c, newPosition: '0' }, { id: a, newPosition: '2' }] });
+    expect(r.productReorderMedia).toEqual({ job: null, mediaUserErrors: [], userErrors: [] });
+    const after = await g(`{ product(id: "${pid}") { media(first: 10) { nodes { id } } } }`);
+    expect(after.product.media.nodes.map((n: { id: string }) => n.id)).toEqual([c, b, a]);
+    const bad = await g(mutation, { id: pid, moves: [{ id: 'gid://shopify/MediaImage/999999', newPosition: '0' }] });
+    expect(bad.productReorderMedia.mediaUserErrors).toEqual([{ field: ['moves', '0', 'id'], message: 'Media does not exist on product', code: 'MEDIA_DOES_NOT_EXIST_ON_PRODUCT' }]);
+    const missing = await g(mutation, { id: 'gid://shopify/Product/424242', moves: [] });
+    expect(missing.productReorderMedia.userErrors[0]).toMatchObject({ field: ['id'] });
+  });
 });
