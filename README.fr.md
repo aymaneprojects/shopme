@@ -39,7 +39,7 @@ Tout tourne dans un seul processus Node.js avec PostgreSQL, ou avec une base emb
 - **Déploiement :** mode local sans configuration avec PostgreSQL embarqué (PGlite), et Docker Compose avec PostgreSQL 17.
 
 **Absent de la v0.1 :** l'API GraphQL Storefront, les webhooks sortants, les applications OAuth, la multi-devise, la
-vitrine multilingue, les cartes cadeaux, les retours, le stock multi-emplacements et les applications de bureau.
+vitrine multilingue, les cartes cadeaux, les retours, et le stock multi-emplacements.
 La CLI, le SDK client et l'outil de migration sont des espaces réservés. Voir la [feuille de route](ROADMAP.md).
 
 ## Captures d'écran
@@ -88,8 +88,10 @@ Ouvrez <http://localhost:3000/admin>. Compose démarre ShopMe et PostgreSQL 17. 
 
 ### Applications de bureau
 
-Les applications Windows (`.exe`) et macOS (`.dmg`) sont prévues mais ne font pas partie de la v0.1.0. Voir
-[docs/install/desktop.md](docs/install/desktop.md).
+Les applications Windows (`.exe`), macOS (`.dmg`) et Linux (`.AppImage`) (bêta) sont fabriquées automatiquement à chaque
+version et publiées dans les [Releases GitHub](https://github.com/aymaneprojects/shoppen/releases) : un double-clic, et votre
+boutique tourne sur votre ordinateur. Elles ne sont pas encore signées (un avertissement de sécurité s'affiche au premier
+lancement). Voir [docs/install/desktop.fr.md](docs/install/desktop.fr.md).
 
 ## Déploiement sur votre serveur
 

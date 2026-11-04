@@ -39,7 +39,7 @@ or with an embedded database for local use.
 - **Deployment:** zero-setup local mode with embedded PostgreSQL (PGlite), and Docker Compose with PostgreSQL 17.
 
 **Not in v0.1:** Storefront GraphQL API, outbound webhooks, OAuth apps, multi-currency, multi-language storefront,
-gift cards, returns, multi-location inventory, desktop apps. The CLI, client SDK and migration tool are placeholders.
+gift cards, returns, multi-location inventory. The CLI, client SDK and migration tool are placeholders.
 See the [ROADMAP](ROADMAP.md).
 
 ## Screenshots
@@ -86,7 +86,9 @@ Open <http://localhost:3000/admin>. Compose starts ShopMe and PostgreSQL 17. Set
 
 ### Desktop apps
 
-Windows (`.exe`) and macOS (`.dmg`) apps are planned but are not part of v0.1.0. See [docs/install/desktop.md](docs/install/desktop.md).
+Windows (`.exe`), macOS (`.dmg`) and Linux (`.AppImage`) apps (beta) are built automatically for each release and attached to
+[GitHub Releases](https://github.com/aymaneprojects/shoppen/releases): double-click, and your store runs on your computer.
+They are unsigned for now (expect a security prompt on first launch). See [docs/install/desktop.md](docs/install/desktop.md).
 
 ## Deploy on your server
 
