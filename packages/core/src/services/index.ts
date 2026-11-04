@@ -9,3 +9,7 @@ export * from './uploads';
 export * from './catalog';
 export * from './cart';
 export * from './theme-install';
+export * from './pricing';
+export * from './checkout';
+export * from './payments-runtime';
+export * from './orders/create';

@@ -27,11 +27,13 @@
     "nodemailer": "10.2.1",
     "pino": "10.4.0",
     "postgres": "3.4.8",
+    "stripe": "23.1.0",
     "zod": "4.6.6"
   },
   "devDependencies": {
     "@shopme/core": "workspace:*",
     "@shopme/liquid-compat": "workspace:^",
+    "@shopme/payments": "workspace:*",
     "@shopme/shopify-compat": "workspace:*",
     "@types/node": "22.20.5",
     "pino-pretty": "13.1.3",

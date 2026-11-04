@@ -7,7 +7,14 @@
   "scripts": {
     "build": "echo \"no build yet\"",
     "lint": "echo \"no lint yet\"",
-    "test": "echo \"no tests yet\"",
+    "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "stripe": "23.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "vitest": "5.1.0"
   }
 }

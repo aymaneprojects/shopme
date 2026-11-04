@@ -135,7 +135,7 @@ export async function seedDemo(db: Db, storage: Storage, opts: { adminPassword?:
     const [z] = await db.insert(s.shippingZones).values({ shopId, name: 'Europe' }).returning();
     await db.insert(s.shippingZoneCountries).values(['FR', 'DE', 'BE', 'NL', 'ES', 'IT'].map((countryCode) => ({ shopId, zoneId: z!.id, countryCode })));
     await db.insert(s.shippingRates).values([
-      { shopId, zoneId: z!.id, name: 'Standard', type: 'FLAT', price: 490, position: 0 },
+      { shopId, zoneId: z!.id, name: 'Standard', type: 'PRICE_BASED', price: 490, maxValue: 4999, position: 0 },
       { shopId, zoneId: z!.id, name: 'Free shipping over 50', type: 'PRICE_BASED', price: 0, minValue: 5000, position: 1 },
     ]);
     await db.insert(s.taxRates).values({ shopId, name: 'VAT', countryCode: 'FR', rate: 20, appliesToShipping: true });
