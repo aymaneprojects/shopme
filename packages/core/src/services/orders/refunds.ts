@@ -71,7 +71,7 @@ export async function refundOrder(db: Db, shopId: number, orderId: number, input
     for (const r of insertedLines) {
       const line = byId.get(r.orderLineId)!;
       await tx.update(orderLines).set({ currentQuantity: line.currentQuantity - r.quantity }).where(eq(orderLines.id, line.id));
-      if (r.restockType && r.restockType !== 'NO_RESTOCK') await restockVariant(tx, shopId, line.variantId, r.quantity, r.locationId, `shopme://orders/${order.name}`);
+      if (r.restockType && r.restockType !== 'NO_RESTOCK') await restockVariant(tx, shopId, line.variantId, r.quantity, r.locationId, `shopme://orders/${order.name}`, line.currentQuantity - line.fulfilledQuantity);
     }
     const totalRefunded = order.totalRefunded + total;
     const [updated] = await tx.update(orders).set({
@@ -100,7 +100,7 @@ export async function cancelOrder(
         if (!r.ok) return r;
       }
     }
-    if (o.restock) for (const l of d.lines) await restockVariant(tx, shopId, l.variantId, l.currentQuantity - l.fulfilledQuantity, null, `shopme://orders/${cur.name}`);
+    if (o.restock) for (const l of d.lines) { const open = l.currentQuantity - l.fulfilledQuantity; await restockVariant(tx, shopId, l.variantId, open, null, `shopme://orders/${cur.name}`, open); }
     const fresh = (await getOrder(tx, shopId, id))!;
     const unpaid = ['PENDING', 'AUTHORIZED'].includes(fresh.financialStatus);
     const now = new Date();

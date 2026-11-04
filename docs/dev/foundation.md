@@ -56,6 +56,7 @@ pnpm dev                       # server with watch, embedded DB
 pnpm turbo run typecheck test build
 pnpm --filter @shopme/server test
 pnpm --filter @shopme/core test
+pnpm e2e                       # builds, starts the production server on a free port with a fresh DB, drives admin + storefront + checkout in Chromium (Playwright)
 ```
 
 Tests use in-memory PGlite (no PostgreSQL needed, also in CI).

@@ -1,10 +1,36 @@
-import { eq, and } from 'drizzle-orm';
-import { fulfillmentLines, fulfillments, orderLines, orders } from '../../db/schema';
-import type { Db } from '../../db/client';
+import { eq, and, asc, gt, sql } from 'drizzle-orm';
+import { fulfillmentLines, fulfillments, inventoryAdjustments, inventoryItems, inventoryLevels, orderLines, orders } from '../../db/schema';
+import type { Db, Executor } from '../../db/client';
 import { errR, okR, txResult, type Result } from '../catalog/common';
 import { defaultLocationId } from '../catalog/inventory';
 import { addEvent } from '../events';
 import { getOrder, getOrderDetail, type Fulfillment, type Order } from './orders';
+
+/**
+ * Goods leave the building: release the stock committed by the order and take it off the shelf (committed and on_hand both go
+ * down, available is unchanged since it was already reserved at checkout). No-op for untracked variants.
+ */
+async function shipCommittedStock(tx: Executor, shopId: number, variantId: number | null, quantity: number, orderId: number): Promise<void> {
+  if (!variantId || quantity <= 0) return;
+  const [item] = await tx.select({ id: inventoryItems.id, tracked: inventoryItems.tracked }).from(inventoryItems)
+    .where(and(eq(inventoryItems.shopId, shopId), eq(inventoryItems.variantId, variantId))).limit(1);
+  if (!item?.tracked) return;
+  const levels = await tx.select().from(inventoryLevels)
+    .where(and(eq(inventoryLevels.inventoryItemId, item.id), eq(inventoryLevels.shopId, shopId), gt(inventoryLevels.committed, 0))).orderBy(asc(inventoryLevels.id));
+  let left = quantity;
+  for (const lv of levels) {
+    if (left <= 0) break;
+    const n = Math.min(left, lv.committed);
+    const [upd] = await tx.update(inventoryLevels).set({ committed: sql`${inventoryLevels.committed} - ${n}`, onHand: sql`${inventoryLevels.onHand} - ${n}` })
+      .where(eq(inventoryLevels.id, lv.id)).returning({ committed: inventoryLevels.committed, onHand: inventoryLevels.onHand });
+    const ref = `shopme://orders/${orderId}`;
+    await tx.insert(inventoryAdjustments).values([
+      { shopId, inventoryItemId: item.id, locationId: lv.locationId, name: 'committed', delta: -n, quantityAfter: upd!.committed, reason: 'other', referenceUri: ref },
+      { shopId, inventoryItemId: item.id, locationId: lv.locationId, name: 'on_hand', delta: -n, quantityAfter: upd!.onHand, reason: 'other', referenceUri: ref },
+    ]);
+    left -= n;
+  }
+}
 
 export interface TrackingInput { company?: string | null; numbers?: string[]; urls?: string[] }
 
@@ -39,6 +65,7 @@ export async function createFulfillment(
       const line = d.lines.find((l) => l.id === p.orderLineId)!;
       line.fulfilledQuantity += p.quantity;
       await tx.update(orderLines).set({ fulfilledQuantity: line.fulfilledQuantity }).where(eq(orderLines.id, line.id));
+      await shipCommittedStock(tx, shopId, line.variantId, p.quantity, orderId);
     }
     const all = d.lines.every((l) => remaining(l) <= 0);
     const [updated] = await tx.update(orders).set({ fulfillmentStatus: all ? 'FULFILLED' : 'PARTIALLY_FULFILLED', updatedAt: new Date() }).where(eq(orders.id, orderId)).returning();

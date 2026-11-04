@@ -31,6 +31,13 @@ describe('auth flow', () => {
     expect((await t.app.inject('/admin/api/setup/status')).json()).toEqual({ needsSetup: false });
     expect((await t.app.inject({ method: 'POST', url: '/admin/api/setup', payload: SETUP_BODY })).statusCode).toBe(409);
 
+    // the default theme is installed by setup, before any storefront request (regression: theme editor was empty)
+    const themeRes = await t.app.inject({
+      method: 'POST', url: '/admin/api/2026-10/graphql.json', cookies: { shopme_session: cookie.value },
+      payload: { query: '{ themes(first: 5) { nodes { name role files(filenames: ["config/settings_schema.json"]) { nodes { filename } } } } }' },
+    });
+    expect(themeRes.json().data.themes.nodes[0]).toMatchObject({ name: 'Aurora', role: 'MAIN', files: { nodes: [{ filename: 'config/settings_schema.json' }] } });
+
     const me = await t.app.inject({ url: '/admin/api/auth/me', cookies: { shopme_session: cookie.value } });
     expect(me.statusCode).toBe(200);
     expect(me.json()).toMatchObject({ user: { email: 'owner@example.com', role: 'owner' }, shop: { name: 'Test Shop', currency: 'EUR' } });

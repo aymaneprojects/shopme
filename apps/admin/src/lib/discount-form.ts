@@ -71,7 +71,6 @@ export function toDiscountInput(f: DiscountForm, prev?: { collections: string[];
     startsAt: iso(f.startsAt || nowLocal()), endsAt: f.hasEnd && f.endsAt ? iso(f.endsAt) : null,
     usageLimit: f.limitTotal ? Number(f.usageLimit) : null, appliesOncePerCustomer: f.oncePerCustomer,
     combinesWith: { ...f.combines },
-    customerSelection: { all: true },
     ...(f.minType === 'subtotal' && { minimumRequirement: { subtotal: { greaterThanOrEqualToSubtotal: money(f.minValue) } } }),
     ...(f.minType === 'quantity' && { minimumRequirement: { quantity: { greaterThanOrEqualToQuantity: String(Number(f.minValue)) } } }),
   };

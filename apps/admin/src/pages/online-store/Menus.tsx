@@ -12,7 +12,7 @@ import * as tree from '../../lib/menu-tree';
 import type { LinkType, MenuItem, Path } from '../../lib/menu-tree';
 
 interface ApiItem { id: string; title: string; type: string; url: string | null; resourceId: string | null; items?: ApiItem[] }
-interface ApiMenu { id: string; title: string; handle: string; items: ApiItem[] }
+interface ApiMenu { id: string; title: string; handle: string; isDefault?: boolean; items: ApiItem[] }
 const fromApi = (items: ApiItem[] = []): MenuItem[] => items.map((i) => ({ id: i.id, title: i.title, type: (['PRODUCT', 'COLLECTION', 'PAGE'].includes(i.type) ? i.type : 'HTTP') as LinkType, url: i.url ?? '', resourceId: i.resourceId, items: fromApi(i.items) }));
 const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -68,7 +68,7 @@ function MenuEditor({ menu, onCreated }: { menu: ApiMenu | null; onCreated: (id:
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setTitle(initial.title); setItems(initial.items); setError(null); }} />
       {error && <Banner>{error}</Banner>}
-      <Card title={t('menus.items')} actions={<span className="flex gap-2">{!menu && <Button size="sm" variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('save.save')}</Button>}{menu && <Button size="sm" variant="danger" onClick={() => setConfirm(true)}>{t('common.delete')}</Button>}</span>}>
+      <Card title={t('menus.items')} actions={<span className="flex gap-2">{!menu && <Button size="sm" variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('save.save')}</Button>}{menu && !menu.isDefault && <Button size="sm" variant="danger" onClick={() => setConfirm(true)}>{t('common.delete')}</Button>}</span>}>
         <Input className="mb-4 max-w-sm" label={t('field.title')} value={title} onChange={(e) => setTitle(e.target.value)} />
         {rows.length === 0 && <p className="mb-3 text-sm text-muted">{t('menus.empty')}</p>}
         <ul className="flex flex-col gap-2">

@@ -165,7 +165,7 @@ describe('discounts, settings, content and dashboard API', () => {
       upsertedThemeFiles { filename size checksumMd5 } userErrors { filename message code } } }`);
     expect(up.themeFilesUpsert.userErrors).toEqual([]);
     expect(up.themeFilesUpsert.upsertedThemeFiles.map((f: { filename: string }) => f.filename)).toEqual(['config/settings_data.json', 'snippets/hello.liquid']);
-    const files = (await g(`{ theme(id: "${themes[0].id}") { files(filenames: ["config/settings_data.json", "snippets/*"]) { nodes { filename contentType body { ... on OnlineStoreThemeFileBodyText { content } } } } } }`)).theme.files.nodes;
+    const files = (await g(`{ theme(id: "${themes[0].id}") { files(filenames: ["config/settings_data.json", "snippets/hello.liquid"]) { nodes { filename contentType body { ... on OnlineStoreThemeFileBodyText { content } } } } } }`)).theme.files.nodes;
     expect(files.map((f: { filename: string }) => f.filename)).toEqual(['config/settings_data.json', 'snippets/hello.liquid']);
     expect(files[1]).toMatchObject({ contentType: 'text/x-liquid', body: { content: 'hi' } });
     const badJson = await g(`mutation { themeFilesUpsert(themeId: "${themes[0].id}", files: [{ filename: "config/settings_data.json", body: { type: TEXT, value: "{oops" } }]) { userErrors { filename code } } }`);

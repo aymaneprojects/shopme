@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
-  customers, fulfillmentLines, fulfillments, orderAddresses, orderDiscountApplications, orderLines, orderShippingLines, orderTaxLines, orders, refundLines, refunds, transactions,
+  customers, fulfillmentLines, fulfillments, inventoryLevels, orderAddresses, orderDiscountApplications, orderLines, orderShippingLines, orderTaxLines, orders, refundLines, refunds, transactions,
 } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { buildSearch, dateCompare, idTerm, likeCi } from '../catalog/search';
@@ -179,13 +179,22 @@ async function setClosed(db: Db, shopId: number, id: number, closed: boolean, st
 export const closeOrder = (db: Db, shopId: number, id: number, staffId?: number | null) => setClosed(db, shopId, id, true, staffId);
 export const openOrder = (db: Db, shopId: number, id: number, staffId?: number | null) => setClosed(db, shopId, id, false, staffId);
 
-/** Put `qty` of a sold variant back on the shelf (best effort: untracked or unknown variants are skipped). */
-export async function restockVariant(db: Executor, shopId: number, variantId: number | null, qty: number, locationId: number | null, ref: string): Promise<void> {
+/**
+ * Put `qty` of a sold variant back on the shelf (best effort: untracked or unknown variants are skipped).
+ * `unfulfilled` is the part of `qty` that was never shipped: it is still committed, so it is released
+ * (committed -> available, on hand unchanged) instead of being added to on hand a second time.
+ */
+export async function restockVariant(db: Executor, shopId: number, variantId: number | null, qty: number, locationId: number | null, ref: string, unfulfilled = 0): Promise<void> {
   if (!variantId || qty <= 0) return;
   const item = await getInventoryItemForVariant(db, shopId, variantId);
   const loc = locationId ?? (await defaultLocationId(db, shopId));
   if (!item || !item.tracked || !loc) return;
-  await adjustQuantities(db as Db, shopId, { name: 'available', reason: 'restock', referenceDocumentUri: ref, changes: [{ inventoryItemId: item.id, locationId: loc, delta: qty }] });
+  const [level] = unfulfilled > 0
+    ? await db.select({ committed: inventoryLevels.committed }).from(inventoryLevels).where(and(eq(inventoryLevels.inventoryItemId, item.id), eq(inventoryLevels.locationId, loc)))
+    : [];
+  const release = Math.min(qty, Math.max(0, unfulfilled), Math.max(0, level?.committed ?? 0));
+  if (release > 0) await adjustQuantities(db as Db, shopId, { name: 'committed', reason: 'restock', referenceDocumentUri: ref, changes: [{ inventoryItemId: item.id, locationId: loc, delta: -release }] });
+  if (qty - release > 0) await adjustQuantities(db as Db, shopId, { name: 'available', reason: 'restock', referenceDocumentUri: ref, changes: [{ inventoryItemId: item.id, locationId: loc, delta: qty - release }] });
 }
 
 /** Money received (successful SALE/CAPTURE) and refunded (successful REFUND) according to the transaction log. */

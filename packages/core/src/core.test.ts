@@ -1,10 +1,10 @@
 import { mkdtempSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApiToken, createDb, createInProcessQueue, createLocalStorage, createSession, destroySession, authenticateStaff, listEvents, addEvent,
-  loadConfig, makeStorageKey, needsSetup, nextOrderNumber, resolveApiToken, resolveSession, runMigrations, saveUpload, seedDemo, setupStore, slugify, uniqueHandle, type DbHandle } from './index';
+  loadConfig, makeStorageKey, needsSetup, nextOrderNumber, resolveApiToken, resolveSession, runMigrations, saveUpload, schema, seedDemo, setupStore, slugify, uniqueHandle, type DbHandle } from './index';
 
 describe('config', () => {
   const tmp = () => mkdtempSync(path.join(tmpdir(), 'shopme-cfg-'));
@@ -61,6 +61,9 @@ describe('database + services (PGlite in memory)', () => {
     expect(shop.moneyFormat).toContain('amount_with_comma_separator');
     expect(owner.email).toBe('a@b.com');
     expect(await needsSetup(h.db)).toBe(false);
+    // default menus exist from the start so the merchant can add links to the main menu
+    const defaultMenus = await h.db.select({ handle: schema.menus.handle }).from(schema.menus).where(eq(schema.menus.shopId, shop.id));
+    expect(defaultMenus.map((r) => r.handle).sort()).toEqual(['footer', 'main-menu']);
     await expect(setupStore(h.db, { shopName: 'T2', email: 'x@y.com', password: 'password123', currency: 'USD', country: 'US', locale: 'en' })).rejects.toThrow(/already/);
 
     expect(await authenticateStaff(h.db, 'a@b.com', 'wrong')).toBeNull();
