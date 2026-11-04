@@ -1,1 +1,3 @@
-export const name = '@shopme/payments';
+export * from './types';
+export * from './manual';
+export * from './stripe';
