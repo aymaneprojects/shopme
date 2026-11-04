@@ -1,6 +1,7 @@
 # Roadmap
 
-ShopMe is pre-alpha. Phases are goals, not promises.
+ShopMe is in early alpha: v0.1.0 is the first pre-release. Phases are goals, not promises. Checked items are in the
+v0.1.0 code; partially done items are split so the open part stays visible.
 
 ## Phase 0 - Interface study & spec
 - [x] Study public docs and our own dev store (clean-room, see `docs/legal/clean-room.md`)
@@ -15,41 +16,46 @@ ShopMe is pre-alpha. Phases are goals, not promises.
 - [x] Docker image + Compose, install guides
 
 ## Phase 1 - MVP core
-- [ ] Products, variants, collections
-- [ ] Inventory (single location)
-- [ ] Customers
-- [ ] Cart
-- [ ] Stripe checkout
-- [ ] Orders
-- [ ] Basic admin
-- [ ] Default theme
-- [ ] **Done when:** one product can be sold end-to-end
+- [x] Products, variants, collections
+- [x] Inventory (single location)
+- [x] Customers
+- [x] Cart
+- [x] Stripe checkout (bank transfer and cash on delivery also available)
+- [x] Orders
+- [x] Basic admin (EN/FR)
+- [x] Default theme (Aurora)
+- [x] **Done when:** one product can be sold end-to-end (covered by the checkout tests)
 
 ## Phase 2 - Compatibility
-- [ ] Liquid Online Store 2.0 themes
-- [ ] Ajax Cart API
-- [ ] Storefront and Admin GraphQL subsets
-- [ ] Webhooks with HMAC signatures
+- [x] Liquid Online Store 2.0 themes (Aurora and the subset of the format it uses; third-party theme coverage not verified)
+- [x] Ajax Cart API
+- [x] Admin GraphQL subset
+- [ ] Storefront GraphQL subset
+- [ ] Webhooks with HMAC signatures (inbound Stripe webhook is verified; outbound merchant webhooks are not built)
 - [ ] OAuth apps
 - [ ] **Done when:** the conformance suite is green
 
 ## Phase 3 - Advanced commerce
-- [ ] Discounts
+- [x] Discounts (codes)
+- [x] Shipping zones and rates
+- [x] Tax rates (basic, per zone)
 - [ ] EU VAT / OSS
-- [ ] Shipping zones
 - [ ] Multi-currency
-- [ ] Multi-language
+- [ ] Multi-language storefront (the admin is already EN/FR)
 - [ ] Gift cards
-- [ ] Refunds and returns
+- [x] Refunds
+- [ ] Returns
 - [ ] Multi-location inventory
 - [ ] French carriers (Colissimo, Mondial Relay)
 
 ## Phase 4 - Ecosystem
-- [ ] Visual theme editor
-- [ ] Metafields and metaobjects
+- [x] Theme settings editor (schema-driven, with preview)
+- [ ] Visual theme editor beyond settings (section layout editing)
+- [x] Metafields
+- [ ] Metaobjects
 - [ ] App platform
-- [ ] CLI: theme dev / push
-- [ ] One-click migration from Shopify
+- [ ] CLI: theme dev / push (`packages/cli` is a placeholder)
+- [ ] One-click migration from Shopify (`packages/migrate` is a placeholder)
 
 ## Phase 5 - Production
 - [ ] Performance
@@ -60,7 +66,7 @@ ShopMe is pre-alpha. Phases are goals, not promises.
 - [ ] One-click deploy templates
 - [ ] Desktop apps: Windows `.exe` and macOS `.dmg` (Electron + embedded server + PGlite), built by GitHub Actions
 - [ ] Export / import a whole store (e.g. build it in the desktop app, then move it to a server)
-- [ ] Documentation site
+- [ ] Documentation site (the docs are in the repository under `docs/`)
 
 ## Later
 - [ ] "ShopMe Cloud": a hosted offer
