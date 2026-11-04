@@ -1,5 +1,7 @@
 import { ToastProvider } from '@shopme/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Suspense, lazy } from 'react';
+import type { ComponentType } from 'react';
 import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { Shell } from './components/Shell';
@@ -9,10 +11,18 @@ import { CollectionEditPage } from './pages/CollectionEdit';
 import { CollectionsPage } from './pages/Collections';
 import { InventoryPage } from './pages/Inventory';
 import { ProductEditPage } from './pages/ProductEdit';
+import { HomePage } from './pages/Home';
 import { ProductsPage } from './pages/Products';
-import { ComingSoon, HomePage } from './pages/Simple';
+import { ComingSoon } from './pages/Simple';
 import { SessionProvider, useSession } from './session';
 import { Spinner } from '@shopme/ui';
+
+
+// Commerce and online-store routes are code-split so the initial bundle stays small.
+const L = (load: () => Promise<Record<string, unknown>>, name: string) => {
+  const C = lazy(async () => ({ default: (await load())[name] as ComponentType }));
+  return <Suspense fallback={<Spinner />}><C /></Suspense>;
+};
 
 const router = createBrowserRouter(
   [{
@@ -24,11 +34,36 @@ const router = createBrowserRouter(
       { path: '/collections', element: <CollectionsPage /> },
       { path: '/collections/:id', element: <CollectionEditPage /> },
       { path: '/inventory', element: <InventoryPage /> },
-      { path: '/orders/*', element: <ComingSoon titleKey="nav.orders" /> },
-      { path: '/customers/*', element: <ComingSoon titleKey="nav.customers" /> },
-      { path: '/discounts/*', element: <ComingSoon titleKey="nav.discounts" /> },
-      { path: '/online-store/*', element: <ComingSoon titleKey="nav.onlineStore" /> },
-      { path: '/settings/*', element: <ComingSoon titleKey="nav.settings" /> },
+      { path: '/orders', element: L(() => import('./pages/Orders'), 'OrdersPage') },
+      { path: '/orders/:id', element: L(() => import('./pages/OrderDetail'), 'OrderDetailPage') },
+      { path: '/customers', element: L(() => import('./pages/Customers'), 'CustomersPage') },
+      { path: '/customers/new', element: L(() => import('./pages/CustomerEdit'), 'CustomerEditPage') },
+      { path: '/customers/:id', element: L(() => import('./pages/Customers'), 'CustomerDetailPage') },
+      { path: '/customers/:id/edit', element: L(() => import('./pages/CustomerEdit'), 'CustomerEditPage') },
+      { path: '/discounts', element: L(() => import('./pages/Discounts'), 'DiscountsPage') },
+      { path: '/discounts/:id', element: L(() => import('./pages/DiscountEdit'), 'DiscountEditPage') },
+      {
+        path: '/online-store', element: L(() => import('./pages/online-store/Themes'), 'OnlineStoreLayout'),
+        children: [
+          { index: true, element: L(() => import('./pages/online-store/Themes'), 'ThemesPage') },
+          { path: 'pages', element: L(() => import('./pages/online-store/StorePages'), 'PagesListPage') },
+          { path: 'pages/:id', element: L(() => import('./pages/online-store/StorePages'), 'PageEditPage') },
+          { path: 'navigation', element: L(() => import('./pages/online-store/Menus'), 'MenusPage') },
+        ],
+      },
+      { path: '/online-store/themes/:id/editor', element: L(() => import('./pages/online-store/ThemeEditor'), 'ThemeEditorPage') },
+      {
+        path: '/settings', element: L(() => import('./pages/settings/Settings'), 'SettingsLayout'),
+        children: [
+          { index: true, element: L(() => import('./pages/settings/Settings'), 'SettingsIndex') },
+          { path: 'general', element: L(() => import('./pages/settings/Settings'), 'GeneralSettings') },
+          { path: 'payments', element: L(() => import('./pages/settings/Commerce'), 'PaymentsSettings') },
+          { path: 'shipping', element: L(() => import('./pages/settings/Commerce'), 'ShippingSettings') },
+          { path: 'taxes', element: L(() => import('./pages/settings/Commerce'), 'TaxesSettings') },
+          { path: 'domains', element: L(() => import('./pages/settings/Settings'), 'DomainsSettings') },
+          { path: 'languages', element: L(() => import('./pages/settings/Settings'), 'LanguagesSettings') },
+        ],
+      },
       { path: '*', element: <ComingSoon titleKey="nav.notFound" /> },
     ],
   }],

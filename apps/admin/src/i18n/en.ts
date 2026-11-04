@@ -1,3 +1,4 @@
+import { enShop } from './en-shop';
 export const en = {
   'common.back': 'Back', 'common.cancel': 'Cancel', 'common.close': 'Close', 'common.delete': 'Delete', 'common.loading': 'Loading…',
   'common.moreActions': 'More actions', 'common.next': 'Next', 'common.previous': 'Previous', 'common.remove': 'Remove',
@@ -16,7 +17,7 @@ export const en = {
   'setup.currency': 'Currency', 'setup.country': 'Country', 'setup.passwordHelp': 'At least 8 characters.', 'setup.submit': 'Create store',
 
   'soon.title': 'Coming in the next version', 'soon.body': 'This area is not available yet. It is planned for an upcoming release.',
-  'home.welcome': 'Welcome, {name}', 'home.orders': 'Orders today', 'home.sales': 'Sales today', 'home.products': 'Products', 'home.soon': 'Coming soon',
+  'home.welcome': 'Welcome, {name}', 'home.orders': 'Orders', 'home.sales': 'Sales', 'home.products': 'Products', 'home.soon': 'Coming soon',
   'home.setupTitle': 'Get started', 'home.setupBody': 'Add your first product from the Products page, then organize it into collections.',
 
   'save.unsaved': 'Unsaved changes', 'save.save': 'Save', 'save.discard': 'Discard', 'save.leaveTitle': 'Leave without saving?',
@@ -85,6 +86,7 @@ export const en = {
 
   'rte.bold': 'Bold', 'rte.italic': 'Italic', 'rte.underline': 'Underline', 'rte.list': 'Bulleted list', 'rte.orderedList': 'Numbered list', 'rte.link': 'Link',
   'rte.source': 'HTML source', 'rte.paragraph': 'Paragraph', 'rte.heading': 'Heading', 'rte.subheading': 'Subheading', 'rte.linkPrompt': 'Link URL',
+  ...enShop,
 } as const;
 
 export type Key = keyof typeof en;

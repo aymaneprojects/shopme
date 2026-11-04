@@ -1,4 +1,5 @@
 import type { Key } from './en';
+import { frShop } from './fr-shop';
 
 export const fr: Record<Key, string> = {
   'common.back': 'Retour', 'common.cancel': 'Annuler', 'common.close': 'Fermer', 'common.delete': 'Supprimer', 'common.loading': 'Chargement…',
@@ -18,7 +19,7 @@ export const fr: Record<Key, string> = {
   'setup.currency': 'Devise', 'setup.country': 'Pays', 'setup.passwordHelp': 'Au moins 8 caractères.', 'setup.submit': 'Créer la boutique',
 
   'soon.title': 'Disponible dans la prochaine version', 'soon.body': 'Cette section n’est pas encore disponible. Elle est prévue dans une prochaine version.',
-  'home.welcome': 'Bienvenue, {name}', 'home.orders': 'Commandes du jour', 'home.sales': 'Ventes du jour', 'home.products': 'Produits', 'home.soon': 'Bientôt',
+  'home.welcome': 'Bienvenue, {name}', 'home.orders': 'Commandes', 'home.sales': 'Ventes', 'home.products': 'Produits', 'home.soon': 'Bientôt',
   'home.setupTitle': 'Pour commencer', 'home.setupBody': 'Ajoutez votre premier produit depuis la page Produits, puis organisez-le en collections.',
 
   'save.unsaved': 'Modifications non enregistrées', 'save.save': 'Enregistrer', 'save.discard': 'Annuler les modifications', 'save.leaveTitle': 'Quitter sans enregistrer ?',
@@ -87,4 +88,5 @@ export const fr: Record<Key, string> = {
 
   'rte.bold': 'Gras', 'rte.italic': 'Italique', 'rte.underline': 'Souligné', 'rte.list': 'Liste à puces', 'rte.orderedList': 'Liste numérotée', 'rte.link': 'Lien',
   'rte.source': 'Source HTML', 'rte.paragraph': 'Paragraphe', 'rte.heading': 'Titre', 'rte.subheading': 'Sous-titre', 'rte.linkPrompt': 'URL du lien',
+  ...frShop,
 };
