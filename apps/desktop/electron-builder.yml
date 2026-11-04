@@ -1,0 +1,58 @@
+appId: org.shopme.desktop
+productName: ShopMe
+copyright: Copyright (c) ShopMe contributors
+# `stage` (built by scripts/stage.mjs) is the app directory: bundled main + server, runtime node_modules, resources.
+directories:
+  app: stage
+  buildResources: build
+  output: dist
+# No asar: PGlite loads its WASM/data files with fs, and argon2 is a native .node binary. Plain files are the robust choice.
+asar: false
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+artifactName: ShopMe-${version}-${os}-${arch}.${ext}
+files:
+  - "**/*"
+  - "!**/*.map"
+  - "!**/node_modules/**/{test,tests,__tests__,docs,*.md}"
+  # Prebuilt binaries for other OSes stay in the staged tree (so one stage works everywhere) but are dropped per platform below.
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+  files:
+    - "!**/node_modules/@node-rs/argon2-darwin-*/**"
+    - "!**/node_modules/@node-rs/argon2-linux-*/**"
+mac:
+  icon: build/icon.icns
+  category: public.app-category.business
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  files:
+    - "!**/node_modules/@node-rs/argon2-win32-*/**"
+    - "!**/node_modules/@node-rs/argon2-linux-*/**"
+  # Signing and notarization happen only when CSC_LINK / APPLE_* secrets are present (see docs/install/desktop.md).
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  notarize: false
+dmg:
+  title: ShopMe ${version}
+linux:
+  icon: build/icon.png
+  category: Office
+  target:
+    - target: AppImage
+      arch: [x64]
+  files:
+    - "!**/node_modules/@node-rs/argon2-win32-*/**"
+    - "!**/node_modules/@node-rs/argon2-darwin-*/**"
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  shortcutName: ShopMe
+publish: null

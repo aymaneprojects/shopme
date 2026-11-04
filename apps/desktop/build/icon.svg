@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <title>ShopMe</title>
+  <rect width="1024" height="1024" rx="228" fill="#1E40AF"/>
+  <!-- bag handle -->
+  <path d="M368 380V332a144 144 0 0 1 288 0v48" fill="none" stroke="#FFFFFF" stroke-width="56" stroke-linecap="round"/>
+  <!-- bag body -->
+  <path d="M226 372h572a28 28 0 0 1 28 30l-44 400a64 64 0 0 1-64 56H306a64 64 0 0 1-64-56l-44-400a28 28 0 0 1 28-30z" fill="#FFFFFF"/>
+  <!-- S -->
+  <path d="M622 528c-14-34-52-52-110-52-62 0-100 26-100 64 0 84 214 40 214 134 0 42-44 70-108 70-60 0-100-22-118-60" fill="none" stroke="#1E40AF" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,81 @@
+name: Release desktop apps
+
+# Tag `v*` builds the installers and attaches them to a GitHub Release.
+# Manual runs build the same installers and keep them as workflow artifacts only.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: windows, os: windows-latest, script: dist:win, pattern: 'apps/desktop/dist/*.exe' }
+          - { name: macos, os: macos-latest, script: dist:mac, pattern: 'apps/desktop/dist/*.dmg' }
+          - { name: linux, os: ubuntu-latest, script: dist:linux, pattern: 'apps/desktop/dist/*.AppImage' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build
+
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: echo "VERSION_ARG=-c.extraMetadata.version=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      # Unsigned unless the signing secrets exist. Empty secrets must be unset: electron-builder rejects an empty CSC_LINK.
+      - name: Build desktop app
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          EXTRA="${VERSION_ARG:-}"
+          if [ -z "$CSC_LINK" ]; then
+            unset CSC_LINK CSC_KEY_PASSWORD
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          elif [ "${{ matrix.name }}" = "macos" ] && [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+            EXTRA="$EXTRA -c.mac.notarize=true"
+          fi
+          pnpm --filter @shopme/desktop ${{ matrix.script }} $EXTRA
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shopme-${{ matrix.name }}
+          path: ${{ matrix.pattern }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-files
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release-files/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
