@@ -86,6 +86,34 @@ try {
     ]);
     console.log(`products page rendered (${state})`);
   }
+  // 6. Commerce, settings and online-store pages: each renders its heading, then data or an error banner while the API is partly missing.
+  const pages: Array<[string, string, string?]> = [
+    ['/', 'Welcome', 'home'], ['/orders', 'Orders', 'orders'], ['/customers', 'Customers'], ['/customers/new', 'New customer'], ['/discounts', 'Discounts'],
+    ['/discounts/new?type=order', 'Amount off order'], ['/settings/general', 'Settings', 'settings'], ['/settings/payments', 'Settings'], ['/settings/shipping', 'Settings'],
+    ['/settings/taxes', 'Settings'], ['/settings/domains', 'Settings'], ['/settings/languages', 'Settings'], ['/online-store', 'Online Store'],
+    ['/online-store/pages', 'Online Store'], ['/online-store/pages/new', 'Add page'], ['/online-store/navigation', 'Online Store'],
+  ];
+  for (const [route, heading, shot] of pages) {
+    await page.goto(`${server.url}/admin${route}`);
+    await page.getByRole('heading', { level: 1 }).filter({ hasText: heading }).first().waitFor();
+    if (screenshots && shot) {
+      if (shot === 'orders') await page.getByText('Léa Moreau').waitFor();
+      if (shot === 'settings') await page.getByLabel('Store name').waitFor();
+      if (shot === 'home') await page.getByText('Ember Candle').first().waitFor();
+      await page.screenshot({ path: path.join(shots, `admin-${shot === 'home' ? 'dashboard' : shot === 'orders' ? 'orders' : 'settings'}.png`) });
+    }
+    console.log(`page ok ${route}`);
+  }
+  if (screenshots) {
+    await page.goto(`${server.url}/admin/orders/1006`);
+    await page.getByRole('heading', { name: /#1006/ }).waitFor();
+    await page.getByText('Ember Candle').first().waitFor();
+    await page.screenshot({ path: path.join(shots, 'admin-order-detail.png'), fullPage: true });
+    await page.goto(`${server.url}/admin/online-store/themes/1/editor`);
+    await page.getByText('Primary color').waitFor();
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: path.join(shots, 'admin-theme-editor.png') });
+  }
   assert.deepEqual(errors, [], `uncaught page errors: ${errors.join('; ')}`);
   console.log('smoke ok');
 } catch (e) {
