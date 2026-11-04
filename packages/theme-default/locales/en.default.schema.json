@@ -1,0 +1,9 @@
+{
+  "settings_schema": {
+    "colors": { "name": "Colors", "primary": "Primary color", "background": "Background", "surface": "Surface", "text": "Text", "sale": "Sale price" },
+    "typography": { "name": "Typography", "font_stack": "Font family", "sans": "System sans-serif", "serif": "System serif", "mono": "System monospace", "base_size": "Base font size" },
+    "layout": { "name": "Layout", "page_width": "Page width", "corner_radius": "Corner radius" },
+    "brand": { "name": "Logo", "logo": "Logo image", "logo_width": "Logo width" },
+    "cards": { "name": "Product cards", "show_vendor": "Show vendor" }
+  }
+}

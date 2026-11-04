@@ -69,7 +69,7 @@ describe('auth flow', () => {
     expect(r.statusCode).toBe(200);
     expect(r.body).toContain('Admin not built');
     expect((await t.app.inject('/admin/api/nope')).statusCode).toBe(404);
-    expect((await t.app.inject('/')).body).toContain('Storefront coming soon');
+    expect((await t.app.inject('/')).body).toContain('class="template-index"');
   });
 });
 

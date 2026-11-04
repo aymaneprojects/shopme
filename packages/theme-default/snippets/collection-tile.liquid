@@ -1,0 +1,14 @@
+{%- doc -%}
+  Tile linking to a collection.
+  @param {collection} tile_collection - the collection to show
+{%- enddoc -%}
+<a class="tile" href="{{ tile_collection.url }}">
+  <span class="tile__media">
+    {%- if tile_collection.image -%}
+      {{ tile_collection.image | image_url: width: 720 | image_tag: loading: 'lazy', sizes: '(min-width: 750px) 33vw, 100vw', alt: tile_collection.title }}
+    {%- else -%}
+      {{ 'collection-1' | placeholder_svg_tag: 'tile__placeholder' }}
+    {%- endif -%}
+  </span>
+  <span class="tile__title">{{ tile_collection.title | escape }}</span>
+</a>

@@ -5,6 +5,7 @@ import { createDb } from './db/client';
 import { runMigrations } from './db/migrate';
 import { seedDemo } from './seed-demo';
 import { createLocalStorage } from './services/storage';
+import { ensureDefaultTheme } from './services/theme-install';
 
 /** `pnpm seed`: insert demo data. Stop the server first when using embedded PGlite (single-process). */
 async function main() {
@@ -15,6 +16,8 @@ async function main() {
   try {
     await runMigrations(handle);
     const r = await seedDemo(handle.db, createLocalStorage(config.storageDir), { adminPassword: process.env.SEED_ADMIN_PASSWORD });
+    const themeDir = process.env.THEME_DEFAULT_DIR ?? path.resolve(import.meta.dirname, '../../theme-default');
+    if (await ensureDefaultTheme(handle.db, r.shop.id, themeDir)) console.log('Installed the default theme (Aurora).');
     console.log(`Seeded demo data into shop "${r.shop.name}".`);
     if (r.adminPassword) console.log(`Admin login: ${r.adminEmail} / ${r.adminPassword}  (change it after first login)`);
   } finally {

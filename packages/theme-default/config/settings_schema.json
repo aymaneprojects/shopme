@@ -1,0 +1,54 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Aurora",
+    "theme_version": "1.0.0",
+    "theme_author": "ShopMe contributors",
+    "theme_documentation_url": "https://github.com/",
+    "theme_support_url": "https://github.com/"
+  },
+  {
+    "name": "t:settings_schema.colors.name",
+    "settings": [
+      { "type": "color", "id": "color_primary", "label": "t:settings_schema.colors.primary", "default": "#1E40AF" },
+      { "type": "color", "id": "color_background", "label": "t:settings_schema.colors.background", "default": "#ffffff" },
+      { "type": "color", "id": "color_surface", "label": "t:settings_schema.colors.surface", "default": "#f1f5f9" },
+      { "type": "color", "id": "color_text", "label": "t:settings_schema.colors.text", "default": "#0f172a" },
+      { "type": "color", "id": "color_sale", "label": "t:settings_schema.colors.sale", "default": "#b91c1c" }
+    ]
+  },
+  {
+    "name": "t:settings_schema.typography.name",
+    "settings": [
+      {
+        "type": "select", "id": "type_font_stack", "label": "t:settings_schema.typography.font_stack", "default": "sans",
+        "options": [
+          { "value": "sans", "label": "t:settings_schema.typography.sans" },
+          { "value": "serif", "label": "t:settings_schema.typography.serif" },
+          { "value": "mono", "label": "t:settings_schema.typography.mono" }
+        ]
+      },
+      { "type": "range", "id": "type_base_size", "label": "t:settings_schema.typography.base_size", "min": 14, "max": 20, "step": 1, "unit": "px", "default": 16 }
+    ]
+  },
+  {
+    "name": "t:settings_schema.layout.name",
+    "settings": [
+      { "type": "range", "id": "page_width", "label": "t:settings_schema.layout.page_width", "min": 960, "max": 1600, "step": 40, "unit": "px", "default": 1280 },
+      { "type": "range", "id": "corner_radius", "label": "t:settings_schema.layout.corner_radius", "min": 0, "max": 24, "step": 2, "unit": "px", "default": 8 }
+    ]
+  },
+  {
+    "name": "t:settings_schema.brand.name",
+    "settings": [
+      { "type": "image_picker", "id": "logo", "label": "t:settings_schema.brand.logo" },
+      { "type": "range", "id": "logo_width", "label": "t:settings_schema.brand.logo_width", "min": 60, "max": 240, "step": 10, "unit": "px", "default": 120 }
+    ]
+  },
+  {
+    "name": "t:settings_schema.cards.name",
+    "settings": [
+      { "type": "checkbox", "id": "show_vendor", "label": "t:settings_schema.cards.show_vendor", "default": false }
+    ]
+  }
+]

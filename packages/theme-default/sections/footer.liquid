@@ -1,0 +1,37 @@
+{%- assign menu = section.settings.menu -%}
+<footer class="site-footer">
+  <div class="page-width site-footer__inner">
+    <div class="site-footer__about">
+      <p class="site-footer__name">{{ shop.name | escape }}</p>
+      {%- if section.settings.show_description and shop.description != blank -%}
+        <p class="site-footer__text">{{ shop.description | escape }}</p>
+      {%- endif -%}
+    </div>
+    {%- if menu != blank and menu.links.size > 0 -%}
+      <nav aria-label="{{ 'footer.menu' | t }}">
+        <ul class="site-footer__links">
+          {%- for link in menu.links -%}
+            <li><a href="{{ link.url }}">{{ link.title | escape }}</a></li>
+          {%- endfor -%}
+        </ul>
+      </nav>
+    {%- endif -%}
+  </div>
+  <div class="page-width site-footer__legal">
+    {%- assign year = 'now' | date: '%Y' -%}
+    <p>{{ 'general.copyright' | t: year: year, shop: shop.name }}</p>
+    <p>{{ 'general.powered_by' | t }}</p>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "Footer",
+  "tag": "div",
+  "class": "footer-section",
+  "settings": [
+    { "type": "link_list", "id": "menu", "label": "Menu", "default": "footer" },
+    { "type": "checkbox", "id": "show_description", "label": "Show store description", "default": true }
+  ]
+}
+{% endschema %}

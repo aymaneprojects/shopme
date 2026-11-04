@@ -6,3 +6,5 @@ export * from './auth';
 export * from './shops';
 export * from './storage';
 export * from './uploads';
+export * from './cart';
+export * from './theme-install';

@@ -1,0 +1,17 @@
+{%- if block.settings.label != blank -%}
+  <a class="button{% if block.settings.style == 'outline' %} button--outline{% endif %}" href="{{ block.settings.link | default: routes.all_products_collection_url }}" {{ block.shopify_attributes }}>{{ block.settings.label | escape }}</a>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Button",
+  "tag": null,
+  "settings": [
+    { "type": "text", "id": "label", "label": "Label", "default": "Shop now" },
+    { "type": "url", "id": "link", "label": "Link" },
+    { "type": "select", "id": "style", "label": "Style", "default": "solid", "options": [
+      { "value": "solid", "label": "Solid" }, { "value": "outline", "label": "Outline" } ] }
+  ],
+  "presets": [{ "name": "Button" }]
+}
+{% endschema %}

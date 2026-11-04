@@ -1,0 +1,9 @@
+{
+  "settings_schema": {
+    "colors": { "name": "Couleurs", "primary": "Couleur principale", "background": "Arrière-plan", "surface": "Surface", "text": "Texte", "sale": "Prix promotionnel" },
+    "typography": { "name": "Typographie", "font_stack": "Police", "sans": "Sans empattement système", "serif": "Avec empattement système", "mono": "Monospace système", "base_size": "Taille de police de base" },
+    "layout": { "name": "Mise en page", "page_width": "Largeur de page", "corner_radius": "Rayon des coins" },
+    "brand": { "name": "Logo", "logo": "Image du logo", "logo_width": "Largeur du logo" },
+    "cards": { "name": "Cartes produit", "show_vendor": "Afficher le fournisseur" }
+  }
+}

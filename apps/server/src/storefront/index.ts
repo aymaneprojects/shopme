@@ -1,15 +1,30 @@
+import multipart from '@fastify/multipart';
 import type { FastifyInstance } from 'fastify';
+import { registerCartRoutes } from './cart-routes';
+import { primaryShop } from './env';
+import { createContent } from './pages';
+import { ThemeStore } from './theme-store';
 
 /**
- * Storefront mount point. The storefront agent replaces this placeholder with the Liquid renderer,
- * the Ajax cart API (/cart/*.js) and the content routes (/products/*, /collections/*, /pages/*, ...).
- * Registered last, so admin routes (/admin/*), /files/*, /healthz and /checkout/* take precedence.
+ * Storefront mount point: Ajax cart API, content routes (/, /collections, /products, /cart, /search, /pages, ...),
+ * JSON catalog endpoints, theme assets and the password gate. Registered last, so admin routes (/admin/*),
+ * /files/*, /healthz and /checkout take precedence; unknown GET paths render the theme's 404 template.
  */
 export async function registerStorefront(app: FastifyInstance): Promise<void> {
-  app.get('/', async (_req, reply) =>
-    reply.type('text/html; charset=utf-8').send(
-      '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ShopMe</title>' +
-      '<body style="font-family:system-ui,sans-serif;max-width:40rem;margin:4rem auto;padding:0 1rem;line-height:1.5">' +
-      '<h1>Storefront coming soon</h1><p>Your ShopMe server is running. The storefront is not available yet.</p>' +
-      '<p><a href="/admin/">Open the admin</a></p></body>'));
+  const ctx = app.ctx;
+  const store = new ThemeStore(ctx);
+  const content = createContent(ctx, store);
+
+  await app.register(async (scope) => {
+    // Forms: the theme posts urlencoded or multipart; both end up as plain key/value objects on `req.body`.
+    scope.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_req, body, done) => {
+      done(null, Object.fromEntries(new URLSearchParams(body as string)));
+    });
+    await scope.register(multipart, { attachFieldsToBody: 'keyValues', limits: { fileSize: 1024 * 1024, files: 0 } });
+    registerCartRoutes(scope, ctx, content.renderSections);
+    content.register(scope);
+  });
+
+  // Install the default theme right away when a shop already exists (seeded or set up before this start).
+  void primaryShop(ctx).then((shop) => (shop ? store.main(shop.id) : undefined)).catch((e) => ctx.log.warn({ err: e }, 'default theme install failed'));
 }

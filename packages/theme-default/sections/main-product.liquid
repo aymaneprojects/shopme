@@ -1,0 +1,80 @@
+{%- liquid
+  assign current = product.selected_or_first_available_variant
+  assign first_image = current.featured_image | default: product.featured_image
+  assign first_alt = first_image.alt | default: product.title
+-%}
+<div class="page-width section-pad product" data-product-section data-section-id="{{ section.id }}">
+  <div class="product__grid">
+    <div class="product__gallery" role="group" aria-label="{{ 'accessibility.gallery' | t }}">
+      <div class="product__main-image" data-main-image>
+        {%- if first_image -%}
+          {{ first_image | image_url: width: 1000 | image_tag: loading: 'eager', widths: '500, 750, 1000', sizes: '(min-width: 990px) 50vw, 100vw', alt: first_alt }}
+        {%- else -%}
+          {{ 'product-1' | placeholder_svg_tag: 'product__placeholder' }}
+        {%- endif -%}
+      </div>
+      {%- if product.images.size > 1 -%}
+        <ul class="product__thumbs" role="list">
+          {%- for image in product.images -%}
+            <li>
+              <button type="button" class="product__thumb" data-thumb data-src="{{ image | image_url: width: 1000 }}" aria-label="{{ product.title | escape }} {{ forloop.index }}">
+                {{ image | image_url: width: 160 | image_tag: loading: 'lazy', alt: '' }}
+              </button>
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </div>
+
+    <div class="product__info">
+      {%- if product.vendor != blank -%}<p class="product__vendor">{{ product.vendor | escape }}</p>{%- endif -%}
+      <h1 class="product__title">{{ product.title | escape }}</h1>
+      <div data-product-price>{% render 'price', product: product, variant: current, class: 'price--large' %}</div>
+
+      {%- form 'product', product, id: 'product-form', class: 'product-form', novalidate: 'novalidate' -%}
+        <input type="hidden" name="id" value="{{ current.id }}" data-variant-id>
+        {%- unless product.has_only_default_variant -%}
+          {%- for option in product.options_with_values -%}
+            <fieldset class="option" data-option-index="{{ forloop.index0 }}">
+              <legend class="option__name">{{ option.name | escape }}</legend>
+              <div class="option__values">
+                {%- for value in option.values -%}
+                  {%- assign checked = false -%}
+                  {%- if option.selected_value == value -%}{%- assign checked = true -%}{%- endif -%}
+                  <input type="radio" class="option__input" id="{{ section.id }}-{{ option.position }}-{{ forloop.index }}" name="options[{{ option.name | escape }}]" value="{{ value | escape }}"{% if checked %} checked{% endif %}>
+                  <label class="option__label" for="{{ section.id }}-{{ option.position }}-{{ forloop.index }}">{{ value | escape }}</label>
+                {%- endfor -%}
+              </div>
+            </fieldset>
+          {%- endfor -%}
+        {%- endunless -%}
+
+        <div class="product-form__row">
+          <div class="quantity">
+            <label class="visually-hidden" for="{{ section.id }}-qty">{{ 'products.quantity' | t }}</label>
+            <input class="quantity__input" id="{{ section.id }}-qty" type="number" name="quantity" value="1" min="1" inputmode="numeric">
+          </div>
+          <button type="submit" class="button button--block" name="add" data-add-to-cart{% unless current.available %} disabled{% endunless %}>
+            <span data-add-label>{% if current.available %}{{ 'products.add_to_cart' | t }}{% else %}{{ 'products.sold_out' | t }}{% endif %}</span>
+          </button>
+        </div>
+        <p class="product-form__message" role="status" aria-live="polite" data-form-message></p>
+      {%- endform -%}
+
+      {%- if product.description != blank -%}
+        <div class="product__description rte">{{ product.description }}</div>
+      {%- endif -%}
+      {%- content_for 'blocks' -%}
+    </div>
+  </div>
+  <script type="application/json" data-product-json>{{ product | json }}</script>
+</div>
+
+{% schema %}
+{
+  "name": "Product",
+  "tag": "section",
+  "blocks": [{ "type": "@theme" }],
+  "settings": []
+}
+{% endschema %}

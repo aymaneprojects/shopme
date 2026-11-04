@@ -1,0 +1,93 @@
+{
+  "accessibility": {
+    "skip_to_content": "Aller au contenu",
+    "cart_count": "Panier, {{ count }} articles",
+    "open_menu": "Ouvrir le menu",
+    "close_menu": "Fermer le menu",
+    "search": "Rechercher",
+    "gallery": "Images du produit",
+    "quantity": "Quantité"
+  },
+  "general": {
+    "home": "Accueil",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "pagination": "Pagination",
+    "view_all": "Tout voir",
+    "continue_shopping": "Continuer vos achats",
+    "copyright": "© {{ year }} {{ shop }}",
+    "powered_by": "Propulsé par ShopMe",
+    "page_not_found": "Page introuvable",
+    "page_not_found_text": "La page que vous cherchez n'existe pas ou a été déplacée.",
+    "back_to_store": "Retour à la boutique",
+    "empty_collections": "Aucune collection pour le moment.",
+    "no_products": "Aucun produit trouvé."
+  },
+  "header": {
+    "cart": "Panier",
+    "search": "Recherche"
+  },
+  "products": {
+    "add_to_cart": "Ajouter au panier",
+    "sold_out": "Épuisé",
+    "sale": "Promo",
+    "added_to_cart": "Ajouté au panier",
+    "view_cart": "Voir le panier",
+    "from_price": "À partir de {{ price }}",
+    "regular_price": "Prix normal",
+    "sale_price": "Prix promo",
+    "quantity": "Quantité",
+    "description": "Description",
+    "unavailable": "Indisponible"
+  },
+  "collection": {
+    "sort_by": "Trier par",
+    "filter": "Filtrer",
+    "availability": "Disponibilité",
+    "in_stock": "En stock",
+    "out_of_stock": "Rupture de stock",
+    "apply": "Appliquer",
+    "clear": "Tout effacer",
+    "product_count": {
+      "one": "{{ count }} produit",
+      "other": "{{ count }} produits"
+    }
+  },
+  "cart": {
+    "title": "Votre panier",
+    "empty": "Votre panier est vide",
+    "product": "Produit",
+    "price": "Prix",
+    "quantity": "Quantité",
+    "total": "Total",
+    "remove": "Supprimer",
+    "subtotal": "Sous-total",
+    "note": "Note de commande",
+    "taxes_shipping": "Taxes et frais de livraison calculés à la commande.",
+    "checkout": "Commander",
+    "update": "Mettre à jour",
+    "decrease": "Diminuer la quantité de {{ title }}",
+    "increase": "Augmenter la quantité de {{ title }}"
+  },
+  "search": {
+    "title": "Recherche",
+    "placeholder": "Rechercher dans la boutique",
+    "submit": "Rechercher",
+    "results": {
+      "one": "{{ count }} résultat pour « {{ terms }} »",
+      "other": "{{ count }} résultats pour « {{ terms }} »"
+    },
+    "no_results": "Aucun résultat pour « {{ terms }} ». Essayez une autre recherche."
+  },
+  "password": {
+    "title": "Ouverture prochaine",
+    "message": "Cette boutique est protégée par un mot de passe.",
+    "label": "Mot de passe",
+    "submit": "Entrer",
+    "wrong": "Mot de passe incorrect"
+  },
+  "footer": {
+    "menu": "Menu du pied de page"
+  }
+}

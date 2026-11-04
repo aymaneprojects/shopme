@@ -1,0 +1,16 @@
+<div class="page-width section-pad">
+  <h1 class="page-title">{{ 'general.view_all' | t }}</h1>
+  {%- if collections.size > 0 -%}
+    <ul class="grid grid--3 collection-tiles" role="list">
+      {%- for collection in collections -%}
+        <li>{% render 'collection-tile', tile_collection: collection %}</li>
+      {%- endfor -%}
+    </ul>
+  {%- else -%}
+    <p class="empty">{{ 'general.empty_collections' | t }}</p>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{ "name": "Collections list", "tag": "section", "settings": [] }
+{% endschema %}

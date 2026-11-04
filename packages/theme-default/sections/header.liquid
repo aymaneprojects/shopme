@@ -1,0 +1,63 @@
+{%- liquid
+  assign menu = section.settings.menu
+  assign logo = settings.logo
+-%}
+<header class="site-header{% if section.settings.sticky %} site-header--sticky{% endif %}" data-header>
+  <div class="page-width site-header__inner">
+    <button type="button" class="icon-button site-header__menu-toggle" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
+      <span class="visually-hidden">{{ 'accessibility.open_menu' | t }}</span>
+      {% render 'icon', name: 'menu' %}
+    </button>
+
+    <a class="site-header__brand" href="{{ routes.root_url }}">
+      {%- if logo -%}
+        {{ logo | image_url: width: 480 | image_tag: alt: shop.name, class: 'site-header__logo', loading: 'eager' }}
+      {%- else -%}
+        <span class="site-header__name">{{ shop.name | escape }}</span>
+      {%- endif -%}
+    </a>
+
+    <nav class="site-nav" id="site-nav" aria-label="{{ menu.title | default: shop.name | escape }}" data-nav>
+      {%- if menu != blank and menu.links.size > 0 -%}
+        <ul class="site-nav__list">
+          {%- for link in menu.links -%}
+            <li class="site-nav__item{% if link.links.size > 0 %} site-nav__item--parent{% endif %}">
+              <a href="{{ link.url }}"{% if link.current %} aria-current="page"{% endif %}{% if link.active %} class="is-active"{% endif %}>{{ link.title | escape }}</a>
+              {%- if link.links.size > 0 -%}
+                <ul class="site-nav__sub">
+                  {%- for child in link.links -%}
+                    <li><a href="{{ child.url }}"{% if child.current %} aria-current="page"{% endif %}>{{ child.title | escape }}</a></li>
+                  {%- endfor -%}
+                </ul>
+              {%- endif -%}
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </nav>
+
+    <div class="site-header__actions">
+      <a class="icon-button" href="{{ routes.search_url }}">
+        <span class="visually-hidden">{{ 'header.search' | t }}</span>
+        {% render 'icon', name: 'search' %}
+      </a>
+      <a class="icon-button cart-link" href="{{ routes.cart_url }}">
+        <span class="visually-hidden">{{ 'accessibility.cart_count' | t: count: cart.item_count }}</span>
+        {% render 'icon', name: 'cart' %}
+        <span class="cart-count{% if cart.item_count == 0 %} is-empty{% endif %}" data-cart-count aria-hidden="true">{{ cart.item_count }}</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+{% schema %}
+{
+  "name": "Header",
+  "tag": "div",
+  "class": "header-section",
+  "settings": [
+    { "type": "link_list", "id": "menu", "label": "Menu", "default": "main-menu" },
+    { "type": "checkbox", "id": "sticky", "label": "Sticky header", "default": true }
+  ]
+}
+{% endschema %}

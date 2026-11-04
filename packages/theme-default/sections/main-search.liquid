@@ -1,0 +1,35 @@
+<div class="page-width section-pad">
+  <h1 class="page-title">{{ 'search.title' | t }}</h1>
+  <form class="search-form" role="search" action="{{ routes.search_url }}" method="get">
+    <label class="visually-hidden" for="search-q">{{ 'accessibility.search' | t }}</label>
+    <input id="search-q" class="search-form__input" type="search" name="q" value="{{ search.terms | escape }}" placeholder="{{ 'search.placeholder' | t }}" autocomplete="off">
+    <input type="hidden" name="type" value="product">
+    <button class="button" type="submit">{{ 'search.submit' | t }}</button>
+  </form>
+
+  {%- if search.performed -%}
+    {%- paginate search.results by section.settings.products_per_page -%}
+      {%- if search.results_count > 0 -%}
+        <p class="toolbar__count">{{ 'search.results' | t: count: search.results_count, terms: search.terms }}</p>
+        <ul class="grid grid--4" role="list">
+          {%- for product in search.results -%}
+            <li>{% render 'product-card', card_product: product %}</li>
+          {%- endfor -%}
+        </ul>
+        {% render 'pagination', paginate: paginate %}
+      {%- else -%}
+        <p class="empty">{{ 'search.no_results' | t: terms: search.terms }}</p>
+      {%- endif -%}
+    {%- endpaginate -%}
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "Search results",
+  "tag": "section",
+  "settings": [
+    { "type": "range", "id": "products_per_page", "label": "Results per page", "min": 4, "max": 48, "step": 4, "default": 12 }
+  ]
+}
+{% endschema %}
