@@ -1,0 +1,34 @@
+{%- doc -%}
+  Emits the CSS custom properties derived from the theme settings.
+{%- enddoc -%}
+{%- liquid
+  assign primary = settings.color_primary | default: '#1E40AF'
+  assign primary_dark = primary | color_darken: 10
+  assign primary_light = primary | color_modify: 'alpha', 0.1
+  assign on_primary = '#ffffff'
+  assign brightness = primary | color_brightness
+  if brightness > 160
+    assign on_primary = '#0f172a'
+  endif
+  assign stack = settings.type_font_stack
+-%}
+<style data-aurora-variables>
+  :root {
+    --color-primary: {{ primary }};
+    --color-primary-dark: {{ primary_dark }};
+    --color-primary-soft: {{ primary_light }};
+    --color-on-primary: {{ on_primary }};
+    --color-background: {{ settings.color_background | default: '#ffffff' }};
+    --color-surface: {{ settings.color_surface | default: '#f1f5f9' }};
+    --color-text: {{ settings.color_text | default: '#0f172a' }};
+    --color-muted: {{ settings.color_text | default: '#0f172a' | color_modify: 'alpha', 0.65 }};
+    --color-border: {{ settings.color_text | default: '#0f172a' | color_modify: 'alpha', 0.14 }};
+    --color-sale: {{ settings.color_sale | default: '#b91c1c' }};
+    --font-body: {% case stack %}{% when 'serif' %}Georgia, 'Times New Roman', serif{% when 'mono' %}ui-monospace, 'SF Mono', Menlo, Consolas, monospace{% else %}system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif{% endcase %};
+    --font-heading: var(--font-body);
+    --font-size-base: {{ settings.type_base_size | default: 16 }}px;
+    --page-width: {{ settings.page_width | default: 1280 }}px;
+    --radius: {{ settings.corner_radius | default: 8 }}px;
+    --logo-width: {{ settings.logo_width | default: 120 }}px;
+  }
+</style>

@@ -1,0 +1,38 @@
+{%- doc -%}
+  Price block for a product or variant.
+  @param {product} [product] - product (uses its selected-or-first-available variant for the compare-at price)
+  @param {variant} [variant] - a specific variant
+  @param {string} [class] - extra css class
+{%- enddoc -%}
+{%- liquid
+  assign target = variant | default: product
+  assign price = target.price
+  assign compare_at = target.compare_at_price
+  if variant == blank and product != blank
+    assign price = product.price
+    assign compare_at = 0
+    assign cheapest = product.variants | where: 'price', product.price | first
+    if cheapest.compare_at_price
+      assign compare_at = cheapest.compare_at_price
+    endif
+  endif
+  assign on_sale = false
+  if compare_at > price
+    assign on_sale = true
+  endif
+-%}
+<div class="price{% if on_sale %} price--on-sale{% endif %}{% if class %} {{ class }}{% endif %}" data-price>
+  {%- if on_sale -%}
+    <span class="visually-hidden">{{ 'products.regular_price' | t }}</span>
+    <s class="price__compare">{{ compare_at | money }}</s>
+    <span class="visually-hidden">{{ 'products.sale_price' | t }}</span>
+  {%- endif -%}
+  <span class="price__current">
+    {%- if product.price_varies and variant == blank -%}
+      {%- assign price_money = price | money -%}
+      {{ 'products.from_price' | t: price: price_money }}
+    {%- else -%}
+      {{ price | money }}
+    {%- endif -%}
+  </span>
+</div>

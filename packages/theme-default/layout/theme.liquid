@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="{{ settings.color_primary }}">
+    <title>{{ page_title }}</title>
+    {%- if page_description != blank %}
+      <meta name="description" content="{{ page_description | escape }}">
+    {%- endif %}
+    <link rel="canonical" href="{{ canonical_url }}">
+    <meta property="og:site_name" content="{{ shop.name | escape }}">
+    <meta property="og:title" content="{{ page_title | escape }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    {%- render 'css-variables' -%}
+    {{ 'aurora.css' | asset_url | stylesheet_tag }}
+    {{ content_for_header }}
+    <script src="{{ 'aurora.js' | asset_url }}" defer></script>
+  </head>
+  <body class="template-{{ template.name }}">
+    <a class="skip-link" href="#main">{{ 'accessibility.skip_to_content' | t }}</a>
+    {% sections 'header-group' %}
+    <main id="main" tabindex="-1">
+      {{ content_for_layout }}
+    </main>
+    {% sections 'footer-group' %}
+    <script>
+      window.aurora = {
+        moneyFormat: {{ shop.money_format | json }},
+        currency: {{ shop.currency | json }},
+        routes: { cart: {{ routes.cart_url | json }}, cartAdd: '/cart/add.js', cartChange: '/cart/change.js', cartJson: '/cart.js' },
+        strings: { added: {{ 'products.added_to_cart' | t | json }}, error: {{ 'general.error' | t | json }}, soldOut: {{ 'products.sold_out' | t | json }}, addToCart: {{ 'products.add_to_cart' | t | json }} }
+      };
+    </script>
+  </body>
+</html>

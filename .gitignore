@@ -8,4 +8,6 @@ coverage
 *.har
 re-private/
 .DS_Store
-data/
+/data/
+/apps/*/data/
+/packages/*/data/

@@ -3,7 +3,7 @@
  * Regenerates `fixtures/admin-*.shape.json` from the private reverse-engineering captures
  * (full SDL + recorded sample responses). Only field PATHS and GraphQL TYPES are written; no values, no descriptions.
  *
- *   node apps/server/test/conformance/gen-shapes.mjs [path/to/shoppen-re/raw]
+ *   node apps/server/test/conformance/gen-admin-shapes.mjs [path/to/shoppen-re/raw]
  *
  * The captures are private and never committed. The generated fixtures are committed, so the conformance tests
  * run without the private directory.

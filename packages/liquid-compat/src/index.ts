@@ -1,1 +1,10 @@
-export const name = '@shopme/liquid-compat';
+export { createEngine } from './engine';
+export { ThemeRenderer, HEAD_MARKER, type PageInput, type RendererOptions } from './renderer';
+export { Theme, resolveSettings, resolveLinkValue, parseFont, lookupKey } from './theme';
+export { analyzeTheme, type CompatReport } from './analyze';
+export { lazyList } from './tags';
+export { parseJsonc } from './jsonc';
+export { handleize } from './filters';
+export { parseColor, formatColor } from './filters-color';
+export type * from './types';
+export type { Runtime } from './runtime';

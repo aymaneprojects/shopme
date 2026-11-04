@@ -7,3 +7,5 @@ export * from './shops';
 export * from './storage';
 export * from './uploads';
 export * from './catalog';
+export * from './cart';
+export * from './theme-install';

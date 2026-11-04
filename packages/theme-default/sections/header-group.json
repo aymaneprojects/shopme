@@ -1,0 +1,15 @@
+{
+  "name": "Header",
+  "type": "header",
+  "sections": {
+    "announcement": {
+      "type": "announcement-bar",
+      "settings": { "text": "Free shipping on orders over 50", "link": "", "show": true }
+    },
+    "header": {
+      "type": "header",
+      "settings": { "menu": "main-menu", "sticky": true }
+    }
+  },
+  "order": ["announcement", "header"]
+}

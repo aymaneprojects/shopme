@@ -1,0 +1,12 @@
+<h2 class="section-title" {{ block.shopify_attributes }}>{{ block.settings.text | escape }}</h2>
+
+{% schema %}
+{
+  "name": "Heading",
+  "tag": null,
+  "settings": [
+    { "type": "text", "id": "text", "label": "Text", "default": "Heading" }
+  ],
+  "presets": [{ "name": "Heading" }]
+}
+{% endschema %}

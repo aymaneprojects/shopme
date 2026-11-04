@@ -1,0 +1,32 @@
+{
+  "current": {
+    "color_primary": "#1E40AF",
+    "color_background": "#ffffff",
+    "color_surface": "#f1f5f9",
+    "color_text": "#0f172a",
+    "color_sale": "#b91c1c",
+    "type_font_stack": "sans",
+    "type_base_size": 16,
+    "page_width": 1280,
+    "corner_radius": 8,
+    "logo": "",
+    "logo_width": 120,
+    "show_vendor": false
+  },
+  "presets": {
+    "Aurora": {
+      "color_primary": "#1E40AF",
+      "color_background": "#ffffff",
+      "color_surface": "#f1f5f9",
+      "color_text": "#0f172a",
+      "color_sale": "#b91c1c",
+      "type_font_stack": "sans",
+      "type_base_size": 16,
+      "page_width": 1280,
+      "corner_radius": 8,
+      "logo": "",
+      "logo_width": 120,
+      "show_vendor": false
+    }
+  }
+}

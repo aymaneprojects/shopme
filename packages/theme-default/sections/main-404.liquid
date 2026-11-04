@@ -1,0 +1,10 @@
+<div class="page-width page-width--narrow section-pad not-found">
+  <p class="not-found__code">404</p>
+  <h1 class="page-title">{{ 'general.page_not_found' | t }}</h1>
+  <p>{{ 'general.page_not_found_text' | t }}</p>
+  <a class="button" href="{{ routes.root_url }}">{{ 'general.back_to_store' | t }}</a>
+</div>
+
+{% schema %}
+{ "name": "Not found", "tag": "section", "settings": [] }
+{% endschema %}
