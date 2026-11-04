@@ -1,0 +1,34 @@
+{
+  "root": "locations",
+  "rootType": "Location",
+  "fields": [
+    {
+      "path": "address",
+      "type": "LocationAddress!"
+    },
+    {
+      "path": "address.city",
+      "type": "String"
+    },
+    {
+      "path": "address.countryCode",
+      "type": "String"
+    },
+    {
+      "path": "fulfillsOnlineOrders",
+      "type": "Boolean!"
+    },
+    {
+      "path": "id",
+      "type": "ID!"
+    },
+    {
+      "path": "isActive",
+      "type": "Boolean!"
+    },
+    {
+      "path": "name",
+      "type": "String!"
+    }
+  ]
+}
