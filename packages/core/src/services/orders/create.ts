@@ -5,7 +5,7 @@ import { addEvent } from '../events';
 import { nextOrderNumber } from '../sequences';
 import type { PricingLine, PricingResult } from '../pricing';
 
-export interface AddressInput {
+export interface CheckoutAddressInput {
   firstName?: string | null; lastName?: string | null; company?: string | null;
   address1?: string | null; address2?: string | null; city?: string | null;
   province?: string | null; provinceCode?: string | null; zip?: string | null;
@@ -26,8 +26,8 @@ export interface CreateOrderInput {
   taxesIncluded: boolean;
   lines: OrderLineInput[];
   pricing: PricingResult;
-  shippingAddress: AddressInput | null;
-  billingAddress: AddressInput | null;
+  shippingAddress: CheckoutAddressInput | null;
+  billingAddress: CheckoutAddressInput | null;
   /** PAID when the money is in (or nothing is due); PENDING for manual methods and unconfirmed online payments. */
   payment: { gateway: string; status: 'PAID' | 'PENDING'; paymentId?: string | null; test?: boolean };
   /** Checkout (cart) token: stored on the order and used to complete the cart exactly once. */

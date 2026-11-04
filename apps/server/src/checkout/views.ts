@@ -1,5 +1,5 @@
 import type { PaymentProvider } from '@shopme/payments';
-import type { AddressInput, CheckoutView, DiscountRejection, OrderSummary, Shop } from '@shopme/core';
+import type { CheckoutAddressInput, CheckoutView, DiscountRejection, OrderSummary, Shop } from '@shopme/core';
 import { renderMoneyFormat } from '@shopme/shopify-compat';
 import { countryOptions, PROVINCES } from './geo';
 import { translator, type T } from './i18n';
@@ -78,7 +78,7 @@ export interface PageData {
 export function checkoutPage(c: PageCtx, d: PageData): string {
   const { t } = c;
   const v = d.view;
-  const a: AddressInput = v.address ?? {};
+  const a: CheckoutAddressInput = v.address ?? {};
   const countries = countryOptions(d.countries, c.shop.locale);
   const defaultCountry = a.countryCode ?? (countries.some((x) => x.code === c.shop.country) ? c.shop.country : '');
   const list = PROVINCES[a.countryCode ?? defaultCountry];

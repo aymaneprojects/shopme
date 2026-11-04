@@ -3,7 +3,7 @@ import type { Db, Executor } from '../../db/client';
 import * as s from '../../db/schema';
 import type { Shop } from '../shops';
 import { loadCartView, type CartLineView, type CartView } from '../cart/service';
-import { createOrder, type AddressInput, type CreateOrderResult } from '../orders/create';
+import { createOrder, type CheckoutAddressInput, type CreateOrderResult } from '../orders/create';
 import {
   matchShippingRates, priceCheckout, type PricingDiscount, type PricingInput, type PricingLine, type PricingResult, type PricingShippingRate, type PricingTaxRate,
 } from '../pricing';
@@ -17,7 +17,7 @@ export interface CheckoutView {
   currency: string;
   taxesIncluded: boolean;
   email: string | null;
-  address: AddressInput | null;
+  address: CheckoutAddressInput | null;
   lines: CartLineView[];
   requiresShipping: boolean;
   shippingOptions: PricingShippingRate[];
@@ -164,7 +164,7 @@ export async function loadCheckout(db: Executor, shop: Shop, token: string, now 
   const row = await cartRowByToken(db, shop.id, token);
   if (!row) return null;
   const cart = (await loadCartView(db, shop.id, row.id))!;
-  const address = (row.shippingAddress ?? row.billingAddress ?? null) as AddressInput | null;
+  const address = (row.shippingAddress ?? row.billingAddress ?? null) as CheckoutAddressInput | null;
   const collections = await collectionsOf(db, shop.id, [...new Set(cart.lines.map((l) => l.productId))]);
   const plines = toPricingLines(cart.lines, collections);
   const { applied, rejected } = await evaluateDiscounts(db, shop.id, cart.discountCodes, { lines: plines, email: row.email, now });
@@ -196,7 +196,7 @@ export async function loadCheckout(db: Executor, shop: Shop, token: string, now 
 
 export interface CheckoutPatch {
   email?: string | null;
-  address?: AddressInput | null;
+  address?: CheckoutAddressInput | null;
   shippingRateId?: number | null;
   addDiscountCode?: string;
   removeDiscountCode?: string;
@@ -204,13 +204,13 @@ export interface CheckoutPatch {
 
 const ADDRESS_KEYS = ['firstName', 'lastName', 'company', 'address1', 'address2', 'city', 'province', 'provinceCode', 'zip', 'country', 'countryCode', 'phone'] as const;
 
-export function cleanAddress(a: Record<string, unknown> | null | undefined): AddressInput | null {
+export function cleanAddress(a: Record<string, unknown> | null | undefined): CheckoutAddressInput | null {
   if (!a) return null;
   const out: Record<string, string | null> = {};
   for (const k of ADDRESS_KEYS) { const v = a[k]; out[k] = typeof v === 'string' && v.trim() ? v.trim().slice(0, 255) : null; }
   if (out.countryCode) out.countryCode = out.countryCode.toUpperCase();
   if (out.provinceCode) out.provinceCode = out.provinceCode.toUpperCase();
-  return out as AddressInput;
+  return out as CheckoutAddressInput;
 }
 
 export type CheckoutUpdateResult = { ok: true } | { ok: false; error: 'not_found' | 'completed' | 'invalid_email' | DiscountRejection };

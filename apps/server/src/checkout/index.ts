@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   availablePaymentMethods, cleanAddress, findOrderIdByPayment, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
-  renderOrderConfirmation, renderStaffNewOrder, shippableCountries, submitCheckout, updateCheckout, type AddressInput, type CheckoutError, type CheckoutView, type Shop,
+  renderOrderConfirmation, renderStaffNewOrder, shippableCountries, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutError, type CheckoutView, type Shop,
 } from '@shopme/core';
 import { createStripeGateway, readSetting, type StripeGateway } from '@shopme/payments';
 import type { AppContext } from '../context';
@@ -18,7 +18,7 @@ declare module 'fastify' { interface FastifyInstance { checkoutPayments: Checkou
 type Body = Record<string, any>;
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 
-function addressFrom(b: Body): AddressInput {
+function addressFrom(b: Body): CheckoutAddressInput {
   const provinceCode = str(b.provinceCode).toUpperCase();
   const country = str(b.countryCode).toUpperCase();
   const known = PROVINCES[country]?.find((p) => p.code === provinceCode);
