@@ -1,0 +1,16 @@
+{
+  "name": "@shoppen/re-scripts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Reverse-engineering helpers, to be run against your OWN development store.",
+  "scripts": {
+    "build": "echo \"n/a\"",
+    "lint": "echo \"n/a\"",
+    "test": "echo \"n/a\"",
+    "typecheck": "echo \"n/a\""
+  },
+  "dependencies": {
+    "graphql": "16.9.0"
+  }
+}

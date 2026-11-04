@@ -1,0 +1,3 @@
+{ collections(first:50){ nodes{ id handle title descriptionHtml sortOrder templateSuffix updatedAt productsCount{count}
+  ruleSet{ appliedDisjunctively rules{column relation condition} } image{url altText} seo{title description}
+  products(first:5){nodes{handle}} } } }

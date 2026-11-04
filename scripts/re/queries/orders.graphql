@@ -1,0 +1,13 @@
+{ orders(first:20, sortKey:CREATED_AT, reverse:true){ nodes{ id legacyResourceId name createdAt processedAt cancelledAt closedAt test
+  displayFinancialStatus displayFulfillmentStatus confirmed currencyCode presentmentCurrencyCode taxesIncluded email phone note tags sourceName
+  subtotalPriceSet{shopMoney{amount currencyCode}} totalPriceSet{shopMoney{amount currencyCode}} totalTaxSet{shopMoney{amount currencyCode}}
+  totalShippingPriceSet{shopMoney{amount currencyCode}} totalDiscountsSet{shopMoney{amount currencyCode}} totalRefundedSet{shopMoney{amount currencyCode}}
+  customer{id email firstName lastName} shippingAddress{address1 address2 city zip province countryCodeV2 name} billingAddress{city countryCodeV2}
+  lineItems(first:50){nodes{ id name title quantity sku variantTitle vendor requiresShipping taxable
+    originalUnitPriceSet{shopMoney{amount currencyCode}} discountedTotalSet{shopMoney{amount currencyCode}}
+    taxLines{title rate priceSet{shopMoney{amount}}} variant{id} product{id} }}
+  shippingLines(first:5){nodes{title code source originalPriceSet{shopMoney{amount}}}}
+  discountApplications(first:5){nodes{ __typename allocationMethod targetSelection targetType value{ __typename ... on MoneyV2{amount} ... on PricingPercentageValue{percentage} } }}
+  transactions(first:10){ id kind status gateway amountSet{shopMoney{amount currencyCode}} createdAt test }
+  fulfillments(first:5){ id status createdAt trackingInfo{company number url} }
+  refunds(first:5){ id createdAt note totalRefundedSet{shopMoney{amount}} } } } }

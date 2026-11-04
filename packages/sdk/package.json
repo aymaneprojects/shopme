@@ -1,0 +1,14 @@
+{
+  "name": "@shoppen/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "echo \"no build yet\"",
+    "lint": "echo \"no lint yet\"",
+    "test": "echo \"no tests yet\"",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

@@ -1,0 +1,2 @@
+query($id:ID!, $after:String){ theme(id:$id){ name role files(first:50, after:$after){ pageInfo{hasNextPage endCursor}
+ nodes{ filename size contentType checksumMd5 updatedAt body{ __typename ... on OnlineStoreThemeFileBodyText{content} ... on OnlineStoreThemeFileBodyBase64{contentBase64} ... on OnlineStoreThemeFileBodyUrl{url} } } } } }
