@@ -5,10 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project will follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) from 1.0 onward. Before 1.0, minor versions may include breaking changes.
 
-## [0.1.0] - unreleased
+## [0.1.0] - 2026-11-04
 
 ### Added
 
+- End-to-end test suite (`pnpm e2e`): 29-step merchant and shopper journey in a real browser, run in CI.
+- Desktop apps (beta): Windows `.exe`, macOS `.dmg`, Linux `.AppImage`, built by GitHub Actions for each release.
 - First-run setup wizard that creates the shop and the owner account.
 - Catalog: products, variants and options, media, manual and smart-rule collections, single-location inventory, metafields, product types, vendors and tags.
 - Liquid theme engine for Shopify-format themes, with the Aurora default theme (MIT) and a schema-driven theme settings editor with preview.
