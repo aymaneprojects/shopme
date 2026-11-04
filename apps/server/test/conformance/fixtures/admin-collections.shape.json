@@ -1,0 +1,90 @@
+{
+  "root": "collections",
+  "rootType": "Collection",
+  "fields": [
+    {
+      "path": "descriptionHtml",
+      "type": "HTML!"
+    },
+    {
+      "path": "handle",
+      "type": "String!"
+    },
+    {
+      "path": "id",
+      "type": "ID!"
+    },
+    {
+      "path": "image",
+      "type": "Image"
+    },
+    {
+      "path": "products",
+      "type": "ProductConnection!"
+    },
+    {
+      "path": "products.nodes",
+      "type": "[Product!]!"
+    },
+    {
+      "path": "productsCount",
+      "type": "Count"
+    },
+    {
+      "path": "productsCount.count",
+      "type": "Int!"
+    },
+    {
+      "path": "ruleSet",
+      "type": "CollectionRuleSet"
+    },
+    {
+      "path": "ruleSet.appliedDisjunctively",
+      "type": "Boolean!"
+    },
+    {
+      "path": "ruleSet.rules",
+      "type": "[CollectionRule!]!"
+    },
+    {
+      "path": "ruleSet.rules[].column",
+      "type": "CollectionRuleColumn!"
+    },
+    {
+      "path": "ruleSet.rules[].condition",
+      "type": "String!"
+    },
+    {
+      "path": "ruleSet.rules[].relation",
+      "type": "CollectionRuleRelation!"
+    },
+    {
+      "path": "seo",
+      "type": "SEO!"
+    },
+    {
+      "path": "seo.description",
+      "type": "String"
+    },
+    {
+      "path": "seo.title",
+      "type": "String"
+    },
+    {
+      "path": "sortOrder",
+      "type": "CollectionSortOrder!"
+    },
+    {
+      "path": "templateSuffix",
+      "type": "String"
+    },
+    {
+      "path": "title",
+      "type": "String!"
+    },
+    {
+      "path": "updatedAt",
+      "type": "DateTime!"
+    }
+  ]
+}

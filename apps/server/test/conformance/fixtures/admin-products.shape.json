@@ -1,0 +1,326 @@
+{
+  "root": "products",
+  "rootType": "Product",
+  "fields": [
+    {
+      "path": "collections",
+      "type": "CollectionConnection!"
+    },
+    {
+      "path": "collections.nodes",
+      "type": "[Collection!]!"
+    },
+    {
+      "path": "createdAt",
+      "type": "DateTime!"
+    },
+    {
+      "path": "descriptionHtml",
+      "type": "HTML!"
+    },
+    {
+      "path": "featuredMedia",
+      "type": "Media"
+    },
+    {
+      "path": "featuredMedia.id",
+      "type": "ID!"
+    },
+    {
+      "path": "featuredMedia.image",
+      "type": "Image"
+    },
+    {
+      "path": "featuredMedia.image.altText",
+      "type": "String"
+    },
+    {
+      "path": "featuredMedia.image.height",
+      "type": "Int"
+    },
+    {
+      "path": "featuredMedia.image.url",
+      "type": "URL!"
+    },
+    {
+      "path": "featuredMedia.image.width",
+      "type": "Int"
+    },
+    {
+      "path": "handle",
+      "type": "String!"
+    },
+    {
+      "path": "id",
+      "type": "ID!"
+    },
+    {
+      "path": "legacyResourceId",
+      "type": "UnsignedInt64!"
+    },
+    {
+      "path": "media",
+      "type": "MediaConnection!"
+    },
+    {
+      "path": "media.nodes",
+      "type": "[Media!]!"
+    },
+    {
+      "path": "metafields",
+      "type": "MetafieldConnection!"
+    },
+    {
+      "path": "metafields.nodes",
+      "type": "[Metafield!]!"
+    },
+    {
+      "path": "options",
+      "type": "[ProductOption!]!"
+    },
+    {
+      "path": "options[].id",
+      "type": "ID!"
+    },
+    {
+      "path": "options[].name",
+      "type": "String!"
+    },
+    {
+      "path": "options[].optionValues",
+      "type": "[ProductOptionValue!]!"
+    },
+    {
+      "path": "options[].optionValues[].hasVariants",
+      "type": "Boolean!"
+    },
+    {
+      "path": "options[].optionValues[].id",
+      "type": "ID!"
+    },
+    {
+      "path": "options[].optionValues[].name",
+      "type": "String!"
+    },
+    {
+      "path": "options[].position",
+      "type": "Int!"
+    },
+    {
+      "path": "options[].values",
+      "type": "[String!]!"
+    },
+    {
+      "path": "priceRangeV2",
+      "type": "ProductPriceRangeV2!"
+    },
+    {
+      "path": "priceRangeV2.maxVariantPrice",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "priceRangeV2.maxVariantPrice.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "priceRangeV2.maxVariantPrice.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "priceRangeV2.minVariantPrice",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "priceRangeV2.minVariantPrice.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "priceRangeV2.minVariantPrice.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "productType",
+      "type": "String!"
+    },
+    {
+      "path": "publishedAt",
+      "type": "DateTime"
+    },
+    {
+      "path": "seo",
+      "type": "SEO!"
+    },
+    {
+      "path": "seo.description",
+      "type": "String"
+    },
+    {
+      "path": "seo.title",
+      "type": "String"
+    },
+    {
+      "path": "status",
+      "type": "ProductStatus!"
+    },
+    {
+      "path": "tags",
+      "type": "[String!]!"
+    },
+    {
+      "path": "templateSuffix",
+      "type": "String"
+    },
+    {
+      "path": "title",
+      "type": "String!"
+    },
+    {
+      "path": "updatedAt",
+      "type": "DateTime!"
+    },
+    {
+      "path": "variants",
+      "type": "ProductVariantConnection!"
+    },
+    {
+      "path": "variants.nodes",
+      "type": "[ProductVariant!]!"
+    },
+    {
+      "path": "variants.nodes[].availableForSale",
+      "type": "Boolean!"
+    },
+    {
+      "path": "variants.nodes[].barcode",
+      "type": "String"
+    },
+    {
+      "path": "variants.nodes[].compareAtPrice",
+      "type": "Money"
+    },
+    {
+      "path": "variants.nodes[].id",
+      "type": "ID!"
+    },
+    {
+      "path": "variants.nodes[].image",
+      "type": "Image"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem",
+      "type": "InventoryItem!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.countryCodeOfOrigin",
+      "type": "CountryCode"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.harmonizedSystemCode",
+      "type": "String"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.id",
+      "type": "ID!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.inventoryLevels",
+      "type": "InventoryLevelConnection!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.inventoryLevels.nodes",
+      "type": "[InventoryLevel!]!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.inventoryLevels.nodes[].location",
+      "type": "Location!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.inventoryLevels.nodes[].location.name",
+      "type": "String!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.inventoryLevels.nodes[].quantities",
+      "type": "[InventoryQuantity!]!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.inventoryLevels.nodes[].quantities[].name",
+      "type": "String!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.inventoryLevels.nodes[].quantities[].quantity",
+      "type": "Int!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.measurement",
+      "type": "InventoryItemMeasurement!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.measurement.weight",
+      "type": "Weight"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.measurement.weight.unit",
+      "type": "WeightUnit!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.measurement.weight.value",
+      "type": "Float!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.requiresShipping",
+      "type": "Boolean!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.tracked",
+      "type": "Boolean!"
+    },
+    {
+      "path": "variants.nodes[].inventoryPolicy",
+      "type": "ProductVariantInventoryPolicy!"
+    },
+    {
+      "path": "variants.nodes[].inventoryQuantity",
+      "type": "Int"
+    },
+    {
+      "path": "variants.nodes[].legacyResourceId",
+      "type": "UnsignedInt64!"
+    },
+    {
+      "path": "variants.nodes[].position",
+      "type": "Int!"
+    },
+    {
+      "path": "variants.nodes[].price",
+      "type": "Money!"
+    },
+    {
+      "path": "variants.nodes[].selectedOptions",
+      "type": "[SelectedOption!]!"
+    },
+    {
+      "path": "variants.nodes[].selectedOptions[].name",
+      "type": "String!"
+    },
+    {
+      "path": "variants.nodes[].selectedOptions[].value",
+      "type": "String!"
+    },
+    {
+      "path": "variants.nodes[].sku",
+      "type": "String"
+    },
+    {
+      "path": "variants.nodes[].taxable",
+      "type": "Boolean!"
+    },
+    {
+      "path": "variants.nodes[].title",
+      "type": "String!"
+    },
+    {
+      "path": "vendor",
+      "type": "String!"
+    }
+  ]
+}

@@ -6,3 +6,4 @@ export * from './auth';
 export * from './shops';
 export * from './storage';
 export * from './uploads';
+export * from './catalog';

@@ -3,6 +3,7 @@ import type { GraphQLContext } from './context';
 
 export interface SchemaTypes {
   Context: GraphQLContext;
+  DefaultFieldNullability: false;
   Scalars: {
     DateTime: { Input: Date; Output: Date | string };
     Decimal: { Input: string; Output: string };
@@ -15,13 +16,8 @@ export interface SchemaTypes {
 }
 
 /** The single schema builder. Feature modules import it and register types/fields on it. */
-export const builder = new SchemaBuilder<SchemaTypes>({});
+/** Output fields are non-null unless declared `nullable: true` (the Shopify convention; see docs/dev/admin-graphql.md). */
+export const builder = new SchemaBuilder<SchemaTypes>({ defaultFieldNullability: false });
 
 builder.queryType({});
-// graphql-js rejects a Mutation type without fields; this deprecated no-op keeps the schema valid until
-// the first real mutation module lands. Remove it when `modules/` registers a mutation.
-builder.mutationType({
-  fields: (t) => ({
-    shopmePlaceholder: t.boolean({ nullable: true, deprecationReason: 'Placeholder until mutations are added.', resolve: () => null }),
-  }),
-});
+builder.mutationType({});

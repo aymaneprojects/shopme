@@ -10,5 +10,10 @@
  */
 import './core';
 import './shop';
-// import './products';   // catalog agent
+import './files';
+import './metafields';
+import './locations';
+import './inventory';
+import './collections';
+import './products';
 // import './orders';     // orders agent
