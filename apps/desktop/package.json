@@ -1,0 +1,35 @@
+{
+  "name": "@shopme/desktop",
+  "productName": "ShopMe",
+  "version": "0.1.0",
+  "description": "ShopMe desktop app: run your store locally with one double-click.",
+  "private": true,
+  "type": "module",
+  "author": "ShopMe contributors <hello@shopme.org>",
+  "homepage": "https://github.com/aymaneprojects/shoppen",
+  "license": "MIT",
+  "main": "stage/main.mjs",
+  "scripts": {
+    "icons": "node scripts/make-icons.mjs",
+    "stage": "node scripts/stage.mjs",
+    "start": "pnpm stage && electron stage",
+    "dist:dir": "pnpm stage && electron-builder --dir",
+    "dist": "pnpm stage && electron-builder",
+    "dist:win": "pnpm stage && electron-builder --win --x64",
+    "dist:mac": "pnpm stage && electron-builder --mac --x64 --arm64",
+    "dist:linux": "pnpm stage && electron-builder --linux --x64",
+    "lint": "echo \"no lint yet\"",
+    "test": "echo \"no tests yet\"",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "echo \"desktop installers are built on demand: pnpm --filter @shopme/desktop dist\""
+  },
+  "devDependencies": {
+    "@shopme/server": "workspace:*",
+    "@types/node": "22.20.5",
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0",
+    "esbuild": "0.28.2",
+    "png2icons": "2.0.1",
+    "sharp": "0.35.5"
+  }
+}
