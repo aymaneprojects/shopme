@@ -5,10 +5,25 @@
   "license": "MIT",
   "type": "module",
   "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./theme.css": "./src/theme.css",
+    "./tokens.css": "./src/tokens.css"
+  },
   "scripts": {
-    "build": "echo \"no build yet\"",
+    "build": "echo \"consumed as source by @shopme/admin\"",
     "lint": "echo \"no lint yet\"",
-    "test": "echo \"no tests yet\"",
+    "test": "echo \"tested through @shopme/admin\"",
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "lucide-react": "1.68.0"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "react": "19.3.1"
   }
 }
