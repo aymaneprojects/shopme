@@ -16,4 +16,10 @@ import './locations';
 import './inventory';
 import './collections';
 import './products';
-// import './orders';     // orders agent
+
+import './orders';
+import './customers';
+import './discounts';
+import './settings';
+import './content';
+import './analytics';

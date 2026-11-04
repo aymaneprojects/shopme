@@ -66,3 +66,5 @@ const sample = (n) => JSON.parse(readFileSync(path.join(raw, `samples/${n}.json`
 write('products', 'Product', 'products', sample('products'));
 write('collections', 'Collection', 'collections', sample('collections').data.collections.nodes);
 write('locations', 'Location', 'locations', sample('shop').data.locations.nodes);
+write('orders', 'Order', 'orders', sample('orders').data.orders.nodes);
+write('customers', 'Customer', 'customers', sample('customers').data.customers.nodes);

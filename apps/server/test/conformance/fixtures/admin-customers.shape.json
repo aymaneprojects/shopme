@@ -1,0 +1,118 @@
+{
+  "root": "customers",
+  "rootType": "Customer",
+  "fields": [
+    {
+      "path": "addressesV2",
+      "type": "MailingAddressConnection!"
+    },
+    {
+      "path": "addressesV2.nodes",
+      "type": "[MailingAddress!]!"
+    },
+    {
+      "path": "addressesV2.nodes[].address1",
+      "type": "String"
+    },
+    {
+      "path": "addressesV2.nodes[].city",
+      "type": "String"
+    },
+    {
+      "path": "addressesV2.nodes[].countryCodeV2",
+      "type": "CountryCode"
+    },
+    {
+      "path": "addressesV2.nodes[].provinceCode",
+      "type": "String"
+    },
+    {
+      "path": "addressesV2.nodes[].zip",
+      "type": "String"
+    },
+    {
+      "path": "amountSpent",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "amountSpent.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "amountSpent.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "createdAt",
+      "type": "DateTime!"
+    },
+    {
+      "path": "defaultEmailAddress",
+      "type": "CustomerEmailAddress"
+    },
+    {
+      "path": "defaultEmailAddress.emailAddress",
+      "type": "String!"
+    },
+    {
+      "path": "defaultEmailAddress.marketingState",
+      "type": "CustomerEmailAddressMarketingState!"
+    },
+    {
+      "path": "defaultPhoneNumber",
+      "type": "CustomerPhoneNumber"
+    },
+    {
+      "path": "defaultPhoneNumber.phoneNumber",
+      "type": "String!"
+    },
+    {
+      "path": "displayName",
+      "type": "String!"
+    },
+    {
+      "path": "firstName",
+      "type": "String"
+    },
+    {
+      "path": "id",
+      "type": "ID!"
+    },
+    {
+      "path": "lastName",
+      "type": "String"
+    },
+    {
+      "path": "legacyResourceId",
+      "type": "UnsignedInt64!"
+    },
+    {
+      "path": "locale",
+      "type": "String!"
+    },
+    {
+      "path": "note",
+      "type": "String"
+    },
+    {
+      "path": "numberOfOrders",
+      "type": "UnsignedInt64!"
+    },
+    {
+      "path": "state",
+      "type": "CustomerState!"
+    },
+    {
+      "path": "tags",
+      "type": "[String!]!"
+    },
+    {
+      "path": "taxExempt",
+      "type": "Boolean!"
+    },
+    {
+      "path": "verifiedEmail",
+      "type": "Boolean!"
+    }
+  ]
+}

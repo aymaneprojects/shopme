@@ -6,6 +6,7 @@ import {
 } from '@shopme/core';
 import { formatMoney, fromGid, parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
 import { GraphQLError } from 'graphql';
+import { changeTagsOf } from '../types/sales';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
 import { ConnectionArgs, paginate, type PageArgs } from '../types/connection';
@@ -487,9 +488,12 @@ async function bulkOut(ctx: GraphQLContext, r: Result<BulkResult>, productId: nu
 }
 
 async function tagsMutation(ctx: GraphQLContext, rawId: string | number, tags: string[], mode: 'add' | 'remove') {
-  requireScope(ctx, 'write_products');
   const gid = fromGid(String(rawId));
-  if (!gid || gid.type !== 'Product') return { node: null, userErrors: [{ field: ['id'], message: 'Resource not found or does not support tags' }] };
+  if (!gid || gid.type !== 'Product') {
+    // Orders and customers register themselves in types/sales.ts.
+    return (await changeTagsOf(ctx, String(rawId), tags, mode)) ?? { node: null, userErrors: [{ field: ['id'], message: 'Resource not found or does not support tags' }] };
+  }
+  requireScope(ctx, 'write_products');
   const r = await changeTags(ctx.db, ctx.shopId, gid.id, mode, tags);
   return r.ok ? { node: Object.assign({}, r.value, { __typename: 'Product' }), userErrors: [] } : { node: null, userErrors: r.errors };
 }

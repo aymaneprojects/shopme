@@ -1,0 +1,406 @@
+{
+  "root": "orders",
+  "rootType": "Order",
+  "fields": [
+    {
+      "path": "billingAddress",
+      "type": "MailingAddress"
+    },
+    {
+      "path": "billingAddress.city",
+      "type": "String"
+    },
+    {
+      "path": "billingAddress.countryCodeV2",
+      "type": "CountryCode"
+    },
+    {
+      "path": "cancelledAt",
+      "type": "DateTime"
+    },
+    {
+      "path": "closedAt",
+      "type": "DateTime"
+    },
+    {
+      "path": "confirmed",
+      "type": "Boolean!"
+    },
+    {
+      "path": "createdAt",
+      "type": "DateTime!"
+    },
+    {
+      "path": "currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "customer",
+      "type": "Customer"
+    },
+    {
+      "path": "customer.email",
+      "type": "String"
+    },
+    {
+      "path": "customer.firstName",
+      "type": "String"
+    },
+    {
+      "path": "customer.id",
+      "type": "ID!"
+    },
+    {
+      "path": "customer.lastName",
+      "type": "String"
+    },
+    {
+      "path": "discountApplications",
+      "type": "DiscountApplicationConnection!"
+    },
+    {
+      "path": "discountApplications.nodes",
+      "type": "[DiscountApplication!]!"
+    },
+    {
+      "path": "displayFinancialStatus",
+      "type": "OrderDisplayFinancialStatus"
+    },
+    {
+      "path": "displayFulfillmentStatus",
+      "type": "OrderDisplayFulfillmentStatus!"
+    },
+    {
+      "path": "email",
+      "type": "String"
+    },
+    {
+      "path": "fulfillments",
+      "type": "[Fulfillment!]!"
+    },
+    {
+      "path": "id",
+      "type": "ID!"
+    },
+    {
+      "path": "legacyResourceId",
+      "type": "UnsignedInt64!"
+    },
+    {
+      "path": "lineItems",
+      "type": "LineItemConnection!"
+    },
+    {
+      "path": "lineItems.nodes",
+      "type": "[LineItem!]!"
+    },
+    {
+      "path": "lineItems.nodes[].discountedTotalSet",
+      "type": "MoneyBag!"
+    },
+    {
+      "path": "lineItems.nodes[].discountedTotalSet.shopMoney",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "lineItems.nodes[].discountedTotalSet.shopMoney.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "lineItems.nodes[].discountedTotalSet.shopMoney.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "lineItems.nodes[].id",
+      "type": "ID!"
+    },
+    {
+      "path": "lineItems.nodes[].name",
+      "type": "String!"
+    },
+    {
+      "path": "lineItems.nodes[].originalUnitPriceSet",
+      "type": "MoneyBag!"
+    },
+    {
+      "path": "lineItems.nodes[].originalUnitPriceSet.shopMoney",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "lineItems.nodes[].originalUnitPriceSet.shopMoney.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "lineItems.nodes[].originalUnitPriceSet.shopMoney.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "lineItems.nodes[].product",
+      "type": "Product"
+    },
+    {
+      "path": "lineItems.nodes[].product.id",
+      "type": "ID!"
+    },
+    {
+      "path": "lineItems.nodes[].quantity",
+      "type": "Int!"
+    },
+    {
+      "path": "lineItems.nodes[].requiresShipping",
+      "type": "Boolean!"
+    },
+    {
+      "path": "lineItems.nodes[].sku",
+      "type": "String"
+    },
+    {
+      "path": "lineItems.nodes[].taxable",
+      "type": "Boolean!"
+    },
+    {
+      "path": "lineItems.nodes[].taxLines",
+      "type": "[TaxLine!]!"
+    },
+    {
+      "path": "lineItems.nodes[].title",
+      "type": "String!"
+    },
+    {
+      "path": "lineItems.nodes[].variant",
+      "type": "ProductVariant"
+    },
+    {
+      "path": "lineItems.nodes[].variant.id",
+      "type": "ID!"
+    },
+    {
+      "path": "lineItems.nodes[].variantTitle",
+      "type": "String"
+    },
+    {
+      "path": "lineItems.nodes[].vendor",
+      "type": "String"
+    },
+    {
+      "path": "name",
+      "type": "String!"
+    },
+    {
+      "path": "note",
+      "type": "String"
+    },
+    {
+      "path": "phone",
+      "type": "String"
+    },
+    {
+      "path": "presentmentCurrencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "processedAt",
+      "type": "DateTime!"
+    },
+    {
+      "path": "refunds",
+      "type": "[Refund!]!"
+    },
+    {
+      "path": "shippingAddress",
+      "type": "MailingAddress"
+    },
+    {
+      "path": "shippingAddress.address1",
+      "type": "String"
+    },
+    {
+      "path": "shippingAddress.address2",
+      "type": "String"
+    },
+    {
+      "path": "shippingAddress.city",
+      "type": "String"
+    },
+    {
+      "path": "shippingAddress.countryCodeV2",
+      "type": "CountryCode"
+    },
+    {
+      "path": "shippingAddress.name",
+      "type": "String"
+    },
+    {
+      "path": "shippingAddress.province",
+      "type": "String"
+    },
+    {
+      "path": "shippingAddress.zip",
+      "type": "String"
+    },
+    {
+      "path": "shippingLines",
+      "type": "ShippingLineConnection!"
+    },
+    {
+      "path": "shippingLines.nodes",
+      "type": "[ShippingLine!]!"
+    },
+    {
+      "path": "sourceName",
+      "type": "String"
+    },
+    {
+      "path": "subtotalPriceSet",
+      "type": "MoneyBag"
+    },
+    {
+      "path": "subtotalPriceSet.shopMoney",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "subtotalPriceSet.shopMoney.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "subtotalPriceSet.shopMoney.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "tags",
+      "type": "[String!]!"
+    },
+    {
+      "path": "taxesIncluded",
+      "type": "Boolean!"
+    },
+    {
+      "path": "test",
+      "type": "Boolean!"
+    },
+    {
+      "path": "totalDiscountsSet",
+      "type": "MoneyBag"
+    },
+    {
+      "path": "totalDiscountsSet.shopMoney",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "totalDiscountsSet.shopMoney.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "totalDiscountsSet.shopMoney.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "totalPriceSet",
+      "type": "MoneyBag!"
+    },
+    {
+      "path": "totalPriceSet.shopMoney",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "totalPriceSet.shopMoney.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "totalPriceSet.shopMoney.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "totalRefundedSet",
+      "type": "MoneyBag!"
+    },
+    {
+      "path": "totalRefundedSet.shopMoney",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "totalRefundedSet.shopMoney.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "totalRefundedSet.shopMoney.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "totalShippingPriceSet",
+      "type": "MoneyBag!"
+    },
+    {
+      "path": "totalShippingPriceSet.shopMoney",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "totalShippingPriceSet.shopMoney.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "totalShippingPriceSet.shopMoney.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "totalTaxSet",
+      "type": "MoneyBag"
+    },
+    {
+      "path": "totalTaxSet.shopMoney",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "totalTaxSet.shopMoney.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "totalTaxSet.shopMoney.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "transactions",
+      "type": "[OrderTransaction!]!"
+    },
+    {
+      "path": "transactions[].amountSet",
+      "type": "MoneyBag!"
+    },
+    {
+      "path": "transactions[].amountSet.shopMoney",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "transactions[].amountSet.shopMoney.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "transactions[].amountSet.shopMoney.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "transactions[].createdAt",
+      "type": "DateTime!"
+    },
+    {
+      "path": "transactions[].gateway",
+      "type": "String"
+    },
+    {
+      "path": "transactions[].id",
+      "type": "ID!"
+    },
+    {
+      "path": "transactions[].kind",
+      "type": "OrderTransactionKind!"
+    },
+    {
+      "path": "transactions[].status",
+      "type": "OrderTransactionStatus!"
+    },
+    {
+      "path": "transactions[].test",
+      "type": "Boolean!"
+    }
+  ]
+}
