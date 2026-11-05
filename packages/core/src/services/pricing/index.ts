@@ -52,7 +52,8 @@ export interface PricingDiscount {
   /** Basis points (1000 = 10%) for PERCENTAGE, minor units for FIXED_AMOUNT. */
   value: number;
   target: 'ORDER' | 'PRODUCTS' | 'SHIPPING';
-  appliesTo: { productIds?: number[]; collectionIds?: number[] };
+  /** `lineIds` targets specific pricing lines (draft order line discounts). */
+  appliesTo: { productIds?: number[]; collectionIds?: number[]; lineIds?: number[] };
 }
 
 export interface PricingTaxRate { name: string; countryCode: string; provinceCode: string | null; rate: number; appliesToShipping: boolean; priority: number }
@@ -91,6 +92,7 @@ export interface PricingResult {
 export function discountMatchesLine(d: PricingDiscount, l: PricingLine): boolean {
   if (d.target === 'ORDER') return true;
   if (d.target === 'SHIPPING') return false;
+  if (d.appliesTo.lineIds) return d.appliesTo.lineIds.includes(l.id);
   const { productIds = [], collectionIds = [] } = d.appliesTo;
   return productIds.includes(l.productId) || l.collectionIds.some((c) => collectionIds.includes(c));
 }

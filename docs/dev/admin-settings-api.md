@@ -41,7 +41,7 @@ all rates. Types are prefixed `Shopme` (`ShopmeShippingZone`, `ShopmeShippingRat
 
 ## Staff
 
-`staffMembers(first)` (the standard connection; no password data). Invitations are not implemented yet.
+`staffMembers(first)` (the standard connection; no password data). Invitations, roles and permissions: see [ops.md](ops.md).
 
 ## Dashboard (analytics)
 

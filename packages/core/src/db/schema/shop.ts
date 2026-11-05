@@ -4,6 +4,8 @@ import { createdAt, oneOf, pk, ref, shopIdCol, timestamps, ts } from './_helpers
 
 export const WEIGHT_UNITS = ['KILOGRAMS', 'GRAMS', 'POUNDS', 'OUNCES'] as const;
 export const STAFF_ROLES = ['owner', 'admin', 'staff'] as const;
+/** Admin areas a `staff` member can be granted (owners and admins hold all of them). */
+export const PERMISSION_AREAS = ['products', 'orders', 'customers', 'discounts', 'online_store', 'settings', 'staff'] as const;
 
 export const shops = pgTable('shops', {
   id: pk(),
@@ -32,6 +34,11 @@ export const staffUsers = pgTable('staff_users', {
   lastName: text('last_name'),
   role: text('role').notNull().default('staff'),
   active: boolean('active').notNull().default(true),
+  /** Permission areas granted to role `staff` (owner/admin hold all). See services/permissions. */
+  permissions: text('permissions').array().notNull().default(sql`'{}'::text[]`),
+  /** Pending invitation: sha256 of the accept token and its expiry. Cleared once the password is set. */
+  inviteTokenHash: text('invite_token_hash'),
+  inviteExpiresAt: ts('invite_expires_at'),
   lastLoginAt: ts('last_login_at'),
   ...timestamps(),
 }, (t) => [uniqueIndex('staff_users_shop_email_uq').on(t.shopId, t.email), check('staff_users_role_chk', oneOf(t.role, STAFF_ROLES))]);

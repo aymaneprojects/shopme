@@ -60,7 +60,7 @@ interface RefundShape extends RefundRow { order: OrderRow }
 interface FulfillmentLineShape { id: number; quantity: number; line: LineShape }
 interface RefundLineShape { id: number; quantity: number; restockType: string; locationId: number | null; subtotal: number; totalTax: number; line: LineShape }
 
-const Attribute = builder.objectRef<{ key: string; value: string | null }>('Attribute').implement({
+export const Attribute = builder.objectRef<{ key: string; value: string | null }>('Attribute').implement({
   fields: (t) => ({ key: t.exposeString('key'), value: t.exposeString('value', { nullable: true }) }),
 });
 
@@ -510,7 +510,7 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_orders');
       const id = oid(a.orderId);
       if (!id) return { job: null, orderCancelUserErrors: [{ field: ['orderId'], message: 'Order does not exist', code: 'NOT_FOUND' }] };
-      const r = await cancelOrder(ctx.db, ctx.shopId, id, { reason: a.reason, restock: a.restock, refund: !!(a.refund || a.refundMethod?.originalPaymentMethodsRefund), staffNote: a.staffNote, staffId: staffId(ctx) });
+      const r = await cancelOrder(ctx.db, ctx.shopId, id, { reason: a.reason, restock: a.restock, refund: !!(a.refund || a.refundMethod?.originalPaymentMethodsRefund), staffNote: a.staffNote, staffId: staffId(ctx), notifyCustomer: !!a.notifyCustomer });
       return r.ok ? { job: { id: toGid('Job', randomUUID()), done: true }, orderCancelUserErrors: [] } : { job: null, orderCancelUserErrors: r.errors };
     },
   }),
@@ -554,7 +554,7 @@ builder.mutationFields((t) => ({
       const lines = (input.refundLineItems ?? []).map((l) => ({ orderLineId: parseId(String(l.lineItemId), 'LineItem'), quantity: l.quantity, restockType: l.restockType, locationId: l.locationId ? parseId(String(l.locationId), 'Location') : null }));
       if (lines.some((l) => l.orderLineId == null)) return { order: null, refund: null, userErrors: [{ field: ['input', 'refundLineItems'], message: 'Invalid line item id' }] };
       const r = await refundOrder(ctx.db, ctx.shopId, orderId, {
-        note: input.note, lines: lines.map((l) => ({ ...l, orderLineId: l.orderLineId! })), allowOverRefunding: !!input.allowOverRefunding, processedAt: input.processedAt, staffId: staffId(ctx),
+        note: input.note, lines: lines.map((l) => ({ ...l, orderLineId: l.orderLineId! })), allowOverRefunding: !!input.allowOverRefunding, processedAt: input.processedAt, staffId: staffId(ctx), notifyCustomer: !!input.notify,
         shipping: input.shipping ? { full: input.shipping.fullRefund, amount: input.shipping.amount != null ? parseMoney(input.shipping.amount, order.currency) : null } : null,
         transactions: input.transactions?.map((x) => ({ amount: parseMoney(x.amount, order.currency), gateway: x.gateway, parentId: x.parentId ? parseId(String(x.parentId), 'OrderTransaction') : null })),
       });

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   availablePaymentMethods, cleanAddress, findOrderIdByPayment, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
-  renderOrderConfirmation, renderStaffNewOrder, shippableCountries, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutError, type CheckoutView, type Shop,
+  orderVars, sendNotification, shippableCountries, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutError, type CheckoutView, type Shop,
 } from '@shopme/core';
 import { createStripeGateway, readSetting, type StripeGateway } from '@shopme/payments';
 import type { AppContext } from '../context';
@@ -50,11 +50,11 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
   // --- emails (background jobs, retried by the queue) ---
   ctx.queue.register<{ shopId: number; orderId: number }>('order.confirmation-email', async ({ shopId, orderId }) => {
     const [shop, order] = await Promise.all([getShop(db, shopId), getOrderSummary(db, shopId, orderId)]);
-    if (shop && order?.order.email) await ctx.mailer.send(renderOrderConfirmation(order, shop));
+    if (shop && order?.order.email) await sendNotification(db, ctx.mailer, shop, config.appUrl, 'order_confirmation', order.order.email, orderVars(order, shop));
   });
   ctx.queue.register<{ shopId: number; orderId: number }>('order.staff-email', async ({ shopId, orderId }) => {
     const [shop, order] = await Promise.all([getShop(db, shopId), getOrderSummary(db, shopId, orderId)]);
-    if (shop && order) await ctx.mailer.send(renderStaffNewOrder(order, shop));
+    if (shop && order) await sendNotification(db, ctx.mailer, shop, config.appUrl, 'staff_new_order', shop.email, orderVars(order, shop));
   });
   const enqueueEmails = (shopId: number, orderId: number) => {
     ctx.queue.enqueue('order.confirmation-email', { shopId, orderId });

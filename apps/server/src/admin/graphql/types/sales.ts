@@ -133,7 +133,7 @@ export const CommentEvent = builder.objectRef<EventRow>('CommentEvent').implemen
   fields: (t) => ({
     author: t.field({
       type: StaffMember,
-      resolve: async (e, _a, ctx) => (e.authorStaffUserId ? await getStaff(ctx.db, ctx.shopId, e.authorStaffUserId) : null) ?? { id: 0, email: '', firstName: 'Staff', lastName: null, role: 'staff', active: false },
+      resolve: async (e, _a, ctx) => (e.authorStaffUserId ? await getStaff(ctx.db, ctx.shopId, e.authorStaffUserId) : null) ?? { id: 0, email: '', firstName: 'Staff', lastName: null, role: 'staff', active: false, permissions: [], invitePending: false, lastLoginAt: null },
     }),
     rawMessage: t.string({ resolve: (e) => e.message ?? '' }),
     canDelete: t.boolean({ resolve: () => false }),

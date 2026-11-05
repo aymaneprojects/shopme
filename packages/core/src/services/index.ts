@@ -19,3 +19,8 @@ export * from './discounts';
 export * from './settings';
 export * from './content';
 export * from './analytics';
+export * from './staff';
+export * from './legal';
+export * from './webhooks';
+export * from './draft-orders';
+export * from './order-notifications';

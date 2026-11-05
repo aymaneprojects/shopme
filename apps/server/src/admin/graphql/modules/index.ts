@@ -23,3 +23,8 @@ import './discounts';
 import './settings';
 import './content';
 import './analytics';
+import './draft-orders';
+import './staff';
+import './notifications';
+import './policies';
+import './webhooks';

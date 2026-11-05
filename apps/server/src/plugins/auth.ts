@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { resolveApiToken, resolveSession } from '@shopme/core';
+import { resolveApiToken, resolveSession, scopesFor } from '@shopme/core';
 import type { AuthInfo } from '../context';
 
 export const SESSION_COOKIE = 'shopme_session';
@@ -21,7 +21,7 @@ export async function authenticate(req: FastifyRequest): Promise<AuthInfo | null
     const un = req.unsignCookie(raw);
     if (un.valid && un.value) {
       const user = await resolveSession(db, un.value);
-      if (user) return (req.auth = { kind: 'session', shopId: user.shopId, user, scopes: ['*'] });
+      if (user) return (req.auth = { kind: 'session', shopId: user.shopId, user, scopes: scopesFor(user) });
     }
   }
   return null;
