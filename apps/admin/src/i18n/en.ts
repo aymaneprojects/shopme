@@ -2,6 +2,7 @@ import { enOrdersUx } from './en-orders-ux';
 import { enCommerce } from './en-commerce';
 import { enCatalog } from './en-catalog';
 import { enContent } from './en-content';
+import { enPublishing } from './en-publishing';
 import { enExt } from './en-ext';
 import { enPlatform } from './en-platform';
 import { enShop } from './en-shop';
@@ -103,6 +104,7 @@ export const en = {
   ...enSettings,
   ...enUx,
   ...enContent,
+  ...enPublishing,
 } as const;
 
 export type Key = keyof typeof en;

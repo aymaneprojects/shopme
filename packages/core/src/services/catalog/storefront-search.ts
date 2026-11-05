@@ -110,7 +110,7 @@ const textMatch = (cols: SQL[], tokens: string[]): SQL =>
 export async function searchPages(db: Executor, shopId: number, q: string, limit = 10) {
   const tokens = tokenize(q);
   if (!tokens.length) return [];
-  return db.select().from(pages).where(and(eq(pages.shopId, shopId), sql`${pages.publishedAt} is not null`, sql`(${textMatch([sql`${pages.title}`, sql`${pages.bodyHtml}`], tokens)})`))
+  return db.select().from(pages).where(and(eq(pages.shopId, shopId), sql`${pages.publishedAt} is not null and ${pages.publishedAt} <= now()`, sql`(${textMatch([sql`${pages.title}`, sql`${pages.bodyHtml}`], tokens)})`))
     .orderBy(sql`(lower(${pages.title}) like ${`%${esc(q.trim().toLowerCase())}%`}) desc`, pages.id).limit(limit);
 }
 

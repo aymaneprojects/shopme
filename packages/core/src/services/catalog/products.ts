@@ -6,6 +6,7 @@ import {
 import type { Db, Executor } from '../../db/client';
 import { slugify, uniqueHandle } from '../handle';
 import { redirectPathChange } from '../content/redirects';
+import { cleanHtml } from '../content/html-sanitize';
 import { getShop } from '../shops';
 import { emit, errR, normalizeTags, okR, txResult, type Result } from './common';
 import { buildSearch, compare, dateCompare, idTerm, likeCi } from './search';
@@ -542,7 +543,7 @@ function validateProduct(input: ProductInput, creating: boolean): Result<null> {
 }
 
 const productFields = (input: ProductInput) => ({
-  ...(input.descriptionHtml != null && { descriptionHtml: input.descriptionHtml }), ...(input.vendor != null && { vendor: input.vendor.trim() }),
+  ...(input.descriptionHtml != null && { descriptionHtml: cleanHtml(input.descriptionHtml) }), ...(input.vendor != null && { vendor: input.vendor.trim() }),
   ...(input.productType != null && { productType: input.productType.trim() }), ...(input.tags != null && { tags: normalizeTags(input.tags) }),
   ...(input.templateSuffix !== undefined && { templateSuffix: input.templateSuffix || null }), ...(input.giftCard != null && { isGiftCard: input.giftCard }),
   ...(input.category !== undefined && { category: input.category || null }),

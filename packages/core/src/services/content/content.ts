@@ -8,6 +8,7 @@ import { slugify, uniqueHandle } from '../handle';
 import { THEME_DIRS } from '../theme-install';
 import { addEvent } from '../events';
 import { redirectPathChange } from './redirects';
+import { cleanHtml } from './html-sanitize';
 
 /* ------------------------------ pages ------------------------------ */
 
@@ -37,7 +38,7 @@ export async function countPages(db: Executor, shopId: number, limit = 10000): P
   return rows.length > limit ? { count: limit, precision: 'AT_LEAST' } : { count: rows.length, precision: 'EXACT' };
 }
 
-export interface PageInput { title?: string | null; handle?: string | null; body?: string | null; isPublished?: boolean | null; publishDate?: Date | null; templateSuffix?: string | null }
+export interface PageInput { title?: string | null; handle?: string | null; body?: string | null; isPublished?: boolean | null; publishDate?: Date | null; templateSuffix?: string | null; seoTitle?: string | null; seoDescription?: string | null }
 
 const publishedAt = (i: PageInput, cur?: Date | null): Date | null | undefined => {
   if (i.isPublished === false) return null;
@@ -52,7 +53,8 @@ export async function createPage(db: Db, shopId: number, i: PageInput): Promise<
   if (i.handle?.trim() && (await taken(slugify(i.handle)))) return errR(['handle'], "Handle has already been taken", 'TAKEN');
   const handle = i.handle?.trim() ? slugify(i.handle) : await uniqueHandle(slugify(i.title) || 'page', taken);
   const [row] = await db.insert(pages).values({
-    shopId, title: i.title.trim(), handle, bodyHtml: i.body ?? '', templateSuffix: i.templateSuffix || null, publishedAt: publishedAt({ isPublished: true, ...i }) ?? null,
+    shopId, title: i.title.trim(), handle, bodyHtml: cleanHtml(i.body) ?? '', templateSuffix: i.templateSuffix || null, seoTitle: i.seoTitle?.trim() || null, seoDescription: i.seoDescription?.trim() || null,
+    publishedAt: publishedAt({ isPublished: true, ...i }) ?? null,
   }).returning();
   return okR(row!);
 }
@@ -66,7 +68,8 @@ export async function updatePage(db: Db, shopId: number, id: number, i: PageInpu
   const pub = publishedAt(i, cur.publishedAt);
   if (handle && handle !== cur.handle) await redirectPathChange(db, shopId, `/pages/${cur.handle}`, `/pages/${handle}`);
   const [row] = await db.update(pages).set({
-    ...(i.title && { title: i.title.trim() }), ...(handle && { handle }), ...(i.body != null && { bodyHtml: i.body }),
+    ...(i.title && { title: i.title.trim() }), ...(handle && { handle }), ...(i.body != null && { bodyHtml: cleanHtml(i.body) }),
+    ...(i.seoTitle !== undefined && { seoTitle: i.seoTitle?.trim() || null }), ...(i.seoDescription !== undefined && { seoDescription: i.seoDescription?.trim() || null }),
     ...(i.templateSuffix !== undefined && { templateSuffix: i.templateSuffix || null }), ...(pub !== undefined && { publishedAt: pub }), updatedAt: new Date(),
   }).where(eq(pages.id, id)).returning();
   return okR(row!);
@@ -272,4 +275,19 @@ export async function publishTheme(db: Db, shopId: number, id: number, staffId?:
     }
     return okR((await getTheme(tx, shopId, id))!);
   });
+}
+
+/* ------------------------------ template suffixes ------------------------------ */
+
+/** Alternate templates (`templates/<kind>.<suffix>.json|liquid`) that the live theme provides for `page`, `article`, `blog`, `product` or `collection`. */
+export async function listTemplateSuffixes(db: Executor, shopId: number, kind: string): Promise<string[]> {
+  if (!/^[a-z_]+$/.test(kind)) return [];
+  const rows = await db.select({ path: themeFiles.path }).from(themeFiles).innerJoin(themes, eq(themes.id, themeFiles.themeId))
+    .where(and(eq(themeFiles.shopId, shopId), eq(themes.role, 'MAIN'), sql`${themeFiles.path} like ${`templates/${kind}.%`}`));
+  const out = new Set<string>();
+  for (const r of rows) {
+    const m = new RegExp(`^templates/${kind}\\.([A-Za-z0-9_.-]+)\\.(json|liquid)$`).exec(r.path);
+    if (m) out.add(m[1]!);
+  }
+  return [...out].sort();
 }

@@ -4,6 +4,7 @@ import { collectionProducts, collectionRules, collections, inventoryItems, inven
 import type { Db, Executor } from '../../db/client';
 import { slugify, uniqueHandle } from '../handle';
 import { redirectPathChange } from '../content/redirects';
+import { cleanHtml } from '../content/html-sanitize';
 import { WEIGHT_KG, emit, errR, okR, txResult, type Result } from './common';
 import { buildSearch, dateCompare, idTerm, likeCi } from './search';
 import { deleteMetafieldsFor, setMetafieldsTx, type MetafieldSetInput } from './metafields';
@@ -245,7 +246,7 @@ export async function createCollection(db: Db, shopId: number, input: Collection
     const handle = await uniqueHandle(input.handle?.trim() || title, async (h) => !!(await getCollectionByHandle(tx, shopId, h)));
     const imageMediaId = input.image ? await setImage(tx, shopId, input.image) : null;
     const [row] = await tx.insert(collections).values({
-      shopId, handle, title, descriptionHtml: input.descriptionHtml ?? '', sortOrder: input.sortOrder ?? 'MANUAL', templateSuffix: input.templateSuffix ?? null,
+      shopId, handle, title, descriptionHtml: cleanHtml(input.descriptionHtml) ?? '', sortOrder: input.sortOrder ?? 'MANUAL', templateSuffix: input.templateSuffix ?? null,
       seoTitle: input.seo?.title ?? null, seoDescription: input.seo?.description ?? null, imageMediaId, isSmart: !!rules,
       rulesAppliedDisjunctively: input.ruleSet?.appliedDisjunctively ?? false, publishedAt: new Date(),
     }).returning();
@@ -274,7 +275,7 @@ export async function updateCollection(db: Db, shopId: number, id: number, input
     if (input.handle && slugify(input.handle) !== cur.handle) handle = await uniqueHandle(input.handle, async (h) => h !== cur.handle && !!(await getCollectionByHandle(tx, shopId, h)));
     const imageMediaId = input.image === undefined ? undefined : input.image ? await setImage(tx, shopId, input.image) : null;
     const [row] = await tx.update(collections).set({
-      handle, ...(input.title && { title: input.title.trim() }), ...(input.descriptionHtml != null && { descriptionHtml: input.descriptionHtml }),
+      handle, ...(input.title && { title: input.title.trim() }), ...(input.descriptionHtml != null && { descriptionHtml: cleanHtml(input.descriptionHtml) }),
       ...(input.sortOrder && { sortOrder: input.sortOrder }), ...(input.templateSuffix !== undefined && { templateSuffix: input.templateSuffix }),
       ...(input.seo && { seoTitle: input.seo.title ?? null, seoDescription: input.seo.description ?? null }),
       ...(imageMediaId !== undefined && { imageMediaId }),

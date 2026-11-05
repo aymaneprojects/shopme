@@ -8,7 +8,7 @@ import { requireScope, type GraphQLContext } from '../context';
 import { ConnectionArgs, defineConnection, paginate } from '../types/connection';
 import { Count } from '../types/money';
 import { Node, registerNode } from '../types/node';
-import { absUrl } from '../types/catalog';
+import { SEO, SEOInput, absUrl } from '../types/catalog';
 import { payloadWith, typedUserError } from '../types/sales';
 import { Image } from './files';
 
@@ -64,6 +64,7 @@ Article.implement({
     isPublished: t.boolean({ resolve: (a) => isArticlePublished(a) }),
     publishedAt: t.field({ type: 'DateTime', nullable: true, resolve: (a) => a.publishedAt }),
     templateSuffix: t.exposeString('templateSuffix', { nullable: true }),
+    seo: t.field({ type: SEO, resolve: (a) => ({ title: a.seoTitle, description: a.seoDescription }) }),
     blog: t.field({ type: Blog, resolve: async (a, _x, ctx) => (await getBlog(ctx.db, ctx.shopId, a.blogId))! }),
     createdAt: t.field({ type: 'DateTime', resolve: (a) => a.createdAt }),
     updatedAt: t.field({ type: 'DateTime', nullable: true, resolve: (a) => a.updatedAt }),
@@ -85,7 +86,7 @@ const ArticleImageInput = builder.inputType('ArticleImageInput', { fields: (t) =
 const ArticleBlogInput = builder.inputType('ArticleBlogInput', { fields: (t) => ({ title: t.string({ required: true }) }) });
 const articleFields = (t: PothosSchemaTypes.InputFieldBuilder<PothosSchemaTypes.ExtendDefaultTypes<import('../builder').SchemaTypes>, 'InputObject'>) => ({
   blogId: t.id(), handle: t.string(), body: t.field({ type: 'HTML' }), summary: t.field({ type: 'HTML' }), isPublished: t.boolean(), publishDate: t.field({ type: 'DateTime' }),
-  templateSuffix: t.string(), tags: t.stringList(), image: t.field({ type: ArticleImageInput }),
+  templateSuffix: t.string(), tags: t.stringList(), image: t.field({ type: ArticleImageInput }), seo: t.field({ type: SEOInput }),
 });
 const ArticleCreateInput = builder.inputType('ArticleCreateInput', { fields: (t) => ({ ...articleFields(t), title: t.string({ required: true }), author: t.field({ type: AuthorInput, required: true }) }) });
 const ArticleUpdateInput = builder.inputType('ArticleUpdateInput', { fields: (t) => ({ ...articleFields(t), title: t.string(), author: t.field({ type: AuthorInput }), redirectNewHandle: t.boolean({ defaultValue: false }) }) });
@@ -119,6 +120,7 @@ async function authorName(ctx: GraphQLContext, a: AuthorIn): Promise<Result<stri
 
 const articleInput = (a: Record<string, any>, author: string | undefined, blogId: number | null | undefined): ArticleInput => ({
   blogId, title: a.title, handle: a.handle, author, body: a.body, summary: a.summary, tags: a.tags, isPublished: a.isPublished, publishDate: a.publishDate, templateSuffix: a.templateSuffix,
+  ...(a.seo && { seoTitle: a.seo.title ?? null, seoDescription: a.seo.description ?? null }),
   ...(a.image !== undefined && { image: a.image ? { url: a.image.url, altText: a.image.altText } : null }),
 });
 

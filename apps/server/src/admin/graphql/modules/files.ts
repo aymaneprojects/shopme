@@ -1,4 +1,4 @@
-import { createMediaRows, getMedia, type Media } from '@shopme/core';
+import { createMediaRows, fileMeta, getFolder, getMedia, type FileMeta, type Folder, type Media } from '@shopme/core';
 import type { GraphQLContext } from '../context';
 import { builder } from '../builder';
 import { requireScope } from '../context';
@@ -46,10 +46,29 @@ Media_.implement({
     preview: t.field({ type: MediaPreviewImage, nullable: true, resolve: (m, _a, ctx) => ({ ...m, ctx }) }),
   }),
 });
+/** ShopMe extensions on files: stored name and size, where the file is used, and its folder. */
+const metaCache = new WeakMap<Media, FileMeta>();
+export const cacheFileMeta = (rows: Media[], meta: Map<number, FileMeta>) => { for (const r of rows) { const m = meta.get(r.id); if (m) metaCache.set(r, m); } };
+const metaOf = async (ctx: GraphQLContext, m: Media): Promise<FileMeta> => metaCache.get(m) ?? (await fileMeta(ctx.db, ctx.shopId, [m])).get(m.id)!;
+const FileReference = builder.objectRef<{ type: string; id: number | null; title: string }>('ShopmeFileReference').implement({
+  fields: (t) => ({ type: t.exposeString('type'), id: t.string({ nullable: true, resolve: (r) => (r.id == null ? null : String(r.id)) }), title: t.exposeString('title') }),
+});
+export const FileFolder = builder.objectRef<Folder & { fileCount?: number }>('ShopmeFileFolder');
+FileFolder.implement({
+  fields: (t) => ({
+    id: t.id({ resolve: (f) => `gid://shopme/FileFolder/${f.id}` }), name: t.exposeString('name'),
+    fileCount: t.int({ nullable: true, resolve: (f) => f.fileCount ?? null }), createdAt: t.field({ type: 'DateTime', resolve: (f) => f.createdAt }),
+  }),
+});
+
 File_.implement({
   interfaces: [Node],
   resolveType,
   fields: (t) => ({
+    shopmeFilename: t.string({ nullable: true, resolve: async (m, _a, ctx) => (await metaOf(ctx, m)).filename }),
+    shopmeFileSize: t.int({ nullable: true, resolve: async (m, _a, ctx) => (await metaOf(ctx, m)).byteSize }),
+    shopmeReferences: t.field({ type: [FileReference], resolve: async (m, _a, ctx) => (await metaOf(ctx, m)).references }),
+    shopmeFolder: t.field({ type: FileFolder, nullable: true, resolve: async (m, _a, ctx) => (m.folderId ? getFolder(ctx.db, ctx.shopId, m.folderId) : null) }),
     alt: t.exposeString('alt', { nullable: true }),
     fileStatus: t.field({ type: FileStatus, resolve: (m) => m.status as 'READY' }),
     createdAt: t.field({ type: 'DateTime', resolve: (m) => m.createdAt }),
@@ -58,6 +77,9 @@ File_.implement({
   }),
 });
 
+const OriginalSource = builder.objectRef<{ url: string; fileSize: number | null }>('MediaImageOriginalSource').implement({
+  fields: (t) => ({ url: t.field({ type: 'URL', resolve: (o) => o.url }), fileSize: t.int({ nullable: true, resolve: (o) => o.fileSize }) }),
+});
 builder.objectRef<Media>('MediaImage').implement({
   interfaces: [Media_, File_, Node],
   fields: (t) => ({
@@ -65,6 +87,7 @@ builder.objectRef<Media>('MediaImage').implement({
     updatedAt: t.field({ type: 'DateTime', resolve: (m) => m.updatedAt }),
     mimeType: t.exposeString('mimeType', { nullable: true }),
     image: t.field({ type: Image, nullable: true, resolve: (m, _a, ctx) => imageOf(ctx, m) }),
+    originalSource: t.field({ type: OriginalSource, nullable: true, resolve: async (m, _a, ctx) => ({ url: absUrl(ctx, m.url) ?? '', fileSize: (await metaOf(ctx, m)).byteSize }) }),
   }),
 });
 for (const name of ['Video', 'ExternalVideo', 'Model3d']) {

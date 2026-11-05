@@ -1,10 +1,12 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, ImageUploader, Input, Modal, RichTextEditor, Select, Skeleton, Switch, TagInput, Textarea, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, ImageUploader, Input, Modal, Select, Skeleton, Switch, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileText, Pencil, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
+import { RichText } from '../../components/RichText';
 import { SeoListing } from '../../components/SeoListing';
+import { TemplateCard, VisibilityCard, toLocalInput, visibilityInput } from '../../components/PublishCards';
 import { VisibilityList } from '../../components/VisibilityList';
 import { StoreActions } from './Themes';
 import { UserErrors, gql, mutate } from '../../api';
@@ -49,8 +51,8 @@ export function BlogPostsPage() {
   );
 }
 
-interface ArticleForm { title: string; handle: string; body: string; summary: string; author: string; tags: string[]; imageUrl: string; imageAlt: string; blogId: string; isPublished: boolean }
-interface ArticleData { id: string; title: string; handle: string; body: string; summary: string | null; tags: string[]; isPublished: boolean; author: { name: string } | null; image: { url: string; altText: string | null } | null; blog: { id: string } | null }
+interface ArticleForm { title: string; handle: string; body: string; summary: string; author: string; tags: string[]; imageUrl: string; imageAlt: string; blogId: string; isPublished: boolean; publishDate: string; publishedAt: string | null; templateSuffix: string; seoTitle: string; seoDescription: string }
+interface ArticleData { id: string; title: string; handle: string; body: string; summary: string | null; tags: string[]; isPublished: boolean; publishedAt: string | null; templateSuffix: string | null; seo: { title: string | null; description: string | null }; author: { name: string } | null; image: { url: string; altText: string | null } | null; blog: { id: string } | null }
 
 export function BlogPostEditPage() {
   const { id = 'new' } = useParams();
@@ -65,8 +67,9 @@ export function BlogPostEditPage() {
   if (!isNew && !q.data?.article) return <Banner>{t('blogs.notFound')}</Banner>;
   const a = q.data?.article;
   const initial: ArticleForm = a
-    ? { title: a.title, handle: a.handle, body: a.body, summary: a.summary ?? '', author: a.author?.name ?? '', tags: a.tags, imageUrl: a.image?.url ?? '', imageAlt: a.image?.altText ?? '', blogId: a.blog?.id ?? '', isPublished: a.isPublished }
-    : { title: '', handle: '', body: '', summary: '', author: [user.firstName, user.lastName].filter(Boolean).join(" "), tags: [], imageUrl: '', imageAlt: '', blogId: blogs.data?.blogs.nodes[0]?.id ?? '', isPublished: false };
+    ? { title: a.title, handle: a.handle, body: a.body, summary: a.summary ?? '', author: a.author?.name ?? '', tags: a.tags, imageUrl: a.image?.url ?? '', imageAlt: a.image?.altText ?? '', blogId: a.blog?.id ?? '', isPublished: a.publishedAt != null, publishDate: a.publishedAt && new Date(a.publishedAt) > new Date() ? toLocalInput(a.publishedAt) : '', publishedAt: a.publishedAt,
+      templateSuffix: a.templateSuffix ?? '', seoTitle: a.seo.title ?? '', seoDescription: a.seo.description ?? '' }
+    : { title: '', handle: '', body: '', summary: '', author: [user.firstName, user.lastName].filter(Boolean).join(" "), tags: [], imageUrl: '', imageAlt: '', blogId: blogs.data?.blogs.nodes[0]?.id ?? '', isPublished: false, publishDate: '', publishedAt: null, templateSuffix: '', seoTitle: '', seoDescription: '' };
   return <PostForm key={`${id}:${q.dataUpdatedAt}`} id={a ? gid : null} initial={initial} blogs={blogs.data?.blogs.nodes ?? []} />;
 }
 
@@ -85,7 +88,7 @@ function PostForm({ id, initial, blogs }: { id: string | null; initial: ArticleF
       if (!form.title.trim() || !form.blogId) { setError(t(form.blogId ? 'collection.titleRequired' : 'blogs.blogRequired')); throw new Error('validation'); }
       setError(null);
       const article = {
-        blogId: form.blogId, title: form.title.trim(), body: form.body, summary: form.summary, tags: form.tags, isPublished: form.isPublished,
+        blogId: form.blogId, title: form.title.trim(), body: form.body, summary: form.summary, tags: form.tags, ...visibilityInput(form, initial), templateSuffix: form.templateSuffix || null, seo: { title: form.seoTitle.trim() || null, description: form.seoDescription.trim() || null },
         ...(form.author.trim() && { author: { name: form.author.trim() } }), ...(form.handle.trim() && { handle: form.handle.trim() }),
         ...(form.imageUrl && { image: { url: form.imageUrl, altText: form.imageAlt } }),
       };
@@ -96,7 +99,6 @@ function PostForm({ id, initial, blogs }: { id: string | null; initial: ArticleF
     onError: (e) => { if (e.message !== 'validation') setError(errText(e)); },
   });
   const del = useMutation({ mutationFn: () => mutate(ARTICLE_DELETE, { id }, 'articleDelete'), onSuccess: () => { void qc.invalidateQueries({ queryKey: ['articles'] }); guard.off = true; nav('/online-store/blog-posts'); }, onError: (e) => toast(e.message, 'critical') });
-  const rte = { bold: t('rte.bold'), italic: t('rte.italic'), underline: t('rte.underline'), list: t('rte.list'), orderedList: t('rte.orderedList'), link: t('rte.link'), source: t('rte.source'), paragraph: t('rte.paragraph'), heading: t('rte.heading'), subheading: t('rte.subheading'), linkPrompt: t('rte.linkPrompt') };
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setError(null); }} />
@@ -107,18 +109,15 @@ function PostForm({ id, initial, blogs }: { id: string | null; initial: ArticleF
         <div className="flex flex-col gap-4">
           <Card><div className="flex flex-col gap-3">
             <Input label={t('field.title')} required placeholder={t('blogs.titlePlaceholder')} value={form.title} onChange={(e) => set({ title: e.target.value })} />
-            <div className="flex flex-col gap-1"><span className="text-[13px] font-medium">{t('pages.content')}</span><RichTextEditor value={form.body} onChange={(body) => set({ body })} labels={rte} /></div>
+            <div className="flex flex-col gap-1"><span className="text-[13px] font-medium">{t('pages.content')}</span><RichText value={form.body} onChange={(body) => set({ body })} /></div>
           </div></Card>
           <Card title={t('blogs.summary')}><Textarea aria-label={t('blogs.summary')} placeholder={t('blogs.summaryHelp')} value={form.summary} onChange={(e) => set({ summary: e.target.value })} /></Card>
-          <SeoListing title={form.title} prefix={`/blogs/${blogs.find((b) => b.id === form.blogId)?.handle ?? ''}/`} handle={form.handle} onHandle={(handle) => set({ handle })} description={form.summary || form.body} />
+          <SeoListing title={form.title} prefix={`/blogs/${blogs.find((b) => b.id === form.blogId)?.handle ?? ''}/`} handle={form.handle} onHandle={(handle) => set({ handle })} description={form.summary || form.body}
+            seoTitle={form.seoTitle} onSeoTitle={(seoTitle) => set({ seoTitle })} seoDescription={form.seoDescription} onSeoDescription={(seoDescription) => set({ seoDescription })} />
         </div>
         <div className="flex flex-col gap-4">
-          <Card title={t('pages.visibility')}>
-            <div role="radiogroup" aria-label={t('pages.visibility')} className="flex flex-col gap-2 text-[13px]">
-              <label className="inline-flex items-center gap-2"><input type="radio" name="visibility" checked={form.isPublished} onChange={() => set({ isPublished: true })} />{t('pages.visible')}</label>
-              <label className="inline-flex items-center gap-2"><input type="radio" name="visibility" checked={!form.isPublished} onChange={() => set({ isPublished: false })} />{t('pages.hidden')}</label>
-            </div>
-          </Card>
+          <VisibilityCard value={form} onChange={(v) => set(v)} />
+          <TemplateCard kind="article" value={form.templateSuffix} onChange={(templateSuffix) => set({ templateSuffix })} />
           <Card title={t('blogs.image')}>
             <div className="flex flex-col gap-3">
               {form.imageUrl && <img src={form.imageUrl} alt={form.imageAlt} className="max-h-48 w-fit rounded-md border border-line object-contain" />}
