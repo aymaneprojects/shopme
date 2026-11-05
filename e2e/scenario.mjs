@@ -278,6 +278,7 @@ export async function runScenario({ baseUrl, root }) {
       await page.goto(`${baseUrl}/admin/online-store/pages/new`);
       await page.getByLabel('Title', { exact: true }).fill('À propos');
       await page.locator('[contenteditable="true"]').first().fill('Maison Lumière fabrique des bougies artisanales à Grasse.');
+      await page.getByLabel('Visible', { exact: true }).check();
       await page.getByRole('button', { name: 'Save', exact: true }).first().click();
       await page.waitForURL(/\/online-store\/pages\/(?!new)/, { timeout: T });
       await page.goto(`${baseUrl}/admin/online-store/pages`);
@@ -286,14 +287,14 @@ export async function runScenario({ baseUrl, root }) {
 
     await step('4c main menu: add the page', async () => {
       await page.goto(`${baseUrl}/admin/online-store/navigation`);
-      await page.getByLabel('Menu', { exact: true }).selectOption({ label: 'Menu principal' });
+      await page.getByRole('cell', { name: 'Menu principal' }).click();
+      await page.waitForURL(/\/online-store\/navigation\/\d+/, { timeout: T });
       await page.getByRole('button', { name: 'Add menu item' }).click();
       const dlg = page.getByRole('dialog');
       await dlg.getByLabel('Link to').selectOption({ label: 'Page' });
       await dlg.getByText('À propos').click();
       await page.getByRole('button', { name: 'Save', exact: true }).first().click();
       await page.reload();
-      await page.getByLabel('Menu', { exact: true }).selectOption({ label: 'Menu principal' });
       await vis(page.getByText('Menu items'));
       await page.waitForFunction(() => [...document.querySelectorAll('input')].some((i) => i.value === 'À propos'), null, { timeout: T });
       assert.equal(await page.getByRole('button', { name: 'Delete' }).count(), 0, 'default menus cannot be deleted');
@@ -718,7 +719,7 @@ export async function runScenario({ baseUrl, root }) {
       await a.goto(`${baseUrl}/admin/gift-cards/new`);
       await a.getByLabel('Initial value').fill('20');
       await a.getByLabel('Code', { exact: true }).fill('E2EGIFT2026');
-      await a.getByRole('button', { name: 'Issue', exact: true }).click();
+      await a.getByRole('button', { name: 'Save', exact: true }).click();
       await vis(a.getByText('E2EG-IFT2-026'));
       await a.getByRole('button', { name: 'Close' }).first().click();
       await a.waitForURL(/\/admin\/gift-cards\/\d+/, { timeout: T });

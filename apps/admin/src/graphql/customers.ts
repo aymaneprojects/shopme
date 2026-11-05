@@ -42,3 +42,8 @@ export const CUSTOMER_UPDATE = /* GraphQL */ `
 export const CUSTOMER_DELETE = /* GraphQL */ `
   mutation CustomerDelete($input: CustomerDeleteInput!) { customerDelete(input: $input) { deletedCustomerId userErrors { field message } } }
 `;
+
+/** Ids in list order, for the previous/next arrows on the customer page. */
+export const CUSTOMER_IDS = /* GraphQL */ `
+  query CustomerIds { customers(first: 250, sortKey: CREATED_AT, reverse: true) { nodes { id } } }
+`;

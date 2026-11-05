@@ -104,8 +104,12 @@ builder.queryFields((t) => ({
 /* ------------------------------ mutations ------------------------------ */
 
 /** `addresses` is a ShopMe extension (the real CustomerInput manages addresses through customerAddress* mutations). */
+const EmailConsentInput = builder.inputType('CustomerEmailMarketingConsentInput', {
+  fields: (t) => ({ marketingState: t.string({ required: true }), marketingOptInLevel: t.string(), consentUpdatedAt: t.field({ type: 'DateTime' }) }),
+});
 const CustomerInput = builder.inputType('CustomerInput', {
   fields: (t) => ({
+    emailMarketingConsent: t.field({ type: EmailConsentInput }),
     email: t.string(), firstName: t.string(), id: t.id(), lastName: t.string(), locale: t.string(), note: t.string(), phone: t.string(), tags: t.stringList(), taxExempt: t.boolean(),
     addresses: t.field({ type: [MailingAddressInput] }),
   }),
@@ -121,6 +125,7 @@ const DeletePayload = definePayload<{ deletedCustomerId: string | null }>('Custo
 
 const toService = (i: typeof CustomerInput.$inferInput): ServiceInput => ({
   email: i.email, firstName: i.firstName, lastName: i.lastName, locale: i.locale, note: i.note, phone: i.phone, tags: i.tags, taxExempt: i.taxExempt,
+  acceptsMarketing: i.emailMarketingConsent ? i.emailMarketingConsent.marketingState === 'SUBSCRIBED' : undefined,
   addresses: i.addresses?.map((a) => ({ ...a, countryCode: a.countryCode ?? undefined })),
 });
 const prefixed = (errors: UserError[]): UserError[] => errors.map((e) => ({ ...e, field: ['input', ...(e.field ?? [])] }));

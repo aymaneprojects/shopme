@@ -25,7 +25,7 @@ export const NAV: NavItem[] = [
       { id: 'gift-cards', labelKey: 'nav.giftCards', to: '/gift-cards', icon: Gift },
     ],
   },
-  { id: 'customers', labelKey: 'nav.customers', to: '/customers', icon: Users },
+  { id: 'customers', labelKey: 'nav.customers', to: '/customers', icon: Users, children: [{ id: 'segments', labelKey: 'nav.segments', to: '/customers/segments', icon: Users }] },
   { id: 'analytics', labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3 },
   { id: 'discounts', labelKey: 'nav.discounts', to: '/discounts', icon: Percent },
   { id: 'online-store', labelKey: 'nav.onlineStore', to: '/online-store', icon: Store },

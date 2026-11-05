@@ -14,8 +14,8 @@ export const BLOG_DELETE = /* GraphQL */ `
 `;
 
 export const ARTICLES = /* GraphQL */ `
-  query Articles($first: Int, $after: String, $last: Int, $before: String, $query: String) {
-    articles(first: $first, after: $after, last: $last, before: $before, query: $query) {
+  query Articles($first: Int, $after: String, $last: Int, $before: String, $query: String, $sortKey: ArticleSortKeys, $reverse: Boolean) {
+    articles(first: $first, after: $after, last: $last, before: $before, query: $query, sortKey: $sortKey, reverse: $reverse) {
       nodes { id title handle isPublished publishedAt updatedAt tags author { name } blog { id title } }
       pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
     }
