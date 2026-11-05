@@ -1,4 +1,5 @@
 import type { Key } from './en';
+import { frExt } from './fr-ext';
 import { frShop } from './fr-shop';
 
 export const fr: Record<Key, string> = {
@@ -89,4 +90,5 @@ export const fr: Record<Key, string> = {
   'rte.bold': 'Gras', 'rte.italic': 'Italique', 'rte.underline': 'Souligné', 'rte.list': 'Liste à puces', 'rte.orderedList': 'Liste numérotée', 'rte.link': 'Lien',
   'rte.source': 'Source HTML', 'rte.paragraph': 'Paragraphe', 'rte.heading': 'Titre', 'rte.subheading': 'Sous-titre', 'rte.linkPrompt': 'URL du lien',
   ...frShop,
+  ...frExt,
 };

@@ -8,6 +8,7 @@ import { gql, mutate } from '../api';
 import { FinancialBadge, FulfillmentBadge, searchCls, selectCls, useFormat, useListParams } from '../components/shared';
 import type { MoneySet } from '../components/shared';
 import { PageHeader } from '../components/PageHeader';
+import { ExportButton } from '../components/CsvTools';
 import { gidToNum } from '../format';
 import { ORDERS, ORDERS_COUNT, ORDER_CLOSE, TAGS_ADD } from '../graphql';
 import { useT } from '../i18n';
@@ -87,7 +88,7 @@ export function OrdersPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.orders')} actions={count.data && <span className="text-sm text-muted">{t('orders.count', { n: count.data.ordersCount.count })}</span>} />
+      <PageHeader title={t('nav.orders')} actions={<>{count.data && <span className="text-sm text-muted">{t('orders.count', { n: count.data.ordersCount.count })}</span>}<ExportButton kind="orders" /><Button onClick={() => nav('/orders/drafts')}>{t('draft.title')}</Button></>} />
       <Card className="!p-0">
         <div className="px-3 pt-1"><Tabs tabs={TABS.map((id) => ({ id, label: t(`orders.tab.${id}` as Key) }))} value={tab} onChange={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v }); }} /></div>
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">

@@ -8,6 +8,7 @@ import { gql, mutate } from '../api';
 import { AddressBlock, FinancialBadge, FulfillmentBadge, searchCls, selectCls, useFormat, useListParams } from '../components/shared';
 import type { Money, MoneySet } from '../components/shared';
 import { PageHeader } from '../components/PageHeader';
+import { ExportButton, ImportButton } from '../components/CsvTools';
 import { gidToNum, numToGid } from '../format';
 import { CUSTOMER, CUSTOMERS, CUSTOMERS_COUNT, CUSTOMER_DELETE, CUSTOMER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
 import { useT } from '../i18n';
@@ -75,7 +76,7 @@ export function CustomersPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.customers')} actions={<>{count.data && <span className="text-sm text-muted">{t('customers.count', { n: count.data.customersCount.count })}</span>}{add}</>} />
+      <PageHeader title={t('nav.customers')} actions={<>{count.data && <span className="text-sm text-muted">{t('customers.count', { n: count.data.customersCount.count })}</span>}<ExportButton kind="customers" /><ImportButton kind="customers" invalidate={['customers', 'customers-count']} />{add}</>} />
       <Card className="!p-0">
         <div className="px-3 pt-1"><Tabs tabs={TABS.map((id) => ({ id, label: t(`customers.tab.${id}` as Key) }))} value={tab} onChange={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v }); }} /></div>
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">

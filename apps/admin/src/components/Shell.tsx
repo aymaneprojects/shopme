@@ -1,10 +1,11 @@
 import { Dropdown, cx } from '@shopme/ui';
-import { Boxes, Home, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree } from 'lucide-react';
+import { Boxes, Home, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2 } from 'lucide-react';
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 import { NavLink, Outlet } from 'react-router';
 import { LANGS, useI18n } from '../i18n';
 import type { Key } from '../i18n';
+import { NAV_PERMISSION, useStaffAccess } from '../lib/permissions';
 import { useSession, useShop } from '../session';
 
 interface NavItem { id: string; labelKey: Key; to: string; icon: ComponentType<{ className?: string }>; end?: boolean; children?: NavItem[] }
@@ -12,7 +13,7 @@ interface NavItem { id: string; labelKey: Key; to: string; icon: ComponentType<{
 // Data-driven so later items can be gated by a feature flag instead of removed.
 export const NAV: NavItem[] = [
   { id: 'home', labelKey: 'nav.home', to: '/', icon: Home, end: true },
-  { id: 'orders', labelKey: 'nav.orders', to: '/orders', icon: ShoppingCart },
+  { id: 'orders', labelKey: 'nav.orders', to: '/orders', icon: ShoppingCart, children: [{ id: 'drafts', labelKey: 'nav.drafts', to: '/orders/drafts', icon: FilePlus2 }] },
   {
     id: 'products', labelKey: 'nav.products', to: '/products', icon: Tag,
     children: [
@@ -28,6 +29,7 @@ export const NAV: NavItem[] = [
 
 function NavLinks({ onNavigate }: { onNavigate: () => void }) {
   const { t } = useI18n();
+  const can = useStaffAccess();
   const link = (item: NavItem, child = false) => (
     <NavLink
       key={item.id} to={item.to} end={item.end} onClick={onNavigate}
@@ -37,7 +39,7 @@ function NavLinks({ onNavigate }: { onNavigate: () => void }) {
       {t(item.labelKey)}
     </NavLink>
   );
-  return <nav aria-label="Main" className="flex flex-col gap-0.5">{NAV.map((i) => <div key={i.id} className="contents">{link(i)}{i.children?.map((c) => link(c, true))}</div>)}</nav>;
+  return <nav aria-label="Main" className="flex flex-col gap-0.5">{NAV.filter((i) => can(NAV_PERMISSION[i.id])).map((i) => <div key={i.id} className="contents">{link(i)}{i.children?.filter((c) => can(NAV_PERMISSION[i.id])).map((c) => link(c, true))}</div>)}</nav>;
 }
 
 export function Shell() {
