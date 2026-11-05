@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The demo store now ships real product, collection, home page, blog and About page photos (CC0, see `packages/core/assets/demo/README.md`).
 - Illustrated empty states in the admin (products, orders, customers, discounts, collections, analytics).
 - `pnpm screenshots` regenerates the README screenshots from a fresh demo store.
+- Desktop: Mac installers are named `mac-apple-silicon` and `mac-intel`, and the app warns when the Intel build runs on an Apple Silicon Mac (Rosetta, much slower).
 
 ### Fixed
 

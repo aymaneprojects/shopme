@@ -69,6 +69,16 @@ jobs:
           done
           exit 1
 
+      # Clear names so Mac users pick the right file: Apple Silicon (M1 and later) or Intel.
+      - name: Rename Mac installers
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cd apps/desktop/dist
+          for f in *-mac-arm64.dmg; do [ -e "$f" ] && mv "$f" "${f%-mac-arm64.dmg}-mac-apple-silicon.dmg"; done
+          for f in *-mac-x64.dmg; do [ -e "$f" ] && mv "$f" "${f%-mac-x64.dmg}-mac-intel.dmg"; done
+          ls -la *.dmg
+
       - uses: actions/upload-artifact@v4
         with:
           name: shopme-${{ matrix.name }}

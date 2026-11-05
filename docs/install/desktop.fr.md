@@ -11,9 +11,12 @@ votre système :
 | Système | Fichier |
 | --- | --- |
 | Windows 10/11 (64 bits) | `ShopMe-<version>-win-x64.exe` |
-| macOS, Apple Silicon (M1 et suivants) | `ShopMe-<version>-mac-arm64.dmg` |
-| macOS, Intel | `ShopMe-<version>-mac-x64.dmg` |
+| macOS, Apple Silicon (M1 et suivants) | `ShopMe-<version>-mac-apple-silicon.dmg` |
+| macOS, Intel | `ShopMe-<version>-mac-intel.dmg` |
 | Linux (64 bits) | `ShopMe-<version>-linux-x86_64.AppImage` (rendez-le exécutable, puis lancez-le) |
+
+Sur Mac, menu  → **À propos de ce Mac** : « Puce Apple M… » = Apple Silicon, « Intel » = Intel. La version Intel tourne aussi
+sur un Mac Apple Silicon, mais beaucoup plus lentement (traduction Rosetta) : ShopMe vous le signale au démarrage.
 
 ## 2. Installation et premier lancement
 

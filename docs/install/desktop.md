@@ -9,9 +9,12 @@ Open the [Releases page](https://github.com/aymaneprojects/shoppen/releases/late
 | System | File |
 | --- | --- |
 | Windows 10/11 (64-bit) | `ShopMe-<version>-win-x64.exe` |
-| macOS, Apple Silicon (M1 and later) | `ShopMe-<version>-mac-arm64.dmg` |
-| macOS, Intel | `ShopMe-<version>-mac-x64.dmg` |
+| macOS, Apple Silicon (M1 and later) | `ShopMe-<version>-mac-apple-silicon.dmg` |
+| macOS, Intel | `ShopMe-<version>-mac-intel.dmg` |
 | Linux (64-bit) | `ShopMe-<version>-linux-x86_64.AppImage` (make it executable, then run it) |
+
+On a Mac, open the Apple menu → **About This Mac**: "Chip Apple M…" means Apple Silicon, "Intel" means Intel. The Intel
+build also runs on Apple Silicon, but much slower (Rosetta translation): ShopMe tells you at startup.
 
 ## 2. Install and first run
 
