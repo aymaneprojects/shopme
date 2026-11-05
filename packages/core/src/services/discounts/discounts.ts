@@ -12,8 +12,11 @@ export type Discount = typeof discounts.$inferSelect;
 export type DiscountCode = typeof discountCodes.$inferSelect;
 export type DiscountExt = typeof discountExtensions.$inferSelect;
 export type DiscountKind = 'CODE' | 'AUTOMATIC';
-/** A discount: the row plus its redeem codes (code discounts have exactly one, automatic ones none) and its extension (subtype, combinations, BXGY). */
-export type CodeDiscount = Discount & { codes: DiscountCode[]; ext: DiscountExt };
+/**
+ * A discount: the row, its first redeem code (`codes` holds at most that one, automatic discounts none; the full list is paged with
+ * `listRedeemCodes`), the number of codes and its extension (subtype, combinations, BXGY).
+ */
+export type CodeDiscount = Discount & { codes: DiscountCode[]; codeCount: number; ext: DiscountExt };
 export type DiscountStatus = 'ACTIVE' | 'EXPIRED' | 'SCHEDULED';
 
 /** Status as the API shows it: a deactivated discount reads EXPIRED, otherwise the dates decide. */
@@ -27,12 +30,15 @@ export function effectiveStatus(d: Pick<Discount, 'status' | 'startsAt' | 'endsA
 async function withCodes(db: Executor, rows: Discount[]): Promise<CodeDiscount[]> {
   if (!rows.length) return [];
   const ids = rows.map((r) => r.id);
-  const [codes, exts] = await Promise.all([
-    db.select().from(discountCodes).where(inArray(discountCodes.discountId, ids)).orderBy(asc(discountCodes.id)),
+  const [firsts, exts] = await Promise.all([
+    db.select({ discountId: discountCodes.discountId, first: sql<number>`min(${discountCodes.id})::bigint`.mapWith(Number), n: sql<number>`count(*)::int`.mapWith(Number) })
+      .from(discountCodes).where(inArray(discountCodes.discountId, ids)).groupBy(discountCodes.discountId),
     db.select().from(discountExtensions).where(inArray(discountExtensions.discountId, ids)),
   ]);
+  const codes = firsts.length ? await db.select().from(discountCodes).where(inArray(discountCodes.id, firsts.map((f) => f.first))) : [];
+  const counts = new Map(firsts.map((f) => [f.discountId, f.n]));
   return rows.map((r) => ({
-    ...r, codes: codes.filter((c) => c.discountId === r.id),
+    ...r, codes: codes.filter((c) => c.discountId === r.id), codeCount: counts.get(r.id) ?? 0,
     ext: exts.find((e) => e.discountId === r.id) ?? { discountId: r.id, shopId: r.shopId, subtype: r.target === 'SHIPPING' ? 'FREE_SHIPPING' : 'BASIC', combinesWith: { product: false, order: false, shipping: false }, bxgy: null, eligibility: 'ALL', segmentIds: [], customerIds: [], tags: [] },
   }));
 }
@@ -92,6 +98,13 @@ export async function listCodeDiscounts(db: Executor, shopId: number, o: { query
 export async function countCodeDiscounts(db: Executor, shopId: number, query?: string | null, limit = 10000, kind: DiscountKind | null = 'CODE'): Promise<{ count: number; precision: 'EXACT' | 'AT_LEAST' }> {
   const rows = await db.select({ id: discounts.id }).from(discounts).where(and(eq(discounts.shopId, shopId), kind ? eq(discounts.kind, kind) : undefined, search(query))).limit(limit + 1);
   return rows.length > limit ? { count: limit, precision: 'AT_LEAST' } : { count: rows.length, precision: 'EXACT' };
+}
+
+/** Ids of the discounts of a kind (null: both) that are in `ids` (when given) and match the search `query` (when given). */
+export async function matchingDiscountIds(db: Executor, shopId: number, o: { ids?: number[]; query?: string | null; kind?: DiscountKind | null }): Promise<number[]> {
+  const rows = await db.select({ id: discounts.id }).from(discounts)
+    .where(and(eq(discounts.shopId, shopId), o.kind ? eq(discounts.kind, o.kind) : undefined, o.ids ? inArray(discounts.id, o.ids) : undefined, search(o.query))).orderBy(asc(discounts.id));
+  return rows.map((r) => r.id);
 }
 
 /** Normalised input of both code discount flavours (the API layer converts decimals and percentages to minor units / basis points). */

@@ -17,7 +17,7 @@ import { Image } from './files';
 
 /** Abandoned checkouts: `abandonedCheckouts` (Shopify shape) plus ShopMe's recovery settings and the manual recovery email. */
 
-interface Shape { id: number; row: AbandonedRow; view: CheckoutView; shop: Shop }
+export interface Shape { id: number; row: AbandonedRow; view: CheckoutView; shop: Shop }
 interface LineShape { id: number; checkout: Shape; line: CartLineView }
 
 const SortKeys = builder.enumType('AbandonedCheckoutSortKeys', { values: ['CHECKOUT_ID', 'CREATED_AT', 'CUSTOMER_NAME', 'ID', 'RELEVANCE', 'TOTAL_PRICE'] as const });
@@ -45,7 +45,7 @@ const LineItem = builder.objectRef<LineShape>('AbandonedCheckoutLineItem').imple
 const priced = (l: LineShape) => l.checkout.view.pricing.lines.find((p) => p.id === l.line.lineId) ?? { total: l.line.price * l.line.quantity };
 const LineItemConnection = defineConnection('AbandonedCheckoutLineItem', LineItem);
 
-const AbandonedCheckout = builder.objectRef<Shape>('AbandonedCheckout');
+export const AbandonedCheckout = builder.objectRef<Shape>('AbandonedCheckout');
 AbandonedCheckout.implement({
   interfaces: [Node],
   fields: (t) => ({
@@ -81,7 +81,7 @@ AbandonedCheckout.implement({
 });
 const Connection = defineConnection('AbandonedCheckout', AbandonedCheckout);
 
-async function load(ctx: GraphQLContext, row: AbandonedRow | null): Promise<Shape | null> {
+export async function load(ctx: GraphQLContext, row: AbandonedRow | null): Promise<Shape | null> {
   if (!row) return null;
   const shop = await shopOf(ctx);
   const view = await abandonedView(ctx.db, shop, row);

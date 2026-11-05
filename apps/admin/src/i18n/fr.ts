@@ -12,6 +12,7 @@ import { frSettings } from './fr-settings';
 import { frUx } from './fr-ux';
 import { frViews } from './fr-views';
 import { frEditor } from './fr-editor';
+import { frDiscountCodes } from './fr-discount-codes';
 import { frTimeline } from './fr-timeline';
 
 export const fr: Record<Key, string> = {
@@ -115,4 +116,5 @@ export const fr: Record<Key, string> = {
   ...frPublishing,
   ...frViews,
   ...frCheckout,
+  ...frDiscountCodes,
 };

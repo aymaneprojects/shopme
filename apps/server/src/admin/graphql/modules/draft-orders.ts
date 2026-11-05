@@ -138,7 +138,7 @@ const viewFields = (t: PothosSchemaTypes.ObjectFieldBuilder<PothosSchemaTypes.Ex
   };
 };
 
-const DraftOrder = builder.objectRef<View>('DraftOrder');
+export const DraftOrder = builder.objectRef<View>('DraftOrder');
 DraftOrder.implement({
   interfaces: [Node],
   fields: (t) => ({
@@ -226,9 +226,9 @@ function toInput(i: Input, currency: string): DraftInput {
 
 /* ------------------------------ operations ------------------------------ */
 
-const staffId = (ctx: GraphQLContext) => (ctx.auth.kind === 'session' ? ctx.auth.user.id : null);
-const shopFor = async (ctx: GraphQLContext) => (await getShop(ctx.db, ctx.shopId))!;
-const asView = async (ctx: GraphQLContext, d: DraftRow) => viewOf(await shopFor(ctx), ctx.app.config.appUrl, d);
+export const staffId = (ctx: GraphQLContext) => (ctx.auth.kind === 'session' ? ctx.auth.user.id : null);
+export const shopFor = async (ctx: GraphQLContext) => (await getShop(ctx.db, ctx.shopId))!;
+export const asView = async (ctx: GraphQLContext, d: DraftRow) => viewOf(await shopFor(ctx), ctx.app.config.appUrl, d);
 const noDraft: UserError[] = [{ field: ['id'], message: 'Draft order does not exist' }];
 
 const Create = definePayload<{ draftOrder: View | null }>('DraftOrderCreatePayload', (t) => ({ draftOrder: t.field({ type: DraftOrder, nullable: true, resolve: (p) => p.draftOrder }) }));
@@ -240,7 +240,7 @@ const Calculate = definePayload<{ calculatedDraftOrder: View | null }>('DraftOrd
 
 registerNode('DraftOrder', async (ctx, id) => { const d = await getDraftOrder(ctx.db, ctx.shopId, id); return d ? asView(ctx, d) : null; });
 
-const did = (v: string) => parseId(String(v), 'DraftOrder');
+export const did = (v: string) => parseId(String(v), 'DraftOrder');
 /** Run a mutation body, turning malformed input into userErrors. */
 async function guard<T extends { userErrors: UserError[] }>(fn: () => Promise<T>, empty: Omit<T, 'userErrors'>): Promise<T> {
   try { return await fn(); } catch (e) { if (e instanceof BadInput) return { ...empty, userErrors: [e.userError] } as T; throw e; }

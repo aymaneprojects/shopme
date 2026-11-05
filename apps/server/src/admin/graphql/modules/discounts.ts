@@ -1,5 +1,5 @@
 import {
-  countCodeDiscounts, createCodeDiscount, deleteCodeDiscount, effectiveStatus, getCodeDiscount, getCodeDiscountByCode, getCollection, getProduct, listCodeDiscounts, setDiscountActive, updateCodeDiscount,
+  countCodeDiscounts, countRedeemCodes, createCodeDiscount, deleteCodeDiscount, effectiveStatus, getCodeDiscount, getCodeDiscountByCode, getCollection, getProduct, listCodeDiscounts, listRedeemCodes, setDiscountActive, updateCodeDiscount,
   customersByIds, listCustomerSegments, type CodeDiscount, type CodeDiscountInput, type DiscountKind,
 } from '@shopme/core';
 import { parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
@@ -16,6 +16,7 @@ import { Segment } from './segments';
 const Status = builder.enumType('DiscountStatus', { values: ['ACTIVE', 'EXPIRED', 'SCHEDULED'] as const });
 const DiscountClass = builder.enumType('DiscountClass', { values: ['PRODUCT', 'ORDER', 'SHIPPING'] as const });
 const SortKeys = builder.enumType('CodeDiscountSortKeys', { values: ['CREATED_AT', 'ENDS_AT', 'ID', 'RELEVANCE', 'STARTS_AT', 'TITLE', 'UPDATED_AT'] as const });
+export const AutomaticSortKeys = builder.enumType('AutomaticDiscountSortKeys', { values: ['CREATED_AT', 'ID'] as const });
 const DiscountSortKeys = builder.enumType('DiscountSortKeys', { values: ['CREATED_AT', 'ENDS_AT', 'ID', 'RELEVANCE', 'STARTS_AT', 'TITLE', 'UPDATED_AT'] as const });
 const BuyerSelection = builder.enumType('DiscountBuyerSelection', { values: ['ALL'] as const });
 const ErrorCode = builder.enumType('DiscountErrorCode', {
@@ -27,7 +28,7 @@ const ErrorCode_values = new Set(['BLANK', 'PRESENT', 'EQUAL_TO', 'GREATER_THAN'
   'MISSING_ARGUMENT', 'ACTIVE_PERIOD_OVERLAP', 'END_DATE_BEFORE_START_DATE', 'EXCEEDED_MAX', 'MINIMUM_SUBTOTAL_AND_QUANTITY_RANGE_BOTH_PRESENT', 'VALUE_OUTSIDE_RANGE', 'CONFLICT', 'IMPLICIT_DUPLICATE',
   'DUPLICATE', 'INCLUSION', 'APPLIES_ON_NOTHING']);
 
-const DiscountUserError = builder.objectRef<UserError & { extraInfo?: string | null }>('DiscountUserError').implement({
+export const DiscountUserError = builder.objectRef<UserError & { extraInfo?: string | null }>('DiscountUserError').implement({
   interfaces: [DisplayableError],
   fields: (t) => ({
     code: t.field({ type: ErrorCode, nullable: true, resolve: (e) => (e.code && ErrorCode_values.has(e.code) ? e.code : null) as never }),
@@ -37,7 +38,7 @@ const DiscountUserError = builder.objectRef<UserError & { extraInfo?: string | n
 /* ------------------------------ output types ------------------------------ */
 
 type Ctx = GraphQLContext;
-interface Shape extends CodeDiscount { currency: string }
+export interface Shape extends CodeDiscount { currency: string }
 
 const DiscountPercentage = builder.objectRef<{ percentage: number }>('DiscountPercentage').implement({ fields: (t) => ({ percentage: t.exposeFloat('percentage') }) });
 const DiscountAmount = builder.objectRef<{ amount: ReturnType<typeof moneyV2>; appliesOnEachItem: boolean }>('DiscountAmount').implement({
@@ -127,7 +128,7 @@ const ContextUnion = builder.unionType('DiscountContext', {
 const CountryAll = builder.objectRef<{ allCountries: boolean }>('DiscountCountryAll').implement({ fields: (t) => ({ allCountries: t.exposeBoolean('allCountries') }) });
 const DestinationUnion = builder.unionType('DiscountShippingDestinationSelection', { types: [CountryAll], resolveType: () => CountryAll });
 
-const RedeemCode = builder.objectRef<{ id: number; code: string; usageCount: number; createdAtIso: Date }>('DiscountRedeemCode').implement({
+export const RedeemCode = builder.objectRef<{ id: number; code: string; usageCount: number; createdAtIso: Date }>('DiscountRedeemCode').implement({
   fields: (t) => ({
     id: t.id({ resolve: (c) => toGid('DiscountRedeemCode', c.id) }), code: t.exposeString('code'), asyncUsageCount: t.exposeInt('usageCount'),
     createdAt: t.field({ type: 'DateTime', resolve: (c) => c.createdAtIso }),
@@ -168,10 +169,13 @@ const common = (t: FB) => ({
   ...shared(t),
   usageLimit: t.exposeInt('usageLimit', { nullable: true }),
   appliesOncePerCustomer: t.exposeBoolean('oncePerCustomer'),
-  codesCount: t.field({ type: Count, nullable: true, resolve: (d) => ({ count: d.codes.length, precision: 'EXACT' as const }) }),
+  codesCount: t.field({ type: Count, nullable: true, resolve: (d) => ({ count: d.codeCount, precision: 'EXACT' as const }) }),
   codes: t.field({
     type: RedeemCodeConnection, args: { ...ConnectionArgs, sortKey: t.arg.string(), query: t.arg.string(), savedSearchId: t.arg.id() },
-    resolve: (d, a) => paginateArray(a, d.codes.map((c) => ({ id: c.id, code: c.code, usageCount: c.usageCount, createdAtIso: d.createdAt }))),
+    resolve: (d, a, ctx) => paginate(a, {
+      fetch: async ({ offset, limit }) => (await listRedeemCodes(ctx.db, ctx.shopId, { discountId: d.id, query: a.query, reverse: !!a.reverse, offset, limit })).map((c) => ({ id: c.id, code: c.code, usageCount: c.usageCount, createdAtIso: d.createdAt })),
+      total: async () => (await countRedeemCodes(ctx.db, ctx.shopId, { discountId: d.id, query: a.query })).count,
+    }),
   }),
   shareableUrls: t.stringList({ resolve: () => [] }),
 });
@@ -208,20 +212,20 @@ const isAutomatic = (d: Shape) => d.kind === 'AUTOMATIC';
 const resolveAny = (d: Shape) => (isAutomatic(d) ? (isBxgy(d) ? DiscountAutomaticBxgy : isFreeShipping(d) ? DiscountAutomaticFreeShipping : DiscountAutomaticBasic)
   : isBxgy(d) ? DiscountCodeBxgy : isFreeShipping(d) ? DiscountCodeFreeShipping : DiscountCodeBasic);
 const DiscountCodeUnion = builder.unionType('DiscountCode', { types: [DiscountCodeBasic, DiscountCodeBxgy, DiscountCodeFreeShipping], resolveType: (d) => resolveAny(d as Shape) as never });
-const DiscountAutomaticUnion = builder.unionType('DiscountAutomatic', { types: [DiscountAutomaticBasic, DiscountAutomaticBxgy, DiscountAutomaticFreeShipping], resolveType: (d) => resolveAny(d as Shape) as never });
+export const DiscountAutomaticUnion = builder.unionType('DiscountAutomatic', { types: [DiscountAutomaticBasic, DiscountAutomaticBxgy, DiscountAutomaticFreeShipping], resolveType: (d) => resolveAny(d as Shape) as never });
 const DiscountUnion = builder.unionType('Discount', {
   types: [DiscountCodeBasic, DiscountCodeBxgy, DiscountCodeFreeShipping, DiscountAutomaticBasic, DiscountAutomaticBxgy, DiscountAutomaticFreeShipping], resolveType: (d) => resolveAny(d as Shape) as never,
 });
 
 /** `DiscountCodeNode.id` / `DiscountAutomaticNode.id`; `DiscountNode.id` follows the discount's kind. */
-const CodeNode = builder.objectRef<Shape>('DiscountCodeNode').implement({
+export const CodeNode = builder.objectRef<Shape>('DiscountCodeNode').implement({
   interfaces: [Node],
   fields: (t) => ({
     id: t.id({ resolve: (d) => toGid('DiscountCodeNode', d.id) }),
     codeDiscount: t.field({ type: DiscountCodeUnion, resolve: (d) => d }),
   }),
 });
-const AutomaticNode = builder.objectRef<Shape>('DiscountAutomaticNode').implement({
+export const AutomaticNode = builder.objectRef<Shape>('DiscountAutomaticNode').implement({
   interfaces: [Node],
   fields: (t) => ({
     id: t.id({ resolve: (d) => toGid('DiscountAutomaticNode', d.id) }),
@@ -239,10 +243,10 @@ const CodeNodeConnection = defineConnection('DiscountCodeNode', CodeNode);
 const AutomaticNodeConnection = defineConnection('DiscountAutomaticNode', AutomaticNode);
 const DiscountNodeConnection = defineConnection('DiscountNode', DiscountNode);
 
-const withCurrency = async (ctx: Ctx, d: CodeDiscount | null): Promise<Shape | null> => (d ? { ...d, currency: (await shopOf(ctx)).currency } : null);
-const load = async (ctx: Ctx, d: CodeDiscount) => (await withCurrency(ctx, d))!;
-const codeId = (raw: string | number) => parseId(String(raw), 'DiscountCodeNode') ?? parseId(String(raw), 'DiscountAutomaticNode') ?? parseId(String(raw), 'DiscountNode');
-const autoId = (raw: string | number) => parseId(String(raw), 'DiscountAutomaticNode') ?? parseId(String(raw), 'DiscountNode');
+export const withCurrency = async (ctx: Ctx, d: CodeDiscount | null): Promise<Shape | null> => (d ? { ...d, currency: (await shopOf(ctx)).currency } : null);
+export const load = async (ctx: Ctx, d: CodeDiscount) => (await withCurrency(ctx, d))!;
+export const codeId = (raw: string | number) => parseId(String(raw), 'DiscountCodeNode') ?? parseId(String(raw), 'DiscountAutomaticNode') ?? parseId(String(raw), 'DiscountNode');
+export const autoId = (raw: string | number) => parseId(String(raw), 'DiscountAutomaticNode') ?? parseId(String(raw), 'DiscountNode');
 registerNode('DiscountCodeNode', async (ctx, id) => withCurrency(ctx, await getCodeDiscount(ctx.db, ctx.shopId, id)));
 registerNode('DiscountAutomaticNode', async (ctx, id) => withCurrency(ctx, await getCodeDiscount(ctx.db, ctx.shopId, id, 'AUTOMATIC')));
 registerNode('DiscountNode', async (ctx, id) => withCurrency(ctx, await getCodeDiscount(ctx.db, ctx.shopId, id, null)));
@@ -280,7 +284,7 @@ builder.queryFields((t) => ({
     resolve: async (_r, a, ctx) => { requireScope(ctx, 'read_discounts'); const id = autoId(a.id); return id ? withCurrency(ctx, await getCodeDiscount(ctx.db, ctx.shopId, id, 'AUTOMATIC')) : null; },
   }),
   automaticDiscountNodes: t.field({
-    type: AutomaticNodeConnection, args: { ...ConnectionArgs, sortKey: t.arg({ type: SortKeys, defaultValue: 'ID' }), query: t.arg.string(), savedSearchId: t.arg.id() },
+    type: AutomaticNodeConnection, args: { ...ConnectionArgs, sortKey: t.arg({ type: AutomaticSortKeys, defaultValue: 'ID' }), query: t.arg.string(), savedSearchId: t.arg.id() },
     resolve: (_r, a, ctx) => { requireScope(ctx, 'read_discounts'); return page(ctx, a, 'AUTOMATIC'); },
   }),
 }));

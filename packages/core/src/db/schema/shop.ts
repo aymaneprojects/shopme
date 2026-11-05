@@ -128,6 +128,11 @@ export const webhookSubscriptions = pgTable('webhook_subscriptions', {
   secret: text('secret').notNull(),
   format: text('format').notNull().default('JSON'),
   apiVersion: text('api_version').notNull().default('unstable'),
+  /** Payload fields to keep (top level or `a.b`); empty means everything. */
+  includeFields: text('include_fields').array().notNull().default(sql`'{}'::text[]`),
+  metafieldNamespaces: text('metafield_namespaces').array().notNull().default(sql`'{}'::text[]`),
+  /** Search-syntax filter and display name, stored as given. */
+  filter: text('filter'), name: text('name'),
   active: boolean('active').notNull().default(true),
   ...timestamps(),
 }, (t) => [index('webhook_subs_topic_idx').on(t.shopId, t.topic)]);

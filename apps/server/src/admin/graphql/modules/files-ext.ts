@@ -1,5 +1,5 @@
 import { createHmac } from 'node:crypto';
-import { createFolder, deleteFiles, deleteFolder, fileMeta, listFiles, listFolders, makeStorageKey, moveFiles, renameFolder, updateFiles, type Folder } from '@shopme/core';
+import { createFolder, deleteFiles, deleteFolder, fileMeta, listFiles, listFolders, makeStorageKey, moveFiles, randomToken, renameFolder, updateFiles, type Folder } from '@shopme/core';
 import { fromGid } from '@shopme/shopify-compat';
 import { builder } from '../builder';
 import { requireScope } from '../context';
@@ -141,9 +141,10 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_files');
       const base = ctx.app.config.appUrl;
       const targets = input.map((i) => {
-        const key = makeStorageKey(i.filename);
+        // Bulk mutation variables are private to the shop and never listed as files; every target also carries its storage `key` (the `stagedUploadPath` of bulk mutations).
+        const key = i.resource === 'BULK_MUTATION_VARIABLES' ? `tmp/${ctx.shopId}/bulk/${randomToken(12)}/${makeStorageKey(i.filename).split('/').pop()}` : makeStorageKey(i.filename);
         const token = signStagedToken(ctx.app.config.sessionSecret, { s: ctx.shopId, k: key, f: i.filename, m: i.mimeType, e: Date.now() + 3600_000 });
-        return { url: `${base}/admin/api/staged/${token}`, resourceUrl: `${base}/files/${key}`, parameters: [{ name: 'content_type', value: i.mimeType }, { name: 'filename', value: i.filename }] };
+        return { url: `${base}/admin/api/staged/${token}`, resourceUrl: `${base}/files/${key}`, parameters: [{ name: 'content_type', value: i.mimeType }, { name: 'filename', value: i.filename }, { name: 'key', value: key }] };
       });
       return { stagedTargets: targets, userErrors: [] };
     },
