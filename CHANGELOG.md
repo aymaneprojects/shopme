@@ -13,9 +13,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Illustrated empty states in the admin (products, orders, customers, discounts, collections, analytics).
 - `pnpm screenshots` regenerates the README screenshots from a fresh demo store.
 - Desktop: Mac installers are named `mac-apple-silicon` and `mac-intel`, and the app warns when the Intel build runs on an Apple Silicon Mac (Rosetta, much slower).
+- Admin, closer to the Shopify admin layout (button by button review of 75 reference screens):
+  - Pill-shaped buttons, labelled "More actions" menus with icons, a centered save bar, compact confirm dialogs and a variant picker.
+  - Orders: refund page, order edit summary, draft order layout, previous/next navigation, shipping address editing.
+  - Catalog: column choosers, "View as", preview and share, product and collection navigation, collection duplicate, stock counts import, discount export.
+  - Theme editor: publish button, redo, section duplicate and delete, section search.
+  - Customers: customer segments with a conditions builder and live counts, customer page actions, gift card layout.
+  - Online store: pages, blog posts, menus (list and editor), files and preferences pages with bulk actions.
+  - Analytics: overview page, reports list, report auto-refresh.
+  - Settings: dedicated settings navigation, narrower pages with section descriptions, users table, notifications overview and template preview with test send, policies list, locations table, custom data by resource, domains and languages tables.
 
 ### Fixed
 
+- Creating or editing a customer from the admin failed because the email marketing consent field was rejected by the API.
 - `pnpm seed` now fills the default main and footer menus, which the setup step creates empty.
 - Aurora: the newsletter form in the footer no longer overflows the screen on phones.
 - Aurora: the footer stays at the bottom of the window on short pages (login, cart, 404).
