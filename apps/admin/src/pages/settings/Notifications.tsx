@@ -51,7 +51,7 @@ function TemplateForm({ tpl }: { tpl: Template }) {
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
   const dirty = form.subject !== tpl.subject || form.body !== tpl.body;
-  const preview = useQuery({ queryKey: ['notification-preview', tpl.key, tpl.subject, tpl.body], retry: false, queryFn: () => gql<{ shopmeNotificationPreview: { subject: string; html: string } }>(NOTIFICATION_PREVIEW, { key: tpl.key }) });
+  const preview = useQuery({ queryKey: ['notification-preview', tpl.key, tpl.subject, tpl.body], retry: false, queryFn: () => mutate<{ preview: { subject: string; html: string } | null }>(NOTIFICATION_PREVIEW, { key: tpl.key }, 'shopmeNotificationPreview') });
   const refresh = () => { void qc.invalidateQueries({ queryKey: ['notification-templates'] }); void qc.invalidateQueries({ queryKey: ['notification-preview'] }); };
   const save = useMutation({
     mutationFn: () => mutate(NOTIFICATION_TEMPLATE_UPDATE, { key: tpl.key, ...form }, 'shopmeNotificationTemplateUpdate'),
@@ -61,7 +61,7 @@ function TemplateForm({ tpl }: { tpl: Template }) {
     mutationFn: () => mutate(NOTIFICATION_TEMPLATE_RESET, { key: tpl.key }, 'shopmeNotificationTemplateReset'),
     onSuccess: () => { toast(t('notif.resetDone')); setConfirm(false); refresh(); }, onError: (e) => { setConfirm(false); setError(errText(e)); },
   });
-  const p = preview.data?.shopmeNotificationPreview;
+  const p = preview.data?.preview;
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm({ subject: tpl.subject, body: tpl.body }); setError(null); }} />

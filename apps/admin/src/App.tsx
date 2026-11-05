@@ -14,6 +14,7 @@ import { ProductEditPage } from './pages/ProductEdit';
 import { HomePage } from './pages/Home';
 import { ProductsPage } from './pages/Products';
 import { ComingSoon } from './pages/Simple';
+import { SecuritySettings } from './pages/settings/Security';
 import { SessionProvider, useSession } from './session';
 import { Spinner } from '@shopme/ui';
 
@@ -34,6 +35,8 @@ const router = createBrowserRouter(
       { path: '/collections', element: <CollectionsPage /> },
       { path: '/collections/:id', element: <CollectionEditPage /> },
       { path: '/inventory', element: <InventoryPage /> },
+      { path: '/analytics', element: L(() => import('./pages/Analytics'), 'AnalyticsPage') },
+      { path: '/analytics/:name', element: L(() => import('./pages/Analytics'), 'AnalyticsPage') },
       { path: '/orders', element: L(() => import('./pages/Orders'), 'OrdersPage') },
       { path: '/orders/drafts', element: L(() => import('./pages/orders/Drafts'), 'DraftsPage') },
       { path: '/orders/drafts/:id', element: L(() => import('./pages/orders/Drafts'), 'DraftEditPage') },
@@ -67,7 +70,10 @@ const router = createBrowserRouter(
           { path: 'shipping', element: L(() => import('./pages/settings/Commerce'), 'ShippingSettings') },
           { path: 'taxes', element: L(() => import('./pages/settings/Commerce'), 'TaxesSettings') },
           { path: 'domains', element: L(() => import('./pages/settings/Settings'), 'DomainsSettings') },
-          { path: 'languages', element: L(() => import('./pages/settings/Settings'), 'LanguagesSettings') },
+          { path: 'languages', element: L(() => import('./pages/settings/Languages'), 'LanguagesSettings') },
+          { path: 'languages/translate', element: L(() => import('./pages/settings/Translations'), 'TranslationsPage') },
+          { path: 'security', element: <SecuritySettings /> },
+          { path: 'backup', element: L(() => import('./pages/settings/Backup'), 'BackupSettings') },
           { path: 'users', element: L(() => import('./pages/settings/Team'), 'UsersSettings') },
           { path: 'notifications', element: L(() => import('./pages/settings/Notifications'), 'NotificationsSettings') },
           { path: 'notifications/:key', element: L(() => import('./pages/settings/Notifications'), 'NotificationEditPage') },
@@ -88,6 +94,7 @@ function Gate() {
   if (state.status === 'loading') return <div className="grid min-h-screen place-items-center" role="status" aria-label={t('common.loading')}><Spinner /></div>;
   if (state.status === 'setup') return <SetupPage />;
   if (state.status === 'anonymous') return <LoginPage />;
+  if (state.twoFactorSetupRequired) return <div className="mx-auto max-w-2xl p-4 md:p-8"><SecuritySettings forced /></div>;
   return <RouterProvider router={router} />;
 }
 

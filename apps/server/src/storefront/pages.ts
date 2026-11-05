@@ -9,7 +9,8 @@ import { getCollection, getProductByHandle, listCollections, listProducts, loadP
 import { getPage, listPages, policiesOf } from './data/content';
 import { flashGlobals, takeFlash } from './flash';
 import type { ProductObject } from './data/types';
-import { buildCollection, buildGlobals, buildSearch, makeEnv, makeResolvers, pageInput, primaryShop, type Env, type Query } from './env';
+import { buildCollection, buildGlobals, buildSearch, makeEnv, makeResolvers, pageInput, primaryShop, trPage, trProduct, type Env, type Query } from './env';
+import { localizeHtml } from './locale';
 import type { ThemeStore } from './theme-store';
 
 export type SectionRenderer = (req: FastifyRequest, shop: Shop, url: string, names: string[], cart?: CartView | null) => Promise<Record<string, string>>;
@@ -43,7 +44,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
 
   /** Render a template with all request globals; `sections`/`section_id` query params switch to the Section Rendering API. */
   async function renderTemplate(req: FastifyRequest, reply: FastifyReply, env: Env, spec: PageSpec) {
-    const loaded = await store.main(env.shop.id);
+    const loaded = await store.main(env.shop.id, env.locale === env.shop.locale ? undefined : env.locale);
     const globals = await buildGlobals(env, loaded.themeId, spec.pageType);
     const query0 = req.query as Query;
     const fromQuery: Record<string, unknown> = query0.contact_posted === 'true' || query0.customer_posted === 'true'
@@ -62,17 +63,17 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       const names = sectionsParam.split(',').map((x) => x.trim()).filter(Boolean);
       const out = await loaded.renderer.renderSections(input, names);
       const body: Record<string, string | null> = {};
-      for (const n of names) body[n] = out[n] ?? null;
+      for (const n of names) body[n] = out[n] == null ? null : localizeHtml(out[n]!, env.prefix);
       return reply.code(200).type('application/json; charset=utf-8').send(body);
     }
     const sectionId = first(query.section_id);
     if (sectionId !== undefined) {
       const html = (await loaded.renderer.renderSections(input, [sectionId]))[sectionId];
-      return html == null ? reply.code(404).type('text/html; charset=utf-8').send('') : reply.code(200).type('text/html; charset=utf-8').send(html);
+      return html == null ? reply.code(404).type('text/html; charset=utf-8').send('') : reply.code(200).type('text/html; charset=utf-8').send(localizeHtml(html, env.prefix));
     }
     const { html, errors } = await loaded.renderer.renderPage(input);
     for (const e of errors) req.log.warn({ liquid: e }, 'liquid error');
-    return reply.code(spec.status ?? 200).header('cache-control', 'no-cache').type('text/html; charset=utf-8').send(html);
+    return reply.code(spec.status ?? 200).header('cache-control', 'no-cache').type('text/html; charset=utf-8').send(localizeHtml(html, env.prefix));
   }
 
   /** 301 for a stored URL redirect (old product, collection, page or blog handles, merchant-defined paths), else the themed 404. */
@@ -93,7 +94,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     const env = await makeEnv(ctx, req, shop, path || '/');
     if (cart) env.cart = cart;
     env.query = Object.fromEntries(new URLSearchParams(qs ?? ''));
-    const loaded = await store.main(shop.id);
+    const loaded = await store.main(shop.id, env.locale === shop.locale ? undefined : env.locale);
     const template = path === '/cart' ? 'cart' : 'index';
     const globals = await buildGlobals(env, loaded.themeId, template);
     const input = { ...pageInput(env, template, null, globals), resolvers: makeResolvers(env, globals) };
@@ -217,7 +218,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     // --- products
     async function productPage(req: FastifyRequest, reply: FastifyReply, shop: Shop, env: Env, handle: string, collectionHandle?: string) {
       const variantQ = Number(first((req.query as Query).variant));
-      const product = await getProductByHandle(db, shop.id, handle, { selectedVariantId: Number.isFinite(variantQ) ? variantQ : undefined });
+      const product = trProduct(env, await getProductByHandle(db, shop.id, handle, { selectedVariantId: Number.isFinite(variantQ) ? variantQ : undefined }));
       if (!product) return notFound(req, reply, shop, env);
       const extra: Record<string, unknown> = { product };
       if (collectionHandle) { const b = await getCollection(db, shop.id, collectionHandle); if (b) extra.collection = await buildCollection(env, b, { withFacets: false }); }
@@ -322,7 +323,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     app.get('/pages/*', withShop(async (req, reply, shop) => {
       const handle = decodeURIComponent((req.params as { '*': string })['*']);
       const env = await makeEnv(ctx, req, shop);
-      const page = handle.includes('/') ? null : await getPage(db, shop.id, handle);
+      const page = handle.includes('/') ? null : trPage(env, await getPage(db, shop.id, handle));
       if (!page) return notFound(req, reply, shop, env);
       const loaded = await store.main(shop.id);
       const suffix = first((req.query as Query).view) ?? (page.template_suffix || (handle === 'contact' && loaded.theme.has('templates/page.contact.json') ? 'contact' : null));

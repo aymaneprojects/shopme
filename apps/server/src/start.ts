@@ -1,5 +1,5 @@
 import type { AddressInfo } from 'node:net';
-import { createDb, loadConfig, runMigrations, type AppConfig } from '@shopme/core';
+import { createDb, exportStore, getPrimaryShop, importStore, loadConfig, runMigrations, type AppConfig } from '@shopme/core';
 import { buildApp } from './app';
 import { resolvePaths, type ServerPaths } from './paths';
 
@@ -27,6 +27,10 @@ export interface RunningServer {
   url: string;
   port: number;
   config: AppConfig;
+  /** Write the whole store to a `.shopme` file (desktop "Export my store"). Rejects when the store is not set up. */
+  exportStore(file: string): Promise<void>;
+  /** Replace the store with a `.shopme` file. Resolves to an error message, or null on success. */
+  importStore(file: string): Promise<string | null>;
   close(): Promise<void>;
 }
 
@@ -54,8 +58,21 @@ export async function startServer(opts: StartServerOptions = {}): Promise<Runnin
     const url = `http://${host}:${port}`;
     app.log.info(`ShopMe listening on ${url} (database: ${dbHandle.driver}, admin: ${config.appUrl}/admin/)`);
     let closed = false;
+    const shopId = async () => (await getPrimaryShop(dbHandle.db))?.id ?? null;
     return {
       url, port, config,
+      async exportStore(file) {
+        const id = await shopId();
+        if (id === null) throw new Error('The store is not set up yet.');
+        await exportStore(dbHandle.db, app.ctx.storage, id, file, { appVersion: app.ctx.appVersion });
+      },
+      async importStore(file) {
+        const id = await shopId();
+        if (id === null) return 'Set up the store first (create the owner account), then import.';
+        const r = await importStore(dbHandle.db, app.ctx.storage, id, file);
+        if (r.ok) await app.ctx.locales.refresh(dbHandle.db);
+        return r.ok ? null : r.error;
+      },
       async close() {
         if (closed) return;
         closed = true;

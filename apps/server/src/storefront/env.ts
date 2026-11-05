@@ -1,5 +1,5 @@
 import { lazyList, type PageInput, type ResourceResolvers } from '@shopme/liquid-compat';
-import { getPrimaryShop, getCartByToken, priceCartDiscounts, resolveCustomerSession, type CartView, type Customer, type Db, type Shop } from '@shopme/core';
+import { getPrimaryShop, getCartByToken, loadTranslator, NO_TRANSLATOR, priceCartDiscounts, resolveCustomerSession, type CartView, type Customer, type Db, type Shop, type Translator } from '@shopme/core';
 import type { FastifyRequest } from 'fastify';
 import type { AppContext } from '../context';
 import { getCollection, getProductByHandle, listCollections, listProducts, loadProducts, SORT_KEYS, defaultSort, type CollectionBase, type FilterGroup, type SortKey } from './data/catalog';
@@ -32,12 +32,20 @@ export interface Env {
   query: Query;
   cart: CartView | null;
   customer: Customer | null;
+  /** Storefront language of this request (`shop.locale` unless the URL carries a published locale prefix). */
+  locale: string;
+  /** URL prefix of that language (`''` for the primary one, else `/fr`). */
+  prefix: string;
+  /** Translations of content into `locale` (inactive for the primary language). */
+  tr: Translator;
 }
 
 export async function makeEnv(ctx: AppContext, req: FastifyRequest, shop: Shop, path?: string): Promise<Env> {
   const token = req.cookies[CART_COOKIE];
   const cart = token ? await getCartByToken(ctx.db, shop.id, token.split('?')[0]!.split('%3F')[0]!) : null;
-  return { ctx, db: ctx.db, shop, origin: ctx.config.appUrl, path: path ?? req.url.split('?')[0]!, query: req.query as Query, cart, customer: await customerOf(ctx, req, shop) };
+  const locale = ctx.locales.localeOf(req.raw) ?? shop.locale;
+  const tr = locale === shop.locale ? NO_TRANSLATOR : await loadTranslator(ctx.db, shop.id, locale);
+  return { ctx, db: ctx.db, shop, origin: ctx.config.appUrl, path: path ?? req.url.split('?')[0]!, query: req.query as Query, cart, customer: await customerOf(ctx, req, shop), locale, prefix: locale === shop.locale ? '' : ctx.locales.prefixOf(locale), tr };
 }
 
 export async function primaryShop(ctx: AppContext): Promise<Shop | null> { return getPrimaryShop(ctx.db); }
@@ -80,25 +88,50 @@ function withFilterUrls(groups: FilterGroup[], env: Env): FilterGroup[] {
   }));
 }
 
+/** Product with its translated title, description, type and SEO fields (a copy; the primary language returns it unchanged). */
+export function trProduct<T extends ProductObject | null>(env: Env, p: T): T {
+  if (!p || !env.tr.active) return p;
+  const t = env.tr;
+  const description = t.text('PRODUCT', p.id, 'body_html', p.description);
+  const type = t.text('PRODUCT', p.id, 'product_type', p.type);
+  return {
+    ...p, title: t.text('PRODUCT', p.id, 'title', p.title), description, content: description, type, product_type: type,
+    seo: { title: t.get('PRODUCT', p.id, 'meta_title') ?? p.seo.title, description: t.get('PRODUCT', p.id, 'meta_description') ?? p.seo.description },
+  };
+}
+
+/** Collection base with translated title, description and SEO fields. */
+export function trCollection(env: Env, c: CollectionBase): CollectionBase {
+  if (!env.tr.active || c.isAll) return c;
+  const t = env.tr;
+  return { ...c, title: t.text('COLLECTION', c.id, 'title', c.title), description: t.text('COLLECTION', c.id, 'body_html', c.description), seoTitle: t.get('COLLECTION', c.id, 'meta_title') ?? c.seoTitle, seoDescription: t.get('COLLECTION', c.id, 'meta_description') ?? c.seoDescription };
+}
+
+export function trPage<T extends { id: number; title: string; content: string } | null>(env: Env, p: T): T {
+  if (!p || !env.tr.active) return p;
+  return { ...p, title: env.tr.text('PAGE', p.id, 'title', p.title), content: env.tr.text('PAGE', p.id, 'body_html', p.content) };
+}
+
 /** Preview size of `collection.products` outside `paginate` (the full list is reachable through `paginate`). */
 const PREVIEW = 50;
 
-async function productList(db: Db, shopId: number, ids: number[], total: number): Promise<ProductObject[]> {
+async function productList(env: Env, db: Db, shopId: number, ids: number[], total: number): Promise<ProductObject[]> {
   const memo = new Map<number, ProductObject>();
   const load = async (offset: number, limit: number) => {
     const wanted = ids.slice(offset, offset + limit);
     const missing = wanted.filter((id) => !memo.has(id));
-    if (missing.length) for (const p of await loadProducts(db, shopId, missing)) memo.set(p.id, p);
+    if (missing.length) for (const p of await loadProducts(db, shopId, missing)) memo.set(p.id, trProduct(env, p));
     return wanted.map((id) => memo.get(id)).filter((p): p is ProductObject => !!p);
   };
   return lazyList(await load(0, PREVIEW), total, load) as ProductObject[];
 }
 
-export async function buildCollection(env: Env, base: CollectionBase, opts: { tag?: string; withFacets?: boolean } = {}) {
+export async function buildCollection(env: Env, base0: CollectionBase, opts: { tag?: string; withFacets?: boolean } = {}) {
   const { db, shop } = env;
+  const base = trCollection(env, base0);
   const sort = sortFrom(env.query, defaultSort(base.sortOrder));
   const listing = await listProducts(db, shop.id, { collectionId: base.isAll ? undefined : base.id }, { sort, tag: opts.tag, filters: parseFilters(env.query) }, opts.withFacets ?? true);
-  const products = await productList(db, shop.id, listing.ids, listing.total);
+  const products = await productList(env, db, shop.id, listing.ids, listing.total);
   const image = base.image ?? products[0]?.featured_image ?? null;
   return {
     id: base.id, handle: base.handle, title: opts.tag ? `${base.title} - tagged "${opts.tag}"` : base.title, description: base.description, url: `/collections/${base.handle}`,
@@ -113,7 +146,7 @@ export async function buildSearch(env: Env, q: string) {
   const sort = sortFrom(env.query, 'manual');
   const listing = q ? await listProducts(db, shop.id, { q }, { sort: sort === 'manual' ? 'best-selling' : sort, filters: parseFilters(env.query) }, true) : null;
   const ids = listing?.ids ?? [];
-  const results = await productList(db, shop.id, ids, ids.length);
+  const results = await productList(env, db, shop.id, ids, ids.length);
   return {
     performed: !!q, terms: q, results, results_count: ids.length, products_count: ids.length, types: ['product'], filters: withFilterUrls(listing?.groups ?? [], env), sort_by: sort, default_sort_by: 'manual', sort_options: sortOptions.filter((o) => o.value !== 'manual'),
     url: `/search?q=${encodeURIComponent(q)}`,
@@ -124,22 +157,23 @@ export async function buildSearch(env: Env, q: string) {
 export async function buildGlobals(env: Env, themeId: number, pageType: string): Promise<Record<string, unknown>> {
   const { db, shop } = env;
   const [menus, pages, cols, blogRows, pricing, customer] = await Promise.all([
-    listMenus(db, shop.id, env.path), listPages(db, shop.id), listCollections(db, shop.id), listBlogHandles(db, shop.id),
+    listMenus(db, shop.id, env.path, env.tr), listPages(db, shop.id).then((l) => l.map((p) => trPage(env, p))), listCollections(db, shop.id), listBlogHandles(db, shop.id),
     env.cart ? priceCartDiscounts(db, shop.id, env.cart, env.customer?.email ?? null) : null, env.customer ? buildCustomer(db, shop, env.customer) : null,
   ]);
   const linklists: Record<string, LinklistObject> = {};
   for (const m of menus) { linklists[m.handle] = m; linklists[m.handle.replace(/-/g, '_')] = m; }
-  const colLight = cols.map((c) => ({ id: c.id, handle: c.handle, title: c.title, url: `/collections/${c.handle}`, description: c.description, image: c.image, featured_image: c.image, products_count: c.productsCount, all_products_count: c.productsCount }));
+  const colLight = cols.map((c0) => trCollection(env, c0)).map((c) => ({ id: c.id, handle: c.handle, title: c.title, url: `/collections/${c.handle}`, description: c.description, image: c.image, featured_image: c.image, products_count: c.productsCount, all_products_count: c.productsCount }));
   const collections = lazyMap(['all', ...cols.map((c) => c.handle)], async (h) => { const b = await getCollection(db, shop.id, h); return b ? buildCollection(env, b, { withFacets: false }) : null; }, colLight);
   const origin = env.origin;
-  const request = requestObject(shop, origin, env.path, pageType);
+  const request = requestObject(shop, origin, env.path, pageType, env.locale, env.prefix);
+  const languages = env.ctx.locales.locales.map((l) => ({ locale: l.locale, name: l.name, primary: l.primary, prefix: env.ctx.locales.prefixOf(l.locale) }));
   return {
-    shop: shopObject(shop, origin, { products: 0, collections: cols.length }), request, routes: routesObject(), localization: localizationObject(shop), cart: liquidCart(env.cart, shop, pricing),
+    shop: shopObject(shop, origin, { products: 0, collections: cols.length }), request, routes: routesObject(env.prefix), localization: localizationObject(shop, env.locale, languages, origin, env.path), cart: liquidCart(env.cart, shop, pricing),
     linklists, pages: lazyMap(pages.map((p) => p.handle), async (h) => pages.find((p) => p.handle === h) ?? null), collections,
-    all_products: lazyMap(true, async (h) => getProductByHandle(db, shop.id, h), {}), customer, blogs: lazyMap(blogRows.map((b) => b.handle), async (h) => { const b = blogRows.find((x) => x.handle === h); return b ? buildBlog(db, shop.id, b) : null; }),
+    all_products: lazyMap(true, async (h) => trProduct(env, await getProductByHandle(db, shop.id, h)), {}), customer, blogs: lazyMap(blogRows.map((b) => b.handle), async (h) => { const b = blogRows.find((x) => x.handle === h); return b ? buildBlog(db, shop.id, b) : null; }),
     articles: lazyMap(true, async (key) => { const [bh, ah] = key.split(/[/.]/); const b = bh ? await getBlog(db, shop.id, bh) : null; const a = b && ah ? await getPublishedArticle(db, shop.id, b, ah) : null; return a ?? null; }, {}),
     all_country_option_tags: countryOptions(null, shop.locale).map((c) => `<option value="${c.code}" data-provinces="[]">${c.name.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</option>`).join(''), theme: { id: themeId, name: 'Aurora', role: 'main' },
-    canonical_url: origin + env.path, page_title: '', page_description: '', current_page: 1, current_tags: [], powered_by_link: '<a href="https://github.com/" rel="nofollow">Powered by ShopMe</a>',
+    canonical_url: origin + env.prefix + (env.prefix && env.path === '/' ? '' : env.path), page_title: '', page_description: '', current_page: 1, current_tags: [], powered_by_link: '<a href="https://github.com/" rel="nofollow">Powered by ShopMe</a>',
     additional_checkout_buttons: false, content_for_additional_checkout_buttons: '', handle: '',
   };
 }
@@ -148,8 +182,8 @@ export async function buildGlobals(env: Env, themeId: number, pageType: string):
 export function makeResolvers(env: Env, globals: Record<string, unknown>): ResourceResolvers {
   return {
     collection: async (h) => { const b = await getCollection(env.db, env.shop.id, h); return b ? buildCollection(env, { ...b }, { withFacets: false }) : null; },
-    product: (h) => getProductByHandle(env.db, env.shop.id, h),
-    page: (h) => getPage(env.db, env.shop.id, h),
+    product: async (h) => trProduct(env, await getProductByHandle(env.db, env.shop.id, h)),
+    page: async (h) => trPage(env, await getPage(env.db, env.shop.id, h)),
     linklist: async (h) => (globals.linklists as Record<string, unknown>)[h] ?? null,
     image: (v) => {
       if (!v) return null;
@@ -161,7 +195,7 @@ export function makeResolvers(env: Env, globals: Record<string, unknown>): Resou
 }
 
 export const pageInput = (env: Env, template: string, suffix: string | null | undefined, globals: Record<string, unknown>): PageInput => ({
-  template, suffix, globals, locale: env.shop.locale,
+  template, suffix, globals, locale: env.locale,
   request: { path: env.path, query: env.query },
   money: { format: env.shop.moneyFormat, withCurrency: env.shop.moneyWithCurrencyFormat, currency: env.shop.currency },
 });

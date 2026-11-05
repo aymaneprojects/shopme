@@ -44,7 +44,12 @@ export function LoginPage() {
   const { signedIn } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { error, busy, submit } = useSubmit(() => rest<{ user: User; shop: Shop }>('/auth/login', { body: { email, password } }), signedIn);
+  const [challenge, setChallenge] = useState<string | null>(null);
+  const { error, busy, submit } = useSubmit(
+    () => rest<{ user: User; shop: Shop; twoFactorSetupRequired?: boolean; twoFactorRequired?: boolean; challenge?: string }>('/auth/login', { body: { email, password } }),
+    (r) => (r.twoFactorRequired && r.challenge ? setChallenge(r.challenge) : signedIn(r)),
+  );
+  if (challenge) return <TwoFactorStep challenge={challenge} onBack={() => setChallenge(null)} />;
   return (
     <AuthLayout title={t('login.title')} subtitle={t('login.subtitle')}>
       <form onSubmit={submit} className="flex flex-col gap-3">
@@ -52,6 +57,26 @@ export function LoginPage() {
         <Input label={t('field.email')} type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
         <Input label={t('field.password')} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         <Button type="submit" variant="primary" loading={busy}>{t('login.submit')}</Button>
+      </form>
+    </AuthLayout>
+  );
+}
+
+/** Second login step: a TOTP code, or a recovery code. */
+function TwoFactorStep({ challenge, onBack }: { challenge: string; onBack: () => void }) {
+  const { t } = useI18n();
+  const { signedIn } = useSession();
+  const [code, setCode] = useState('');
+  const [recovery, setRecovery] = useState(false);
+  const { error, busy, submit } = useSubmit(() => rest<{ user: User; shop: Shop; twoFactorSetupRequired?: boolean }>('/auth/login/2fa', { body: { challenge, code } }), signedIn);
+  return (
+    <AuthLayout title={t('login.2fa.title')} subtitle={t('login.2fa.subtitle')}>
+      <form onSubmit={submit} className="flex flex-col gap-3">
+        {error && <Banner>{/expired/i.test(error) ? t('login.2fa.expired') : /invalid/i.test(error) ? t('login.2fa.invalid') : error}</Banner>}
+        <Input label={t('login.2fa.code')} autoFocus required inputMode={recovery ? 'text' : 'numeric'} autoComplete="one-time-code" maxLength={recovery ? 12 : 7} value={code} onChange={(e) => setCode(e.target.value)} />
+        <Button type="submit" variant="primary" loading={busy}>{t('login.2fa.verify')}</Button>
+        <button type="button" className="text-sm text-primary underline" onClick={() => { setRecovery(!recovery); setCode(''); }}>{t(recovery ? 'login.2fa.authenticator' : 'login.2fa.recovery')}</button>
+        <button type="button" className="text-sm text-muted underline" onClick={onBack}>{t('login.2fa.back')}</button>
       </form>
     </AuthLayout>
   );

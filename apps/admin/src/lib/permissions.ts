@@ -19,7 +19,7 @@ export function can(access: StaffAccess | null | undefined, permission: Permissi
 
 /** Nav item id -> permission needed to see it (`home` is always visible). */
 export const NAV_PERMISSION: Record<string, Permission> = {
-  orders: 'orders', products: 'products', collections: 'products', inventory: 'products', customers: 'customers', discounts: 'discounts', 'online-store': 'online_store', settings: 'settings',
+  orders: 'orders', analytics: 'orders', products: 'products', collections: 'products', inventory: 'products', customers: 'customers', discounts: 'discounts', 'online-store': 'online_store', settings: 'settings',
 };
 
 export function useStaffAccess() {

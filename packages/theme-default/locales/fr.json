@@ -211,5 +211,9 @@
     "label": "Adresse e-mail",
     "submit": "S'abonner",
     "success": "Merci pour votre inscription !"
+  },
+  "localization": {
+    "language": "Langue",
+    "update": "Changer de langue"
   }
 }

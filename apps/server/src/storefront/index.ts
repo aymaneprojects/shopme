@@ -4,7 +4,9 @@ import { registerAccountRoutes } from './accounts';
 import { registerBlogRoutes } from './blogs';
 import { registerCartRoutes } from './cart-routes';
 import { registerFormRoutes } from './forms';
+import { registerLocalizationRoutes } from './locale';
 import { registerSeoRoutes } from './seo';
+import { registerVisitTracking } from './visits';
 import { primaryShop } from './env';
 import { createContent } from './pages';
 import { ThemeStore } from './theme-store';
@@ -18,6 +20,7 @@ export async function registerStorefront(app: FastifyInstance): Promise<void> {
   const ctx = app.ctx;
   const store = new ThemeStore(ctx);
   const content = createContent(ctx, store);
+  await ctx.locales.refresh(ctx.db);
 
   await app.register(async (scope) => {
     // Forms: the theme posts urlencoded or multipart; both end up as plain key/value objects on `req.body`.
@@ -25,6 +28,8 @@ export async function registerStorefront(app: FastifyInstance): Promise<void> {
       done(null, Object.fromEntries(new URLSearchParams(body as string)));
     });
     await scope.register(multipart, { attachFieldsToBody: 'keyValues', limits: { fileSize: 1024 * 1024, files: 0 } });
+    registerVisitTracking(scope, ctx);
+    registerLocalizationRoutes(scope, ctx);
     registerCartRoutes(scope, ctx, content.renderSections);
     registerAccountRoutes(scope, ctx, content);
     registerBlogRoutes(scope, ctx, content);

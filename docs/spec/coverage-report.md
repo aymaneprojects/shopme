@@ -422,11 +422,11 @@ Size: S under 2 days, M about a week, L more than a week or a new subsystem. Hin
 | P1-11 | Admin API completeness: `productSet`, `productChangeStatus`, `productPublish`, `customerAddress*`, `fileDelete/Update`, `stagedUploads*`, saved searches, `locationsCount`, `staffMember`, `currentStaffMember`, publications | Mostly thin wrappers over existing services | M |
 | P1-12 | Bulk operations (`bulkOperationRunQuery/Mutation`, JSONL) | Job queue + JSONL writer; needed by import tools | L |
 | P1-13 | Core type fields: `Product.priceRange`, `compareAtPriceRange`, `totalVariants`, `onlineStorePreviewUrl`, `Order.totalPrice`-family, `fulfillmentOrders`, `suggestedRefund`, `Customer.lastOrder/statistics/emailMarketingConsent`, `Shop.shopAddress/currencySettings/shopPolicies` | Resolvers over existing data; gains most client compatibility per line of code | M |
-| P1-14 | Analytics reports (sales over time, by product, by channel, customers, export) | Extend `analytics` service; reports page; `shopifyqlQuery` is not required | M |
-| P1-15 | 2FA for staff (TOTP), session list, login alerts | `otplib`, recovery codes, enforce for owner | M |
-| P1-16 | Security headers on storefront (frame, HSTS option, CSP report-only), HTML cache strategy with ETag | Fastify hooks in `storefront/index.ts` | S |
-| P1-17 | Store export/import and scheduled backups | JSON/zip export of DB rows and files; `pg_dump` helper in CLI | L |
-| P1-18 | Languages and translations (additional storefront locales, translatable resources, `/localization` switch) | `translations` tables, `shopLocale*` and `translationsRegister`, locale prefix routing off by default | L |
+| P1-14 (done, see docs/dev/platform.md) | Analytics reports (sales over time, by product, by channel, customers, export) | Extend `analytics` service; reports page; `shopifyqlQuery` is not required | M |
+| P1-15 (done, see docs/dev/platform.md) | 2FA for staff (TOTP), session list, login alerts | `otplib`, recovery codes, enforce for owner | M |
+| P1-16 (done, see docs/dev/platform.md) | Security headers on storefront (frame, HSTS option, CSP report-only), HTML cache strategy with ETag | Fastify hooks in `storefront/index.ts` | S |
+| P1-17 (done, see docs/dev/platform.md) | Store export/import and scheduled backups | JSON/zip export of DB rows and files; `pg_dump` helper in CLI | L |
+| P1-18 (done, see docs/dev/platform.md) | Languages and translations (additional storefront locales, translatable resources, `/localization` switch) | `translations` tables, `shopLocale*` and `translationsRegister`, locale prefix routing off by default | L |
 
 ### P2: nice to have
 

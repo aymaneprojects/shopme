@@ -8,14 +8,14 @@ import { WEBHOOKS, WEBHOOK_CREATE, WEBHOOK_DELETE, WEBHOOK_DELIVERIES } from '..
 import { useI18n } from '../../i18n';
 
 const TOPICS = ['ORDERS_CREATE', 'ORDERS_PAID', 'ORDERS_UPDATED', 'ORDERS_CANCELLED', 'REFUNDS_CREATE', 'FULFILLMENTS_CREATE', 'DRAFT_ORDERS_CREATE', 'PRODUCTS_CREATE', 'PRODUCTS_UPDATE', 'PRODUCTS_DELETE', 'CUSTOMERS_CREATE', 'CUSTOMERS_UPDATE'];
-interface Hook { id: string; topic: string; format: string; createdAt: string; secret: string | null; endpoint: { __typename: string; callbackUrl?: string } | null }
-interface Delivery { id: string; status: string; responseCode: number | null; createdAt: string; error: string | null }
+interface Hook { id: string; topic: string; format: string; createdAt: string; endpoint: { __typename: string; callbackUrl?: string } | null }
+interface Delivery { id: string; status: string; responseCode: number | null; createdAt: string; lastError: string | null }
 
 export function WebhooksSettings() {
   const { t } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['webhooks'], queryFn: () => gql<{ webhookSubscriptions: { nodes: Hook[] } }>(WEBHOOKS) });
+  const q = useQuery({ queryKey: ['webhooks'], queryFn: () => gql<{ webhookSubscriptions: { nodes: Hook[] }; shopmeWebhookSettings: { signingSecret: string } }>(WEBHOOKS) });
   const [creating, setCreating] = useState<{ topic: string; callbackUrl: string } | null>(null);
   const [del, setDel] = useState<Hook | null>(null);
   const [log, setLog] = useState<Hook | null>(null);
@@ -44,7 +44,7 @@ export function WebhooksSettings() {
               <Button size="sm" onClick={() => setLog(h)}>{t('hooks.deliveries')}</Button>
               <Button size="sm" variant="danger" onClick={() => setDel(h)}>{t('common.delete')}</Button>
             </div>
-            {shown[h.id] && <p className="text-xs"><span className="text-muted">{t('hooks.secret')}:</span> <code className="select-all break-all rounded bg-surface px-1.5 py-0.5">{h.secret ?? '—'}</code></p>}
+            {shown[h.id] && <p className="text-xs"><span className="text-muted">{t('hooks.secret')}:</span> <code className="select-all break-all rounded bg-surface px-1.5 py-0.5">{q.data?.shopmeWebhookSettings.signingSecret ?? '—'}</code></p>}
           </li>
         ))}
       </ul>
@@ -66,8 +66,8 @@ export function WebhooksSettings() {
 function DeliveryLog({ hook, onClose }: { hook: Hook | null; onClose: () => void }) {
   const { t } = useI18n();
   const fmt = useFormat();
-  const q = useQuery({ queryKey: ['webhook-deliveries', hook?.id], enabled: !!hook, retry: false, queryFn: () => gql<{ shopmeWebhookDeliveries: Delivery[] }>(WEBHOOK_DELIVERIES, { subscriptionId: hook!.id }) });
-  const rows = q.data?.shopmeWebhookDeliveries ?? [];
+  const q = useQuery({ queryKey: ['webhook-deliveries', hook?.id], enabled: !!hook, retry: false, queryFn: () => gql<{ shopmeWebhookDeliveries: { nodes: Delivery[] } }>(WEBHOOK_DELIVERIES, { subscriptionId: hook!.id }) });
+  const rows = q.data?.shopmeWebhookDeliveries.nodes ?? [];
   return (
     <Modal open={!!hook} onClose={onClose} closeLabel={t('common.close')} wide title={t('hooks.deliveriesTitle', { topic: hook?.topic ?? '' })}>
       {q.isLoading && <Skeleton className="h-24" />}
@@ -77,7 +77,7 @@ function DeliveryLog({ hook, onClose }: { hook: Hook | null; onClose: () => void
         {rows.map((d) => (
           <li key={d.id} className="flex flex-wrap items-center gap-3 py-2">
             <Badge tone={/success|delivered/i.test(d.status) ? 'success' : /pending|retry/i.test(d.status) ? 'warning' : 'critical'}>{d.status}</Badge>
-            <span className="font-mono text-xs">{d.responseCode ?? '—'}</span><span className="text-muted">{fmt.dateTime(d.createdAt)}</span>{d.error && <span className="text-xs text-critical">{d.error}</span>}
+            <span className="font-mono text-xs">{d.responseCode ?? '—'}</span><span className="text-muted">{fmt.dateTime(d.createdAt)}</span>{d.lastError && <span className="text-xs text-critical">{d.lastError}</span>}
           </li>
         ))}
       </ul>

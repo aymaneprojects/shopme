@@ -1,5 +1,6 @@
 import type { Key } from './en';
 import { frExt } from './fr-ext';
+import { frPlatform } from './fr-platform';
 import { frShop } from './fr-shop';
 
 export const fr: Record<Key, string> = {
@@ -91,4 +92,5 @@ export const fr: Record<Key, string> = {
   'rte.source': 'Source HTML', 'rte.paragraph': 'Paragraphe', 'rte.heading': 'Titre', 'rte.subheading': 'Sous-titre', 'rte.linkPrompt': 'URL du lien',
   ...frShop,
   ...frExt,
+  ...frPlatform,
 };
