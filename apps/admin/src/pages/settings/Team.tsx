@@ -37,12 +37,12 @@ export function UsersSettings() {
   const add = <Button variant="primary" onClick={() => { setError(null); setEdit({ id: null, email: '', role: 'staff', permissions: ['products', 'orders'] }); }}><Plus className="size-4" />{t('users.invite')}</Button>;
   return (
     <Card title={t('settings.users')} actions={add}>
-      <p className="mb-3 text-sm text-muted">{t('users.intro')}</p>
+      <p className="mb-3 text-[13px] text-muted">{t('users.intro')}</p>
       {q.isLoading && <Skeleton className="h-24" />}
       {q.error && <Banner>{q.error.message}</Banner>}
       <ul className="divide-y divide-line">
         {members.map((m) => (
-          <li key={m.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
+          <li key={m.id} className="flex flex-wrap items-center gap-3 py-2 text-[13px]">
             <span className="min-w-0 flex-1"><span className="block font-medium">{[m.firstName, m.lastName].filter(Boolean).join(' ') || m.email}</span><span className="text-xs text-muted">{m.email}</span></span>
             <Badge tone={role(m) === 'staff' ? 'neutral' : 'info'}>{t(`users.role.${role(m)}` as Key)}</Badge>
             {!m.active && <Badge tone="warning">{t('users.inactive')}</Badge>}
@@ -63,8 +63,8 @@ export function UsersSettings() {
           <Select label={t('users.roleLabel')} value={edit?.role ?? 'staff'} onChange={(e) => setEdit((s) => s && { ...s, role: e.target.value as Role })}>
             <option value="admin">{t('users.role.admin')}</option><option value="staff">{t('users.role.staff')}</option>
           </Select>
-          {edit?.role === 'admin' ? <p className="text-sm text-muted">{t('users.adminHelp')}</p> : (
-            <fieldset className="flex flex-col gap-1.5"><legend className="mb-1 text-sm font-medium">{t('users.permissions')}</legend>
+          {edit?.role === 'admin' ? <p className="text-[13px] text-muted">{t('users.adminHelp')}</p> : (
+            <fieldset className="flex flex-col gap-1.5"><legend className="mb-1 text-[13px] font-medium">{t('users.permissions')}</legend>
               {PERMISSIONS.map((p) => <Checkbox key={p} label={t(`users.perm.${p}` as Key)} checked={!!edit?.permissions.includes(p)} onChange={(e) => setEdit((s) => s && { ...s, permissions: e.target.checked ? [...s.permissions, p] : s.permissions.filter((x) => x !== p) })} />)}
             </fieldset>
           )}

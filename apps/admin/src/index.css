@@ -1,3 +1,4 @@
 @import "tailwindcss";
+@import "@fontsource-variable/geist";
 @import "@shopme/ui/theme.css";
 @source "../../../packages/ui/src";

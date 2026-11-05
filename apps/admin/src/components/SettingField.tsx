@@ -11,17 +11,17 @@ export function SettingField({ def, label, info, value, optionLabel, onChange }:
   switch (def.type) {
     case 'color':
       return (
-        <div className="flex flex-col gap-1"><span className="text-sm font-medium">{label}</span>
+        <div className="flex flex-col gap-1"><span className="text-[13px] font-medium">{label}</span>
           <div className="flex items-center gap-2">
             <input type="color" aria-label={label} value={/^#[0-9a-f]{6}$/i.test(str) ? str : '#000000'} onChange={(e) => onChange(e.target.value)} className="size-9 rounded border border-line" />
-            <input aria-label={`${label} (hex)`} value={str} onChange={(e) => onChange(e.target.value)} className="w-28 rounded-md border border-line bg-canvas px-2 py-1.5 text-sm" />
+            <input aria-label={`${label} (hex)`} value={str} onChange={(e) => onChange(e.target.value)} className="w-28 field-control" />
           </div>{info && <p className="text-xs text-muted">{info}</p>}</div>
       );
     case 'textarea': return <Textarea label={label} help={info} value={str} onChange={(e) => onChange(e.target.value)} />;
     case 'checkbox': return <Checkbox label={label} checked={value === true} onChange={(e) => onChange(e.target.checked)} />;
     case 'range':
       return (
-        <div className="flex flex-col gap-1"><span className="flex justify-between text-sm font-medium">{label}<span className="font-normal text-muted">{str}{def.unit ?? ''}</span></span>
+        <div className="flex flex-col gap-1"><span className="flex justify-between text-[13px] font-medium">{label}<span className="font-normal text-muted">{str}{def.unit ?? ''}</span></span>
           <input type="range" aria-label={label} min={def.min} max={def.max} step={def.step ?? 1} value={Number(value)} onChange={(e) => onChange(Number(e.target.value))} className="accent-(--color-primary)" />
           {info && <p className="text-xs text-muted">{info}</p>}</div>
       );
@@ -31,18 +31,18 @@ export function SettingField({ def, label, info, value, optionLabel, onChange }:
       return <Select label={label} help={info} value={str} onChange={(e) => onChange(e.target.value)}>{[...FONT_OPTIONS, ...(FONT_OPTIONS.some((f) => f.value === str) || !str ? [] : [{ value: str, label: str }])].map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</Select>;
     case 'radio':
       return (
-        <fieldset className="flex flex-col gap-1"><legend className="text-sm font-medium">{label}</legend>
-          {def.options?.map((o) => <label key={o.value} className="inline-flex items-center gap-2 text-sm"><input type="radio" name={def.id} className="accent-(--color-primary)" checked={str === o.value} onChange={() => onChange(o.value)} />{optionLabel(o.label)}</label>)}</fieldset>
+        <fieldset className="flex flex-col gap-1"><legend className="text-[13px] font-medium">{label}</legend>
+          {def.options?.map((o) => <label key={o.value} className="inline-flex items-center gap-2 text-[13px]"><input type="radio" name={def.id} className="accent-(--color-primary)" checked={str === o.value} onChange={() => onChange(o.value)} />{optionLabel(o.label)}</label>)}</fieldset>
       );
     case 'image_picker':
       return (
-        <div className="flex flex-col gap-2"><span className="text-sm font-medium">{label}</span>
+        <div className="flex flex-col gap-2"><span className="text-[13px] font-medium">{label}</span>
           {str && <img src={str} alt="" className="max-h-24 w-fit rounded-md border border-line object-contain" />}
           <ImageUploader multiple={false} compact label={t('media.upload')} onUploaded={(f) => onChange(f[0]!.url)} onError={(m) => toast(m, 'critical')} />
           {str && <Button size="sm" onClick={() => onChange('')}>{t('common.remove')}</Button>}</div>
       );
     case 'richtext':
-      return <div className="flex flex-col gap-1"><span className="text-sm font-medium">{label}</span><RichTextEditor value={str} onChange={onChange} /></div>;
+      return <div className="flex flex-col gap-1"><span className="text-[13px] font-medium">{label}</span><RichTextEditor value={str} onChange={onChange} /></div>;
     case 'html': case 'liquid': return <Textarea label={label} help={info} className="font-mono" value={str} onChange={(e) => onChange(e.target.value)} />;
     default:
       return <Input label={label} help={info} type={def.type === 'url' ? 'url' : 'text'} value={str} onChange={(e) => onChange(e.target.value)} />;

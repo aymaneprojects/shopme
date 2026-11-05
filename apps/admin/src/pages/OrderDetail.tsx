@@ -97,7 +97,7 @@ function OrderView({ order: o }: { order: OrderData }) {
             { key: 'cancel', label: t('order.cancel'), danger: true, disabled: !!o.cancelledAt, onSelect: () => setDialog('cancel') },
           ]} />
         </>} />
-      <p className="-mt-3 mb-4 text-sm text-muted">{fmt.dateTime(o.createdAt)}</p>
+      <p className="-mt-3 mb-4 text-[13px] text-muted">{fmt.dateTime(o.createdAt)}</p>
       {o.cancelledAt && <div className="mb-4"><Banner tone="warning">{t('order.cancelledOn', { date: fmt.dateTime(o.cancelledAt) })}</Banner></div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">
@@ -110,8 +110,8 @@ function OrderView({ order: o }: { order: OrderData }) {
           )}
           {o.fulfillments.map((f) => (
             <Card key={f.id} title={<span className="flex items-center gap-2"><Badge tone="success">{t('ful.FULFILLED')}</Badge>{fmt.date(f.createdAt)}</span>}>
-              {f.trackingInfo.length === 0 ? <p className="text-sm text-muted">{t('order.noTracking')}</p> : f.trackingInfo.map((tr, i) => (
-                <p key={i} className="flex items-center gap-2 text-sm"><Truck className="size-4 text-muted" />{tr.company}{' '}{tr.url ? <a href={tr.url} target="_blank" rel="noreferrer" className="text-primary underline">{tr.number}</a> : tr.number}</p>
+              {f.trackingInfo.length === 0 ? <p className="text-[13px] text-muted">{t('order.noTracking')}</p> : f.trackingInfo.map((tr, i) => (
+                <p key={i} className="flex items-center gap-2 text-[13px]"><Truck className="size-4 text-muted" />{tr.company}{' '}{tr.url ? <a href={tr.url} target="_blank" rel="noreferrer" className="text-accent underline">{tr.number}</a> : tr.number}</p>
               ))}
             </Card>
           ))}
@@ -119,7 +119,7 @@ function OrderView({ order: o }: { order: OrderData }) {
 
           <Card title={<span className="flex items-center gap-2"><FinancialBadge status={o.displayFinancialStatus} />{t('order.payment')}</span>}
             actions={<span className="flex gap-2">{canMarkPaid && <Button size="sm" variant="primary" loading={act.isPending} onClick={() => act.mutate('paid')}>{t('order.markPaid')}</Button>}{canRefund && <Button size="sm" onClick={() => setDialog('refund')}>{t('order.refund')}</Button>}</span>}>
-            <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-sm">
+            <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-[13px]">
               {row(t('order.subtotal'), o.subtotalPriceSet)}
               {toCents(o.totalDiscountsSet.shopMoney.amount) > 0 && <>{row(t('order.discount'), { amount: `-${o.totalDiscountsSet.shopMoney.amount}`, currencyCode: cur })}</>}
               {row(t('order.shipping'), o.totalShippingPriceSet)}
@@ -137,8 +137,8 @@ function OrderView({ order: o }: { order: OrderData }) {
               <div className="flex justify-end"><Button size="sm" variant="primary" disabled={!comment.trim()} loading={post.isPending} onClick={() => post.mutate()}>{t('order.postComment')}</Button></div>
             </div>
             <ol className="flex flex-col gap-3 border-l border-line pl-4">
-              {events.map((e) => <li key={e.id} className="text-sm"><p>{e.message}</p><p className="text-xs text-muted">{fmt.dateTime(e.createdAt)}</p></li>)}
-              {events.length === 0 && <li className="text-sm text-muted">{t('order.noEvents')}</li>}
+              {events.map((e) => <li key={e.id} className="text-[13px]"><p>{e.message}</p><p className="text-xs text-muted">{fmt.dateTime(e.createdAt)}</p></li>)}
+              {events.length === 0 && <li className="text-[13px] text-muted">{t('order.noEvents')}</li>}
             </ol>
           </Card>
         </div>
@@ -150,12 +150,12 @@ function OrderView({ order: o }: { order: OrderData }) {
           </Card>
           <Card title={t('order.customer')}>
             {o.customer ? (
-              <div className="flex flex-col gap-1 text-sm">
-                <Link to={`/customers/${gidToNum(o.customer.id)}`} className="font-medium text-primary hover:underline">{o.customer.displayName}</Link>
+              <div className="flex flex-col gap-1 text-[13px]">
+                <Link to={`/customers/${gidToNum(o.customer.id)}`} className="font-medium text-accent hover:underline">{o.customer.displayName}</Link>
                 <span className="text-muted">{t('customers.orderCount', { n: o.customer.numberOfOrders })}</span>
                 <span>{o.email ?? o.customer.defaultEmailAddress?.emailAddress}</span>
               </div>
-            ) : <p className="text-sm text-muted">{o.email ?? t('orders.noCustomer')}</p>}
+            ) : <p className="text-[13px] text-muted">{o.email ?? t('orders.noCustomer')}</p>}
           </Card>
           <Card title={t('order.shippingAddress')}><AddressBlock a={o.shippingAddress} /></Card>
           <Card title={t('order.billingAddress')}><AddressBlock a={o.billingAddress} /></Card>
@@ -174,7 +174,7 @@ function LineList({ lines, qty }: { lines: OrderLine[]; qty: (l: OrderLine) => n
   return (
     <ul className="divide-y divide-line">
       {lines.map((l) => (
-        <li key={l.id} className="flex items-center gap-3 py-2 text-sm">
+        <li key={l.id} className="flex items-center gap-3 py-2 text-[13px]">
           <Thumb url={l.variant?.image?.url} />
           <div className="min-w-0 flex-1">
             <p className="font-medium">{l.title}</p>

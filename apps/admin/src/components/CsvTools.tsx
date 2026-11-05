@@ -10,7 +10,7 @@ import type { ImportKind } from '../lib/csv-import';
 import { useJob } from '../lib/jobs';
 import type { Job } from '../lib/jobs';
 
-const linkCls = 'inline-flex items-center gap-1.5 rounded-md border border-line bg-canvas px-3 py-2 text-sm font-medium hover:bg-surface';
+const linkCls = 'btn btn-secondary';
 
 export function ExportButton({ kind }: { kind: ImportKind | 'orders' }) {
   const { t } = useI18n();
@@ -27,8 +27,8 @@ export function JobSummary({ job }: { job?: Job }) {
       {job.progress !== undefined && job.status !== 'completed' && <div role="progressbar" aria-valuenow={Math.round(job.progress)} aria-valuemin={0} aria-valuemax={100} className="h-2 overflow-hidden rounded-full bg-line"><div className="h-full bg-primary transition-all" style={{ width: `${Math.min(100, job.progress)}%` }} /></div>}
       {job.counts && <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">{Object.entries(job.counts).map(([k, n]) => <div key={k} className="rounded-md border border-line p-2"><dt className="text-xs text-muted">{label(k)}</dt><dd className="text-lg font-semibold">{n}</dd></div>)}</dl>}
       {!!job.errors?.length && (
-        <div><h3 className="mb-1 text-sm font-semibold">{t('csv.errors', { n: job.errors.length })}</h3>
-          <ul className="max-h-48 overflow-y-auto rounded-md border border-line text-sm">{job.errors.slice(0, 100).map((e, i) => <li key={i} className="border-b border-line px-2 py-1 last:border-0">{e.row !== undefined && <span className="mr-2 font-mono text-xs text-muted">{t('csv.row', { n: e.row })}</span>}{e.message}</li>)}</ul></div>
+        <div><h3 className="mb-1 text-[13px] font-semibold">{t('csv.errors', { n: job.errors.length })}</h3>
+          <ul className="max-h-48 overflow-y-auto rounded-md border border-line text-[13px]">{job.errors.slice(0, 100).map((e, i) => <li key={i} className="border-b border-line px-2 py-1 last:border-0">{e.row !== undefined && <span className="mr-2 font-mono text-xs text-muted">{t('csv.row', { n: e.row })}</span>}{e.message}</li>)}</ul></div>
       )}
     </div>
   );
@@ -66,7 +66,7 @@ function ImportDialog({ open, kind, invalidate, onClose }: { open: boolean; kind
   }, [job.data, job.error]);
   useEffect(() => { if (s.step === 'done') for (const k of invalidate) void qc.invalidateQueries({ queryKey: [k] }); }, [s.step, invalidate, qc]);
 
-  const pick = <input type="file" accept=".csv,text/csv" aria-label={t('csv.chooseFile')} className="block w-full text-sm" onChange={(e) => { const f = e.target.files?.[0]; if (f) dispatch({ type: 'pick', file: f }); e.target.value = ''; }} />;
+  const pick = <input type="file" accept=".csv,text/csv" aria-label={t('csv.chooseFile')} className="block w-full text-[13px]" onChange={(e) => { const f = e.target.files?.[0]; if (f) dispatch({ type: 'pick', file: f }); e.target.value = ''; }} />;
   return (
     <Modal open={open} onClose={onClose} closeLabel={t('common.close')} wide title={t(`csv.title.${kind}` as Key)}
       footer={<>
@@ -74,11 +74,11 @@ function ImportDialog({ open, kind, invalidate, onClose }: { open: boolean; kind
         {s.step === 'preview' && <Button variant="primary" disabled={!canConfirm(s.job)} onClick={() => dispatch({ type: 'confirm' })}>{t('csv.confirm')}</Button>}
       </>}>
       <div className="flex flex-col gap-3">
-        {(s.step === 'idle' || s.step === 'error') && <><p className="text-sm text-muted">{t(`csv.help.${kind}` as Key)}</p>{pick}</>}
+        {(s.step === 'idle' || s.step === 'error') && <><p className="text-[13px] text-muted">{t(`csv.help.${kind}` as Key)}</p>{pick}</>}
         {s.step === 'error' && <Banner>{s.message}</Banner>}
-        {s.step === 'dryRun' && <><p className="text-sm">{t('csv.checking', { name: s.file.name })}</p><JobSummary job={s.job ?? { status: 'pending', progress: 0 }} /></>}
-        {s.step === 'preview' && <><p className="text-sm font-medium">{t('csv.previewTitle', { name: s.file.name })}</p><JobSummary job={s.job} />{!canConfirm(s.job) && <Banner tone="warning">{t('csv.nothing')}</Banner>}<details className="text-sm"><summary className="cursor-pointer text-muted">{t('csv.chooseAnother')}</summary><div className="mt-2">{pick}</div></details></>}
-        {s.step === 'importing' && <><p className="text-sm">{t('csv.importing')}</p><JobSummary job={s.job ?? { status: 'pending', progress: 0 }} /></>}
+        {s.step === 'dryRun' && <><p className="text-[13px]">{t('csv.checking', { name: s.file.name })}</p><JobSummary job={s.job ?? { status: 'pending', progress: 0 }} /></>}
+        {s.step === 'preview' && <><p className="text-[13px] font-medium">{t('csv.previewTitle', { name: s.file.name })}</p><JobSummary job={s.job} />{!canConfirm(s.job) && <Banner tone="warning">{t('csv.nothing')}</Banner>}<details className="text-[13px]"><summary className="cursor-pointer text-muted">{t('csv.chooseAnother')}</summary><div className="mt-2">{pick}</div></details></>}
+        {s.step === 'importing' && <><p className="text-[13px]">{t('csv.importing')}</p><JobSummary job={s.job ?? { status: 'pending', progress: 0 }} /></>}
         {s.step === 'done' && <><Banner tone="success">{t('csv.done')}</Banner><JobSummary job={s.job} /></>}
       </div>
     </Modal>

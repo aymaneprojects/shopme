@@ -17,12 +17,12 @@ export function NotificationsSettings() {
   const q = useTemplates();
   return (
     <Card title={t('settings.notifications')}>
-      <p className="mb-3 text-sm text-muted">{t('notif.intro')}</p>
+      <p className="mb-3 text-[13px] text-muted">{t('notif.intro')}</p>
       {q.isLoading && <Skeleton className="h-32" />}
       {q.error && <Banner>{q.error.message}</Banner>}
       <ul className="divide-y divide-line">
         {q.data?.shopmeNotificationTemplates.map((n) => (
-          <li key={n.key}><Link to={`/settings/notifications/${encodeURIComponent(n.key)}`} className="flex items-center gap-3 py-2.5 text-sm hover:bg-surface">
+          <li key={n.key}><Link to={`/settings/notifications/${encodeURIComponent(n.key)}`} className="flex items-center gap-3 py-2.5 text-[13px] hover:bg-surface">
             <span className="flex-1"><span className="block font-medium">{n.name}</span><span className="text-xs text-muted">{n.subject}</span></span>
             {n.customized && <Badge tone="info">{t('notif.customized')}</Badge>}
           </Link></li>
@@ -75,7 +75,7 @@ function TemplateForm({ tpl }: { tpl: Template }) {
         <Card title={t('notif.template')}>
           <div className="flex flex-col gap-3">
             <Input label={t('notif.subject')} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
-            <label className="flex flex-col gap-1 text-sm font-medium">{t('notif.body')}
+            <label className="flex flex-col gap-1 text-[13px] font-medium">{t('notif.body')}
               <textarea spellCheck={false} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} rows={22} aria-label={t('notif.body')}
                 onKeyDown={(e) => { if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); const el = e.currentTarget; const s = el.selectionStart; setForm({ ...form, body: `${form.body.slice(0, s)}  ${form.body.slice(el.selectionEnd)}` }); requestAnimationFrame(() => el.setSelectionRange(s + 2, s + 2)); } }}
                 className="w-full resize-y rounded-md border border-line bg-surface p-3 font-mono text-[13px] font-normal leading-relaxed" />
@@ -86,7 +86,7 @@ function TemplateForm({ tpl }: { tpl: Template }) {
         <Card title={t('notif.preview')} actions={dirty && <span className="text-xs text-muted">{t('notif.previewSaved')}</span>}>
           {preview.isLoading && <Skeleton className="h-64" />}
           {preview.error && <Banner>{preview.error.message}</Banner>}
-          {p && <><p className="mb-2 text-sm"><span className="text-muted">{t('notif.subject')}:</span> <strong>{p.subject}</strong></p>
+          {p && <><p className="mb-2 text-[13px]"><span className="text-muted">{t('notif.subject')}:</span> <strong>{p.subject}</strong></p>
             <iframe title={t('notif.preview')} sandbox="" srcDoc={p.html} className="h-[28rem] w-full rounded-md border border-line bg-white" /></>}
         </Card>
       </div>

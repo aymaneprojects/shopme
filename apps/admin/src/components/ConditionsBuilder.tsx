@@ -4,7 +4,7 @@ import { useT } from '../i18n';
 import { RULE_COLUMNS, changeColumn, defaultRule, isNumericColumn, needsValue, relationsFor } from '../lib/collection-rules';
 import type { Rule, RuleColumn, RuleRelation, RuleSet } from '../lib/collection-rules';
 
-const sel = 'rounded-md border border-line bg-canvas px-2 py-2 text-sm';
+const sel = 'field-control';
 
 /** "Products must match all/any conditions" with a list of column / relation / value rows. */
 export function ConditionsBuilder({ value, onChange }: { value: RuleSet; onChange: (v: RuleSet) => void }) {
@@ -12,7 +12,7 @@ export function ConditionsBuilder({ value, onChange }: { value: RuleSet; onChang
   const setRule = (i: number, r: Rule) => onChange({ ...value, rules: value.rules.map((x, j) => (j === i ? r : x)) });
   return (
     <div className="flex flex-col gap-3">
-      <fieldset className="flex items-center gap-4 text-sm">
+      <fieldset className="flex items-center gap-4 text-[13px]">
         <legend className="mb-1 font-medium">{t('conditions.mustMatch')}</legend>
         {[false, true].map((disj) => (
           <label key={String(disj)} className="inline-flex items-center gap-1.5">

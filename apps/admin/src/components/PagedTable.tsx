@@ -27,10 +27,10 @@ export function PagedTable<T extends { id: string }>({ title, doc, root, queryKe
   return (
     <Card className="!p-0">
       <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-        <h2 className="text-sm font-semibold">{title}</h2>
+        <h2 className="text-[13px] font-semibold">{title}</h2>
         {searchLabel && (
           <div className="relative ml-2 min-w-40 max-w-xs flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
+            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={searchLabel} aria-label={searchLabel} className={searchCls} />
           </div>
         )}

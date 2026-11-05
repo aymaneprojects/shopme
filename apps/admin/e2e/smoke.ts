@@ -15,7 +15,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE ?? 'playwright') as typeof import('playwright');
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const shots = path.resolve(here, '../../../docs/assets/screenshots');
+const shots = process.env.SHOTS_DIR ?? path.resolve(here, '../../../docs/assets/screenshots');
 const screenshots = process.argv.includes('--screenshots');
 
 const dataDir = mkdtempSync(path.join(tmpdir(), 'shopme-e2e-'));
@@ -23,7 +23,7 @@ const server = await startServer({ port: 0, host: '127.0.0.1', dataDir, logger: 
 const browser = await chromium.launch();
 let failed = false;
 try {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1, locale: 'en-US', colorScheme: 'light' });
+  const page = await browser.newPage({ viewport: { width: Number(process.env.SHOT_W ?? 1280), height: Number(process.env.SHOT_H ?? 800) }, deviceScaleFactor: 1, locale: 'en-US', colorScheme: 'light' });
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   if (screenshots) mkdirSync(shots, { recursive: true });
@@ -47,7 +47,7 @@ try {
 
   // 2. Shell renders (owner is logged in by setup).
   await page.getByRole('navigation', { name: 'Main' }).waitFor();
-  for (const item of ['Home', 'Orders', 'Products', 'Collections', 'Inventory', 'Customers', 'Discounts', 'Online Store', 'Settings']) {
+  for (const item of ['Home', 'Orders', 'Products', 'Customers', 'Discounts', 'Online Store', 'Settings']) {
     await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: item, exact: true }).waitFor();
   }
 
@@ -72,6 +72,8 @@ try {
   // 5. Products page: empty state (or an error banner while the server lacks the products API).
   await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Products', exact: true }).click();
   await page.getByRole('heading', { name: 'Products', level: 1 }).waitFor();
+  // Sub-navigation reveals under the active section.
+  for (const sub of ['Collections', 'Inventory']) await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: sub, exact: true }).waitFor();
   if (screenshots) {
     await page.getByText('Ember Candle').waitFor();
     await page.screenshot({ path: path.join(shots, 'admin-products.png') });
@@ -79,6 +81,22 @@ try {
     await page.getByLabel('Title', { exact: true }).waitFor();
     await page.getByRole('heading', { name: 'Ember Candle' }).waitFor();
     await page.screenshot({ path: path.join(shots, 'admin-product-editor.png'), fullPage: true });
+    // Contextual save bar, command palette and one light-mode capture (dark is the default).
+    await page.getByLabel('Title', { exact: true }).fill('Ember Candle (large)');
+    await page.getByRole('region', { name: 'Unsaved changes' }).waitFor();
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: path.join(shots, 'admin-save-bar.png') });
+    await page.getByRole('region', { name: 'Unsaved changes' }).getByRole('button', { name: 'Discard' }).click();
+    await page.keyboard.press('Control+k');
+    await page.getByRole('combobox', { name: 'Search' }).fill('ord');
+    await page.getByRole('listbox').getByRole('option').first().waitFor();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: path.join(shots, 'admin-command-palette.png') });
+    await page.keyboard.press('Escape');
+    await page.evaluate(() => { document.documentElement.dataset.theme = 'light'; });
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: path.join(shots, 'admin-product-editor-light.png') });
+    await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
   } else {
     const state = await Promise.race([
       page.getByText('Add your first product').waitFor().then(() => 'empty'),

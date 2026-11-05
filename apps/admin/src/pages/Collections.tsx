@@ -59,7 +59,7 @@ export function CollectionsPage() {
     { key: 'img', header: '', className: 'w-14', cell: (c) => <Thumb url={c.image?.url} /> },
     { key: 'title', header: t('field.title'), cell: (c) => <span className="font-medium">{c.title}</span> },
     { key: 'count', header: t('nav.products'), cell: (c) => c.productsCount?.count ?? 0 },
-    { key: 'cond', header: t('collections.conditions'), cell: (c) => (c.ruleSet ? <span className="text-sm text-muted">{summarize(c.ruleSet)}</span> : <Badge>{t('collections.manual')}</Badge>) },
+    { key: 'cond', header: t('collections.conditions'), cell: (c) => (c.ruleSet ? <span className="text-[13px] text-muted">{summarize(c.ruleSet)}</span> : <Badge>{t('collections.manual')}</Badge>) },
   ];
   const hasFilters = !!query;
 
@@ -69,10 +69,10 @@ export function CollectionsPage() {
       <Card className="!p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
           <div className="relative min-w-48 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); }} placeholder={t('collections.search')} aria-label={t('collections.search')} className="w-full rounded-md border border-line bg-canvas py-2 pl-8 pr-3 text-sm" />
+            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
+            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); }} placeholder={t('collections.search')} aria-label={t('collections.search')} className="field-control w-full pl-8" />
           </div>
-          <select aria-label={t('collections.type')} value={type} onChange={(e) => patch({ type: e.target.value })} className="rounded-md border border-line bg-canvas px-2 py-1.5 text-sm">
+          <select aria-label={t('collections.type')} value={type} onChange={(e) => patch({ type: e.target.value })} className="field-control">
             <option value="">{t('collections.type')}</option>
             <option value="custom">{t('collections.manual')}</option>
             <option value="smart">{t('collections.automated')}</option>

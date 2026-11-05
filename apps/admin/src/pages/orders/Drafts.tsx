@@ -124,7 +124,7 @@ function DraftForm_({ draft, initial }: { draft: DraftData | null; initial: Draf
   });
   const busy = save.isPending || complete.isPending;
   const rows = totalsRows(totals, !!form.shipping);
-  const field = 'rounded-md border border-line bg-canvas px-2 py-1.5 text-sm';
+  const field = 'field-control';
 
   return (
     <>
@@ -142,10 +142,10 @@ function DraftForm_({ draft, initial }: { draft: DraftData | null; initial: Draf
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <fieldset disabled={completed} className="flex min-w-0 flex-col gap-4">
           <Card title={t('draft.products')} actions={<div className="flex gap-2"><Button size="sm" onClick={() => setDialog('variant')}>{t('draft.addProduct')}</Button><Button size="sm" onClick={() => setDialog('custom')}>{t('draft.addCustom')}</Button></div>}>
-            {form.lines.length === 0 ? <p className="text-sm text-muted">{t('draft.noLines')}</p> : (
+            {form.lines.length === 0 ? <p className="text-[13px] text-muted">{t('draft.noLines')}</p> : (
               <ul className="divide-y divide-line">
                 {form.lines.map((l) => (
-                  <li key={l.key} className="flex flex-wrap items-center gap-3 py-2 text-sm">
+                  <li key={l.key} className="flex flex-wrap items-center gap-3 py-2 text-[13px]">
                     <span className="min-w-0 flex-1"><span className="block truncate font-medium">{l.title}</span>{l.variantTitle && l.variantTitle !== 'Default Title' && <span className="text-xs text-muted">{l.variantTitle}</span>}{!l.variantId && <Badge>{t('draft.custom')}</Badge>}</span>
                     <span className="w-24 text-right">{money(Number(l.price.replace(',', '.')) || 0)}</span>
                     <input type="number" min={1} aria-label={`${t('draft.quantity')}: ${l.title}`} value={l.quantity} onChange={(e) => setLine(l.key, { quantity: Math.max(1, Math.floor(Number(e.target.value)) || 1) })} className={`${field} w-16`} />
@@ -159,14 +159,14 @@ function DraftForm_({ draft, initial }: { draft: DraftData | null; initial: Draf
           <Card title={t('draft.adjustments')}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-(--color-primary)" checked={!!form.discount} onChange={(e) => set({ discount: e.target.checked ? { valueType: 'PERCENTAGE', value: '' } : null })} />{t('draft.discount')}</label>
+                <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" className="accent-(--color-primary)" checked={!!form.discount} onChange={(e) => set({ discount: e.target.checked ? { valueType: 'PERCENTAGE', value: '' } : null })} />{t('draft.discount')}</label>
                 {form.discount && <div className="flex gap-2">
                   <Select aria-label={t('draft.discountType')} value={form.discount.valueType} onChange={(e) => set({ discount: { ...form.discount!, valueType: e.target.value as 'FIXED_AMOUNT' | 'PERCENTAGE' } })}><option value="PERCENTAGE">%</option><option value="FIXED_AMOUNT">{currency}</option></Select>
                   <Input aria-label={t('draft.discountValue')} inputMode="decimal" value={form.discount.value} onChange={(e) => set({ discount: { ...form.discount!, value: e.target.value } })} />
                 </div>}
               </div>
               <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="accent-(--color-primary)" checked={!!form.shipping} onChange={(e) => set({ shipping: e.target.checked ? { title: t('draft.shippingDefault'), price: '0' } : null })} />{t('draft.shipping')}</label>
+                <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" className="accent-(--color-primary)" checked={!!form.shipping} onChange={(e) => set({ shipping: e.target.checked ? { title: t('draft.shippingDefault'), price: '0' } : null })} />{t('draft.shipping')}</label>
                 {form.shipping && <div className="flex gap-2">
                   <Input aria-label={t('draft.shippingName')} value={form.shipping.title} onChange={(e) => set({ shipping: { ...form.shipping!, title: e.target.value } })} />
                   <Input aria-label={t('draft.shippingPrice')} inputMode="decimal" className="w-24" value={form.shipping.price} onChange={(e) => set({ shipping: { ...form.shipping!, price: e.target.value } })} />
@@ -175,7 +175,7 @@ function DraftForm_({ draft, initial }: { draft: DraftData | null; initial: Draf
             </div>
           </Card>
           <Card title={t('draft.payment')}>
-            <dl className="flex flex-col gap-1.5 text-sm" aria-live="polite">
+            <dl className="flex flex-col gap-1.5 text-[13px]" aria-live="polite">
               {rows.map((r) => (
                 <div key={r.key} className={`flex justify-between ${r.key === 'total' ? 'border-t border-line pt-2 text-base font-semibold' : ''}`}>
                   <dt>{t(`draft.row.${r.key}` as Key)}</dt><dd>{r.free ? t('draft.free') : money(r.amount)}</dd>
@@ -202,7 +202,7 @@ function DraftForm_({ draft, initial }: { draft: DraftData | null; initial: Draf
       </Modal>
       <Modal open={dialog === 'complete'} onClose={() => setDialog(null)} closeLabel={t('common.close')} title={t('draft.completeTitle')}
         footer={<><Button onClick={() => setDialog(null)}>{t('common.cancel')}</Button><Button loading={complete.isPending && complete.variables === true} onClick={() => complete.mutate(true)}>{t('draft.paymentPending')}</Button><Button variant="primary" loading={complete.isPending && complete.variables === false} onClick={() => complete.mutate(false)}>{t('draft.markPaid')}</Button></>}>
-        <p className="text-sm">{t('draft.completeBody')}</p>
+        <p className="text-[13px]">{t('draft.completeBody')}</p>
       </Modal>
       <ConfirmDialog open={dialog === 'delete'} danger onClose={() => setDialog(null)} title={t('draft.deleteTitle')} message={t('draft.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => del.mutate()} />
     </>
@@ -215,11 +215,11 @@ function CustomerPick({ label, onPick, onClear }: { label: string; onPick: (c: C
   const [search, setSearch] = useState('');
   const term = useDebounced(search).trim();
   const hits = useQuery({ queryKey: ['draft-customers', term], enabled: term.length > 1, queryFn: () => gql<{ customers: { nodes: CustomerHit[] } }>(DRAFT_CUSTOMER_SEARCH, { query: term }) });
-  if (label) return <div className="flex items-center justify-between text-sm"><span className="font-medium">{label}</span><Button size="sm" onClick={onClear}>{t('common.remove')}</Button></div>;
+  if (label) return <div className="flex items-center justify-between text-[13px]"><span className="font-medium">{label}</span><Button size="sm" onClick={onClear}>{t('common.remove')}</Button></div>;
   return (
     <div className="flex flex-col gap-1">
-      <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('draft.searchCustomer')} aria-label={t('draft.searchCustomer')} className="rounded-md border border-line bg-canvas px-3 py-2 text-sm" />
-      {term.length > 1 && (hits.data?.customers.nodes ?? []).map((c) => <button key={c.id} type="button" className="rounded px-2 py-1 text-left text-sm hover:bg-surface" onClick={() => { onPick(c); setSearch(''); }}>{c.displayName}{c.defaultEmailAddress && <span className="text-muted"> · {c.defaultEmailAddress.emailAddress}</span>}</button>)}
+      <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('draft.searchCustomer')} aria-label={t('draft.searchCustomer')} className="field-control" />
+      {term.length > 1 && (hits.data?.customers.nodes ?? []).map((c) => <button key={c.id} type="button" className="rounded px-2 py-1 text-left text-[13px] hover:bg-surface" onClick={() => { onPick(c); setSearch(''); }}>{c.displayName}{c.defaultEmailAddress && <span className="text-muted"> · {c.defaultEmailAddress.emailAddress}</span>}</button>)}
     </div>
   );
 }
@@ -232,11 +232,11 @@ function VariantDialog({ open, onClose, onAdd }: { open: boolean; onClose: () =>
   const q = useQuery({ queryKey: ['draft-variants', term], enabled: open, queryFn: () => gql<{ products: { nodes: VariantHit[] } }>(DRAFT_VARIANT_SEARCH, { query: term || null }) });
   return (
     <Modal open={open} onClose={onClose} closeLabel={t('common.close')} title={t('draft.addProduct')} wide>
-      <input type="search" autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('products.search')} aria-label={t('products.search')} className="mb-3 w-full rounded-md border border-line bg-canvas px-3 py-2 text-sm" />
-      {q.isLoading ? <p className="text-sm text-muted">{t('common.loading')}</p> : !q.data?.products.nodes.length ? <p className="text-sm text-muted">{t('picker.none')}</p> : (
+      <input type="search" autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('products.search')} aria-label={t('products.search')} className="mb-3 w-full field-control" />
+      {q.isLoading ? <p className="text-[13px] text-muted">{t('common.loading')}</p> : !q.data?.products.nodes.length ? <p className="text-[13px] text-muted">{t('picker.none')}</p> : (
         <ul className="divide-y divide-line">
           {q.data.products.nodes.flatMap((p) => p.variants.nodes.map((v) => (
-            <li key={v.id} className="flex items-center gap-3 py-2 text-sm">
+            <li key={v.id} className="flex items-center gap-3 py-2 text-[13px]">
               <span className="flex-1">{p.title}{v.title !== 'Default Title' && <span className="text-muted"> · {v.title}</span>}</span>
               <span className="text-muted">{v.price}</span>
               <Button size="sm" aria-label={`${t('draft.add')}: ${p.title} ${v.title}`} onClick={() => { onAdd([{ key: `${v.id}:${Date.now()}`, variantId: v.id, title: p.title, variantTitle: v.title, price: v.price, quantity: 1 }]); onClose(); }}>{t('draft.add')}</Button>

@@ -26,14 +26,14 @@ export function ProductPicker({ open, onClose, onConfirm, excludeIds = [] }: { o
   return (
     <Modal open={open} onClose={close} title={t('picker.products')} closeLabel={t('common.close')} wide
       footer={<><Button onClick={close}>{t('common.cancel')}</Button><Button variant="primary" disabled={!picked.size} onClick={() => { onConfirm([...picked.values()]); close(); }}>{t('picker.add', { n: picked.size })}</Button></>}>
-      <input type="search" autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('products.search')} aria-label={t('products.search')} className="mb-3 w-full rounded-md border border-line bg-canvas px-3 py-2 text-sm" />
-      {isLoading ? <p className="text-sm text-muted">{t('common.loading')}</p> : rows.length === 0 ? <p className="text-sm text-muted">{t('picker.none')}</p> : (
+      <input type="search" autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('products.search')} aria-label={t('products.search')} className="mb-3 w-full field-control" />
+      {isLoading ? <p className="text-[13px] text-muted">{t('common.loading')}</p> : rows.length === 0 ? <p className="text-[13px] text-muted">{t('picker.none')}</p> : (
         <ul className="divide-y divide-line">
           {rows.map((p) => (
             <li key={p.id} className="flex items-center gap-3 py-2">
               <Checkbox checked={picked.has(p.id)} onChange={() => toggle(p)} aria-label={p.title} />
               <Thumb url={p.featuredMedia?.image?.url} className="size-8" />
-              <span className="text-sm">{p.title}</span>
+              <span className="text-[13px]">{p.title}</span>
             </li>
           ))}
         </ul>
@@ -52,7 +52,7 @@ export function CollectionPicker({ open, onClose, onConfirm, excludeIds = [] }: 
   return (
     <Modal open={open} onClose={close} title={t('picker.collections')} closeLabel={t('common.close')}
       footer={<><Button onClick={close}>{t('common.cancel')}</Button><Button variant="primary" disabled={!picked.size} onClick={() => { onConfirm([...picked.values()]); close(); }}>{t('picker.add', { n: picked.size })}</Button></>}>
-      {isLoading ? <p className="text-sm text-muted">{t('common.loading')}</p> : rows.length === 0 ? <p className="text-sm text-muted">{t('picker.noneCollections')}</p> : (
+      {isLoading ? <p className="text-[13px] text-muted">{t('common.loading')}</p> : rows.length === 0 ? <p className="text-[13px] text-muted">{t('picker.noneCollections')}</p> : (
         <ul className="divide-y divide-line">
           {rows.map((c) => (
             <li key={c.id} className="py-2"><Checkbox label={c.title} checked={picked.has(c.id)} onChange={() => setPicked((m) => { const n = new Map(m); n.has(c.id) ? n.delete(c.id) : n.set(c.id, c); return n; })} /></li>

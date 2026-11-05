@@ -13,14 +13,14 @@ function AuthLayout({ title, subtitle, children }: { title: string; subtitle?: s
     <div className="grid min-h-screen place-items-center bg-surface p-4">
       <div className="w-full max-w-md">
         <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-lg font-semibold"><Boxes className="size-6 text-primary" />ShopMe</div>
-          <select aria-label="Language" value={lang} onChange={(e) => setLang(e.target.value as 'en' | 'fr')} className="rounded-md border border-line bg-canvas px-2 py-1 text-sm">
+          <div className="flex items-center gap-2 text-lg font-semibold"><Boxes className="size-6 text-accent" />ShopMe</div>
+          <select aria-label="Language" value={lang} onChange={(e) => setLang(e.target.value as 'en' | 'fr')} className="field-control">
             {LANGS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
           </select>
         </div>
         <Card>
           <h1 className="text-lg font-semibold">{title}</h1>
-          {subtitle && <p className="mb-4 mt-1 text-sm text-muted">{subtitle}</p>}
+          {subtitle && <p className="mb-4 mt-1 text-[13px] text-muted">{subtitle}</p>}
           {children}
         </Card>
       </div>

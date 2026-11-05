@@ -19,9 +19,9 @@ export function OnlineStoreLayout() {
   const t = useT();
   return (
     <>
-      <PageHeader title={t('nav.onlineStore')} actions={<a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-md border border-line bg-canvas px-3 py-2 text-sm font-medium hover:bg-surface"><ExternalLink className="size-4" />{t('store.view')}</a>} />
+      <PageHeader title={t('nav.onlineStore')} actions={<a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 field-control font-medium hover:bg-surface"><ExternalLink className="size-4" />{t('store.view')}</a>} />
       <nav aria-label={t('nav.onlineStore')} className="mb-4 flex gap-1 overflow-x-auto border-b border-line">
-        {TABS.map((x) => <NavLink key={x.to} to={x.to} end={x.end} className={({ isActive }) => cx('-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium', isActive ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-fg')}>{t(x.key)}</NavLink>)}
+        {TABS.map((x) => <NavLink key={x.to} to={x.to} end={x.end} className={({ isActive }) => cx('-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium', isActive ? 'border-accent text-accent' : 'border-transparent text-muted hover:text-fg')}>{t(x.key)}</NavLink>)}
       </nav>
       <Outlet />
     </>
@@ -35,8 +35,8 @@ function ThemeCard({ theme, live, busy, onAction }: { theme: Theme; live: boolea
   const t = useT();
   const num = gidToNum(theme.id);
   return (
-    <li className={cx('flex flex-col overflow-hidden rounded-lg border bg-canvas', live ? 'border-primary' : 'border-line')}>
-      <div className="grid h-28 place-items-center bg-gradient-to-br from-primary-subtle to-surface text-primary"><Palette className="size-9" aria-hidden /></div>
+    <li className={cx('flex flex-col overflow-hidden rounded-lg border bg-canvas', live ? 'border-accent' : 'border-line')}>
+      <div className="grid h-28 place-items-center bg-gradient-to-br from-primary-subtle to-surface text-accent"><Palette className="size-9" aria-hidden /></div>
       <div className="flex flex-1 flex-col gap-3 p-3">
         <div className="flex items-start gap-2">
           <h3 className="min-w-0 flex-1 truncate font-medium">{theme.name}</h3>
@@ -91,17 +91,17 @@ export function ThemesPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="flex-1 text-sm text-muted">{t('themes.intro')}</p>
+        <p className="flex-1 text-[13px] text-muted">{t('themes.intro')}</p>
         <input ref={fileRef} type="file" accept=".zip,application/zip" hidden aria-label={t('themes.upload')} onChange={(e) => { const f = e.target.files?.[0]; if (f) send.mutate(f); e.target.value = ''; }} />
         <Button loading={send.isPending} onClick={() => fileRef.current?.click()}><Upload className="size-4" />{t('themes.upload')}</Button>
       </div>
-      {!current && <p className="text-sm text-muted">{t('themes.none')}</p>}
+      {!current && <p className="text-[13px] text-muted">{t('themes.none')}</p>}
       {current && (
-        <section aria-labelledby="th-current"><h2 id="th-current" className="mb-2 text-sm font-semibold">{t('themes.current')}</h2>
+        <section aria-labelledby="th-current"><h2 id="th-current" className="mb-2 text-[13px] font-semibold">{t('themes.current')}</h2>
           <ul className="grid max-w-sm gap-4"><ThemeCard theme={current} live busy={false} onAction={act} /></ul></section>
       )}
       {others.length > 0 && (
-        <section aria-labelledby="th-library"><h2 id="th-library" className="mb-2 text-sm font-semibold">{t('themes.library')}</h2>
+        <section aria-labelledby="th-library"><h2 id="th-library" className="mb-2 text-[13px] font-semibold">{t('themes.library')}</h2>
           <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{others.map((th) => <ThemeCard key={th.id} theme={th} live={false} busy={publish.isPending && publish.variables === th.id} onAction={act} />)}</ul></section>
       )}
       <Modal open={dialog?.kind === 'rename' || dialog?.kind === 'duplicate'} onClose={() => setDialog(null)} closeLabel={t('common.close')} title={t(dialog?.kind === 'duplicate' ? 'themes.duplicate' : 'themes.rename')}

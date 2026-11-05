@@ -47,7 +47,7 @@ function PaymentsForm({ data }: { data: Payments }) {
         <Card title={t('payments.stripe')} actions={<Badge tone={data.stripe.stripeConfigured ? 'success' : 'warning'}>{data.stripe.stripeConfigured ? t('payments.configured') : t('payments.notConfigured')}</Badge>}>
           <div className="flex flex-col gap-2">
             <Switch checked={f.stripe} onChange={(v) => setF({ ...f, stripe: v })} label={t('payments.stripeEnable')} />
-            {!data.stripe.stripeConfigured && <p className="text-sm text-muted">{t('payments.stripeHint')}</p>}
+            {!data.stripe.stripeConfigured && <p className="text-[13px] text-muted">{t('payments.stripeHint')}</p>}
           </div>
         </Card>
         <Card title={t('payments.bank')}>
@@ -122,8 +122,8 @@ export function ShippingSettings() {
       {q.data?.shippingZones.length === 0 && <Card><EmptyState title={t('shipping.emptyTitle')} description={t('shipping.emptyBody')} action={add} /></Card>}
       {q.data?.shippingZones.map((z) => (
         <Card key={z.id} title={z.name} actions={<span className="flex gap-2"><Button size="sm" onClick={() => { setError(null); setEditing({ id: z.id, name: z.name, codes: z.countries.map((c) => c.countryCode), rates: z.rates.map(toRate) }); }}>{t('common.edit')}</Button><Button size="sm" variant="danger" onClick={() => setConfirm(z)}>{t('common.delete')}</Button></span>}>
-          <p className="mb-2 text-sm text-muted">{z.countries.map((c) => countryName(c.countryCode, lang)).join(', ')}</p>
-          <ul className="divide-y divide-line text-sm">
+          <p className="mb-2 text-[13px] text-muted">{z.countries.map((c) => countryName(c.countryCode, lang)).join(', ')}</p>
+          <ul className="divide-y divide-line text-[13px]">
             {z.rates.map((r) => (
               <li key={r.id} className="flex flex-wrap items-center gap-2 py-1.5">
                 <span className="font-medium">{r.name}</span>
@@ -142,13 +142,13 @@ export function ShippingSettings() {
             {error && <Banner>{error}</Banner>}
             <Input label={t('shipping.zoneName')} value={e.name} onChange={(ev) => setEditing({ ...e, name: ev.target.value })} />
             <fieldset>
-              <legend className="mb-1 text-sm font-medium">{t('shipping.countries')}</legend>
+              <legend className="mb-1 text-[13px] font-medium">{t('shipping.countries')}</legend>
               <div className="grid max-h-40 grid-cols-2 gap-1 overflow-y-auto rounded-md border border-line p-2 sm:grid-cols-3">
                 {countries.map((c) => <Checkbox key={c.code} label={c.name} checked={e.codes.includes(c.code)} onChange={(ev) => setEditing({ ...e, codes: ev.target.checked ? [...e.codes, c.code] : e.codes.filter((x) => x !== c.code) })} />)}
               </div>
             </fieldset>
             <div className="flex flex-col gap-3">
-              <h3 className="text-sm font-medium">{t('shipping.rates')}</h3>
+              <h3 className="text-[13px] font-medium">{t('shipping.rates')}</h3>
               {e.rates.map((r, i) => (
                 <div key={i} className="grid gap-2 rounded-md border border-line p-3 sm:grid-cols-4">
                   <Input label={t('shipping.rateName')} value={r.name} onChange={(ev) => setRate(i, { name: ev.target.value })} />
@@ -202,9 +202,9 @@ export function TaxesSettings() {
       <TaxToggles />
       <Card title={t('taxes.rates')} actions={<Button size="sm" variant="primary" onClick={() => { setError(null); setEditing({ id: null, name: '', countryCode: '', province: '', rate: '' }); }}><Plus className="size-4" />{t('taxes.add')}</Button>}>
         {q.isError && <Banner>{(q.error as Error).message}</Banner>}
-        {q.data?.taxRates.length === 0 && <p className="text-sm text-muted">{t('taxes.empty')}</p>}
+        {q.data?.taxRates.length === 0 && <p className="text-[13px] text-muted">{t('taxes.empty')}</p>}
         {(q.data?.taxRates.length ?? 0) > 0 && (
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-[13px]">
             <thead className="text-xs text-muted"><tr><th className="py-1">{t('taxes.country')}</th><th>{t('taxes.province')}</th><th>{t('taxes.name')}</th><th>{t('taxes.rate')}</th><th /></tr></thead>
             <tbody>
               {q.data!.taxRates.map((r) => (

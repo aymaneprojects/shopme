@@ -29,7 +29,7 @@ export function SettingsLayout() {
       <div className="grid gap-4 md:grid-cols-[13rem_1fr]">
         <nav aria-label={t('nav.settings')} className="flex gap-1 overflow-x-auto md:flex-col">
           {SECTIONS.filter((s) => can(s.perm)).map((s) => (
-            <NavLink key={s.id} to={`/settings/${s.id}`} className={({ isActive }) => cx('whitespace-nowrap rounded-md px-3 py-1.5 text-sm', isActive ? 'bg-primary-subtle font-medium text-primary' : 'hover:bg-surface')}>{t(s.key)}</NavLink>
+            <NavLink key={s.id} to={`/settings/${s.id}`} className={({ isActive }) => cx('flex h-7 items-center whitespace-nowrap rounded-lg px-2.5 text-[13px]', isActive ? 'bg-primary-subtle font-semibold text-accent' : 'hover:bg-hover')}>{t(s.key)}</NavLink>
           ))}
         </nav>
         <div className="min-w-0"><Outlet /></div>
@@ -118,7 +118,7 @@ export function GeneralSettings() {
           </Card>
           <Card title={t('settings.password')}>
             <div className="flex flex-col gap-3">
-              <p className="text-sm text-muted">{t('settings.passwordHelp')}</p>
+              <p className="text-[13px] text-muted">{t('settings.passwordHelp')}</p>
               <Switch checked={f.storefrontPasswordEnabled} onChange={(v) => set({ storefrontPasswordEnabled: v })} label={t('settings.passwordEnable')} />
               {f.storefrontPasswordEnabled && <Input className="max-w-sm" label={t('field.password')} value={f.storefrontPassword} onChange={(e) => set({ storefrontPassword: e.target.value })} />}
             </div>
@@ -137,12 +137,12 @@ export function DomainsSettings() {
         <>
           <Card title={t('settings.domains')}>
             <div className="flex flex-col gap-3">
-              <p className="text-sm text-muted">{t('settings.defaultDomain')}: <span className="font-medium text-fg">{shop.myshopifyDomain}</span></p>
+              <p className="text-[13px] text-muted">{t('settings.defaultDomain')}: <span className="font-medium text-fg">{shop.myshopifyDomain}</span></p>
               <Input className="max-w-sm" label={t('settings.primaryDomain')} placeholder="shop.example.com" value={f.primaryDomain} onChange={(e) => set({ primaryDomain: e.target.value.trim().toLowerCase() })} />
             </div>
           </Card>
           <Card title={t('settings.dnsTitle')}>
-            <ol className="list-decimal space-y-1 pl-5 text-sm">
+            <ol className="list-decimal space-y-1 pl-5 text-[13px]">
               <li>{t('settings.dns1')}</li>
               <li>{t('settings.dns2', { host: shop.myshopifyDomain })}</li>
               <li>{t('settings.dns3')}</li>
@@ -161,7 +161,7 @@ export function LanguagesSettings() {
       {(f, set) => (
         <Card title={t('settings.languages')}>
           <div className="flex flex-col gap-3">
-            <p className="text-sm text-muted">{t('settings.languagesHelp')}</p>
+            <p className="text-[13px] text-muted">{t('settings.languagesHelp')}</p>
             <Select className="max-w-xs" label={t('settings.storeLocale')} value={f.locale} onChange={(e) => set({ locale: e.target.value })}>
               {[...new Set([f.locale, 'en', 'fr'])].map((l) => <option key={l} value={l}>{l === 'en' ? 'English' : l === 'fr' ? 'Français' : l}</option>)}
             </Select>

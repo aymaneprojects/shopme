@@ -39,7 +39,7 @@ export function ImageUploader({ onUploaded, onError, label, multiple = true, com
       type="button" disabled={busy} onClick={() => input.current?.click()}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); void handle(e.dataTransfer.files); }}
-      className={cx('flex flex-col items-center justify-center gap-1 rounded-md border border-dashed border-line text-sm text-muted hover:bg-surface', compact ? 'size-24' : 'w-full py-8', over && 'bg-primary-subtle', busy && 'opacity-60')}
+      className={cx('flex flex-col items-center justify-center gap-1 rounded-md border border-dashed border-line text-[13px] text-muted hover:bg-surface', compact ? 'size-24' : 'w-full py-8', over && 'bg-primary-subtle', busy && 'opacity-60')}
     >
       <ImagePlus className="size-5" />
       {!compact && <span>{label}</span>}

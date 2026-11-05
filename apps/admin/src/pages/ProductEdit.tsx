@@ -100,7 +100,7 @@ function ProductFormView({ id, initial: initialProp, locations }: { id: string |
             <div className="flex flex-col gap-3">
               <Input label={t('field.title')} required placeholder={t('product.titlePlaceholder')} value={form.title} error={errors.title} onChange={(e) => set({ title: e.target.value })} />
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium">{t('field.description')}</span>
+                <span className="text-[13px] font-medium">{t('field.description')}</span>
                 <RichTextEditor value={form.descriptionHtml} onChange={(descriptionHtml) => set({ descriptionHtml })}
                   labels={{ bold: t('rte.bold'), italic: t('rte.italic'), underline: t('rte.underline'), list: t('rte.list'), orderedList: t('rte.orderedList'), link: t('rte.link'), source: t('rte.source'), paragraph: t('rte.paragraph'), heading: t('rte.heading'), subheading: t('rte.subheading'), linkPrompt: t('rte.linkPrompt') }} />
               </div>
@@ -127,7 +127,7 @@ function ProductFormView({ id, initial: initialProp, locations }: { id: string |
               <OptionsEditor options={form.options} variants={form.variants} lockedCount={initial.options.length} onChange={(o) => set(o)} />
               {!single && (
                 <>
-                  <p className="text-sm text-muted">{t('variants.count', { n: form.variants.length })}</p>
+                  <p className="text-[13px] text-muted">{t('variants.count', { n: form.variants.length })}</p>
                   {errors.price && <p className="text-xs text-critical">{errors.price}</p>}
                   <VariantsTable variants={form.variants} locations={locations} currency={shop.currency} onChange={(variants) => set({ variants })} />
                 </>
@@ -138,9 +138,9 @@ function ProductFormView({ id, initial: initialProp, locations }: { id: string |
           <Card title={t('product.seo')}>
             <div className="flex flex-col gap-3">
               <div className="rounded-md border border-line bg-surface p-3">
-                <p className="truncate text-base text-primary">{seoTitle}</p>
+                <p className="truncate text-base text-accent">{seoTitle}</p>
                 <p className="truncate text-xs text-success">{window.location.host}{seoUrl}</p>
-                <p className="line-clamp-2 text-sm text-muted">{form.seoDescription || stripHtml(form.descriptionHtml) || t('product.seoEmpty')}</p>
+                <p className="line-clamp-2 text-[13px] text-muted">{form.seoDescription || stripHtml(form.descriptionHtml) || t('product.seoEmpty')}</p>
               </div>
               <Input label={t('product.seoTitle')} value={form.seoTitle} help={t('product.chars', { n: form.seoTitle.length, max: 70 })} onChange={(e) => set({ seoTitle: e.target.value })} />
               <Textarea label={t('product.seoDescription')} value={form.seoDescription} help={t('product.chars', { n: form.seoDescription.length, max: 160 })} onChange={(e) => set({ seoDescription: e.target.value })} />
@@ -164,7 +164,7 @@ function ProductFormView({ id, initial: initialProp, locations }: { id: string |
               <Input label={t('field.productType')} list="types" value={form.productType} onChange={(e) => set({ productType: e.target.value })} />
               <datalist id="types">{flattenStrings(filters.data?.productTypes).map((v) => <option key={v} value={v} />)}</datalist>
               <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">{t('nav.collections')}</span>
+                <span className="text-[13px] font-medium">{t('nav.collections')}</span>
                 <ul className="flex flex-wrap gap-1.5">
                   {form.collections.map((c) => (
                     <li key={c.id} className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2 py-0.5 text-xs">

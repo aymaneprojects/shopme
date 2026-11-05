@@ -70,13 +70,13 @@ function MenuEditor({ menu, onCreated }: { menu: ApiMenu | null; onCreated: (id:
       {error && <Banner>{error}</Banner>}
       <Card title={t('menus.items')} actions={<span className="flex gap-2">{!menu && <Button size="sm" variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('save.save')}</Button>}{menu && !menu.isDefault && <Button size="sm" variant="danger" onClick={() => setConfirm(true)}>{t('common.delete')}</Button>}</span>}>
         <Input className="mb-4 max-w-sm" label={t('field.title')} value={title} onChange={(e) => setTitle(e.target.value)} />
-        {rows.length === 0 && <p className="mb-3 text-sm text-muted">{t('menus.empty')}</p>}
+        {rows.length === 0 && <p className="mb-3 text-[13px] text-muted">{t('menus.empty')}</p>}
         <ul className="flex flex-col gap-2">
           {rows.map(({ item, path }) => (
             <li key={path.join('.')} style={{ marginLeft: `${(path.length - 1) * 1.5}rem` }} className="flex flex-wrap items-center gap-2 rounded-md border border-line p-2">
-              <input aria-label={t('menus.itemTitle')} value={item.title} onChange={(e) => setItems(tree.updateItem(items, path, { title: e.target.value }))} className="min-w-32 flex-1 rounded-md border border-line bg-canvas px-2 py-1 text-sm" />
+              <input aria-label={t('menus.itemTitle')} value={item.title} onChange={(e) => setItems(tree.updateItem(items, path, { title: e.target.value }))} className="min-w-32 flex-1 field-control" />
               {item.type === 'HTTP'
-                ? <input aria-label="URL" value={item.url} onChange={(e) => setItems(tree.updateItem(items, path, { url: e.target.value }))} className="min-w-32 flex-1 rounded-md border border-line bg-canvas px-2 py-1 text-sm" />
+                ? <input aria-label="URL" value={item.url} onChange={(e) => setItems(tree.updateItem(items, path, { url: e.target.value }))} className="min-w-32 flex-1 field-control" />
                 : <span className="text-xs text-muted">{t(`menus.type.${item.type}` as Key)}</span>}
               {icon(t('menus.up'), ArrowUp, tree.canMoveUp(path), () => setItems(tree.moveUp(items, path)))}
               {icon(t('menus.down'), ArrowDown, tree.canMoveDown(items, path), () => setItems(tree.moveDown(items, path)))}
@@ -122,11 +122,11 @@ function LinkPicker({ open, onClose, onPick }: { open: boolean; onClose: () => v
         </Select>
         {type === 'HTTP' ? <Input label="URL" placeholder="https://… /pages/contact" value={url} onChange={(e) => setUrl(e.target.value)} /> : (
           <>
-            <input type="search" aria-label={t('menus.search')} placeholder={t('menus.search')} value={search} onChange={(e) => setSearch(e.target.value)} className="rounded-md border border-line bg-canvas px-3 py-2 text-sm" />
+            <input type="search" aria-label={t('menus.search')} placeholder={t('menus.search')} value={search} onChange={(e) => setSearch(e.target.value)} className="field-control" />
             {q.isError && <Banner>{(q.error as Error).message}</Banner>}
             <ul className="max-h-60 divide-y divide-line overflow-y-auto">
-              {(q.data ?? []).map((f) => <li key={f.id}><button type="button" className="w-full px-2 py-2 text-left text-sm hover:bg-surface" onClick={() => pick(f)}>{f.title}</button></li>)}
-              {q.data?.length === 0 && <li className="py-2 text-sm text-muted">{t('picker.none')}</li>}
+              {(q.data ?? []).map((f) => <li key={f.id}><button type="button" className="w-full px-2 py-2 text-left text-[13px] hover:bg-surface" onClick={() => pick(f)}>{f.title}</button></li>)}
+              {q.data?.length === 0 && <li className="py-2 text-[13px] text-muted">{t('picker.none')}</li>}
             </ul>
           </>
         )}
