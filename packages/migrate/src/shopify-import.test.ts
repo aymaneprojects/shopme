@@ -121,7 +121,7 @@ describe('Shopify importer', () => {
     expect(line!.variantId).toBe(variants.find((v) => v.sku === 'SKU-11')!.id);
     const [cust] = (await rows(s.customers)) as (typeof s.customers.$inferSelect)[];
     expect(cust).toMatchObject({ email: 'ada@example.com', acceptsMarketing: true, numberOfOrders: 1, amountSpent: 1000 });
-    expect((await rows(s.menuItems)).length).toBe(3);
+    expect((await rows(s.menuItems)).length).toBe(4); // 3 imported main-menu items + the footer's starter Search link
     expect(((await rows(s.shops)) as (typeof s.shops.$inferSelect)[])[0]!.settings).toMatchObject({ policies: { REFUND_POLICY: { body: '<p>30 days</p>' } } });
     expect((await rows(s.importMappings)).length).toBeGreaterThan(10);
   }, 30_000);
