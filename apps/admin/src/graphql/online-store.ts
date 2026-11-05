@@ -32,6 +32,37 @@ export const THEME_FILES_UPSERT = /* GraphQL */ `
     themeFilesUpsert(themeId: $themeId, files: $files) { upsertedThemeFiles { filename } userErrors { field message } }
   }
 `;
+export const THEME_DUPLICATE = /* GraphQL */ `
+  mutation ThemeDuplicate($id: ID!, $name: String) { themeDuplicate(id: $id, name: $name) { newTheme { id name role } userErrors { field message } } }
+`;
+export const THEME_DELETE = /* GraphQL */ `
+  mutation ThemeDelete($id: ID!) { themeDelete(id: $id) { deletedThemeId userErrors { field message } } }
+`;
+export const THEME_UPDATE = /* GraphQL */ `
+  mutation ThemeUpdate($id: ID!, $input: OnlineStoreThemeInput!) { themeUpdate(id: $id, input: $input) { theme { id name } userErrors { field message } } }
+`;
+
+/** Section editor: one template plus every section group (header/footer), read by file name. */
+export const THEME_EDITOR_FILES = /* GraphQL */ `
+  query ThemeEditorFiles($id: ID!, $filenames: [String!]) {
+    theme(id: $id) { id files(filenames: $filenames, first: 250) { nodes { filename body { ... on OnlineStoreThemeFileBodyText { content } } } } }
+  }
+`;
+/** Template file names only (for the template picker). */
+export const THEME_TEMPLATE_NAMES = /* GraphQL */ `
+  query ThemeTemplateNames($id: ID!) { theme(id: $id) { id files(filenames: ["templates/*.json"], first: 250) { nodes { filename } } } }
+`;
+/** Section and theme-block sources, from which `{% schema %}` is parsed. */
+export const THEME_SCHEMAS = /* GraphQL */ `
+  query ThemeSchemas($id: ID!) {
+    theme(id: $id) { id files(filenames: ["sections/*.liquid", "blocks/*.liquid"], first: 250) { nodes { filename body { ... on OnlineStoreThemeFileBodyText { content } } } } }
+  }
+`;
+/** One handle per resource type, so the preview iframe can open a real product / page. */
+export const THEME_PREVIEW_HANDLES = /* GraphQL */ `
+  query ThemePreviewHandles { products(first: 1) { nodes { handle } } collections(first: 1) { nodes { handle } } pages(first: 1) { nodes { handle } } }
+`;
+
 export const THEME_PUBLISH = /* GraphQL */ `
   mutation ThemePublish($id: ID!) { themePublish(id: $id) { theme { id role } userErrors { field message } } }
 `;

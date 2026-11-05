@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
 import { PageHeader } from '../components/PageHeader';
+import { ExportButton, ImportButton } from '../components/CsvTools';
 import { gidToNum } from '../format';
 import { PRODUCTS, PRODUCTS_COUNT, PRODUCT_DELETE, PRODUCT_FILTER_OPTIONS, PRODUCT_UPDATE } from '../graphql';
 import { useT } from '../i18n';
@@ -115,7 +116,7 @@ export function ProductsPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.products')} actions={<Button variant="primary" onClick={() => nav('/products/new')}><Plus className="size-4" />{t('products.add')}</Button>} />
+      <PageHeader title={t('nav.products')} actions={<><ExportButton kind="products" /><ImportButton kind="products" invalidate={['products', 'products-count']} /><Button variant="primary" onClick={() => nav('/products/new')}><Plus className="size-4" />{t('products.add')}</Button></>} />
       <Card className="!p-0">
         <div className="px-4 pt-2">
           <Tabs

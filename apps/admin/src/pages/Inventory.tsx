@@ -5,6 +5,7 @@ import { Search, Warehouse } from 'lucide-react';
 import { useState } from 'react';
 import { gql, mutate } from '../api';
 import { PageHeader } from '../components/PageHeader';
+import { ExportButton, ImportButton } from '../components/CsvTools';
 import { INVENTORY_SET_QUANTITIES, INVENTORY_VARIANTS, LOCATIONS } from '../graphql';
 import { useT } from '../i18n';
 import { useDebounced } from '../lib/hooks';
@@ -78,7 +79,7 @@ export function InventoryPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.inventory')} actions={dirtyCount > 0 && <><Button onClick={() => setEdits({})}>{t('save.discard')}</Button><Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('inventory.saveN', { n: dirtyCount })}</Button></>} />
+      <PageHeader title={t('nav.inventory')} actions={<><ExportButton kind="inventory" /><ImportButton kind="inventory" invalidate={['inventory']} />{dirtyCount > 0 && <><Button onClick={() => setEdits({})}>{t('save.discard')}</Button><Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('inventory.saveN', { n: dirtyCount })}</Button></>}</>} />
       <Card className="!p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
           <div className="relative min-w-48 flex-1">

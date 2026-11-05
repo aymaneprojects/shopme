@@ -10,20 +10,25 @@ import { SHOP, SHOP_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 import { CURRENCIES, TIMEZONES } from '../../lib/countries';
+import { useStaffAccess } from '../../lib/permissions';
+import type { Permission } from '../../lib/permissions';
 
-const SECTIONS: Array<{ id: string; key: Key }> = [
+const SECTIONS: Array<{ id: string; key: Key; perm?: Permission }> = [
   { id: 'general', key: 'settings.general' }, { id: 'payments', key: 'settings.payments' }, { id: 'shipping', key: 'settings.shipping' },
   { id: 'taxes', key: 'settings.taxes' }, { id: 'domains', key: 'settings.domains' }, { id: 'languages', key: 'settings.languages' },
+  { id: 'users', key: 'settings.users', perm: 'staff' }, { id: 'notifications', key: 'settings.notifications' }, { id: 'policies', key: 'settings.policies' },
+  { id: 'webhooks', key: 'settings.webhooks' }, { id: 'shopify-import', key: 'settings.shopifyImport' },
 ];
 
 export function SettingsLayout() {
   const { t } = useI18n();
+  const can = useStaffAccess();
   return (
     <>
       <PageHeader title={t('nav.settings')} />
       <div className="grid gap-4 md:grid-cols-[13rem_1fr]">
         <nav aria-label={t('nav.settings')} className="flex gap-1 overflow-x-auto md:flex-col">
-          {SECTIONS.map((s) => (
+          {SECTIONS.filter((s) => can(s.perm)).map((s) => (
             <NavLink key={s.id} to={`/settings/${s.id}`} className={({ isActive }) => cx('whitespace-nowrap rounded-md px-3 py-1.5 text-sm', isActive ? 'bg-primary-subtle font-medium text-primary' : 'hover:bg-surface')}>{t(s.key)}</NavLink>
           ))}
         </nav>

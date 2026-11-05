@@ -1,3 +1,4 @@
+import { enExt } from './en-ext';
 import { enShop } from './en-shop';
 export const en = {
   'common.back': 'Back', 'common.cancel': 'Cancel', 'common.close': 'Close', 'common.delete': 'Delete', 'common.loading': 'Loading…',
@@ -87,6 +88,7 @@ export const en = {
   'rte.bold': 'Bold', 'rte.italic': 'Italic', 'rte.underline': 'Underline', 'rte.list': 'Bulleted list', 'rte.orderedList': 'Numbered list', 'rte.link': 'Link',
   'rte.source': 'HTML source', 'rte.paragraph': 'Paragraph', 'rte.heading': 'Heading', 'rte.subheading': 'Subheading', 'rte.linkPrompt': 'Link URL',
   ...enShop,
+  ...enExt,
 } as const;
 
 export type Key = keyof typeof en;

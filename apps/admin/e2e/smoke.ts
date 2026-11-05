@@ -92,6 +92,9 @@ try {
     ['/discounts/new?type=order', 'Amount off order'], ['/settings/general', 'Settings', 'settings'], ['/settings/payments', 'Settings'], ['/settings/shipping', 'Settings'],
     ['/settings/taxes', 'Settings'], ['/settings/domains', 'Settings'], ['/settings/languages', 'Settings'], ['/online-store', 'Online Store'],
     ['/online-store/pages', 'Online Store'], ['/online-store/pages/new', 'Add page'], ['/online-store/navigation', 'Online Store'],
+    ['/online-store/blog-posts', 'Online Store'], ['/online-store/blog-posts/new', 'Add blog post'], ['/online-store/blogs', 'Online Store'], ['/online-store/redirects', 'Online Store'],
+    ['/orders/drafts', 'Draft orders'], ['/orders/drafts/new', 'Create order'],
+    ['/settings/users', 'Settings'], ['/settings/notifications', 'Settings'], ['/settings/policies', 'Settings'], ['/settings/webhooks', 'Settings'], ['/settings/shopify-import', 'Settings'],
   ];
   for (const [route, heading, shot] of pages) {
     await page.goto(`${server.url}/admin${route}`);
@@ -109,10 +112,20 @@ try {
     await page.getByRole('heading', { name: /#1006/ }).waitFor();
     await page.getByText('Ember Candle').first().waitFor();
     await page.screenshot({ path: path.join(shots, 'admin-order-detail.png'), fullPage: true });
-    await page.goto(`${server.url}/admin/online-store/themes/1/editor`);
+    await page.goto(`${server.url}/admin/online-store/themes/1/editor?tab=settings`);
     await page.getByText('Primary color').waitFor();
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(shots, 'admin-theme-editor.png') });
+    await page.goto(`${server.url}/admin/online-store`);
+    await page.getByText('Aurora (autumn draft)').waitFor();
+    await page.screenshot({ path: path.join(shots, 'admin-themes.png') });
+    await page.goto(`${server.url}/admin/online-store/themes/1/editor`);
+    await page.getByRole('button', { name: /^Hide: Hero/ }).waitFor();
+    await page.getByRole('region', { name: 'Template: index' }).getByRole('button', { name: 'Add section' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /Rich text/ }).click();
+    await page.getByRole('button', { name: /^Hide: Rich text/ }).first().waitFor();
+    await page.waitForTimeout(1500);
+    await page.screenshot({ path: path.join(shots, 'admin-section-editor.png') });
   }
   assert.deepEqual(errors, [], `uncaught page errors: ${errors.join('; ')}`);
   console.log('smoke ok');

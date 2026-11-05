@@ -1,11 +1,16 @@
 // Fixture GraphQL answers used only to take README screenshots before/without a seeded database.
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Page } from 'playwright';
 
 const themeDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../packages/theme-default/config');
 const themeFile = (name: string) => ({ filename: `config/${name}`, body: { content: readFileSync(path.join(themeDir, name), 'utf8') } });
+
+const themeRoot = path.join(themeDir, '..');
+const textFile = (filename: string) => ({ filename, body: { content: readFileSync(path.join(themeRoot, filename), 'utf8') } });
+const dirFiles = (dir: string, ext: string) => readdirSync(path.join(themeRoot, dir)).filter((f) => f.endsWith(ext)).map((f) => textFile(`${dir}/${f}`));
+const themeNode = (files: unknown[]) => ({ theme: { id: 'gid://shopify/OnlineStoreTheme/1', files: { nodes: files } } });
 
 const swatch = (color: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><rect width="240" height="240" fill="${color}"/><circle cx="120" cy="130" r="46" fill="rgba(255,255,255,.55)"/></svg>`)}`;
 const media = (c: string) => ({ id: `gid://shopify/MediaImage/${c.slice(1)}`, alt: '', mediaContentType: 'IMAGE', image: { url: swatch(c) } });
@@ -70,15 +75,15 @@ const orderDetail = {
 const shop = {
   id: 'gid://shopify/Shop/1', name: 'Atelier Lumière', email: 'camille@example.com', contactEmail: 'camille@example.com', description: 'Candles and home goods, made in small batches.', currencyCode: 'EUR',
   ianaTimezone: 'Europe/Paris', weightUnit: 'KILOGRAMS', taxesIncluded: true, taxShipping: false, locale: 'en', currencyFormats: { moneyFormat: '{{amount}} €', moneyWithCurrencyFormat: '{{amount}} € EUR' },
-  primaryDomain: { host: 'localhost', url: 'http://localhost' }, myshopifyDomain: 'localhost', storefrontPasswordEnabled: false, storefrontPassword: null,
+  primaryDomain: { host: 'localhost', url: 'http://localhost' }, myshopifyDomain: 'localhost', storefront: { passwordEnabled: false, password: '' },
 };
 const dashboard = {
   totalSales: money('1284.50').shopMoney, ordersCount: 23, averageOrderValue: money('55.85').shopMoney,
-  salesByDay: [120, 80, 0, 210, 160, 95, 340, 180, 60, 220, 130, 90, 250, 300].map((v, i) => ({ date: `2026-10-${String(21 + i).padStart(2, '0')}`, total: String(v) })),
+  salesByDay: [120, 80, 0, 210, 160, 95, 340, 180, 60, 220, 130, 90, 250, 300].map((v, i) => ({ date: `2026-10-${String(21 + i).padStart(2, '0')}`, sales: { amount: String(v) } })),
   topProducts: [{ title: 'Ember Candle', quantity: 41 }, { title: 'Linen Throw Blanket', quantity: 22 }, { title: 'Oak Serving Board', quantity: 15 }],
 };
 
-const answers: Record<string, unknown> = {
+const answers: Record<string, unknown | ((v: Record<string, unknown>) => unknown)> = {
   Products: { products: { nodes: products, pageInfo } },
   ProductsCount: { productsCount: { count: products.length, precision: 'EXACT' } },
   ProductFilterOptions: { productTypes: edges(['Candles', 'Kitchen', 'Textiles']), productVendors: edges(['Atelier Lumière', 'Bois & Fils', 'Maison Lin']), productTags: edges(['candle', 'gift', 'winter']) },
@@ -89,7 +94,13 @@ const answers: Record<string, unknown> = {
   Order: { order: orderDetail },
   ShopSettings: { shop },
   ShopmeDashboard: { shopmeDashboard: dashboard },
-  Themes: { themes: { nodes: [{ id: 'gid://shopify/OnlineStoreTheme/1', name: 'Aurora', role: 'MAIN' }] } },
+  Themes: { themes: { nodes: [
+    { id: 'gid://shopify/OnlineStoreTheme/1', name: 'Aurora', role: 'MAIN' }, { id: 'gid://shopify/OnlineStoreTheme/2', name: 'Aurora (autumn draft)', role: 'UNPUBLISHED' }, { id: 'gid://shopify/OnlineStoreTheme/3', name: 'Horizon', role: 'UNPUBLISHED' },
+  ] } },
+  ThemeTemplateNames: themeNode(dirFiles('templates', '.json').map((f) => ({ filename: f.filename }))),
+  ThemeSchemas: themeNode([...dirFiles('sections', '.liquid'), ...dirFiles('blocks', '.liquid')]),
+  ThemeEditorFiles: (v: Record<string, unknown>) => themeNode([textFile((v.filenames as string[])[0]!), textFile('sections/header-group.json'), textFile('sections/footer-group.json')]),
+  ThemePreviewHandles: { products: { nodes: [{ handle: 'ember-candle' }] }, collections: { nodes: [{ handle: 'all' }] }, pages: { nodes: [] } },
   ThemeSettings: { theme: { id: 'gid://shopify/OnlineStoreTheme/1', name: 'Aurora', role: 'MAIN', files: { nodes: [themeFile('settings_schema.json'), themeFile('settings_data.json')] } } },
   ThemeLocales: { theme: { id: 'gid://shopify/OnlineStoreTheme/1', files: { nodes: [{ filename: 'locales/en.default.schema.json', body: { content: readFileSync(path.join(themeDir, '../locales/en.default.schema.json'), 'utf8') } }] } } },
 };
@@ -97,9 +108,9 @@ const answers: Record<string, unknown> = {
 /** Answer the catalog queries with fixtures; mutations and unknown operations pass through to the server. */
 export async function mockCatalog(page: Page) {
   await page.route('**/graphql.json', async (route) => {
-    const body = route.request().postDataJSON() as { query: string };
+    const body = route.request().postDataJSON() as { query: string; variables?: Record<string, unknown> };
     const name = /(?:query|mutation)\s+(\w+)/.exec(body.query)?.[1] ?? '';
-    if (name in answers) return route.fulfill({ json: { data: answers[name] } });
+    if (name in answers) { const a = answers[name]; return route.fulfill({ json: { data: typeof a === 'function' ? a(body.variables ?? {}) : a } }); }
     return route.continue();
   });
 }

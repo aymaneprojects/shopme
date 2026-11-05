@@ -24,6 +24,17 @@ export async function rest<T>(path: string, init: { method?: string; body?: unkn
   return json as T;
 }
 
+/** Multipart file upload (CSV import, theme zip). Extra fields go in the query string. */
+export async function upload<T>(path: string, file: File, query: Record<string, string> = {}): Promise<T> {
+  const body = new FormData();
+  body.append('file', file);
+  const qs = new URLSearchParams(query).toString();
+  const res = await fetch(`/admin/api${path}${qs ? `?${qs}` : ''}`, { method: 'POST', credentials: 'same-origin', body });
+  const json = (await res.json().catch(() => ({}))) as { error?: string; issues?: unknown };
+  if (!res.ok) throw new ApiError(json.error ?? `HTTP ${res.status}`, res.status, json.issues);
+  return json as T;
+}
+
 export const GRAPHQL_URL = '/admin/api/2026-10/graphql.json';
 
 export async function gql<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
