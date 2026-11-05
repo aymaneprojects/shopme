@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
 import { useId, useState } from 'react';
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactNode, Ref, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { cx } from './basics';
 
 const control = 'field-control w-full';
@@ -32,7 +32,7 @@ export function Select({ label, help, error, className, children, ...rest }: Fie
   return <Field label={label} help={help} error={error} className={className}>{(p) => <select className={cx(control, 'pr-7')} {...p} {...rest}>{children}</select>}</Field>;
 }
 
-export function Checkbox({ label, className, ...rest }: { label?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) {
+export function Checkbox({ label, className, ...rest }: { label?: ReactNode; ref?: Ref<HTMLInputElement> } & InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className={cx('inline-flex items-center gap-2 text-[13px]', className)}>
       <input type="checkbox" className="size-4 rounded accent-(--color-primary) transition-shadow" {...rest} />
@@ -41,15 +41,27 @@ export function Checkbox({ label, className, ...rest }: { label?: ReactNode } & 
   );
 }
 
-export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: ReactNode }) {
+export function Switch({ checked, onChange, label, description, placement = 'start' }: { checked: boolean; onChange: (v: boolean) => void; label: ReactNode; /** Secondary line under the label. */ description?: ReactNode; /** `end` puts the toggle on the right of the label (settings rows). */ placement?: 'start' | 'end' }) {
+  const toggle = (
+    <button
+      type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+      className={cx('relative h-5 w-9 shrink-0 rounded-full shadow-[inset_0_1px_2px_rgb(0_0_0/0.25)] transition-colors', checked ? 'bg-primary' : 'bg-[color-mix(in_srgb,var(--color-text-muted)_55%,var(--color-bg))]')}
+    >
+      <span className={cx('absolute top-0.5 size-4 rounded-full bg-white shadow transition-all duration-150', checked ? 'left-4.5' : 'left-0.5')} />
+    </button>
+  );
+  if (placement === 'end' || description) {
+    return (
+      <label className={cx('flex cursor-pointer items-start gap-3 text-[13px]', placement === 'end' && 'w-full justify-between')}>
+        {placement === 'start' && toggle}
+        <span className="min-w-0 flex-1"><span className="block font-medium">{label}</span>{description && <span className="block text-xs text-muted">{description}</span>}</span>
+        {placement === 'end' && toggle}
+      </label>
+    );
+  }
   return (
     <label className="inline-flex cursor-pointer items-center gap-2 text-[13px]">
-      <button
-        type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-        className={cx('relative h-5 w-9 shrink-0 rounded-full shadow-[inset_0_1px_2px_rgb(0_0_0/0.25)] transition-colors', checked ? 'bg-primary' : 'bg-[color-mix(in_srgb,var(--color-text-muted)_55%,var(--color-bg))]')}
-      >
-        <span className={cx('absolute top-0.5 size-4 rounded-full bg-white shadow transition-all duration-150', checked ? 'left-4.5' : 'left-0.5')} />
-      </button>
+      {toggle}
       {label}
     </label>
   );

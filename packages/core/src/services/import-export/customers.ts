@@ -1,4 +1,4 @@
-import { and, asc, eq, gt } from 'drizzle-orm';
+import { and, asc, eq, gt, inArray } from 'drizzle-orm';
 import { customers } from '../../db/schema';
 import type { Db } from '../../db/client';
 import { createCustomer, updateCustomer, type CustomerInput } from '../customers/customers';
@@ -52,12 +52,12 @@ export async function importCustomers(env: ImportEnv, rows: AsyncIterable<CsvRow
   }
 }
 
-export async function* exportCustomers(db: Db, shopId: number): AsyncGenerator<string> {
+export async function* exportCustomers(db: Db, shopId: number, ids: number[] | null = null): AsyncGenerator<string> {
   const currency = (await getShop(db, shopId))?.currency ?? 'USD';
   yield csvLine(CUSTOMER_COLUMNS);
   let after = 0;
   for (;;) {
-    const batch = await db.select().from(customers).where(and(eq(customers.shopId, shopId), gt(customers.id, after))).orderBy(asc(customers.id)).limit(200);
+    const batch = await db.select().from(customers).where(and(eq(customers.shopId, shopId), gt(customers.id, after), ids ? inArray(customers.id, ids) : undefined)).orderBy(asc(customers.id)).limit(200);
     if (!batch.length) return;
     after = batch.at(-1)!.id;
     for (const c of batch) {

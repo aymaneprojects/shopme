@@ -1,7 +1,7 @@
-import { Banner, Button, Card, Checkbox, ConfirmDialog, Dropdown, ImageUploader, Input, MediaGallery, Modal, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
+import { Banner, Button, Card, Checkbox, ConfirmDialog, Dropdown, ImageUploader, Input, MediaGallery, MediaViewer, Modal, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { GalleryItem } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, Gift, Plus, X } from 'lucide-react';
+import { Archive, Copy, Eye, Gift, Plus, Tag, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
@@ -55,6 +55,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
   const [pickCollections, setPickCollections] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [variantMf, setVariantMf] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<number | null>(null);
   const [dup, setDup] = useState<{ title: string; images: boolean; status: 'DRAFT' | 'ACTIVE' } | null>(null);
   const cats = useQuery({ queryKey: ['taxonomy'], staleTime: 600_000, queryFn: () => gql<{ taxonomy: { categories: { nodes: Array<{ id: string; fullName: string }> } } | null }>(TAXONOMY_CATEGORIES) });
   const set = (p: Partial<ProductForm>) => setForm((f) => ({ ...f, ...p }));
@@ -106,7 +107,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setErrors({}); }} />
       <PageHeader
-        back="/products" title={id ? form.title || t('product.untitled') : t('product.addTitle')}
+        back="/products" breadcrumb={{ icon: <Tag className="size-4" />, label: t('nav.products'), to: '/products' }} title={id ? form.title || t('product.untitled') : t('product.addTitle')}
         actions={id && <>
           <ViewAs url={publicUrl} />
           <Button disabled={!previewUrl} onClick={() => { if (previewUrl) window.open(previewUrl, '_blank', 'noopener'); }}><Eye className="size-4" />{t('product.preview')}</Button>
@@ -115,10 +116,10 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
             { key: 'mail', label: t('share.email'), disabled: !publicUrl, onSelect: () => { window.location.href = `mailto:?subject=${encodeURIComponent(form.title)}&body=${encodeURIComponent(new URL(publicUrl!, window.location.origin).href)}`; } },
           ]} />
           <Dropdown align="right" chevron trigger={t('common.moreActions')} items={[
-            { key: 'duplicate', label: t('product.duplicate'), onSelect: () => setDup({ title: t('product.copyOf', { title: form.title }), images: true, status: 'DRAFT' }) },
-            ...(form.status === 'ARCHIVED' ? [] : [{ key: 'archive', label: t('products.setArchived'), onSelect: () => set({ status: 'ARCHIVED' }) }]),
+            { key: 'duplicate', icon: <Copy className="size-4" />, label: t('product.duplicate'), onSelect: () => setDup({ title: t('product.copyOf', { title: form.title }), images: true, status: 'DRAFT' }) },
+            ...(form.status === 'ARCHIVED' ? [] : [{ key: 'archive', icon: <Archive className="size-4" />, label: t('products.setArchived'), onSelect: () => set({ status: 'ARCHIVED' }) }]),
             ...(form.status === 'ACTIVE' ? [] : [{ key: 'activate', label: t('products.setActive'), onSelect: () => set({ status: 'ACTIVE' }) }]),
-            { key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirmDelete(true) },
+            { key: 'delete', icon: <Trash2 className="size-4" />, label: t('common.delete'), danger: true, separatorBefore: true, onSelect: () => setConfirmDelete(true) },
           ]} />
           <PrevNext kind="products" gid={id} />
         </>}
@@ -126,6 +127,11 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
       {serverError && <div className="mb-4"><Banner>{typeof serverError === 'string' ? serverError : serverError.errors.map((e) => `${e.field?.join('.') ?? ''} ${e.message}`.trim()).join(' · ')}</Banner></div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-start gap-3" role="group" aria-label={t('product.media')}>
+              <MediaGallery compact onOpen={setViewing} openLabel={t('viewer.open')} items={form.media} onChange={(media) => set({ media })} canRemove={(i) => !isPersistedMedia(i)} labels={gallery} />
+              <ImageUploader compact label={t('media.upload')} onUploaded={(files) => set({ media: [...form.media, ...files.map((f): GalleryItem => ({ key: `new-${f.id}`, url: f.url, alt: f.filename }))] })} onError={(m) => toast(m, 'critical')} />
+          </div>
+
           <Card>
             <div className="flex flex-col gap-3">
               <Input label={t('field.title')} required placeholder={t('product.titlePlaceholder')} value={form.title} error={errors.title} onChange={(e) => set({ title: e.target.value })} />
@@ -133,13 +139,6 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
                 <span className="text-[13px] font-medium">{t('field.description')}</span>
                 <RichText value={form.descriptionHtml} onChange={(descriptionHtml) => set({ descriptionHtml })} />
               </div>
-            </div>
-          </Card>
-
-          <Card title={t('product.media')}>
-            <div className="flex flex-col gap-3">
-              <MediaGallery items={form.media} onChange={(media) => set({ media })} canRemove={(i) => !isPersistedMedia(i)} labels={gallery} />
-              <ImageUploader label={t('media.upload')} onUploaded={(files) => set({ media: [...form.media, ...files.map((f): GalleryItem => ({ key: `new-${f.id}`, url: f.url, alt: f.filename }))] })} onError={(m) => toast(m, 'critical')} />
             </div>
           </Card>
 
@@ -219,8 +218,11 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
       <Modal open={!!variantMf} onClose={() => setVariantMf(null)} closeLabel={t('common.close')} title={t('mf.variantMetafields')} wide>
         {variantMf && <MetafieldsEditor ownerId={variantMf} ownerType="PRODUCTVARIANT" title={form.variants.find((v) => v.id === variantMf)?.optionValues.join(' / ') || t('mf.title')} />}
       </Modal>
+      <MediaViewer items={form.media.map((m) => ({ key: m.key, url: m.url, name: m.url.split('/').pop()?.split('?')[0] ?? '', alt: m.alt ?? '', usedIn: `${t('nav.products')} (1)` }))} index={viewing} onIndexChange={setViewing} onClose={() => setViewing(null)}
+        onSave={(item, change) => set({ media: form.media.map((m) => (m.key === item.key ? { ...m, alt: change.alt } : m)) })}
+        labels={{ close: t('common.close'), info: t('viewer.info'), name: t('viewer.name'), alt: t('viewer.alt'), details: t('viewer.details'), usedIn: t('viewer.usedIn'), save: t('viewer.save'), counter: (i, n) => t('viewer.counter', { i, n }), previous: t('viewer.previous'), next: t('viewer.next'), download: t('viewer.download') }} />
       <CollectionPicker open={pickCollections} onClose={() => setPickCollections(false)} excludeIds={form.collections.map((c) => c.id)} onConfirm={(c) => set({ collections: [...form.collections, ...c.map((x) => ({ id: x.id, title: x.title }))] })} />
-      <Modal open={!!dup} onClose={() => setDup(null)} closeLabel={t('common.close')} title={t('product.duplicateTitle')}
+      <Modal open={!!dup} onClose={() => setDup(null)} medium closeLabel={t('common.close')} title={t('product.duplicateTitle')}
         footer={<><Button onClick={() => setDup(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={duplicate.isPending} disabled={!dup?.title.trim()} onClick={() => duplicate.mutate()}>{t('product.duplicateConfirm')}</Button></>}>
         {dup && (
           <div className="grid gap-4">

@@ -1,7 +1,7 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Input, Modal, Pagination, Select, Skeleton, Tabs, Textarea, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Input, ListToolbar, Modal, Pagination, Select, Skeleton, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Plus, Search } from 'lucide-react';
+import { Gift, MoreHorizontal, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { SaveBar, guard } from '../components/SaveBar';
@@ -54,7 +54,7 @@ export function GiftCardsPage() {
   });
   const rows = list.data?.giftCards.nodes ?? [];
   const pi = list.data?.giftCards.pageInfo;
-  const create = <Button variant="primary" onClick={() => nav('/gift-cards/new')}><Plus className="size-4" />{t('giftCards.create')}</Button>;
+  const create = <Button variant="primary" onClick={() => nav('/gift-cards/new')}>{t('giftCards.create')}</Button>;
   const columns: Array<Column<Card_>> = [
     { key: 'code', header: t('giftCards.codeEnding'), cell: (c) => <div><p className="font-medium">{c.lastCharacters}</p>{c.note && <p className="text-xs text-muted">{c.note}</p>}</div> },
     { key: 'status', header: t('field.status'), cell: (c) => <Badge tone={tone[stateOf(c)]}>{t(`giftCards.state.${stateOf(c)}` as Key)}</Badge> },
@@ -76,19 +76,17 @@ export function GiftCardsPage() {
   });
   return (
     <>
-      <PageHeader title={t('nav.giftCards')} actions={<>
+      <PageHeader icon={<Gift className="size-4" />} title={t('nav.giftCards')} actions={<>
         <Button onClick={() => nav('/products/new?giftCard=1')}>{t('giftCards.addProduct')}</Button>
         <Button onClick={() => nav('/products?q=gift_card:true')}>{t('giftCards.viewProducts')}</Button>
         <Button loading={exportCsv.isPending} onClick={() => exportCsv.mutate()}>{t('csv.export')}</Button>
         {create}</>} />
       <Card className="!p-0">
-        <div className="px-3 pt-1"><Tabs tabs={TABS.map((id) => ({ id, label: t(`giftCards.tab.${id}` as Key) }))} value={tab} onChange={(v) => L.patch({ tab: v === 'all' ? '' : v })} /></div>
-        <div className="border-b border-line p-3">
-          <div className="relative max-w-md">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('giftCards.search')} aria-label={t('giftCards.search')} className={searchCls} />
-          </div>
-        </div>
+        <ListToolbar
+          className="!rounded-b-none !shadow-none border-b border-line" viewsLabel={t('list.views')}
+          views={TABS.map((id) => ({ id, label: t(`giftCards.tab.${id}` as Key) }))} view={tab} onView={(v) => L.patch({ tab: v === 'all' ? '' : v })}
+          query={search} onQuery={(v) => { setSearch(v); L.patch({ q: v }); }} placeholder={t('list.searchAndFilter')}
+        />
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/gift-cards/${gidToNum(r.id)}`)}
           selected={[]} onSelectedChange={() => {}} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}

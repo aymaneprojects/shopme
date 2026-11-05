@@ -55,7 +55,7 @@ export function ActivityBell() {
         {unread > 0 && <span className="absolute right-0.5 top-0.5 grid min-w-4 place-items-center rounded-full bg-critical px-1 text-[10px] font-semibold leading-4 text-white">{unread > 99 ? '99+' : unread}</span>}
       </button>
       {open && (
-        <div role="dialog" aria-label={t('activity.title')} className="anim-fade absolute right-0 top-10 z-50 w-[22rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-line bg-canvas text-fg shadow-pop">
+        <div role="dialog" aria-label={t('activity.title')} className="anim-fade absolute bottom-10 left-0 z-50 w-[22rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-line bg-canvas text-fg shadow-pop">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
             <h2 className="text-[13px] font-semibold">{t('activity.title')}</h2>
             <button type="button" disabled={!unread || markAll.isPending} onClick={() => markAll.mutate()} className="text-xs font-medium text-accent disabled:text-muted">{t('activity.markAll')}</button>

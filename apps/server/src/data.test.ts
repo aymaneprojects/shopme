@@ -196,6 +196,8 @@ describe('CSV import/export and job REST API', () => {
     expect(exp.headers['content-type']).toContain('text/csv');
     expect(exp.headers['content-disposition']).toContain('products.csv');
     expect(exp.body.split('\r\n')[1]).toContain('widget,Widget');
+    const none = await t.app.inject({ url: '/admin/api/export/products.csv?ids=987654', ...auth() });
+    expect(none.body.trim().split('\r\n')).toHaveLength(1);
     for (const k of ['customers', 'inventory', 'orders']) expect((await t.app.inject({ url: `/admin/api/export/${k}.csv`, ...auth() })).statusCode).toBe(200);
     expect((await t.app.inject({ url: '/admin/api/export/secrets.csv', ...auth() })).statusCode).toBe(404);
   });

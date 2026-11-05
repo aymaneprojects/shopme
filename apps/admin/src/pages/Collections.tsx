@@ -1,7 +1,7 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Pagination, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, ListToolbar, Pagination, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search } from 'lucide-react';
+import { FolderTree, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -68,20 +68,15 @@ export function CollectionsPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.collections')} actions={<Button variant="primary" onClick={() => nav('/collections/new')}><Plus className="size-4" />{t('collections.add')}</Button>} />
+      <PageHeader icon={<FolderTree className="size-4" />} title={t('nav.collections')} actions={<Button variant="primary" onClick={() => nav('/collections/new')}>{t('collections.add')}</Button>} />
       <Card className="!p-0">
-        <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-          <div className="relative min-w-48 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); }} placeholder={t('collections.search')} aria-label={t('collections.search')} className="field-control w-full pl-8" />
-          </div>
-          <select aria-label={t('collections.type')} value={type} onChange={(e) => patch({ type: e.target.value })} className="field-control">
-            <option value="">{t('collections.type')}</option>
-            <option value="custom">{t('collections.manual')}</option>
-            <option value="smart">{t('collections.automated')}</option>
-          </select>
-          <ColumnPicker locked={['title']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
-        </div>
+        <ListToolbar
+          className="!rounded-b-none !shadow-none border-b border-line" viewsLabel={t('list.views')}
+          views={[{ id: 'all', label: t('products.tabAll') }, { id: 'custom', label: t('collections.manual') }, { id: 'smart', label: t('collections.automated') }]}
+          view={type || 'all'} onView={(v) => patch({ type: v === 'all' ? '' : v })}
+          query={search} onQuery={setSearch} placeholder={t('list.searchAndFilter')}
+          trailing={<ColumnPicker locked={['title']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />}
+        />
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable
           rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading}

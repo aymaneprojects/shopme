@@ -1,6 +1,5 @@
-import { Banner, Button, Modal } from '@shopme/ui';
+import { Banner, Button, ExportDialog, Modal } from '@shopme/ui';
 import { useQueryClient } from '@tanstack/react-query';
-import { Download, Upload } from 'lucide-react';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { upload } from '../api';
 import { useI18n } from '../i18n';
@@ -10,7 +9,6 @@ import type { ImportKind } from '../lib/csv-import';
 import { useJob } from '../lib/jobs';
 import type { Job } from '../lib/jobs';
 
-const linkCls = 'btn btn-secondary';
 
 /** Export URL for a kind; `query` and `ids` narrow the order exports to a filter or a selection. */
 export const exportHref = (kind: ImportKind | 'orders' | 'draft_orders', params: { query?: string; ids?: string } = {}) => {
@@ -22,9 +20,31 @@ export function startDownload(href: string) {
   a.href = href; a.download = ''; document.body.appendChild(a); a.click(); a.remove();
 }
 
-export function ExportButton({ kind }: { kind: ImportKind | 'orders' | 'draft_orders' }) {
+/** "Export" button opening the export dialog: current page, everything or the selection, then the CSV flavour. */
+export function ExportButton({ kind, what, currentIds, selectedIds = [] }: { kind: ImportKind | 'orders' | 'draft_orders'; what?: string; /** Ids on the current page; enables the "current page" option (products and customers). */ currentIds?: string[]; selectedIds?: string[] }) {
   const { t } = useI18n();
-  return <a href={`/admin/api/export/${kind}.csv`} download className={linkCls}><Download className="size-4" />{t('csv.export')}</a>;
+  const [open, setOpen] = useState(false);
+  const label = what ?? t(`export.noun.${kind}` as Key);
+  const narrowable = kind === 'products' || kind === 'customers' || kind === 'orders' || kind === 'draft_orders';
+  const nums = (ids: string[]) => ids.map((i) => i.replace(/\D/g, '')).join(',');
+  return (
+    <>
+      <Button onClick={() => setOpen(true)}>{t('csv.export')}</Button>
+      <ExportDialog
+        key={String(open)} open={open} onClose={() => setOpen(false)} title={t('export.title', { what: label })} closeLabel={t('common.close')}
+        description={t('export.description', { what: label })}
+        scopeTitle={t('export.what')} defaultScope={selectedIds.length ? 'selected' : currentIds ? 'current' : 'all'}
+        scopes={[
+          ...(currentIds && narrowable ? [{ key: 'current', label: t('export.current') }] : []),
+          { key: 'all', label: t('export.all', { what: label }) },
+          ...(narrowable ? [{ key: 'selected', label: t('export.selected', { n: selectedIds.length }), disabled: selectedIds.length === 0 }] : []),
+        ]}
+        formatTitle={t('export.format')} formats={[{ key: 'sheet', label: t('export.formatSheet') }, { key: 'plain', label: t('export.formatPlain') }]}
+        confirmLabel={t('export.confirm', { what: label })} cancelLabel={t('common.cancel')}
+        onExport={(scope) => startDownload(exportHref(kind, scope === 'selected' ? { ids: nums(selectedIds) } : scope === 'current' ? { ids: nums(currentIds ?? []) } : {}))}
+      />
+    </>
+  );
 }
 
 /** Progress bar, per-outcome counts and the first row errors of a job. */
@@ -49,7 +69,7 @@ export function ImportButton({ kind, invalidate = [] }: { kind: ImportKind; inva
   const [open, setOpen] = useState(false);
   return (
     <>
-      <Button onClick={() => setOpen(true)}><Upload className="size-4" />{t('csv.import')}</Button>
+      <Button onClick={() => setOpen(true)}>{t('csv.import')}</Button>
       <ImportDialog key={String(open)} open={open} kind={kind} invalidate={invalidate} onClose={() => setOpen(false)} />
     </>
   );

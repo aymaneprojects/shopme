@@ -1,7 +1,7 @@
-import { Banner, Button, Card, EmptyState, IndexTable, Input, Modal, Pagination, Select, Textarea, useToast } from '@shopme/ui';
+import { Banner, Button, Card, EmptyState, IndexTable, Input, ListToolbar, Modal, Pagination, QuantityPopover, Select, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ClipboardList, Search, Warehouse } from 'lucide-react';
+import { SlidersHorizontal, Warehouse } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -129,7 +129,7 @@ export function InventoryPage() {
 
   const columns: Array<Column<VariantRow>> = [
     { key: 'img', header: '', className: 'w-14', cell: (v) => <Thumb url={v.product.featuredMedia?.image?.url} /> },
-    { key: 'product', header: t('products.product'), cell: (v) => <div><div className="font-medium">{v.product.title}</div>{v.title !== 'Default Title' && <div className="text-xs text-muted">{v.title}</div>}</div> },
+    { key: 'product', header: t('products.product'), cell: (v) => <div><div className="font-medium">{v.product.title}</div>{v.title !== 'Default Title' && <span className="mt-0.5 inline-block rounded-md bg-surface px-1.5 py-px text-xs text-muted shadow-[inset_0_0_0_1px_var(--color-border)]">{v.title}</span>}</div> },
     { key: 'sku', header: t('inventory.sku'), cell: (v) => v.sku || <span className="text-muted">{t('inventory.noSku')}</span> },
     { key: 'unavailable', header: t('inventory.unavailable'), cell: (v) => qty(levelsOf(v), 'reserved') },
     { key: 'committed', header: t('inventory.committed'), cell: (v) => qty(levelsOf(v), 'committed') },
@@ -139,10 +139,12 @@ export function InventoryPage() {
         const current = String(qty(levelsOf(v), 'available'));
         if (!location) return current;
         const key = editKey(v);
+        const shown = edits[key] ?? current;
         return (
-          <input type="number" min={0} aria-label={`${t('inventory.available')} ${v.product.title}`} value={edits[key] ?? current}
-            className="w-24 field-control"
-            onChange={(e) => setEdits((s) => { const n = { ...s }; if (e.target.value === current) delete n[key]; else n[key] = e.target.value; return n; })} />
+          <QuantityPopover
+            value={Number(current)} labels={{ adjust: `${t('qty.adjust')} ${v.product.title}`, set: t('qty.set'), add: t('qty.add'), apply: t('qty.apply') }}
+            trigger={<span className={shown !== current ? 'font-semibold text-accent' : undefined}>{shown}<SlidersHorizontal className="ml-1.5 inline size-3 text-muted" aria-hidden /></span>}
+            onApply={(next) => setEdits((st) => { const n = { ...st }; if (String(next) === current) delete n[key]; else n[key] = String(next); return n; })} />
         );
       },
     },
@@ -157,7 +159,7 @@ export function InventoryPage() {
 
   return (
     <>
-      <PageHeader
+      <PageHeader icon={<Warehouse className="size-4" />}
         title={<span className="flex items-center gap-2">{t('nav.inventory')}
           <select aria-label={t('inventory.location')} value={location} onChange={(e) => { setLocation(e.target.value); setEdits({}); }} className="field-control font-normal">
             <option value="">{t('inventory.allLocations')}</option>
@@ -165,24 +167,18 @@ export function InventoryPage() {
           </select></span>}
         actions={<>
           {dirtyCount > 0 && <><Button onClick={() => setEdits({})}>{t('save.discard')}</Button><Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('inventory.saveN', { n: dirtyCount })}</Button></>}
-          <Button onClick={() => setCounting({ location: location || locs.data?.locations.nodes.find((l) => l.isActive !== false)?.id || '', text: '' })}><ClipboardList className="size-4" />{t('inventory.counts')}</Button>
+          <Button onClick={() => setCounting({ location: location || locs.data?.locations.nodes.find((l) => l.isActive !== false)?.id || '', text: '' })}>{t('inventory.counts')}</Button>
           <ExportButton kind="inventory" /><ImportButton kind="inventory" invalidate={['inventory']} />
         </>} />
       <Card className="!p-0">
-        <div className="px-3 pt-1">
-          <ViewTabs resource="INVENTORY" query={[term.trim(), location && `location:${location}`, untracked && 'tracked:false'].filter(Boolean).join(' ')} value="all" onTab={() => { setSelected([]); setParams(new URLSearchParams(), { replace: true }); }} tabs={[{ id: 'all', label: t('inventory.tabAll') }]} />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-          <div className="relative min-w-48 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); setCursor({}); patch({ q: e.target.value }); }} placeholder={t('inventory.search')} aria-label={t('inventory.search')} className="field-control w-full pl-8" />
-          </div>
-          <select aria-label={t('inventory.trackingFilter')} value={untracked ? 'untracked' : ''} onChange={(e) => { setSelected([]); patch({ tracking: e.target.value }); }} className="field-control">
-            <option value="">{t('inventory.filterTracked')}</option>
-            <option value="untracked">{t('inventory.filterUntracked')}</option>
-          </select>
-          <ColumnPicker locked={['product']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
-        </div>
+        <ListToolbar
+          className="!rounded-b-none !shadow-none border-b border-line"
+          leading={<ViewTabs resource="INVENTORY" query={[term.trim(), location && `location:${location}`, untracked && 'tracked:false'].filter(Boolean).join(' ')} value="all" onTab={() => { setSelected([]); setParams(new URLSearchParams(), { replace: true }); }} tabs={[{ id: 'all', label: t('inventory.tabAll') }]} />}
+          query={search} onQuery={(v) => { setSearch(v); setCursor({}); patch({ q: v }); }} placeholder={t('list.searchAndFilter')} removeFilterLabel={t('list.removeFilter')}
+          filters={[{ key: 'tracking', label: t('inventory.trackingFilter'), options: [{ value: 'untracked', label: t('inventory.filterUntracked') }] }]}
+          values={{ tracking: untracked ? 'untracked' : '' }} onFilter={(_k, v) => { setSelected([]); patch({ tracking: v }); }}
+          trailing={<ColumnPicker locked={['product']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />}
+        />
         {!location && rows.length > 0 && <p className="border-b border-line px-4 py-2 text-xs text-muted">{t('inventory.pickLocation')}</p>}
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading}

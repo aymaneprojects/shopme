@@ -47,3 +47,8 @@ export const CUSTOMER_DELETE = /* GraphQL */ `
 export const CUSTOMER_IDS = /* GraphQL */ `
   query CustomerIds { customers(first: 250, sortKey: CREATED_AT, reverse: true) { nodes { id } } }
 `;
+
+/** Tags in use on the first customers, offered in the bulk tag dialog. */
+export const CUSTOMER_TAGS = /* GraphQL */ `
+  query CustomerTags { customers(first: 250) { nodes { id tags } } }
+`;

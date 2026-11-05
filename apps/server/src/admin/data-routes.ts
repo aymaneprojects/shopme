@@ -69,7 +69,7 @@ const publicJob = (j: NonNullable<Awaited<ReturnType<typeof getJob>>>) => ({ id:
 /**
  * CSV import/export, theme zip upload/download, Shopify migration and job status:
  *   POST /admin/api/import/:kind[?dryRun=1]    (products | customers | inventory; multipart field "file") -> 202 { job }
- *   GET  /admin/api/export/:kind.csv           (products | customers | inventory | orders | draft_orders; ?query= and ?ids= narrow the order exports)
+ *   GET  /admin/api/export/:kind.csv           (products | customers | inventory | orders | draft_orders; ?query= and ?ids= narrow the order, product and customer exports)
  *   POST /admin/api/themes/upload              (multipart zip; optional field "name") -> 201 { theme }
  *   GET  /admin/api/themes/:id/download.zip
  *   POST /admin/api/migrate/shopify            { shop, accessToken | clientId+clientSecret, only? } -> 202 { job }
@@ -153,7 +153,7 @@ export function registerDataRoutes(app: FastifyInstance) {
 
   type ExportFilter = { query: string | null; ids: number[] | null };
   const EXPORTS: Record<string, (db: Db, shopId: number, baseUrl: string, f: ExportFilter) => AsyncGenerator<string>> = {
-    products: (d, s, base) => exportProducts(d, s, base), customers: (d, s) => exportCustomers(d, s), inventory: (d, s) => exportInventory(d, s),
+    products: (d, s, base, f) => exportProducts(d, s, base, f.ids), customers: (d, s, _b, f) => exportCustomers(d, s, f.ids), inventory: (d, s) => exportInventory(d, s),
     orders: (d, s, _b, f) => exportOrders(d, s, f), draft_orders: (d, s, _b, f) => exportDraftOrders(d, s, f),
   };
   app.get('/admin/api/export/:file', async (req, reply) => {
@@ -162,7 +162,7 @@ export function registerDataRoutes(app: FastifyInstance) {
     const auth = await authed(req, reply, `read_${SCOPE[m[1]!]}`);
     if (!auth) return;
     const origin = `${req.protocol}://${req.headers.host ?? new URL(config.appUrl).host}`;
-    // `?query=` (the list's search terms) and `?ids=1,2,3` (the selected rows) narrow the order exports.
+    // `?query=` (the list's search terms) and `?ids=1,2,3` (the selected rows) narrow the order, product and customer exports.
     const q = req.query as { query?: string; ids?: string };
     const ids = q.ids ? q.ids.split(',').map((n) => Number(n.replace(/\D/g, ''))).filter((n) => Number.isSafeInteger(n) && n > 0) : null;
     return reply.type('text/csv; charset=utf-8').header('content-disposition', `attachment; filename="${m[1]!.replace('_', '-')}.csv"`).send(Readable.from(EXPORTS[m[1]!]!(db, auth.shopId, origin, { query: q.query ?? null, ids })));
