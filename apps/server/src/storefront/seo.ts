@@ -4,6 +4,7 @@ import { listArticles, schema as s, type Shop } from '@shopme/core';
 import type { AppContext } from '../context';
 import { getCollection, listCollections, listProducts, loadProducts } from './data/catalog';
 import { listPages } from './data/content';
+import { metaobjectSitemapEntries } from './data/metaobject-pages';
 import type { createContent } from './pages';
 
 /** `/robots.txt` and the sitemap index with its child sitemaps (products, collections, pages, blogs). */
@@ -120,6 +121,7 @@ export function registerSeoRoutes(app: FastifyInstance, ctx: AppContext, content
         }
         return out;
       }
+      case 'metaobjects': return metaobjectSitemapEntries(db, shopId);
       default: return [];
     }
   }
@@ -140,7 +142,7 @@ export function registerSeoRoutes(app: FastifyInstance, ctx: AppContext, content
 
   app.get('/sitemap.xml', withShop(async (_req, reply, shop) => {
     const children: string[] = [];
-    for (const type of ['products', 'collections', 'pages', 'blogs']) {
+    for (const type of ['products', 'collections', 'pages', 'blogs', 'metaobjects']) {
       const n = (await entries(shop.id, type)).length;
       for (let i = 1; i <= Math.max(1, Math.ceil(n / PER_FILE)) && n > 0; i++) children.push(`${origin}/sitemap_${type}_${i}.xml`);
     }
@@ -152,7 +154,7 @@ export function registerSeoRoutes(app: FastifyInstance, ctx: AppContext, content
     if (!m) return reply.code(400).type('application/xml; charset=utf-8').send('');
     const [, type = '', n = ''] = m;
     const page = Number(n);
-    if (!['products', 'collections', 'pages', 'blogs'].includes(type) || !Number.isInteger(page) || page < 1) return reply.code(400).type('application/xml; charset=utf-8').send('');
+    if (!['products', 'collections', 'pages', 'blogs', 'metaobjects'].includes(type) || !Number.isInteger(page) || page < 1) return reply.code(400).type('application/xml; charset=utf-8').send('');
     const all = await entries(shop.id, type);
     const slice = all.slice((page - 1) * PER_FILE, page * PER_FILE);
     if (!slice.length && page > 1) return reply.code(400).type('application/xml; charset=utf-8').send('');

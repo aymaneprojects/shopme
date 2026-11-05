@@ -44,3 +44,4 @@ export * from './return-rules';
 export * from './activity';
 export * from './inventory-transfers';
 export * from './purchase-orders';
+export * from './metaobjects';

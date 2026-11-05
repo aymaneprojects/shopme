@@ -1,11 +1,11 @@
 import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
-import { articles, collections, menuItems, menus, pages, products, themeFiles, themes, translations } from '../db/schema';
+import { articles, collections, menuItems, menus, metaobjectDefinitions, metaobjects, pages, products, themeFiles, themes, translations } from '../db/schema';
 import type { Db, Executor } from '../db/client';
 import { errR, okR, type Result } from './catalog/common';
 import { sha256 } from './crypto';
 import { listShopLocales } from './locales';
 
-export const TRANSLATABLE_TYPES = ['PRODUCT', 'COLLECTION', 'PAGE', 'ARTICLE', 'MENU', 'LINK', 'ONLINE_STORE_THEME'] as const;
+export const TRANSLATABLE_TYPES = ['PRODUCT', 'COLLECTION', 'PAGE', 'ARTICLE', 'MENU', 'LINK', 'ONLINE_STORE_THEME', 'METAOBJECT'] as const;
 export type TranslatableType = (typeof TRANSLATABLE_TYPES)[number];
 export const isTranslatableType = (v: string): v is TranslatableType => (TRANSLATABLE_TYPES as readonly string[]).includes(v);
 
@@ -61,6 +61,13 @@ async function sources(db: Executor, shopId: number, type: TranslatableType, o: 
     case 'LINK': {
       const rows = await db.select().from(menuItems).where(and(eq(menuItems.shopId, shopId), nums ? inArray(menuItems.id, nums) : undefined)).orderBy(asc(menuItems.id)).limit(lim).offset(off);
       return rows.map((r) => row(r.id, [field('title', r.title)]));
+    }
+    case 'METAOBJECT': {
+      // Text-like fields of entries whose definition has the translatable capability; keys are the field keys.
+      const rows = await db.select({ e: metaobjects, d: metaobjectDefinitions }).from(metaobjects).innerJoin(metaobjectDefinitions, eq(metaobjectDefinitions.id, metaobjects.definitionId))
+        .where(and(eq(metaobjects.shopId, shopId), eq(metaobjectDefinitions.capTranslatable, true), nums ? inArray(metaobjects.id, nums) : undefined)).orderBy(asc(metaobjects.id)).limit(lim).offset(off);
+      const kinds: Record<string, ContentKind> = { single_line_text_field: 'SINGLE_LINE_TEXT_FIELD', multi_line_text_field: 'MULTI_LINE_TEXT_FIELD', rich_text_field: 'HTML', url: 'SINGLE_LINE_TEXT_FIELD' };
+      return rows.map(({ e, d }) => row(e.id, d.fieldDefinitions.filter((f) => f.type in kinds).map((f) => field(f.key, e.values[f.key], kinds[f.type]))));
     }
     case 'ONLINE_STORE_THEME': {
       const list = await db.select({ id: themes.id }).from(themes).where(and(eq(themes.shopId, shopId), nums ? inArray(themes.id, nums) : eq(themes.role, 'MAIN'))).orderBy(asc(themes.id)).limit(lim).offset(off);

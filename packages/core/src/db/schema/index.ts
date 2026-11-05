@@ -11,3 +11,4 @@ export * from './wave7a';
 export * from './saved-views';
 export * from './shipping';
 export * from './transfers';
+export * from './metaobjects';

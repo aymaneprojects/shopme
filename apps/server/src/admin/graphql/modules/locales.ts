@@ -10,7 +10,7 @@ import { requireScope, type GraphQLContext } from '../context';
 import { ConnectionArgs, defineConnection, paginate } from '../types/connection';
 import { DisplayableError, definePayload } from '../types/errors';
 
-const GID_TYPE: Record<TranslatableType, string> = { PRODUCT: 'Product', COLLECTION: 'Collection', PAGE: 'OnlineStorePage', ARTICLE: 'OnlineStoreArticle', MENU: 'Menu', LINK: 'Link', ONLINE_STORE_THEME: 'OnlineStoreTheme' };
+const GID_TYPE: Record<TranslatableType, string> = { PRODUCT: 'Product', COLLECTION: 'Collection', PAGE: 'OnlineStorePage', ARTICLE: 'OnlineStoreArticle', MENU: 'Menu', LINK: 'Link', ONLINE_STORE_THEME: 'OnlineStoreTheme', METAOBJECT: 'Metaobject' };
 const TYPE_OF_GID = new Map(Object.entries(GID_TYPE).map(([k, v]) => [v, k as TranslatableType]));
 // Pages and articles use their Online Store GID names in Shopify; accept the plain ones as well.
 TYPE_OF_GID.set('Page', 'PAGE').set('Article', 'ARTICLE');

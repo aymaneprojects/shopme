@@ -20,9 +20,10 @@ import * as wave8c from './wave8c';
 import * as timeline from './timeline';
 import * as shipping from './shipping';
 import * as transfers from './transfers';
+import * as metaobjects from './metaobjects';
 
 /** Every operation string, keyed by export name. Used by `pnpm validate:graphql`. */
-export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...content, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog, ...views, ...wave8c, ...timeline, ...shipping, ...transfers };
+export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...content, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog, ...views, ...wave8c, ...timeline, ...shipping, ...transfers, ...metaobjects };
 
 export * from './common';
 export * from './catalog';
@@ -46,3 +47,4 @@ export * from './views';
 export * from './transfers';
 export * from './wave8c';
 export * from './shipping';
+export * from './metaobjects';

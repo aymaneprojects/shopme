@@ -16,6 +16,7 @@ import { frTimeline } from './fr-timeline';
 import { frQaStore } from './fr-qa-store';
 import { frShipping } from './fr-shipping';
 import { frTransfers } from './fr-transfers';
+import { frMetaobjects } from './fr-metaobjects';
 
 export const fr: Record<Key, string> = {
   'common.back': 'Retour', 'common.cancel': 'Annuler', 'common.close': 'Fermer', 'common.delete': 'Supprimer', 'common.loading': 'Chargement…',
@@ -115,6 +116,7 @@ export const fr: Record<Key, string> = {
   ...frEditor,
   ...frTimeline,
   ...frShipping,
+  ...frMetaobjects,
   ...frContent,
   ...frPublishing,
   ...frViews,
