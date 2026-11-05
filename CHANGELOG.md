@@ -144,6 +144,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Aurora: the newsletter form in the footer no longer overflows the screen on phones.
 - Aurora: the footer stays at the bottom of the window on short pages (login, cart, 404).
 - New stores start with Home and Catalog links in the main menu and a Search link in the footer menu, instead of empty menus.
+- Admin: opening a notification template that has no translated name or description no longer crashes the page; the pickup, local delivery and fulfillment request templates now have English and French names.
+- Admin: table columns no longer jump when rows are selected (the bulk bar keeps the header widths), and the bulk bar wraps instead of clipping the "show only selected" switch in French.
+- Admin: row menus ("...") in settings lists are no longer cut off by the card edge; list empty states say "No results found" instead of "No products found" on orders, customers and the other lists.
+- Admin: the timeline avatar, the user menu avatar, the notification count badge and the Home links were unreadable in the dark theme.
+- Admin: whole-number chart axes (Live view) no longer repeat the same label, the Home storefront thumbnail no longer logs a blocked-script console error, countries in customer, label and order addresses and the Online Store channel name follow the interface language.
+- Admin: the product variant stock table gives the location name more room, and the product metafields card no longer suggests adding a value that the card cannot take.
 
 ## [0.1.0] - 2026-11-05
 

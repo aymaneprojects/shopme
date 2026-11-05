@@ -392,7 +392,7 @@ Of 36 P0/P1 global objects in the spec, 31 exist. Absent: `article`, `blog` (no 
 2. Discount codes act only at checkout; the cart, the Ajax responses and the product pages know nothing about them.
 3. Search covers products only, with no ranking beyond substring and best-selling; no typo tolerance and no
    article/page search. Predictive search supports `product`, `collection`, `page` and returns no `queries` or `tags`.
-4. Images are served as uploaded; no resizing, no WebP/AVIF, no CDN integration, no focal-point or alt-text tools.
+4. Images are served as uploaded; no resizing, no WebP/AVIF, no CDN integration, no alt-text tools. A focal point can be set per image, and the Aurora theme applies it as `object-position`.
 5. HTML pages are `no-cache`; the reference revalidates and relies on edge caching. No page caching layer exists.
 6. Emails come from two hard-coded templates and need an SMTP URL; without one, mail is logged and dropped.
 
