@@ -40,9 +40,10 @@ describe('storefront search', () => {
 
   it('searches products, pages and articles by type and returns mixed results', async () => {
     const all = await get('/search?q=about');
-    expect(all.body).toContain('/pages/about-us');
+    expect(all.body).toContain('class="search-result__link" href="/pages/about-us"');
     expect(all.body).toContain('search-result__type');
-    expect((await get(`/search?${q({ q: 'about', type: 'product' })}`)).body).not.toContain('/pages/about-us');
+    // The header and footer menus link to the About page too, so look only at the result links.
+    expect((await get(`/search?${q({ q: 'about', type: 'product' })}`)).body).not.toContain('class="search-result__link" href="/pages/about-us"');
     const sug = await json(`/search/suggest.json?${q({ q: 'about', 'resources[type]': 'page,article,collection,query' })}`);
     expect(sug.resources.results.pages.map((p: { url: string }) => p.url)).toContain('/pages/about-us');
     expect(Array.isArray(sug.resources.results.articles)).toBe(true);
