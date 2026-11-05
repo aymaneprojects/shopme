@@ -500,7 +500,7 @@ export async function runScenario({ baseUrl, root }) {
       const row = admin.getByRole('row', { name: /#1001/ });
       await vis(row);
       const t = await text(row);
-      assert.match(t, /#1001.*Julie Dupont €35\.50 Payment pending Unfulfilled 1/);
+      assert.match(t, /#1001.*Julie Dupont Online store €35\.50 Payment pending Unfulfilled 1/);
       await shot('13-admin-orders');
     });
 
@@ -630,13 +630,12 @@ export async function runScenario({ baseUrl, root }) {
       await admin.keyboard.press('Escape');
       // bulk bar
       await admin.getByRole('row', { name: /#1001/ }).getByRole('checkbox').check();
-      for (const name of ['Print', 'Create shipping labels', 'Mark as', 'Capture payments', 'Batch', 'Add tags']) await vis(admin.getByRole('toolbar').getByRole('button', { name }));
+      for (const name of ['Print', 'Create shipping labels', 'Mark as', 'Capture payments', 'Create batch', 'Move to batch']) await vis(admin.getByRole('toolbar').getByRole('button', { name }));
       await admin.getByRole('toolbar').getByRole('button', { name: 'Mark as' }).click();
       await admin.getByRole('menuitem', { name: 'Delivered' }).click();
       await vis(admin.getByText('1 order updated'));
       await admin.getByRole('row', { name: /#1001/ }).getByRole('checkbox').check();
-      await admin.getByRole('toolbar').getByRole('button', { name: 'Batch' }).click();
-      await admin.getByRole('menuitem', { name: 'Create batch' }).click();
+      await admin.getByRole('toolbar').getByRole('button', { name: 'Create batch' }).click();
       await admin.getByLabel('Batch name').fill('Morning pick');
       await admin.getByRole('dialog').getByRole('button', { name: 'Create batch' }).click();
       await vis(admin.getByText('Batch Morning pick created'));
