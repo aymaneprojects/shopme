@@ -83,7 +83,7 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
   const refList = (kind: 'collections' | 'products') => (
     <ul className="mt-2 divide-y divide-line">
       {form[kind].map((r) => (
-        <li key={r.id} className="flex items-center gap-2 py-1.5 text-sm"><span className="flex-1">{r.title}</span>
+        <li key={r.id} className="flex items-center gap-2 py-1.5 text-[13px]"><span className="flex-1">{r.title}</span>
           <button type="button" aria-label={`${t('common.remove')} ${r.title}`} className="rounded p-1 text-muted hover:bg-surface" onClick={() => set({ [kind]: form[kind].filter((x) => x.id !== r.id) })}><Trash2 className="size-4" /></button></li>
       ))}
     </ul>
@@ -176,7 +176,7 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
         </div>
         <div>
           <Card title={t('discount.summary')} className="sticky top-16">
-            <ul className="list-disc space-y-1 pl-4 text-sm">{summary.map((s, i) => <li key={i}>{s}</li>)}</ul>
+            <ul className="list-disc space-y-1 pl-4 text-[13px]">{summary.map((s, i) => <li key={i}>{s}</li>)}</ul>
           </Card>
         </div>
       </div>

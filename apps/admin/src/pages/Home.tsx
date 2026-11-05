@@ -46,7 +46,7 @@ export function HomePage() {
   const kpi = (label: string, value: string) => <Card key={label} title={label}><p className="text-2xl font-semibold">{q.isLoading ? <Skeleton className="h-8 w-24" /> : value}</p></Card>;
   const series = (d?.salesByDay ?? []).map((x) => ({ date: x.date, total: Number(x.sales.amount) }));
   const maxQty = Math.max(1, ...(d?.topProducts ?? []).map((p) => p.quantity));
-  const link = 'inline-flex items-center gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-sm font-medium hover:bg-surface';
+  const link = 'inline-flex items-center gap-2 field-control font-medium hover:bg-surface';
 
   return (
     <>
@@ -60,13 +60,13 @@ export function HomePage() {
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_20rem]">
         <Card title={t('home.salesByDay')}>
-          {series.length ? <SalesChart data={series} label={t('home.salesByDay')} format={(n) => fmt.money({ amount: String(n), currencyCode: shop.currency })} /> : <p className="py-8 text-center text-sm text-muted">{t('home.noSales')}</p>}
+          {series.length ? <SalesChart data={series} label={t('home.salesByDay')} format={(n) => fmt.money({ amount: String(n), currencyCode: shop.currency })} /> : <p className="py-8 text-center text-[13px] text-muted">{t('home.noSales')}</p>}
         </Card>
         <Card title={t('home.topProducts')}>
-          {(d?.topProducts.length ?? 0) === 0 ? <p className="text-sm text-muted">{t('home.noSales')}</p> : (
+          {(d?.topProducts.length ?? 0) === 0 ? <p className="text-[13px] text-muted">{t('home.noSales')}</p> : (
             <ul className="flex flex-col gap-2">
               {d!.topProducts.map((p) => (
-                <li key={p.title} className="text-sm"><div className="flex justify-between gap-2"><span className="truncate">{p.title}</span><span className="text-muted">{p.quantity}</span></div>
+                <li key={p.title} className="text-[13px]"><div className="flex justify-between gap-2"><span className="truncate">{p.title}</span><span className="text-muted">{p.quantity}</span></div>
                   <div className="mt-1 h-1.5 rounded-full bg-surface"><div className="h-1.5 rounded-full bg-primary" style={{ width: `${(p.quantity / maxQty) * 100}%` }} /></div></li>
               ))}
             </ul>

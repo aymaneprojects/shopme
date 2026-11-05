@@ -31,13 +31,13 @@ export function WebhooksSettings() {
   const add = <Button variant="primary" onClick={() => { setError(null); setCreating({ topic: TOPICS[0]!, callbackUrl: '' }); }}><Plus className="size-4" />{t('hooks.add')}</Button>;
   return (
     <Card title={t('settings.webhooks')} actions={add}>
-      <p className="mb-3 text-sm text-muted">{t('hooks.intro')}</p>
+      <p className="mb-3 text-[13px] text-muted">{t('hooks.intro')}</p>
       {q.isLoading && <Skeleton className="h-24" />}
       {q.error && <Banner>{q.error.message}</Banner>}
-      {q.data && hooks.length === 0 && <p className="py-4 text-sm text-muted">{t('hooks.empty')}</p>}
+      {q.data && hooks.length === 0 && <p className="py-4 text-[13px] text-muted">{t('hooks.empty')}</p>}
       <ul className="divide-y divide-line">
         {hooks.map((h) => (
-          <li key={h.id} className="flex flex-col gap-2 py-3 text-sm">
+          <li key={h.id} className="flex flex-col gap-2 py-3 text-[13px]">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="info">{h.topic}</Badge><span className="min-w-0 flex-1 truncate font-mono text-xs">{h.endpoint?.callbackUrl}</span>
               <Button size="sm" onClick={() => setShown((s) => ({ ...s, [h.id]: !s[h.id] }))}>{t(shown[h.id] ? 'hooks.hideSecret' : 'hooks.showSecret')}</Button>
@@ -72,8 +72,8 @@ function DeliveryLog({ hook, onClose }: { hook: Hook | null; onClose: () => void
     <Modal open={!!hook} onClose={onClose} closeLabel={t('common.close')} wide title={t('hooks.deliveriesTitle', { topic: hook?.topic ?? '' })}>
       {q.isLoading && <Skeleton className="h-24" />}
       {q.error && <Banner>{q.error.message}</Banner>}
-      {q.data && rows.length === 0 && <p className="text-sm text-muted">{t('hooks.noDeliveries')}</p>}
-      <ul className="divide-y divide-line text-sm">
+      {q.data && rows.length === 0 && <p className="text-[13px] text-muted">{t('hooks.noDeliveries')}</p>}
+      <ul className="divide-y divide-line text-[13px]">
         {rows.map((d) => (
           <li key={d.id} className="flex flex-wrap items-center gap-3 py-2">
             <Badge tone={/success|delivered/i.test(d.status) ? 'success' : /pending|retry/i.test(d.status) ? 'warning' : 'critical'}>{d.status}</Badge>

@@ -76,12 +76,12 @@ export function CustomersPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.customers')} actions={<>{count.data && <span className="text-sm text-muted">{t('customers.count', { n: count.data.customersCount.count })}</span>}<ExportButton kind="customers" /><ImportButton kind="customers" invalidate={['customers', 'customers-count']} />{add}</>} />
+      <PageHeader title={t('nav.customers')} actions={<>{count.data && <span className="text-[13px] text-muted">{t('customers.count', { n: count.data.customersCount.count })}</span>}<ExportButton kind="customers" /><ImportButton kind="customers" invalidate={['customers', 'customers-count']} />{add}</>} />
       <Card className="!p-0">
         <div className="px-3 pt-1"><Tabs tabs={TABS.map((id) => ({ id, label: t(`customers.tab.${id}` as Key) }))} value={tab} onChange={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v }); }} /></div>
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
           <div className="relative min-w-48 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
+            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('customers.search')} aria-label={t('customers.search')} className={searchCls} />
           </div>
           <input type="text" aria-label={t('field.tags')} placeholder={t('field.tags')} value={L.get('tag')} onChange={(e) => L.patch({ tag: e.target.value })} className={`${selectCls} w-28`} />
@@ -162,18 +162,18 @@ function CustomerView({ c }: { c: CustomerData }) {
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">
           <Card>
-            <dl className="grid grid-cols-3 gap-4 text-sm">
+            <dl className="grid grid-cols-3 gap-4 text-[13px]">
               <div><dt className="text-muted">{t('customers.spent')}</dt><dd className="text-lg font-semibold">{fmt.money(c.amountSpent)}</dd></div>
               <div><dt className="text-muted">{t('customers.orders')}</dt><dd className="text-lg font-semibold">{c.numberOfOrders}</dd></div>
               <div><dt className="text-muted">{t('customers.since')}</dt><dd className="text-lg font-semibold">{since}</dd></div>
             </dl>
           </Card>
-          <Card title={t('customers.recentOrders')} actions={c.numberOfOrders > 0 && <Link className="text-sm text-primary hover:underline" to={`/orders?q=${encodeURIComponent(`customer_id:${num}`)}`}>{t('customers.viewAllOrders')}</Link>}>
-            {c.orders.nodes.length === 0 ? <p className="text-sm text-muted">{t('customers.noOrders')}</p> : (
+          <Card title={t('customers.recentOrders')} actions={c.numberOfOrders > 0 && <Link className="text-[13px] text-accent hover:underline" to={`/orders?q=${encodeURIComponent(`customer_id:${num}`)}`}>{t('customers.viewAllOrders')}</Link>}>
+            {c.orders.nodes.length === 0 ? <p className="text-[13px] text-muted">{t('customers.noOrders')}</p> : (
               <ul className="divide-y divide-line">
                 {c.orders.nodes.map((o) => (
-                  <li key={o.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
-                    <Link to={`/orders/${gidToNum(o.id)}`} className="font-medium text-primary hover:underline">{o.name}</Link>
+                  <li key={o.id} className="flex flex-wrap items-center gap-3 py-2 text-[13px]">
+                    <Link to={`/orders/${gidToNum(o.id)}`} className="font-medium text-accent hover:underline">{o.name}</Link>
                     <span className="text-muted">{fmt.date(o.createdAt)}</span>
                     <FinancialBadge status={o.displayFinancialStatus} /><FulfillmentBadge status={o.displayFulfillmentStatus} />
                     <span className="ml-auto">{fmt.money(o.totalPriceSet)}</span>
@@ -185,13 +185,13 @@ function CustomerView({ c }: { c: CustomerData }) {
         </div>
         <div className="flex flex-col gap-4">
           <Card title={t('customers.contact')}>
-            <div className="flex flex-col gap-1 text-sm">
+            <div className="flex flex-col gap-1 text-[13px]">
               <span>{c.defaultEmailAddress?.emailAddress ?? '—'}</span>
               <span className="text-muted">{c.defaultPhoneNumber?.phoneNumber ?? ''}</span>
               <div className="mt-1"><MarketingBadge state={c.defaultEmailAddress?.marketingState} /></div>
             </div>
           </Card>
-          <Card title={t('customers.addresses')}>{c.addressesV2.nodes.length ? <div className="flex flex-col gap-3">{c.addressesV2.nodes.map((a) => <AddressBlock key={a.id} a={a} />)}</div> : <p className="text-sm text-muted">{t('customers.noAddress')}</p>}</Card>
+          <Card title={t('customers.addresses')}>{c.addressesV2.nodes.length ? <div className="flex flex-col gap-3">{c.addressesV2.nodes.map((a) => <AddressBlock key={a.id} a={a} />)}</div> : <p className="text-[13px] text-muted">{t('customers.noAddress')}</p>}</Card>
           <Card title={t('field.tags')}><TagInput value={c.tags} onChange={(v) => tags.mutate(v)} removeLabel={t('common.remove')} /></Card>
           <Card title={t('order.notes')}>
             <Textarea aria-label={t('order.notes')} value={note} onChange={(e) => setNote(e.target.value)} />

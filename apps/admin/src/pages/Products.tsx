@@ -24,8 +24,8 @@ export const statusTone = { ACTIVE: 'success', DRAFT: 'warning', ARCHIVED: 'neut
 const PAGE_SIZE = 25;
 const SORTS = { TITLE: 'TITLE', CREATED_AT: 'CREATED_AT', UPDATED_AT: 'UPDATED_AT', INVENTORY_TOTAL: 'INVENTORY_TOTAL', PRODUCT_TYPE: 'PRODUCT_TYPE', VENDOR: 'VENDOR' };
 
-export function Thumb({ url, className = 'size-10' }: { url?: string | null; className?: string }) {
-  return url ? <img src={url} alt="" className={`${className} rounded-md border border-line object-cover`} /> : <div className={`${className} grid place-items-center rounded-md border border-line bg-surface text-muted`}><ImageIcon className="size-4" /></div>;
+export function Thumb({ url, className = 'size-8' }: { url?: string | null; className?: string }) {
+  return url ? <img src={url} alt="" className={`${className} rounded-lg border border-line object-cover`} /> : <div className={`${className} grid place-items-center rounded-md border border-line bg-surface text-muted`}><ImageIcon className="size-4" /></div>;
 }
 
 export function ProductsPage() {
@@ -103,7 +103,7 @@ export function ProductsPage() {
   ];
 
   const pick = (key: string, items: string[], all: string) => (
-    <select aria-label={all} value={get(key)} onChange={(e) => patch({ [key]: e.target.value })} className="rounded-md border border-line bg-canvas px-2 py-1.5 text-sm">
+    <select aria-label={all} value={get(key)} onChange={(e) => patch({ [key]: e.target.value })} className="field-control">
       <option value="">{all}</option>
       {items.map((i) => <option key={i} value={i}>{i}</option>)}
     </select>
@@ -126,18 +126,18 @@ export function ProductsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
           <div className="relative min-w-48 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); patch({ q: e.target.value }); }} placeholder={t('products.search')} aria-label={t('products.search')} className="w-full rounded-md border border-line bg-canvas py-2 pl-8 pr-3 text-sm" />
+            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
+            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); patch({ q: e.target.value }); }} placeholder={t('products.search')} aria-label={t('products.search')} className="field-control w-full pl-8" />
           </div>
           {pick('vendor', flattenStrings(opt?.productVendors), t('field.vendor'))}
           {pick('type', flattenStrings(opt?.productTypes), t('field.productType'))}
           {pick('tag', flattenStrings(opt?.productTags), t('field.tags'))}
-          <select aria-label={t('products.inventory')} value={get('stock')} onChange={(e) => patch({ stock: e.target.value })} className="rounded-md border border-line bg-canvas px-2 py-1.5 text-sm">
+          <select aria-label={t('products.inventory')} value={get('stock')} onChange={(e) => patch({ stock: e.target.value })} className="field-control">
             <option value="">{t('products.inventory')}</option>
             <option value="in">{t('products.stockIn')}</option>
             <option value="out">{t('products.stockOut')}</option>
           </select>
-          <select aria-label={t('common.sort')} value={sort.key} onChange={(e) => patch({ sort: e.target.value })} className="rounded-md border border-line bg-canvas px-2 py-1.5 text-sm">
+          <select aria-label={t('common.sort')} value={sort.key} onChange={(e) => patch({ sort: e.target.value })} className="field-control">
             {Object.keys(SORTS).map((k) => <option key={k} value={k}>{t(`sort.${k}` as 'sort.TITLE')}</option>)}
           </select>
         </div>

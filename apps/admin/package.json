@@ -14,6 +14,7 @@
     "screenshots": "tsx e2e/smoke.ts --screenshots"
   },
   "dependencies": {
+    "@fontsource-variable/geist": "5.2.8",
     "@shopme/ui": "workspace:*",
     "@tanstack/react-query": "5.106.0",
     "lucide-react": "1.68.0",

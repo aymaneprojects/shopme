@@ -66,14 +66,14 @@ function Editor({ tabs, themeId, name, schemaJson, dataJson, localesData }: { ta
       <PageHeader back="/online-store" title={t('themes.customizeTitle', { name })}
         actions={<div className="flex rounded-md border border-line" role="group" aria-label={t('themes.device')}>
           {([['desktop', Monitor], ['mobile', Smartphone]] as const).map(([d, Icon]) => (
-            <button key={d} type="button" aria-pressed={device === d} aria-label={t(`themes.${d}`)} onClick={() => setDevice(d)} className={`p-2 ${device === d ? 'bg-primary-subtle text-primary' : 'text-muted'}`}><Icon className="size-4" /></button>
+            <button key={d} type="button" aria-pressed={device === d} aria-label={t(`themes.${d}`)} onClick={() => setDevice(d)} className={`p-2 ${device === d ? 'bg-primary-subtle text-accent' : 'text-muted'}`}><Icon className="size-4" /></button>
           ))}
         </div>} />
       {tabs}
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
       <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
         <div className="flex flex-col gap-2 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
-          {groups.length === 0 && <p className="text-sm text-muted">{t('themes.noSettings')}</p>}
+          {groups.length === 0 && <p className="text-[13px] text-muted">{t('themes.noSettings')}</p>}
           {groups.map((g, i) => <Group key={i} group={g} open={i === 0} label={label} values={values} onChange={(id, v) => setValues((s) => ({ ...s, [id]: v }))} />)}
         </div>
         <div className="flex justify-center rounded-lg border border-line bg-surface p-2">
@@ -87,11 +87,11 @@ function Editor({ tabs, themeId, name, schemaJson, dataJson, localesData }: { ta
 function Group({ group, open, label, values, onChange }: { group: SettingGroup; open: boolean; label: (l?: string) => string; values: Record<string, SettingValue>; onChange: (id: string, v: SettingValue) => void }) {
   return (
     <details open={open} className="rounded-lg border border-line bg-canvas">
-      <summary className="cursor-pointer px-3 py-2 text-sm font-semibold">{label(group.name)}</summary>
+      <summary className="cursor-pointer px-3 py-2 text-[13px] font-semibold">{label(group.name)}</summary>
       <div className="flex flex-col gap-3 border-t border-line p-3">
         {group.settings.map((s, i) => isInput(s)
           ? <SettingField key={s.id} def={s} label={label(s.label)} info={s.info ? label(s.info) : undefined} value={values[s.id]!} optionLabel={label} onChange={(v) => onChange(s.id, v)} />
-          : s.type === 'header' ? <h3 key={i} className="text-sm font-semibold">{label(s.content)}</h3>
+          : s.type === 'header' ? <h3 key={i} className="text-[13px] font-semibold">{label(s.content)}</h3>
             : s.type === 'paragraph' ? <p key={i} className="text-xs text-muted">{label(s.content)}</p> : null)}
       </div>
     </details>

@@ -67,7 +67,7 @@ export function InventoryPage() {
         const key = editKey(v);
         return (
           <input type="number" min={0} aria-label={`${t('inventory.available')} ${v.product.title}`} value={edits[key] ?? current}
-            className="w-24 rounded-md border border-line bg-canvas px-2 py-1"
+            className="w-24 field-control"
             onChange={(e) => setEdits((s) => { const n = { ...s }; if (e.target.value === current) delete n[key]; else n[key] = e.target.value; return n; })} />
         );
       },
@@ -83,10 +83,10 @@ export function InventoryPage() {
       <Card className="!p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
           <div className="relative min-w-48 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); setCursor({}); }} placeholder={t('inventory.search')} aria-label={t('inventory.search')} className="w-full rounded-md border border-line bg-canvas py-2 pl-8 pr-3 text-sm" />
+            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
+            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); setCursor({}); }} placeholder={t('inventory.search')} aria-label={t('inventory.search')} className="field-control w-full pl-8" />
           </div>
-          <select aria-label={t('inventory.location')} value={location} onChange={(e) => { setLocation(e.target.value); setEdits({}); }} className="rounded-md border border-line bg-canvas px-2 py-1.5 text-sm">
+          <select aria-label={t('inventory.location')} value={location} onChange={(e) => { setLocation(e.target.value); setEdits({}); }} className="field-control">
             <option value="">{t('inventory.allLocations')}</option>
             {locs.data?.locations.nodes.filter((l) => l.isActive !== false).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>

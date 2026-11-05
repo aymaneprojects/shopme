@@ -20,7 +20,7 @@ export function ShopifyImportSettings() {
   return (
     <div className="flex flex-col gap-4">
       <Card title={t('shopify.howTitle')}>
-        <ol className="list-decimal space-y-1 pl-5 text-sm">{(['1', '2', '3', '4'] as const).map((n) => <li key={n}>{t(`shopify.step${n}` as 'shopify.step1')}</li>)}</ol>
+        <ol className="list-decimal space-y-1 pl-5 text-[13px]">{(['1', '2', '3', '4'] as const).map((n) => <li key={n}>{t(`shopify.step${n}` as 'shopify.step1')}</li>)}</ol>
         <p className="mt-3 text-xs text-muted">{t('shopify.scopes')}</p>
       </Card>
       <Card title={t('shopify.formTitle')}>

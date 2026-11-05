@@ -28,8 +28,8 @@ export function RedirectsPage() {
   });
   const remove = useMutation({ mutationFn: (id: string) => mutate(URL_REDIRECT_DELETE, { id }, 'urlRedirectDelete'), onSuccess: () => done(t('redirects.deleted')), onError: (e) => { setDel(null); toast(e.message, 'critical'); } });
   const columns: Array<Column<Redirect>> = [
-    { key: 'path', header: t('redirects.from'), cell: (r) => <code className="text-sm">{r.path}</code> },
-    { key: 'target', header: t('redirects.to'), cell: (r) => <code className="text-sm">{r.target}</code> },
+    { key: 'path', header: t('redirects.from'), cell: (r) => <code className="text-[13px]">{r.path}</code> },
+    { key: 'target', header: t('redirects.to'), cell: (r) => <code className="text-[13px]">{r.target}</code> },
     { key: 'actions', header: '', className: 'w-24 text-right', cell: (r) => <Button size="sm" variant="danger" onClick={(e) => { e.stopPropagation(); setDel(r); }}>{t('common.delete')}</Button> },
   ];
   const add = <Button variant="primary" onClick={() => setEdit({ id: null, path: '', target: '' })}><Plus className="size-4" />{t('redirects.add')}</Button>;

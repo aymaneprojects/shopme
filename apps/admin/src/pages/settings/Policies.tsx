@@ -45,7 +45,7 @@ function PolicyForms({ policies }: { policies: Policy[] }) {
       {TYPES.map((k) => {
         const url = policies.find((p) => p.type === k)?.url;
         return (
-          <Card key={k} title={t(`policies.${k}` as Key)} actions={url && <a href={url} target="_blank" rel="noreferrer" className="text-sm text-primary underline">{t('policies.view')}</a>}>
+          <Card key={k} title={t(`policies.${k}` as Key)} actions={url && <a href={url} target="_blank" rel="noreferrer" className="text-[13px] text-accent underline">{t('policies.view')}</a>}>
             <RichTextEditor value={bodies[k]!} onChange={(v) => setBodies((b) => ({ ...b, [k]: v }))} labels={rte} />
           </Card>
         );
@@ -66,7 +66,7 @@ function CookieBanner() {
   return (
     <Card title={t('policies.cookies')}>
       <div className="flex flex-col gap-2">
-        <p className="text-sm text-muted">{t('policies.cookiesHelp')}</p>
+        <p className="text-[13px] text-muted">{t('policies.cookiesHelp')}</p>
         {q.error ? <Banner>{q.error.message}</Banner> : <Switch checked={toggle.isPending ? !!toggle.variables : !!q.data?.shop.cookieBannerEnabled} onChange={(v) => toggle.mutate(v)} label={t('policies.cookiesEnable')} />}
       </div>
     </Card>

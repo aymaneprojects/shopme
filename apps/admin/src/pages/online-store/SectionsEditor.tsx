@@ -123,7 +123,7 @@ function Inner({ themeId, name, tabs, template, templates, onTemplate, initial, 
           <Button aria-label={t('editor.undo')} disabled={!hist.past.length} onClick={() => dispatch({ kind: 'undo' })}><Undo2 className="size-4" />{t('editor.undo')}</Button>
           <div className="flex rounded-md border border-line" role="group" aria-label={t('themes.device')}>
             {([['desktop', Monitor], ['mobile', Smartphone]] as const).map(([d, Icon]) => (
-              <button key={d} type="button" aria-pressed={device === d} aria-label={t(`themes.${d}`)} onClick={() => setDevice(d)} className={cx('p-2', device === d ? 'bg-primary-subtle text-primary' : 'text-muted')}><Icon className="size-4" /></button>
+              <button key={d} type="button" aria-pressed={device === d} aria-label={t(`themes.${d}`)} onClick={() => setDevice(d)} className={cx('p-2', device === d ? 'bg-primary-subtle text-accent' : 'text-muted')}><Icon className="size-4" /></button>
             ))}
           </div>
         </>} />
@@ -187,14 +187,14 @@ function Inner({ themeId, name, tabs, template, templates, onTemplate, initial, 
             );
           })}
           {sel && current && (
-            <section className="rounded-lg border border-primary bg-canvas" aria-label={t('editor.settings')}>
-              <h2 className="border-b border-line px-3 py-2 text-sm font-semibold">{block ? label(idx.blocks[block.type]?.name) || block.type : sectionTitle(current)}</h2>
+            <section className="rounded-lg border border-accent bg-canvas" aria-label={t('editor.settings')}>
+              <h2 className="border-b border-line px-3 py-2 text-[13px] font-semibold">{block ? label(idx.blocks[block.type]?.name) || block.type : sectionTitle(current)}</h2>
               <div className="flex flex-col gap-3 p-3">
-                {!defs.length && <p className="text-sm text-muted">{t('editor.noSettings')}</p>}
+                {!defs.length && <p className="text-[13px] text-muted">{t('editor.noSettings')}</p>}
                 {defs.map((d, i) => isField(d)
                   ? <SettingField key={`${sel.section}:${sel.block ?? ''}:${d.id}`} def={d} label={label(d.label)} info={d.info ? label(d.info) : undefined} optionLabel={label}
                     value={coerceValue(d, values[d.id])} onChange={(v) => edit(sel.file, { kind: 'setSetting', id: sel.section, block: sel.block, key: d.id, value: v })} />
-                  : d.type === 'header' ? <h3 key={i} className="text-sm font-semibold">{label(d.content)}</h3>
+                  : d.type === 'header' ? <h3 key={i} className="text-[13px] font-semibold">{label(d.content)}</h3>
                     : d.type === 'paragraph' ? <p key={i} className="text-xs text-muted">{label(d.content)}</p> : null)}
               </div>
             </section>
@@ -205,11 +205,11 @@ function Inner({ themeId, name, tabs, template, templates, onTemplate, initial, 
         </div>
       </div>
       <Modal open={!!adding} onClose={() => setAdding(null)} closeLabel={t('common.close')} title={t('editor.addSection')} wide>
-        {sectionPicker.length === 0 ? <p className="text-sm text-muted">{t('editor.noPresets')}</p> : (
+        {sectionPicker.length === 0 ? <p className="text-[13px] text-muted">{t('editor.noPresets')}</p> : (
           <ul className="grid gap-2 sm:grid-cols-2">
             {sectionPicker.flatMap((s) => s.presets.map((p, pi) => (
               <li key={`${s.type}:${pi}`}><button type="button" className="w-full rounded-md border border-line p-3 text-left hover:bg-surface" onClick={() => adding && addSection(adding, s.type, pi)}>
-                <span className="block text-sm font-medium">{label(p.name) || label(s.name)}</span><span className="block text-xs text-muted">{s.type}</span></button></li>
+                <span className="block text-[13px] font-medium">{label(p.name) || label(s.name)}</span><span className="block text-xs text-muted">{s.type}</span></button></li>
             )))}
           </ul>
         )}
@@ -226,7 +226,7 @@ function Row({ title, selected, dim, hidden, grip, labels, onSelect, onUp, onDow
   return (
     <div className={cx('group flex items-center gap-0.5 rounded-md px-1', selected ? 'bg-primary-subtle' : 'hover:bg-surface')}>
       {grip && <GripVertical className="size-3.5 shrink-0 cursor-grab text-muted" aria-hidden />}
-      <button type="button" onClick={onSelect} aria-current={selected} className={cx('min-w-0 flex-1 truncate py-1.5 pl-1 text-left text-sm', dim && 'text-muted line-through decoration-1', selected && 'font-medium text-primary')}>{title}</button>
+      <button type="button" onClick={onSelect} aria-current={selected} className={cx('min-w-0 flex-1 truncate py-1.5 pl-1 text-left text-[13px]', dim && 'text-muted line-through decoration-1', selected && 'font-medium text-accent')}>{title}</button>
       <button type="button" className={btn} aria-label={`${labels.up}: ${title}`} disabled={!onUp} onClick={onUp}><ArrowUp className="size-3.5" /></button>
       <button type="button" className={btn} aria-label={`${labels.down}: ${title}`} disabled={!onDown} onClick={onDown}><ArrowDown className="size-3.5" /></button>
       <button type="button" className={btn} aria-label={`${hidden ? labels.show : labels.hide}: ${title}`} onClick={onToggle}>{hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</button>

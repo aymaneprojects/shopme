@@ -97,7 +97,7 @@ function PostForm({ id, initial, blogs }: { id: string | null; initial: ArticleF
         <div className="flex flex-col gap-4">
           <Card><div className="flex flex-col gap-3">
             <Input label={t('field.title')} required value={form.title} onChange={(e) => set({ title: e.target.value })} />
-            <div className="flex flex-col gap-1"><span className="text-sm font-medium">{t('pages.content')}</span><RichTextEditor value={form.body} onChange={(body) => set({ body })} labels={rte} /></div>
+            <div className="flex flex-col gap-1"><span className="text-[13px] font-medium">{t('pages.content')}</span><RichTextEditor value={form.body} onChange={(body) => set({ body })} labels={rte} /></div>
             <Textarea label={t('blogs.summary')} help={t('blogs.summaryHelp')} value={form.summary} onChange={(e) => set({ summary: e.target.value })} />
           </div></Card>
           <Card title={t('blogs.image')}>
@@ -153,7 +153,7 @@ export function BlogsPage() {
       {q.data && blogs.length === 0 && <EmptyState icon={<FileText className="size-10" />} title={t('blogs.noBlogsTitle')} description={t('blogs.noBlogsBody')} action={add} />}
       <ul className="divide-y divide-line">
         {blogs.map((b) => (
-          <li key={b.id} className="flex items-center gap-3 py-2 text-sm">
+          <li key={b.id} className="flex items-center gap-3 py-2 text-[13px]">
             <span className="flex-1"><span className="font-medium">{b.title}</span> <span className="text-muted">/{b.handle}</span></span>
             <Button size="sm" aria-label={`${t('common.edit')}: ${b.title}`} onClick={() => setEdit({ id: b.id, title: b.title, handle: b.handle })}><Pencil className="size-3.5" />{t('common.edit')}</Button>
             <Button size="sm" variant="danger" onClick={() => setDel(b)}>{t('common.delete')}</Button>

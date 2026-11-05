@@ -54,7 +54,7 @@ export function RichTextEditor({ value, onChange, labels = defaultLabels, id }: 
         <textarea id={id} className="block min-h-40 w-full bg-canvas p-3 font-mono text-xs" value={value} onChange={(e) => onChange(e.target.value)} />
       ) : (
         <div id={id} ref={ref} contentEditable suppressContentEditableWarning role="textbox" aria-multiline onInput={emit} onBlur={emit}
-          className="prose-sm min-h-40 p-3 text-sm outline-none [&_a]:text-primary [&_a]:underline [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5" />
+          className="prose-sm min-h-40 p-3 text-[13px] outline-none [&_a]:text-accent [&_a]:underline [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:font-semibold [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5" />
       )}
     </div>
   );

@@ -30,7 +30,7 @@ export function PagesListPage() {
   const add = <Button variant="primary" onClick={() => nav('/online-store/pages/new')}><Plus className="size-4" />{t('pages.add')}</Button>;
   return (
     <Card className="!p-0">
-      <div className="flex items-center justify-between border-b border-line p-3"><h2 className="text-sm font-semibold">{t('store.pages')}</h2>{add}</div>
+      <div className="flex items-center justify-between border-b border-line p-3"><h2 className="text-[13px] font-semibold">{t('store.pages')}</h2>{add}</div>
       {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
       <IndexTable rows={list.data?.pages.nodes ?? []} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/online-store/pages/${gidToNum(r.id)}`)}
         empty={list.isError ? null : <EmptyState icon={<FileText className="size-10" />} title={t('pages.emptyTitle')} description={t('pages.emptyBody')} action={add} />} />
@@ -89,7 +89,7 @@ function PageFormView({ id, initial }: { id: string | null; initial: PageForm })
         <Card>
           <div className="flex flex-col gap-3">
             <Input label={t('field.title')} required value={form.title} error={titleErr} onChange={(e) => set({ title: e.target.value })} />
-            <div className="flex flex-col gap-1"><span className="text-sm font-medium">{t('pages.content')}</span>
+            <div className="flex flex-col gap-1"><span className="text-[13px] font-medium">{t('pages.content')}</span>
               <RichTextEditor value={form.body} onChange={(body) => set({ body })}
                 labels={{ bold: t('rte.bold'), italic: t('rte.italic'), underline: t('rte.underline'), list: t('rte.list'), orderedList: t('rte.orderedList'), link: t('rte.link'), source: t('rte.source'), paragraph: t('rte.paragraph'), heading: t('rte.heading'), subheading: t('rte.subheading'), linkPrompt: t('rte.linkPrompt') }} /></div>
           </div>

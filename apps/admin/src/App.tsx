@@ -4,7 +4,7 @@ import { Suspense, lazy } from 'react';
 import type { ComponentType } from 'react';
 import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
-import { Shell } from './components/Shell';
+import { PageFallback, Shell } from './components/Shell';
 import { I18nProvider, useT } from './i18n';
 import { LoginPage, SetupPage } from './pages/Auth';
 import { CollectionEditPage } from './pages/CollectionEdit';
@@ -21,7 +21,7 @@ import { Spinner } from '@shopme/ui';
 // Commerce and online-store routes are code-split so the initial bundle stays small.
 const L = (load: () => Promise<Record<string, unknown>>, name: string) => {
   const C = lazy(async () => ({ default: (await load())[name] as ComponentType }));
-  return <Suspense fallback={<Spinner />}><C /></Suspense>;
+  return <Suspense fallback={<PageFallback />}><C /></Suspense>;
 };
 
 const router = createBrowserRouter(

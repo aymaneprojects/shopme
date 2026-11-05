@@ -109,7 +109,7 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
             <div className="flex flex-col gap-3">
               <Input label={t('field.title')} required value={form.title} error={titleError} onChange={(e) => set({ title: e.target.value })} />
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium">{t('field.description')}</span>
+                <span className="text-[13px] font-medium">{t('field.description')}</span>
                 <RichTextEditor value={form.descriptionHtml} onChange={(descriptionHtml) => set({ descriptionHtml })}
                   labels={{ bold: t('rte.bold'), italic: t('rte.italic'), underline: t('rte.underline'), list: t('rte.list'), orderedList: t('rte.orderedList'), link: t('rte.link'), source: t('rte.source'), paragraph: t('rte.paragraph'), heading: t('rte.heading'), subheading: t('rte.subheading'), linkPrompt: t('rte.linkPrompt') }} />
               </div>
@@ -118,7 +118,7 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
 
           <Card title={t('collection.type')}>
             <div className="flex flex-col gap-3">
-              <div className="flex gap-4 text-sm" role="radiogroup" aria-label={t('collection.type')}>
+              <div className="flex gap-4 text-[13px]" role="radiogroup" aria-label={t('collection.type')}>
                 {[false, true].map((smart) => (
                   <label key={String(smart)} className="inline-flex items-center gap-1.5">
                     <input type="radio" name="ctype" disabled={!!id} className="accent-(--color-primary)" checked={form.smart === smart} onChange={() => set({ smart, ruleSet: smart && !form.ruleSet.rules.length ? { ...form.ruleSet, rules: [defaultRule()] } : form.ruleSet })} />
@@ -126,17 +126,17 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
                   </label>
                 ))}
               </div>
-              {form.smart ? <ConditionsBuilder value={form.ruleSet} onChange={(ruleSet) => set({ ruleSet })} /> : <p className="text-sm text-muted">{t('collection.manualHelp')}</p>}
+              {form.smart ? <ConditionsBuilder value={form.ruleSet} onChange={(ruleSet) => set({ ruleSet })} /> : <p className="text-[13px] text-muted">{t('collection.manualHelp')}</p>}
             </div>
           </Card>
 
           <Card title={t('collection.products', { n: form.products.length })} actions={!form.smart && <Button size="sm" onClick={() => setPicking(true)}><Plus className="size-4" />{t('collection.addProducts')}</Button>}>
-            {form.products.length === 0 ? <p className="text-sm text-muted">{form.smart ? t('collection.autoEmpty') : t('collection.manualEmpty')}</p> : (
+            {form.products.length === 0 ? <p className="text-[13px] text-muted">{form.smart ? t('collection.autoEmpty') : t('collection.manualEmpty')}</p> : (
               <ul className="divide-y divide-line">
                 {form.products.map((p) => (
                   <li key={p.id} className="flex items-center gap-3 py-2">
                     <Thumb url={p.featuredMedia?.image?.url} className="size-8" />
-                    <span className="flex-1 text-sm">{p.title}</span>
+                    <span className="flex-1 text-[13px]">{p.title}</span>
                     {!form.smart && <button type="button" aria-label={`${t('common.remove')} ${p.title}`} className="rounded p-1 text-muted hover:bg-surface" onClick={() => set({ products: form.products.filter((x) => x.id !== p.id) })}><Trash2 className="size-4" /></button>}
                   </li>
                 ))}

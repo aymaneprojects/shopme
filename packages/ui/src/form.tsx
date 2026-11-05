@@ -3,8 +3,7 @@ import { useId, useState } from 'react';
 import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { cx } from './basics';
 
-const control =
-  'w-full rounded-md border border-line bg-canvas px-3 py-2 text-sm text-fg placeholder:text-muted disabled:opacity-60 aria-[invalid=true]:border-critical';
+const control = 'field-control w-full';
 
 interface FieldProps { label?: ReactNode; help?: ReactNode; error?: string | null; className?: string }
 
@@ -13,8 +12,8 @@ export function Field({ label, help, error, className, children }: FieldProps & 
   const id = useId();
   const note = error || help ? `${id}-note` : undefined;
   return (
-    <div className={cx('flex flex-col gap-1', className)}>
-      {label && <label htmlFor={id} className="text-sm font-medium">{label}</label>}
+    <div className={cx('flex flex-col gap-1.5', className)}>
+      {label && <label htmlFor={id} className="text-[13px] font-medium">{label}</label>}
       {children({ id, 'aria-invalid': !!error, 'aria-describedby': note })}
       {(error || help) && <p id={note} className={cx('text-xs', error ? 'text-critical' : 'text-muted')}>{error || help}</p>}
     </div>
@@ -30,13 +29,13 @@ export function Textarea({ label, help, error, className, ...rest }: FieldProps 
 }
 
 export function Select({ label, help, error, className, children, ...rest }: FieldProps & SelectHTMLAttributes<HTMLSelectElement>) {
-  return <Field label={label} help={help} error={error} className={className}>{(p) => <select className={control} {...p} {...rest}>{children}</select>}</Field>;
+  return <Field label={label} help={help} error={error} className={className}>{(p) => <select className={cx(control, 'pr-7')} {...p} {...rest}>{children}</select>}</Field>;
 }
 
 export function Checkbox({ label, className, ...rest }: { label?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className={cx('inline-flex items-center gap-2 text-sm', className)}>
-      <input type="checkbox" className="size-4 accent-(--color-primary)" {...rest} />
+    <label className={cx('inline-flex items-center gap-2 text-[13px]', className)}>
+      <input type="checkbox" className="size-4 rounded accent-(--color-primary) transition-shadow" {...rest} />
       {label}
     </label>
   );
@@ -44,12 +43,12 @@ export function Checkbox({ label, className, ...rest }: { label?: ReactNode } & 
 
 export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: ReactNode }) {
   return (
-    <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
+    <label className="inline-flex cursor-pointer items-center gap-2 text-[13px]">
       <button
         type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-        className={cx('relative h-5 w-9 rounded-full transition-colors', checked ? 'bg-primary' : 'bg-line')}
+        className={cx('relative h-5 w-9 shrink-0 rounded-full shadow-[inset_0_1px_2px_rgb(0_0_0/0.25)] transition-colors', checked ? 'bg-primary' : 'bg-[color-mix(in_srgb,var(--color-text-muted)_55%,var(--color-bg))]')}
       >
-        <span className={cx('absolute top-0.5 size-4 rounded-full bg-canvas transition-all', checked ? 'left-4.5' : 'left-0.5')} />
+        <span className={cx('absolute top-0.5 size-4 rounded-full bg-white shadow transition-all duration-150', checked ? 'left-4.5' : 'left-0.5')} />
       </button>
       {label}
     </label>

@@ -17,7 +17,7 @@ export interface OrderLine {
 }
 
 const QtyInput = ({ label, value, max, onChange }: { label: string; value: number; max: number; onChange: (n: number) => void }) => (
-  <input type="number" aria-label={label} min={0} max={max} value={value} onChange={(e) => onChange(Math.max(0, Math.min(max, Math.floor(Number(e.target.value) || 0))))} className="w-16 rounded-md border border-line bg-canvas px-2 py-1 text-sm" />
+  <input type="number" aria-label={label} min={0} max={max} value={value} onChange={(e) => onChange(Math.max(0, Math.min(max, Math.floor(Number(e.target.value) || 0))))} className="w-16 field-control" />
 );
 
 function useRun(done: () => void, ok: Key) {
@@ -47,7 +47,7 @@ export function FulfillDialog({ open, onClose, orderId, lines, onDone }: { open:
       <div className="flex flex-col gap-4">
         <ul className="divide-y divide-line">
           {lines.map((l) => (
-            <li key={l.id} className="flex items-center gap-3 py-2 text-sm">
+            <li key={l.id} className="flex items-center gap-3 py-2 text-[13px]">
               <span className="flex-1">{l.title}{l.variantTitle && <span className="text-muted"> · {l.variantTitle}</span>}</span>
               <QtyInput label={`${t('order.quantity')} ${l.title}`} value={qty[l.id] ?? 0} max={l.unfulfilledQuantity} onChange={(n) => setQty({ ...qty, [l.id]: n })} />
               <span className="text-muted">/ {l.unfulfilledQuantity}</span>
@@ -94,7 +94,7 @@ export function RefundDialog({ open, onClose, orderId, lines, shipping, refundab
       <div className="flex flex-col gap-4">
         <ul className="divide-y divide-line">
           {lines.filter((l) => l.refundableQuantity > 0).map((l) => (
-            <li key={l.id} className="flex items-center gap-3 py-2 text-sm">
+            <li key={l.id} className="flex items-center gap-3 py-2 text-[13px]">
               <span className="flex-1">{l.title}{l.variantTitle && <span className="text-muted"> · {l.variantTitle}</span>}</span>
               <QtyInput label={`${t('order.quantity')} ${l.title}`} value={qty[l.id] ?? 0} max={l.refundableQuantity} onChange={(n) => setQty({ ...qty, [l.id]: n })} />
               <span className="text-muted">/ {l.refundableQuantity}</span>
@@ -105,7 +105,7 @@ export function RefundDialog({ open, onClose, orderId, lines, shipping, refundab
         <Checkbox label={t('order.restock')} checked={restock} onChange={(e) => setRestock(e.target.checked)} />
         <Checkbox label={t('order.notifyCustomer')} checked={notify} onChange={(e) => setNotify(e.target.checked)} />
         <Textarea label={t('order.refundNote')} value={note} onChange={(e) => setNote(e.target.value)} />
-        <dl className="grid grid-cols-[1fr_auto] gap-1 rounded-md bg-surface p-3 text-sm">
+        <dl className="grid grid-cols-[1fr_auto] gap-1 rounded-md bg-surface p-3 text-[13px]">
           <dt>{t('order.itemsSubtotal')}</dt><dd>{money(r.itemsCents)}</dd>
           <dt>{t('order.shipping')}</dt><dd>{money(r.shippingCents)}</dd>
           <dt className="font-semibold">{t('order.refundTotal')}</dt><dd className="font-semibold">{money(r.totalCents)}</dd>
@@ -129,7 +129,7 @@ export function CancelDialog({ open, onClose, orderId, onDone }: { open: boolean
     <Modal open={open} onClose={onClose} title={t('order.cancelTitle')} closeLabel={t('common.close')}
       footer={<><Button onClick={onClose}>{t('order.keep')}</Button><Button variant="danger" loading={m.isPending} onClick={() => m.mutate()}>{t('order.cancelConfirm')}</Button></>}>
       <div className="flex flex-col gap-3">
-        <p className="text-sm text-muted">{t('order.cancelBody')}</p>
+        <p className="text-[13px] text-muted">{t('order.cancelBody')}</p>
         <Select label={t('order.cancelReason')} value={reason} onChange={(e) => setReason(e.target.value)}>{REASONS.map((r) => <option key={r} value={r}>{t(`order.reason.${r}` as Key)}</option>)}</Select>
         <Checkbox label={t('order.refundPayment')} checked={refund} onChange={(e) => setRefund(e.target.checked)} />
         <Checkbox label={t('order.restock')} checked={restock} onChange={(e) => setRestock(e.target.checked)} />

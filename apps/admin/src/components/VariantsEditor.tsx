@@ -98,7 +98,7 @@ export function VariantsTable({ variants, locations, currency, onChange }: { var
   const patchAt = (key: string): Patch => (p) => onChange(variants.map((v) => (v.key === key ? { ...v, ...p } : v)));
   return (
     <div className="overflow-x-auto rounded-md border border-line">
-      <table className="w-full text-sm">
+      <table className="w-full text-[13px]">
         <thead className="bg-surface text-left text-xs text-muted">
           <tr><th className="w-8" /><th className="px-3 py-2 font-medium">{t('variants.variant')}</th><th className="px-3 py-2 font-medium">{t('pricing.price')} ({currency})</th><th className="px-3 py-2 font-medium">{t('inventory.available')}</th></tr>
         </thead>
@@ -111,7 +111,7 @@ export function VariantsTable({ variants, locations, currency, onChange }: { var
                 <tr className="border-t border-line">
                   <td className="pl-2"><button type="button" aria-label={t('variants.details')} aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : v.key)}>{isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}</button></td>
                   <td className="px-3 py-2 font-medium">{variantLabel(v, t('variants.default'))}</td>
-                  <td className="px-3 py-1"><input aria-label={`${t('pricing.price')} ${variantLabel(v, '')}`} inputMode="decimal" className="w-24 rounded-md border border-line bg-canvas px-2 py-1" value={v.price} onChange={(e) => patchAt(v.key)({ price: e.target.value })} /></td>
+                  <td className="px-3 py-1"><input aria-label={`${t('pricing.price')} ${variantLabel(v, '')}`} inputMode="decimal" className="w-24 field-control" value={v.price} onChange={(e) => patchAt(v.key)({ price: e.target.value })} /></td>
                   <td className="px-3 py-2">{v.tracked ? total : <span className="text-muted">{t('products.notTracked')}</span>}</td>
                 </tr>
                 {isOpen && (

@@ -71,7 +71,7 @@ export function DiscountsPage() {
         <div className="px-3 pt-1"><Tabs tabs={TABS.map((id) => ({ id, label: t(`discounts.tab.${id}` as Key) }))} value={tab} onChange={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v }); }} /></div>
         <div className="border-b border-line p-3">
           <div className="relative max-w-md">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
+            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('discounts.search')} aria-label={t('discounts.search')} className={searchCls} />
           </div>
         </div>
@@ -97,8 +97,8 @@ export function DiscountsPage() {
           {([['product', Package], ['order', ShoppingBag], ['shipping', Truck]] as const).map(([k, Icon]) => (
             <li key={k}>
               <button type="button" onClick={() => nav(`/discounts/new?type=${k}`)} className="flex w-full items-start gap-3 rounded-md border border-line p-3 text-left hover:bg-surface">
-                <Icon className="mt-0.5 size-5 text-primary" />
-                <span><span className="block text-sm font-medium">{t(`discounts.kind.${k}` as Key)}</span><span className="block text-xs text-muted">{t(`discounts.kind.${k}.help` as Key)}</span></span>
+                <Icon className="mt-0.5 size-5 text-accent" />
+                <span><span className="block text-[13px] font-medium">{t(`discounts.kind.${k}` as Key)}</span><span className="block text-xs text-muted">{t(`discounts.kind.${k}.help` as Key)}</span></span>
               </button>
             </li>
           ))}

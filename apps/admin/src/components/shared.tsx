@@ -18,11 +18,11 @@ export function useFormat() {
   }), [lang]);
 }
 
-const finTone: Record<string, 'success' | 'warning' | 'neutral' | 'critical' | 'info'> = {
-  PAID: 'success', PENDING: 'warning', AUTHORIZED: 'info', PARTIALLY_PAID: 'warning', PARTIALLY_REFUNDED: 'neutral', REFUNDED: 'neutral', VOIDED: 'neutral', EXPIRED: 'critical',
+const finTone: Record<string, 'success' | 'attention' | 'warning' | 'neutral' | 'critical' | 'info'> = {
+  PAID: 'success', PENDING: 'attention', AUTHORIZED: 'info', PARTIALLY_PAID: 'attention', PARTIALLY_REFUNDED: 'neutral', REFUNDED: 'neutral', VOIDED: 'neutral', EXPIRED: 'critical',
 };
-const fulTone: Record<string, 'success' | 'warning' | 'neutral' | 'critical' | 'info'> = {
-  FULFILLED: 'success', UNFULFILLED: 'warning', PARTIALLY_FULFILLED: 'info', SCHEDULED: 'info', ON_HOLD: 'critical', RESTOCKED: 'neutral', IN_PROGRESS: 'info',
+const fulTone: Record<string, 'success' | 'attention' | 'warning' | 'neutral' | 'critical' | 'info'> = {
+  FULFILLED: 'success', UNFULFILLED: 'attention', PARTIALLY_FULFILLED: 'info', SCHEDULED: 'info', ON_HOLD: 'critical', RESTOCKED: 'neutral', IN_PROGRESS: 'info',
 };
 
 export function FinancialBadge({ status }: { status: string }) {
@@ -48,11 +48,11 @@ export function useListParams() {
   return { params, get, patch, page, clear: () => setParams({}, { replace: true }) };
 }
 
-export const selectCls = 'rounded-md border border-line bg-canvas px-2 py-1.5 text-sm';
-export const searchCls = 'w-full rounded-md border border-line bg-canvas py-2 pl-8 pr-3 text-sm';
+export const selectCls = 'field-control';
+export const searchCls = 'field-control w-full pl-8';
 
 export function AddressBlock({ a }: { a: { firstName?: string | null; lastName?: string | null; company?: string | null; address1?: string | null; address2?: string | null; city?: string | null; province?: string | null; zip?: string | null; country?: string | null; phone?: string | null } | null }) {
-  if (!a) return <p className="text-sm text-muted">—</p>;
+  if (!a) return <p className="text-[13px] text-muted">—</p>;
   const lines = [[a.firstName, a.lastName].filter(Boolean).join(' '), a.company, a.address1, a.address2, [a.zip, a.city].filter(Boolean).join(' '), a.province, a.country, a.phone].filter(Boolean);
-  return <address className="text-sm not-italic leading-relaxed">{lines.map((l, i) => <div key={i}>{l}</div>)}</address>;
+  return <address className="text-[13px] not-italic leading-relaxed">{lines.map((l, i) => <div key={i}>{l}</div>)}</address>;
 }
