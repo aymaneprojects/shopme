@@ -4,7 +4,8 @@ export const PRODUCTS = /* GraphQL */ `
   query Products($first: Int, $after: String, $last: Int, $before: String, $query: String, $sortKey: ProductSortKeys, $reverse: Boolean) {
     products(first: $first, after: $after, last: $last, before: $before, query: $query, sortKey: $sortKey, reverse: $reverse) {
       nodes {
-        id title handle status vendor productType totalInventory tracksInventory
+        id title handle status vendor productType totalInventory tracksInventory publishedAt
+        category { name }
         variantsCount { count }
         featuredMedia { id ... on MediaImage { image { url } } }
       }

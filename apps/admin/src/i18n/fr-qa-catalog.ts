@@ -14,4 +14,5 @@ export const frQaCatalog: Record<keyof typeof enQaCatalog, string> = {
   'export.noun.products': 'les produits', 'export.noun.customers': 'les clients', 'export.noun.inventory': 'le stock', 'export.noun.orders': 'les commandes', 'export.noun.draft_orders': 'les brouillons',
   'tagpicker.search': 'Rechercher ou créer des balises', 'tagpicker.available': 'Disponibles', 'tagpicker.create': 'Créer « {tag} »', 'customers.deleteBulk': 'Supprimer les clients',
   'filter.vendor': 'Fournisseur', 'filter.type': 'Type de produit', 'filter.tag': 'Balise', 'filter.status': 'Statut', 'filter.stock': 'Stock',
+  'qa.products.category': 'Catégorie', 'qa.products.channels': 'Canaux', 'qa.products.productType': 'Type de produit',
 };

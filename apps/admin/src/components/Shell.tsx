@@ -33,9 +33,9 @@ export const NAV: NavItem[] = [
     ],
   },
   { id: 'customers', labelKey: 'nav.customers', to: '/customers', icon: Users, children: [{ id: 'segments', labelKey: 'nav.segments', to: '/customers/segments', icon: Users }] },
-  { id: 'markets', labelKey: 'nav.markets', to: '/markets', icon: Globe, children: [{ id: 'catalogs', labelKey: 'nav.catalogs', to: '/markets/catalogs', icon: BookOpen }] },
   { id: 'discounts', labelKey: 'nav.discounts', to: '/discounts', icon: Percent },
   { id: 'content', labelKey: 'nav.content', to: '/content', icon: Boxes, children: [{ id: 'metaobjects', labelKey: 'nav.metaobjects', to: '/content/metaobjects', icon: Boxes }] },
+  { id: 'markets', labelKey: 'nav.markets', to: '/markets', icon: Globe, children: [{ id: 'catalogs', labelKey: 'nav.catalogs', to: '/markets/catalogs', icon: BookOpen }] },
   { id: 'analytics', labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, children: [{ id: 'reports', labelKey: 'nav.reports', to: '/analytics/reports', icon: FileText }] },
   {
     id: 'online-store', labelKey: 'nav.onlineStore', to: '/online-store', icon: Store,

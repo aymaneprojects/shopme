@@ -23,6 +23,7 @@ export interface ProductRow {
   id: string; title: string; handle: string; status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED' | 'UNLISTED'; vendor: string; productType: string;
   totalInventory: number; tracksInventory: boolean; variantsCount: { count: number } | null;
   featuredMedia: { image?: { url: string } } | null;
+  publishedAt?: string | null; category?: { name: string } | null;
 }
 
 type StringConn = { edges: Array<{ node: string }> };
@@ -125,7 +126,9 @@ export function ProductsPage() {
         ? <span className={p.totalInventory <= 0 ? 'text-critical' : ''}>{t('products.inStock', { n: p.totalInventory, v: p.variantsCount?.count ?? 1, $count: p.variantsCount?.count ?? 1 })}</span>
         : <span className="text-muted">{t('products.notTracked')}</span>,
     },
-    { key: 'type', header: t('field.productType'), sortKey: 'PRODUCT_TYPE', cell: (p) => p.productType || <span className="text-muted">—</span> },
+    { key: 'category', header: t('qa.products.category'), cell: (p) => p.category?.name || <span className="text-muted">—</span> },
+    { key: 'channels', header: t('qa.products.channels'), className: 'text-right', cell: (p) => <span className="tabular-nums">{p.publishedAt ? 1 : 0}</span> },
+    { key: 'type', header: t('qa.products.productType'), sortKey: 'PRODUCT_TYPE', cell: (p) => p.productType || <span className="text-muted">—</span> },
     { key: 'vendor', header: t('field.vendor'), sortKey: 'VENDOR', cell: (p) => p.vendor || <span className="text-muted">—</span> },
   ];
 

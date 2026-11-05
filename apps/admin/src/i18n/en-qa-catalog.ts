@@ -13,4 +13,5 @@ export const enQaCatalog = {
   'export.noun.products': 'products', 'export.noun.customers': 'customers', 'export.noun.inventory': 'inventory', 'export.noun.orders': 'orders', 'export.noun.draft_orders': 'draft orders',
   'tagpicker.search': 'Search or create tags', 'tagpicker.available': 'Available', 'tagpicker.create': 'Create “{tag}”', 'customers.deleteBulk': 'Delete customers',
   'filter.vendor': 'Vendor', 'filter.type': 'Product type', 'filter.tag': 'Tag', 'filter.status': 'Status', 'filter.stock': 'Inventory',
+  'qa.products.category': 'Category', 'qa.products.channels': 'Channels', 'qa.products.productType': 'Product type',
 } as const;
