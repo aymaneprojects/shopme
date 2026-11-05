@@ -30,7 +30,7 @@ export function shippingFragment(c: PageCtx, v: CheckoutView): string {
   if (!v.address?.countryCode) return `<p class="note">${esc(c.t('shippingEnter'))}</p>`;
   if (!v.shippingOptions.length) return `<p class="note">${esc(c.t('shippingNone'))}</p>`;
   return `<div class="options" role="radiogroup">${v.shippingOptions.map((o) =>
-    `<label class="option"><input type="radio" name="shippingRateId" value="${o.id}"${o.id === v.shippingRateId ? ' checked' : ''}><span class="grow">${esc(o.name)}</span><span class="price">${o.price ? esc(c.money(o.price)) : esc(c.t('free'))}</span></label>`).join('')}</div>`;
+    `<label class="option"><input type="radio" name="shippingRateId" value="${o.id}"${o.id === v.shippingRateId ? ' checked' : ''}><span class="grow">${esc(o.name)}${o.detail ? `<small class="note" style="display:block">${esc(o.detail)}</small>` : ''}</span><span class="price">${o.price ? esc(c.money(o.price)) : esc(c.t('free'))}</span></label>`).join('')}</div>`;
 }
 
 export function summaryFragment(c: PageCtx, v: CheckoutView): string {

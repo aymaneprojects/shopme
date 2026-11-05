@@ -63,7 +63,11 @@ export type PricingScope = { productIds?: number[]; collectionIds?: number[] };
 export interface BxgyRule { buyQuantity: number; buyAppliesTo: PricingScope; getQuantity: number; getAppliesTo: PricingScope; usesPerOrder: number | null }
 
 export interface PricingTaxRate { name: string; countryCode: string; provinceCode: string | null; rate: number; appliesToShipping: boolean; priority: number }
-export interface PricingShippingRate { id: number; name: string; price: number }
+export interface PricingShippingRate {
+  id: number; name: string; price: number;
+  /** How the option is delivered (default SHIPPING); pickup and local delivery carry their location and a line of detail text. */
+  type?: 'SHIPPING' | 'PICK_UP' | 'LOCAL'; locationId?: number | null; detail?: string | null;
+}
 
 export interface PricingInput {
   lines: PricingLine[];

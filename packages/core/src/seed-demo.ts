@@ -9,6 +9,7 @@ import { slugify } from './services/handle';
 import { randomToken } from './services/crypto';
 import type { Storage } from './services/storage';
 import { ensureMainTheme } from './services/theme-install';
+import { createShippingZone, listShippingZones } from './services/settings/shipping-tax';
 
 interface DemoVariant { image?: number; options: string[]; sku: string; price: number; compareAt?: number; stock: number }
 interface DemoProduct { title: string; vendor: string; type: string; tags: string[]; html: string; color: string; images: string[]; options: { name: string; values: string[] }[]; variants: DemoVariant[] }
@@ -229,14 +230,11 @@ export async function seedDemo(db: Db, storage: Storage, opts: { adminPassword?:
   }
 
   // Shipping, tax, discount
-  const [zone] = await db.select({ id: s.shippingZones.id }).from(s.shippingZones).where(eq(s.shippingZones.shopId, shopId)).limit(1);
-  if (!zone) {
-    const [z] = await db.insert(s.shippingZones).values({ shopId, name: 'Europe' }).returning();
-    await db.insert(s.shippingZoneCountries).values(['FR', 'DE', 'BE', 'NL', 'ES', 'IT'].map((countryCode) => ({ shopId, zoneId: z!.id, countryCode })));
-    await db.insert(s.shippingRates).values([
-      { shopId, zoneId: z!.id, name: 'Standard', type: 'PRICE_BASED', price: 490, maxValue: 4999, position: 0 },
-      { shopId, zoneId: z!.id, name: 'Free shipping over 50', type: 'PRICE_BASED', price: 0, minValue: 5000, position: 1 },
-    ]);
+  if (!(await listShippingZones(db, shopId)).length) {
+    await createShippingZone(db, shopId, {
+      name: 'Europe', countries: ['FR', 'DE', 'BE', 'NL', 'ES', 'IT'].map((countryCode) => ({ countryCode })),
+      rates: [{ name: 'Standard', type: 'PRICE_BASED', price: 490, maxValue: 4999 }, { name: 'Free shipping over 50', type: 'PRICE_BASED', price: 0, minValue: 5000 }],
+    });
     await db.insert(s.taxRates).values({ shopId, name: 'VAT', countryCode: 'FR', rate: 20, appliesToShipping: true });
     const [d] = await db.insert(s.discounts).values({ shopId, title: 'Welcome 10%', kind: 'CODE', valueType: 'PERCENTAGE', value: 1000, target: 'ORDER' }).returning();
     await db.insert(s.discountCodes).values({ shopId, discountId: d!.id, code: 'WELCOME10' });

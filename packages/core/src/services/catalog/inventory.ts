@@ -6,6 +6,7 @@ import { WEIGHT_UNITS } from '../../db/schema/shop';
 import { buildSearch, idTerm, likeCi } from './search';
 import { emit, errR, okR, txResult, type Result } from './common';
 import { recomputeSmartMembership } from './collections';
+import { addLocationToGeneralProfile } from '../shipping/profiles';
 
 export type Location = typeof locations.$inferSelect;
 export type InventoryItem = typeof inventoryItems.$inferSelect;
@@ -70,6 +71,7 @@ export async function addLocation(db: Executor, shopId: number, input: LocationI
   if (!v.ok) return v;
   const [row] = await db.insert(locations).values({ shopId, name: input.name!.trim(), fulfillsOnlineOrders: input.fulfillsOnlineOrders ?? true, ...addressCols(input.address ?? {}) }).returning();
   await emit(db, shopId, 'location', row!.id, 'locations/create');
+  if (row!.isActive && row!.fulfillsOnlineOrders) await addLocationToGeneralProfile(db, shopId, row!.id);
   return okR(row!);
 }
 

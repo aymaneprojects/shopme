@@ -2,6 +2,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import { inventoryLevels, locations } from '../../db/schema';
 import type { Db } from '../../db/client';
 import { emit, errR, okR, txResult, type Result } from './common';
+import { addLocationToGeneralProfile } from '../shipping/profiles';
 import { applyChanges, getInventoryItem, getLocation, listInventoryLevels, type AdjustmentGroup, type Location, type QuantityName } from './inventory';
 
 export async function countLocations(db: Db, shopId: number, includeInactive = false): Promise<number> {
@@ -86,6 +87,7 @@ export async function setLocationActive(db: Db, shopId: number, id: number, acti
     }
     const [row] = await tx.update(locations).set({ isActive: active, updatedAt: new Date() }).where(eq(locations.id, id)).returning();
     await emit(tx, shopId, 'location', id, active ? 'locations/activate' : 'locations/deactivate');
+    if (active && row!.fulfillsOnlineOrders) await addLocationToGeneralProfile(tx, shopId, id);
     return okR(row!);
   });
 }

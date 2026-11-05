@@ -321,7 +321,7 @@ export const enShop = {
   "settings.payments": "Payments",
   "settings.primaryDomain": "Primary domain",
   "settings.saved": "Settings saved",
-  "settings.shipping": "Shipping",
+  "settings.shipping": "Shipping and delivery",
   "settings.standards": "Standards and formats",
   "settings.storeDetails": "Store details",
   "settings.storeLocale": "Store language",

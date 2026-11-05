@@ -18,6 +18,7 @@ export * from './customers';
 export * from './accounts';
 export * from './discounts';
 export * from './settings';
+export * from './shipping';
 export * from './content';
 export * from './analytics';
 export * from './staff';

@@ -13,6 +13,7 @@ import { frUx } from './fr-ux';
 import { frViews } from './fr-views';
 import { frEditor } from './fr-editor';
 import { frTimeline } from './fr-timeline';
+import { frShipping } from './fr-shipping';
 
 export const fr: Record<Key, string> = {
   'common.back': 'Retour', 'common.cancel': 'Annuler', 'common.close': 'Fermer', 'common.delete': 'Supprimer', 'common.loading': 'Chargement…',
@@ -111,6 +112,7 @@ export const fr: Record<Key, string> = {
   ...frUx,
   ...frEditor,
   ...frTimeline,
+  ...frShipping,
   ...frContent,
   ...frPublishing,
   ...frViews,

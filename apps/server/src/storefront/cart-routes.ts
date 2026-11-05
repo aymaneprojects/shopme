@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { addItems, cartBadRequest, changeLine, clearCart, createCart, getCartByToken, newCartToken, priceCartDiscounts, updateCart, type CartError, type CartView, type Shop } from '@shopme/core';
+import { addItems, cartBadRequest, quoteShipping, changeLine, clearCart, createCart, getCartByToken, newCartToken, priceCartDiscounts, updateCart, type CartError, type CartView, type Shop } from '@shopme/core';
 import type { AppContext } from '../context';
 import { ajaxCart, ajaxLine, changeEntry } from './cart-format';
 import { CART_COOKIE, customerOf, primaryShop } from './env';
@@ -162,6 +162,32 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
     }
     return reply.header('x-robots-tag', 'noindex, nofollow').redirect(safe, 302);
   });
+
+  // --- shipping rates for the cart and a destination (same selection as checkout): GET or POST /cart/shipping_rates.json?shipping_address[zip]=..&shipping_address[country]=..
+  const countryCodeOf = (v: unknown): string | null => {
+    const raw = String(v ?? '').trim();
+    if (/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
+    const names = new Intl.DisplayNames(['en'], { type: 'region' });
+    for (let a = 65; a <= 90; a++) for (let b = 65; b <= 90; b++) { const c = String.fromCharCode(a, b); try { if (names.of(c)?.toLowerCase() === raw.toLowerCase()) return c; } catch { /* not a region */ } }
+    return null;
+  };
+  const shippingRates = async (req: FastifyRequest, reply: FastifyReply) => {
+    const shop = await primaryShop(ctx);
+    if (!shop) return reply.code(503).send({ error: 'Store is not set up' });
+    const raw = req.cookies[CART_COOKIE];
+    const cart = raw ? await getCartByToken(db, shop.id, raw.split('?')[0]!.split('%3F')[0]!) : null;
+    const addr = (readParams(req).shipping_address ?? {}) as Record<string, unknown>;
+    const country = countryCodeOf(addr.country);
+    if (!country) return reply.code(422).type('application/json; charset=utf-8').send({ country: ['is not supported'] });
+    const options = cart ? await quoteShipping(db, shop.id, { countryCode: country, provinceCode: String(addr.province ?? '').trim() || null, zip: String(addr.zip ?? '').trim() || null },
+      cart.lines.map((l) => ({ variantId: l.variantId, quantity: l.quantity, price: l.price, grams: l.grams * l.quantity, requiresShipping: l.requiresShipping }))) : [];
+    const digits = new Intl.NumberFormat('en', { style: 'currency', currency: shop.currency }).resolvedOptions().maximumFractionDigits ?? 2;
+    return reply.header('cache-control', 'no-cache, no-store').type('application/json; charset=utf-8').send({
+      shipping_rates: options.map((o) => ({ name: o.name, presentment_name: o.name, code: o.name, price: (o.price / 10 ** digits).toFixed(digits), currency: shop.currency, source: 'shopify', delivery_date: null })),
+    });
+  };
+  app.get('/cart/shipping_rates.json', shippingRates);
+  app.post('/cart/shipping_rates.json', shippingRates);
 
   // --- permalink: /cart/<variant>:<qty>[,<variant>:<qty>] adds the lines and continues to checkout
   app.get('/cart/:permalink', async (req, reply) => {
