@@ -1,5 +1,5 @@
 import { Banner, Card, IndexTable, Pagination } from '@shopme/ui';
-import type { Column } from '@shopme/ui';
+import type { BulkAction, Column } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -11,13 +11,16 @@ import type { Connection } from '../lib/hooks';
 import { searchCls, useListParams } from './shared';
 
 /** Card with a searchable, cursor-paginated table over a `{ nodes, pageInfo }` connection. Search text goes to the `query` variable. */
-export function PagedTable<T extends { id: string }>({ title, doc, root, queryKey, columns, empty, onRowClick, actions, searchLabel, size = 25 }: {
+export function PagedTable<T extends { id: string }>({ title, doc, root, queryKey, columns, empty, onRowClick, actions, searchLabel, size = 25, bulkActions }: {
   title: ReactNode; doc: string; root: string; queryKey: string; columns: Array<Column<T>>; empty: ReactNode; onRowClick?: (row: T) => void; actions?: ReactNode; searchLabel?: string; size?: number;
+  /** Adds row checkboxes and a bulk-action bar. */
+  bulkActions?: BulkAction[];
 }) {
   const t = useT();
   const L = useListParams();
   const [search, setSearch] = useState(L.get('q'));
   const term = useDebounced(search).trim();
+  const [selected, setSelected] = useState<string[]>([]);
   const list = useQuery({
     queryKey: [queryKey, term, L.get('after'), L.get('before')],
     queryFn: async () => (await gql<Record<string, Connection<T>>>(doc, { query: term || null, ...L.page(size) }))[root]!,
@@ -37,7 +40,8 @@ export function PagedTable<T extends { id: string }>({ title, doc, root, queryKe
         <div className="ml-auto">{actions}</div>
       </div>
       {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
-      <IndexTable rows={list.data?.nodes ?? []} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={onRowClick} empty={list.isError ? null : empty} />
+      <IndexTable rows={list.data?.nodes ?? []} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={onRowClick}
+        {...(bulkActions && { selected, onSelectedChange: setSelected, bulkActions: bulkActions.map((a) => ({ ...a, onRun: (ids: string[]) => { a.onRun(ids); setSelected([]); } })), selectedLabel: (n: number) => t('common.selected', { n }), selectAllLabel: t('common.selectAll') })} empty={list.isError ? null : empty} />
       <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage} previousLabel={t('common.previous')} nextLabel={t('common.next')}
         onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
     </Card>

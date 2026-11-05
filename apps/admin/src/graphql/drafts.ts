@@ -43,7 +43,9 @@ export const DRAFT_ORDER_INVOICE_SEND = /* GraphQL */ `
 `;
 export const DRAFT_VARIANT_SEARCH = /* GraphQL */ `
   query DraftVariantSearch($query: String) {
-    products(first: 20, query: $query) { nodes { id title variants(first: 50) { nodes { id title price } } } }
+    products(first: 30, query: $query) {
+      nodes { id title featuredMedia { id ... on MediaImage { image { url } } } variants(first: 50) { nodes { id title price inventoryQuantity inventoryItem { tracked } } } }
+    }
   }
 `;
 export const DRAFT_CUSTOMER_SEARCH = /* GraphQL */ `

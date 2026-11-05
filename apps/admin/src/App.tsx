@@ -45,6 +45,7 @@ const router = createBrowserRouter(
       { path: '/orders/abandoned/:id', element: L(() => import('./pages/orders/Abandoned'), 'AbandonedDetailPage') },
       { path: '/orders/drafts', element: L(() => import('./pages/orders/Drafts'), 'DraftsPage') },
       { path: '/orders/drafts/:id', element: L(() => import('./pages/orders/Drafts'), 'DraftEditPage') },
+      { path: '/orders/:id/refund', element: L(() => import('./pages/orders/Refund'), 'RefundPage') },
       { path: '/orders/:id/edit', element: L(() => import('./pages/orders/OrderEdit'), 'OrderEditPage') },
       { path: '/orders/:id', element: L(() => import('./pages/OrderDetail'), 'OrderDetailPage') },
       { path: '/customers', element: L(() => import('./pages/Customers'), 'CustomersPage') },

@@ -1,7 +1,7 @@
 // Order operations (Shopify-compatible names; see docs/spec/admin-api-mvp.md). One document per operation so a renamed field is a one-line fix.
 
 const MONEY = 'shopMoney { amount currencyCode }';
-const ADDRESS = 'firstName lastName company address1 address2 city province zip country countryCodeV2 phone';
+const ADDRESS = 'firstName lastName company address1 address2 city province provinceCode zip country countryCodeV2 phone';
 
 export const ORDERS = /* GraphQL */ `
   query Orders($first: Int, $after: String, $last: Int, $before: String, $query: String, $sortKey: OrderSortKeys, $reverse: Boolean) {

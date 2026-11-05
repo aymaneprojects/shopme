@@ -70,6 +70,7 @@ export function AbandonedPage() {
   });
   const rows = list.data?.abandonedCheckouts.nodes ?? [];
   const pi = list.data?.abandonedCheckouts.pageInfo;
+  const none = !list.isLoading && !list.isError && rows.length === 0 && !term.trim();
   const columns: Array<Column<Row>> = [
     { key: 'name', header: t('abandoned.checkout'), cell: (r) => <span className="font-medium">{r.name}</span> },
     { key: 'date', header: t('abandoned.date'), cell: (r) => <span className="text-muted">{fmt.dateTime(r.updatedAt)}</span> },
@@ -81,8 +82,16 @@ export function AbandonedPage() {
   return (
     <>
       <PageHeader back="/orders" title={t('nav.abandoned')} />
+      {none && (
+        <div className="mb-4"><Card>
+          <div className="flex flex-wrap items-center justify-between gap-6 px-4 py-6 sm:px-12">
+            <div className="max-w-md"><h2 className="text-base font-semibold">{t('abandoned.emptyTitle2')}</h2><p className="mt-1 text-[13px] text-muted">{t('abandoned.emptyBody2')}</p></div>
+            <img src={emptyOrders} alt="" aria-hidden="true" className="size-28 object-contain" />
+          </div>
+        </Card></div>
+      )}
       <div className="mb-4"><RecoverySettings /></div>
-      <Card className="!p-0">
+      {!none && <Card className="!p-0">
         <div className="border-b border-line p-3">
           <div className="relative max-w-md">
             <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
@@ -97,7 +106,7 @@ export function AbandonedPage() {
         <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage}
           previousLabel={t('common.previous')} nextLabel={t('common.next')}
           onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
-      </Card>
+      </Card>}
     </>
   );
 }
