@@ -56,14 +56,12 @@ export function NotificationsSettings() {
           </Section>
         )}
       </ShopPanel>
-      <Sender />
       <RowCard>
         <LinkRow to="/settings/notifications/customer" icon={Bell} title={t('notif.customerTitle')} description={t('notif.customerDesc')} />
         <LinkRow to="/settings/notifications/staff" icon={Users} title={t('notif.staffTitle')} description={t('notif.staffDesc')} />
-      </RowCard>
-      <RowCard>
         <LinkRow to="/settings/webhooks" icon={Webhook} title={t('settings.webhooks')} description={t('notif.webhooksDesc')} />
       </RowCard>
+      <Sender />
     </div>
   );
 }

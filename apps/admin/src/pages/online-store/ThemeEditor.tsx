@@ -1,11 +1,10 @@
-import { Banner, Button, Input, Modal, Select, Skeleton, Tabs, cx, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, ConfirmDialog, Input, Modal, Skeleton, cx, useToast } from '@shopme/ui';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Maximize2, Minimize2, Monitor, MousePointerClick, Redo2, Smartphone, Tablet, Undo2 } from 'lucide-react';
+import { FileText, LayoutTemplate, LogOut, Minimize2, Monitor, MousePointerClick, PanelsTopLeft, Redo2, Settings, Smartphone, Tablet, Undo2 } from 'lucide-react';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router';
+import { useBlocker, useNavigate, useParams, useSearchParams } from 'react-router';
+import type { Key } from '../../i18n';
 import { gql, mutate, rest } from '../../api';
-import { PageHeader } from '../../components/PageHeader';
-import { SaveBar } from '../../components/SaveBar';
 import { gidToNum, numToGid } from '../../format';
 import { THEME_EDITOR_FILES, THEME_FILES_UPSERT, THEME_LOCALES, THEME_PREVIEW_HANDLES, THEME_SCHEMAS, THEME_SETTINGS, THEME_TEMPLATE_NAMES } from '../../graphql';
 import { useI18n } from '../../i18n';
@@ -57,6 +56,7 @@ interface SaveVars { docs: Docs; files: Array<{ filename: string; body: { type: 
 function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }: { themeId: string; name: string; role?: string; schemaJson: string; dataJson: string | undefined; localesData: FilesRes | undefined }) {
   const { t, lang } = useI18n();
   const toast = useToast();
+  const nav = useNavigate();
   const num = gidToNum(themeId);
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab') === 'settings' ? 'settings' : 'sections';
@@ -115,7 +115,7 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
     const b = s.blocks?.[bid];
     return b ? label(b.name) || label(idx.sections[s.type]?.blocks?.find((x) => x.type === b.type)?.name ?? idx.blocks[b.type]?.name) || b.type : bid;
   };
-  const fileLabel = (f: string) => (f === tplFile ? t('editor.templateSections', { name: template }) : label(`t:${f.replace(/^.*\//, '').replace(/\.json$/, '').replace(/-group$/, '')}`).replace(/^./, (c) => c.toUpperCase()));
+  const fileLabel = (f: string) => (f === tplFile ? t('editor.groupTemplate') : label(`t:${f.replace(/^.*\//, '').replace(/\.json$/, '').replace(/-group$/, '')}`).replace(/^./, (c) => c.toUpperCase()));
 
   // ---- operations on sections and blocks (shared by the tree, the preview toolbar and the settings panel)
   const dropSel = (section: string, block?: string) => setSel((s) => (s && s.section === section && (!block || s.block === block) ? (block ? { file: s.file, section } : null) : s));
@@ -276,54 +276,77 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
 
   const loadError = files.error ?? schemas.error ?? names.error;
   const missing = !files.isLoading && !docs[tplFile];
-  const deviceBtns = (
-    <div className="flex rounded-md border border-line" role="group" aria-label={t('themes.device')}>
-      {DEVICES.map(([d, Icon, key]) => (
-        <button key={d} type="button" aria-pressed={device === d} aria-label={t(key)} title={t(key)} onClick={() => setDevice(d)} className={cx('p-2', device === d ? 'bg-primary-subtle text-accent' : 'text-muted')}><Icon className="size-4" /></button>
-      ))}
-    </div>
-  );
+  const NEXT: Record<Device, Device> = { desktop: 'mobile', mobile: 'tablet', tablet: 'desktop' };
+  const nextDevice = NEXT[device];
+  const NextIcon = DEVICES.find(([d]) => d === nextDevice)![1];
+  const nextKey = DEVICES.find(([d]) => d === nextDevice)![2];
+  const topBtn = 'grid size-8 place-items-center rounded-md text-fg hover:bg-hover disabled:text-muted disabled:opacity-50 disabled:hover:bg-transparent aria-pressed:bg-primary-subtle aria-pressed:text-accent aria-selected:bg-primary-subtle aria-selected:text-accent';
+  const deviceBtn = <button type="button" aria-label={t(nextKey)} title={t(nextKey)} className={topBtn} onClick={() => setDevice(nextDevice)}><NextIcon className="size-4" /></button>;
   const inspectorBtn = (
-    <button type="button" aria-pressed={inspector} aria-label={t('editor.inspector')} title={t(inspector ? 'editor.inspectorOn' : 'editor.inspectorOff')} onClick={() => setInspector((v) => !v)}
-      className={cx('rounded-md border border-line p-2', inspector ? 'bg-primary-subtle text-accent' : 'text-muted')}><MousePointerClick className="size-4" /></button>
+    <button type="button" aria-pressed={inspector} aria-label={t('editor.inspector')} title={t(inspector ? 'editor.inspectorOn' : 'editor.inspectorOff')} onClick={() => setInspector((v) => !v)} className={topBtn}><MousePointerClick className="size-4" /></button>
   );
   const showPanel = tab === 'sections' && !!sel && !!current;
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && currentLocation.pathname !== nextLocation.pathname);
+  useEffect(() => {
+    if (!dirty) return;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
+  }, [dirty]);
+  const status = role === 'MAIN' ? <Badge tone="success">{t('themes.live')}</Badge> : <Badge tone="info">{role && role !== 'UNPUBLISHED' ? t(`themes.role.${role}` as Key) : t('editor.draft')}</Badge>;
+  const pageName = t(`editor.page.${template.split('.')[0]}` as Key) === `editor.page.${template.split('.')[0]}` ? template : t(`editor.page.${template.split('.')[0]}` as Key);
 
   return (
-    <div className="pt-10">
-      <SaveBar dirty={dirty} saving={save.isPending} onSave={doSave} onDiscard={() => { dispatch({ kind: 'reset' }); setSel(null); }} />
-      <PageHeader back="/online-store" title={t('themes.customizeTitle', { name })}
-        actions={<>
-          <Select aria-label={t('editor.template')} value={template} onChange={(e) => chooseTemplate(e.target.value)}>{(templateNames.length ? templateNames : ['index']).map((x) => <option key={x} value={x}>{x}</option>)}</Select>
-          <Button icon aria-label={t('editor.undo')} title={t('editor.undo')} disabled={!hist.past.length} onClick={() => dispatch({ kind: 'undo' })}><Undo2 className="size-4" /></Button>
-          <Button icon aria-label={t('editor.redo')} title={t('editor.redo')} disabled={!hist.future.length} onClick={() => dispatch({ kind: 'redo' })}><Redo2 className="size-4" /></Button>
-          {inspectorBtn}
-          {deviceBtns}
-          <Button icon aria-label={t('editor.fullscreen')} title={t('editor.fullscreen')} onClick={() => setFull(true)}><Maximize2 className="size-4" /></Button>
-          <ThemeToolbar onShortcuts={() => setShortcuts(true)} themeId={themeId} name={name} role={role} dirty={dirty} previewUrl={withParams(previewPath(frameTpl, h), { preview_theme_id: String(num) })} />
-        </>} />
-      <div className="mb-4"><Tabs value={tab} onChange={setTab} tabs={[{ id: 'sections', label: t('editor.tabSections') }, { id: 'settings', label: t('editor.tabSettings') }]} /></div>
-      {(error ?? loadError?.message) && <div className="mb-4"><Banner>{error ?? loadError?.message}</Banner></div>}
-      <div className={cx('grid gap-4', showPanel ? 'lg:grid-cols-[20rem_minmax(0,1fr)_20rem]' : 'lg:grid-cols-[22rem_minmax(0,1fr)]')}>
-        <div className="flex flex-col gap-3 lg:max-h-[calc(100vh-11rem)] lg:overflow-y-auto">
-          {tab === 'settings'
-            ? <ThemeSettingsPanel groups={groups} values={settings} label={label} onChange={(id, v) => dispatch({ kind: 'setting', id, value: v, at: Date.now() })} />
-            : files.isLoading || schemas.isLoading ? <Skeleton className="h-64" /> : (
-              <>
-                {missing && !loadError && <Banner>{t('editor.templateMissing')}</Banner>}
-                <SectionsTree docs={docs} order={ordered} idx={idx} label={label} fileLabel={fileLabel} sectionTitle={sectionTitle} blockTitle={blockTitle} sel={sel} onSel={setSel} onHover={setHovered} ops={ops} />
-              </>
-            )}
+    <div className="fixed inset-0 z-[45] flex flex-col bg-page text-fg">
+      <ConfirmDialog open={blocker.state === 'blocked'} title={t('save.leaveTitle')} message={t('save.leaveBody')} confirmLabel={t('save.leave')} cancelLabel={t('save.stay')} closeLabel={t('common.close')} danger
+        onConfirm={() => blocker.proceed?.()} onClose={() => blocker.reset?.()} />
+      <header className="relative flex h-[46px] shrink-0 items-center justify-between px-3">
+        <div role="tablist" aria-label={t('editor.panels')} className="flex items-center gap-1">
+          <button type="button" aria-label={t('editor.allThemes')} title={t('editor.allThemes')} className={topBtn} onClick={() => nav('/online-store')}><LogOut className="size-4 -scale-x-100" /></button>
+          <button type="button" role="tab" aria-selected={tab === 'sections'} aria-label={t('editor.tabSections')} title={t('editor.tabSections')} className={topBtn} onClick={() => setTab('sections')}><PanelsTopLeft className="size-4" /></button>
+          <button type="button" role="tab" aria-selected={tab === 'settings'} aria-label={t('editor.tabSettings')} title={t('editor.tabSettings')} className={topBtn} onClick={() => setTab('settings')}><Settings className="size-4" /></button>
         </div>
-        <div className={cx(full ? 'fixed inset-0 z-[55] flex flex-col gap-2 bg-surface p-3' : 'min-w-0 rounded-lg border border-line bg-surface p-2')}>
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex h-full items-center justify-center gap-10 text-[12px]">
+          <div className="pointer-events-auto flex items-center gap-2"><LayoutTemplate className="size-3.5" aria-hidden /><span className="font-medium">{name}</span>{status}</div>
+          <label className="pointer-events-auto relative flex h-7 items-center gap-1.5 rounded-md pl-1.5 pr-2 hover:bg-hover">
+            <FileText className="size-3.5" aria-hidden />
+            <span aria-hidden>{pageName}</span>
+            <select aria-label={t('editor.template')} value={template} onChange={(e) => chooseTemplate(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0">{(templateNames.length ? templateNames : ['index']).map((x) => <option key={x} value={x}>{x}</option>)}</select>
+          </label>
+        </div>
+        <div className="flex items-center gap-1">
+          {inspectorBtn}
+          {deviceBtn}
+          <button type="button" aria-label={t('editor.undo')} title={t('editor.undo')} disabled={!hist.past.length} onClick={() => dispatch({ kind: 'undo' })} className={topBtn}><Undo2 className="size-4" /></button>
+          <button type="button" aria-label={t('editor.redo')} title={t('editor.redo')} disabled={!hist.future.length} onClick={() => dispatch({ kind: 'redo' })} className={topBtn}><Redo2 className="size-4" /></button>
+          <ThemeToolbar onShortcuts={() => setShortcuts(true)} themeId={themeId} name={name} role={role} dirty={dirty} previewUrl={withParams(previewPath(frameTpl, h), { preview_theme_id: String(num) })} />
+          <Button size="sm" variant="primary" disabled={!dirty} loading={save.isPending} onClick={doSave}>{t('save.save')}</Button>
+        </div>
+      </header>
+      {(error ?? loadError?.message) && <div className="px-1 pb-1"><Banner>{error ?? loadError?.message}</Banner></div>}
+      <div className="flex min-h-0 flex-1 gap-1 p-1 pt-0">
+        <div className="flex w-[248px] shrink-0 flex-col overflow-hidden rounded-lg border border-line bg-canvas">
+          <h1 className="shrink-0 border-b border-line px-3 py-2 text-[12px] font-semibold">{tab === 'settings' ? t('editor.tabSettings') : pageName}</h1>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {tab === 'settings'
+              ? <ThemeSettingsPanel groups={groups} values={settings} label={label} onChange={(id, v) => dispatch({ kind: 'setting', id, value: v, at: Date.now() })} />
+              : files.isLoading || schemas.isLoading ? <div className="p-3"><Skeleton className="h-64" /></div> : (
+                <>
+                  {missing && !loadError && <div className="p-2"><Banner>{t('editor.templateMissing')}</Banner></div>}
+                  <SectionsTree docs={docs} order={ordered} idx={idx} label={label} fileLabel={fileLabel} sectionTitle={sectionTitle} blockTitle={blockTitle} sel={sel} onSel={setSel} onHover={setHovered} ops={ops} />
+                </>
+              )}
+          </div>
+        </div>
+        <div className={cx(full ? 'fixed inset-0 z-[55] flex flex-col gap-2 bg-surface p-3' : 'min-w-0 flex-1')}>
           {full && (
             <div className="flex items-center justify-center gap-2">
-              {inspectorBtn}{deviceBtns}
+              {inspectorBtn}{deviceBtn}
               <Button onClick={() => setFull(false)}><Minimize2 className="size-4" />{t('editor.exitFullscreen')}</Button>
             </div>
           )}
-          <div className={full ? 'min-h-0 flex-1' : undefined}>
-            <PreviewFrame src={src} title={t('themes.preview')} device={device} inspector={inspector} selected={selTarget} highlight={hovered ? { section: hovered.section } : null} onInsert={onInsert} nameOf={nameOf} hasBlock={hasBlock} onPick={onPick} onNavigate={onNavigate} refresh={refresh} toolbar={tab === 'sections' ? toolbar : null} fill={full} />
+          <div className={full ? 'min-h-0 flex-1' : 'h-full'}>
+            <PreviewFrame src={src} title={t('themes.preview')} device={device} inspector={inspector} selected={selTarget} highlight={hovered ? { section: hovered.section } : null} onInsert={onInsert} nameOf={nameOf} hasBlock={hasBlock} onPick={onPick} onNavigate={onNavigate} refresh={refresh} toolbar={tab === 'sections' ? toolbar : null} fill />
           </div>
         </div>
         {showPanel && current && sel && selActions && (

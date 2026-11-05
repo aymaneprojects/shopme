@@ -1,7 +1,7 @@
 import { Badge, Banner, Button, ConfirmDialog, EmptyState, Input, Skeleton, Card, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Plus, Search } from 'lucide-react';
+import { FileText, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
@@ -43,7 +43,7 @@ export function PagesListPage() {
     { key: 'content', header: t('pages.content'), className: 'max-w-md', cell: (p) => <span className="line-clamp-1 text-muted">{excerpt(p.body)}</span> },
     { key: 'updated', header: t('pages.updated'), cell: (p) => fmt.dateTime(p.updatedAt) },
   ];
-  const add = <Button variant="primary" onClick={() => nav('/online-store/pages/new')}><Plus className="size-4" />{t('pages.add')}</Button>;
+  const add = <Button variant="primary" onClick={() => nav('/online-store/pages/new')}>{t('pages.add')}</Button>;
   return (
     <div className="flex flex-col gap-4">
       <StoreActions>{add}</StoreActions>

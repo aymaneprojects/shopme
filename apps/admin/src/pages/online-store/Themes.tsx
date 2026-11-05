@@ -4,7 +4,7 @@ import { ExternalLink, MoreHorizontal, Palette, Upload } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { NavLink, Outlet, useNavigate } from 'react-router';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { gql, mutate, upload } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
 import { gidToNum } from '../../format';
@@ -27,12 +27,17 @@ export function StoreActions({ children }: { children: ReactNode }) {
 
 export function OnlineStoreLayout() {
   const t = useT();
+  const { pathname } = useLocation();
+  const active = [...TABS].reverse().find((x) => (x.end ? pathname === x.to : pathname.startsWith(x.to))) ?? TABS[0]!;
+  const isIndex = pathname.replace(/\/$/, '') === '/online-store';
+  const detail = pathname.split('/').filter(Boolean).length >= 3;
   return (
     <>
-      <PageHeader title={t('nav.onlineStore')}  actions={<><span id="store-header-actions" className="contents" /><a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 field-control font-medium hover:bg-surface"><ExternalLink className="size-4" />{t('store.view')}</a></>} />
+      {!detail && <>
+      <PageHeader title={t(isIndex ? 'nav.onlineStore' : active.key)} actions={<><span id="store-header-actions" className="contents" />{isIndex && <a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 field-control font-medium hover:bg-surface"><ExternalLink className="size-4" />{t('store.view')}</a>}</>} />
       <nav aria-label={t('nav.onlineStore')} className="mb-4 flex gap-1 overflow-x-auto border-b border-line">
         {TABS.map((x) => <NavLink key={x.to} to={x.to} end={x.end} className={({ isActive }) => cx('-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium', isActive ? 'border-accent text-accent' : 'border-transparent text-muted hover:text-fg')}>{t(x.key)}</NavLink>)}
-      </nav>
+      </nav></>}
       <Outlet />
     </>
   );

@@ -34,7 +34,8 @@ function PreferencesForm({ initial }: { initial: Form }) {
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setF(initial); setError(null); }} />
       {error && <Banner>{error}</Banner>}
-      <Card title={t('prefs.access')}>
+      <h2 className="-mb-2 text-[13px] font-semibold">{t('prefs.access')}</h2>
+      <Card>
         <div className="flex flex-col gap-3">
           <Switch checked={f.enabled} onChange={(v) => set({ enabled: v })} label={t('prefs.passwordMode')} />
           <p className="text-[13px] text-muted">{t('prefs.passwordModeHelp')}</p>
@@ -46,7 +47,8 @@ function PreferencesForm({ initial }: { initial: Form }) {
           )}
         </div>
       </Card>
-      <Card title={t('prefs.seo')}>
+      <h2 className="-mb-2 mt-2 text-[13px] font-semibold">{t('prefs.seo')}</h2>
+      <Card>
         <Textarea label={t('prefs.homeDescription')} rows={3} help={t('prefs.homeDescriptionHelp')} value={f.description} onChange={(e) => set({ description: e.target.value })} />
       </Card>
     </div>

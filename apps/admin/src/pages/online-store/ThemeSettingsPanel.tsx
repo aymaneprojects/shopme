@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import { useState } from 'react';
 import { SettingField } from '../../components/SettingField';
 import { useT } from '../../i18n';
@@ -18,24 +18,26 @@ export function filterSettings(settings: SettingDef[], needle: string, label: (l
   return out;
 }
 
-/** Theme settings: collapsible groups, narrowed by a search box (matching groups open by themselves). */
+/** Theme settings: a list of collapsible rows (name, chevron), narrowed by a search box (matching groups open by themselves). */
 export function ThemeSettingsPanel({ groups, values, label, onChange }: { groups: SettingGroup[]; values: Record<string, SettingValue>; label: (l?: string) => string; onChange: (id: string, v: SettingValue) => void }) {
   const t = useT();
   const [find, setFind] = useState('');
   const shown = groups.map((g) => ({ g, settings: filterSettings(g.settings, find, label), nameHit: !!find.trim() && label(g.name).toLowerCase().includes(find.trim().toLowerCase()) }))
     .map((x) => (x.nameHit && !x.settings.length ? { ...x, settings: x.g.settings } : x)).filter((x) => x.settings.length);
   return (
-    <div className="flex flex-col gap-2">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
-        <input type="search" value={find} onChange={(e) => setFind(e.target.value)} placeholder={t('editor.searchSettings')} aria-label={t('editor.searchSettings')} className="field-control w-full pl-8" />
+    <div className="flex flex-col">
+      <div className="relative px-3 pb-2 pt-2">
+        <Search className="pointer-events-none absolute left-5 top-4 size-3.5 text-muted" />
+        <input type="search" value={find} onChange={(e) => setFind(e.target.value)} placeholder={t('editor.searchSettings')} aria-label={t('editor.searchSettings')} className="field-control w-full pl-8 text-[12px]" />
       </div>
-      {groups.length === 0 && <p className="text-[13px] text-muted">{t('themes.noSettings')}</p>}
-      {groups.length > 0 && shown.length === 0 && <p className="text-[13px] text-muted">{t('editor.noSettingsMatch')}</p>}
+      {groups.length === 0 && <p className="px-4 text-[13px] text-muted">{t('themes.noSettings')}</p>}
+      {groups.length > 0 && shown.length === 0 && <p className="px-4 text-[13px] text-muted">{t('editor.noSettingsMatch')}</p>}
       {shown.map(({ g, settings }) => (
-        <details key={`${g.name}:${find.trim() ? 'q' : 'n'}`} open={!!find.trim() || groups[0] === g} className="rounded-lg border border-line bg-canvas">
-          <summary className="cursor-pointer px-3 py-2 text-[13px] font-semibold">{label(g.name)}</summary>
-          <div className="flex flex-col gap-3 border-t border-line p-3">
+        <details key={`${g.name}:${find.trim() ? 'q' : 'n'}`} open={!!find.trim() || groups[0] === g} className="group/d border-b border-line last:border-b-0">
+          <summary className="flex h-10 cursor-pointer list-none items-center justify-between px-3 text-[12px] font-medium hover:bg-hover [&::-webkit-details-marker]:hidden">
+            {label(g.name)}<ChevronDown className="size-3.5 text-muted transition-transform group-open/d:rotate-180" />
+          </summary>
+          <div className="flex flex-col gap-3 px-3 pb-4 pt-1">
             {settings.map((s, i) => isInput(s)
               ? <SettingField key={s.id} def={s} label={label(s.label)} info={s.info ? label(s.info) : undefined} value={values[s.id]!} optionLabel={label} onChange={(v) => onChange(s.id, v)} />
               : s.type === 'header' ? <h3 key={i} className="text-[13px] font-semibold">{label(s.content)}</h3>

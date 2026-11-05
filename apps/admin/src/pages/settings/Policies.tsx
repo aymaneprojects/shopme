@@ -24,6 +24,7 @@ export function PoliciesSettings() {
   const q = usePolicies();
   return (
     <div className="flex flex-col gap-6">
+      <ReturnRules />
       <Section title={t('policies.written')} description={t('policies.footer')}>
         {q.isLoading && <Skeleton className="h-64" />}
         {q.error && <Banner>{q.error.message}</Banner>}
@@ -36,7 +37,6 @@ export function PoliciesSettings() {
           </RowCard>
         )}
       </Section>
-      <ReturnRules />
       <CookieBanner />
     </div>
   );
