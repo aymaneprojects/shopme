@@ -10,7 +10,7 @@
           "Purchase options: the product page offers one-time purchase or a subscription with the price per delivery and the saving; the cart, checkout and thank-you page show the plan, and the account page lists subscriptions with pause, resume, skip and cancel.",
           "Account page: orders per page and where the account details sit. Order page: SKU column, addresses and shipments. Addresses page: addresses per row.",
           "Images follow the focal point chosen in the admin when they are cropped: product cards and product page, featured product, collection tiles and links, image gallery, multicolumn and popup.",
-          "Section and section group names (header, footer, announcement bar, overlays and the customer pages) are translated in the theme editor.",
+          "Section and section group names (header, footer, announcement bar, overlays and the customer pages) and the header, footer and announcement bar settings are translated in the theme editor.",
           "The Add section picker groups sections by category, and the hero and video sections take an uploaded video or a link.",
           "The popup only shows in the editor preview when it is turned on, and the theme's documentation and support links point to ShopMe."
         ],
@@ -19,7 +19,7 @@
           "Options d’achat : la page produit propose l’achat unique ou l’abonnement avec le prix par livraison et l’économie ; le panier, le paiement et la page de remerciement affichent le plan, et la page du compte liste les abonnements avec pause, reprise, livraison sautée et annulation.",
           "Page du compte : nombre de commandes par page et position des informations du compte. Page de commande : colonne SKU, adresses et expéditions. Page des adresses : nombre d’adresses par ligne.",
           "Les images respectent le point focal choisi dans l’administration lorsqu’elles sont recadrées : cartes produit et page produit, produit à la une, vignettes et liens de collections, galerie d’images, multicolonne et fenêtre contextuelle.",
-          "Les noms des sections et des groupes de sections (en-tête, pied de page, barre d’annonces, superpositions et pages client) sont traduits dans l’éditeur de thème.",
+          "Les noms des sections et des groupes de sections (en-tête, pied de page, barre d’annonces, superpositions et pages client) ainsi que les réglages de l’en-tête, du pied de page et de la barre d’annonces sont traduits dans l’éditeur de thème.",
           "Le sélecteur « Ajouter une section » classe les sections par catégorie, et les sections bannière héros et vidéo acceptent une vidéo importée ou un lien.",
           "La fenêtre contextuelle ne s’affiche dans l’aperçu de l’éditeur que si elle est activée, et les liens de documentation et d’assistance du thème mènent à ShopMe."
         ]

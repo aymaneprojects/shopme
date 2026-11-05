@@ -1,11 +1,11 @@
 import { Badge, Banner, Button, Card, Checkbox, ConfirmDialog, Dropdown, Input, Modal, Select, Skeleton, Switch, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router';
-import { FileText, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Globe, MoreHorizontal, Pencil, Plus, PlusCircle, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { gql, mutate } from '../../api';
-import { LinkRow, RowCard, Section } from '../../components/SettingsKit';
-import { useFormat } from '../../components/shared';
+import { CollapseRow, RowCard, Section } from '../../components/SettingsKit';
 import { LOCAL_DELIVERIES, LOCAL_DELIVERY_STATUS_UPDATE, LOCATIONS_SIMPLE, SHIPPING_BY_MARKET } from '../../graphql';
 import { gidToNum } from '../../format';
 import { useI18n } from '../../i18n';
@@ -16,75 +16,162 @@ import type { RoutingRule, ShipRule, ShippingConfig } from '../../lib/config';
 import { useShop } from '../../session';
 
 interface MarketShipping { marketId: number; name: string; status: string; primary: boolean; countries: string[]; uncovered: string[]; options: Array<{ profile: string; zone: string; name: string; price: number; countries: string[] }> }
+type ListKey = 'fulfillmentServices' | 'routing' | 'customizations';
 
-/** Shipping settings beyond rates: estimates, per-market options, fulfilment services, order routing, delivery customisations, documents (carrier accounts: ShippingCarriers.tsx). */
+export const useShippingByMarket = () => useQuery({ queryKey: ['shipping-by-market'], queryFn: async () => (await gql<{ shopmeShippingByMarket: MarketShipping[] }>(SHIPPING_BY_MARKET)).shopmeShippingByMarket });
+
+/** Edit / delete menu and delete confirmation shared by the lists stored in the SHIPPING config. */
+function useListTools(list: ListKey, onEdit: (id: string) => void) {
+  const { t } = useI18n();
+  const cfg = useConfig<ShippingConfig>('SHIPPING');
+  const [del, setDel] = useState<{ id: string; name: string } | null>(null);
+  const save = useSaveConfig<ShippingConfig>('SHIPPING', () => setDel(null));
+  const menu = (id: string, name: string) => (
+    <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
+      { key: 'edit', icon: <Pencil />, label: t('common.edit'), onSelect: () => onEdit(id) },
+      { key: 'del', icon: <Trash2 />, label: t('common.delete'), danger: true, onSelect: () => setDel({ id, name }) },
+    ]} />
+  );
+  const confirm = (
+    <ConfirmDialog open={!!del} danger onClose={() => setDel(null)} title={t('bs.deleteItemTitle', { name: del?.name ?? '' })} message={t('bs.deleteItemBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')}
+      onConfirm={() => del && cfg.data && save.mutate({ ...cfg.data, [list]: (cfg.data[list] as Array<{ id: string }>).filter((x) => x.id !== del.id) })} />
+  );
+  return { menu, confirm };
+}
+
+/** Rows of a config list inside a collapsible row: name, detail, optional switch, menu; then the add button. */
+function ListRows<T extends { id: string; name: string }>({ items, detail, toggle, menu, addLabel, onAdd }: { items: T[]; detail: (x: T) => ReactNode; toggle?: (x: T) => ReactNode; menu: (id: string, name: string) => ReactNode; addLabel: string; onAdd: () => void }) {
+  return (
+    <RowCard className="border border-line shadow-none">
+      {items.map((x) => (
+        <div key={x.id} className="flex items-center gap-3 px-4 py-3">
+          <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium">{x.name}</span><span className="block truncate text-xs text-muted">{detail(x)}</span></span>
+          {toggle?.(x)}
+          {menu(x.id, x.name)}
+        </div>
+      ))}
+      <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13px] hover:bg-hover" onClick={onAdd}><PlusCircle className="size-4" />{addLabel}</button>
+    </RowCard>
+  );
+}
+
+/** Dashed empty box with a single "+ add" button, used by the lists at the bottom of the shipping page. */
+function AddBox({ label, onAdd }: { label: string; onAdd: () => void }) {
+  return <div className="grid place-items-center rounded-xl border border-dashed border-line px-4 py-4"><Button size="sm" onClick={onAdd}><Plus className="size-4" />{label}</Button></div>;
+}
+
+/** "Shipping options": what each market is offered (from the delivery profiles), above the profiles themselves. */
+export function MarketOptionsTable() {
+  const { t, lang } = useI18n();
+  const q = useShippingByMarket();
+  const rows = (q.data ?? []).filter((m) => !m.primary || m.options.length > 0);
+  if (!rows.length) return null;
+  return (
+    <div className="mb-3 overflow-hidden rounded-xl border border-line">
+      <table className="w-full text-left text-[13px]">
+        <thead className="bg-surface text-xs text-muted"><tr><th className="px-3 py-2 font-medium">{t('fid.ship.market')}</th><th className="px-3 py-2 font-medium">{t('fid.ship.optionsCol')}</th></tr></thead>
+        <tbody className="divide-y divide-line">
+          {rows.map((m) => (
+            <tr key={m.marketId}>
+              <td className="w-48 px-3 py-2"><Link to={`/markets/${m.marketId}`} className="inline-flex items-center gap-2 hover:underline"><Globe className="size-4 text-muted" aria-hidden />{m.name}</Link></td>
+              <td className="px-3 py-2">
+                <span className="flex flex-wrap items-center gap-1.5">
+                  {m.options.length ? [...new Set(m.options.map((o) => o.name))].map((n) => <span key={n} className="rounded-md bg-hover px-2 py-0.5">{n}</span>) : <span className="text-muted">{t('bs.noOptions')}</span>}
+                  {m.uncovered.length > 0 && m.options.length > 0 && <span className="text-xs text-warning">{t('bs.uncovered', { countries: m.uncovered.map((c) => countryOptions(lang).find((x) => x.code === c)?.name ?? c).join(', ') })}</span>}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** "Estimated delivery dates": handling time added to the transit times of the rates. */
+export function EstimatesRow() {
+  const { t } = useI18n();
+  const cfg = useConfig<ShippingConfig>('SHIPPING');
+  const save = useSaveConfig<ShippingConfig>('SHIPPING', () => undefined);
+  const c = cfg.data;
+  return (
+    <CollapseRow title={t('fid.ship.estimates')} description={t('fid.ship.estimatesDesc')} summary={c ? t('fid.ship.handlingSummary', { n: c.handlingDays }) : undefined}>
+      {c ? <Estimates key={c.handlingDays} cfg={c} saving={save.isPending} onSave={(handlingDays) => save.mutate({ ...c, handlingDays })} /> : <Skeleton className="h-16" />}
+    </CollapseRow>
+  );
+}
+
+/** "Order routing": which location fulfills a new order. */
+export function RoutingRow() {
+  const { t } = useI18n();
+  const cfg = useConfig<ShippingConfig>('SHIPPING');
+  const [modal, setModal] = useState<{ id: string | null } | null>(null);
+  const save = useSaveConfig<ShippingConfig>('SHIPPING', () => setModal(null));
+  const tools = useListTools('routing', (id) => setModal({ id }));
+  const c = cfg.data;
+  return (
+    <CollapseRow title={t('fid.ship.routing')} description={t('fid.ship.routingDesc')} summary={c ? t('fid.ship.rulesCount', { n: c.routing.length }) : undefined}>
+      {c ? <ListRows items={c.routing} detail={(r) => `${r.countries.length ? r.countries.join(', ') : t('bs.allDestinations')} · ${t('bs.locationsCount', { n: r.locationIds.length })}`}
+        toggle={(r) => <Switch label={<span className="sr-only">{r.name}</span>} checked={r.enabled} onChange={(v) => save.mutate({ ...c, routing: c.routing.map((x) => (x.id === r.id ? { ...x, enabled: v } : x)) })} />}
+        menu={tools.menu} addLabel={t('bs.addRule')} onAdd={() => setModal({ id: null })} /> : <Skeleton className="h-16" />}
+      {c && <RoutingModal open={!!modal} cfg={c} id={modal?.id ?? null} saving={save.isPending} onClose={() => setModal(null)} onSave={(l) => save.mutate({ ...c, routing: l })} />}
+      {tools.confirm}
+    </CollapseRow>
+  );
+}
+
+const DOC_ROWS = [['pickList', 'pick-list'], ['packingSlip', 'packing-slip'], ['invoice', 'invoice']] as const;
+
+/** Sections under the delivery methods: printable documents, delivery customizations and custom order fulfillment (carrier accounts and labels: ShippingCarriers.tsx). */
 export function ShippingExtras() {
   const { t } = useI18n();
   const cfg = useConfig<ShippingConfig>('SHIPPING');
-  const [modal, setModal] = useState<null | 'service' | 'routing' | 'rule'>(null);
+  const [modal, setModal] = useState<null | 'service' | 'rule'>(null);
   const [edit, setEdit] = useState<string | null>(null);
-  const [del, setDel] = useState<{ list: 'fulfillmentServices' | 'routing' | 'customizations'; id: string; name: string } | null>(null);
-  const save = useSaveConfig<ShippingConfig>('SHIPPING', () => { setModal(null); setEdit(null); setDel(null); });
+  const save = useSaveConfig<ShippingConfig>('SHIPPING', () => { setModal(null); setEdit(null); });
+  const open = (m: typeof modal, id: string | null = null) => { setEdit(id); setModal(m); };
+  const rules = useListTools('customizations', (id) => open('rule', id));
+  const services = useListTools('fulfillmentServices', (id) => open('service', id));
   if (cfg.isLoading) return <Skeleton className="h-32" />;
   if (cfg.error || !cfg.data) return <Banner>{cfg.error?.message}</Banner>;
   const c = cfg.data;
   const put = (patch: Partial<ShippingConfig>) => save.mutate({ ...c, ...patch });
-  const open = (m: typeof modal, id: string | null = null) => { setEdit(id); setModal(m); };
-  const menu = (m: NonNullable<typeof modal>, list: NonNullable<typeof del>['list'], id: string, name: string) => (
-    <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
-      { key: 'edit', icon: <Pencil />, label: t('common.edit'), onSelect: () => open(m, id) },
-      { key: 'del', icon: <Trash2 />, label: t('common.delete'), danger: true, onSelect: () => setDel({ list, id, name }) },
-    ]} />
-  );
   return (
     <>
-      <Estimates cfg={c} saving={save.isPending} onSave={(handlingDays) => put({ handlingDays })} />
-      <ByMarket />
+      <Section title={t('bs.documents')}>
+        <div className="overflow-hidden rounded-xl bg-canvas shadow-card">
+          <table className="w-full text-left text-[13px]">
+            <thead className="bg-surface text-xs text-muted"><tr><th className="px-4 py-2 font-medium">{t('fid.ship.docName')}</th><th className="px-4 py-2 text-right font-medium">{t('fid.ship.docEdit')}</th></tr></thead>
+            <tbody className="divide-y divide-line">
+              {DOC_ROWS.map(([key, slug]) => (
+                <tr key={key} className="hover:bg-hover">
+                  <td className="px-4 py-2.5"><Link to={`/settings/shipping/documents#${slug}`} className="block">{t(`bs.doc.${key}` as Key)}</Link></td>
+                  <td className="px-4 py-2.5 text-right text-muted"><Link to={`/settings/shipping/documents#${slug}`} aria-label={`${t('common.edit')} ${t(`bs.doc.${key}` as Key)}`} className="inline-grid size-6 place-items-center rounded hover:bg-surface"><Pencil className="size-3.5" /></Link></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Section>
 
-      <Section title={t('bs.routing')} description={t('bs.routingDesc')} action={<Button onClick={() => open('routing')}><Plus className="size-4" />{t('bs.addRule')}</Button>}>
-        {c.routing.length === 0 ? <Card><p className="text-[13px] text-muted">{t('bs.routingEmpty')}</p></Card> : (
-          <RowCard>{c.routing.map((r) => (
-            <div key={r.id} className="flex items-center gap-3 px-4 py-3">
-              <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium">{r.name}</span><span className="block truncate text-xs text-muted">{r.countries.length ? r.countries.join(', ') : t('bs.allDestinations')} · {t('bs.locationsCount', { n: r.locationIds.length })}</span></span>
-              <Switch label={<span className="sr-only">{r.name}</span>} checked={r.enabled} onChange={(v) => put({ routing: c.routing.map((x) => (x.id === r.id ? { ...x, enabled: v } : x)) })} />
-              {menu('routing', 'routing', r.id, r.name)}
-            </div>
-          ))}</RowCard>
+      <Section title={t('bs.delivCustom')} description={t('fid.ship.customDesc')}>
+        {c.customizations.length === 0 ? <AddBox label={t('fid.ship.addCustomization')} onAdd={() => open('rule')} /> : (
+          <ListRows items={c.customizations} detail={(r) => `${t(`bs.action.${r.action}` as Key)} · ${r.optionName || t('bs.allOptions')}${r.countries.length ? ` · ${r.countries.join(', ')}` : ''}`}
+            toggle={(r) => <Switch label={<span className="sr-only">{r.name}</span>} checked={r.enabled} onChange={(v) => put({ customizations: c.customizations.map((x) => (x.id === r.id ? { ...x, enabled: v } : x)) })} />}
+            menu={rules.menu} addLabel={t('fid.ship.addCustomization')} onAdd={() => open('rule')} />
         )}
       </Section>
 
-      <Section title={t('bs.delivCustom')} description={t('bs.delivCustomDesc')} action={<Button onClick={() => open('rule')}><Plus className="size-4" />{t('bs.addRule')}</Button>}>
-        {c.customizations.length === 0 ? <Card><p className="text-[13px] text-muted">{t('bs.delivCustomEmpty')}</p></Card> : (
-          <RowCard>{c.customizations.map((r) => (
-            <div key={r.id} className="flex items-center gap-3 px-4 py-3">
-              <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium">{r.name}</span><span className="block truncate text-xs text-muted">{t(`bs.action.${r.action}` as Key)} · {r.optionName || t('bs.allOptions')}{r.countries.length ? ` · ${r.countries.join(', ')}` : ''}</span></span>
-              <Switch label={<span className="sr-only">{r.name}</span>} checked={r.enabled} onChange={(v) => put({ customizations: c.customizations.map((x) => (x.id === r.id ? { ...x, enabled: v } : x)) })} />
-              {menu('rule', 'customizations', r.id, r.name)}
-            </div>
-          ))}</RowCard>
+      <Section title={t('fid.ship.customFulfillment')} description={t('fid.ship.customFulfillmentDesc')}>
+        {c.fulfillmentServices.length === 0 ? <AddBox label={t('fid.ship.addService')} onAdd={() => open('service')} /> : (
+          <ListRows items={c.fulfillmentServices} detail={(s) => s.email || t('bs.noEmail')} menu={services.menu} addLabel={t('fid.ship.addService')} onAdd={() => open('service')} />
         )}
-      </Section>
-
-      <Section title={t('bs.fulfilServices')} description={t('bs.fulfilServicesDesc')} action={<Button onClick={() => open('service')}><Plus className="size-4" />{t('bs.addService')}</Button>}>
-        {c.fulfillmentServices.length === 0 ? <Card><p className="text-[13px] text-muted">{t('bs.fulfilServicesEmpty')}</p></Card> : (
-          <RowCard>{c.fulfillmentServices.map((s) => (
-            <div key={s.id} className="flex items-center gap-3 px-4 py-3">
-              <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium">{s.name}</span><span className="block truncate text-xs text-muted">{s.email || t('bs.noEmail')}</span></span>
-              {menu('service', 'fulfillmentServices', s.id, s.name)}
-            </div>
-          ))}</RowCard>
-        )}
-      </Section>
-
-      <Section title={t('bs.documents')} description={t('bs.documentsDesc')}>
-        <RowCard><LinkRow to="/settings/shipping/documents" icon={FileText} title={t('bs.documentTemplates')} description={t('bs.documentTemplatesDesc')} /></RowCard>
       </Section>
 
       <ServiceModal open={modal === 'service'} cfg={c} id={edit} saving={save.isPending} onClose={() => setModal(null)} onSave={(l) => put({ fulfillmentServices: l })} />
-      <RoutingModal open={modal === 'routing'} cfg={c} id={edit} saving={save.isPending} onClose={() => setModal(null)} onSave={(l) => put({ routing: l })} />
       <RuleModal open={modal === 'rule'} cfg={c} id={edit} saving={save.isPending} onClose={() => setModal(null)} onSave={(l) => put({ customizations: l })} />
-      <ConfirmDialog open={!!del} danger onClose={() => setDel(null)} title={t('bs.deleteItemTitle', { name: del?.name ?? '' })} message={t('bs.deleteItemBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')}
-        onConfirm={() => del && put({ [del.list]: (c[del.list] as Array<{ id: string }>).filter((x) => x.id !== del.id) } as Partial<ShippingConfig>)} />
+      {rules.confirm}
+      {services.confirm}
     </>
   );
 }
@@ -95,39 +182,13 @@ function Estimates({ cfg, saving, onSave }: { cfg: ShippingConfig; saving: boole
   const n = Number(days);
   const valid = Number.isInteger(n) && n >= 0 && n <= 60;
   return (
-    <Section title={t('bs.estimates')} description={t('bs.estimatesDesc')}>
-      <Card>
-        <div className="flex items-end gap-3">
-          <Input className="w-40" label={t('bs.handlingDays')} inputMode="numeric" value={days} error={!valid ? t('bs.handlingInvalid') : null} onChange={(e) => setDays(e.target.value)} />
-          <Button variant="primary" disabled={!valid || n === cfg.handlingDays} loading={saving} onClick={() => onSave(n)}>{t('save.save')}</Button>
-        </div>
-        <p className="mt-2 text-[13px] text-muted">{t('bs.handlingHelp')}</p>
-      </Card>
-    </Section>
-  );
-}
-
-/** What each market is offered, read from the delivery profiles. */
-function ByMarket() {
-  const { t, lang } = useI18n();
-  const fmt = useFormat();
-  const { shop } = useShop();
-  const q = useQuery({ queryKey: ['shipping-by-market'], queryFn: async () => (await gql<{ shopmeShippingByMarket: MarketShipping[] }>(SHIPPING_BY_MARKET)).shopmeShippingByMarket });
-  if (!q.data || q.data.length === 0) return null;
-  return (
-    <Section title={t('bs.byMarket')} description={t('bs.byMarketDesc')}>
-      <RowCard>
-        {q.data.map((m) => (
-          <div key={m.marketId} className="px-4 py-3 text-[13px]">
-            <p className="flex items-center gap-2 font-medium">{m.name}{m.primary && <Badge>{t('settings.primaryBadge')}</Badge>}<span className="font-normal text-muted">{t('bs.countriesCount', { n: m.countries.length })}</span></p>
-            {m.options.length === 0 ? <p className="text-muted">{t('bs.noOptions')}</p> : (
-              <ul className="mt-1 text-muted">{m.options.map((o, i) => <li key={i} className="flex justify-between gap-3"><span className="truncate">{o.name} · {o.zone}{m.countries.length > 1 && o.countries.length < m.countries.length ? ` (${o.countries.length}/${m.countries.length})` : ''}</span><span className="text-text">{o.price ? fmt.money({ amount: (o.price / 100).toFixed(2), currencyCode: shop.currency }) : t('shipping.free')}</span></li>)}</ul>
-            )}
-            {m.uncovered.length > 0 && <p className="mt-1 text-xs text-warning">{t('bs.uncovered', { countries: m.uncovered.map((c) => countryOptions(lang).find((x) => x.code === c)?.name ?? c).join(', ') })}</p>}
-          </div>
-        ))}
-      </RowCard>
-    </Section>
+    <Card className="border border-line shadow-none">
+      <div className="flex items-end gap-3">
+        <Input className="w-40" label={t('bs.handlingDays')} inputMode="numeric" value={days} error={!valid ? t('bs.handlingInvalid') : null} onChange={(e) => setDays(e.target.value)} />
+        <Button variant="primary" disabled={!valid || n === cfg.handlingDays} loading={saving} onClick={() => onSave(n)}>{t('save.save')}</Button>
+      </div>
+      <p className="mt-2 text-[13px] text-muted">{t('bs.handlingHelp')}</p>
+    </Card>
   );
 }
 
@@ -218,12 +279,10 @@ export function PickupFromOthers() {
   const save = useSaveConfig<ShippingConfig>('SHIPPING');
   if (!cfg.data) return null;
   return (
-    <Banner tone="info">
-      <div className="flex flex-col gap-2">
-        <Switch placement="end" checked={cfg.data.pickupFromOtherLocations} onChange={(v) => save.mutate({ ...cfg.data!, pickupFromOtherLocations: v })} label={t('bs.pickupOthers')} />
-        <span className="text-[13px]">{t('bs.pickupOthersHelp')}</span>
-      </div>
-    </Banner>
+    <div className="flex flex-col gap-1 border-t border-current/15 pt-2">
+      <Switch placement="end" checked={cfg.data.pickupFromOtherLocations} onChange={(v) => save.mutate({ ...cfg.data!, pickupFromOtherLocations: v })} label={t('bs.pickupOthers')} />
+      <span className="text-[13px]">{t('bs.pickupOthersHelp')}</span>
+    </div>
   );
 }
 

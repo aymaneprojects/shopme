@@ -134,7 +134,7 @@ function EntryForm({ entry, definition: raw }: { entry: EntryData | null; defini
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setErrors({}); setBanner(null); }} />
-      <PageHeader large back={`/content/metaobjects/${encodeURIComponent(definition.type)}`} breadcrumb={{ icon: <Boxes className="size-4" />, label: t('mo.title'), to: '/content/metaobjects' }} title={title} subtitle={entry ? `${definition.name} · ${t('mo.updatedAt', { date: fmt.dateTime(entry.updatedAt) })}` : definition.name}
+      <PageHeader large back={`/content/metaobjects/${encodeURIComponent(definition.type)}`} breadcrumb={{ icon: <Boxes className="size-4" />, label: t('mo.title'), to: '/content/metaobjects' }} title={title} subtitle={entry ? <span title={t('mo.updatedAt', { date: fmt.dateTime(entry.updatedAt) })}>{t('mo.addedByStaff')}</span> : definition.name}
         actions={entry ? <>
           <Button loading={dup.isPending} onClick={() => dup.mutate()}>{t('mo.duplicate')}</Button>
           <Dropdown align="right" label={t('common.moreActions')} trigger={t('mo.otherActions')} chevron items={[

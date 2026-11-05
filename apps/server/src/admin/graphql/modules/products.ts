@@ -404,12 +404,12 @@ builder.mutationFields((t) => ({
   }),
   productDuplicate: t.field({
     type: ProductDuplicatePayload,
-    args: { productId: t.arg.id({ required: true }), newTitle: t.arg.string({ required: true }), newStatus: t.arg({ type: ProductStatus }), includeImages: t.arg.boolean({ defaultValue: false }), includeTranslations: t.arg.boolean({ defaultValue: false }), shopmeIncludeInventory: t.arg.boolean({ defaultValue: false }), shopmeIncludeSkus: t.arg.boolean({ defaultValue: true }), synchronous: t.arg.boolean({ defaultValue: true }) },
+    args: { productId: t.arg.id({ required: true }), newTitle: t.arg.string({ required: true }), newStatus: t.arg({ type: ProductStatus }), includeImages: t.arg.boolean({ defaultValue: false }), includeTranslations: t.arg.boolean({ defaultValue: false }), shopmeIncludeInventory: t.arg.boolean({ defaultValue: false }), shopmeIncludeSkus: t.arg.boolean({ defaultValue: true }), shopmeIncludeBarcodes: t.arg.boolean({ description: 'Copy the barcodes of the variants. Follows shopmeIncludeSkus when omitted.' }), synchronous: t.arg.boolean({ defaultValue: true }) },
     resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'write_products');
       const id = parsePid(a.productId);
       if (!id) return { newProduct: null, userErrors: [{ field: ['productId'], message: 'Product does not exist' }] };
-      const o = { newTitle: a.newTitle, newStatus: a.newStatus, includeImages: a.includeImages, includeTranslations: a.includeTranslations, includeInventory: a.shopmeIncludeInventory, includeSkus: a.shopmeIncludeSkus };
+      const o = { newTitle: a.newTitle, newStatus: a.newStatus, includeImages: a.includeImages, includeTranslations: a.includeTranslations, includeInventory: a.shopmeIncludeInventory, includeSkus: a.shopmeIncludeSkus, includeBarcodes: a.shopmeIncludeBarcodes };
       if (a.synchronous === false) {
         // Validate up front (like the real thing), then run in the background: poll `productOperation` / `productDuplicateJob`.
         if (!(await getProduct(ctx.db, ctx.shopId, id))) return { newProduct: null, userErrors: [{ field: ['productId'], message: 'Product does not exist' }] };

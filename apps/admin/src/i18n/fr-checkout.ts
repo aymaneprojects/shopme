@@ -32,8 +32,8 @@ export const frCheckout: Record<keyof typeof enCheckout, string> = {
   'discount.eligibility.customers': 'Clients spécifiques', 'discount.eligibility.noSegments': 'Aucun segment de clients pour le moment. Créez-en un dans Clients, Segments.',
   'discount.eligibility.addCustomers': 'Ajouter des clients', 'discount.eligibility.add': 'Ajouter', 'discount.eligibility.help': 'Vérifié au paiement à partir de l’adresse e-mail saisie par le client.',
   'discount.err.segments': 'Sélectionnez au moins un segment de clients.', 'discount.err.customers': 'Sélectionnez au moins un client.',
-  'discount.tags': 'Tags', 'discount.tagsLabel': 'Tags de la réduction', 'discount.tagsPlaceholder': 'Ajouter un tag', 'discount.tagsHelp': 'Les tags servent à organiser et filtrer les réductions. Les clients ne les voient pas.',
-  'discounts.eligibility': 'Éligibilité', 'discounts.eligibility.customers': '{n} clients', 'discounts.tags': 'Tags', 'discounts.filterTag': 'Filtrer par tag',
+  'discount.tags': 'Balises', 'discount.tagsLabel': 'Balises de la réduction', 'discount.tagsPlaceholder': 'Ajouter une balise', 'discount.tagsHelp': 'Les balises servent à organiser et filtrer les réductions. Les clients ne les voient pas.',
+  'discounts.eligibility': 'Éligibilité', 'discounts.eligibility.customers': '{n} clients', 'discounts.tags': 'Balises', 'discounts.filterTag': 'Filtrer par balise',
 
   'activity.title': 'Notifications', 'activity.open': 'Notifications', 'activity.openUnread': 'Notifications, {n} non lues', 'activity.markAll': 'Tout marquer comme lu', 'activity.empty': 'Rien de nouveau.', 'activity.unread': 'Non lu',
   'activity.order': 'Nouvelle commande {name}', 'activity.lowStock': 'Stock faible : {title}', 'activity.lowStockBody': '{n} restant(s)', 'activity.webhook': 'Échec de livraison du webhook : {topic}',

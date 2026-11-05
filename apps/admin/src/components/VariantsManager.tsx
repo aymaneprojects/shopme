@@ -1,5 +1,5 @@
 import { Button, Checkbox, ConfirmDialog, Dropdown, Input, Modal, cx } from '@shopme/ui';
-import { Check, ImageIcon, Layers, MoreHorizontal, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Check, Copy, ImageIcon, Layers, MoreHorizontal, Pencil, Plus, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
 import { useEffect, useId, useMemo, useState } from 'react';
 import { formatMoney, parseDecimal, toDecimalString } from '../format';
 import { useT } from '../i18n';
@@ -132,10 +132,10 @@ export function VariantsManager({ options, variants, locations, currency, media,
   };
 
   const variantMenu = (v: VariantDraft) => [
-    { key: 'edit', label: t('variants.editValues'), onSelect: () => openEdit(v) },
-    { key: 'duplicate', label: t('variants.duplicate'), onSelect: () => openAdd(v) },
+    { key: 'edit', icon: <Pencil className="size-4" />, label: t('variants.editValues'), onSelect: () => openEdit(v) },
+    { key: 'duplicate', icon: <Copy className="size-4" />, label: t('variants.duplicate'), onSelect: () => openAdd(v) },
     ...(v.id && onMetafields ? [{ key: 'metafields', label: t('mf.variantMetafields'), onSelect: () => onMetafields(v.id!) }] : []),
-    { key: 'delete', label: t('common.delete'), danger: true, separatorBefore: true, disabled: !canDelete(1), onSelect: () => setConfirm([v.key]) },
+    { key: 'delete', icon: <Trash2 className="size-4" />, label: t('common.delete'), danger: true, separatorBefore: true, disabled: !canDelete(1), onSelect: () => setConfirm([v.key]) },
   ];
 
   const shownValues = (o: OptionDef) => o.values.slice(0, 3);

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
+import { ColumnPicker, useColumnVisibility } from '../../components/ColumnPicker';
 import { LearnMore } from '../../components/LearnMore';
 import { useFormat, useListParams } from '../../components/shared';
 import type { Money } from '../../components/shared';
@@ -38,6 +39,7 @@ export function PurchaseOrdersPage() {
   const nav = useNavigate();
   const fmt = useFormat();
   const L = useListParams();
+  const cols = useColumnVisibility('purchase-orders');
   const tab = (TABS.includes(L.get('tab') as Tab) ? L.get('tab') : 'all') as Tab;
   const [search, setSearch] = useState(L.get('q'));
   const term = useDebounced(search);
@@ -60,12 +62,13 @@ export function PurchaseOrdersPage() {
     { key: 'arrival', header: t('po.expectedArrival'), cell: (r) => fmt.date(r.shopmeExpectedArrival) },
   ];
   const empty = !list.isLoading && !list.isError && rows.length === 0 && !terms;
+  const picker = <ColumnPicker locked={['name']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />;
   return (
     <>
       <PageHeader icon={<ClipboardList className="size-4" />} title={t('nav.purchaseOrders')} actions={empty ? undefined : create} />
       {empty ? (
         <>
-          <ListToolbar viewsLabel={t('list.views')} views={TABS.map((id) => ({ id, label: t(`po.tab.${id}` as Key) }))} view={tab} onView={() => {}} query={search} onQuery={setSearch} placeholder={t('list.searchAndFilter')} />
+          <ListToolbar viewsLabel={t('list.views')} views={TABS.map((id) => ({ id, label: t(`po.tab.${id}` as Key) }))} view={tab} onView={() => {}} query={search} onQuery={setSearch} placeholder={t('list.searchAndFilter')} trailing={picker} />
           <EmptyState image={emptyOrders} title={t('po.emptyTitle')} description={t('po.emptyBody')} action={create} />
         </>
       ) : (
@@ -73,9 +76,9 @@ export function PurchaseOrdersPage() {
           <ListToolbar
             className="!rounded-b-none !shadow-none border-b border-line" viewsLabel={t('list.views')}
             views={TABS.map((id) => ({ id, label: t(`po.tab.${id}` as Key) }))} view={tab} onView={(v) => L.patch({ tab: v === 'all' ? '' : v })}
-            query={search} onQuery={(v) => { setSearch(v); L.patch({ q: v }); }} placeholder={t('list.searchAndFilter')} />
+            query={search} onQuery={(v) => { setSearch(v); L.patch({ q: v }); }} placeholder={t('list.searchAndFilter')} trailing={picker} />
           {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
-          <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/purchase-orders/${gidToNum(r.id)}`)}
+          <IndexTable rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading} onRowClick={(r) => nav(`/purchase-orders/${gidToNum(r.id)}`)}
             empty={list.isError ? null : <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} />} />
           <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage}
             previousLabel={t('common.previous')} nextLabel={t('common.next')}

@@ -98,7 +98,7 @@ export function CarrierAccountsRow() {
   const addTest = () => put([...accounts, { id: newId(accounts.map((a) => a.id), 'test-carrier'), provider: 'test', name: t('postage.testName'), endpoint: '', secret: '', labels: true }]);
   return (
     <>
-      <ActionCollapseRow title={t('postage.accountsRow')} description={t('postage.accountsRowDesc')} summary={accounts.length ? t('postage.accountsCount', { n: accounts.length }) : t('postage.accountsNone')}>
+      <ActionCollapseRow title={t('fid.ship.carriers')} description={t('fid.ship.carriersDesc')} summary={accounts.length ? t('fid.ship.accountsCount', { n: accounts.length }) : t('fid.ship.none')}>
         <RowCard className="border border-line shadow-none">
           {cfg.isLoading && <div className="p-3"><Skeleton className="h-10" /></div>}
           {accounts.map((a) => (

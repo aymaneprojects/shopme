@@ -96,9 +96,9 @@ export function SectionsTree({ docs, order, idx, label, fileLabel, sectionTitle,
       { key: 'dup', label: t('editor.duplicate'), icon: <CopyPlus />, onSelect: () => ops.duplicateSection(file, id) },
       { key: 'rename', label: t('editor.rename'), icon: <Pencil />, onSelect: () => ops.rename(file, id) },
       { key: 'hide', label: s.disabled ? t('editor.show') : t('editor.hide'), icon: s.disabled ? <Eye /> : <EyeOff />, shortcut: 'Ctrl+Shift+H', onSelect: () => edit(file, { kind: 'toggleSection', id }) },
-      ...(ops.editCode ? [{ key: 'code', label: t('bs.editCode'), icon: <Code />, onSelect: () => ops.editCode!(file, id) }] : []),
       { key: 'before', label: t('editor.addBefore'), icon: <PlusCircle />, separator: true, onSelect: () => ops.add(file, i) },
       { key: 'after', label: t('editor.addAfter'), icon: <PlusCircle />, onSelect: () => ops.add(file, i + 1) },
+      ...(ops.editCode ? [{ key: 'code', label: t('bs.editCode'), icon: <Code />, separator: true, onSelect: () => ops.editCode!(file, id) }] : []),
       { key: 'remove', label: t('common.delete'), icon: <Trash2 />, danger: true, separator: true, shortcut: 'Shift+⌫', onSelect: () => ops.removeSection(file, id) },
     ];
   };

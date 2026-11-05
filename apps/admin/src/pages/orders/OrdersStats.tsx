@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Calendar } from 'lucide-react';
 import { gql } from '../../api';
 import { Sparkline } from '../../components/Sparkline';
-import { formatMoney } from '../../format';
 import { ORDERS_STATS } from '../../graphql';
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
@@ -13,10 +12,9 @@ import type { StatRange } from '../../lib/dateRange';
 interface Metric { key: string; value: number; previous: number; series: number[] }
 interface Stats { shopmeOrdersStats: { currencyCode: string; buckets: string[]; metrics: Metric[] } }
 
-const exponent = (currency: string) => { try { return new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 2; } catch { return 2; } };
-const TILES = ['orders', 'items', 'sales', 'returns', 'fulfilled', 'delivered', 'fulfillmentHours'] as const;
+const TILES = ['orders', 'items', 'returns', 'fulfilled', 'delivered', 'fulfillmentHours'] as const;
 const LABEL: Record<(typeof TILES)[number], Key> = {
-  orders: 'btn.stat.orders', items: 'btn.stat.items', sales: 'btn.stat.sales', returns: 'btn.stat.returns', fulfilled: 'btn.stat.fulfilled', delivered: 'btn.stat.delivered', fulfillmentHours: 'btn.stat.fulfillmentTime',
+  orders: 'btn.stat.orders', items: 'btn.stat.items', returns: 'btn.stat.returns', fulfilled: 'btn.stat.fulfilled', delivered: 'btn.stat.delivered', fulfillmentHours: 'btn.stat.fulfillmentTime',
 };
 
 /** Figures above the orders list for a chosen period (and location), each compared with the period before and drawn as a sparkline. */
@@ -32,7 +30,7 @@ export function OrdersStats({ range, onRange, locationId }: { range: StatRange; 
   const num = new Intl.NumberFormat(lang);
   const pct = new Intl.NumberFormat(lang, { style: 'percent', maximumFractionDigits: 0, signDisplay: 'exceptZero' });
   const duration = (h: number) => (h <= 0 ? '—' : h < 1 ? t('btn.stat.minutes', { n: Math.max(1, Math.round(h * 60)) }) : h < 48 ? t('btn.stat.hours', { n: Math.round(h * 10) / 10 }) : t('btn.stat.days', { n: Math.round(h / 24) }));
-  const show = (key: (typeof TILES)[number], v: number) => (key === 'sales' ? formatMoney(v / 10 ** exponent(s?.currencyCode ?? 'USD'), s?.currencyCode ?? 'USD', lang) : key === 'fulfillmentHours' ? duration(v) : num.format(v));
+  const show = (key: (typeof TILES)[number], v: number) => (key === 'fulfillmentHours' ? duration(v) : num.format(v));
   if (q.isError) return null;
   return (
     <section aria-label={t('btn.stat.title')} className="mb-3 flex items-stretch overflow-x-auto rounded-xl border border-line bg-canvas">

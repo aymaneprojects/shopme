@@ -83,8 +83,8 @@ export const TAXONOMY_CATEGORIES = /* GraphQL */ `
 `;
 
 export const PRODUCT_DUPLICATE = /* GraphQL */ `
-  mutation ProductDuplicate($productId: ID!, $newTitle: String!, $includeImages: Boolean, $includeTranslations: Boolean, $shopmeIncludeInventory: Boolean, $shopmeIncludeSkus: Boolean, $newStatus: ProductStatus) {
-    productDuplicate(productId: $productId, newTitle: $newTitle, includeImages: $includeImages, includeTranslations: $includeTranslations, shopmeIncludeInventory: $shopmeIncludeInventory, shopmeIncludeSkus: $shopmeIncludeSkus, newStatus: $newStatus) { newProduct { id } userErrors { field message } }
+  mutation ProductDuplicate($productId: ID!, $newTitle: String!, $includeImages: Boolean, $includeTranslations: Boolean, $shopmeIncludeInventory: Boolean, $shopmeIncludeSkus: Boolean, $shopmeIncludeBarcodes: Boolean, $newStatus: ProductStatus) {
+    productDuplicate(productId: $productId, newTitle: $newTitle, includeImages: $includeImages, includeTranslations: $includeTranslations, shopmeIncludeInventory: $shopmeIncludeInventory, shopmeIncludeSkus: $shopmeIncludeSkus, shopmeIncludeBarcodes: $shopmeIncludeBarcodes, newStatus: $newStatus) { newProduct { id } userErrors { field message } }
   }
 `;
 

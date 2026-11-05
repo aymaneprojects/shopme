@@ -15,12 +15,12 @@ export const enBtnProducts = {
   // Products list
   'bp.row.preview': 'Preview on the online store',
   'bp.filter.channel': 'Sales channel', 'bp.filter.catalog': 'Catalog', 'bp.filter.noCatalog': 'Not in a catalog',
-  'bp.bulk.unpublish': 'Unpublish', 'bp.bulk.includeChannels': 'Include in sales channels', 'bp.bulk.excludeChannels': 'Exclude from sales channels',
+  'bp.bulk.unpublish': 'Unlist products', 'bp.bulk.includeChannels': 'Include in sales channels', 'bp.bulk.excludeChannels': 'Exclude from sales channels',
   'bp.bulk.includeCatalogs': 'Include in catalogs', 'bp.bulk.excludeCatalogs': 'Exclude from catalogs', 'bp.bulk.include': 'Include', 'bp.bulk.exclude': 'Exclude',
   'bp.export.matching': 'All products matching your search or filters',
   'bp.export.helpFormat': 'Learn how the product CSV file is laid out', 'bp.export.helpImport': 'Learn how to import products from a CSV file',
   // Duplicate
-  'bp.dup.inventory': 'Inventory quantities', 'bp.dup.translations': 'Translations', 'bp.dup.skus': 'SKUs and barcodes', 'bp.dup.asUnlisted': 'Unlisted (reachable by link only)',
+  'bp.dup.inventory': 'Inventory quantities', 'bp.dup.translations': 'Translations', 'bp.dup.skus': 'SKUs', 'bp.dup.asUnlisted': 'Set as unlisted',
   // Metafields
   'bp.mf.add': 'Add', 'bp.mf.showAll': 'Show all ({n})', 'bp.mf.showLess': 'Show less',
   // Stock

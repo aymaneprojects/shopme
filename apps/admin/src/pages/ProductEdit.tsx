@@ -1,14 +1,14 @@
 import { Banner, Button, Checkbox, ConfirmDialog, Dropdown, ImageUploader, Input, MediaGallery, MediaViewer, Modal, Skeleton, cx, useToast } from '@shopme/ui';
 import type { GalleryItem } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, Copy, Eye, Gift, Pencil, Tag, Trash2 } from 'lucide-react';
+import { Archive, Copy, Crop, Gift, PaintBucket, Paintbrush, Pencil, Scaling, Tag, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
 import { MetafieldsEditor, ProductMetafields } from '../components/MetafieldsEditor';
 import { CatalogsSection, ChannelsSection, usePublications } from '../components/Channels';
 import { Combobox } from '../components/Combobox';
-import { ImageEditor } from '../components/ImageEditor';
+import { ImageEditor, type ImageTool } from '../components/ImageEditor';
 import { MediaExtras } from '../components/MediaExtras';
 import { CollectionPicker } from '../components/Pickers';
 import { Chip, INLINE_SELECT, InlineRow, InlineTags, SideHead } from '../components/ProductSide';
@@ -63,8 +63,8 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [variantMf, setVariantMf] = useState<string | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
-  const [dup, setDup] = useState<{ title: string; images: boolean; inventory: boolean; translations: boolean; skus: boolean; status: 'DRAFT' | 'ACTIVE' | 'UNLISTED' } | null>(null);
-  const [activeVariant, setActiveVariant] = useState('');
+  const [editTool, setEditTool] = useState<ImageTool>('crop');
+  const [dup, setDup] = useState<{ title: string; images: boolean; inventory: boolean; translations: boolean; skus: boolean; barcodes: boolean; status: 'DRAFT' | 'ACTIVE' | 'UNLISTED' } | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
   // Focal points save on their own (a click in the media viewer), so they stay out of the form and never mark it as changed.
   const [focals, setFocals] = useState<Record<string, { x: number; y: number } | null>>(() => Object.fromEntries(initial.media.map((m) => [m.key, m.focalPoint ?? null])));
@@ -104,7 +104,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
   });
 
   const duplicate = useMutation({
-    mutationFn: () => mutate<{ newProduct: { id: string } }>(PRODUCT_DUPLICATE, { productId: id, newTitle: dup!.title.trim(), includeImages: dup!.images, includeTranslations: dup!.translations, shopmeIncludeInventory: dup!.inventory, shopmeIncludeSkus: dup!.skus, newStatus: dup!.status }, 'productDuplicate'),
+    mutationFn: () => mutate<{ newProduct: { id: string } }>(PRODUCT_DUPLICATE, { productId: id, newTitle: dup!.title.trim(), includeImages: dup!.images, includeTranslations: dup!.translations, shopmeIncludeInventory: dup!.inventory, shopmeIncludeSkus: dup!.skus, shopmeIncludeBarcodes: dup!.barcodes, newStatus: dup!.status }, 'productDuplicate'),
     onSuccess: (r) => { setDup(null); toast(t('product.duplicated')); void qc.invalidateQueries({ queryKey: ['products'] }); guard.off = true; nav(`/products/${r.newProduct.id.split('/').pop()}`); },
     onError: (e) => toast(e.message, 'critical'),
   });
@@ -118,19 +118,19 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setErrors({}); }} />
       <PageHeader
-        back="/products" breadcrumb={{ icon: <Tag className="size-4" />, label: t('nav.products'), to: '/products' }} title={id ? <>{form.title || t('product.untitled')}{activeVariant && <><span className="mx-1.5 font-normal text-muted" aria-hidden>/</span><span className="font-normal">{activeVariant}</span></>}</> : t('product.addTitle')}
+        back="/products" breadcrumb={{ icon: <Tag className="size-4" />, label: t('nav.products'), to: '/products' }} title={id ? form.title || t('product.untitled') : t('product.addTitle')}
         actions={id && <>
           <ViewAs url={publicUrl} />
-          <Button disabled={!previewUrl} onClick={() => { if (previewUrl) window.open(previewUrl, '_blank', 'noopener'); }}><Eye className="size-4" />{t('product.preview')}</Button>
-          <Dropdown align="right" chevron disabled={dirty} title={dirty ? t('btn.share.saveFirst') : undefined} trigger={t('share.label')} items={[
+          <Button disabled={!previewUrl} onClick={() => { if (previewUrl) window.open(previewUrl, '_blank', 'noopener'); }}>{t('product.preview')}</Button>
+          <Dropdown align="right" disabled={dirty} title={dirty ? t('btn.share.saveFirst') : undefined} trigger={t('share.label')} items={[
             { key: 'copy', label: t('share.copyLink'), disabled: !publicUrl, onSelect: () => { void navigator.clipboard?.writeText(new URL(publicUrl!, window.location.origin).href).then(() => toast(t('share.copied')), () => toast(t('share.copyFailed'), 'critical')); } },
             { key: 'mail', label: t('share.email'), disabled: !publicUrl, onSelect: () => { window.location.href = `mailto:?subject=${encodeURIComponent(form.title)}&body=${encodeURIComponent(new URL(publicUrl!, window.location.origin).href)}`; } },
           ]} />
           <Dropdown align="right" chevron trigger={t('common.moreActions')} items={[
-            { key: 'duplicate', icon: <Copy className="size-4" />, label: t('pv.duplicateProduct'), onSelect: () => setDup({ title: t('product.copyOf', { title: form.title }), images: true, inventory: false, translations: true, skus: true, status: 'DRAFT' }) },
+            { key: 'duplicate', icon: <Copy className="size-4" />, label: t('pv.duplicateProduct'), onSelect: () => setDup({ title: t('product.copyOf', { title: form.title }), images: true, inventory: true, translations: true, skus: false, barcodes: false, status: 'DRAFT' }) },
             ...(form.status === 'ARCHIVED' ? [] : [{ key: 'archive', icon: <Archive className="size-4" />, label: t('pv.archiveProduct'), onSelect: () => set({ status: 'ARCHIVED' }) }]),
             ...(form.status === 'ACTIVE' ? [] : [{ key: 'activate', label: t('products.setActive'), onSelect: () => set({ status: 'ACTIVE' }) }]),
-            { key: 'delete', icon: <Trash2 className="size-4" />, label: t('pv.deleteProduct'), danger: true, separatorBefore: true, onSelect: () => setConfirmDelete(true) },
+            { key: 'delete', icon: <Trash2 className="size-4" />, label: t('pv.deleteProduct'), danger: true, onSelect: () => setConfirmDelete(true) },
           ]} />
           <PrevNext kind="products" gid={id} />
         </>}
@@ -147,12 +147,12 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
 
           <div className="flex flex-wrap items-center gap-2">
             {form.media.length > 0 && <Dropdown variant="plain" size="sm" className="btn-neutral" label={t('bp.editor.title')} trigger={<><Pencil className="size-4" />{t('bp.editor.edit')}</>}
-              items={form.media.map((m, i) => ({ key: m.key, label: m.alt || `${t('viewer.counter', { i: i + 1, n: form.media.length })}`, icon: <img src={m.url} alt="" className="size-5 rounded object-cover" />, onSelect: () => setEditing(i) }))} />}
+              items={form.media.map((m, i) => ({ key: m.key, label: m.alt || `${t('viewer.counter', { i: i + 1, n: form.media.length })}`, icon: <img src={m.url} alt="" className="size-5 rounded object-cover" />, onSelect: () => { setEditTool('crop'); setEditing(i); } }))} />}
             <MediaExtras value={form.extraMedia} onChange={(extraMedia) => set({ extraMedia })} onError={(m) => toast(m, 'critical')} />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="product-title" className="text-[13px] text-muted">{t('field.title')}</label>
+            <label htmlFor="product-title" className="text-[13px] text-muted">{t('fid.product.title')}</label>
             <input id="product-title" required aria-invalid={!!errors.title} aria-describedby={errors.title ? 'product-title-error' : undefined} placeholder={t('product.titlePlaceholder')} value={form.title} onChange={(e) => set({ title: e.target.value })}
               className="field-control w-full !min-h-10 !text-xl !font-semibold" />
             {errors.title && <p id="product-title-error" className="text-xs text-critical">{errors.title}</p>}
@@ -165,7 +165,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
 
           {errors.price && <p className="-mb-2 text-xs text-critical">{errors.price}</p>}
           <VariantsManager options={form.options} variants={form.variants} locations={locations} currency={shop.currency} lockedCount={initial.options.length} giftCard={form.isGiftCard}
-            media={form.media.filter(isPersistedMedia).map((m) => ({ id: m.key, url: m.url }))} onMetafields={id ? setVariantMf : undefined} onActiveChange={setActiveVariant} onChange={(p) => set(p)} />
+            media={form.media.filter(isPersistedMedia).map((m) => ({ id: m.key, url: m.url }))} onMetafields={id ? setVariantMf : undefined} onChange={(p) => set(p)} />
 
           {!form.isGiftCard && <PurchaseOptions value={form.purchaseOptions} onChange={(purchaseOptions) => set({ purchaseOptions })} currency={shop.currency} />}
 
@@ -234,8 +234,9 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
       <MediaViewer items={form.media.map((m) => ({ key: m.key, url: m.url, name: m.url.split('/').pop()?.split('?')[0] ?? '', alt: m.alt ?? '', usedIn: `${t('nav.products')} (1)`, focalPoint: focals[m.key] ?? null }))} index={viewing} onIndexChange={setViewing} onClose={() => setViewing(null)}
         onSave={(item, change) => set({ media: form.media.map((m) => (m.key === item.key ? { ...m, alt: change.alt } : m)) })}
         onFocalPoint={(item, point) => { if (!isPersistedMedia(item)) { toast(t('focal.saveFirst'), 'critical'); return; } focal.mutate({ key: item.key, point }); }}
+        tools={([['crop', 'fid.viewer.crop', <Crop key="i" />], ['resize', 'fid.viewer.resize', <Scaling key="i" />], ['draw', 'fid.viewer.draw', <Paintbrush key="i" />], ['background', 'fid.viewer.background', <PaintBucket key="i" />]] as const).map(([tool, label, icon]) => ({ key: tool, label: t(label), icon, onSelect: (item) => { const i = form.media.findIndex((m) => m.key === item.key); setViewing(null); if (i >= 0) { setEditTool(tool); setEditing(i); } } }))}
         labels={{ close: t('common.close'), info: t('viewer.info'), name: t('viewer.name'), alt: t('viewer.alt'), details: t('viewer.details'), usedIn: t('viewer.usedIn'), save: t('viewer.save'), counter: (i, n) => t('viewer.counter', { i, n }), previous: t('viewer.previous'), next: t('viewer.next'), download: t('viewer.download'), focalPoint: t('focal.title'), focalHint: t('focal.hint'), focalClear: t('focal.clear') }} />
-      {editing !== null && form.media[editing] && <ImageEditor open url={form.media[editing]!.url} name={form.media[editing]!.url.split('/').pop()?.split('?')[0] ?? 'image'} onClose={() => setEditing(null)} onError={(m) => toast(m, 'critical')}
+      {editing !== null && form.media[editing] && <ImageEditor open initialTool={editTool} url={form.media[editing]!.url} name={form.media[editing]!.url.split('/').pop()?.split('?')[0] ?? 'image'} onClose={() => setEditing(null)} onError={(m) => toast(m, 'critical')}
         onSaved={(f) => { set({ media: [...form.media, { key: `new-${f.id}`, url: f.url, alt: form.media[editing]!.alt }] }); setEditing(null); toast(t('bp.editor.added')); }} />}
       <CollectionPicker open={pickCollections} onClose={() => setPickCollections(false)} excludeIds={form.collections.map((c) => c.id)} onConfirm={(c) => set({ collections: [...form.collections, ...c.map((x) => ({ id: x.id, title: x.title }))] })} />
       <Modal open={!!dup} onClose={() => setDup(null)} medium closeLabel={t('common.close')} title={t('product.duplicateTitle')}
@@ -245,9 +246,10 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
             <Input label={t('field.title')} value={dup.title} onChange={(e) => setDup({ ...dup, title: e.target.value })} />
             <fieldset className="grid gap-1.5"><legend className="mb-1 text-[13px] font-medium">{t('product.duplicateDetails')}</legend>
               <Checkbox label={t('product.duplicateMedia')} checked={dup.images} onChange={(e) => setDup({ ...dup, images: e.target.checked })} />
+              <Checkbox label={t('bp.dup.skus')} checked={dup.skus} onChange={(e) => setDup({ ...dup, skus: e.target.checked })} />
+              <Checkbox label={t('fid.dup.barcodes')} checked={dup.barcodes} onChange={(e) => setDup({ ...dup, barcodes: e.target.checked })} />
               <Checkbox label={t('bp.dup.inventory')} checked={dup.inventory} onChange={(e) => setDup({ ...dup, inventory: e.target.checked })} />
               <Checkbox label={t('bp.dup.translations')} checked={dup.translations} onChange={(e) => setDup({ ...dup, translations: e.target.checked })} />
-              <Checkbox label={t('bp.dup.skus')} checked={dup.skus} onChange={(e) => setDup({ ...dup, skus: e.target.checked })} />
             </fieldset>
             <fieldset className="grid gap-1.5"><legend className="mb-1 text-[13px] font-medium">{t('product.duplicateStatus')}</legend>
               {(['DRAFT', 'ACTIVE', 'UNLISTED'] as const).map((st) => (

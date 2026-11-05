@@ -1,24 +1,24 @@
 // Commandes, accueil et coque : colonnes, bandeau de chiffres, actions groupées, lots, étiquettes, extras de la commande, brouillons, marketing, canaux.
 export const frBtnOrders = {
-  'nav.shippingLabels': 'Étiquettes d’expédition', 'nav.growth': 'Marketing',
+  'nav.shippingLabels': 'Étiquettes d’expédition', 'nav.growth': 'Croissance',
 
   'btn.stat.title': 'Chiffres des commandes', 'btn.stat.range': 'Période', 'btn.stat.orders': 'Commandes', 'btn.stat.items': 'Articles commandés', 'btn.stat.sales': 'Ventes', 'btn.stat.returns': 'Retours',
-  'btn.stat.fulfilled': 'Commandes traitées', 'btn.stat.delivered': 'Commandes livrées', 'btn.stat.fulfillmentTime': 'Délai de traitement',
+  'btn.stat.fulfilled': 'Commandes traitées', 'btn.stat.delivered': 'Commandes livrées', 'btn.stat.fulfillmentTime': 'Délai de traitement des commandes',
   'btn.stat.minutes': '{n} min', 'btn.stat.hours': '{n} h', 'btn.stat.days': '{n} j',
   'btn.range.today': 'Aujourd’hui', 'btn.range.yesterday': 'Hier', 'btn.range.7d': '7 derniers jours', 'btn.range.30d': '30 derniers jours',
 
   'btn.orders.allLocations': 'Tous les emplacements', 'btn.orders.locationFilter': 'Filtrer par emplacement', 'btn.orders.addressWarning': 'L’adresse de livraison présente des problèmes', 'btn.orders.test': 'Test',
   'btn.orders.items': '{n} articles', 'btn.orders.items.one': '{n} article', 'btn.orders.itemsList': 'Articles de cette commande',
-  'btn.orders.col.fulfillBy': 'À traiter avant le', 'btn.orders.col.channel': 'Canal', 'btn.orders.col.deliveryStatus': 'Statut de livraison', 'btn.orders.col.deliveryMethod': 'Mode de livraison',
+  'btn.orders.col.fulfillBy': 'Traiter avant le', 'btn.orders.col.channel': 'Canal', 'btn.orders.col.deliveryStatus': 'Statut de la livraison', 'btn.orders.col.deliveryMethod': 'Mode de livraison',
   'btn.orders.col.location': 'Emplacement', 'btn.orders.col.batch': 'Lot', 'btn.orders.col.po': 'N° de bon de commande',
   'btn.delivery.NOT_FULFILLED': 'Non expédiée', 'btn.delivery.IN_TRANSIT': 'En transit', 'btn.delivery.DELIVERED': 'Livrée',
   'btn.filter.delivery': 'Statut de livraison', 'btn.filter.channel': 'Canal', 'btn.filter.batch': 'Lot', 'btn.filter.noBatch': 'Pas dans un lot', 'btn.filter.from': 'Créée à partir du', 'btn.filter.to': 'Créée jusqu’au',
   'btn.filter.test': 'Commandes de test', 'btn.filter.testOnly': 'Commandes de test uniquement', 'btn.filter.noTest': 'Masquer les commandes de test',
 
   'btn.bulk.print': 'Imprimer', 'btn.bulk.printOrders': 'Imprimer les pages de commande', 'btn.bulk.printPacking': 'Imprimer les bons de préparation', 'btn.bulk.printInvoices': 'Imprimer les factures',
-  'btn.mark.UNFULFILLED': 'Non traitée', 'btn.mark.IN_PROGRESS': 'En cours', 'btn.mark.FULFILLED': 'Traitée', 'btn.mark.ON_HOLD': 'En attente', 'btn.mark.DELIVERED': 'Livrée',
+  'btn.mark.UNFULFILLED': 'Non traitée', 'btn.mark.IN_PROGRESS': 'En cours', 'btn.mark.FULFILLED': 'Traitée', 'btn.mark.ON_HOLD': 'Suspendue', 'btn.mark.DELIVERED': 'Livrée',
   'btn.bulk.markedDone': '{n} commandes mises à jour', 'btn.bulk.markedDone.one': '{n} commande mise à jour', 'btn.bulk.partial': '{ok} mises à jour, {failed} impossibles : {reason}',
-  'btn.bulk.capture': 'Capturer les paiements', 'btn.bulk.capturedDone': '{n} paiements capturés', 'btn.bulk.capturedDone.one': '{n} paiement capturé',
+  'btn.bulk.capture': 'Saisir les paiements', 'btn.bulk.capturedDone': '{n} paiements capturés', 'btn.bulk.capturedDone.one': '{n} paiement capturé',
   'btn.bulk.batch': 'Lot', 'btn.bulk.createBatch': 'Créer un lot', 'btn.bulk.createBatchConfirm': 'Créer le lot', 'btn.bulk.moveTo': 'Déplacer vers {name}', 'btn.bulk.removeFromBatch': 'Retirer du lot',
   'btn.bulk.batchName': 'Nom du lot', 'btn.bulk.batchNamePlaceholder': 'Lot 1', 'btn.bulk.batchHelp': 'Les {n} commandes sélectionnées seront préparées ensemble.',
   'btn.bulk.batchCreated': 'Lot {name} créé', 'btn.bulk.movedDone': '{n} commandes déplacées', 'btn.bulk.movedDone.one': '{n} commande déplacée', 'btn.print.invoiceTitle': 'Facture',
@@ -29,9 +29,9 @@ export const frBtnOrders = {
   'btn.order.addrProblem.ADDRESS1_MISSING': 'L’adresse (rue) est manquante.', 'btn.order.addrProblem.CITY_MISSING': 'La ville est manquante.', 'btn.order.addrProblem.ZIP_MISSING': 'Le code postal est manquant.',
   'btn.order.addrProblem.ZIP_INVALID': 'Le code postal ne respecte pas le format du pays.', 'btn.order.addrProblem.COUNTRY_MISSING': 'Le pays est manquant.',
   'btn.order.addrProblem.COUNTRY_UNKNOWN': 'Le code pays n’est pas reconnu.', 'btn.order.addrProblem.PHONE_INVALID': 'Le numéro de téléphone semble trop court.',
-  'btn.order.shipsFrom': 'Expédiée depuis cet emplacement', 'btn.order.capture': 'Capturer le paiement', 'btn.order.captured': 'Paiement capturé', 'btn.order.captureFailed': 'Le paiement n’a pas pu être capturé',
+  'btn.order.shipsFrom': 'Expédiée depuis cet emplacement', 'btn.order.capture': 'Saisir le paiement', 'btn.order.captured': 'Paiement capturé', 'btn.order.captureFailed': 'Le paiement n’a pas pu être capturé',
   'btn.order.fulfilment': 'Traitement',
-  'btn.order.conversion': 'Résumé de conversion', 'btn.order.learn': 'En savoir plus', 'btn.order.conversionNone': 'Aucune visite n’a été enregistrée avant cette commande (l’acheteur a refusé les statistiques, ou la commande n’a pas été passée sur la boutique).',
+  'btn.order.conversion': 'Résumé de la conversion', 'btn.order.learn': 'En savoir plus', 'btn.order.conversionNone': 'Aucune visite n’a été enregistrée avant cette commande (l’acheteur a refusé les statistiques, ou la commande n’a pas été passée sur la boutique).',
   'btn.order.firstVisit': 'Première visite', 'btn.order.landing': 'Page d’arrivée', 'btn.order.referrer': 'Provenance', 'btn.order.direct': 'Accès direct', 'btn.order.pageViews': 'Pages vues',
   'btn.order.risk': 'Risque de la commande', 'btn.order.riskInfo': 'À propos de l’analyse de risque', 'btn.order.riskHelp': 'Une lecture simple de vos propres données : géographie, montant, fréquence, domaine de l’e-mail et échecs de paiement. C’est un indice, pas un verdict.',
   'btn.order.riskScore': 'Score {n}/100', 'btn.order.risk.LOW': 'Risque faible', 'btn.order.risk.MEDIUM': 'Risque moyen', 'btn.order.risk.HIGH': 'Risque élevé',
@@ -91,6 +91,6 @@ export const frBtnOrders = {
 
   'btn.learn.collections': 'les collections', 'btn.learn.orders': 'les commandes', 'btn.learn.refunds': 'les remboursements', 'btn.learn.orderEdit': 'la modification des commandes', 'btn.learn.drafts': 'les brouillons de commande', 'btn.learn.abandoned': 'les paniers abandonnés',
   'btn.learn.labels': 'les étiquettes d’expédition', 'btn.learn.discounts': 'les réductions', 'btn.learn.pages': 'les pages', 'btn.learn.users': 'les utilisateurs et autorisations', 'btn.learn.policies': 'les politiques', 'btn.learn.payments': 'les paiements',
-  'btn.learn.pickup': 'le retrait en magasin', 'btn.learn.localDelivery': 'la livraison locale', 'btn.learn.taxes': 'les taxes et droits', 'btn.learn.domains': 'les domaines', 'btn.learn.languages': 'les langues', 'btn.learn.events': 'les événements clients',
+  'btn.learn.pickup': 'le retrait en magasin', 'btn.learn.localDelivery': 'la livraison locale', 'btn.learn.taxes': 'les taxes et droits', 'btn.learn.domains': 'les domaines', 'btn.learn.languages': 'les langues', 'btn.learn.events': 'les pixels',
   'btn.learn.marketing': 'le marketing', 'btn.learn.channels': 'les canaux de vente',
 };

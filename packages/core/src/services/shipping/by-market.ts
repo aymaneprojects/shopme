@@ -4,7 +4,16 @@ import type { Executor } from '../../db/client';
 import { loadProfiles } from './profiles';
 import { resolveZone } from './rates';
 
-export interface MarketShippingOption { profile: string; zone: string; name: string; price: number; countries: string[] }
+export interface MarketShippingOption {
+  profile: string; zone: string; name: string; price: number; countries: string[];
+  /** Ids of the rate, its profile and its location group, so a screen can link to it. */
+  methodId: number; profileId: number;
+  /** Free once the order subtotal reaches this amount (minor units), when set. */
+  freeOverAmount: number | null;
+  transitMinDays: number | null; transitMaxDays: number | null;
+  /** Collections the rate is limited to (empty: every product) and the locations it ships from (empty: every location of its group). */
+  collectionIds: number[]; originLocationIds: number[];
+}
 export interface MarketShipping { marketId: number; name: string; handle: string; status: string; primary: boolean; countries: string[]; options: MarketShippingOption[]; uncovered: string[] }
 
 /**
@@ -33,7 +42,11 @@ export async function shippingByMarket(db: Executor, shopId: number): Promise<Ma
             const key = `${p.id}|${full.id}|${method.name}|${method.price}`;
             const cur = found.get(key);
             if (cur) cur.countries.push(country);
-            else found.set(key, { profile: p.name, zone: full.name, name: method.name, price: method.price, countries: [country] });
+            else found.set(key, {
+              profile: p.name, zone: full.name, name: method.name, price: method.price, countries: [country], methodId: method.id, profileId: p.id,
+              freeOverAmount: method.freeOverAmount ?? null, transitMinDays: method.transitMinDays ?? null, transitMaxDays: method.transitMaxDays ?? null,
+              collectionIds: method.collectionIds ?? [], originLocationIds: method.originLocationIds?.length ? method.originLocationIds : g.locationIds,
+            });
           }
         }
       }

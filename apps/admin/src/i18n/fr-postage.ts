@@ -19,12 +19,10 @@ export const frPostage: Record<keyof typeof enPostage, string> = {
   // Paramètres > Expédition
   'postage.labelsRow': 'Étiquettes d’expédition', 'postage.labelsRowDesc': 'Achetez et imprimez des étiquettes auprès de vos comptes transporteur',
   'postage.calculate': 'Calculer les tarifs', 'postage.labelsHelp': 'Comptes transporteur qui vendent des étiquettes. Les étiquettes s’achètent depuis une commande, dans la carte d’expédition.',
-  'postage.labelsNone': 'Aucun compte transporteur ne vend encore d’étiquettes. Ajoutez-en un dans Comptes transporteur, ou ajoutez le transporteur de test pour essayer.',
+  'postage.labelsNone': 'Aucun compte transporteur ne vend encore d’étiquettes. Ajoutez-en un dans Comptes professionnels d’expédition, ou ajoutez le transporteur de test pour essayer.',
   'postage.labelCarriers': '{n} transporteurs', 'postage.labelCarriers.one': '{n} transporteur', 'postage.labelsOff': 'Non configuré',
   'postage.calcTitle': 'Calculer les tarifs d’étiquettes', 'postage.calcIntro': 'Tarifs pour un colis envoyé depuis votre premier emplacement vers le pays de votre choix.',
   'postage.destination': 'Pays de destination', 'postage.zip': 'Code postal',
-  'postage.accountsRow': 'Comptes transporteur', 'postage.accountsRowDesc': 'Connectez vos propres comptes transporteur pour les tarifs calculés et les étiquettes',
-  'postage.accountsNone': 'Aucun', 'postage.accountsCount': '{n} comptes', 'postage.accountsCount.one': '{n} compte',
   'postage.carrierRates': 'Tarifs calculés par le transporteur', 'postage.labelsYes': 'Achat d’étiquettes possible', 'postage.labelsNo': 'Tarifs uniquement',
   'postage.addTest': 'Ajouter le transporteur de test', 'postage.testName': 'Transporteur de test', 'postage.testAdded': 'Transporteur de test ajouté',
   'postage.provider': 'Type', 'postage.providerHttp': 'Service transporteur HTTP', 'postage.providerTest': 'Transporteur de test (mode test)',

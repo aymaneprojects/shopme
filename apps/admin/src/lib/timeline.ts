@@ -45,6 +45,7 @@ export function eventText(e: TimelineEvent, t: T, lang: string, order?: { name: 
   switch (e.action) {
     case 'order.created': return t('timeline.ev.order.created', { name: order?.name ?? '', gateway: s('gateway') });
     case 'order.paid': return t('timeline.ev.order.paid');
+    case 'order.from_draft': return t('fid.timeline.fromDraft', { name: s('draft') || /#\S+/.exec(e.message ?? '')?.[0] || '' });
     case 'order.confirmation_number': return t('btn.timeline.confirmation', { number: s('number') });
     case 'order.delivered': return t('btn.timeline.delivered');
     case 'order.payment_failed': return t('timeline.ev.order.payment_failed');

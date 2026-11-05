@@ -1,6 +1,6 @@
 import { Badge, Banner, Button, Card, Checkbox, Input, Select, Skeleton, Switch, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cookie, Lock, Mail, MailCheck, Share2, Trash2, Plus } from 'lucide-react';
+import { Cookie, Lock, Mail, MailCheck, Server, Share2, Trash2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { UserErrors, gql, mutate } from '../../api';
@@ -17,6 +17,9 @@ interface PrivacyData {
 interface Page { shopmePrivacySettings: PrivacyData; shopmeCheckoutSettings: { marketing: 'hidden' | 'unchecked' | 'checked' } }
 
 const US_STATES: Record<string, string> = { CA: 'California', CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', IA: 'Iowa', IN: 'Indiana', KY: 'Kentucky', MD: 'Maryland', MN: 'Minnesota', MT: 'Montana', NE: 'Nebraska', NH: 'New Hampshire', NJ: 'New Jersey', OR: 'Oregon', RI: 'Rhode Island', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VA: 'Virginia' };
+/** US state names that differ in French (the others are written the same way). */
+const US_STATES_FR: Record<string, string> = { CA: 'Californie', IA: 'Iowa', NJ: 'New Jersey', NH: 'New Hampshire', TN: 'Tennessee', VA: 'Virginie', RI: 'Rhode Island' };
+const stateName = (code: string, lang: string) => (lang === 'fr' ? US_STATES_FR[code] : undefined) ?? US_STATES[code] ?? code;
 
 function usePrivacy() {
   const { t } = useI18n();
@@ -35,7 +38,7 @@ const AUTO = (t: ReturnType<typeof useI18n>['t'], on: boolean, label?: string): 
 
 /** Settings > Customer privacy. */
 export function CustomerPrivacySettings() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { q } = usePrivacy();
   const policies = useQuery({ queryKey: ['shop-policies'], queryFn: () => gql<{ shop: { shopPolicies: Array<{ type: string; body: string }> } }>(SHOP_POLICIES) });
   if (q.isLoading) return <Skeleton className="h-96" />;
@@ -43,7 +46,7 @@ export function CustomerPrivacySettings() {
   const p = q.data!.shopmePrivacySettings;
   const policySet = !!policies.data?.shop.shopPolicies.find((x) => x.type === 'PRIVACY_POLICY')?.body.replace(/<[^>]*>/g, '').trim();
   const states = p.regions.dataSaleOptOutUsStates;
-  const names = states.slice(0, 2).map((s) => US_STATES[s] ?? s);
+  const names = states.slice(0, 2).map((s) => stateName(s, lang));
   const marketing = q.data!.shopmeCheckoutSettings.marketing;
   const bannerDesc = p.cookieBanner.mode === 'OFF' ? t('priv.banner.offDesc') : p.cookieBanner.mode === 'ALWAYS' ? t('priv.banner.alwaysDesc') : t('priv.banner.autoDesc');
   return (
@@ -66,7 +69,7 @@ export function CustomerPrivacySettings() {
         </RowCard>
       </Section>
       <Section title={t('priv.storage')}>
-        <Card><p className="text-[13px]">{p.storageLocation}</p></Card>
+        <Card><p className="flex items-center gap-2 text-[13px]"><Server className="size-4 text-muted" aria-hidden />{p.storageLocation === 'Self-hosted' ? t('fid.priv.selfHosted') : p.storageLocation}</p></Card>
         <p className="text-[13px] text-muted">{t('priv.disclaimer')}</p>
       </Section>
     </div>
@@ -200,6 +203,7 @@ export function DataSalePage() {
   return <DataSaleForm key={q.dataUpdatedAt} data={q.data!.shopmePrivacySettings} save={save.mutate} saving={save.isPending} t={t} />;
 }
 function DataSaleForm({ data, save, saving, t }: { data: PrivacyData; save: (i: Record<string, unknown>) => void; saving: boolean; t: ReturnType<typeof useI18n>['t'] }) {
+  const { lang } = useI18n();
   const [mode, setMode] = useState(data.dataSaleOptOutPage);
   const dirty = mode !== data.dataSaleOptOutPage;
   return (
@@ -211,7 +215,7 @@ function DataSaleForm({ data, save, saving, t }: { data: PrivacyData; save: (i: 
         </div>
       </Card>
       <Card title={t('priv.dataSale.regions')}>
-        <p className="text-[13px] text-muted">{data.regions.dataSaleOptOutUsStates.map((s) => US_STATES[s] ?? s).join(', ')}</p>
+        <p className="text-[13px] text-muted">{data.regions.dataSaleOptOutUsStates.map((s) => stateName(s, lang)).join(', ')}</p>
         <p className="mt-3 text-[13px] text-muted">{t('priv.dataSale.page')} <code>/pages/data-sale-opt-out</code></p>
       </Card>
     </PrivacyPage>

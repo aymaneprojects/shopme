@@ -1,9 +1,9 @@
-import { Banner, Button, Card, Dropdown, EmptyState, IndexTable, Input, ListToolbar, Modal, Pagination, Popover, TagInput, useToast } from '@shopme/ui';
+import { Banner, Button, Card, Dropdown, EmptyState, IndexTable, Input, ListToolbar, Modal, Pagination, Popover, Select, TagInput, useToast } from '@shopme/ui';
 import type { BulkAction, Column, ToolbarFilter } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowUpDown, Check, ChevronDown, Download, Inbox, MapPin, Search, TriangleAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { gql, mutate } from '../api';
 import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
 import { FinancialBadge, FulfillmentBadge, useFormat, useListParams } from '../components/shared';
@@ -13,7 +13,8 @@ import { exportHref, startDownload } from '../components/CsvTools';
 import { ViewTabs } from '../components/SavedViews';
 import { gidToNum } from '../format';
 import { BATCH_CREATE, BATCH_MOVE, ORDERS_CAPTURE, ORDERS_COUNT, ORDERS_FILTER_OPTIONS, ORDERS_LIST, ORDERS_MARK_AS, ORDER_CLOSE, ORDER_MARK_AS_PAID, TAGS_ADD, TAGS_REMOVE } from '../graphql';
-import { useT } from '../i18n';
+import { LABELS_ELIGIBILITY } from '../graphql/fidelity';
+import { useI18n, useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
@@ -27,7 +28,7 @@ export interface OrderRow {
   id: string; name: string; createdAt: string; displayFinancialStatus: string; displayFulfillmentStatus: string; tags: string[];
   cancelledAt: string | null; closedAt: string | null; totalPriceSet: MoneySet; customer: { id: string; displayName: string } | null;
   lineItems: { nodes: Array<{ id: string; title?: string; quantity: number }> };
-  sourceName?: string | null; poNumber?: string | null; test?: boolean; capturable?: boolean;
+  sourceName?: string | null; poNumber?: string | null; test?: boolean; capturable?: boolean; requiresShipping?: boolean;
   shopmeAddressProblems?: string[]; shopmeDeliveryStatus?: string; shopmeDeliveryMethod?: string | null; shopmeFulfillBy?: string | null;
   shopmeBatch?: { id: string; name: string } | null; shopmeLocation?: { id: string; name: string } | null;
 }
@@ -43,7 +44,7 @@ const CHANNELS = ['web', 'draft', 'manual', 'pos'];
 const MARK_AS = ['UNFULFILLED', 'IN_PROGRESS', 'FULFILLED', 'ON_HOLD', 'DELIVERED'] as const;
 const SORTS = ['CREATED_AT', 'ORDER_NUMBER', 'TOTAL_PRICE', 'CUSTOMER_NAME', 'FINANCIAL_STATUS', 'FULFILLMENT_STATUS'];
 /** Columns that are off until the user turns them on from the column chooser. */
-const DEFAULT_HIDDEN = ['fulfillBy', 'channel', 'delivery', 'method', 'location', 'batch', 'po', 'tags'];
+const DEFAULT_HIDDEN = ['location', 'batch', 'po', 'tags'];
 
 interface BulkResult { succeeded: number; results: Array<{ orderId: string; ok: boolean; message: string | null }> }
 
@@ -79,6 +80,9 @@ export function OrdersPage() {
   const [batching, setBatching] = useState<string[] | null>(null);
   const [batchName, setBatchName] = useState('');
   const [newTags, setNewTags] = useState<string[]>([]);
+  const [moving, setMoving] = useState<string[] | null>(null);
+  const [moveTo, setMoveTo] = useState('');
+  const [labelBlock, setLabelBlock] = useState<{ noItems: Array<{ id: string; name: string }>; labelled: Array<{ id: string; name: string }>; total: number } | null>(null);
   const cols = useColumnVisibility('orders', DEFAULT_HIDDEN);
   const sort = { key: L.get('sort') || 'CREATED_AT', reverse: L.get('dir') !== 'asc' };
   const options = useQuery({ queryKey: ['orders-filter-options'], staleTime: 60_000, queryFn: () => gql<{ locations: { nodes: Array<{ id: string; name: string; isActive: boolean }> }; shopmeOrderBatches: Array<{ id: string; name: string; orderCount: number }> }>(ORDERS_FILTER_OPTIONS) });
@@ -141,6 +145,15 @@ export function OrdersPage() {
   const rows = list.data?.orders.nodes ?? [];
   const pi = list.data?.orders.pageInfo;
   const hasFilters = !!terms;
+  const { lang } = useI18n();
+  /** "Today at 5:50 PM", "Yesterday at 9:12 AM", then the date. */
+  const when = (iso: string) => {
+    const d = new Date(iso);
+    const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+    const diff = Math.round((day(new Date()) - day(d)) / 86_400_000);
+    const time = new Intl.DateTimeFormat(lang, { hour: 'numeric', minute: '2-digit' }).format(d);
+    return diff === 0 ? t('fid.orders.todayAt', { time }) : diff === 1 ? t('fid.orders.yesterdayAt', { time }) : fmt.date(iso);
+  };
   const channelName = (s?: string | null) => (({ web: t('qa.channel.web'), draft: t('qa.channel.draft'), draft_order: t('qa.channel.draft'), shopify_draft_order: t('qa.channel.draft'), manual: t('qa.channel.manual'), pos: t('qa.channel.pos'), subscription_contract: t('sub.channel') }) as Record<string, string>)[s ?? 'web'] ?? s ?? '';
   const columns: Array<Column<OrderRow>> = [
     {
@@ -153,16 +166,16 @@ export function OrdersPage() {
         </span>
       ),
     },
-    { key: 'date', header: t('orders.date'), sortKey: 'CREATED_AT', cell: (o) => fmt.date(o.createdAt) },
-    { key: 'fulfillBy', header: t('btn.orders.col.fulfillBy'), cell: (o) => (o.shopmeFulfillBy ? fmt.date(o.shopmeFulfillBy) : <span className="text-muted">—</span>) },
-    { key: 'cust', header: t('orders.customer'), sortKey: 'CUSTOMER_NAME', cell: (o) => o.customer?.displayName ?? <span className="text-muted">{t('orders.noCustomer')}</span> },
-    { key: 'channel', header: t('btn.orders.col.channel'), cell: (o) => channelName(o.sourceName) },
+    { key: 'date', header: t('orders.date'), sortKey: 'CREATED_AT', className: 'whitespace-nowrap', cell: (o) => when(o.createdAt) },
+    { key: 'cust', header: t('orders.customer'), sortKey: 'CUSTOMER_NAME', className: 'whitespace-nowrap', cell: (o) => o.customer?.displayName ?? <span className="text-muted">{t('orders.noCustomer')}</span> },
+    { key: 'fulfillBy', header: t('btn.orders.col.fulfillBy'), cell: (o) => (o.shopmeFulfillBy ? fmt.date(o.shopmeFulfillBy) : '') },
+    { key: 'channel', header: t('btn.orders.col.channel'), className: 'whitespace-nowrap', cell: (o) => channelName(o.sourceName) },
     { key: 'total', header: t('orders.total'), sortKey: 'TOTAL_PRICE', cell: (o) => fmt.money(o.totalPriceSet) },
-    { key: 'pay', header: t('orders.payment'), sortKey: 'FINANCIAL_STATUS', cell: (o) => <FinancialBadge status={o.displayFinancialStatus} /> },
-    { key: 'ful', header: t('orders.fulfillment'), sortKey: 'FULFILLMENT_STATUS', cell: (o) => <FulfillmentBadge status={o.displayFulfillmentStatus} /> },
+    { key: 'pay', header: t('fid.orders.colPayment'), sortKey: 'FINANCIAL_STATUS', cell: (o) => <FinancialBadge status={o.displayFinancialStatus} /> },
+    { key: 'ful', header: t('fid.orders.colFulfillment'), sortKey: 'FULFILLMENT_STATUS', cell: (o) => <FulfillmentBadge status={o.displayFulfillmentStatus} /> },
     { key: 'items', header: t('orders.items'), cell: (o) => <ItemsCell o={o} /> },
-    { key: 'delivery', header: t('btn.orders.col.deliveryStatus'), cell: (o) => (o.shopmeDeliveryStatus ? t(`btn.delivery.${o.shopmeDeliveryStatus}` as Key) : '') },
-    { key: 'method', header: t('btn.orders.col.deliveryMethod'), cell: (o) => o.shopmeDeliveryMethod ?? <span className="text-muted">—</span> },
+    { key: 'delivery', header: t('btn.orders.col.deliveryStatus'), className: 'whitespace-nowrap', cell: (o) => (o.requiresShipping === false ? t('qa.noShipping') : o.shopmeDeliveryStatus ? t(`btn.delivery.${o.shopmeDeliveryStatus}` as Key) : '') },
+    { key: 'method', header: t('btn.orders.col.deliveryMethod'), cell: (o) => o.shopmeDeliveryMethod ?? '' },
     { key: 'location', header: t('btn.orders.col.location'), cell: (o) => o.shopmeLocation?.name ?? <span className="text-muted">—</span> },
     { key: 'batch', header: t('btn.orders.col.batch'), cell: (o) => o.shopmeBatch?.name ?? <span className="text-muted">—</span> },
     { key: 'po', header: t('btn.orders.col.po'), cell: (o) => o.poNumber ?? <span className="text-muted">—</span> },
@@ -186,6 +199,17 @@ export function OrdersPage() {
   const values = Object.fromEntries(filters.map((f) => [f.key, L.get(f.key)]));
 
   const nums = (ids: string[]) => ids.map(gidToNum).join(',');
+  /** "Create shipping labels": go to the labels page with the orders that can get one, or explain why none can. */
+  const createLabels = async (ids: string[]) => {
+    try {
+      const r = await gql<{ shopmeOrdersAwaitingLabel: Array<{ id: string }>; nodes: Array<{ id: string; name: string; requiresShipping: boolean } | null> }>(LABELS_ELIGIBILITY, { ids });
+      const awaiting = new Set(r.shopmeOrdersAwaitingLabel.map((o) => o.id));
+      const ok = ids.filter((id) => awaiting.has(id));
+      if (ok.length) { nav(`/orders/shipping-labels?orders=${nums(ok)}`); return; }
+      const found = r.nodes.filter((n): n is { id: string; name: string; requiresShipping: boolean } => !!n);
+      setLabelBlock({ noItems: found.filter((n) => !n.requiresShipping), labelled: found.filter((n) => n.requiresShipping), total: ids.length });
+    } catch (e) { toast((e as Error).message, 'critical'); }
+  };
   const selRows = rows.filter((r) => selected.includes(r.id));
   const bulkActions: BulkAction[] = [
     {
@@ -196,39 +220,30 @@ export function OrdersPage() {
         { key: 'invoice', label: t('btn.bulk.printInvoices'), onRun: (ids) => void print(ids, ['invoice']) },
       ],
     },
-    { key: 'labels', label: t('orders.createLabels'), onRun: (ids) => nav(`/orders/shipping-labels?orders=${nums(ids)}`) },
+    { key: 'labels', label: t('orders.createLabels'), onRun: (ids) => void createLabels(ids) },
     {
       key: 'markAs', label: t('qa.markAs'), onRun: () => undefined,
-      menu: [
-        ...MARK_AS.map((s) => ({ key: s, label: t(`btn.mark.${s}` as Key), onRun: (ids: string[]) => markAs.mutate({ ids, status: s }) })),
-        { key: 'paid', label: t('order.markPaid'), separatorBefore: true, onRun: (ids: string[]) => bulk.mutate({ ids, action: 'paid' }) },
-      ],
+      menu: MARK_AS.map((s) => ({ key: s, label: t(`btn.mark.${s}` as Key), onRun: (ids: string[]) => markAs.mutate({ ids, status: s }) })),
     },
-    { key: 'capture', label: t('btn.bulk.capture'), disabled: !selRows.some((r) => r.capturable), onRun: (ids) => capture.mutate(ids) },
-    {
-      key: 'batch', label: t('btn.bulk.batch'), onRun: () => undefined,
-      menu: [
-        { key: 'create', label: t('btn.bulk.createBatch'), onRun: (ids) => { setBatchName(''); setBatching(ids); } },
-        ...batches.map((b, i) => ({ key: `to-${b.id}`, label: t('btn.bulk.moveTo', { name: b.name }), separatorBefore: i === 0, onRun: (ids: string[]) => moveBatch.mutate({ ids, batchId: b.id }) })),
-        { key: 'remove', label: t('btn.bulk.removeFromBatch'), separatorBefore: true, onRun: (ids) => moveBatch.mutate({ ids, batchId: null }) },
-      ],
-    },
+    { key: 'capture', label: t('btn.bulk.capture'), onRun: (ids) => capture.mutate(ids) },
+    { key: 'createBatch', label: t('btn.bulk.createBatch'), onRun: (ids) => { setBatchName(''); setBatching(ids); } },
+    { key: 'moveBatch', label: t('fid.orders.moveToBatch'), onRun: (ids) => { if (!batches.length) { setBatchName(''); setBatching(ids); return; } setMoveTo(batches[0]?.id ?? ''); setMoving(ids); } },
     { key: 'tag', label: t('orders.addTags'), onRun: (ids) => { setNewTags([]); setTagging({ ids, mode: 'add' }); } },
     { key: 'untag', label: t('products.removeTags'), onRun: (ids) => { setNewTags([]); setTagging({ ids, mode: 'remove' }); } },
-    { key: 'export', label: t('orders.exportSelected'), onRun: (ids) => startDownload(exportHref('orders', { ids: nums(ids) })) },
+    { key: 'paid', label: t('order.markPaid'), separatorBefore: true, onRun: (ids) => bulk.mutate({ ids, action: 'paid' }) },
+    { key: 'unbatch', label: t('btn.bulk.removeFromBatch'), disabled: !selRows.some((r) => r.shopmeBatch), onRun: (ids) => moveBatch.mutate({ ids, batchId: null }) },
+    { key: 'export', label: t('orders.exportSelected'), separatorBefore: true, onRun: (ids) => startDownload(exportHref('orders', { ids: nums(ids) })) },
     { key: 'close', label: t('orders.archive'), onRun: (ids) => bulk.mutate({ ids, action: 'close' }) },
   ];
   const locationName = locations.find((l) => l.id === loc)?.name;
 
   return (
     <>
-      <PageHeader icon={<Inbox className="size-4" />} title={t('nav.orders')} actions={<>
-        {count.data && <span className="text-[13px] text-muted">{t('orders.count', { n: count.data.ordersCount.count })}</span>}
-        {locations.length > 1 && (
-          <Dropdown align="right" chevron label={t('btn.orders.locationFilter')} trigger={<><MapPin className="size-4" />{locationName ?? t('btn.orders.allLocations')}</>}
-            items={[{ key: 'all', label: t('btn.orders.allLocations'), icon: !loc ? <Check className="size-4" /> : undefined, onSelect: () => L.patch({ loc: '' }) },
-              ...locations.map((l) => ({ key: l.id, label: l.name, icon: loc === l.id ? <Check className="size-4" /> : undefined, onSelect: () => L.patch({ loc: l.id }) }))]} />
-        )}
+      <PageHeader icon={<Inbox className="size-4" />} title={t('nav.orders')} badges={locations.length > 1 && (
+        <Dropdown size="sm" className="chip" chevron label={t('btn.orders.locationFilter')} trigger={<><MapPin className="size-3.5" />{locationName ?? t('btn.orders.allLocations')}</>}
+          items={[{ key: 'all', label: t('btn.orders.allLocations'), icon: !loc ? <Check className="size-4" /> : undefined, onSelect: () => L.patch({ loc: '' }) },
+            ...locations.map((l) => ({ key: l.id, label: l.name, icon: loc === l.id ? <Check className="size-4" /> : undefined, onSelect: () => L.patch({ loc: l.id }) }))]} />
+      )} actions={<>
         <Dropdown align="right" label={t('orders.exportMenu')} trigger={<><Download className="size-4" />{t('csv.export')}</>} items={[
           ...(hasFilters && count.data ? [{ key: 'filtered', label: t('orders.exportFiltered', { n: count.data.ordersCount.count }), onSelect: () => startDownload(exportHref('orders', { query: terms })) }] : []),
           { key: 'all', label: t('orders.exportAll'), onSelect: () => startDownload(exportHref('orders')) },
@@ -268,6 +283,26 @@ export function OrdersPage() {
         footer={<><Button onClick={() => setBatching(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={createBatch.isPending} onClick={() => batching && createBatch.mutate({ ids: batching, name: batchName })}>{t('btn.bulk.createBatchConfirm')}</Button></>}>
         <p className="mb-3 text-[13px] text-muted">{t('btn.bulk.batchHelp', { n: batching?.length ?? 0 })}</p>
         <Input label={t('btn.bulk.batchName')} value={batchName} maxLength={100} placeholder={t('btn.bulk.batchNamePlaceholder')} onChange={(e) => setBatchName(e.target.value)} />
+      </Modal>
+      <Modal open={!!moving} onClose={() => setMoving(null)} title={t('fid.orders.moveToBatch')} closeLabel={t('common.close')}
+        footer={<><Button onClick={() => setMoving(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!moveTo} loading={moveBatch.isPending} onClick={() => { if (moving) moveBatch.mutate({ ids: moving, batchId: moveTo }); setMoving(null); }}>{t('fid.orders.move')}</Button></>}>
+        <Select label={t('btn.orders.col.batch')} value={moveTo} onChange={(e) => setMoveTo(e.target.value)}>
+          {batches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </Select>
+      </Modal>
+      <Modal open={!!labelBlock} onClose={() => setLabelBlock(null)} title={t('fid.labels.blockedTitle')} closeLabel={t('common.close')}
+        footer={<Button onClick={() => setLabelBlock(null)}>{t('common.close')}</Button>}>
+        {labelBlock && (
+          <div className="flex flex-col gap-3 text-[13px]">
+            <p>{t('fid.labels.blockedBody', { n: labelBlock.total, $count: labelBlock.total })}</p>
+            {([['noItems', 'fid.labels.noItems'], ['labelled', 'fid.labels.labelled']] as const).map(([k, key]) => labelBlock[k].length > 0 && (
+              <div key={k}>
+                <p>{t(key, { n: labelBlock[k].length, $count: labelBlock[k].length })}</p>
+                <p className="flex flex-wrap gap-x-2">{labelBlock[k].map((o) => <Link key={o.id} to={`/orders/${gidToNum(o.id)}`} className="underline hover:text-accent">{o.name}</Link>)}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </Modal>
       <Modal open={!!tagging} onClose={() => setTagging(null)} title={tagging?.mode === 'remove' ? t('products.removeTags') : t('orders.addTags')} closeLabel={t('common.close')}
         footer={<><Button onClick={() => setTagging(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!newTags.length} onClick={() => { if (tagging) bulk.mutate({ ids: tagging.ids, action: tagging.mode === 'add' ? 'tag' : 'untag', tags: newTags }); setTagging(null); }}>{t('common.apply')}</Button></>}>

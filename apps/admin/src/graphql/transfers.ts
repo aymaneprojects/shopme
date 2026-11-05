@@ -32,7 +32,7 @@ const SHIPMENT_FIELDS = `
 export const TRANSFER = /* GraphQL */ `
   query Transfer($id: ID!) {
     inventoryTransfer(id: $id) {
-      id name status dateCreated referenceName note tags totalQuantity receivedQuantity shopmePurchaseOrderId
+      id name status dateCreated referenceName note tags totalQuantity receivedQuantity shopmePurchaseOrderId shopmeLinkedPurchaseOrderId
       origin { name location { id } address { formatted } }
       destination { name location { id } address { formatted } }
       lineItems(first: 250) {

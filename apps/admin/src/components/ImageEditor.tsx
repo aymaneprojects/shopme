@@ -5,19 +5,20 @@ import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { useT } from '../i18n';
 
-type Tool = 'crop' | 'rotate' | 'resize' | 'draw' | 'background';
+export type ImageTool = 'crop' | 'rotate' | 'resize' | 'draw' | 'background';
+type Tool = ImageTool;
 const clone = (c: HTMLCanvasElement) => { const n = document.createElement('canvas'); n.width = c.width; n.height = c.height; n.getContext('2d')!.drawImage(c, 0, 0); return n; };
 
 /**
  * Edit an image in the browser: crop (drag a rectangle), rotate, flip, resize, draw on it and put a colour behind transparent areas.
  * "Save" uploads the result as a new file and hands it back; the original stays untouched.
  */
-export function ImageEditor({ open, url, name, onClose, onSaved, onError }: { open: boolean; url: string; name: string; onClose: () => void; onSaved: (file: UploadedFile) => void; onError: (message: string) => void }) {
+export function ImageEditor({ open, url, name, onClose, onSaved, onError, initialTool = 'crop' }: { open: boolean; url: string; name: string; onClose: () => void; onSaved: (file: UploadedFile) => void; onError: (message: string) => void; /** Tool selected when the editor opens. */ initialTool?: ImageTool }) {
   const t = useT();
   const view = useRef<HTMLCanvasElement>(null);
   const [work, setWork] = useState<HTMLCanvasElement | null>(null);
   const [history, setHistory] = useState<HTMLCanvasElement[]>([]);
-  const [tool, setTool] = useState<Tool>('crop');
+  const [tool, setTool] = useState<Tool>(initialTool);
   const [sel, setSel] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [color, setColor] = useState('#e11d48');
   const [size, setSize] = useState(8);

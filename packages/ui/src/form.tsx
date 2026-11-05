@@ -20,8 +20,13 @@ export function Field({ label, help, error, className, children }: FieldProps & 
   );
 }
 
-export function Input({ label, help, error, className, ...rest }: FieldProps & InputHTMLAttributes<HTMLInputElement>) {
-  return <Field label={label} help={help} error={error} className={className}>{(p) => <input className={control} {...p} {...rest} />}</Field>;
+export function Input({ label, help, error, className, suffix, ...rest }: FieldProps & InputHTMLAttributes<HTMLInputElement> & { /** Text shown at the right end inside the field (a currency, a unit, a character count). */ suffix?: ReactNode }) {
+  return <Field label={label} help={help} error={error} className={className}>{(p) => (suffix == null ? <input className={control} {...p} {...rest} /> : (
+    <div className="relative">
+      <input className={cx(control, 'pr-14')} {...p} {...rest} />
+      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[13px] text-muted">{suffix}</span>
+    </div>
+  ))}</Field>;
 }
 
 export function Textarea({ label, help, error, className, ...rest }: FieldProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {

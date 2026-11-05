@@ -101,7 +101,9 @@
   "locales/en.default.schema.json": [
    "18bb0e3365d8fcaeca1e21c4c4658160",
    "4ba46fc590ecd739dd962f36084f653e",
-   "c74f0543fc7fcaf96bed9c6536a973b0"
+   "ac9daa935ab6f08ea6b59256dc08ed06",
+   "c74f0543fc7fcaf96bed9c6536a973b0",
+   "d8fb140fa69477559f957d6e93e03311"
   ],
   "locales/fr.json": [
    "047f43e44db7e032e15a10a190869483",
@@ -123,12 +125,16 @@
   "locales/fr.schema.json": [
    "2a0a097340cb67283f197a19ad5e0a69",
    "4083d15909fa4ca607e6d708e3954859",
-   "b101dbc7cc3a8c6c1a1dab896c7c509c"
+   "b101dbc7cc3a8c6c1a1dab896c7c509c",
+   "d68712e3c6cea0e4ac219e016dd31606",
+   "db8ac67302be6b4925b14c6a989bcc5a"
   ],
   "sections/announcement-bar.liquid": [
    "047092092da0f67d8eeb713358315414",
+   "26b3e1df2334239dc619dfd53d9cc49d",
    "4b3416d3adcce55ba10c89b4acb84679",
    "63d202bd39b75489f2d36db29a1a4c2f",
+   "e506cdb1d5d60d963513a43a1de442c3",
    "e62f737d7d02eeffe7071145741a5b0c"
   ],
   "sections/big-logo.liquid": [
@@ -204,6 +210,7 @@
   "sections/footer.liquid": [
    "06010968d00f3a77cf3d39ff8a5c89c3",
    "10edb0aeadbe51d6db1bfabb451390e3",
+   "3fb247a0b270e3049fb6b2d74e950408",
    "41ce1f1cbe3340d55e808f7a86ace35e",
    "59cf5d625652de18c55977601a4d1967",
    "6404b5f7e2fa6d283298c551de23a3b8",
@@ -222,6 +229,7 @@
    "49ab4389af79228c17c260acc226a803",
    "52225d6523858c3fdb6c929d707c3d7a",
    "726cdb60eb9a0f93b99a36198c8b5dd1",
+   "824322cc26d5a9407abfe317e7ab4c04",
    "a7d824e5e3d39e378d626273849b7fa7",
    "cfc947c7e0a96317e20e673e277e97fe"
   ],

@@ -40,7 +40,7 @@ export function CustomerEventsSettings() {
   const add = <Button onClick={() => nav('/settings/events/new')}>{t('events.add')}</Button>;
   return (
     <div className="flex flex-col gap-6">
-      <SettingsActions>{pixels.length > 0 && <Button variant="primary" onClick={() => nav('/settings/events/new')}>{t('events.add')}</Button>}</SettingsActions>
+      <SettingsActions><Button onClick={() => nav('/settings/events/new')}>{t('events.add')}</Button></SettingsActions>
       <Section title={t('events.pixels')} description={t('events.pixelsDesc')}>
         {pixels.length === 0 ? (
           <Card>

@@ -22,8 +22,6 @@ export const enPostage = {
   'postage.labelCarriers': '{n} carriers', 'postage.labelCarriers.one': '{n} carrier', 'postage.labelsOff': 'Not set up',
   'postage.calcTitle': 'Calculate label rates', 'postage.calcIntro': 'Rates for a parcel sent from your first location to the country you choose.',
   'postage.destination': 'Destination country', 'postage.zip': 'Postal code',
-  'postage.accountsRow': 'Carrier accounts', 'postage.accountsRowDesc': 'Connect your own carrier accounts for carrier-calculated rates and labels',
-  'postage.accountsNone': 'None', 'postage.accountsCount': '{n} accounts', 'postage.accountsCount.one': '{n} account',
   'postage.carrierRates': 'Carrier-calculated rates', 'postage.labelsYes': 'Labels can be purchased', 'postage.labelsNo': 'Rates only',
   'postage.addTest': 'Add test carrier', 'postage.testName': 'Test carrier', 'postage.testAdded': 'Test carrier added',
   'postage.provider': 'Type', 'postage.providerHttp': 'HTTP carrier service', 'postage.providerTest': 'Test carrier (test mode)',

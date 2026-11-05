@@ -2,7 +2,7 @@ import type { enBtnCustomers } from './en-btn-customers';
 
 export const frBtnCustomers: Record<keyof typeof enBtnCustomers, string> = {
   // clients : liste et fiche
-  'nav.contentMenus': 'Menus', 'bc.companies': 'Sociétés', 'bc.editInBulk': 'Modifier en masse', 'bc.grantCredit': 'Accorder du crédit en magasin', 'bc.merge': 'Fusionner les clients', 'bc.mergeCustomer': 'Fusionner le client', 'bc.addToCompany': 'Ajouter à une société',
+  'nav.contentMenus': 'Menus', 'bc.companies': 'Entreprises', 'bc.editInBulk': 'Modifier en bloc', 'bc.grantCredit': 'Attribuer un crédit en magasin', 'bc.merge': 'Fusionner les clients', 'bc.mergeCustomer': 'Fusionner le client', 'bc.addToCompany': 'Ajouter à l’entreprise',
   'bc.help.subscription': 'Indique si le client a accepté de recevoir des e-mails marketing.', 'bc.help.location': 'La ville et le pays de l’adresse par défaut.', 'bc.help.spent': 'Ce que le client a payé, remboursements déduits. Les commandes annulées ne comptent pas.',
   'bc.group': 'Groupe de clients', 'bc.group.customer': 'Client', 'bc.group.prospect': 'Prospect',
   'bc.rfm.CHAMPIONS': 'Champions', 'bc.rfm.LOYAL': 'Fidèles', 'bc.rfm.ACTIVE': 'Actifs', 'bc.rfm.NEW': 'Nouveaux', 'bc.rfm.PROMISING': 'Prometteurs', 'bc.rfm.NEEDS_ATTENTION': 'À surveiller',
@@ -18,7 +18,7 @@ export const frBtnCustomers: Record<keyof typeof enBtnCustomers, string> = {
   'bc.queryBar.problem.badBool': 'attend true ou false.', 'bc.queryBar.problem.badValue': 'n’est pas une valeur acceptée.', 'bc.queryBar.problem.empty': 'n’a pas de valeur.',
 
   // modification en masse
-  'bc.bulk.title': 'Modifier {n} clients', 'bc.bulk.title.one': 'Modifier 1 client', 'bc.bulk.apply': 'Appliquer les modifications', 'bc.bulk.addTags': 'Ajouter des tags', 'bc.bulk.removeTags': 'Retirer des tags',
+  'bc.bulk.title': 'Modifier {n} clients', 'bc.bulk.title.one': 'Modifier 1 client', 'bc.bulk.apply': 'Appliquer les modifications', 'bc.bulk.addTags': 'Ajouter des balises', 'bc.bulk.removeTags': 'Supprimer des balises',
   'bc.bulk.email': 'Marketing par e-mail', 'bc.bulk.sms': 'Marketing par SMS', 'bc.bulk.noChange': 'Ne pas modifier', 'bc.bulk.subscribe': 'Abonner', 'bc.bulk.unsubscribe': 'Désabonner',
   'bc.bulk.tax': 'Exonération de taxe', 'bc.bulk.taxHelp': 'Les clients exonérés ne paient pas de taxe sur leurs commandes.', 'bc.bulk.noteAppend': 'Ajouter à la note existante', 'bc.bulk.noteReplace': 'Remplacer la note', 'bc.bulk.noteClear': 'Effacer la note',
   'bc.bulk.done': '{n} clients mis à jour', 'bc.bulk.done.one': '1 client mis à jour', 'bc.bulk.failed': 'Certains clients ont été ignorés :',
@@ -41,26 +41,26 @@ export const frBtnCustomers: Record<keyof typeof enBtnCustomers, string> = {
   // historique
   'bc.timeline.attach': 'Joindre des fichiers', 'bc.timeline.showEmail': 'Afficher l’e-mail', 'bc.timeline.email': 'E-mail', 'bc.timeline.emailTo': 'Envoyé à {to}', 'bc.timeline.emailGone': 'Le contenu de cet e-mail n’est plus disponible.',
 
-  // sociétés
-  'bc.company.name': 'Société', 'bc.company.add': 'Ajouter une société', 'bc.company.create': 'Créer la société', 'bc.company.search': 'Rechercher des sociétés', 'bc.company.mainContact': 'Contact principal', 'bc.company.locations': 'Établissements',
-  'bc.company.since': 'Cliente depuis', 'bc.company.emptyTitle': 'Vendez aux entreprises', 'bc.company.emptyBody': 'Les sociétés regroupent les acheteurs d’une entreprise, avec leurs établissements, informations fiscales et conditions de paiement. Ajoutez-en une pour passer des commandes à son nom.',
-  'bc.company.deleteTitle': 'Supprimer {n} sociétés ?', 'bc.company.deleteTitle.one': 'Supprimer cette société ?', 'bc.company.deleteBody': 'Les établissements et les liens avec les contacts sont supprimés. Les clients et les commandes passées restent.',
-  'bc.company.deleted': '{n} sociétés supprimées', 'bc.company.deleted.one': 'Société supprimée', 'bc.company.externalId': 'Identifiant externe', 'bc.company.externalIdHelp': 'L’identifiant de la société dans votre comptabilité ou votre ERP.',
-  'bc.company.firstLocation': 'Premier établissement', 'bc.company.taxId': 'Numéro de TVA / d’immatriculation', 'bc.company.terms': 'Conditions de paiement', 'bc.company.termsHelp': 'Quand la société paie après sa commande.', 'bc.company.taxExempt': 'Exonérée de taxe',
+  // entreprises
+  'bc.company.name': 'Entreprise', 'bc.company.add': 'Ajouter une entreprise', 'bc.company.create': 'Créer l’entreprise', 'bc.company.search': 'Rechercher des entreprises', 'bc.company.mainContact': 'Contact principal', 'bc.company.locations': 'Établissements',
+  'bc.company.since': 'Cliente depuis', 'bc.company.emptyTitle': 'Vendez aux entreprises', 'bc.company.emptyBody': 'Les entreprises regroupent leurs acheteurs, avec leurs établissements, informations fiscales et conditions de paiement. Ajoutez-en une pour passer des commandes à son nom.',
+  'bc.company.deleteTitle': 'Supprimer {n} entreprises ?', 'bc.company.deleteTitle.one': 'Supprimer cette entreprise ?', 'bc.company.deleteBody': 'Les établissements et les liens avec les contacts sont supprimés. Les clients et les commandes passées restent.',
+  'bc.company.deleted': '{n} entreprises supprimées', 'bc.company.deleted.one': 'Entreprise supprimée', 'bc.company.externalId': 'Identifiant externe', 'bc.company.externalIdHelp': 'L’identifiant de l’entreprise dans votre comptabilité ou votre ERP.',
+  'bc.company.firstLocation': 'Premier établissement', 'bc.company.taxId': 'Numéro de TVA / d’immatriculation', 'bc.company.terms': 'Conditions de paiement', 'bc.company.termsHelp': 'Quand l’entreprise paie après sa commande.', 'bc.company.taxExempt': 'Exonérée de taxe',
   'bc.company.terms.none': 'Paiement à la commande', 'bc.company.terms.receipt': 'À réception', 'bc.company.terms.net': 'Net {n} jours',
   'bc.company.addLocation': 'Ajouter un établissement', 'bc.company.editLocation': 'Modifier l’établissement', 'bc.company.locationName': 'Nom de l’établissement', 'bc.company.noAddress': 'Aucune adresse', 'bc.company.contacts': 'Contacts', 'bc.company.addContact': 'Ajouter un contact',
-  'bc.company.noContacts': 'Aucun contact pour l’instant. Ajoutez un client pour qu’il puisse acheter au nom de cette société.', 'bc.company.main': 'Contact principal', 'bc.company.makeMain': 'Définir comme contact principal', 'bc.company.editTitle': 'Modifier la fonction',
-  'bc.company.contactTitle': 'Fonction', 'bc.company.removeContact': 'Retirer de la société', 'bc.company.details': 'Détails', 'bc.company.openDrafts': 'Brouillons ouverts', 'bc.company.saved': 'Société enregistrée',
-  'bc.company.notFound': 'Cette société n’existe pas.', 'bc.company.deleteLocationTitle': 'Supprimer cet établissement ?', 'bc.company.deleteLocationBody': 'Une société doit avoir au moins un établissement, et un établissement avec des commandes ne peut pas être supprimé.',
-  'bc.company.addTitle': 'Ajouter {n} clients à une société', 'bc.company.addTitle.one': 'Ajouter 1 client à une société', 'bc.company.none': 'Aucune société trouvée.', 'bc.company.noneYet': 'Ne fait partie d’aucune société.',
-  'bc.company.added': '{n} clients ajoutés à la société', 'bc.company.added.one': '1 client ajouté à la société', 'bc.company.addedSome': '{n} ajoutés, {failed} ignorés (déjà contacts)',
-  'bc.draft.title': 'Société de cette commande', 'bc.draft.change': 'Changer de société', 'bc.draft.remove': 'Retirer la société', 'bc.draft.none': 'Aucune société. La commande est destinée à un particulier.', 'bc.draft.location': 'Établissement', 'bc.draft.contact': 'Contact',
-  'bc.draft.contactHelp': 'Choisir un contact définit aussi le client du brouillon s’il n’en a pas.', 'bc.draft.noContact': 'Aucun contact', 'bc.draft.other': 'Autre société', 'bc.draft.saved': 'Société enregistrée sur le brouillon', 'bc.draft.loadFailed': 'La société n’a pas pu être chargée.',
+  'bc.company.noContacts': 'Aucun contact pour l’instant. Ajoutez un client pour qu’il puisse acheter au nom de cette entreprise.', 'bc.company.main': 'Contact principal', 'bc.company.makeMain': 'Définir comme contact principal', 'bc.company.editTitle': 'Modifier la fonction',
+  'bc.company.contactTitle': 'Fonction', 'bc.company.removeContact': 'Retirer de l’entreprise', 'bc.company.details': 'Détails', 'bc.company.openDrafts': 'Brouillons ouverts', 'bc.company.saved': 'Entreprise enregistrée',
+  'bc.company.notFound': 'Cette entreprise n’existe pas.', 'bc.company.deleteLocationTitle': 'Supprimer cet établissement ?', 'bc.company.deleteLocationBody': 'Une entreprise doit avoir au moins un établissement, et un établissement avec des commandes ne peut pas être supprimé.',
+  'bc.company.addTitle': 'Ajouter {n} clients à une entreprise', 'bc.company.addTitle.one': 'Ajouter 1 client à une entreprise', 'bc.company.none': 'Aucune entreprise trouvée.', 'bc.company.noneYet': 'Ne fait partie d’aucune entreprise.',
+  'bc.company.added': '{n} clients ajoutés à l’entreprise', 'bc.company.added.one': '1 client ajouté à l’entreprise', 'bc.company.addedSome': '{n} ajoutés, {failed} ignorés (déjà contacts)',
+  'bc.draft.title': 'Entreprise de cette commande', 'bc.draft.change': 'Changer d’entreprise', 'bc.draft.remove': 'Retirer l’entreprise', 'bc.draft.none': 'Aucune entreprise. La commande est destinée à un particulier.', 'bc.draft.location': 'Établissement', 'bc.draft.contact': 'Contact',
+  'bc.draft.contactHelp': 'Choisir un contact définit aussi le client du brouillon s’il n’en a pas.', 'bc.draft.noContact': 'Aucun contact', 'bc.draft.other': 'Autre entreprise', 'bc.draft.saved': 'Entreprise enregistrée sur le brouillon', 'bc.draft.loadFailed': 'La entreprise n’a pas pu être chargée.',
 
   // contenu
   'bc.template.preview': 'Prévisualiser le modèle', 'bc.files.type.model': 'Modèles 3D', 'bc.files.model': 'Fichier de modèle 3D',
   'bc.prefs.viewStore': 'Voir votre boutique', 'bc.prefs.copyUrl': 'Copier le lien de la boutique', 'bc.prefs.copied': 'Lien copié', 'bc.prefs.passwordOn': 'Activer la protection par mot de passe', 'bc.prefs.passwordOff': 'Désactiver la protection par mot de passe',
-  'bc.prefs.b2bOnly': 'Réserver l’accès aux clients B2B', 'bc.prefs.b2bOnlyHelp': 'Les visiteurs doivent se connecter avec un compte client rattaché à une société. Les pages de compte restent ouvertes pour qu’ils puissent se connecter.', 'bc.prefs.manageCompanies': 'Gérer les sociétés',
+  'bc.prefs.b2bOnly': 'Réserver l’accès aux clients B2B', 'bc.prefs.b2bOnlyHelp': 'Les visiteurs doivent se connecter avec un compte client rattaché à une entreprise. Les pages de compte restent ouvertes pour qu’ils puissent se connecter.', 'bc.prefs.manageCompanies': 'Gérer les entreprises',
   'bc.prefs.shareImage': 'Image de partage sur les réseaux sociaux', 'bc.prefs.addShareImage': 'Ajouter une image', 'bc.prefs.shareImageHelp': 'Affichée quand votre page d’accueil est partagée sur les réseaux sociaux. 1200 x 628 px convient le mieux.', 'bc.prefs.homeTitle': 'Titre de la page d’accueil',
   'bc.mo.view': 'Vue', 'bc.mo.view.all': 'Toutes les définitions', 'bc.mo.view.web': 'Avec pages web', 'bc.mo.view.entries': 'Avec des entrées', 'bc.mo.view.empty': 'Sans entrée', 'bc.mo.showSystem': 'Afficher les définitions système', 'bc.mo.hideSystem': 'Masquer les définitions système',
   'bc.mo.externalId': 'Identifiant externe', 'bc.mo.externalIdHelp': 'L’identifiant de l’entrée dans un autre système. Il doit être unique pour ce type.', 'bc.menus.drag': 'Glisser pour réordonner',
@@ -99,7 +99,7 @@ export const frBtnCustomers: Record<keyof typeof enBtnCustomers, string> = {
 
   // noms des dimensions, indicateurs et filtres
   'bc.dim.day': 'Jour', 'bc.dim.week': 'Semaine', 'bc.dim.month': 'Mois', 'bc.dim.channel': 'Canal de vente', 'bc.dim.financial_status': 'Statut du paiement', 'bc.dim.fulfillment_status': 'Statut de préparation', 'bc.dim.country': 'Pays de livraison',
-  'bc.dim.currency': 'Devise', 'bc.dim.weekday': 'Jour de la semaine', 'bc.dim.hour': 'Heure du jour', 'bc.dim.customer_type': 'Type de client', 'bc.dim.product': 'Produit', 'bc.dim.variant': 'Variante', 'bc.dim.vendor': 'Fournisseur', 'bc.dim.sku': 'UGS',
+  'bc.dim.currency': 'Devise', 'bc.dim.weekday': 'Jour de la semaine', 'bc.dim.hour': 'Heure du jour', 'bc.dim.customer_type': 'Type de client', 'bc.dim.product': 'Produit', 'bc.dim.variant': 'Variante', 'bc.dim.vendor': 'Fournisseur', 'bc.dim.sku': 'SKU',
   'bc.dim.customer': 'Client', 'bc.dim.subscription': 'Abonnement e-mail', 'bc.dim.language': 'Langue', 'bc.dim.source': 'Source de trafic', 'bc.dim.page': 'Page',
   'bc.metric.gross_sales': 'Ventes brutes', 'bc.metric.total_sales': 'Ventes totales', 'bc.metric.avg_price': 'Prix unitaire moyen', 'bc.metric.sales': 'Ventes', 'bc.metric.avg_order': 'Panier moyen',
   'bc.metric.fulfilled': 'Commandes expédiées', 'bc.metric.channel': 'Canal de vente', 'bc.metric.gateway': 'Moyen de paiement', 'bc.metric.paid': 'Payé', 'bc.metric.refunded': 'Remboursé', 'bc.metric.country': 'Pays',
@@ -108,8 +108,8 @@ export const frBtnCustomers: Record<keyof typeof enBtnCustomers, string> = {
   'bc.metric.m0': 'Mois 0', 'bc.metric.m1': 'Mois 1', 'bc.metric.m2': 'Mois 2', 'bc.metric.m3': 'Mois 3', 'bc.metric.m4': 'Mois 4', 'bc.metric.m5': 'Mois 5',
   'bc.metric.segment': 'Groupe RFM', 'bc.metric.average': 'Dépense moyenne', 'bc.metric.stock': 'Unités en stock', 'bc.metric.sold': 'Unités vendues', 'bc.metric.sell_through': 'Taux d’écoulement', 'bc.metric.share': 'Part des ventes',
   'bc.metric.cumulative': 'Part cumulée', 'bc.metric.class': 'Classe ABC',
-  'bc.filter.channel': 'Canal de vente', 'bc.filter.financial_status': 'Statut du paiement', 'bc.filter.fulfillment_status': 'Statut de préparation', 'bc.filter.country': 'Pays de livraison', 'bc.filter.currency': 'Devise', 'bc.filter.tag': 'Tag',
-  'bc.filter.total': 'Total de la commande (unités mineures)', 'bc.filter.product': 'Produit', 'bc.filter.vendor': 'Fournisseur', 'bc.filter.sku': 'UGS', 'bc.filter.quantity': 'Quantité', 'bc.filter.customer': 'Client', 'bc.filter.subscription': 'Abonnement e-mail',
+  'bc.filter.channel': 'Canal de vente', 'bc.filter.financial_status': 'Statut du paiement', 'bc.filter.fulfillment_status': 'Statut de préparation', 'bc.filter.country': 'Pays de livraison', 'bc.filter.currency': 'Devise', 'bc.filter.tag': 'Balise',
+  'bc.filter.total': 'Total de la commande (unités mineures)', 'bc.filter.product': 'Produit', 'bc.filter.vendor': 'Fournisseur', 'bc.filter.sku': 'SKU', 'bc.filter.quantity': 'Quantité', 'bc.filter.customer': 'Client', 'bc.filter.subscription': 'Abonnement e-mail',
   'bc.filter.language': 'Langue', 'bc.filter.source': 'Source de trafic', 'bc.filter.page': 'Page',
   'bc.value.channel.web': 'Boutique en ligne', 'bc.value.channel.draft_order': 'Brouillons de commande', 'bc.value.channel.pos': 'Point de vente', 'bc.value.channel.manual': 'Manuel',
   'bc.value.gateway.manual': 'Manuel', 'bc.value.gateway.stripe': 'Carte bancaire', 'bc.value.gateway.cod': 'Paiement à la livraison', 'bc.value.gateway.bank_transfer': 'Virement bancaire', 'bc.value.gateway.gift_card': 'Carte cadeau', 'bc.value.gateway.store_credit': 'Crédit en magasin', 'bc.value.gateway.free': 'Aucun paiement dû',

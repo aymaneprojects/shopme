@@ -350,7 +350,7 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
           {deviceBtn}
           <button type="button" aria-label={t('editor.undo')} title={t('editor.undo')} disabled={!hist.past.length} onClick={() => dispatch({ kind: 'undo' })} className={topBtn}><Undo2 className="size-4" /></button>
           <button type="button" aria-label={t('editor.redo')} title={t('editor.redo')} disabled={!hist.future.length} onClick={() => dispatch({ kind: 'redo' })} className={topBtn}><Redo2 className="size-4" /></button>
-          <ThemeToolbar onShortcuts={() => setShortcuts(true)} themeId={themeId} name={name} role={role} dirty={dirty} previewUrl={frameUrl(frameTpl, false)} docsUrl={info.docs} version={info.version} />
+          <ThemeToolbar onShortcuts={() => setShortcuts(true)} themeId={themeId} name={name} role={role} dirty={dirty} previewUrl={frameUrl(frameTpl, false)} docsUrl={info.docs} supportUrl={info.support} version={info.version} author={info.author} />
           <Button size="sm" variant="primary" disabled={!dirty} loading={save.isPending} onClick={doSave}>{t('save.save')}</Button>
         </div>
       </header>
@@ -442,12 +442,13 @@ export function previewChoices(d: PreviewRes | undefined): PreviewChoices | unde
   };
 }
 
-/** The documentation address and version a theme declares in `theme_info` of its settings schema. */
-export function themeInfo(schemaJson: string): { docs?: string; version?: string } {
+/** The documentation and support addresses, version and author a theme declares in `theme_info` of its settings schema. */
+export function themeInfo(schemaJson: string): { docs?: string; support?: string; version?: string; author?: string } {
   try {
     const info = (JSON.parse(schemaJson) as Array<Record<string, unknown>>).find((g) => g?.name === 'theme_info');
-    const docs = typeof info?.theme_documentation_url === 'string' && /^https?:\/\//.test(info.theme_documentation_url) ? info.theme_documentation_url : undefined;
-    return { docs, version: typeof info?.theme_version === 'string' ? info.theme_version : undefined };
+    const url = (v: unknown) => (typeof v === 'string' && /^https?:\/\//.test(v) ? v : undefined);
+    const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
+    return { docs: url(info?.theme_documentation_url), support: url(info?.theme_support_url), version: text(info?.theme_version), author: text(info?.theme_author) };
   } catch { return {}; }
 }
 

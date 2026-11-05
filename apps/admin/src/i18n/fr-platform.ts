@@ -1,7 +1,7 @@
 import type { enPlatform } from './en-platform';
 
 export const frPlatform: Record<keyof typeof enPlatform, string> = {
-  'nav.analytics': 'Analyses', 'settings.security': 'Sécurité', 'settings.backup': 'Sauvegarde et transfert',
+  'nav.analytics': 'Analyses de données', 'settings.security': 'Sécurité', 'settings.backup': 'Sauvegarde et transfert',
 
   'analytics.title': 'Analyses', 'analytics.reports': 'Rapports', 'analytics.viewReports': 'Voir les rapports', 'analytics.exportCsv': 'Exporter en CSV', 'analytics.noData': 'Aucune donnée pour cette période.',
   'analytics.range': 'Période', 'analytics.custom': 'Personnalisée', 'analytics.from': 'Du', 'analytics.to': 'Au', 'analytics.invalidRange': 'La date de début ne peut pas être après la date de fin.',
@@ -17,7 +17,7 @@ export const frPlatform: Record<keyof typeof enPlatform, string> = {
   'analytics.report.TAXES': 'Taxes', 'analytics.report.INVENTORY_SNAPSHOT': 'Instantané du stock', 'analytics.report.SESSIONS': 'Sessions et conversion',
   'analytics.col.period': 'Période', 'analytics.col.orders': 'Commandes', 'analytics.col.gross': 'Ventes brutes', 'analytics.col.discounts': 'Réductions', 'analytics.col.refunds': 'Remboursements',
   'analytics.col.shipping': 'Livraison', 'analytics.col.taxes': 'Taxes', 'analytics.col.total': 'Total des ventes', 'analytics.col.units': 'Unités vendues', 'analytics.col.aov': 'Panier moyen',
-  'analytics.col.product': 'Produit', 'analytics.col.variant': 'Variante', 'analytics.col.sku': 'UGS', 'analytics.col.vendor': 'Fournisseur', 'analytics.col.customers': 'Clients',
+  'analytics.col.product': 'Produit', 'analytics.col.variant': 'Variante', 'analytics.col.sku': 'SKU', 'analytics.col.vendor': 'Fournisseur', 'analytics.col.customers': 'Clients',
   'analytics.col.returning': 'Clients récurrents', 'analytics.col.rate': 'Taux de clients récurrents', 'analytics.col.customer': 'Client', 'analytics.col.email': 'E-mail',
   'analytics.col.spent': 'Total dépensé', 'analytics.col.discount': 'Réduction', 'analytics.col.amount': 'Montant remisé', 'analytics.col.title': 'Taxe', 'analytics.col.tax': 'Taxe collectée',
   'analytics.col.available': 'Disponible', 'analytics.col.on_hand': 'En stock', 'analytics.col.committed': 'Engagé', 'analytics.col.value': 'Valeur du stock',

@@ -1177,7 +1177,7 @@
         "show_default_address": "Afficher l’adresse par défaut",
         "orders_per_page": "Commandes par page",
         "details_position": "Informations du compte",
-        "show_sku": "Afficher la colonne UGS",
+        "show_sku": "Afficher la colonne SKU",
         "show_addresses": "Afficher les adresses de livraison et de facturation",
         "show_shipments": "Afficher les expéditions et le suivi",
         "columns": "Adresses par ligne"
@@ -1220,20 +1220,34 @@
     "main_reset_password": {
       "name": "Réinitialisation du mot de passe"
     },
+    "announcement_bar": {
+      "name": "Barre d’annonces",
+      "settings": {
+        "show": "Afficher l’annonce",
+        "text": "Texte",
+        "link": "Lien"
+      }
+    },
+    "header": {
+      "name": "En-tête",
+      "settings": {
+        "menu": "Menu",
+        "sticky": "En-tête fixe"
+      }
+    },
+    "footer": {
+      "name": "Pied de page",
+      "settings": {
+        "menu": "Menu",
+        "show_description": "Afficher la description de la boutique",
+        "show_newsletter": "Afficher l’inscription à la newsletter"
+      }
+    },
     "groups": {
       "header": "En-tête",
       "footer": "Pied de page",
       "footer_utilities": "Utilitaires du pied de page",
       "overlays": "Superpositions"
-    },
-    "header": {
-      "name": "En-tête"
-    },
-    "footer": {
-      "name": "Pied de page"
-    },
-    "announcement_bar": {
-      "name": "Barre d’annonces"
     }
   }
 }

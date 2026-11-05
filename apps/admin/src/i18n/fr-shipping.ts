@@ -31,7 +31,7 @@ export const frShipping: Record<keyof typeof enShipping, string> = {
   'delivery.methods': 'Modes de livraison supplémentaires', 'delivery.on': 'Activé', 'delivery.off': 'Désactivé',
   'delivery.localDelivery': 'Livraison locale', 'delivery.localDeliveryHelp': 'Livrez vous-même les commandes aux clients proches.',
   'delivery.localPickup': 'Retrait en magasin', 'delivery.localPickupHelp': 'Permettez aux clients de retirer leur commande dans l’un de vos emplacements.',
-  'delivery.packages': 'Emballages', 'delivery.packagesHelp': 'Modèles de colis avec leurs dimensions et leur poids.', 'delivery.packagesCount': '{n} emballages', 'delivery.packagesCount.one': '{n} emballage',
+  'delivery.packages': 'Emballages', 'delivery.packagesHelp': 'Définissez les dimensions des colis pour obtenir des tarifs d’expédition précis.', 'delivery.packagesCount': '{n} emballages', 'delivery.packagesCount.one': '{n} emballage',
   'delivery.addPackage': 'Ajouter un emballage', 'delivery.editPackage': 'Modifier l’emballage', 'delivery.shopDefault': 'Par défaut de la boutique', 'delivery.makeDefault': 'Définir par défaut',
   'delivery.deletePackageTitle': 'Supprimer « {name} » ?', 'delivery.deletePackageBody': 'Ce modèle d’emballage sera supprimé.', 'delivery.noDimensions': 'Sans dimensions',
   'delivery.packageName': 'Nom de l’emballage', 'delivery.packageType': 'Type', 'delivery.length': 'Longueur', 'delivery.width': 'Largeur', 'delivery.height': 'Hauteur', 'delivery.packageWeight': 'Poids de l’emballage vide',

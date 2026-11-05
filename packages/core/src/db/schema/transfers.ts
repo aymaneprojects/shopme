@@ -62,6 +62,8 @@ export const inventoryTransfers = pgTable('inventory_transfers', {
   originSnapshot: jsonb('origin_snapshot').$type<LocationSnapshotData | null>(),
   destinationSnapshot: jsonb('destination_snapshot').$type<LocationSnapshotData | null>(),
   purchaseOrderId: ref('purchase_order_id').references(() => purchaseOrders.id, { onDelete: 'set null' }),
+  /** A purchase order the transfer is linked to for reference (it does not receive it: that is `purchaseOrderId`). */
+  linkedPurchaseOrderId: ref('linked_purchase_order_id').references(() => purchaseOrders.id, { onDelete: 'set null' }),
   referenceName: text('reference_name'), note: text('note'), tags: tagsCol(),
   dateCreated: ts('date_created').notNull().defaultNow(),
   ...timestamps(),

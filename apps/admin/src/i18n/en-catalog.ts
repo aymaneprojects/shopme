@@ -36,6 +36,6 @@ export const enCatalog = {
   'pricing.unitPriceHelp': 'Shows a price per unit of measure, for example per 100 ml.', 'pricing.unitPriceShown': 'Shown to customers as {price} per {ref}',
   'variants.image': 'Variant image', 'variants.noImage': 'None', 'variants.noMedia': 'Add product media to choose an image for this variant.', 'variants.useImage': 'Use this image',
   'product.category': 'Product category', 'product.categoryHelp': 'Determines tax rates and improves search and recommendations.', 'product.noCategory': 'No category',
-  'product.duplicate': 'Duplicate', 'product.duplicated': 'Product duplicated', 'product.copyOf': 'Copy of {title}', 'product.preview': 'Preview', 'product.viewOnStore': 'View on online store',
+  'product.duplicate': 'Duplicate', 'product.duplicated': 'Product duplicated', 'product.copyOf': '{title} (Copy)', 'product.preview': 'Preview', 'product.viewOnStore': 'View on online store',
   'order.fulfillFrom': 'Ship from', 'order.fulfillFromHelp': 'Stock leaves the location where it was reserved first.', 'order.fulfillFromAuto': 'Where the stock is reserved',
 } as const;

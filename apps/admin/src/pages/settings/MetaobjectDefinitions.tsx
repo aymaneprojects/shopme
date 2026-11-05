@@ -1,4 +1,4 @@
-import { Banner, Button, Card, Checkbox, ConfirmDialog, Dropdown, EmptyState, Input, Select, Skeleton, Switch, Textarea, useToast } from '@shopme/ui';
+import { Banner, Button, Card, Checkbox, ConfirmDialog, Dropdown, EmptyState, Input, Select, Skeleton, Switch, Textarea, cx, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Boxes, ChevronDown, ChevronUp, GripVertical, Plus, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
@@ -51,7 +51,7 @@ let uidCounter = 0;
 const uid = () => `f${++uidCounter}`;
 
 function formOf(d: DefinitionData | null): Form {
-  if (!d) return { name: '', type: '', typeTouched: false, editType: false, description: '', showDescription: false, fields: [{ ...emptyField(uid()), base: 'single_line_text_field' }], publishable: true, translatable: true, online: false, urlHandle: '', urlTouched: false, createRedirects: false, storefront: true, customerAccount: false, displayNameKey: '' };
+  if (!d) return { name: '', type: '', typeTouched: false, editType: false, description: '', showDescription: false, fields: [{ ...emptyField(uid()), base: '' }], publishable: true, translatable: true, online: false, urlHandle: '', urlTouched: false, createRedirects: false, storefront: true, customerAccount: false, displayNameKey: '' };
   return {
     name: d.name, type: d.type, typeTouched: true, editType: false, description: d.description ?? '', showDescription: !!d.description, fields: d.fieldDefinitions.map((f) => draftOf(f, uid())),
     publishable: d.capabilities.publishable.enabled, translatable: d.capabilities.translatable.enabled, online: !!d.capabilities.onlineStore?.enabled, urlHandle: d.capabilities.onlineStore?.data?.urlHandle ?? '', urlTouched: true,
@@ -99,9 +99,9 @@ function FieldRow({ f, index, count, set, remove, move, definitions, error, drag
         <select aria-label={t('mo.cardinality')} className="field-control" value={f.list ? 'list' : 'one'} disabled={f.existing} onChange={(e) => set({ list: e.target.value === 'list' })}>
           <option value="one">{t('mo.one')}</option><option value="list">{t('mo.list')}</option>
         </select>
-        <select aria-label={t('mo.fieldType')} className="field-control" value={f.base} disabled={f.existing} onChange={(e) => set({ base: e.target.value, validations: {} })}>{typeOptions(t)}</select>
+        <select aria-label={t('mo.fieldType')} className={cx('field-control', !f.base && 'text-muted')} value={f.base} disabled={f.existing} onChange={(e) => set({ base: e.target.value, validations: {} })}>{!f.base && <option value="" disabled>{t('fid.mo.pickType')}</option>}{typeOptions(t)}</select>
         <Button size="sm" variant="plain" aria-expanded={open} aria-label={t('mo.fieldSettings')} onClick={() => setOpen(!open)}>{open ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}</Button>
-        <Button size="sm" variant="plain" aria-label={t('common.delete')} onClick={remove} disabled={count <= 0}><Trash2 className="size-4" /></Button>
+        {count > 1 && <Button size="sm" variant="plain" aria-label={t('common.delete')} onClick={remove}><Trash2 className="size-4" /></Button>}
       </div>
       {error && <p role="alert" className="px-3 pb-2 text-xs text-critical">{error}</p>}
       {open && (
@@ -208,7 +208,7 @@ function DefinitionForm({ def }: { def: DefinitionData | null }) {
     onError: (e) => { setConfirm(false); setBanner(e.message); },
   });
 
-  const valid = form.name.trim() && form.type.trim().length >= 3 && form.fields.some((f) => f.name.trim() && f.base);
+  const valid = form.name.trim() && form.type.trim().length >= 3 && form.fields.some((f) => f.name.trim() && f.base) && form.fields.every((f) => !(f.name.trim() || f.key.trim()) || f.base);
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setBanner(null); setErrors({}); }} />

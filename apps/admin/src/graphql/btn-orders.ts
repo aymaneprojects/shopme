@@ -6,7 +6,7 @@ export const ORDERS_LIST = /* GraphQL */ `
   query OrdersList($first: Int, $after: String, $last: Int, $before: String, $query: String, $sortKey: OrderSortKeys, $reverse: Boolean) {
     orders(first: $first, after: $after, last: $last, before: $before, query: $query, sortKey: $sortKey, reverse: $reverse) {
       nodes {
-        id name createdAt displayFinancialStatus displayFulfillmentStatus tags cancelledAt closedAt sourceName poNumber test capturable
+        id name createdAt displayFinancialStatus displayFulfillmentStatus tags cancelledAt closedAt sourceName poNumber test capturable requiresShipping
         totalPriceSet { ${MONEY} }
         customer { id displayName }
         lineItems(first: 50) { nodes { id title quantity } }

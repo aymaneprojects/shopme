@@ -1,4 +1,4 @@
-import { Check, ChevronLeft, ChevronsUpDown, Download, Search, Upload, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronsUpDown, Download, Info, Search, Upload, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button, cx } from './basics';
@@ -178,7 +178,9 @@ export function QuantityPopover({ value, onApply, trigger, labels, disabled }: {
 export interface ViewerImage { key: string; url: string; name: string; alt: string; details?: string; usedIn?: string; /** Focal point in percent of the width and height (0-100). */ focalPoint?: { x: number; y: number } | null }
 
 /** Full-screen media viewer: image on the left, an information panel (name, alt text, details) on the right. */
-export function MediaViewer({ items, index, onIndexChange, onClose, onSave, onFocalPoint, labels, downloadHref }: {
+export function MediaViewer({ items, index, onIndexChange, onClose, onSave, onFocalPoint, labels, downloadHref, tools = [] }: {
+  /** Editing tools listed as cards under the information panel (crop, resize...). */
+  tools?: Array<{ key: string; label: string; icon?: ReactNode; onSelect: (item: ViewerImage) => void }>;
   items: ViewerImage[];
   index: number | null;
   onIndexChange: (i: number) => void;
@@ -192,7 +194,15 @@ export function MediaViewer({ items, index, onIndexChange, onClose, onSave, onFo
   const item = index === null ? null : items[index];
   const [name, setName] = useState('');
   const [alt, setAlt] = useState('');
-  useEffect(() => { if (item) { setName(item.name); setAlt(item.alt); } }, [item?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [facts, setFacts] = useState<{ w?: number; h?: number; bytes?: number }>({});
+  useEffect(() => { if (item) { setName(item.name); setAlt(item.alt); setFacts({}); } }, [item?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Size of the file (when the server says it) for the "Details" line: format · width × height · size.
+  useEffect(() => {
+    if (!item || item.details) return;
+    let live = true;
+    fetch(item.url, { method: 'HEAD' }).then((r) => { const n = Number(r.headers.get('content-length')); if (live && n > 0) setFacts((f) => ({ ...f, bytes: n })); }, () => undefined);
+    return () => { live = false; };
+  }, [item?.url, item?.details]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (index === null) return;
     const key = (e: KeyboardEvent) => {
@@ -204,6 +214,11 @@ export function MediaViewer({ items, index, onIndexChange, onClose, onSave, onFo
     return () => document.removeEventListener('keydown', key);
   }, [index, items.length, onClose, onIndexChange]);
   if (!item || index === null) return null;
+  const lang = typeof document !== 'undefined' ? document.documentElement.lang || undefined : undefined;
+  const ext = (item.name.split('.').pop() ?? '').toUpperCase();
+  const details = item.details ?? [ext && ext.length <= 5 ? (ext === 'JPEG' ? 'JPG' : ext) : '', facts.w && facts.h ? `${facts.w} × ${facts.h}` : '', facts.bytes ? new Intl.NumberFormat(lang, { style: 'unit', unit: facts.bytes >= 1e6 ? 'megabyte' : 'kilobyte', maximumFractionDigits: 2 }).format(facts.bytes / (facts.bytes >= 1e6 ? 1e6 : 1e3)) : ''].filter(Boolean).join(' · ');
+  const saveIfChanged = () => { if (onSave && (name !== item.name || alt !== item.alt)) onSave(item, { name, alt }); };
+  const dims = (e: { currentTarget: HTMLImageElement }) => { const { naturalWidth: w, naturalHeight: h } = e.currentTarget; setFacts((f) => ({ ...f, w, h })); };
   return (
     <div role="dialog" aria-modal="true" aria-label={item.name} className="fixed inset-0 z-[70] flex flex-col bg-[#0b0b0d] text-white">
       <header className="flex h-12 items-center gap-3 border-b border-white/10 bg-[#161618] px-3">
@@ -221,30 +236,35 @@ export function MediaViewer({ items, index, onIndexChange, onClose, onSave, onFo
         </div>
       </header>
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <div className="grid min-h-0 flex-1 place-items-center p-6">
+        <div className="relative grid min-h-0 flex-1 place-items-center p-6 pb-14" style={{ backgroundImage: 'radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1px)', backgroundSize: '16px 16px' }}>
           {onFocalPoint ? (
             <div className="relative inline-block max-h-full max-w-full">
-              <img src={item.url} alt={item.alt} draggable={false} title={labels.focalHint} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); onFocalPoint(item, { x: Math.round(Math.min(100, Math.max(0, ((e.clientX - r.left) / r.width) * 100)) * 10) / 10, y: Math.round(Math.min(100, Math.max(0, ((e.clientY - r.top) / r.height) * 100)) * 10) / 10 }); }} className="block max-h-[calc(100vh-8rem)] max-w-full cursor-crosshair object-contain" />
+              <img src={item.url} alt={item.alt} draggable={false} title={labels.focalHint} onLoad={dims} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); onFocalPoint(item, { x: Math.round(Math.min(100, Math.max(0, ((e.clientX - r.left) / r.width) * 100)) * 10) / 10, y: Math.round(Math.min(100, Math.max(0, ((e.clientY - r.top) / r.height) * 100)) * 10) / 10 }); }} className="block max-h-[calc(100vh-8rem)] max-w-full cursor-crosshair object-contain" />
               {item.focalPoint && <span aria-hidden className="pointer-events-none absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-primary-top/70 shadow-[0_0_0_2px_rgb(0_0_0/0.5)]" style={{ left: `${item.focalPoint.x}%`, top: `${item.focalPoint.y}%` }} />}
             </div>
-          ) : <img src={item.url} alt={item.alt} className="max-h-full max-w-full object-contain" />}
+          ) : <img src={item.url} alt={item.alt} onLoad={dims} className="max-h-full max-w-full object-contain" />}
+          {onFocalPoint && labels.focalHint && (
+            <p className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-lg bg-[#1c1c1f] px-3 py-1.5 text-xs text-white/90">
+              <span aria-hidden className="size-3 rounded-full border-2 border-white bg-primary-top" />{labels.focalHint}
+              {item.focalPoint && <><span className="text-white/60">{`${item.focalPoint.x}% · ${item.focalPoint.y}%`}</span>{labels.focalClear && <button type="button" className="underline hover:text-white" onClick={() => onFocalPoint(item, null)}>{labels.focalClear}</button>}</>}
+            </p>
+          )}
         </div>
         <aside className="w-full shrink-0 overflow-y-auto p-3 md:w-80">
-          <form className="rounded-xl bg-[#1c1c1f] p-3 text-[13px]" onSubmit={(e) => { e.preventDefault(); onSave?.(item, { name, alt }); }}>
-            <h2 className="mb-2 font-semibold">{labels.info}</h2>
+          <form className="rounded-xl bg-[#1c1c1f] p-3 text-[13px]" onSubmit={(e) => { e.preventDefault(); saveIfChanged(); }}>
+            <h2 className="mb-2 flex items-center gap-1.5 font-semibold"><Info className="size-4" aria-hidden />{labels.info}</h2>
             <label className="mb-1 block text-xs font-medium text-white/80" htmlFor="mv-name">{labels.name}</label>
-            <input id="mv-name" value={name} onChange={(e) => setName(e.target.value)} className="mb-2 h-8 w-full rounded-lg border border-white/20 bg-transparent px-2 text-[13px]" />
+            <input id="mv-name" value={name} onChange={(e) => setName(e.target.value)} onBlur={saveIfChanged} className="mb-2 h-8 w-full rounded-lg border border-white/20 bg-transparent px-2 text-[13px]" />
             <label className="mb-1 block text-xs font-medium text-white/80" htmlFor="mv-alt">{labels.alt}</label>
-            <textarea id="mv-alt" rows={5} value={alt} onChange={(e) => setAlt(e.target.value)} className="mb-2 w-full rounded-lg border border-white/20 bg-transparent px-2 py-1.5 text-[13px]" />
-            {onFocalPoint && <>
-              <div className="text-xs font-medium text-white/80">{labels.focalPoint}</div>
-              <p className="mb-1 text-xs text-white/60">{labels.focalHint}</p>
-              <p className="mb-2 flex items-center gap-2 text-xs text-white/80">{item.focalPoint ? `${item.focalPoint.x}% · ${item.focalPoint.y}%` : '—'}{item.focalPoint && labels.focalClear && <button type="button" className="underline hover:text-white" onClick={() => onFocalPoint(item, null)}>{labels.focalClear}</button>}</p>
-            </>}
-            {item.details && <><div className="text-xs font-medium text-white/80">{labels.details}</div><p className="mb-2 text-xs text-white/60">{item.details}</p></>}
-            {item.usedIn && <><div className="text-xs font-medium text-white/80">{labels.usedIn}</div><p className="mb-2 text-xs text-white/60">{item.usedIn}</p></>}
-            {onSave && <Button type="submit" variant="primary" size="sm" disabled={name === item.name && alt === item.alt}>{labels.save}</Button>}
+            <textarea id="mv-alt" rows={5} value={alt} onChange={(e) => setAlt(e.target.value)} onBlur={saveIfChanged} className="mb-2 w-full rounded-lg border border-white/20 bg-transparent px-2 py-1.5 text-[13px]" />
+            {details && <><div className="text-xs font-medium text-white/80">{labels.details}</div><p className="mb-2 text-xs text-white/60">{details}</p></>}
+            {item.usedIn && <><div className="text-xs font-medium text-white/80">{labels.usedIn}</div><p className="text-xs text-white/60">{item.usedIn}</p></>}
           </form>
+          {tools.map((tool) => (
+            <button key={tool.key} type="button" onClick={() => tool.onSelect(item)} className="mt-2 flex w-full items-center gap-2 rounded-xl bg-[#1c1c1f] px-3 py-3 text-left text-[13px] font-semibold hover:bg-[#262629]">
+              {tool.icon && <span aria-hidden className="grid size-4 place-items-center [&_svg]:size-4">{tool.icon}</span>}{tool.label}
+            </button>
+          ))}
         </aside>
       </div>
     </div>

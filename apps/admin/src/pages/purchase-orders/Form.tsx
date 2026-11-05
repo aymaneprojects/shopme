@@ -14,6 +14,7 @@ import {
 } from '../../graphql';
 import { useI18n, useT } from '../../i18n';
 import type { Key } from '../../i18n';
+import { currencySymbolLabel } from '../../lib/markets';
 import { useShop } from '../../session';
 import { Thumb } from '../Products';
 import { Pipeline } from '../transfers/shared';
@@ -183,16 +184,19 @@ export function PurchaseOrderForm({ initial }: { initial: PoDraft }) {
             <h2 className="mb-2 text-[13px] font-semibold">{t('po.details')}</h2>
             <Card>
               <div className="flex flex-col gap-3">
-                <Input label={t('po.reference')} value={f.reference} maxLength={255} onChange={(e) => set({ reference: e.target.value })} help={`${f.reference.length}/255`} />
-                <Textarea label={t('po.supplierNote')} value={f.note} maxLength={5000} onChange={(e) => set({ note: e.target.value })} help={`${f.note.length}/5000`} />
-                <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
-                  <label className="inline-flex items-center gap-1.5 rounded-md bg-hover px-2 py-1 text-[13px]"><span className="text-muted">{t('po.paymentTerms')}</span>
-                    <select aria-label={t('po.paymentTerms')} value={f.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value })} className="cursor-pointer bg-transparent font-medium outline-none">
+                <Input label={t('po.reference')} value={f.reference} maxLength={255} onChange={(e) => set({ reference: e.target.value })} suffix={<span className="text-xs">{f.reference.length}/255</span>} />
+                <div className="relative">
+                  <Textarea label={t('po.supplierNote')} value={f.note} maxLength={5000} onChange={(e) => set({ note: e.target.value })} />
+                  <span className="pointer-events-none absolute bottom-2 right-2.5 text-xs text-muted">{f.note.length}/5000</span>
+                </div>
+                <div className="flex items-center gap-1.5 border-t border-line pt-3">
+                  <label className="inline-flex min-w-0 items-center gap-1 rounded-md bg-hover px-1.5 py-0.5 text-xs"><span className="text-muted">{t('fid.po.terms')}</span>
+                    <select aria-label={t('po.paymentTerms')} value={f.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value })} className="cursor-pointer appearance-none bg-transparent font-medium outline-none [field-sizing:content]">
                       {PAYMENT_TERMS.map((p) => <option key={p} value={p}>{t(`po.terms.${p}` as Key)}</option>)}
                     </select></label>
-                  <label className="inline-flex items-center gap-1.5 rounded-md bg-hover px-2 py-1 text-[13px]"><span className="text-muted">{t('po.currency')}</span>
-                    <select aria-label={t('po.currency')} value={f.currency} onChange={(e) => set({ currency: e.target.value })} className="cursor-pointer bg-transparent font-medium outline-none">
-                      {[...new Set([shop.currency, ...currencies])].map((c) => <option key={c} value={c}>{c}</option>)}
+                  <label className="inline-flex min-w-0 items-center gap-1 rounded-md bg-hover px-1.5 py-0.5 text-xs"><span className="text-muted">{t('po.currency')}</span>
+                    <select aria-label={t('po.currency')} value={f.currency} onChange={(e) => set({ currency: e.target.value })} className="cursor-pointer appearance-none bg-transparent font-medium outline-none [field-sizing:content]">
+                      {[...new Set([shop.currency, ...currencies])].map((c) => <option key={c} value={c}>{currencySymbolLabel(c, lang)}</option>)}
                     </select></label>
                   <button type="button" className="btn btn-plain btn-icon btn-sm ml-auto" aria-expanded={more} aria-label={t('po.moreFields')} onClick={() => setMore((m) => !m)}>{more ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}</button>
                 </div>

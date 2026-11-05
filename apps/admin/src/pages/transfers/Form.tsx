@@ -1,7 +1,7 @@
-import { Banner, Button, Card, ConfirmDialog, TagInput, Textarea, Input } from '@shopme/ui';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeftRight, CalendarDays, Hash, NotebookPen, StickyNote, X } from 'lucide-react';
-import { useState } from 'react';
+import { Banner, Button, Card, ConfirmDialog, Select, TagInput, Textarea, Input } from '@shopme/ui';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeftRight, CalendarDays, ClipboardList, Hash, NotebookPen, StickyNote, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { mutate } from '../../api';
@@ -11,18 +11,20 @@ import { StockSearch, variantLabel } from '../../components/StockSearch';
 import type { FoundVariant } from '../../components/StockSearch';
 import { gidToNum } from '../../format';
 import {
-  TRANSFER_CREATE, TRANSFER_CREATE_READY, TRANSFER_DELETE, TRANSFER_EDIT, TRANSFER_READY, TRANSFER_REMOVE_ITEMS, TRANSFER_SET_ITEMS, STOCK_VARIANT_SEARCH,
+  TRANSFER_CREATE, TRANSFER_CREATE_READY, TRANSFER_DELETE, TRANSFER_EDIT, TRANSFER_READY, TRANSFER_REMOVE_ITEMS, TRANSFER_SET_ITEMS, STOCK_VARIANT_SEARCH, PURCHASE_ORDERS,
 } from '../../graphql';
 import { gql } from '../../api';
-import { useT } from '../../i18n';
+import { useI18n, useT } from '../../i18n';
 import { Thumb } from '../Products';
 import { PinSelect, Pipeline, TransitStep, dayValue, errText, useLocationOptions } from './shared';
 
 export interface FormLine { itemId: string; lineId: string | null; title: string; sku: string | null; image: string | null; quantity: string; available: number | null }
 export interface TransferDraft {
   id: string | null; origin: string; destination: string; lines: FormLine[]; date: string; reference: string; note: string; tags: string[];
+  /** Purchase order linked for reference ('' for none). */
+  purchaseOrder: string;
 }
-export const emptyDraft = (): TransferDraft => ({ id: null, origin: '', destination: '', lines: [], date: dayValue(), reference: '', note: '', tags: [] });
+export const emptyDraft = (): TransferDraft => ({ id: null, origin: '', destination: '', lines: [], date: dayValue(), reference: '', note: '', tags: [], purchaseOrder: '' });
 
 /** A details row: icon + link-style label that turns into its input when opened (or when it already has a value). */
 function DetailRow({ icon, label, open, onOpen, children }: { icon: ReactNode; label: string; open: boolean; onOpen: () => void; children: ReactNode }) {
@@ -31,6 +33,19 @@ function DetailRow({ icon, label, open, onOpen, children }: { icon: ReactNode; l
       <span className="mt-0.5 text-muted" aria-hidden>{icon}</span>
       {open ? <div className="flex-1">{children}</div> : <button type="button" className="text-[13px] hover:underline" onClick={onOpen}>{label}</button>}
     </div>
+  );
+}
+
+/** A date shown as a chip in words ("5 November 2026"); clicking it opens the browser's date picker. */
+function DateChip({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const { lang } = useI18n();
+  const ref = useRef<HTMLInputElement>(null);
+  const shown = value ? new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)) : label;
+  return (
+    <span className="relative inline-flex">
+      <button type="button" aria-label={`${label} : ${shown}`} onClick={() => { try { ref.current?.showPicker(); } catch { ref.current?.focus(); } }} className="inline-flex h-6 items-center rounded-md bg-hover px-2 text-[13px] font-medium hover:bg-line">{shown}</button>
+      <input ref={ref} type="date" tabIndex={-1} aria-hidden className="pointer-events-none absolute inset-0 opacity-0" value={value} onChange={(e) => e.target.value && onChange(e.target.value)} />
+    </span>
   );
 }
 
@@ -43,7 +58,8 @@ export function TransferForm({ initial }: { initial: TransferDraft }) {
   const [f, setF] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [open, setOpen] = useState({ reference: !!initial.reference, note: !!initial.note, tags: initial.tags.length > 0 });
+  const [open, setOpen] = useState({ reference: !!initial.reference, note: !!initial.note, tags: initial.tags.length > 0, po: !!initial.purchaseOrder });
+  const pos = useQuery({ queryKey: ['transfer-po-options'], enabled: open.po, queryFn: async () => (await gql<{ inventoryPurchaseOrders: { nodes: Array<{ id: string; name: string; shopmeReferenceNumber: string | null }> } }>(PURCHASE_ORDERS, { first: 50, sortKey: 'ID', reverse: true })).inventoryPurchaseOrders.nodes });
   const options = locations.data ?? [];
   const ready = !!f.origin && !!f.destination && f.lines.length > 0 && f.lines.every((l) => Number(l.quantity) >= 1);
   const set = (patch: Partial<TransferDraft>) => setF((c) => ({ ...c, ...patch }));
@@ -63,12 +79,12 @@ export function TransferForm({ initial }: { initial: TransferDraft }) {
     mutationFn: async (asReady: boolean) => {
       const lineItems = f.lines.map((l) => ({ inventoryItemId: l.itemId, quantity: Math.max(0, Math.floor(Number(l.quantity) || 0)) }));
       const dateCreated = new Date(`${f.date}T12:00:00`).toISOString();
-      const common = { originLocationId: f.origin || null, destinationLocationId: f.destination || null, lineItems, dateCreated, note: f.note.trim() || null, tags: f.tags, referenceName: f.reference.trim() || null };
+      const common = { originLocationId: f.origin || null, destinationLocationId: f.destination || null, lineItems, dateCreated, note: f.note.trim() || null, tags: f.tags, referenceName: f.reference.trim() || null, shopmeLinkedPurchaseOrderId: f.purchaseOrder || null };
       if (!f.id) {
         const r = await mutate<{ inventoryTransfer: { id: string } }>(asReady ? TRANSFER_CREATE_READY : TRANSFER_CREATE, { input: common }, asReady ? 'inventoryTransferCreateAsReadyToShip' : 'inventoryTransferCreate');
         return r.inventoryTransfer.id;
       }
-      await mutate(TRANSFER_EDIT, { id: f.id, input: { originId: f.origin || null, destinationId: f.destination || null, dateCreated: f.date, note: f.note.trim() || null, tags: f.tags, referenceName: f.reference.trim() || null } }, 'inventoryTransferEdit');
+      await mutate(TRANSFER_EDIT, { id: f.id, input: { originId: f.origin || null, destinationId: f.destination || null, dateCreated: f.date, note: f.note.trim() || null, tags: f.tags, referenceName: f.reference.trim() || null, shopmeLinkedPurchaseOrderId: f.purchaseOrder || null } }, 'inventoryTransferEdit');
       const removed = initial.lines.filter((l) => l.lineId && !f.lines.some((x) => x.lineId === l.lineId)).map((l) => l.lineId!);
       if (removed.length) await mutate(TRANSFER_REMOVE_ITEMS, { input: { id: f.id, transferLineItemIds: removed } }, 'inventoryTransferRemoveItems');
       if (lineItems.length) await mutate(TRANSFER_SET_ITEMS, { input: { id: f.id, lineItems } }, 'inventoryTransferSetItems');
@@ -140,7 +156,7 @@ export function TransferForm({ initial }: { initial: TransferDraft }) {
       <Card>
         <div className="flex items-center gap-3 py-1.5">
           <CalendarDays className="size-4 text-muted" aria-hidden />
-          <input type="date" aria-label={t('transfers.date')} className="field-control h-7 w-auto rounded-full bg-surface px-3 text-[13px]" value={f.date} onChange={(e) => set({ date: e.target.value })} />
+          <DateChip label={t('transfers.date')} value={f.date} onChange={(date) => set({ date })} />
         </div>
         <DetailRow icon={<NotebookPen className="size-4" />} label={t('transfers.addReference')} open={open.reference} onOpen={() => setOpen((o) => ({ ...o, reference: true }))}>
           <Input autoFocus label={t('transfers.reference')} value={f.reference} maxLength={255} onChange={(e) => set({ reference: e.target.value })} />
@@ -150,6 +166,12 @@ export function TransferForm({ initial }: { initial: TransferDraft }) {
         </DetailRow>
         <DetailRow icon={<Hash className="size-4" />} label={t('transfers.addTags')} open={open.tags} onOpen={() => setOpen((o) => ({ ...o, tags: true }))}>
           <TagInput label={t('field.tags')} value={f.tags} onChange={(tags) => set({ tags })} removeLabel={t('common.remove')} />
+        </DetailRow>
+        <DetailRow icon={<ClipboardList className="size-4" />} label={t('fid.transfers.linkPo')} open={open.po} onOpen={() => setOpen((o) => ({ ...o, po: true }))}>
+          <Select autoFocus label={t('transfers.purchaseOrder')} value={f.purchaseOrder} onChange={(e) => set({ purchaseOrder: e.target.value })}>
+            <option value="">{t('fid.transfers.noPo')}</option>
+            {(pos.data ?? []).map((p) => <option key={p.id} value={p.id}>{p.shopmeReferenceNumber ? `${p.name} · ${p.shopmeReferenceNumber}` : p.name}</option>)}
+          </Select>
         </DetailRow>
       </Card>
       <ConfirmDialog open={confirmDelete} title={t('transfers.deleteTitle')} message={t('transfers.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} closeLabel={t('common.close')} danger loading={remove.isPending}

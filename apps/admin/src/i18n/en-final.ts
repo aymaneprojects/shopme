@@ -25,7 +25,7 @@ export const enFinal = {
   'bc.channel.whatsapp': 'WhatsApp',
   'bc.bulk.whatsapp': 'WhatsApp marketing',
   'focal.title': 'Focal point',
-  'focal.hint': 'Click the image to choose the area that stays visible when the storefront crops it.',
+  'focal.hint': 'Click the image to set the focal point',
   'focal.clear': 'Reset',
   'focal.saved': 'Focal point saved',
   'focal.cleared': 'Focal point reset',
