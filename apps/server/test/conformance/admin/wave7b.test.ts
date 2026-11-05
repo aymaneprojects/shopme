@@ -78,9 +78,12 @@ describe('wave 7b: catalog API completeness', () => {
     expect(preview.product.onlineStorePreviewUrl).toContain('?preview=1');
     const pub = await g(`mutation { publishablePublish(id: "${productId}", input: [{ publicationId: "${pubId}" }]) { publishable { ... on Product { status } } userErrors { message } } }`);
     expect(pub.publishablePublish.userErrors).toEqual([]);
-    expect(pub.publishablePublish.publishable.status).toBe('ACTIVE');
-    const un = await g(`mutation { publishableUnpublish(id: "${productId}", input: [{ publicationId: "${pubId}" }]) { publishable { ... on Product { status } } } }`);
-    expect(un.publishableUnpublish.publishable.status).toBe('DRAFT');
+    // Publishing is per channel and independent from the status.
+    expect(pub.publishablePublish.publishable.status).toBe('DRAFT');
+    expect((await g(`{ product(id: "${productId}") { publishedOnCurrentPublication } }`)).product.publishedOnCurrentPublication).toBe(true);
+    const un = await g(`mutation { publishableUnpublish(id: "${productId}", input: [{ publicationId: "${pubId}" }]) { publishable { ... on Product { status publishedOnCurrentPublication } } } }`);
+    expect(un.publishableUnpublish.publishable).toMatchObject({ status: 'DRAFT', publishedOnCurrentPublication: false });
+    await g(`mutation { publishablePublish(id: "${productId}", input: [{ publicationId: "${pubId}" }]) { userErrors { message } } }`);
     await g(`mutation { productChangeStatus(productId: "${productId}", status: ACTIVE) { product { status } } }`);
   });
 

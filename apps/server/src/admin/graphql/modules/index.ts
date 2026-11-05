@@ -56,3 +56,4 @@ import './markets';
 import './store-credit';
 import './customer-privacy';
 import './pixels';
+import './product-channels';

@@ -1,6 +1,6 @@
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
-import { listArticles, schema as s, type Shop } from '@shopme/core';
+import { listArticles, productListedOnStorefront, schema as s, type Shop } from '@shopme/core';
 import type { AppContext } from '../context';
 import { getCollection, listCollections, listProducts, loadProducts } from './data/catalog';
 import { listPages } from './data/content';
@@ -107,7 +107,7 @@ export function registerSeoRoutes(app: FastifyInstance, ctx: AppContext, content
   async function entries(shopId: number, type: string): Promise<Entry[]> {
     switch (type) {
       case 'products': {
-        const rows = await db.select({ handle: s.products.handle, updatedAt: s.products.updatedAt }).from(s.products).where(and(eq(s.products.shopId, shopId), eq(s.products.status, 'ACTIVE'))).orderBy(asc(s.products.id));
+        const rows = await db.select({ handle: s.products.handle, updatedAt: s.products.updatedAt }).from(s.products).where(and(eq(s.products.shopId, shopId), productListedOnStorefront)).orderBy(asc(s.products.id));
         return rows.map((p) => ({ loc: `/products/${p.handle}`, lastmod: p.updatedAt }));
       }
       case 'collections': return [{ loc: '/collections/all' }, ...(await listCollections(db, shopId)).map((c) => ({ loc: `/collections/${c.handle}` }))];
@@ -128,7 +128,7 @@ export function registerSeoRoutes(app: FastifyInstance, ctx: AppContext, content
 
   app.get('/meta.json', withShop(async (_req, reply, shop) => {
     const [[p], [c]] = await Promise.all([
-      db.select({ n: sql<number>`count(*)::int` }).from(s.products).where(and(eq(s.products.shopId, shop.id), eq(s.products.status, 'ACTIVE'))),
+      db.select({ n: sql<number>`count(*)::int` }).from(s.products).where(and(eq(s.products.shopId, shop.id), productListedOnStorefront)),
       db.select({ n: sql<number>`count(*)::int` }).from(s.collections).where(and(eq(s.collections.shopId, shop.id), sql`${s.collections.publishedAt} is not null`)),
     ]);
     const host = new URL(origin).host;

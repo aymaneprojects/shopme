@@ -115,6 +115,8 @@ export interface CodeDiscountInput {
   endsAt?: Date | null;
   usageLimit?: number | null;
   oncePerCustomer?: boolean | null;
+  /** Sales channels the discount works on (publication ids); empty or omitted = every channel. */
+  publicationIds?: number[];
   valueType?: 'PERCENTAGE' | 'FIXED_AMOUNT';
   /** basis points for PERCENTAGE (10% = 1000), minor units for FIXED_AMOUNT */
   value?: number;
@@ -202,7 +204,7 @@ export async function createCodeDiscount(db: Db, shopId: number, i: CodeDiscount
     const [d] = await tx.insert(discounts).values({
       shopId, title: i.title?.trim() || i.code!.trim(), kind: automatic ? 'AUTOMATIC' : 'CODE', status: 'ACTIVE', valueType: i.valueType ?? 'PERCENTAGE', value: i.value ?? 0, target: i.target ?? 'ORDER',
       appliesTo: i.bxgy ? i.bxgy.buyAppliesTo : i.appliesTo ?? {}, minimumSubtotal: i.minimumSubtotal ?? null, minimumQuantity: i.minimumQuantity ?? null, usageLimit: i.usageLimit ?? null,
-      oncePerCustomer: !!i.oncePerCustomer, startsAt: i.startsAt ?? new Date(), endsAt: i.endsAt ?? null,
+      oncePerCustomer: !!i.oncePerCustomer, publicationIds: i.publicationIds ?? [], startsAt: i.startsAt ?? new Date(), endsAt: i.endsAt ?? null,
     }).returning();
     if (code) await tx.insert(discountCodes).values({ shopId, discountId: d!.id, code });
     await tx.insert(discountExtensions).values({
@@ -230,7 +232,7 @@ export async function updateCodeDiscount(db: Db, shopId: number, id: number, i: 
     await tx.update(discounts).set({
       ...(i.title?.trim() && { title: i.title.trim() }), ...(i.valueType && { valueType: i.valueType }), ...(i.value != null && { value: i.value }), ...(i.target && { target: i.target }),
       ...(i.bxgy ? { appliesTo: i.bxgy.buyAppliesTo } : i.appliesTo && { appliesTo: i.appliesTo }), ...(i.minimumSubtotal !== undefined && { minimumSubtotal: i.minimumSubtotal }), ...(i.minimumQuantity !== undefined && { minimumQuantity: i.minimumQuantity }),
-      ...(i.usageLimit !== undefined && { usageLimit: i.usageLimit }), ...(i.oncePerCustomer != null && { oncePerCustomer: i.oncePerCustomer }),
+      ...(i.usageLimit !== undefined && { usageLimit: i.usageLimit }), ...(i.oncePerCustomer != null && { oncePerCustomer: i.oncePerCustomer }), ...(i.publicationIds && { publicationIds: i.publicationIds }),
       ...(i.startsAt && { startsAt: i.startsAt }), ...(i.endsAt !== undefined && { endsAt: i.endsAt }), updatedAt: new Date(),
     }).where(eq(discounts.id, id));
     if (code && cur.codes[0] && code !== cur.codes[0].code) await tx.update(discountCodes).set({ code }).where(eq(discountCodes.id, cur.codes[0].id));

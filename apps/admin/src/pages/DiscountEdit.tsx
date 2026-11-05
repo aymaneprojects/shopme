@@ -1,9 +1,10 @@
-import { Badge, Banner, Button, ButtonGroup, Card, Checkbox, ConfirmDialog, Dropdown, Input, Select, Skeleton, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, ButtonGroup, Card, Checkbox, ConfirmDialog, Dropdown, Input, Modal, Select, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
+import { usePublications } from '../components/Channels';
 import { EligibilityCard, TagsCard } from '../components/EligibilityCard';
 import { GenerateCodesCard } from '../components/GenerateCodes';
 import { CollectionPicker, ProductPicker } from '../components/Pickers';
@@ -70,6 +71,8 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState<'products' | 'collections' | 'buyProducts' | 'buyCollections' | 'getProducts' | 'getCollections' | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editingCombos, setEditingCombos] = useState<DiscountForm['combines'] | null>(null);
+  const pubs = usePublications();
   const set = (p: Partial<DiscountForm>) => setForm((f) => ({ ...f, ...p }));
   const setBxgy = (p: Partial<BxgyForm>) => setForm((f) => ({ ...f, bxgy: { ...f.bxgy, ...p } }));
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
@@ -222,10 +225,14 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
           {!bxgy && (
             <Card title={t('discount.minimum')}>
               <div className="flex flex-col gap-3">
-                <Select label={t('discount.minimumType')} value={form.minType} onChange={(e) => set({ minType: e.target.value as DiscountForm['minType'] })}>
-                  <option value="none">{t('discount.minNone')}</option><option value="subtotal">{t('discount.minSubtotal')}</option><option value="quantity">{t('discount.minQuantity')}</option>
-                </Select>
-                {form.minType !== 'none' && <Input className="max-w-48" label={form.minType === 'subtotal' ? shop.currency : t('discount.items')} inputMode="decimal" value={form.minValue} error={err('minValue')} onChange={(e) => set({ minValue: e.target.value })} />}
+                <div role="radiogroup" aria-label={t('discount.minimumType')} className="flex flex-col gap-2 text-[13px]">
+                  {([['none', 'discount.minNone'], ['subtotal', 'discount.minSubtotal'], ['quantity', 'discount.minQuantity']] as const).map(([v, label]) => (
+                    <div key={v} className="flex flex-col gap-2">
+                      <label className="inline-flex items-center gap-2"><input type="radio" name="min-type" className="accent-(--color-primary)" checked={form.minType === v} onChange={() => set({ minType: v })} />{t(label)}</label>
+                      {form.minType === v && v !== 'none' && <Input className="ml-6 max-w-48" label={v === 'subtotal' ? shop.currency : t('discount.items')} inputMode="decimal" value={form.minValue} error={err('minValue')} onChange={(e) => set({ minValue: e.target.value })} />}
+                    </div>
+                  ))}
+                </div>
               </div>
             </Card>
           )}
@@ -242,10 +249,26 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
 
           <EligibilityCard form={form} set={set} error={err('eligibility')} />
 
-          <Card title={t('discount.combinations')}>
+          <Card title={t('discount.combinations')} actions={<Button size="sm" onClick={() => setEditingCombos({ ...form.combines })}>{t('bp.discount.editCombinations')}</Button>}>
             <div className="flex flex-col gap-2">
               <p className="text-xs text-muted">{t('discount.combineHelp')}</p>
-              {combos.map(([k, label]) => <Checkbox key={k} label={t(label)} checked={form.combines[k]} onChange={(e) => set({ combines: { ...form.combines, [k]: e.target.checked } })} />)}
+              <ul className="flex flex-wrap gap-1.5">
+                {combos.filter(([k]) => form.combines[k]).map(([k, label]) => <li key={k}><Badge tone="info">{t(label)}</Badge></li>)}
+                {!combos.some(([k]) => form.combines[k]) && <li className="text-[13px] text-muted">{t('bp.discount.noCombinations')}</li>}
+              </ul>
+            </div>
+          </Card>
+
+          <Card title={t('bp.discount.channels')}>
+            <div role="radiogroup" aria-label={t('bp.discount.channels')} className="flex flex-col gap-2 text-[13px]">
+              <label className="inline-flex items-center gap-2"><input type="radio" name="channels" className="accent-(--color-primary)" checked={form.channelIds.length === 0} onChange={() => set({ channelIds: [] })} />{t('bp.discount.allChannels')}</label>
+              <label className="inline-flex items-center gap-2"><input type="radio" name="channels" className="accent-(--color-primary)" checked={form.channelIds.length > 0} onChange={() => set({ channelIds: (pubs.data ?? []).slice(0, 1).map((p) => p.id) })} />{t('bp.discount.specificChannels')}</label>
+              {form.channelIds.length > 0 && (
+                <div className="ml-6 flex flex-col gap-1.5">
+                  {(pubs.data ?? []).map((p) => <Checkbox key={p.id} label={p.name} checked={form.channelIds.includes(p.id)} onChange={(e) => { const next = e.target.checked ? [...form.channelIds, p.id] : form.channelIds.filter((x) => x !== p.id); set({ channelIds: next.length ? next : form.channelIds }); }} />)}
+                  <p className="text-xs text-muted">{t('bp.discount.channelsHelp')}</p>
+                </div>
+              )}
             </div>
           </Card>
 
@@ -274,6 +297,15 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
       <CollectionPicker open={picking === 'buyCollections'} onClose={() => setPicking(null)} excludeIds={b.buyCollections.map((c) => c.id)} onConfirm={(c) => setBxgy({ buyCollections: [...b.buyCollections, ...c.map((x) => ({ id: x.id, title: x.title }))] })} />
       <ProductPicker open={picking === 'getProducts'} onClose={() => setPicking(null)} excludeIds={b.getProducts.map((p) => p.id)} onConfirm={(p) => setBxgy({ getProducts: [...b.getProducts, ...p.map((x) => ({ id: x.id, title: x.title }))] })} />
       <CollectionPicker open={picking === 'getCollections'} onClose={() => setPicking(null)} excludeIds={b.getCollections.map((c) => c.id)} onConfirm={(c) => setBxgy({ getCollections: [...b.getCollections, ...c.map((x) => ({ id: x.id, title: x.title }))] })} />
+      <Modal open={!!editingCombos} onClose={() => setEditingCombos(null)} closeLabel={t('common.close')} title={t('discount.combinations')} medium
+        footer={<><Button onClick={() => setEditingCombos(null)}>{t('common.cancel')}</Button><Button variant="primary" onClick={() => { if (editingCombos) set({ combines: editingCombos }); setEditingCombos(null); }}>{t('common.apply')}</Button></>}>
+        {editingCombos && (
+          <div className="flex flex-col gap-2">
+            <p className="text-[13px] text-muted">{t('discount.combineHelp')}</p>
+            {combos.map(([k, label]) => <Checkbox key={k} label={t(label)} checked={editingCombos[k]} onChange={(e) => setEditingCombos({ ...editingCombos, [k]: e.target.checked })} />)}
+          </div>
+        )}
+      </Modal>
       <ConfirmDialog open={confirmDelete} onClose={() => setConfirmDelete(false)} danger title={t('discounts.deleteTitle', { n: 1 })} message={t('discounts.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { setConfirmDelete(false); del.mutate(); }} />
     </>
   );

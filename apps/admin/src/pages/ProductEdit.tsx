@@ -1,11 +1,15 @@
 import { Banner, Button, Checkbox, ConfirmDialog, Dropdown, ImageUploader, Input, MediaGallery, MediaViewer, Modal, Skeleton, cx, useToast } from '@shopme/ui';
 import type { GalleryItem } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, Copy, Eye, Gift, Tag, Trash2 } from 'lucide-react';
+import { Archive, Copy, Eye, Gift, Pencil, Tag, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
-import { MetafieldsEditor } from '../components/MetafieldsEditor';
+import { MetafieldsEditor, ProductMetafields } from '../components/MetafieldsEditor';
+import { CatalogsSection, ChannelsSection, usePublications } from '../components/Channels';
+import { Combobox } from '../components/Combobox';
+import { ImageEditor } from '../components/ImageEditor';
+import { MediaExtras } from '../components/MediaExtras';
 import { CollectionPicker } from '../components/Pickers';
 import { Chip, INLINE_SELECT, InlineRow, InlineTags, SideHead } from '../components/ProductSide';
 import { SeoListing } from '../components/SeoListing';
@@ -28,16 +32,17 @@ export function ProductEditPage() {
   const { id = 'new' } = useParams();
   const isNew = id === 'new';
   const locs = useQuery({ queryKey: ['locations'], queryFn: () => gql<{ locations: { nodes: Array<LocationRef & { isActive: boolean }> } }>(LOCATIONS) });
+  const pubs = usePublications();
   const prod = useQuery({ queryKey: ['product', id], enabled: !isNew, queryFn: () => gql<{ product: ApiProduct | null }>(PRODUCT, { id: numToGid('Product', id) }) });
   const { t } = useI18n();
   const [params] = useSearchParams();
 
-  if (locs.isLoading || (!isNew && prod.isLoading)) return <div className="grid gap-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-64" /></div>;
-  const error = locs.error ?? prod.error;
+  if (locs.isLoading || pubs.isLoading || (!isNew && prod.isLoading)) return <div className="grid gap-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-64" /></div>;
+  const error = locs.error ?? prod.error ?? pubs.error;
   if (error) return <Banner>{error.message}</Banner>;
   const locations = (locs.data?.locations.nodes ?? []).filter((l) => l.isActive !== false);
   if (!isNew && !prod.data?.product) return <Banner>{t('product.notFound')}</Banner>;
-  const initial = isNew ? (params.get('giftCard') ? giftCardForm(locations, t('product.giftCardTitle')) : emptyForm(locations)) : formFromProduct(prod.data!.product!, locations);
+  const initial = isNew ? (params.get('giftCard') ? giftCardForm(locations, t('product.giftCardTitle'), pubs.data ?? []) : emptyForm(locations, pubs.data ?? [])) : formFromProduct(prod.data!.product!, locations, pubs.data ?? []);
   return <ProductFormView key={`${id}:${prod.dataUpdatedAt}`} id={isNew ? null : numToGid('Product', id)} initial={initial} locations={locations} previewUrl={prod.data?.product?.onlineStorePreviewUrl ?? null} />;
 }
 
@@ -56,7 +61,9 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [variantMf, setVariantMf] = useState<string | null>(null);
   const [viewing, setViewing] = useState<number | null>(null);
-  const [dup, setDup] = useState<{ title: string; images: boolean; status: 'DRAFT' | 'ACTIVE' } | null>(null);
+  const [dup, setDup] = useState<{ title: string; images: boolean; inventory: boolean; translations: boolean; skus: boolean; status: 'DRAFT' | 'ACTIVE' | 'UNLISTED' } | null>(null);
+  const [activeVariant, setActiveVariant] = useState('');
+  const [editing, setEditing] = useState<number | null>(null);
   const cats = useQuery({ queryKey: ['taxonomy'], staleTime: 600_000, queryFn: () => gql<{ taxonomy: { categories: { nodes: Array<{ id: string; fullName: string }> } } | null }>(TAXONOMY_CATEGORIES) });
   const set = (p: Partial<ProductForm>) => setForm((f) => ({ ...f, ...p }));
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
@@ -88,7 +95,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
   });
 
   const duplicate = useMutation({
-    mutationFn: () => mutate<{ newProduct: { id: string } }>(PRODUCT_DUPLICATE, { productId: id, newTitle: dup!.title.trim(), includeImages: dup!.images, newStatus: dup!.status }, 'productDuplicate'),
+    mutationFn: () => mutate<{ newProduct: { id: string } }>(PRODUCT_DUPLICATE, { productId: id, newTitle: dup!.title.trim(), includeImages: dup!.images, includeTranslations: dup!.translations, shopmeIncludeInventory: dup!.inventory, shopmeIncludeSkus: dup!.skus, newStatus: dup!.status }, 'productDuplicate'),
     onSuccess: (r) => { setDup(null); toast(t('product.duplicated')); void qc.invalidateQueries({ queryKey: ['products'] }); guard.off = true; nav(`/products/${r.newProduct.id.split('/').pop()}`); },
     onError: (e) => toast(e.message, 'critical'),
   });
@@ -96,13 +103,13 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
   const serverError = errors.server;
   const gallery = { remove: t('common.remove'), moveLeft: t('media.moveLeft'), moveRight: t('media.moveRight'), featured: t('media.featured'), alt: t('media.alt') };
   const seoUrl = `/products/${form.handle || slug(form.title) || 'handle'}`;
-  const publicUrl = id ? (form.status === 'ACTIVE' ? seoUrl : previewUrl) : null;
+  const publicUrl = id ? (form.status === 'ACTIVE' || form.status === 'UNLISTED' ? seoUrl : previewUrl) : null;
 
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setErrors({}); }} />
       <PageHeader
-        back="/products" breadcrumb={{ icon: <Tag className="size-4" />, label: t('nav.products'), to: '/products' }} title={id ? form.title || t('product.untitled') : t('product.addTitle')}
+        back="/products" breadcrumb={{ icon: <Tag className="size-4" />, label: t('nav.products'), to: '/products' }} title={id ? <>{form.title || t('product.untitled')}{activeVariant && <><span className="mx-1.5 font-normal text-muted" aria-hidden>/</span><span className="font-normal">{activeVariant}</span></>}</> : t('product.addTitle')}
         actions={id && <>
           <ViewAs url={publicUrl} />
           <Button disabled={!previewUrl} onClick={() => { if (previewUrl) window.open(previewUrl, '_blank', 'noopener'); }}><Eye className="size-4" />{t('product.preview')}</Button>
@@ -111,7 +118,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
             { key: 'mail', label: t('share.email'), disabled: !publicUrl, onSelect: () => { window.location.href = `mailto:?subject=${encodeURIComponent(form.title)}&body=${encodeURIComponent(new URL(publicUrl!, window.location.origin).href)}`; } },
           ]} />
           <Dropdown align="right" chevron trigger={t('common.moreActions')} items={[
-            { key: 'duplicate', icon: <Copy className="size-4" />, label: t('pv.duplicateProduct'), onSelect: () => setDup({ title: t('product.copyOf', { title: form.title }), images: true, status: 'DRAFT' }) },
+            { key: 'duplicate', icon: <Copy className="size-4" />, label: t('pv.duplicateProduct'), onSelect: () => setDup({ title: t('product.copyOf', { title: form.title }), images: true, inventory: false, translations: true, skus: true, status: 'DRAFT' }) },
             ...(form.status === 'ARCHIVED' ? [] : [{ key: 'archive', icon: <Archive className="size-4" />, label: t('pv.archiveProduct'), onSelect: () => set({ status: 'ARCHIVED' }) }]),
             ...(form.status === 'ACTIVE' ? [] : [{ key: 'activate', label: t('products.setActive'), onSelect: () => set({ status: 'ACTIVE' }) }]),
             { key: 'delete', icon: <Trash2 className="size-4" />, label: t('pv.deleteProduct'), danger: true, separatorBefore: true, onSelect: () => setConfirmDelete(true) },
@@ -129,6 +136,12 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
             </div>
           </div>
 
+          <div className="flex flex-wrap items-center gap-2">
+            {form.media.length > 0 && <Dropdown variant="plain" size="sm" className="btn-neutral" label={t('bp.editor.title')} trigger={<><Pencil className="size-4" />{t('bp.editor.edit')}</>}
+              items={form.media.map((m, i) => ({ key: m.key, label: m.alt || `${t('viewer.counter', { i: i + 1, n: form.media.length })}`, icon: <img src={m.url} alt="" className="size-5 rounded object-cover" />, onSelect: () => setEditing(i) }))} />}
+            <MediaExtras value={form.extraMedia} onChange={(extraMedia) => set({ extraMedia })} onError={(m) => toast(m, 'critical')} />
+          </div>
+
           <div className="flex flex-col gap-1.5">
             <label htmlFor="product-title" className="text-[13px] text-muted">{t('field.title')}</label>
             <input id="product-title" required aria-invalid={!!errors.title} aria-describedby={errors.title ? 'product-title-error' : undefined} placeholder={t('product.titlePlaceholder')} value={form.title} onChange={(e) => set({ title: e.target.value })}
@@ -143,9 +156,9 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
 
           {errors.price && <p className="-mb-2 text-xs text-critical">{errors.price}</p>}
           <VariantsManager options={form.options} variants={form.variants} locations={locations} currency={shop.currency} lockedCount={initial.options.length} giftCard={form.isGiftCard}
-            media={form.media.filter(isPersistedMedia).map((m) => ({ id: m.key, url: m.url }))} onMetafields={id ? setVariantMf : undefined} onChange={(p) => set(p)} />
+            media={form.media.filter(isPersistedMedia).map((m) => ({ id: m.key, url: m.url }))} onMetafields={id ? setVariantMf : undefined} onActiveChange={setActiveVariant} onChange={(p) => set(p)} />
 
-          {id && <MetafieldsEditor ownerId={id} ownerType="PRODUCT" />}
+          <ProductMetafields ownerId={id} edits={form.metafieldEdits} onChange={(metafieldEdits) => set({ metafieldEdits })} />
 
           <SeoListing flat title={form.title || t('product.untitled')} prefix={`${window.location.host}/products/`} handle={form.handle || slug(form.title)} onHandle={(handle) => set({ handle })} description={form.descriptionHtml}
             seoTitle={form.seoTitle} onSeoTitle={(seoTitle) => set({ seoTitle })} seoDescription={form.seoDescription} onSeoDescription={(seoDescription) => set({ seoDescription })}
@@ -156,10 +169,11 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
           <section className="flex flex-col gap-2">
             {form.isGiftCard && <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs"><Gift className="size-3.5" />{t('product.giftCardBadge')}</p>}
             <div className="flex items-center gap-2 text-[13px]">
-              <span aria-hidden className={cx('size-2 shrink-0 rounded-full', form.status === 'ACTIVE' ? 'bg-success' : form.status === 'DRAFT' ? 'bg-attention' : 'bg-muted')} />
+              <span aria-hidden className={cx('size-2 shrink-0 rounded-full', form.status === 'ACTIVE' ? 'bg-success' : form.status === 'DRAFT' ? 'bg-attention' : form.status === 'UNLISTED' ? 'bg-info' : 'bg-muted')} />
               <select aria-label={t('field.status')} value={form.status} onChange={(e) => set({ status: e.target.value as ProductForm['status'] })} className="-ml-1 min-w-0 flex-1 rounded-md bg-transparent px-1 py-1 font-medium outline-none hover:bg-hover focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-accent">
                 <option value="ACTIVE">{t('status.ACTIVE')}</option>
                 <option value="DRAFT">{t('status.DRAFT')}</option>
+                <option value="UNLISTED">{t('status.UNLISTED')}</option>
                 <option value="ARCHIVED">{t('status.ARCHIVED')}</option>
               </select>
             </div>
@@ -175,17 +189,19 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
               )}
             </InlineRow>
             <InlineRow label={t('field.productType')}>
-              {(p) => <input {...p} list="types" placeholder={t('pv.none')} value={form.productType} onChange={(e) => set({ productType: e.target.value })} />}
+              {(p) => <Combobox {...p} placeholder={t('pv.none')} value={form.productType} options={flattenStrings(filters.data?.productTypes)} onChange={(productType) => set({ productType })} />}
             </InlineRow>
             <InlineRow label={t('field.vendor')}>
-              {(p) => <input {...p} list="vendors" placeholder={t('pv.none')} value={form.vendor} onChange={(e) => set({ vendor: e.target.value })} />}
+              {(p) => <Combobox {...p} placeholder={t('pv.none')} value={form.vendor} options={flattenStrings(filters.data?.productVendors)} onChange={(vendor) => set({ vendor })} />}
             </InlineRow>
             <InlineRow label={t('product.template')} hint={t('product.templateHelp')}>
               {(p) => <input {...p} placeholder={t('pv.defaultTemplate')} value={form.templateSuffix} onChange={(e) => set({ templateSuffix: e.target.value })} />}
             </InlineRow>
-            <datalist id="vendors">{flattenStrings(filters.data?.productVendors).map((v) => <option key={v} value={v} />)}</datalist>
-            <datalist id="types">{flattenStrings(filters.data?.productTypes).map((v) => <option key={v} value={v} />)}</datalist>
           </section>
+
+          <ChannelsSection value={form.channels} onChange={(channels) => set({ channels })} />
+
+          <CatalogsSection value={form.catalogs} onChange={(catalogs) => set({ catalogs })} />
 
           <section className="flex flex-col gap-2">
             <SideHead title={t('nav.collections')} action={{ label: t('product.addToCollection'), onClick: () => setPickCollections(true) }} />
@@ -207,6 +223,8 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
       <MediaViewer items={form.media.map((m) => ({ key: m.key, url: m.url, name: m.url.split('/').pop()?.split('?')[0] ?? '', alt: m.alt ?? '', usedIn: `${t('nav.products')} (1)` }))} index={viewing} onIndexChange={setViewing} onClose={() => setViewing(null)}
         onSave={(item, change) => set({ media: form.media.map((m) => (m.key === item.key ? { ...m, alt: change.alt } : m)) })}
         labels={{ close: t('common.close'), info: t('viewer.info'), name: t('viewer.name'), alt: t('viewer.alt'), details: t('viewer.details'), usedIn: t('viewer.usedIn'), save: t('viewer.save'), counter: (i, n) => t('viewer.counter', { i, n }), previous: t('viewer.previous'), next: t('viewer.next'), download: t('viewer.download') }} />
+      {editing !== null && form.media[editing] && <ImageEditor open url={form.media[editing]!.url} name={form.media[editing]!.url.split('/').pop()?.split('?')[0] ?? 'image'} onClose={() => setEditing(null)} onError={(m) => toast(m, 'critical')}
+        onSaved={(f) => { set({ media: [...form.media, { key: `new-${f.id}`, url: f.url, alt: form.media[editing]!.alt }] }); setEditing(null); toast(t('bp.editor.added')); }} />}
       <CollectionPicker open={pickCollections} onClose={() => setPickCollections(false)} excludeIds={form.collections.map((c) => c.id)} onConfirm={(c) => set({ collections: [...form.collections, ...c.map((x) => ({ id: x.id, title: x.title }))] })} />
       <Modal open={!!dup} onClose={() => setDup(null)} medium closeLabel={t('common.close')} title={t('product.duplicateTitle')}
         footer={<><Button onClick={() => setDup(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={duplicate.isPending} disabled={!dup?.title.trim()} onClick={() => duplicate.mutate()}>{t('product.duplicateConfirm')}</Button></>}>
@@ -215,10 +233,13 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
             <Input label={t('field.title')} value={dup.title} onChange={(e) => setDup({ ...dup, title: e.target.value })} />
             <fieldset className="grid gap-1.5"><legend className="mb-1 text-[13px] font-medium">{t('product.duplicateDetails')}</legend>
               <Checkbox label={t('product.duplicateMedia')} checked={dup.images} onChange={(e) => setDup({ ...dup, images: e.target.checked })} />
+              <Checkbox label={t('bp.dup.inventory')} checked={dup.inventory} onChange={(e) => setDup({ ...dup, inventory: e.target.checked })} />
+              <Checkbox label={t('bp.dup.translations')} checked={dup.translations} onChange={(e) => setDup({ ...dup, translations: e.target.checked })} />
+              <Checkbox label={t('bp.dup.skus')} checked={dup.skus} onChange={(e) => setDup({ ...dup, skus: e.target.checked })} />
             </fieldset>
             <fieldset className="grid gap-1.5"><legend className="mb-1 text-[13px] font-medium">{t('product.duplicateStatus')}</legend>
-              {(['DRAFT', 'ACTIVE'] as const).map((st) => (
-                <label key={st} className="inline-flex items-center gap-2 text-[13px]"><input type="radio" name="dup-status" checked={dup.status === st} onChange={() => setDup({ ...dup, status: st })} />{t(st === 'DRAFT' ? 'product.duplicateAsDraft' : 'product.duplicateAsActive')}</label>
+              {(['DRAFT', 'ACTIVE', 'UNLISTED'] as const).map((st) => (
+                <label key={st} className="inline-flex items-center gap-2 text-[13px]"><input type="radio" name="dup-status" checked={dup.status === st} onChange={() => setDup({ ...dup, status: st })} />{t(st === 'DRAFT' ? 'product.duplicateAsDraft' : st === 'ACTIVE' ? 'product.duplicateAsActive' : 'bp.dup.asUnlisted')}</label>
               ))}
             </fieldset>
           </div>

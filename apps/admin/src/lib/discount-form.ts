@@ -22,6 +22,8 @@ export interface DiscountForm {
   combines: { productDiscounts: boolean; orderDiscounts: boolean; shippingDiscounts: boolean };
   /** Who can use it: everyone, customer segments or specific customers. */
   eligibility: 'all' | 'segments' | 'customers'; segments: Ref[]; customers: Ref[]; tags: string[];
+  /** Sales channels (publication GIDs) the discount works on; empty = every channel. */
+  channelIds: string[];
 }
 export type DiscountErrors = Partial<Record<'code' | 'title' | 'value' | 'targets' | 'maxShipping' | 'minValue' | 'usageLimit' | 'endsAt' | 'eligibility' | 'buyQty' | 'buyTargets' | 'getQty' | 'getTargets' | 'getPercent' | 'usesLimit', Key>>;
 
@@ -36,7 +38,7 @@ export const blankDiscount = (kind: DiscountKind, method: DiscountMethod = 'code
   kind, method, title: '', bxgy: blankBxgy(), code: '', valueType: 'percentage', value: '', appliesTo: kind === 'product' ? 'collections' : 'all', collections: [], products: [],
   hasMaxShipping: false, maxShipping: '', minType: 'none', minValue: '', limitTotal: false, usageLimit: '', oncePerCustomer: false,
   startsAt: nowLocal(), hasEnd: false, endsAt: '', combines: { productDiscounts: false, orderDiscounts: false, shippingDiscounts: false },
-  eligibility: 'all', segments: [], customers: [], tags: [],
+  eligibility: 'all', segments: [], customers: [], tags: [], channelIds: [],
 });
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -107,6 +109,7 @@ export function toDiscountInput(f: DiscountForm, prev?: { collections: string[];
     ...(code && { usageLimit: f.limitTotal ? Number(f.usageLimit) : null, appliesOncePerCustomer: f.oncePerCustomer }),
     combinesWith: { ...f.combines },
     tags: f.tags,
+    shopmePublicationIds: f.channelIds,
     context: contextInput(f, prev),
     ...(f.kind !== 'bxgy' && f.minType === 'subtotal' && { minimumRequirement: { subtotal: { greaterThanOrEqualToSubtotal: money(f.minValue) } } }),
     ...(f.kind !== 'bxgy' && f.minType === 'quantity' && { minimumRequirement: { quantity: { greaterThanOrEqualToQuantity: String(Number(f.minValue)) } } }),
@@ -143,6 +146,7 @@ interface NodeShape {
   customerBuys?: { value: { quantity?: string | number }; items: ItemsShape };
   combinesWith: { productDiscounts: boolean; orderDiscounts: boolean; shippingDiscounts: boolean };
   tags?: string[];
+  shopmePublicationIds?: string[];
   context?: { __typename: string; customers?: Array<{ id: string; displayName: string }>; segments?: Array<{ id: string; name: string }> };
   maximumShippingPrice?: { amount: string } | null;
   minimumRequirement?: { __typename: string; greaterThanOrEqualToSubtotal?: { amount: string }; greaterThanOrEqualToQuantity?: string | number } | null;
@@ -164,6 +168,7 @@ export function fromDiscountNode(d: NodeShape): DiscountForm {
   f.limitTotal = d.usageLimit != null; f.usageLimit = d.usageLimit != null ? String(d.usageLimit) : '';
   f.oncePerCustomer = !!d.appliesOncePerCustomer; f.combines = { ...d.combinesWith };
   f.tags = d.tags ?? [];
+  f.channelIds = d.shopmePublicationIds ?? [];
   if (d.context?.segments) { f.eligibility = 'segments'; f.segments = d.context.segments.map((s) => ({ id: s.id, title: s.name })); }
   else if (d.context?.customers) { f.eligibility = 'customers'; f.customers = d.context.customers.map((c) => ({ id: c.id, title: c.displayName })); }
   if (bxgy) {

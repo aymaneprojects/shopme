@@ -3,6 +3,7 @@ import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client';
 import * as s from '../../db/schema';
 import { isIdentity, priceVariants, resolveMarketContext, type MarketContext } from '../markets/context';
+import { productReachableOnStorefront } from '../catalog/publications';
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Types
@@ -103,7 +104,7 @@ async function variantInfos(db: Executor, shopId: number, ids: number[]): Promis
   }).from(s.productVariants)
     .innerJoin(s.products, eq(s.products.id, s.productVariants.productId))
     .leftJoin(s.inventoryItems, eq(s.inventoryItems.variantId, s.productVariants.id))
-    .where(and(eq(s.productVariants.shopId, shopId), inArray(s.productVariants.id, ids), eq(s.products.status, 'ACTIVE')));
+    .where(and(eq(s.productVariants.shopId, shopId), inArray(s.productVariants.id, ids), productReachableOnStorefront));
   const itemIds = rows.flatMap((r) => (r.itemId ? [r.itemId] : []));
   const stock = new Map<number, number>();
   if (itemIds.length) {

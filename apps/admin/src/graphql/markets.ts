@@ -1,7 +1,7 @@
 // Markets, catalogs and price lists.
 
 const MARKET_FIELDS = `
-  id name handle status primary type
+  id name handle status primary type shopmeLaunchAt
   conditions { regionsCondition { regions(first: 250) { nodes { id name ... on MarketRegionCountry { code } } } } }
   currencySettings { baseCurrency { currencyCode currencyName manualRate } localCurrencies roundingEnabled }
   priceInclusions { inclusiveTaxPricingStrategy }
@@ -102,5 +102,11 @@ export const PRICE_LIST_FIXED_ADD = /* GraphQL */ `
 export const PRICE_LIST_FIXED_DELETE = /* GraphQL */ `
   mutation PriceListFixedPricesDelete($priceListId: ID!, $variantIds: [ID!]!) {
     priceListFixedPricesDelete(priceListId: $priceListId, variantIds: $variantIds) { deletedFixedPriceVariantIds userErrors { field message code } }
+  }
+`;
+
+export const MARKET_LAUNCH_SCHEDULE = /* GraphQL */ `
+  mutation MarketLaunchSchedule($id: ID!, $launchAt: DateTime) {
+    shopmeMarketLaunchSchedule(id: $id, launchAt: $launchAt) { market { id status shopmeLaunchAt } userErrors { field message } }
   }
 `;

@@ -9,6 +9,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Sales channels: a publication per channel (the built-in Online Store, room for more) for products and collections, with `publications`, `Product/Collection.resourcePublicationsV2`, `publishablePublish` with a publish date to schedule and `publishableUnpublish`. A product that is not published on the Online Store, or whose date has not come, is no longer visible on the storefront, in search, sitemaps or the cart; collections follow the same rule.
+- Products can have the `UNLISTED` status: reachable by link, absent from collections, search and sitemaps.
+- Admin products: Sales channels and Catalogs rows on the product page (publish, unpublish and schedule per channel, catalog membership), a Channels popover and Catalogs column in the list, new filters (status, category, sales channel, catalog, collection), bulk Unpublish, include/exclude sales channels and catalogs, preview icon on row hover, the export dialog offers the matching search and help links.
+- Admin product page: Type and Vendor comboboxes of existing values, new products default to Active, the breadcrumb shows the selected variant, metafields as one row per definition with Add chips and Show all (also before the first save, saved with the product), Duplicate dialog with inventory, translations, SKU and Unlisted options, per-variant stock locations, Available/On hand state, Unavailable and Committed read-outs with a breakdown popover, inventory history popover, package choice and customs codes by destination country, video and 3D model upload, and an image editor (crop, rotate, flip, resize, draw, background colour).
+- Admin collections: sales channels column and card, image tile beside the title, a "..." menu on the type card, products filter, sort control and list/grid view of the products.
+- Admin inventory: help tooltips on the columns, an adjust popover with "Adjust by", "Set to" and a recorded reason, and the unavailable/incoming breakdown.
+- Discounts: minimum requirement as radios, combinations edited in a dialog, sales channel access (`shopmePublicationIds`; the storefront checkout only applies discounts that include the Online Store); gift cards list gets a column chooser and a note icon.
+- Markets: a summary side panel with a toggle, a graph view of the market tree, a Rollouts page to plan when draft markets go live (`shopmeMarketLaunchSchedule`, due markets launch by themselves), the shipping options a market's countries get, and a "+" on every inherited customization.
+- Catalog membership of products (`shopmeCatalogProductsUpdate`, `catalog_id:` search), per country Harmonized System codes and a shipping package on inventory items, `InventoryItem.shopmeHistory`, `productDuplicate` options `includeTranslations`, `shopmeIncludeInventory`, `shopmeIncludeSkus`.
 - Admin: darker navy palette (surfaces, sidebar and primary buttons).
 - Delivery profiles: a general profile plus custom profiles with assigned products, location groups (the locations an item ships from), zones (countries, regions or rest of world) and rates with price, weight or order price conditions, free-shipping thresholds and an active switch. Settings, Shipping and delivery has the profile list, the profile editor and an add/edit rate dialog with several rates per name. Admin API: `deliveryProfile(s)`, `deliveryProfileCreate/Update/Remove`, `locationsAvailableForDeliveryProfilesConnection`.
 - Checkout picks rates per delivery profile (cart lines grouped by profile, weight and subtotal of each group, province zone before country before rest of world) and combines them: options with the same name add up, no shared name gives the cheapest of each profile, a profile without a rate blocks shipping. Cheapest first.
@@ -83,6 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- `publishablePublish` and `publishableUnpublish` now act on the channel only: they no longer change the product status (a product is visible when it is active and published on the Online Store). Unpublished collections are no longer shown on the storefront.
 - Existing shipping zones and rates move into the general profile with the same ids when the database is migrated, so carts and orders keep pointing at the right rate; the `shippingZones` and `shippingRate*` Admin API fields keep working as a view of the general profile. Shipping options at checkout are now listed cheapest first.
 
 ### Fixed

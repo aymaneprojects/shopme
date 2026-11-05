@@ -26,6 +26,7 @@ import { frShipping } from './fr-shipping';
 import { frTransfers } from './fr-transfers';
 import { frMetaobjects } from './fr-metaobjects';
 import { frMarkets } from './fr-markets';
+import { frBtnProducts } from './fr-btn-products';
 
 export const fr: Record<Key, string> = {
   'common.back': 'Retour', 'common.cancel': 'Annuler', 'common.close': 'Fermer', 'common.delete': 'Supprimer', 'common.loading': 'Chargement…',
@@ -140,5 +141,6 @@ export const fr: Record<Key, string> = {
   ...frTransfers,
   ...frDiscountCodes,
   ...frMarkets,
+  ...frBtnProducts,
   ...frPrivacy,
 };

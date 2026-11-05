@@ -172,7 +172,7 @@ export const RETURN_CLOSE = /* GraphQL */ `
 /* ------------------------------ discounts: all types, code and automatic ------------------------------ */
 
 const DISC_ELIGIBILITY = `tags context { __typename ... on DiscountCustomers { customers { id displayName } } ... on DiscountCustomerSegments { segments { id name } } }`;
-const DISC_COMMON = `title status startsAt endsAt summary asyncUsageCount combinesWith { productDiscounts orderDiscounts shippingDiscounts } ${DISC_ELIGIBILITY}`;
+const DISC_COMMON = `title status startsAt endsAt summary asyncUsageCount shopmePublicationIds combinesWith { productDiscounts orderDiscounts shippingDiscounts } ${DISC_ELIGIBILITY}`;
 const DISC_MIN = `minimumRequirement { __typename ... on DiscountMinimumSubtotal { greaterThanOrEqualToSubtotal { amount } } ... on DiscountMinimumQuantity { greaterThanOrEqualToQuantity } }`;
 const DISC_ITEMS = `
   items {

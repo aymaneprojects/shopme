@@ -45,7 +45,7 @@ describe('discount input mapping', () => {
     const input = toDiscountInput({ ...valid(), minType: 'subtotal', minValue: '50' }) as Record<string, unknown>;
     expect(input.customerGets).toEqual({ value: { percentage: 0.1 }, items: { all: true } });
     // DiscountCodeBasicInput has no `customerSelection` (server rejects the variable); only API-defined keys are sent
-    expect(Object.keys(input).sort()).toEqual(['appliesOncePerCustomer', 'code', 'combinesWith', 'context', 'customerGets', 'endsAt', 'minimumRequirement', 'startsAt', 'tags', 'title', 'usageLimit']);
+    expect(Object.keys(input).sort()).toEqual(['appliesOncePerCustomer', 'code', 'combinesWith', 'context', 'customerGets', 'endsAt', 'minimumRequirement', 'shopmePublicationIds', 'startsAt', 'tags', 'title', 'usageLimit']);
     expect(input.context).toEqual({ all: 'ALL' });
     expect(input.minimumRequirement).toEqual({ subtotal: { greaterThanOrEqualToSubtotal: '50.00' } });
     const back = fromDiscountNode({

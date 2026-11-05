@@ -156,6 +156,7 @@ const shared = (t: FB) => ({
   recurringCycleLimit: t.int({ nullable: true, resolve: () => null }),
   hasTimelineComment: t.boolean({ resolve: () => false }),
   tags: t.stringList({ resolve: (d) => d.ext.tags }),
+  shopmePublicationIds: t.idList({ resolve: (d) => d.publicationIds.map((id) => toGid('Publication', id)) }),
   totalSales: t.field({ type: MoneyV2, nullable: true, resolve: () => null }),
   summary: t.string({ resolve: summaryOf }),
   shortSummary: t.string({ resolve: summaryOf }),
@@ -340,7 +341,7 @@ const GetsInput = builder.inputType('DiscountCustomerGetsInput', {
 });
 const base = (t: PothosSchemaTypes.InputFieldBuilder<PothosSchemaTypes.ExtendDefaultTypes<import('../builder').SchemaTypes>, 'InputObject'>) => ({
   combinesWith: t.field({ type: CombinesWithInput }), title: t.string(), startsAt: t.field({ type: 'DateTime' }), endsAt: t.field({ type: 'DateTime' }),
-  appliesOncePerCustomer: t.boolean(), code: t.string(), usageLimit: t.int(), context: t.field({ type: ContextInput }), tags: t.stringList(),
+  appliesOncePerCustomer: t.boolean(), code: t.string(), usageLimit: t.int(), context: t.field({ type: ContextInput }), tags: t.stringList(), shopmePublicationIds: t.idList(),
   minimumRequirement: t.field({ type: MinRequirementInput }), recurringCycleLimit: t.int(),
 });
 const BuysInput = builder.inputType('DiscountCustomerBuysInput', {
@@ -350,7 +351,7 @@ const BuysInput = builder.inputType('DiscountCustomerBuysInput', {
   }),
 });
 const autoBase = (t: PothosSchemaTypes.InputFieldBuilder<PothosSchemaTypes.ExtendDefaultTypes<import('../builder').SchemaTypes>, 'InputObject'>) => ({
-  combinesWith: t.field({ type: CombinesWithInput }), title: t.string(), startsAt: t.field({ type: 'DateTime' }), endsAt: t.field({ type: 'DateTime' }), context: t.field({ type: ContextInput }), tags: t.stringList(),
+  combinesWith: t.field({ type: CombinesWithInput }), title: t.string(), startsAt: t.field({ type: 'DateTime' }), endsAt: t.field({ type: 'DateTime' }), context: t.field({ type: ContextInput }), tags: t.stringList(), shopmePublicationIds: t.idList(),
 });
 const AutoBasicInput = builder.inputType('DiscountAutomaticBasicInput', { fields: (t) => ({ ...autoBase(t), minimumRequirement: t.field({ type: MinRequirementInput }), customerGets: t.field({ type: GetsInput }), recurringCycleLimit: t.int() }) });
 const AutoFreeShippingInput = builder.inputType('DiscountAutomaticFreeShippingInput', {
@@ -392,6 +393,12 @@ async function convert(ctx: Ctx, root: string, i: AnyIn, kind: Kind, cur: CodeDi
   };
     const tagsIn = (i as { tags?: string[] | null }).tags;
   if (tagsIn) out.tags = tagsIn;
+  const pubsIn = (i as { shopmePublicationIds?: (string | number)[] | null }).shopmePublicationIds;
+  if (pubsIn) {
+    const parsed = ids(pubsIn, 'Publication');
+    if (parsed.some((x) => x == null)) return { errors: fail([root, 'shopmePublicationIds'], 'Publication does not exist') };
+    out.publicationIds = parsed as number[];
+  }
   const cx = (i as { context?: typeof ContextInput.$inferInput | null }).context;
   if (cx) {
     if ([cx.all, cx.customers, cx.customerSegments].filter(Boolean).length > 1) return { errors: fail([root, 'context'], 'Specify only one of all, customers or customerSegments', 'TOO_MANY_ARGUMENTS') };

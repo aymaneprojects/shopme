@@ -1,9 +1,9 @@
 import { Badge, Banner, Button, Card, Dropdown, EmptyState, IndexTable, Input, Modal, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Coins, Globe, ListFilter, Plus, Search, ArrowUpDown } from 'lucide-react';
+import { BookOpen, Coins, Globe, ListFilter, Network, PanelRight, Plus, Rocket, Search, ArrowUpDown, List as ListIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { gql, mutate } from '../../api';
 import { LearnMore } from '../../components/LearnMore';
 import { PageHeader } from '../../components/PageHeader';
@@ -14,6 +14,7 @@ import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 import { useDebounced } from '../../lib/hooks';
 import { countriesOf, CountryChip, CountryPicker, errText, type MarketRow } from './shared';
+import { MarketGraph, MarketsSidePanel } from './MarketGraph';
 
 type SortKey = 'NAME' | 'STATUS' | 'CREATED_AT';
 const SORTS: SortKey[] = ['NAME', 'STATUS', 'CREATED_AT'];
@@ -30,6 +31,9 @@ export function MarketsPage() {
   const sortKey = (SORTS.includes(L.get('sort') as SortKey) ? L.get('sort') : 'NAME') as SortKey;
   const reverse = L.get('dir') === 'desc';
   const [creating, setCreating] = useState(false);
+  const [view, setView] = useState<'list' | 'graph'>(() => { try { return localStorage.getItem('shopme.markets.view') === 'graph' ? 'graph' : 'list'; } catch { return 'list'; } });
+  const [side, setSide] = useState(() => { try { return localStorage.getItem('shopme.markets.side') !== 'off'; } catch { return true; } });
+  const remember = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } };
   const query = [term, status && `status:${status.toLowerCase()}`].filter(Boolean).join(' ');
 
   const list = useQuery({
@@ -74,20 +78,29 @@ export function MarketsPage() {
 
   return (
     <>
-      <PageHeader icon={<Globe className="size-4" />} title={t('markets.title')} actions={create} />
+      <PageHeader icon={<Globe className="size-4" />} title={t('markets.title')} actions={<>
+        <Link to="/markets/rollouts" className="btn btn-secondary"><Rocket className="size-4" />{t('bp.markets.rollouts')}</Link>
+        <Button icon aria-label={t('bp.markets.toggleSide')} aria-pressed={side} onClick={() => { setSide(!side); remember('shopme.markets.side', side ? 'off' : 'on'); }}><PanelRight className="size-4" /></Button>
+        {create}</>} />
+      <div className={side ? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]' : ''}>
+      <div className="min-w-0">
       <Card className="!p-0">
         <div className="flex items-center gap-2 border-b border-line p-3">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('markets.search')} aria-label={t('markets.search')} className={searchCls} />
           </div>
+          <Button icon aria-label={t(view === 'list' ? 'bp.markets.graphView' : 'bp.markets.listView')} aria-pressed={view === 'graph'} onClick={() => { const next = view === 'list' ? 'graph' : 'list'; setView(next); remember('shopme.markets.view', next); }}>{view === 'list' ? <Network className="size-4" /> : <ListIcon className="size-4" />}</Button>
           <Dropdown align="right" label={t('markets.filter')} trigger={<ListFilter className="size-4" />} items={filterItems} />
           <Dropdown align="right" label={t('markets.sort')} trigger={<ArrowUpDown className="size-4" />} items={sortItems} />
         </div>
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
-        <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/markets/${gidToNum(r.id)}`)}
-          empty={list.isError ? null : query ? <EmptyState icon={<Search className="size-10" />} title={t('markets.noResults')} /> : <EmptyState icon={<Globe className="size-10" />} title={t('markets.emptyTitle')} description={t('markets.emptyBody')} action={create} />} />
+        {view === 'graph' ? <MarketGraph rows={rows} shopName={list.data?.shop.currencyCode ?? ''} onOpen={(id) => nav(`/markets/${gidToNum(id)}`)} /> : <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/markets/${gidToNum(r.id)}`)}
+          empty={list.isError ? null : query ? <EmptyState icon={<Search className="size-10" />} title={t('markets.noResults')} /> : <EmptyState icon={<Globe className="size-10" />} title={t('markets.emptyTitle')} description={t('markets.emptyBody')} action={create} />} />}
       </Card>
+      </div>
+      {side && <MarketsSidePanel rows={rows} />}
+      </div>
       <LearnMore topic={t('qaf.learn.markets')} />
       {creating && <CreateDialog busy={createMarket.isPending} onClose={() => setCreating(false)} onCreate={(name, countries) => createMarket.mutate({ name, countries })} taken={rows.filter((m) => !m.primary).flatMap((m) => countriesOf(m).map((c) => ({ code: c.code, market: m.name })))} />}
     </>

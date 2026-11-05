@@ -34,8 +34,18 @@ export interface VariantDraft {
   mediaId: string;
   /** Unit price measurement: `unitQuantity` `unitQuantityUnit` priced per `unitReference` `unitReferenceUnit`. */
   unitQuantity: string; unitQuantityUnit: string; unitReference: string; unitReferenceUnit: string;
-  /** Available quantity per location id, as typed. */
+  /** Available quantity per location id, as typed. The keys are the locations the variant is stocked at. */
   quantities: Record<string, string>;
+  /** On hand quantity per location id, as typed (edited when the quantity state is "On hand"). */
+  onHand: Record<string, string>;
+  /** Read-outs per location id from the server: committed to orders, unavailable (reserved) and incoming. */
+  committed: Record<string, number>; unavailable: Record<string, number>; incoming: Record<string, number>;
+  /** Inventory level GID per location id (needed to stop stocking a location). */
+  levelIds: Record<string, string>;
+  /** Harmonized System code per destination country (customs ship-to). */
+  countryHs: Array<{ countryCode: string; code: string }>;
+  /** Shipping package GID from Settings > Shipping > Packaging, or empty. */
+  packageId: string;
 }
 
 let seq = 0;
@@ -43,7 +53,7 @@ export const newKey = () => `v${Date.now().toString(36)}${(seq++).toString(36)}`
 
 export const blankVariant = (over: Partial<VariantDraft> = {}): VariantDraft => ({
   key: newKey(), optionValues: [], price: '0.00', compareAtPrice: '', cost: '', sku: '', barcode: '',
-  taxable: true, tracked: true, continueSelling: false, requiresShipping: true, weight: '', weightUnit: 'KILOGRAMS', length: '', width: '', height: '', dimensionUnit: 'CENTIMETERS', countryOfOrigin: '', hsCode: '', mediaId: '', unitQuantity: '', unitQuantityUnit: 'L', unitReference: '1', unitReferenceUnit: 'L', quantities: {}, ...over,
+  taxable: true, tracked: true, continueSelling: false, requiresShipping: true, weight: '', weightUnit: 'KILOGRAMS', length: '', width: '', height: '', dimensionUnit: 'CENTIMETERS', countryOfOrigin: '', hsCode: '', mediaId: '', unitQuantity: '', unitQuantityUnit: 'L', unitReference: '1', unitReferenceUnit: 'L', quantities: {}, onHand: {}, committed: {}, unavailable: {}, incoming: {}, levelIds: {}, countryHs: [], packageId: '', ...over,
 });
 
 /** Options that count: named and with at least one distinct non-empty value. */
@@ -68,6 +78,7 @@ export function newVariantLike(template: VariantDraft | undefined, optionValues:
       price: template.price, compareAtPrice: template.compareAtPrice, cost: template.cost, taxable: template.taxable, tracked: template.tracked, continueSelling: template.continueSelling,
       requiresShipping: template.requiresShipping, weight: template.weight, weightUnit: template.weightUnit, length: template.length, width: template.width, height: template.height,
       dimensionUnit: template.dimensionUnit, countryOfOrigin: template.countryOfOrigin, hsCode: template.hsCode, quantities: Object.fromEntries(Object.keys(template.quantities).map((k) => [k, '0'])),
+      onHand: Object.fromEntries(Object.keys(template.quantities).map((k) => [k, '0'])), packageId: template.packageId, countryHs: template.countryHs.map((c) => ({ ...c })),
     }),
   });
 }

@@ -1,6 +1,6 @@
 import { Button, Checkbox, ConfirmDialog, Dropdown, Input, Modal, cx } from '@shopme/ui';
 import { Check, ImageIcon, Layers, MoreHorizontal, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { formatMoney, parseDecimal, toDecimalString } from '../format';
 import { useT } from '../i18n';
 import { newVariantLike, variantLabel } from '../lib/variants';
@@ -13,6 +13,8 @@ interface Props {
   /** Options that exist on the server cannot be renamed; see `OptionsEditor`. */
   lockedCount?: number; giftCard?: boolean;
   onMetafields?: (variantId: string) => void;
+  /** Reports the selected variant's label (empty when the product has no options), for the page breadcrumb. */
+  onActiveChange?: (label: string) => void;
   onChange: (p: { options?: OptionDef[]; variants: VariantDraft[] }) => void;
 }
 
@@ -24,7 +26,7 @@ const norm = (s: string) => s.trim().toLowerCase();
  * with options it is a master/detail view (searchable, groupable list on the left, the selected variant's sections on the right)
  * with bulk edits, "add variant" and a per-variant menu (edit values, duplicate, delete).
  */
-export function VariantsManager({ options, variants, locations, currency, media, lockedCount = 0, giftCard, onMetafields, onChange }: Props) {
+export function VariantsManager({ options, variants, locations, currency, media, lockedCount = 0, giftCard, onMetafields, onActiveChange, onChange }: Props) {
   const t = useT();
   const listId = useId();
   const [search, setSearch] = useState('');
@@ -52,6 +54,8 @@ export function VariantsManager({ options, variants, locations, currency, media,
   const chosen = variants.filter((v) => selected.includes(v.key));
   const canDelete = (n: number) => variants.length - n >= 1;
   const active = variants.find((v) => v.key === activeKey) ?? variants[0]!;
+  const activeLabel = multi ? variantLabel(active, t('variants.default')) : '';
+  useEffect(() => { onActiveChange?.(activeLabel); }, [activeLabel, onActiveChange]);
   const patchAt = (key: string) => (p: Partial<VariantDraft>) => onChange({ variants: variants.map((v) => (v.key === key ? { ...v, ...p } : v)) });
 
   const patchSelected = (p: (v: VariantDraft) => Partial<VariantDraft>) => onChange({ variants: variants.map((v) => (selected.includes(v.key) ? { ...v, ...p(v) } : v)) });

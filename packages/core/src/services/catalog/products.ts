@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import type { UserError } from '@shopme/shopify-compat';
 import {
-  files, inventoryItems, inventoryLevels, media, productMedia, productOptionValues, productOptions, productVariants, products, variantOptionValues,
+  files, inventoryItems, inventoryLevels, media, productMedia, translations, productOptionValues, productOptions, productVariants, products, variantOptionValues,
 } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { slugify, uniqueHandle } from '../handle';
@@ -10,16 +10,18 @@ import { cleanHtml } from '../content/html-sanitize';
 import { getShop } from '../shops';
 import { emit, errR, normalizeTags, okR, txResult, type Result } from './common';
 import { buildSearch, compare, dateCompare, idTerm, likeCi } from './search';
-import { activateLevel, defaultLocationId, getLocation, inventoryItemPatch, type InventoryItemUpdate } from './inventory';
+import { activateLevel, defaultLocationId, getLocation, inventoryItemPatch, setCountryHsCodes, type InventoryItemUpdate } from './inventory';
 import { deleteMetafieldsFor, setMetafieldsTx, type MetafieldSetInput } from './metafields';
 import { recomputeSmartMembership, setProductCollections } from './collections';
 import { getCategory } from './taxonomy';
+import { productOnOnlineStore } from './publications';
 
 export type Product = typeof products.$inferSelect;
 export type Variant = typeof productVariants.$inferSelect;
 export type Media = typeof media.$inferSelect;
-export type ProductStatus = 'ACTIVE' | 'ARCHIVED' | 'DRAFT';
-const STATUSES = ['ACTIVE', 'ARCHIVED', 'DRAFT'];
+export type ProductStatus = 'ACTIVE' | 'ARCHIVED' | 'DRAFT' | 'UNLISTED';
+const STATUSES = ['ACTIVE', 'ARCHIVED', 'DRAFT', 'UNLISTED'];
+const csv = (v: string) => v.split(',').map((x) => x.trim()).filter(Boolean);
 export const MAX_OPTIONS = 3;
 export const MAX_VARIANTS = 2048;
 
@@ -37,16 +39,29 @@ export async function getProductByHandle(db: Executor, shopId: number, handle: s
 const invTotal = sql`(select coalesce(sum(l.available), 0) from product_variants v join inventory_items i on i.variant_id = v.id join inventory_levels l on l.inventory_item_id = i.id and l.is_active where v.product_id = ${products.id} and i.tracked)`;
 const hasVariant = (cond: unknown) => sql`exists (select 1 from product_variants v where v.product_id = ${products.id} and ${cond})`;
 
+const inList = (raw: string[], make: (ids: ReturnType<typeof sql.join>) => ReturnType<typeof sql>) => {
+  const ids = raw.map(Number).filter((n) => Number.isSafeInteger(n));
+  return ids.length ? make(sql.join(ids.map((n) => sql`${n}`), sql`, `)) : null;
+};
+/** Published on any channel (the Online Store, or a row for another channel). */
+const anyPublication = sql`${productOnOnlineStore} or exists (select 1 from resource_publications rp where rp.resource_type = 'PRODUCT' and rp.resource_id = ${products.id} and rp.published_at <= now())`;
+const onPublication = (ids: ReturnType<typeof sql.join>) => sql`exists (select 1 from publications pb where pb.id in (${ids}) and ((pb.kind = 'ONLINE_STORE' and ${productOnOnlineStore})
+  or exists (select 1 from resource_publications rp where rp.publication_id = pb.id and rp.resource_type = 'PRODUCT' and rp.resource_id = ${products.id} and rp.published_at <= now())))`;
+
 const productSearch = (q?: string | null) => buildSearch(q, {
   fields: {
     title: (_o, v) => likeCi(products.title, v), handle: (_o, v) => likeCi(products.handle, v, true), vendor: (_o, v) => likeCi(products.vendor, v, true),
-    product_type: (_o, v) => likeCi(products.productType, v, true), status: (_o, v) => sql`${products.status} = ${v.toUpperCase()}`,
+    product_type: (_o, v) => likeCi(products.productType, v, true), status: (_o, v) => sql`${products.status} in (${sql.join(csv(v).map((x) => sql`${x.toUpperCase()}`), sql`, `)})`,
     tag: (_o, v) => sql`exists (select 1 from unnest(${products.tags}) t where lower(t) = ${v.toLowerCase()})`,
     id: (_o, v) => idTerm(products.id, v),
     sku: (_o, v) => hasVariant(likeCi(sql`v.sku`, v, true)), barcode: (_o, v) => hasVariant(likeCi(sql`v.barcode`, v, true)),
     created_at: (o, v) => dateCompare(products.createdAt, o, v), updated_at: (o, v) => dateCompare(products.updatedAt, o, v), published_at: (o, v) => dateCompare(products.publishedAt, o, v),
     inventory_total: (o, v) => (Number.isFinite(Number(v)) ? compare(invTotal, o, Number(v)) : null),
-    collection_id: (_o, v) => sql`exists (select 1 from collection_products cp where cp.product_id = ${products.id} and cp.collection_id = ${Number(v)})`,
+    collection_id: (_o, v) => inList(csv(v), (ids) => sql`exists (select 1 from collection_products cp where cp.product_id = ${products.id} and cp.collection_id in (${ids}))`),
+    category_id: (_o, v) => sql`${products.category} in (${sql.join(csv(v).map((x) => sql`${x}`), sql`, `)})`,
+    catalog_id: (_o, v) => v === 'none' ? sql`not exists (select 1 from catalog_products cp where cp.product_id = ${products.id})` : inList(csv(v), (ids) => sql`exists (select 1 from catalog_products cp where cp.product_id = ${products.id} and cp.catalog_id in (${ids}))`),
+    publication_ids: (_o, v) => v === 'none' ? sql`not (${anyPublication})` : inList(csv(v), (ids) => sql`(${onPublication(ids)})`),
+    publishable_status: (_o, v) => v === 'unpublished' ? sql`not (${anyPublication})` : sql`(${anyPublication})`,
     gift_card: (_o, v) => sql`${products.isGiftCard} = ${v === 'true'}`,
   },
   text: (v) => sql`(${likeCi(products.title, v)} or ${likeCi(products.vendor, v)} or ${likeCi(products.productType, v)} or ${likeCi(products.handle, v)}
@@ -292,6 +307,7 @@ async function insertVariant(tx: Executor, shopId: number, productId: number, v:
   }).returning();
   const stock = inp.inventoryQuantities?.length ? inp.inventoryQuantities : defaultLoc ? [{ locationId: defaultLoc, availableQuantity: 0 }] : [];
   for (const s of stock) await activateLevel(tx, shopId, item!.id, s.locationId, s.availableQuantity);
+  if (inp.inventoryItem?.countryHarmonizedSystemCodes) await setCountryHsCodes(tx, shopId, item!.id, inp.inventoryItem.countryHarmonizedSystemCodes);
   if (inp.metafields?.length) await setMetafieldsTx(tx, shopId, inp.metafields.map((m) => ({ ...m, ownerType: 'PRODUCTVARIANT', ownerId: row!.id })));
   return row!;
 }
@@ -494,7 +510,10 @@ export async function bulkUpdateVariants(db: Db, shopId: number, productId: numb
         ...(inp.taxable != null && { taxable: inp.taxable }), ...(inp.taxCode !== undefined && { taxCode: inp.taxCode }), ...(inp.inventoryPolicy && { inventoryPolicy: inp.inventoryPolicy }),
         ...(inp.mediaId !== undefined && { mediaId: inp.mediaId }), ...unitCols(inp.unitPriceMeasurement), ...(inp.inventoryItem?.sku !== undefined && { sku: inp.inventoryItem.sku || null }),
       }).where(eq(productVariants.id, cur.id)).returning();
-      if (inp.inventoryItem) await tx.update(inventoryItems).set(inventoryItemPatch(inp.inventoryItem)).where(eq(inventoryItems.variantId, cur.id));
+      if (inp.inventoryItem) {
+        const [it] = await tx.update(inventoryItems).set(inventoryItemPatch(inp.inventoryItem)).where(eq(inventoryItems.variantId, cur.id)).returning({ id: inventoryItems.id });
+        if (it && inp.inventoryItem.countryHarmonizedSystemCodes) await setCountryHsCodes(tx, shopId, it.id, inp.inventoryItem.countryHarmonizedSystemCodes);
+      }
       if (inp.metafields?.length) await setMetafieldsTx(tx, shopId, inp.metafields.map((m) => ({ ...m, ownerType: 'PRODUCTVARIANT', ownerId: cur.id })));
       updated.push(row!);
     }
@@ -558,7 +577,7 @@ export async function createProduct(db: Db, shopId: number, input: ProductInput,
     const loc = await defaultLocationId(tx, shopId);
     const handle = await uniqueHandle(input.handle?.trim() || input.title!, async (h) => !!(await getProductByHandle(tx, shopId, h)));
     const status = input.status ?? 'ACTIVE';
-    const [row] = await tx.insert(products).values({ shopId, handle, title: input.title!.trim(), status, publishedAt: status === 'ACTIVE' ? new Date() : null, ...productFields(input) }).returning();
+    const [row] = await tx.insert(products).values({ shopId, handle, title: input.title!.trim(), status, publishedAt: status === 'ACTIVE' || status === 'UNLISTED' ? new Date() : null, ...productFields(input) }).returning();
     const id = row!.id;
     const options = input.productOptions ?? [];
     if (options.length) {
@@ -595,7 +614,7 @@ export async function updateProduct(db: Db, shopId: number, id: number, input: P
     let handle = cur.handle;
     if (input.handle && slugify(input.handle) !== cur.handle) handle = await uniqueHandle(input.handle, async (h) => h !== cur.handle && !!(await getProductByHandle(tx, shopId, h)));
     const status = input.status ?? cur.status;
-    const publishedAt = status !== 'ACTIVE' ? null : cur.publishedAt ?? new Date();
+    const publishedAt = status !== 'ACTIVE' && status !== 'UNLISTED' ? null : cur.publishedAt ?? new Date();
     const [row] = await tx.update(products).set({ handle, status, publishedAt, ...(input.title && { title: input.title.trim() }), ...productFields(input), updatedAt: new Date() })
       .where(and(eq(products.shopId, shopId), eq(products.id, id))).returning();
     if (handle !== cur.handle) await redirectPathChange(tx, shopId, `/products/${cur.handle}`, `/products/${handle}`);
@@ -630,7 +649,7 @@ export async function deleteProduct(db: Db, shopId: number, id: number): Promise
   return okR(id);
 }
 
-export async function duplicateProduct(db: Db, shopId: number, id: number, o: { newTitle: string; newStatus?: string | null; includeImages?: boolean | null }): Promise<Result<Product>> {
+export async function duplicateProduct(db: Db, shopId: number, id: number, o: { newTitle: string; newStatus?: string | null; includeImages?: boolean | null; includeInventory?: boolean | null; includeTranslations?: boolean | null; includeSkus?: boolean | null }): Promise<Result<Product>> {
   const src = await getProduct(db, shopId, id);
   if (!src) return errR(['productId'], 'Product does not exist', 'PRODUCT_DOES_NOT_EXIST');
   if (!o.newTitle.trim()) return errR(['newTitle'], "Title can't be blank", 'BLANK');
@@ -640,7 +659,7 @@ export async function duplicateProduct(db: Db, shopId: number, id: number, o: { 
     const status = o.newStatus ?? 'DRAFT';
     const handle = await uniqueHandle(o.newTitle, async (h) => !!(await getProductByHandle(tx, shopId, h)));
     const { id: _i, createdAt: _c, updatedAt: _u, ...rest } = src;
-    const [copy] = await tx.insert(products).values({ ...rest, handle, title: o.newTitle.trim(), status, publishedAt: status === 'ACTIVE' ? new Date() : null }).returning();
+    const [copy] = await tx.insert(products).values({ ...rest, handle, title: o.newTitle.trim(), status, publishedAt: status === 'ACTIVE' || status === 'UNLISTED' ? new Date() : null, onlineStorePublishedAt: src.onlineStorePublishedAt ? new Date() : null }).returning();
     const opts = await getProductOptions(tx, shopId, id);
     const map = new Map<number, { optionId: number; valueId: number }>();
     for (const op of opts) {
@@ -654,16 +673,22 @@ export async function duplicateProduct(db: Db, shopId: number, id: number, o: { 
     const sel = await getSelectedOptions(tx, shopId, variants.map((v) => v.id));
     for (const v of variants) {
       const [item] = await tx.select().from(inventoryItems).where(eq(inventoryItems.variantId, v.id));
+      const keepSkus = o.includeSkus !== false;
+      const levels = o.includeInventory && item ? await tx.select().from(inventoryLevels).where(and(eq(inventoryLevels.inventoryItemId, item.id), eq(inventoryLevels.isActive, true))) : [];
       await insertVariant(tx, shopId, copy!.id, {
-        input: { price: v.price, compareAtPrice: v.compareAtPrice, barcode: v.barcode, taxable: v.taxable, taxCode: v.taxCode, inventoryPolicy: v.inventoryPolicy,
+        input: { price: v.price, compareAtPrice: v.compareAtPrice, barcode: keepSkus ? v.barcode : null, ...(levels.length && { inventoryQuantities: levels.map((l) => ({ locationId: l.locationId, availableQuantity: l.available })) }), taxable: v.taxable, taxCode: v.taxCode, inventoryPolicy: v.inventoryPolicy,
           unitPriceMeasurement: v.unitQuantityValue && v.unitReferenceValue ? { quantityValue: v.unitQuantityValue, quantityUnit: v.unitQuantityUnit ?? '', referenceValue: v.unitReferenceValue, referenceUnit: v.unitReferenceUnit ?? '' } : null,
-          inventoryItem: item ? { sku: item.sku ?? v.sku, tracked: item.tracked, requiresShipping: item.requiresShipping, cost: item.unitCost, countryCodeOfOrigin: item.countryCodeOfOrigin, harmonizedSystemCode: item.harmonizedSystemCode, weight: item.weightValue != null ? { value: item.weightValue, unit: item.weightUnit as 'KILOGRAMS' } : null } : { sku: v.sku } },
+          inventoryItem: item ? { sku: keepSkus ? item.sku ?? v.sku : null, tracked: item.tracked, requiresShipping: item.requiresShipping, cost: item.unitCost, countryCodeOfOrigin: item.countryCodeOfOrigin, harmonizedSystemCode: item.harmonizedSystemCode, weight: item.weightValue != null ? { value: item.weightValue, unit: item.weightUnit as 'KILOGRAMS' } : null } : { sku: keepSkus ? v.sku : null } },
         position: v.position, title: v.title, optionValueIds: (sel.get(v.id) ?? []).map((s) => map.get(s.valueId)!).filter(Boolean),
       }, shop?.weightUnit ?? 'KILOGRAMS', loc);
     }
     if (o.includeImages) {
       const ms = await tx.select().from(productMedia).where(eq(productMedia.productId, id)).orderBy(asc(productMedia.position));
       if (ms.length) await tx.insert(productMedia).values(ms.map((m) => ({ shopId, productId: copy!.id, mediaId: m.mediaId, position: m.position })));
+    }
+    if (o.includeTranslations) {
+      const tr = await tx.select().from(translations).where(and(eq(translations.shopId, shopId), eq(translations.resourceType, 'PRODUCT'), eq(translations.resourceId, String(id))));
+      if (tr.length) await tx.insert(translations).values(tr.map(({ id: _t, ...r }) => ({ ...r, resourceId: String(copy!.id) })));
     }
     await recomputeSmartMembership(tx, shopId, [copy!.id]);
     await emit(tx, shopId, 'product', copy!.id, 'products/create');

@@ -1,10 +1,11 @@
-import { Banner, Button, Card, EmptyState, IndexTable, Input, ListToolbar, Modal, Pagination, QuantityPopover, Select, Textarea, useToast } from '@shopme/ui';
+import { Banner, Button, Card, EmptyState, IndexTable, Input, ListToolbar, Modal, Pagination, Popover, Select, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { SlidersHorizontal, Warehouse } from 'lucide-react';
+import { Warehouse } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
+import { AdjustPopover, HeaderHint } from '../components/AdjustPopover';
 import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
 import { PageHeader } from '../components/PageHeader';
 import { ExportButton, ImportButton } from '../components/CsvTools';
@@ -44,7 +45,6 @@ export function InventoryPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkQty, setBulkQty] = useState<{ name: 'available' | 'on_hand'; mode: 'set' | 'adjust'; location: string; value: string } | null>(null);
   const [cursor, setCursor] = useState<{ after?: string; before?: string }>({});
-  const [edits, setEdits] = useState<Record<string, string>>({});
   const [moving, setMoving] = useState<{ v: VariantRow; to: string; qty: string } | null>(null);
   const [counting, setCounting] = useState<{ location: string; text: string } | null>(null);
   const cols = useColumnVisibility('inventory');
@@ -58,17 +58,15 @@ export function InventoryPage() {
 
   const rows = (list.data?.productVariants.nodes ?? []).filter((v) => v.inventoryItem.tracked !== untracked);
   const levelsOf = (v: VariantRow) => v.inventoryItem.inventoryLevels.nodes.filter((l) => !location || l.location.id === location);
-  const editKey = (v: VariantRow) => `${v.inventoryItem.id}|${location}`;
 
-  const save = useMutation({
-    mutationFn: () => {
-      const quantities = Object.entries(edits).map(([k, value]) => {
-        const [inventoryItemId, locationId] = k.split('|');
-        return { inventoryItemId: inventoryItemId!, locationId: locationId!, quantity: Math.max(0, Math.trunc(Number(value) || 0)) };
-      });
-      return mutate(INVENTORY_SET_QUANTITIES, { input: { reason: 'correction', name: 'available', quantities } }, 'inventorySetQuantities');
+  const adjust = useMutation({
+    mutationFn: ({ v, change }: { v: VariantRow; change: { mode: 'adjust' | 'set'; amount: number; reason: string } }) => {
+      const base = { inventoryItemId: v.inventoryItem.id, locationId: location };
+      return change.mode === 'set'
+        ? mutate(INVENTORY_SET_QUANTITIES, { input: { reason: change.reason, name: 'available', quantities: [{ ...base, quantity: change.amount }] } }, 'inventorySetQuantities')
+        : mutate(INVENTORY_ADJUST_QUANTITIES, { input: { reason: change.reason, name: 'available', changes: [{ ...base, delta: change.amount }] } }, 'inventoryAdjustQuantities');
     },
-    onSuccess: () => { toast(t('inventory.saved')); setEdits({}); void qc.invalidateQueries({ queryKey: ['inventory'] }); void qc.invalidateQueries({ queryKey: ['products'] }); },
+    onSuccess: () => { toast(t('inventory.saved')); void qc.invalidateQueries({ queryKey: ['inventory'] }); void qc.invalidateQueries({ queryKey: ['products'] }); },
     onError: (e) => toast(e.message, 'critical'),
   });
 
@@ -131,42 +129,43 @@ export function InventoryPage() {
     { key: 'img', header: '', className: 'w-14', cell: (v) => <Thumb url={v.product.featuredMedia?.image?.url} /> },
     { key: 'product', header: t('products.product'), cell: (v) => <div><div className="font-medium">{v.product.title}</div>{v.title !== 'Default Title' && <span className="mt-0.5 inline-block rounded-md bg-surface px-1.5 py-px text-xs text-muted shadow-[inset_0_0_0_1px_var(--color-border)]">{v.title}</span>}</div> },
     { key: 'sku', header: t('inventory.sku'), cell: (v) => v.sku || <span className="text-muted">{t('inventory.noSku')}</span> },
-    { key: 'unavailable', header: t('inventory.unavailable'), cell: (v) => qty(levelsOf(v), 'reserved') },
-    { key: 'committed', header: t('inventory.committed'), cell: (v) => qty(levelsOf(v), 'committed') },
     {
-      key: 'available', header: t('inventory.available'),
+      key: 'unavailable', header: <HeaderHint label={t('inventory.unavailable')} hint={t('bp.stock.unavailableHelp')} />,
       cell: (v) => {
-        const current = String(qty(levelsOf(v), 'available'));
-        if (!location) return current;
-        const key = editKey(v);
-        const shown = edits[key] ?? current;
-        return (
-          <QuantityPopover
-            value={Number(current)} labels={{ adjust: `${t('qty.adjust')} ${v.product.title}`, set: t('qty.set'), add: t('qty.add'), apply: t('qty.apply') }}
-            trigger={<span className={shown !== current ? 'font-semibold text-accent' : undefined}>{shown}<SlidersHorizontal className="ml-1.5 inline size-3 text-muted" aria-hidden /></span>}
-            onApply={(next) => setEdits((st) => { const n = { ...st }; if (String(next) === current) delete n[key]; else n[key] = String(next); return n; })} />
-        );
+        const n = qty(levelsOf(v), 'reserved'), incoming = qty(levelsOf(v), 'incoming');
+        return n + incoming > 0 ? (
+          <Popover label={t('bp.stock.breakdown')} triggerVariant="plain" triggerClassName="btn-neutral !h-7 !px-1.5 tabular-nums" trigger={n}>
+            {() => <dl className="grid w-48 grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-[13px]"><dt>{t('bp.stock.reserved')}</dt><dd className="tabular-nums">{n}</dd><dt>{t('bp.stock.incoming')}</dt><dd className="tabular-nums">{incoming}</dd></dl>}
+          </Popover>
+        ) : n;
       },
     },
-    { key: 'onhand', header: t('inventory.onHand'), cell: (v) => qty(levelsOf(v), 'on_hand') },
-    { key: 'incoming', header: t('inventory.incoming'), cell: (v) => qty(levelsOf(v), 'incoming') },
+    { key: 'committed', header: <HeaderHint label={t('inventory.committed')} hint={t('bp.stock.committedHelp')} />, cell: (v) => qty(levelsOf(v), 'committed') },
+    {
+      key: 'available', header: <HeaderHint label={t('inventory.available')} hint={t('bp.stock.availableHelp')} />,
+      cell: (v) => {
+        const current = qty(levelsOf(v), 'available');
+        if (!location) return current;
+        return <AdjustPopover value={current} label={`${t('qty.adjust')} ${v.product.title}`} onApply={(change) => adjust.mutate({ v, change })} />;
+      },
+    },
+    { key: 'onhand', header: <HeaderHint label={t('inventory.onHand')} hint={t('bp.stock.onHandHelp2')} />, cell: (v) => qty(levelsOf(v), 'on_hand') },
+    { key: 'incoming', header: <HeaderHint label={t('inventory.incoming')} hint={t('bp.stock.incomingHelp')} />, cell: (v) => qty(levelsOf(v), 'incoming') },
     ...(location && (locs.data?.locations.nodes.filter((l) => l.isActive !== false).length ?? 0) > 1
       ? [{ key: 'move', header: '', className: 'w-24', cell: (v: VariantRow) => <Button size="sm" aria-label={`${t('inventory.move')} ${v.product.title}`} onClick={() => setMoving({ v, to: '', qty: '1' })}>{t('inventory.move')}</Button> }]
       : []),
   ];
   const pi = list.data?.productVariants.pageInfo;
-  const dirtyCount = Object.keys(edits).length;
 
   return (
     <>
       <PageHeader icon={<Warehouse className="size-4" />}
         title={<span className="flex items-center gap-2">{t('nav.inventory')}
-          <select aria-label={t('inventory.location')} value={location} onChange={(e) => { setLocation(e.target.value); setEdits({}); }} className="field-control font-normal">
+          <select aria-label={t('inventory.location')} value={location} onChange={(e) => { setLocation(e.target.value); }} className="field-control font-normal">
             <option value="">{t('inventory.allLocations')}</option>
             {locs.data?.locations.nodes.filter((l) => l.isActive !== false).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select></span>}
         actions={<>
-          {dirtyCount > 0 && <><Button onClick={() => setEdits({})}>{t('save.discard')}</Button><Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('inventory.saveN', { n: dirtyCount })}</Button></>}
           <Button onClick={() => setCounting({ location: location || locs.data?.locations.nodes.find((l) => l.isActive !== false)?.id || '', text: '' })}>{t('inventory.counts')}</Button>
           <ExportButton kind="inventory" /><ImportButton kind="inventory" invalidate={['inventory']} />
         </>} />
@@ -177,7 +176,7 @@ export function InventoryPage() {
           query={search} onQuery={(v) => { setSearch(v); setCursor({}); patch({ q: v }); }} placeholder={t('list.searchAndFilter')} removeFilterLabel={t('list.removeFilter')}
           filters={[{ key: 'tracking', label: t('inventory.trackingFilter'), options: [{ value: 'untracked', label: t('inventory.filterUntracked') }] }]}
           values={{ tracking: untracked ? 'untracked' : '' }} onFilter={(_k, v) => { setSelected([]); patch({ tracking: v }); }}
-          trailing={<ColumnPicker locked={['product']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />}
+          trailing={<ColumnPicker locked={['product']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} labels={{ unavailable: t('inventory.unavailable'), committed: t('inventory.committed'), available: t('inventory.available'), onhand: t('inventory.onHand'), incoming: t('inventory.incoming') }} />}
         />
         {!location && rows.length > 0 && <p className="border-b border-line px-4 py-2 text-xs text-muted">{t('inventory.pickLocation')}</p>}
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}

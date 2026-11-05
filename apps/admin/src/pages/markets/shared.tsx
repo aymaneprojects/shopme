@@ -7,7 +7,7 @@ import { useI18n } from '../../i18n';
 import { countriesSorted, flag } from '../../lib/markets';
 
 export interface MarketRow {
-  id: string; name: string; handle: string; status: 'ACTIVE' | 'DRAFT'; primary: boolean; type: string;
+  id: string; name: string; handle: string; status: 'ACTIVE' | 'DRAFT'; primary: boolean; type: string; shopmeLaunchAt?: string | null;
   conditions: { regionsCondition: { regions: { nodes: Array<{ id: string; name: string; code: string }> } } | null } | null;
   currencySettings: { baseCurrency: { currencyCode: string; currencyName: string; manualRate: string | null }; localCurrencies: boolean; roundingEnabled: boolean } | null;
   priceInclusions: { inclusiveTaxPricingStrategy: string } | null;

@@ -16,3 +16,4 @@ export * from './bulk';
 export * from './markets';
 export * from './privacy';
 export * from './store-credit';
+export * from './channels';

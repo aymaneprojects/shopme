@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import { bigint, boolean, check, index, integer, jsonb, numeric, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { createdAt, money, oneOf, pk, ref, shopIdCol, tagsCol, timestamps, ts } from './_helpers';
 import { shops } from './shop';
@@ -232,6 +233,8 @@ export const discounts = pgTable('discounts', {
   minimumSubtotal: money('minimum_subtotal'), minimumQuantity: integer('minimum_quantity'),
   usageLimit: integer('usage_limit'), usageCount: integer('usage_count').notNull().default(0),
   oncePerCustomer: boolean('once_per_customer').notNull().default(false),
+  /** Sales channels (publication ids) the discount works on; empty = every channel. */
+  publicationIds: bigint('publication_ids', { mode: 'number' }).array().notNull().default(sql`'{}'::bigint[]`),
   startsAt: ts('starts_at'), endsAt: ts('ends_at'),
   ...timestamps(),
 }, (t) => [check('discounts_kind_chk', oneOf(t.kind, ['CODE', 'AUTOMATIC'])), check('discounts_value_type_chk', oneOf(t.valueType, ['PERCENTAGE', 'FIXED_AMOUNT']))]);

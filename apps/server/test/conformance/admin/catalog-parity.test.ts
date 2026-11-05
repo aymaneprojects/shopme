@@ -114,7 +114,7 @@ describe('catalog parity: ordering, publishing and async duplicate', () => {
 
     const un = (await g(`mutation($i: ProductUnpublishInput!) { productUnpublish(input: $i) { product { id status publishedOnCurrentPublication } shop { name } userErrors { message } } }`, { i: { id: ids.a, productPublications: [{ publicationId: 'gid://shopify/Publication/1' }] } })).productUnpublish;
     expect(un.userErrors).toEqual([]);
-    expect(un.product).toMatchObject({ id: ids.a, status: 'DRAFT', publishedOnCurrentPublication: false });
+    expect(un.product).toMatchObject({ id: ids.a, status: 'ACTIVE', publishedOnCurrentPublication: false });
     const rp = (await g(`mutation($i: ProductPublishInput!) { productPublish(input: $i) { product { status publishedOnCurrentPublication } productPublications { isPublished product { id } } userErrors { message } } }`, { i: { id: ids.a, productPublications: [{ publicationId: 'gid://shopify/Publication/1' }] } })).productPublish;
     expect(rp).toEqual({ product: { status: 'ACTIVE', publishedOnCurrentPublication: true }, productPublications: [{ isPublished: true, product: { id: ids.a } }], userErrors: [] });
 

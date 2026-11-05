@@ -21,11 +21,12 @@ export function startDownload(href: string) {
 }
 
 /** "Export" button opening the export dialog: current page, everything or the selection, then the CSV flavour. */
-export function ExportButton({ kind, what, currentIds, selectedIds = [] }: { kind: ImportKind | 'orders' | 'draft_orders'; what?: string; /** Ids on the current page; enables the "current page" option (products and customers). */ currentIds?: string[]; selectedIds?: string[] }) {
+export function ExportButton({ kind, what, currentIds, selectedIds = [], query }: { kind: ImportKind | 'orders' | 'draft_orders'; what?: string; /** Ids on the current page; enables the "current page" option (products and customers). */ currentIds?: string[]; selectedIds?: string[]; /** The active search and filters; enables the "matching your search" option. */ query?: string }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const label = what ?? t(`export.noun.${kind}` as Key);
   const narrowable = kind === 'products' || kind === 'customers' || kind === 'orders' || kind === 'draft_orders';
+  const searched = !!query?.trim() && narrowable;
   const nums = (ids: string[]) => ids.map((i) => i.replace(/\D/g, '')).join(',');
   return (
     <>
@@ -34,14 +35,16 @@ export function ExportButton({ kind, what, currentIds, selectedIds = [] }: { kin
         key={String(open)} open={open} onClose={() => setOpen(false)} title={t('export.title', { what: label })} closeLabel={t('common.close')}
         description={t('export.description', { what: label })}
         scopeTitle={t('export.what')} defaultScope={selectedIds.length ? 'selected' : currentIds ? 'current' : 'all'}
+        footnote={<span className="flex flex-col gap-1"><a href="https://github.com/aymaneprojects/shopme#readme" target="_blank" rel="noreferrer" className="text-accent hover:underline">{t('bp.export.helpFormat')}</a><a href="https://github.com/aymaneprojects/shopme#readme" target="_blank" rel="noreferrer" className="text-accent hover:underline">{t('bp.export.helpImport')}</a></span>}
         scopes={[
           ...(currentIds && narrowable ? [{ key: 'current', label: t('export.current') }] : []),
           { key: 'all', label: t('export.all', { what: label }) },
+          ...(searched ? [{ key: 'search', label: t('bp.export.matching') }] : []),
           ...(narrowable ? [{ key: 'selected', label: t('export.selected', { n: selectedIds.length }), disabled: selectedIds.length === 0 }] : []),
         ]}
         formatTitle={t('export.format')} formats={[{ key: 'sheet', label: t('export.formatSheet') }, { key: 'plain', label: t('export.formatPlain') }]}
         confirmLabel={t('export.confirm', { what: label })} cancelLabel={t('common.cancel')}
-        onExport={(scope) => startDownload(exportHref(kind, scope === 'selected' ? { ids: nums(selectedIds) } : scope === 'current' ? { ids: nums(currentIds ?? []) } : {}))}
+        onExport={(scope) => startDownload(exportHref(kind, scope === 'selected' ? { ids: nums(selectedIds) } : scope === 'current' ? { ids: nums(currentIds ?? []) } : scope === 'search' ? { query } : {}))}
       />
     </>
   );

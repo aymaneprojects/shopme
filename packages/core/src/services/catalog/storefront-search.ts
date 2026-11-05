@@ -1,6 +1,7 @@
 import { and, eq, sql, type SQL } from 'drizzle-orm';
 import { articles, blogs, pages, products } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
+import { productListedOnStorefront } from './publications';
 
 /**
  * Storefront search: PostgreSQL full-text (`tsvector`, `simple` config, GIN index `products_fts_idx`) ranked by field weight
@@ -39,7 +40,7 @@ async function rankedProducts(db: Executor, shopId: number, tokens: string[], ra
   // Title phrase at the start of a word (prefix matching only): "espres" finds "House Espresso Blend", "ssion" does not.
   const wordStart = prefix === 'last' ? sql`(lower(${products.title}) like ${`${esc(phrase)}%`} or lower(${products.title}) like ${`% ${esc(phrase)}%`})` : sql`false`;
   const rows = await db.select({ id: products.id }).from(products).where(and(
-    eq(products.shopId, shopId), eq(products.status, 'ACTIVE'),
+    eq(products.shopId, shopId), productListedOnStorefront,
     sql`(${plainVec} @@ ${q} or ${tagsVec} @@ ${q} or ${wordStart}
       or exists (select 1 from product_variants v where v.product_id = ${products.id} and lower(v.sku) = ${phrase}))`,
   )).orderBy(sql`(ts_rank(${rankVec}, ${q}) + case when ${wordStart} then 1 else 0 end + case when lower(${products.title}) = ${phrase} then 2 else 0 end) desc`, products.id).limit(limit);
@@ -49,7 +50,7 @@ async function rankedProducts(db: Executor, shopId: number, tokens: string[], ra
 /* ------------------------------ typo tolerance ------------------------------ */
 
 const rowsOf = <T>(r: unknown): T[] => ((r as { rows?: T[] }).rows ?? (r as T[]));
-const vocabSql = (shopId: number) => sql`select distinct lower(regexp_split_to_table(coalesce(title,'') || ' ' || coalesce(vendor,'') || ' ' || coalesce(product_type,'') || ' ' || array_to_string(tags, ' '), '[^[:alnum:]]+')) as w from products where shop_id = ${shopId} and status = 'ACTIVE'`;
+const vocabSql = (shopId: number) => sql`select distinct lower(regexp_split_to_table(coalesce(title,'') || ' ' || coalesce(vendor,'') || ' ' || coalesce(product_type,'') || ' ' || array_to_string(tags, ' '), '[^[:alnum:]]+')) as w from products where shop_id = ${shopId} and status = 'ACTIVE' and online_store_published_at is not null and online_store_published_at <= now()`;
 
 const vocabCache = new Map<number, { at: number; words: string[] }>();
 /** Distinct lowercase words of titles, vendors, types and tags of active products (cached for 30s). */

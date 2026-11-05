@@ -25,6 +25,7 @@ import { enShipping } from './en-shipping';
 import { enTransfers } from './en-transfers';
 import { enMetaobjects } from './en-metaobjects';
 import { enMarkets } from './en-markets';
+import { enBtnProducts } from './en-btn-products';
 export const en = {
   'common.back': 'Back', 'common.cancel': 'Cancel', 'common.close': 'Close', 'common.delete': 'Delete', 'common.loading': 'Loading…',
   'common.moreActions': 'More actions', 'common.next': 'Next', 'common.previous': 'Previous', 'common.remove': 'Remove',
@@ -138,6 +139,7 @@ export const en = {
   ...enTransfers,
   ...enDiscountCodes,
   ...enMarkets,
+  ...enBtnProducts,
   ...enPrivacy,
 } as const;
 

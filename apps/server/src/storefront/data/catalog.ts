@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm';
-import { isIdentity, priceVariants, schema as s, searchProducts, type Db, type MarketContext } from '@shopme/core';
+import { isIdentity, priceVariants, productListedOnStorefront, productReachableOnStorefront, schema as s, searchProducts, type Db, type MarketContext } from '@shopme/core';
 import { loadMetafields } from './metafields';
 import type { Image, ProductObject, VariantObject } from './types';
 
@@ -103,7 +103,7 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
 
 /** `includeInactive` lets signed-in staff preview drafts and archived products. */
 export async function getProductByHandle(db: Db, shopId: number, handle: string, opts: { selectedVariantId?: number; includeInactive?: boolean; pricing?: MarketContext } = {}): Promise<ProductObject | null> {
-  const [p] = await db.select({ id: s.products.id }).from(s.products).where(and(eq(s.products.shopId, shopId), eq(s.products.handle, handle), opts.includeInactive ? undefined : eq(s.products.status, 'ACTIVE'))).limit(1);
+  const [p] = await db.select({ id: s.products.id }).from(s.products).where(and(eq(s.products.shopId, shopId), eq(s.products.handle, handle), opts.includeInactive ? undefined : productReachableOnStorefront)).limit(1);
   return p ? (await loadProducts(db, shopId, [p.id], opts))[0] ?? null : null;
 }
 
@@ -122,7 +122,7 @@ export interface ListOptions { sort?: SortKey; tag?: string; filters?: Record<st
 interface Candidate { id: number; title: string; vendor: string; type: string; tags: string[]; createdAt: Date; pos: number; priceMin: number; priceMax: number; available: boolean; options: Map<string, string[]> }
 
 async function candidates(db: Db, shopId: number, scope: ListScope, wantOptions: boolean, corrected: { value: string | null }): Promise<Candidate[]> {
-  const conds: SQL[] = [eq(s.products.shopId, shopId), eq(s.products.status, 'ACTIVE')];
+  const conds: SQL[] = [eq(s.products.shopId, shopId), productListedOnStorefront];
   let rank: Map<number, number> | null = null;
   if (scope.q) {
     const found = await searchProducts(db, shopId, scope.q, { prefix: scope.prefix });
@@ -237,12 +237,12 @@ async function collectionImages(db: Db, mediaIds: number[]): Promise<Map<number,
 }
 
 async function collectionCounts(db: Db, shopId: number): Promise<Map<number, number>> {
-  const rows = await db.select({ id: s.collectionProducts.collectionId, n: sql<number>`count(*)::int` }).from(s.collectionProducts).innerJoin(s.products, eq(s.products.id, s.collectionProducts.productId)).where(and(eq(s.collectionProducts.shopId, shopId), eq(s.products.status, 'ACTIVE'))).groupBy(s.collectionProducts.collectionId);
+  const rows = await db.select({ id: s.collectionProducts.collectionId, n: sql<number>`count(*)::int` }).from(s.collectionProducts).innerJoin(s.products, eq(s.products.id, s.collectionProducts.productId)).where(and(eq(s.collectionProducts.shopId, shopId), productListedOnStorefront)).groupBy(s.collectionProducts.collectionId);
   return new Map(rows.map((r) => [r.id, r.n]));
 }
 
 export async function activeProductCount(db: Db, shopId: number): Promise<number> {
-  const [r] = await db.select({ n: sql<number>`count(*)::int` }).from(s.products).where(and(eq(s.products.shopId, shopId), eq(s.products.status, 'ACTIVE')));
+  const [r] = await db.select({ n: sql<number>`count(*)::int` }).from(s.products).where(and(eq(s.products.shopId, shopId), productListedOnStorefront));
   return r?.n ?? 0;
 }
 
@@ -256,13 +256,13 @@ function toBase(c: typeof s.collections.$inferSelect, images: Map<number, Image>
 export async function listCollections(db: Db, shopId: number): Promise<CollectionBase[]> {
   const rows = await db.select().from(s.collections).where(eq(s.collections.shopId, shopId)).orderBy(asc(s.collections.title));
   const [images, counts] = await Promise.all([collectionImages(db, rows.flatMap((r) => (r.imageMediaId ? [r.imageMediaId] : []))), collectionCounts(db, shopId)]);
-  return rows.filter((r) => !r.publishedAt || r.publishedAt <= new Date()).map((r) => toBase(r, images, counts));
+  return rows.filter((r) => !!r.publishedAt && r.publishedAt <= new Date()).map((r) => toBase(r, images, counts));
 }
 
 export async function getCollection(db: Db, shopId: number, handle: string): Promise<CollectionBase | null> {
   if (handle === 'all') return allCollection(await activeProductCount(db, shopId));
   const [c] = await db.select().from(s.collections).where(and(eq(s.collections.shopId, shopId), eq(s.collections.handle, handle))).limit(1);
-  if (!c || (c.publishedAt && c.publishedAt > new Date())) return null;
+  if (!c || !c.publishedAt || c.publishedAt > new Date()) return null;
   const [images, counts] = await Promise.all([collectionImages(db, c.imageMediaId ? [c.imageMediaId] : []), collectionCounts(db, shopId)]);
   return toBase(c, images, counts);
 }
