@@ -1,13 +1,15 @@
 name: Release desktop apps
 
-# Tag `v*` builds the installers and attaches them to a GitHub Release.
+# Installers are built only for a published version: a `v*` tag builds them and attaches them to a GitHub Release.
 # Manual runs build the same installers and keep them as workflow artifacts only.
 on:
   push:
     tags: ['v*']
-    branches: [main]
-    paths: ['apps/desktop/**', '.github/workflows/release.yml']
   workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
