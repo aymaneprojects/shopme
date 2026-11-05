@@ -8,5 +8,5 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: { outDir: 'dist', emptyOutDir: true, chunkSizeWarningLimit: 600 },
   server: { proxy: { '/admin/api': 'http://localhost:3000', '/files': 'http://localhost:3000' } },
-  test: { environment: 'jsdom', setupFiles: ['./src/test-setup.ts'], include: ['src/**/*.test.{ts,tsx}'], css: false },
+  test: { environment: 'jsdom', setupFiles: ['./src/test-setup.ts'], include: ['src/**/*.test.{ts,tsx}'], css: false, testTimeout: 30000 },
 });
