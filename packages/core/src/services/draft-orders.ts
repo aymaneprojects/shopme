@@ -188,7 +188,7 @@ export async function calculateDraftOrder(db: Executor, shop: Shop, input: Draft
   return okR({ draft, pricing, calc });
 }
 
-const draftSearch = (q: string | null | undefined) => buildSearch(q, {
+export const draftSearch = (q: string | null | undefined) => buildSearch(q, {
   fields: {
     id: (_o, v) => idTerm(draftOrders.id, v),
     name: (_o, v) => likeCi(draftOrders.name, v.replace(/^#/, '')),

@@ -442,7 +442,7 @@ export async function runScenario({ baseUrl, root }) {
       await admin.getByRole('row', { name: /#1001/ }).getByText('#1001').click();
       await admin.waitForURL(/\/admin\/orders\/\d+/);
       await admin.waitForTimeout(1000);
-      await vis(admin.getByText('Order #1001 placed online'));
+      await vis(admin.getByText('Order #1001 was placed online'));
       assert.match(await text(admin.locator('main')), /Taxes\s*€5\.10/);
       await shot('14-admin-order-pending');
     });

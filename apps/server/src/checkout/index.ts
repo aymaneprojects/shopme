@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   availablePaymentMethods, cleanAddress, findOrderIdByPayment, getDefaultAddress, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
-  orderVars, sendNotification, shippableCountries, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutError, type CheckoutView, type Shop,
+  orderVars, recordOrderEmail, sendNotification, shippableCountries, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutError, type CheckoutView, type Shop,
 } from '@shopme/core';
 import { createStripeGateway, readSetting, type StripeGateway } from '@shopme/payments';
 import type { AppContext } from '../context';
@@ -51,7 +51,10 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
   // --- emails (background jobs, retried by the queue) ---
   ctx.queue.register<{ shopId: number; orderId: number }>('order.confirmation-email', async ({ shopId, orderId }) => {
     const [shop, order] = await Promise.all([getShop(db, shopId), getOrderSummary(db, shopId, orderId)]);
-    if (shop && order?.order.email) await sendNotification(db, ctx.mailer, shop, config.appUrl, 'order_confirmation', order.order.email, orderVars(order, shop));
+    if (shop && order?.order.email) {
+      await sendNotification(db, ctx.mailer, shop, config.appUrl, 'order_confirmation', order.order.email, orderVars(order, shop));
+      await recordOrderEmail(db, shopId, orderId, 'order_confirmation', order.order.email);
+    }
   });
   ctx.queue.register<{ shopId: number; orderId: number }>('order.staff-email', async ({ shopId, orderId }) => {
     const [shop, order] = await Promise.all([getShop(db, shopId), getOrderSummary(db, shopId, orderId)]);

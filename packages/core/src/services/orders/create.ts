@@ -115,7 +115,9 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
       // Customer by email.
       const ship = input.shippingAddress ?? input.billingAddress;
       let [customer] = await tx.select().from(s.customers).where(and(eq(s.customers.shopId, shopId), eq(s.customers.email, email))).limit(1);
+      let createdCustomer = false;
       if (!customer) {
+        createdCustomer = true;
         [customer] = await tx.insert(s.customers).values({ shopId, email, firstName: ship?.firstName ?? null, lastName: ship?.lastName ?? null, phone: input.phone ?? ship?.phone ?? null, acceptsMarketing: !!input.acceptsMarketing }).returning();
       }
       await tx.update(s.customers).set({
@@ -187,9 +189,11 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
           .where(and(eq(s.giftCards.id, g.giftCardId), eq(s.giftCards.shopId, shopId), eq(s.giftCards.enabled, true), sql`${s.giftCards.balance} >= ${g.amount}`)).returning({ id: s.giftCards.id });
         if (!debited.length) throw new Abort({ ok: false, error: 'gift_card_unavailable' });
         await tx.insert(s.giftCardTransactions).values({ shopId, giftCardId: g.giftCardId, amount: -g.amount, orderId, note: `Order ${order!.name}` });
-        await tx.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'SUCCESS', gateway: 'gift_card', amount: g.amount, currency: input.currency, test: !!input.payment.test, processedAt: new Date() });
+        await tx.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'SUCCESS', gateway: 'gift_card', giftCardId: g.giftCardId, amount: g.amount, currency: input.currency, test: !!input.payment.test, processedAt: new Date() });
       }
       await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.created', message: `Order ${order!.name} placed online (${input.payment.gateway})`, data: { gateway: input.payment.gateway } });
+      if (createdCustomer) await addEvent(tx, shopId, { subjectType: 'customer', subjectId: customer!.id, verb: 'customers/create', message: 'Customer was created at checkout' });
+      await addEvent(tx, shopId, { subjectType: 'customer', subjectId: customer!.id, verb: 'customer.order_placed', message: `Placed order ${order!.name}`, data: { orderId, name: order!.name } });
       if (paid) await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.paid', message: 'Payment received' });
       return { ok: true as const, orderId, orderNumber, name: order!.name };
     });

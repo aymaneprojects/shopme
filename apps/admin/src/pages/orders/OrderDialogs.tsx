@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { gql, mutate } from '../../api';
 import type { MoneySet } from '../../components/shared';
-import { FULFILLMENT_CREATE, LOCATIONS, ORDER_CANCEL, ORDER_UPDATE } from '../../graphql';
+import { FULFILLMENT_CREATE, FULFILLMENT_ORDER_HOLD, FULFILLMENT_TRACKING_UPDATE, LOCATIONS, ORDER_CANCEL, ORDER_UPDATE } from '../../graphql';
 import { useT } from '../../i18n';
 import type { Key } from '../../i18n';
 
@@ -96,15 +96,15 @@ export function CancelDialog({ open, onClose, orderId, onDone }: { open: boolean
 
 export interface AddressValue { firstName: string | null; lastName: string | null; company: string | null; address1: string | null; address2: string | null; city: string | null; provinceCode: string | null; zip: string | null; countryCodeV2: string | null; phone: string | null }
 
-/** Edit the shipping address of an order (orderUpdate). */
-export function AddressDialog({ open, onClose, orderId, value, onDone }: { open: boolean; onClose: () => void; orderId: string; value: AddressValue | null; onDone: () => void }) {
+/** Edit the shipping or billing address of an order (orderUpdate). */
+export function AddressDialog({ open, onClose, orderId, value, onDone, kind = 'shipping' }: { open: boolean; onClose: () => void; orderId: string; value: AddressValue | null; onDone: () => void; kind?: 'shipping' | 'billing' }) {
   const t = useT();
   const [f, setF] = useState<Record<string, string>>(() => Object.fromEntries(Object.entries(value ?? {}).map(([k, v]) => [k, v ?? ''])));
   const set = (k: string) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   const run = useRun(() => { onDone(); onClose(); }, 'order.updated');
   const m = useMutation({
     mutationFn: () => mutate(ORDER_UPDATE, {
-      input: { id: orderId, shippingAddress: {
+      input: { id: orderId, [kind === 'billing' ? 'billingAddress' : 'shippingAddress']: {
         firstName: f.firstName || null, lastName: f.lastName || null, company: f.company || null, address1: f.address1 || null, address2: f.address2 || null,
         city: f.city || null, provinceCode: f.provinceCode || null, zip: f.zip || null, phone: f.phone || null, ...(f.countryCodeV2 && { countryCode: f.countryCodeV2.toUpperCase() }),
       } },
@@ -112,7 +112,7 @@ export function AddressDialog({ open, onClose, orderId, value, onDone }: { open:
     onSuccess: run.onSuccess, onError: run.onError,
   });
   return (
-    <Modal open={open} onClose={onClose} title={t('order.editAddress')} closeLabel={t('common.close')} wide
+    <Modal open={open} onClose={onClose} title={t(kind === 'billing' ? 'order.billingEdit' : 'order.shippingEdit')} closeLabel={t('common.close')} wide
       footer={<><Button onClick={onClose}>{t('common.cancel')}</Button><Button variant="primary" loading={m.isPending} onClick={() => m.mutate()}>{t('save.save')}</Button></>}>
       <div className="grid gap-3 sm:grid-cols-2">
         <Input label={t('order.addr.firstName')} value={f.firstName ?? ''} onChange={set('firstName')} />
@@ -125,6 +125,59 @@ export function AddressDialog({ open, onClose, orderId, value, onDone }: { open:
         <Input label={t('order.addr.province')} value={f.provinceCode ?? ''} onChange={set('provinceCode')} />
         <Input label={t('order.addr.country')} maxLength={2} value={f.countryCodeV2 ?? ''} onChange={set('countryCodeV2')} />
         <Input label={t('order.addr.phone')} className="sm:col-span-2" value={f.phone ?? ''} onChange={set('phone')} />
+      </div>
+    </Modal>
+  );
+}
+
+export interface FulfillmentValue { id: string; name: string; shopmeNotifyCustomer: boolean; trackingInfo: Array<{ company: string | null; number: string | null; url: string | null }> }
+
+/** Edit the tracking details of a fulfillment (fulfillmentTrackingInfoUpdate). */
+export function TrackingDialog({ open, onClose, fulfillment: f, onDone }: { open: boolean; onClose: () => void; fulfillment: FulfillmentValue; onDone: () => void }) {
+  const t = useT();
+  const first = f.trackingInfo[0];
+  const [company, setCompany] = useState(first?.company ?? ''); const [number, setNumber] = useState(first?.number ?? ''); const [url, setUrl] = useState(first?.url ?? '');
+  const [notify, setNotify] = useState(f.shopmeNotifyCustomer);
+  const run = useRun(() => { onDone(); onClose(); }, 'ful.trackingSaved');
+  const m = useMutation({
+    mutationFn: () => mutate(FULFILLMENT_TRACKING_UPDATE, {
+      fulfillmentId: f.id, notifyCustomer: notify,
+      trackingInfoInput: { company: company || null, numbers: number ? [number] : [], urls: url ? [url] : [] },
+    }, 'fulfillmentTrackingInfoUpdate'),
+    onSuccess: run.onSuccess, onError: run.onError,
+  });
+  return (
+    <Modal open={open} onClose={onClose} title={t('ful.trackingTitle', { name: f.name })} closeLabel={t('common.close')}
+      footer={<><Button onClick={onClose}>{t('common.cancel')}</Button><Button variant="primary" loading={m.isPending} onClick={() => m.mutate()}>{t('save.save')}</Button></>}>
+      <div className="grid gap-3">
+        <Input label={t('order.trackingCompany')} value={company} onChange={(e) => setCompany(e.target.value)} />
+        <Input label={t('order.trackingNumber')} value={number} onChange={(e) => setNumber(e.target.value)} />
+        <Input label={t('order.trackingUrl')} type="url" value={url} onChange={(e) => setUrl(e.target.value)} />
+        <Checkbox label={t('order.notifyCustomer')} checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+      </div>
+    </Modal>
+  );
+}
+
+export const HOLD_REASON_LIST = ['AWAITING_PAYMENT', 'HIGH_RISK_OF_FRAUD', 'INCORRECT_ADDRESS', 'INVENTORY_OUT_OF_STOCK', 'UNKNOWN_DELIVERY_DATE', 'AWAITING_RETURN_ITEMS', 'OTHER'] as const;
+
+/** Put the fulfillment of an order on hold, with a reason (fulfillmentOrderHold). */
+export function HoldDialog({ open, onClose, orderId, onDone }: { open: boolean; onClose: () => void; orderId: string; onDone: () => void }) {
+  const t = useT();
+  const [reason, setReason] = useState<string>('AWAITING_PAYMENT'); const [notes, setNotes] = useState('');
+  const run = useRun(() => { onDone(); onClose(); }, 'hold.held');
+  const m = useMutation({
+    mutationFn: () => mutate(FULFILLMENT_ORDER_HOLD, { id: orderId, fulfillmentHold: { reason, reasonNotes: notes || null } }, 'fulfillmentOrderHold'),
+    onSuccess: run.onSuccess, onError: run.onError,
+  });
+  return (
+    <Modal open={open} onClose={onClose} title={t('hold.title')} closeLabel={t('common.close')}
+      footer={<><Button onClick={onClose}>{t('common.cancel')}</Button><Button variant="primary" loading={m.isPending} onClick={() => m.mutate()}>{t('hold.confirm')}</Button></>}>
+      <div className="grid gap-3">
+        <Select label={t('hold.reason')} value={reason} onChange={(e) => setReason(e.target.value)}>
+          {HOLD_REASON_LIST.map((r) => <option key={r} value={r}>{t(`hold.reason.${r}` as Key)}</option>)}
+        </Select>
+        <Textarea label={t('hold.notes')} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
     </Modal>
   );

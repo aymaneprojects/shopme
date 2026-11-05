@@ -1,5 +1,5 @@
 import {
-  changeCustomerTags, countCustomers, createCustomer, customerStats, deleteCustomer, getCustomer, getDefaultAddress, listCustomerAddresses, listCustomers, listOrders, countOrders, updateCustomer,
+  addCustomerComment, listEvents, changeCustomerTags, countCustomers, createCustomer, customerStats, deleteCustomer, getCustomer, getDefaultAddress, listCustomerAddresses, listCustomers, listOrders, countOrders, updateCustomer,
   type CustomerInput as ServiceInput,
 } from '@shopme/core';
 import { parseId, toGid, type UserError } from '@shopme/shopify-compat';
@@ -10,7 +10,7 @@ import { definePayload } from '../types/errors';
 import { Count, MoneyV2, moneyV2 } from '../types/money';
 import { Node, legacyId, registerNode } from '../types/node';
 import { shopOf } from '../types/catalog';
-import { Customer_, CustomerConnection, MailingAddress, MailingAddressConnection, MailingAddressInput, OrderConnection, registerTaggable } from '../types/sales';
+import { CommentEvent, Customer_, CustomerConnection, EventConnection, EventSortKeys, type EventRow, MailingAddress, MailingAddressConnection, MailingAddressInput, OrderConnection, registerTaggable } from '../types/sales';
 import { paginateArray } from '../types/connection';
 import { Shop } from './shop';
 
@@ -60,6 +60,14 @@ Customer_.implement({
     addressesV2: t.field({
       type: MailingAddressConnection, args: ConnectionArgs,
       resolve: async (c, a, ctx) => paginateArray(a, await listCustomerAddresses(ctx.db, ctx.shopId, c.id, { reverse: !!a.reverse, offset: 0, limit: 250 })),
+    }),
+    hasTimelineComment: t.boolean({ resolve: async (c, _a, ctx) => (await listEvents(ctx.db, ctx.shopId, 'customer', c.id, 500)).some((e) => e.kind === 'comment') }),
+    events: t.field({
+      type: EventConnection, args: { ...ConnectionArgs, sortKey: t.arg({ type: EventSortKeys, defaultValue: 'ID' }), query: t.arg.string() },
+      resolve: async (c, a, ctx) => {
+        const rows = (await listEvents(ctx.db, ctx.shopId, 'customer', c.id, 500)) as EventRow[]; // newest first
+        return paginateArray({ ...a, reverse: false }, a.reverse ? rows : [...rows].reverse());
+      },
     }),
     orders: t.field({
       type: OrderConnection, args: { ...ConnectionArgs, sortKey: t.arg({ type: OrderSortKeysRef, defaultValue: 'ID' as never }), query: t.arg.string() },
@@ -130,7 +138,20 @@ const toService = (i: typeof CustomerInput.$inferInput): ServiceInput => ({
 });
 const prefixed = (errors: UserError[]): UserError[] => errors.map((e) => ({ ...e, field: ['input', ...(e.field ?? [])] }));
 
+const CommentPayload = definePayload<{ event: EventRow | null }>('CustomerTimelineCommentCreatePayload', (t) => ({ event: t.field({ type: CommentEvent, nullable: true, resolve: (p) => p.event }) }));
+
 builder.mutationFields((t) => ({
+  /** ShopMe extension: Shopify has no public API for staff timeline comments. */
+  customerTimelineCommentCreate: t.field({
+    type: CommentPayload, args: { id: t.arg.id({ required: true }), message: t.arg.string({ required: true }) },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_customers');
+      const id = parseId(String(a.id), 'Customer');
+      if (!id) return { event: null, userErrors: [{ field: ['id'], message: 'Customer does not exist' }] };
+      const r = await addCustomerComment(ctx.db, ctx.shopId, id, a.message, ctx.auth.kind === 'session' ? ctx.auth.user.id : null);
+      return r.ok ? { event: r.value as EventRow, userErrors: [] } : { event: null, userErrors: r.errors };
+    },
+  }),
   customerCreate: t.field({
     type: CreatePayload, args: { input: t.arg({ type: CustomerInput, required: true }) },
     resolve: async (_r, { input }, ctx) => {

@@ -3,7 +3,7 @@ import { customerAddresses, customers, orders } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { buildSearch, compare, dateCompare, idTerm, likeCi } from '../catalog/search';
 import { errR, normalizeTags, okR, txResult, type Result } from '../catalog/common';
-import { addEvent } from '../events';
+import { addComment, addEvent } from '../events';
 import { addressColumns, type AddressInput } from '../orders/orders';
 
 export type Customer = typeof customers.$inferSelect;
@@ -12,6 +12,11 @@ export type CustomerAddress = typeof customerAddresses.$inferSelect;
 export async function getCustomer(db: Executor, shopId: number, id: number): Promise<Customer | null> {
   const [r] = await db.select().from(customers).where(and(eq(customers.shopId, shopId), eq(customers.id, id))).limit(1);
   return r ?? null;
+}
+
+export async function addCustomerComment(db: Db, shopId: number, id: number, message: string, staffId: number | null) {
+  if (!(await getCustomer(db, shopId, id))) return errR(['id'], 'Customer does not exist');
+  return addComment(db, shopId, 'customer', id, message, staffId);
 }
 
 export function listCustomerAddresses(db: Executor, shopId: number, customerId: number, o: { reverse?: boolean; offset: number; limit: number }): Promise<CustomerAddress[]> {

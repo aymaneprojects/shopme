@@ -1,5 +1,5 @@
 import {
-  attemptDelivery, dueDeliveries, getShop, onEvent, orderEventMail, ORDER_EMAIL_VERBS, purgeOldDeliveries, recordDeliveries, sendNotification, shopUrl, topicsForVerb,
+  attemptDelivery, dueDeliveries, getShop, onEvent, orderEventMail, recordOrderEmail, ORDER_EMAIL_VERBS, purgeOldDeliveries, recordDeliveries, sendNotification, shopUrl, topicsForVerb,
   type EventRow,
 } from '@shopme/core';
 import type { AppContext } from './context';
@@ -30,7 +30,7 @@ export function registerOpsJobs(ctx: AppContext): () => void {
     const shop = await getShop(db, e.shopId);
     if (!shop || e.subjectId == null || !e.verb) return;
     const mail = await orderEventMail(db, shop, e.verb, e.subjectId, e.data);
-    if (mail) await sendNotification(db, ctx.mailer, shop, config.appUrl, mail.key, mail.to, mail.vars);
+    if (mail) { await sendNotification(db, ctx.mailer, shop, config.appUrl, mail.key, mail.to, mail.vars); await recordOrderEmail(db, e.shopId, e.subjectId, mail.key, mail.to); }
   });
   queue.every('webhook-sweep', 30_000, async () => {
     for (const d of await dueDeliveries(db)) queue.enqueue('webhook.deliver', { shopId: d.shopId, id: d.id });

@@ -24,7 +24,7 @@ export const ORDERS_COUNT = /* GraphQL */ `
 export const ORDER = /* GraphQL */ `
   query Order($id: ID!) {
     order(id: $id) {
-      id name createdAt email note tags cancelledAt closedAt displayFinancialStatus displayFulfillmentStatus
+      id name createdAt email note tags cancelledAt closedAt displayFinancialStatus displayFulfillmentStatus statusPageUrl
       lineItems(first: 100) {
         nodes {
           id title variantTitle sku quantity refundableQuantity unfulfilledQuantity
@@ -44,12 +44,12 @@ export const ORDER = /* GraphQL */ `
       billingAddress { ${ADDRESS} }
       shippingLines(first: 10) { nodes { title originalPriceSet { ${MONEY} } } }
       discountApplications(first: 10) { nodes { __typename ... on DiscountCodeApplication { code } } }
-      transactions { id kind status gateway createdAt amountSet { ${MONEY} } }
-      fulfillments { id status createdAt trackingInfo { company number url } }
+      transactions { id kind status gateway formattedGateway createdAt amountSet { ${MONEY} } }
+      fulfillments { id name status createdAt shopmeNotifyCustomer trackingInfo { company number url } fulfillmentLineItems(first: 50) { nodes { quantity lineItem { title variantTitle } } } }
+      shopmeFulfillmentHold { reason reasonNotes heldAt }
       refunds { id createdAt note totalRefundedSet { ${MONEY} } }
       customer { id displayName defaultEmailAddress { emailAddress } numberOfOrders }
-      events(first: 100) { nodes { ... on Node { id } message createdAt } }
-    }
+          }
   }
 `;
 
