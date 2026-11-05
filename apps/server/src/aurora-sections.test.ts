@@ -16,6 +16,7 @@ const SECTIONS: Record<string, unknown> = {
   divider: { type: 'divider', settings: { style: 'dashed' } },
   contact: { type: 'contact-form', settings: { show_phone: true } },
   newsletter: { type: 'newsletter', settings: {} },
+  popup: { type: 'popup', settings: { enabled: true, heading: 'Popup zq13' } },
   posts: { type: 'blog-posts', settings: { layout: 'carousel' } },
   product: { type: 'featured-product', settings: { product: 'house-espresso-blend' } },
   quotes: { type: 'testimonials', blocks: { a: { type: 'testimonial', settings: { quote: 'Quote zq8' } } }, block_order: ['a'] },

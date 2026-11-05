@@ -169,7 +169,7 @@ describe('discounts, settings, content and dashboard API', () => {
     expect(files.map((f: { filename: string }) => f.filename)).toEqual(['config/settings_data.json', 'snippets/hello.liquid']);
     expect(files[1]).toMatchObject({ contentType: 'text/x-liquid', body: { content: 'hi' } });
     const badJson = await g(`mutation { themeFilesUpsert(themeId: "${themes[0].id}", files: [{ filename: "config/settings_data.json", body: { type: TEXT, value: "{oops" } }]) { userErrors { filename code } } }`);
-    expect(badJson.themeFilesUpsert.userErrors).toEqual([{ filename: null, code: 'INVALID' }]);
+    expect(badJson.themeFilesUpsert.userErrors).toEqual([{ filename: 'config/settings_data.json', code: 'INVALID' }]);
     const outside = await g(`mutation { themeFilesUpsert(themeId: "${themes[0].id}", files: [{ filename: "../x.liquid", body: { type: TEXT, value: "" } }]) { userErrors { code } } }`);
     expect(outside.themeFilesUpsert.userErrors[0].code).toBe('INVALID');
 
