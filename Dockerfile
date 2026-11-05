@@ -7,7 +7,6 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY apps ./apps
 COPY packages ./packages
-COPY scripts/re/package.json ./scripts/re/package.json
 RUN pnpm install --frozen-lockfile
 RUN pnpm turbo run build
 # Production dependencies of the server only (workspace packages are bundled into dist).
