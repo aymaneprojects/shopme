@@ -18,6 +18,7 @@ import { frEditor } from './fr-editor';
 import { frDiscountCodes } from './fr-discount-codes';
 import { frTimeline } from './fr-timeline';
 import { frQaStore } from './fr-qa-store';
+import { frQaSettings } from './fr-qa-settings';
 import { frShipping } from './fr-shipping';
 import { frTransfers } from './fr-transfers';
 import { frMetaobjects } from './fr-metaobjects';
@@ -129,6 +130,7 @@ export const fr: Record<Key, string> = {
   ...frQaCatalog,
   ...frCheckout,
   ...frQaStore,
+  ...frQaSettings,
   ...frTransfers,
   ...frDiscountCodes,
   ...frMarkets,

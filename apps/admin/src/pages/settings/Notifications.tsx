@@ -13,6 +13,8 @@ import { ShopPanel, useShopSettings } from './Settings';
 
 interface Template { key: string; name: string; description: string; audience: 'customer' | 'staff'; subject: string; body: string; customized: boolean; enabled: boolean; toggleable: boolean }
 const useTemplates = () => useQuery({ queryKey: ['notification-templates'], queryFn: () => gql<{ shopmeNotificationTemplates: Template[] }>(NOTIFICATION_TEMPLATES) });
+/** Localized template name or description; falls back to the text the server sends. */
+const tplText = (t: (k: Key) => string, key: string, part: 'name' | 'desc', fallback: string) => { const k = `notif.tpl.${key}.${part}` as Key; const v = t(k); return v === k || !v ? fallback : v; };
 const errText = (e: unknown) => (e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : (e as Error).message);
 
 /** Sender name and address used for outgoing emails. */
@@ -59,6 +61,8 @@ export function NotificationsSettings() {
       <RowCard>
         <LinkRow to="/settings/notifications/customer" icon={Bell} title={t('notif.customerTitle')} description={t('notif.customerDesc')} />
         <LinkRow to="/settings/notifications/staff" icon={Users} title={t('notif.staffTitle')} description={t('notif.staffDesc')} />
+      </RowCard>
+      <RowCard>
         <LinkRow to="/settings/webhooks" icon={Webhook} title={t('settings.webhooks')} description={t('notif.webhooksDesc')} />
       </RowCard>
       <Sender />
@@ -83,11 +87,11 @@ function NotificationRow({ n }: { n: Template }) {
   const on = toggle.isPending ? !!toggle.variables : n.enabled;
   return (
     <div className="flex items-center hover:bg-hover">
-      <Link to={`/settings/notifications/${encodeURIComponent(n.key)}`} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3">
-        <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium">{n.name}{n.customized ? ' •' : ''}</span><span className="block text-[13px] text-muted">{n.description}</span></span>
-        {!n.toggleable && <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden />}
+      <Link to={`/settings/notifications/${encodeURIComponent(n.key)}`} className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4">
+        <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium">{tplText(t, n.key, 'name', n.name)}{n.customized ? ' •' : ''}</span><span className="block text-[13px] text-muted">{tplText(t, n.key, 'desc', n.description)}</span></span>
       </Link>
-      {n.toggleable && <div className="shrink-0 pr-4"><Switch checked={on} onChange={(v) => toggle.mutate(v)} label={<span className="sr-only">{`${t('notif.enabled')}: ${n.name}`}</span>} /></div>}
+      {n.toggleable && <div className="shrink-0 pl-2"><Switch checked={on} onChange={(v) => toggle.mutate(v)} label={<span className="sr-only">{`${t('notif.enabled')}: ${tplText(t, n.key, 'name', n.name)}`}</span>} /></div>}
+      <Link to={`/settings/notifications/${encodeURIComponent(n.key)}`} tabIndex={-1} aria-hidden className="shrink-0 py-3 pl-3 pr-4"><ChevronRight className="size-4 text-muted" /></Link>
     </div>
   );
 }
@@ -152,7 +156,7 @@ function AudiencePage({ audience }: { audience: 'customer' | 'staff' }) {
   const first = all[0];
   return (
     <>
-      <SubHeader back="/settings/notifications" parent={t('settings.notifications')} title={t(audience === 'customer' ? 'notif.customerTitle' : 'notif.staffTitle')}
+      <SubHeader back="/settings/notifications" parent={t('settings.notifications')} title={t(audience === 'customer' ? 'notif.customerPageTitle' : 'notif.staffPageTitle')}
         actions={first && <Button onClick={() => navigate(`/settings/notifications/${encodeURIComponent(first.key)}`)}>{t('notif.customizeTemplates')}</Button>} />
       {q.isLoading && <Skeleton className="h-48" />}
       {q.error && <Banner>{q.error.message}</Banner>}
@@ -206,7 +210,7 @@ function TemplateForm({ tpl }: { tpl: Template }) {
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm({ subject: tpl.subject, body: tpl.body }); setError(null); }} />
       <SubHeader
-        back={`/settings/notifications/${tpl.audience}`} parent={t(tpl.audience === 'customer' ? 'notif.customerTitle' : 'notif.staffTitle')} title={tpl.name}
+        back={`/settings/notifications/${tpl.audience}`} parent={t(tpl.audience === 'customer' ? 'notif.customerTitle' : 'notif.staffTitle')} title={tplText(t, tpl.key, 'name', tpl.name)}
         actions={<>
           {editing && <Button disabled={!tpl.customized} onClick={() => setConfirm(true)}>{t('notif.reset')}</Button>}
           <Button onClick={() => setTest(shop.data?.shop.email ?? '')}>{t('notif.sendTest')}</Button>

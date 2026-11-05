@@ -25,7 +25,7 @@ export function SettingsLayout() {
       <div className={cx('mx-auto w-full', wide ? 'max-w-[900px]' : 'max-w-[680px]')}>
         {section && (
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-xl font-semibold leading-8">{section.id === 'users' ? t('users.title') : t(section.key)}</h1>
+            <h1 className="text-xl font-semibold leading-8">{section.id === 'users' ? t('users.title') : section.id === 'checkout' ? t('checkout.pageTitle') : t(section.key)}</h1>
             <div ref={setSlot} className="flex items-center gap-2" />
           </div>
         )}
@@ -116,7 +116,7 @@ export function GeneralSettings() {
           <Section title={t('settings.password')}><Card>
             <div className="flex flex-col gap-3">
               <p className="text-[13px] text-muted">{t('settings.passwordHelp')}</p>
-              <Switch checked={f.storefrontPasswordEnabled} onChange={(v) => set({ storefrontPasswordEnabled: v })} label={t('settings.passwordEnable')} />
+              <Switch placement="end" checked={f.storefrontPasswordEnabled} onChange={(v) => set({ storefrontPasswordEnabled: v })} label={t('settings.passwordEnable')} />
               {f.storefrontPasswordEnabled && <Input className="max-w-sm" label={t('field.password')} value={f.storefrontPassword} onChange={(e) => set({ storefrontPassword: e.target.value })} />}
             </div>
           </Card></Section>
@@ -182,8 +182,8 @@ export function TaxToggles() {
       {(f, set) => (
         <Section title={t('settings.taxOptions')}><Card>
           <div className="flex flex-col gap-3">
-            <Switch label={t('settings.taxesIncluded')} checked={f.taxesIncluded} onChange={(v) => set({ taxesIncluded: v })} />
-            <Switch label={t('settings.taxShipping')} checked={f.taxShipping} onChange={(v) => set({ taxShipping: v })} />
+            <Switch placement="end" label={t('settings.taxesIncluded')} checked={f.taxesIncluded} onChange={(v) => set({ taxesIncluded: v })} />
+            <Switch placement="end" label={t('settings.taxShipping')} checked={f.taxShipping} onChange={(v) => set({ taxShipping: v })} />
           </div>
         </Card></Section>
       )}

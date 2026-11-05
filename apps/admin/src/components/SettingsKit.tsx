@@ -1,6 +1,6 @@
 import { cx } from '@shopme/ui';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
-import { createContext, useContext } from 'react';
+import { ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
+import { createContext, useContext, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
@@ -47,7 +47,7 @@ function RowBody({ icon: Icon, title, description, trailing, chevron }: RowProps
 }
 const rowCls = 'flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover';
 export const LinkRow = ({ to, ...p }: RowProps & { to: string }) => <Link to={to} className={rowCls}><RowBody {...p} chevron /></Link>;
-export const ButtonRow = ({ onClick, ...p }: RowProps & { onClick: () => void }) => <button type="button" onClick={onClick} className={rowCls}><RowBody {...p} chevron /></button>;
+export const ButtonRow = ({ onClick, chevron = true, ...p }: RowProps & { onClick: () => void; chevron?: boolean }) => <button type="button" onClick={onClick} className={rowCls}><RowBody {...p} chevron={chevron} /></button>;
 
 /** Header of a settings sub-page: round back button with the parent name, then the large title; actions go on the right. */
 export function SubHeader({ back, parent, title, actions }: { back: string; parent: ReactNode; title: ReactNode; actions?: ReactNode }) {
@@ -60,6 +60,21 @@ export function SubHeader({ back, parent, title, actions }: { back: string; pare
         <div className="ml-auto flex items-center gap-2">{actions}</div>
       </div>
       <h1 className="text-xl font-semibold leading-8">{title}</h1>
+    </div>
+  );
+}
+
+/** Row of a settings card that opens in place: title and description on the left, summary and chevron on the right. */
+export function CollapseRow({ title, description, summary, defaultOpen, children }: { title: ReactNode; description?: ReactNode; summary?: ReactNode; defaultOpen?: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <div>
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover">
+        <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium">{title}</span>{description && <span className="block text-[13px] text-muted">{description}</span>}</span>
+        {summary && <span className="shrink-0 text-[13px] text-muted">{summary}</span>}
+        <ChevronDown className={cx('size-4 shrink-0 text-muted transition-transform', open && 'rotate-180')} aria-hidden />
+      </button>
+      {open && <div className="px-3 pb-3">{children}</div>}
     </div>
   );
 }

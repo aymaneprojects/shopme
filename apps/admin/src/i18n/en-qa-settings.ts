@@ -1,0 +1,22 @@
+// Settings review: page titles and localized notification template names.
+export const enQaSettings = {
+  'checkout.pageTitle': 'Checkout', 'notif.customerPageTitle': 'Customer notifications', 'notif.staffPageTitle': 'Staff notifications',
+  'delivery.shipping': 'Shipping', 'delivery.profilesCount': '{n} profiles', 'delivery.profilesCount.one': '{n} profile',
+  'loc.addShort': 'Location', 'loc.col.location': 'Location',
+  'notif.tpl.order_confirmation.name': 'Order confirmation', 'notif.tpl.order_confirmation.desc': 'Sent when a customer places an order',
+  'notif.tpl.shipping_confirmation.name': 'Shipping confirmation', 'notif.tpl.shipping_confirmation.desc': 'Sent when you mark an order as fulfilled',
+  'notif.tpl.shipping_update.name': 'Shipping update', 'notif.tpl.shipping_update.desc': 'Sent when the tracking of a shipment changes',
+  'notif.tpl.order_cancelled.name': 'Order cancelled', 'notif.tpl.order_cancelled.desc': 'Sent when an order is cancelled and the customer is notified',
+  'notif.tpl.refund.name': 'Refund', 'notif.tpl.refund.desc': 'Sent when a refund is issued and the customer is notified',
+  'notif.tpl.draft_order_invoice.name': 'Draft order invoice', 'notif.tpl.draft_order_invoice.desc': 'Sent when you send the invoice of a draft order',
+  'notif.tpl.customer_account_welcome.name': 'Customer account welcome', 'notif.tpl.customer_account_welcome.desc': 'Sent to a customer after they create an account',
+  'notif.tpl.customer_account_invite.name': 'Customer account invite', 'notif.tpl.customer_account_invite.desc': 'Invites a customer to activate their account',
+  'notif.tpl.password_reset.name': 'Password reset', 'notif.tpl.password_reset.desc': 'Sent when a customer asks to reset their password',
+  'notif.tpl.gift_card_issued.name': 'Gift card', 'notif.tpl.gift_card_issued.desc': 'Sent to the recipient when a gift card is issued',
+  'notif.tpl.store_credit_account_credit.name': 'Store credit issued', 'notif.tpl.store_credit_account_credit.desc': 'Sent when store credit is added to an account',
+  'notif.tpl.abandoned_checkout.name': 'Abandoned checkout', 'notif.tpl.abandoned_checkout.desc': 'Sent to a customer who left items in their checkout',
+  'notif.tpl.staff_new_order.name': 'New order', 'notif.tpl.staff_new_order.desc': 'Sent to your team when an order is placed',
+  'notif.tpl.contact_form.name': 'Contact form', 'notif.tpl.contact_form.desc': 'Sent to the shop email when a visitor submits the contact form',
+  'notif.tpl.staff_invite.name': 'Staff invitation', 'notif.tpl.staff_invite.desc': 'Sent when you invite someone to your admin',
+  'notif.tpl.staff_login_alert.name': 'Staff sign-in alert', 'notif.tpl.staff_login_alert.desc': 'Sent to a staff member when their account signs in',
+} as const;

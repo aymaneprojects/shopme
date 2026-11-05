@@ -224,7 +224,7 @@ export function ShippingProfilePage() {
             {error && <Banner>{error}</Banner>}
             <Input label={t('delivery.rateName')} value={option.name} onChange={(e) => setOption({ ...option, name: e.target.value })} />
             <Input label={t('delivery.rateDescription')} help={t('delivery.rateDescriptionHelp')} value={option.description} onChange={(e) => setOption({ ...option, description: e.target.value })} />
-            <Switch checked={option.active} onChange={(v) => setOption({ ...option, active: v })} label={t('delivery.rateActive')} />
+            <Switch placement="end" checked={option.active} onChange={(v) => setOption({ ...option, active: v })} label={t('delivery.rateActive')} />
             <div className="rounded-lg bg-hover p-4" aria-label={t('delivery.preview')}>
               <p className="mb-2 text-xs text-muted">{t('delivery.preview')}</p>
               <div className="flex items-center gap-3 rounded-lg bg-canvas px-3 py-2 text-[13px] shadow-card">
@@ -256,7 +256,7 @@ export function ShippingProfilePage() {
                       <Input label={c.cond === 'weight' ? t('delivery.maxWeight', { unit }) : t('delivery.maxPrice', { currency: shop.currency })} inputMode="decimal" value={c.max} onChange={(e) => set({ max: e.target.value })} />
                     </div>
                   )}
-                  <Switch checked={c.freeOn} onChange={(v) => set({ freeOn: v })} label={t('delivery.offerFree')} />
+                  <Switch placement="end" checked={c.freeOn} onChange={(v) => set({ freeOn: v })} label={t('delivery.offerFree')} />
                   {c.freeOn && <Input label={`${t('delivery.freeMinimum')} (${shop.currency})`} inputMode="decimal" value={c.freeOver} onChange={(e) => set({ freeOver: e.target.value })} error={problem === 'free' ? t('delivery.errPrice') : undefined} />}
                 </fieldset>
               );
