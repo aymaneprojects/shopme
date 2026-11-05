@@ -1,5 +1,5 @@
 {
-  "id": "89fe04af-c063-4081-9229-e3b019979a2f",
+  "id": "3cc5e799-bb91-402f-9a5a-c2503b141f7c",
   "prevId": "22bf9688-fc81-4a4c-b02b-171f8ba48bc4",
   "version": "7",
   "dialect": "postgresql",
@@ -9138,6 +9138,12 @@
           "type": "bigint",
           "primaryKey": false,
           "notNull": true
+        },
+        "shop_id": {
+          "name": "shop_id",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -9161,6 +9167,19 @@
           "tableTo": "locations",
           "columnsFrom": [
             "location_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "delivery_location_group_locations_shop_id_shops_id_fk": {
+          "name": "delivery_location_group_locations_shop_id_shops_id_fk",
+          "tableFrom": "delivery_location_group_locations",
+          "tableTo": "shops",
+          "columnsFrom": [
+            "shop_id"
           ],
           "columnsTo": [
             "id"

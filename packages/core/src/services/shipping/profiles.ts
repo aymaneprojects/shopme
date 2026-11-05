@@ -29,7 +29,7 @@ export async function ensureGeneralProfile(db: Executor, shopId: number): Promis
   if (!p) return (await find())!;
   const [g] = await db.insert(deliveryLocationGroups).values({ shopId, profileId: p.id }).returning({ id: deliveryLocationGroups.id });
   const locs = await db.select({ id: locations.id }).from(locations).where(and(eq(locations.shopId, shopId), eq(locations.isActive, true), eq(locations.fulfillsOnlineOrders, true)));
-  if (locs.length) await db.insert(deliveryLocationGroupLocations).values(locs.map((l) => ({ groupId: g!.id, locationId: l.id })));
+  if (locs.length) await db.insert(deliveryLocationGroupLocations).values(locs.map((l) => ({ shopId, groupId: g!.id, locationId: l.id })));
   return p.id;
 }
 
@@ -37,7 +37,7 @@ export async function ensureGeneralProfile(db: Executor, shopId: number): Promis
 export async function addLocationToGeneralProfile(db: Executor, shopId: number, locationId: number): Promise<void> {
   const profileId = await ensureGeneralProfile(db, shopId);
   const [g] = await db.select({ id: deliveryLocationGroups.id }).from(deliveryLocationGroups).where(eq(deliveryLocationGroups.profileId, profileId)).orderBy(asc(deliveryLocationGroups.id)).limit(1);
-  if (g) await db.insert(deliveryLocationGroupLocations).values({ groupId: g.id, locationId }).onConflictDoNothing();
+  if (g) await db.insert(deliveryLocationGroupLocations).values({ shopId, groupId: g.id, locationId }).onConflictDoNothing();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -263,12 +263,12 @@ async function applyGroup(tx: Executor, shopId: number, groupId: number, g: Grou
     const r = await setLocs(g.locations, [...path, 'locations']);
     if (!r.ok) return r;
     await tx.delete(deliveryLocationGroupLocations).where(eq(deliveryLocationGroupLocations.groupId, groupId));
-    if (r.value.length) await tx.insert(deliveryLocationGroupLocations).values(r.value.map((locationId) => ({ groupId, locationId })));
+    if (r.value.length) await tx.insert(deliveryLocationGroupLocations).values(r.value.map((locationId) => ({ shopId, groupId, locationId })));
   }
   if (g.locationsToAdd?.length) {
     const r = await setLocs(g.locationsToAdd, [...path, 'locationsToAdd']);
     if (!r.ok) return r;
-    if (r.value.length) await tx.insert(deliveryLocationGroupLocations).values(r.value.map((locationId) => ({ groupId, locationId }))).onConflictDoNothing();
+    if (r.value.length) await tx.insert(deliveryLocationGroupLocations).values(r.value.map((locationId) => ({ shopId, groupId, locationId }))).onConflictDoNothing();
   }
   if (g.locationsToRemove?.length) await tx.delete(deliveryLocationGroupLocations).where(and(eq(deliveryLocationGroupLocations.groupId, groupId), inArray(deliveryLocationGroupLocations.locationId, g.locationsToRemove)));
   for (const [i, z] of (g.zonesToCreate ?? []).entries()) { const r = await createZone(tx, shopId, groupId, z, [...path, 'zonesToCreate', String(i)]); if (!r.ok) return r; }

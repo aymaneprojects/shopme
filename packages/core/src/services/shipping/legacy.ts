@@ -78,7 +78,7 @@ async function generalGroup(db: Executor, shopId: number): Promise<{ profileId: 
   if (g) return { profileId, groupId: g.id };
   const [row] = await db.insert(deliveryLocationGroups).values({ shopId, profileId }).returning({ id: deliveryLocationGroups.id });
   const locs = await db.select({ id: locations.id }).from(locations).where(and(eq(locations.shopId, shopId), eq(locations.isActive, true), eq(locations.fulfillsOnlineOrders, true)));
-  if (locs.length) await db.insert(deliveryLocationGroupLocations).values(locs.map((l) => ({ groupId: row!.id, locationId: l.id })));
+  if (locs.length) await db.insert(deliveryLocationGroupLocations).values(locs.map((l) => ({ shopId, groupId: row!.id, locationId: l.id })));
   return { profileId, groupId: row!.id };
 }
 

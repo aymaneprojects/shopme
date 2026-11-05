@@ -12,6 +12,7 @@ CREATE TABLE "delivery_conditions" (
 CREATE TABLE "delivery_location_group_locations" (
 	"group_id" bigint NOT NULL,
 	"location_id" bigint NOT NULL,
+	"shop_id" bigint NOT NULL,
 	CONSTRAINT "delivery_location_group_locations_group_id_location_id_pk" PRIMARY KEY("group_id","location_id")
 );
 --> statement-breakpoint
@@ -123,6 +124,7 @@ ALTER TABLE "delivery_conditions" ADD CONSTRAINT "delivery_conditions_shop_id_sh
 ALTER TABLE "delivery_conditions" ADD CONSTRAINT "delivery_conditions_method_id_delivery_method_definitions_id_fk" FOREIGN KEY ("method_id") REFERENCES "public"."delivery_method_definitions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "delivery_location_group_locations" ADD CONSTRAINT "delivery_location_group_locations_group_id_delivery_location_groups_id_fk" FOREIGN KEY ("group_id") REFERENCES "public"."delivery_location_groups"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "delivery_location_group_locations" ADD CONSTRAINT "delivery_location_group_locations_location_id_locations_id_fk" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "delivery_location_group_locations" ADD CONSTRAINT "delivery_location_group_locations_shop_id_shops_id_fk" FOREIGN KEY ("shop_id") REFERENCES "public"."shops"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "delivery_location_groups" ADD CONSTRAINT "delivery_location_groups_shop_id_shops_id_fk" FOREIGN KEY ("shop_id") REFERENCES "public"."shops"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "delivery_location_groups" ADD CONSTRAINT "delivery_location_groups_profile_id_delivery_profiles_id_fk" FOREIGN KEY ("profile_id") REFERENCES "public"."delivery_profiles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "delivery_method_definitions" ADD CONSTRAINT "delivery_method_definitions_shop_id_shops_id_fk" FOREIGN KEY ("shop_id") REFERENCES "public"."shops"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -154,8 +156,8 @@ INSERT INTO "delivery_profiles" ("shop_id", "name", "is_default") SELECT "id", '
 --> statement-breakpoint
 INSERT INTO "delivery_location_groups" ("shop_id", "profile_id") SELECT "shop_id", "id" FROM "delivery_profiles" WHERE "is_default";
 --> statement-breakpoint
-INSERT INTO "delivery_location_group_locations" ("group_id", "location_id")
-  SELECT g."id", l."id" FROM "delivery_location_groups" g JOIN "locations" l ON l."shop_id" = g."shop_id" WHERE l."fulfills_online_orders" AND l."is_active";
+INSERT INTO "delivery_location_group_locations" ("shop_id", "group_id", "location_id")
+  SELECT g."shop_id", g."id", l."id" FROM "delivery_location_groups" g JOIN "locations" l ON l."shop_id" = g."shop_id" WHERE l."fulfills_online_orders" AND l."is_active";
 --> statement-breakpoint
 INSERT INTO "delivery_zones" ("id", "shop_id", "group_id", "name")
   SELECT z."id", z."shop_id", g."id", z."name" FROM "shipping_zones" z

@@ -1,6 +1,15 @@
 # Shipping profiles and delivery
 
-Status: draft for implementation. API version studied: 2026-10. Names are listed for interoperability; behavior text is ours.
+Status: MVP implemented (profiles, location groups, zones, rates with conditions and free-over thresholds, checkout selection across
+profiles, local pickup with the order pickup flow, local delivery by postal codes, packages, admin screens, `/cart/shipping_rates.json`,
+migration of existing zones). Not built yet, in this order: market shipping option editor and collection-scoped rates (section 4.2),
+local delivery by radius, carrier-calculated rates and the provider interfaces (section 6), shipping labels, delivery date estimates,
+order routing rules, documents, fulfillment services, delivery customizations, pickup of items not stocked at the location, pickup
+notifications, `deliverySettingUpdate`/`deliveryShippingOriginAssign`, `Market.delivery`, `variant.store_availabilities`.
+Differences from the plan: tables `carrier_services` and `shipping_labels` are not created yet; `delivery_location_group_locations` has a
+`shop_id` column (store export needs it); pickup and local delivery progress live in `order_deliveries` (`method_type`, `location_id`,
+`pickup_ready_at`, `picked_up_at`) instead of a column on `order_shipping_lines`; the old `shipping_*` tables stay for one release.
+API version studied: 2026-10. Names are listed for interoperability; behavior text is ours.
 Admin screens were observed on our own development store (section 3).
 
 ## 1. Purpose

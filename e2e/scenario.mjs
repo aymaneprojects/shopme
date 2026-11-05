@@ -156,19 +156,27 @@ export async function runScenario({ baseUrl, root }) {
       assert.match(await page.getByLabel('Payment instructions').inputValue(), /IBAN FR76/);
     });
 
-    await step('2b shipping zone France', async () => {
+    await step('2b shipping zone France in the general profile', async () => {
       await page.goto(`${baseUrl}/admin/settings/shipping`);
+      await page.getByText('General profile').first().click();
       await page.getByRole('button', { name: 'Add shipping zone' }).first().click();
-      const dlg = page.getByRole('dialog');
+      let dlg = page.getByRole('dialog');
       await dlg.getByLabel('Zone name').fill('France');
       await dlg.getByLabel('France', { exact: true }).check();
+      await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(page.getByRole('button', { name: 'Add rate' }));
+      await page.getByRole('button', { name: 'Add rate' }).first().click();
+      dlg = page.getByRole('dialog');
       await dlg.getByLabel('Rate name').fill('Livraison standard');
       await dlg.getByLabel('Price (EUR)').fill('4.90');
-      await dlg.getByRole('button', { name: 'Add rate' }).click();
-      await dlg.getByLabel('Rate name').nth(1).fill('Livraison offerte');
-      await dlg.getByLabel('Price (EUR)').nth(1).fill('0');
-      await dlg.getByLabel('Condition').nth(1).selectOption({ label: 'Based on order subtotal' });
-      await dlg.getByLabel(/Minimum/).fill('50');
+      await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(page.getByText('Livraison standard'));
+      await page.getByRole('button', { name: 'Add rate' }).first().click();
+      dlg = page.getByRole('dialog');
+      await dlg.getByLabel('Rate name').fill('Livraison offerte');
+      await dlg.getByLabel('Price (EUR)').fill('0');
+      await dlg.getByLabel('Condition').selectOption({ label: 'Based on order price' });
+      await dlg.getByLabel(/Minimum order price/).fill('50');
       await shot('02-shipping-zone');
       await dlg.getByRole('button', { name: 'Save', exact: true }).click();
       await vis(page.getByText('Livraison offerte'));
@@ -637,6 +645,19 @@ export async function runScenario({ baseUrl, root }) {
       assert.match(await text(shop.locator('#shipping-methods')), /Livraison offerte\s*Gratuit/i);
       await shop.locator('#shipping-methods label', { hasText: 'Livraison offerte' }).locator('input').check();
       await vis(shop.locator('#summary-lines').getByText(/Total\s*64,00 €/));
+    });
+
+    await step('10b local pickup: turn on at the location, offered at checkout, turn off', async () => {
+      await admin.goto(`${baseUrl}/admin/settings/shipping/pickup`);
+      await admin.getByText('Shop location').first().click();
+      await admin.getByLabel('Pickup instructions').fill('Ask at the counter');
+      await admin.getByRole('dialog').getByRole('button', { name: 'Turn on' }).click();
+      await vis(admin.getByText('Usually ready in 2-4 days'));
+      await shop.reload();
+      await vis(shop.locator('#shipping-methods').getByText(/Pickup at Shop location/));
+      await admin.getByText('Shop location').first().click();
+      await admin.getByRole('dialog').getByRole('button', { name: 'Turn off' }).click();
+      await vis(admin.getByText('Does not offer pickup'));
     });
 
     // ---------------------------------------------------------------- 11. platform: analytics, languages, backup, two-step verification

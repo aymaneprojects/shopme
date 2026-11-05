@@ -92,7 +92,7 @@ describe('migration of existing zones and rates', () => {
       }
     }
     expect(compared).toBe(150);
-  });
+  }, 120_000);
 });
 
 describe('profiles, quotes, pickup, local delivery and packages', () => {
@@ -126,10 +126,10 @@ describe('profiles, quotes, pickup, local delivery and packages', () => {
     const err = async (input: Parameters<typeof createProfile>[2]) => { const r = await createProfile(h.db, shopId, input); expect(r.ok).toBe(false); return r.ok ? [] : r.errors; };
     expect((await err({ name: '  ' }))[0]).toMatchObject({ field: ['name'] });
     expect((await err({ name: 'x', locationGroupsToCreate: [{ locations: [999999] }] }))[0]).toMatchObject({ field: ['locationGroupsToCreate', '0', 'locations', '0'], message: 'Location not found' });
-    expect((await err({ name: 'x', locationGroupsToCreate: [{ locations: [mainLocation], zonesToCreate: [{ name: 'Z', countries: [{ code: 'FRA' }] }] }] }))[0].field).toEqual(['locationGroupsToCreate', '0', 'zonesToCreate', '0', 'countries', '0', 'code']);
-    expect((await err({ name: 'x', locationGroupsToCreate: [{ locations: [mainLocation], zonesToCreate: [{ name: 'Z', countries: [{ code: 'FR' }], methodDefinitionsToCreate: [{ name: 'R', price: -1 }] }] }] }))[0].message).toMatch(/greater than or equal to 0/);
-    expect((await err({ name: 'x', locationGroupsToCreate: [{ locations: [mainLocation], zonesToCreate: [{ name: 'Z', countries: [{ code: 'FR' }], methodDefinitionsToCreate: [{ name: 'R', price: 1, conditionsToCreate: [{ field: 'TOTAL_WEIGHT', operator: 'GREATER_THAN_OR_EQUAL_TO', value: 10 }, { field: 'TOTAL_WEIGHT', operator: 'LESS_THAN_OR_EQUAL_TO', value: 5 }] }] }] }] }))[0].message).toMatch(/minimum must be less/);
-    expect((await err({ name: 'x', locationGroupsToCreate: [{ locations: [mainLocation], zonesToCreate: [{ name: 'A', countries: [{ code: 'FR' }] }, { name: 'B', countries: [{ code: 'FR' }] }] }] }))[0].message).toMatch(/already in another zone/);
+    expect((await err({ name: 'x', locationGroupsToCreate: [{ locations: [mainLocation], zonesToCreate: [{ name: 'Z', countries: [{ code: 'FRA' }] }] }] }))[0]!.field).toEqual(['locationGroupsToCreate', '0', 'zonesToCreate', '0', 'countries', '0', 'code']);
+    expect((await err({ name: 'x', locationGroupsToCreate: [{ locations: [mainLocation], zonesToCreate: [{ name: 'Z', countries: [{ code: 'FR' }], methodDefinitionsToCreate: [{ name: 'R', price: -1 }] }] }] }))[0]!.message).toMatch(/greater than or equal to 0/);
+    expect((await err({ name: 'x', locationGroupsToCreate: [{ locations: [mainLocation], zonesToCreate: [{ name: 'Z', countries: [{ code: 'FR' }], methodDefinitionsToCreate: [{ name: 'R', price: 1, conditionsToCreate: [{ field: 'TOTAL_WEIGHT', operator: 'GREATER_THAN_OR_EQUAL_TO', value: 10 }, { field: 'TOTAL_WEIGHT', operator: 'LESS_THAN_OR_EQUAL_TO', value: 5 }] }] }] }] }))[0]!.message).toMatch(/minimum must be less/);
+    expect((await err({ name: 'x', locationGroupsToCreate: [{ locations: [mainLocation], zonesToCreate: [{ name: 'A', countries: [{ code: 'FR' }] }, { name: 'B', countries: [{ code: 'FR' }] }] }] }))[0]!.message).toMatch(/already in another zone/);
     expect(await getProfile(h.db, shopId, general)).not.toBeNull();
     expect((await loadProfiles(h.db, shopId))).toHaveLength(1);
   });

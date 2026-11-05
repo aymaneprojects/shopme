@@ -34,6 +34,7 @@ export const deliveryLocationGroups = pgTable('delivery_location_groups', {
 export const deliveryLocationGroupLocations = pgTable('delivery_location_group_locations', {
   groupId: bigint('group_id', { mode: 'number' }).notNull().references(() => deliveryLocationGroups.id, { onDelete: 'cascade' }),
   locationId: bigint('location_id', { mode: 'number' }).notNull().references(() => locations.id, { onDelete: 'cascade' }),
+  shopId: shopFk(),
 }, (t) => [primaryKey({ columns: [t.groupId, t.locationId] })]);
 
 export const deliveryZones = pgTable('delivery_zones', {

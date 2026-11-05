@@ -9,6 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Delivery profiles: a general profile plus custom profiles with assigned products, location groups (the locations an item ships from), zones (countries, regions or rest of world) and rates with price, weight or order price conditions, free-shipping thresholds and an active switch. Settings, Shipping and delivery has the profile list, the profile editor and an add/edit rate dialog with several rates per name. Admin API: `deliveryProfile(s)`, `deliveryProfileCreate/Update/Remove`, `locationsAvailableForDeliveryProfilesConnection`.
+- Checkout picks rates per delivery profile (cart lines grouped by profile, weight and subtotal of each group, province zone before country before rest of world) and combines them: options with the same name add up, no shared name gives the cheapest of each profile, a profile without a rate blocks shipping. Cheapest first.
+- Local pickup per location (pickup time, instructions) offered at checkout with the location address when the items are in stock there, with "Mark as ready for pickup" and "Mark as picked up" on the order page (the latter fulfills the order). Admin API: `locationLocalPickupEnable/Disable`, `Location.localPickupSettingsV2`, `Order.shopmeDelivery`.
+- Local delivery per location by postal code prefixes with delivery price, minimum order, free-over amount and delivery information (`shopmeLocationLocalDeliveryUpdate`).
+- Packages: box, envelope, soft package and flat-rate presets with dimensions and weight, one shop default (`shippingPackageUpdate/Delete/MakeDefault`, `shopmeShippingPackageCreate`).
+- `POST /cart/shipping_rates.json` (and GET) returns the rates, local delivery and pickup options for the cart and a destination.
 - Rich-text editor toolbar: block format (paragraph, headings, quote), bold, italic, underline, text color, alignment, lists, indent, link, image (from Files or upload), YouTube/Vimeo embed, table, clear formatting and a Show HTML toggle, used for products, collections, pages and articles.
 - Rich text is sanitized on the server for products, collections, pages and articles: tables, alignment, safe inline styles and YouTube/Vimeo iframes are kept; scripts, event handlers, other iframes and unsafe URLs are removed.
 - Pages and blog posts: theme template select (alternate templates of the live theme), scheduled publishing with a visibility date and time, and SEO title and description with an editable search engine listing preview (`seo` field on `Page` and `Article`).
@@ -50,6 +56,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - Online store: pages, blog posts, menus (list and editor), files and preferences pages with bulk actions.
   - Analytics: overview page, reports list, report auto-refresh.
   - Settings: dedicated settings navigation, narrower pages with section descriptions, users table, notifications overview and template preview with test send, policies list, locations table, custom data by resource, domains and languages tables.
+
+### Changed
+
+- Existing shipping zones and rates move into the general profile with the same ids when the database is migrated, so carts and orders keep pointing at the right rate; the `shippingZones` and `shippingRate*` Admin API fields keep working as a view of the general profile. Shipping options at checkout are now listed cheapest first.
 
 ### Fixed
 
