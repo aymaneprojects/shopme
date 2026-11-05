@@ -9,7 +9,7 @@ import { setMetafields } from '@shopme/core';
 
 const LocationSortKeys = builder.enumType('LocationSortKeys', { values: ['CREATED_AT', 'ID', 'NAME', 'RELEVANCE', 'PRIORITY'] as const });
 
-const LocationAddress = builder.objectRef<Location>('LocationAddress').implement({
+export const LocationAddress = builder.objectRef<Location>('LocationAddress').implement({
   fields: (t) => ({
     address1: t.exposeString('address1', { nullable: true }),
     address2: t.exposeString('address2', { nullable: true }),

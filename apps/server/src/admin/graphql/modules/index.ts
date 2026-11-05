@@ -43,3 +43,5 @@ import './gift-cards';
 import './abandoned';
 import './order-edit';
 import './checkout-settings';
+import './inventory-transfers';
+import './purchase-orders';

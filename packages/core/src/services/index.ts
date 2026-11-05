@@ -41,3 +41,5 @@ export * from './order-edit';
 export * from './returns';
 export * from './return-rules';
 export * from './activity';
+export * from './inventory-transfers';
+export * from './purchase-orders';
