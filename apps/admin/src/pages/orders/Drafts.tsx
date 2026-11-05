@@ -1,11 +1,12 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, Input, Modal, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Trash2 } from 'lucide-react';
+import { PenLine, Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
+import { PageTitle, SideSection, TopBar } from '../../components/OrderChrome';
 import { PagedTable } from '../../components/PagedTable';
 import { VariantPicker } from '../../components/Pickers';
 import { SaveBar, guard } from '../../components/SaveBar';
@@ -143,19 +144,21 @@ function DraftForm_({ draft, initial }: { draft: DraftData | null; initial: Draf
   return (
     <>
       <SaveBar dirty={dirty && !completed} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setError(null); }} />
-      <PageHeader back="/orders/drafts" title={draft ? draft.name : t('draft.create')}
+      <TopBar back="/orders/drafts" icon={<PenLine />} crumbs={[{ label: t('draft.title'), to: '/orders/drafts' }, ...(draft ? [{ label: draft.name }] : [])]}
         actions={<>
           {draft && !completed && <Button variant="danger" onClick={() => setDialog('delete')}>{t('common.delete')}</Button>}
           {draft && !completed && <Button disabled={dirty} onClick={() => { setInvoiceTo(form.email); setDialog('invoice'); }}>{t('draft.sendInvoice')}</Button>}
           {draft && !completed && <Button variant="primary" disabled={dirty || busy} onClick={() => setDialog('complete')}>{t('draft.markPaid')}</Button>}
           {!draft && <Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('draft.saveDraft')}</Button>}
         </>} />
+      <div className="mx-auto max-w-[890px]"><PageTitle>{draft ? draft.name : t('draft.create')}</PageTitle></div>
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
       {completed && draft?.order && <div className="mb-4"><Banner tone="info">{t('draft.completedBanner')} <Link className="underline" to={`/orders/${gidToNum(draft.order.id)}`}>{draft.order.name}</Link></Banner></div>}
       {draft && !completed && dirty && <p className="mb-2 text-xs text-muted">{t('draft.saveFirst')}</p>}
-      <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+      <div className="mx-auto mt-4 grid max-w-[890px] gap-x-10 gap-y-4 lg:grid-cols-[minmax(0,1fr)_14.375rem]">
         <fieldset disabled={completed} className="flex min-w-0 flex-col gap-4">
-          <Card title={t('draft.products')} actions={form.lines.length > 0 && <div className="flex gap-2"><Button size="sm" onClick={() => setDialog('variant')}>{t('draft.productBtn')}</Button><Button size="sm" onClick={() => setDialog('custom')}>{t('draft.customBtn')}</Button></div>}>
+          <section><div className="mb-2 flex min-h-8 items-center justify-between"><h2 className="text-sm font-semibold">{t('draft.products')}</h2>{form.lines.length > 0 && <div className="flex gap-2"><Button size="sm" onClick={() => setDialog('variant')}>{t('draft.productBtn')}</Button><Button size="sm" onClick={() => setDialog('custom')}>{t('draft.customBtn')}</Button></div>}</div>
+            <Card>
             {form.lines.length === 0 ? (
               <div className="flex flex-wrap items-center justify-center gap-2 rounded-lg border border-dashed border-line px-4 py-5">
                 <Button size="sm" onClick={() => setDialog('variant')}><Plus className="size-3.5" />{t('draft.productBtn')}</Button>
@@ -174,8 +177,9 @@ function DraftForm_({ draft, initial }: { draft: DraftData | null; initial: Draf
                 ))}
               </ul>
             )}
-          </Card>
-          <Card title={t('draft.payment')}>
+          </Card></section>
+          <section><h2 className="mb-2 text-sm font-semibold">{t('draft.payment')}</h2>
+          <Card>
             <dl className="flex flex-col gap-1.5 text-[13px]" aria-live="polite">
               <div className="flex justify-between"><dt>{t('draft.row.subtotal')}</dt><dd>{money(totals.subtotal)}</dd></div>
               <div className="flex justify-between"><dt>{form.discount ? t('draft.row.discount') : <button type="button" className="text-accent hover:underline" onClick={() => set({ discount: { valueType: 'PERCENTAGE', value: '' } })}>{t('draft.discount')}</button>}</dt><dd className={form.discount ? '' : 'text-muted'}>{money(-totals.discount)}</dd></div>
@@ -199,15 +203,15 @@ function DraftForm_({ draft, initial }: { draft: DraftData | null; initial: Draf
             )}
             {form.lines.length === 0 && <p className="-mx-4 -mb-4 mt-3 rounded-b-lg bg-surface px-4 py-3 text-[13px] text-muted">{t('draft.addToCalculate')}</p>}
             {calc.isError && form.lines.length > 0 && <p className="mt-2 text-xs text-muted">{t('draft.estimate')}</p>}
-          </Card>
+          </Card></section>
         </fieldset>
-        <fieldset disabled={completed} className="flex flex-col gap-4">
-          <Card title={t('draft.note')}><Textarea aria-label={t('draft.note')} value={form.note} onChange={(e) => set({ note: e.target.value })} placeholder={t('draft.notePlaceholder')} /></Card>
-          <Card title={t('draft.customer')}>
+        <fieldset disabled={completed} className="flex min-w-0 flex-col">
+          <SideSection title={t('draft.note')}><Textarea aria-label={t('draft.note')} value={form.note} onChange={(e) => set({ note: e.target.value })} placeholder={t('draft.notePlaceholder')} /></SideSection>
+          <SideSection title={t('draft.customer')}>
             <CustomerPick label={custLabel} onPick={(c) => { setCustLabel(c.displayName); set({ customerId: c.id, email: c.defaultEmailAddress?.emailAddress ?? form.email }); }} onClear={() => { setCustLabel(''); set({ customerId: '' }); }} />
             <Input className="mt-3" label={t('field.email')} type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} />
-          </Card>
-          <Card title={t('field.tags')}><TagInput value={form.tags} onChange={(tags) => set({ tags })} removeLabel={t('common.remove')} /></Card>
+          </SideSection>
+          <SideSection title={t('field.tags')}><TagInput value={form.tags} onChange={(tags) => set({ tags })} removeLabel={t('common.remove')} /></SideSection>
         </fieldset>
       </div>
       <VariantDialog open={dialog === 'variant'} onClose={() => setDialog(null)} onAdd={(lines) => set({ lines: [...form.lines, ...lines] })} />

@@ -1,6 +1,6 @@
-import { Banner, Button, ConfirmDialog, Skeleton, Textarea, useToast } from '@shopme/ui';
+import { Banner, Button, ConfirmDialog, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
+import { AtSign, Hash, Smile, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { gql, mutate } from '../api';
 import { CUSTOMER_TIMELINE, CUSTOMER_TIMELINE_COMMENT_CREATE, ORDER_TIMELINE, ORDER_TIMELINE_COMMENT_CREATE, TIMELINE_COMMENT_DELETE } from '../graphql';
@@ -49,14 +49,17 @@ export function Timeline({ kind, id, refreshKey }: Props & { refreshKey?: unknow
   return (
     <section aria-label={t('timeline.title')}>
       <h2 className="mb-2 text-[15px] font-semibold">{t('timeline.title')}</h2>
-      <div className="rounded-lg bg-canvas shadow-card">
+      <div className="overflow-hidden rounded-lg bg-canvas shadow-card">
         <div className="flex items-start gap-3 p-3">
-          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-accent-fg">{initials}</span>
-          <Textarea className="min-w-0 flex-1" rows={2} aria-label={t('timeline.commentLabel')} placeholder={t('timeline.placeholder')} value={text} maxLength={5000}
+          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-xs font-semibold text-accent-fg">{initials}</span>
+          <textarea className="min-h-9 min-w-0 flex-1 resize-none self-center border-0 bg-transparent p-0 text-[13px] outline-none placeholder:text-muted" rows={1} aria-label={t('timeline.commentLabel')} placeholder={t('timeline.placeholder')} value={text} maxLength={5000}
             onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && text.trim() && !post.isPending) post.mutate(); }} />
         </div>
-        <div className="flex justify-end border-t border-line px-3 py-2">
-          <Button size="sm" variant="primary" disabled={!text.trim()} loading={post.isPending} onClick={() => post.mutate()}>{t('timeline.post')}</Button>
+        <div className="flex items-center gap-1 bg-surface px-3 py-2">
+          {([[Smile, '🙂'], [AtSign, '@'], [Hash, '#']] as const).map(([Icon, ch], i) => (
+            <button key={i} type="button" aria-label={ch} onClick={() => setText((v) => v + ch)} className="grid size-7 place-items-center rounded-md text-muted hover:bg-hover hover:text-fg"><Icon className="size-4" /></button>
+          ))}
+          <Button className="ml-auto" size="sm" variant="primary" disabled={!text.trim()} loading={post.isPending} onClick={() => post.mutate()}>{t('timeline.post')}</Button>
         </div>
       </div>
       <p className="mt-1.5 text-right text-xs text-muted">{t('timeline.staffOnly')}</p>

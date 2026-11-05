@@ -8,7 +8,7 @@ import { useT } from '../../i18n';
 import type { Key } from '../../i18n';
 
 export interface OrderLine {
-  id: string; title: string; variantTitle: string | null; sku: string | null; quantity: number; refundableQuantity: number; unfulfilledQuantity: number;
+  id: string; title: string; variantTitle: string | null; sku: string | null; quantity: number; refundableQuantity: number; unfulfilledQuantity: number; requiresShipping?: boolean;
   originalUnitPriceSet: MoneySet; discountedTotalSet: MoneySet; variant: { id: string; image: { url: string } | null } | null;
 }
 

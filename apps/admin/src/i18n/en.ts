@@ -1,5 +1,6 @@
 import { enCheckout } from './en-checkout';
 import { enOrdersUx } from './en-orders-ux';
+import { enQaOrders } from './en-qa-orders';
 import { enCommerce } from './en-commerce';
 import { enCatalog } from './en-catalog';
 import { enContent } from './en-content';
@@ -105,6 +106,7 @@ export const en = {
   ...enCommerce,
   ...enCatalog,
   ...enOrdersUx,
+  ...enQaOrders,
   ...enSettings,
   ...enUx,
   ...enEditor,

@@ -82,7 +82,11 @@ export function AbandonedPage() {
   ];
   return (
     <>
-      <PageHeader back="/orders" title={t('nav.abandoned')} />
+      <PageHeader back="/orders" title={<span className="flex items-center gap-2">{t('nav.abandoned')}
+        <select aria-label={t('abandoned.status')} value={status} onChange={(e) => L.patch({ status: e.target.value === 'open' ? '' : e.target.value })} className={`${selectCls} !h-7 !rounded-full text-xs font-medium`}>
+          <option value="open">{t('abandoned.tab.open')}</option>
+          <option value="recovered">{t('abandoned.tab.recovered')}</option>
+        </select></span>} />
       {none && (
         <div className="mb-4"><Card>
           <div className="flex flex-wrap items-center justify-between gap-6 px-4 py-6 sm:px-12">
@@ -98,10 +102,6 @@ export function AbandonedPage() {
             <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('abandoned.search')} aria-label={t('abandoned.search')} className={searchCls} />
           </div>
-          <select aria-label={t('abandoned.status')} value={status} onChange={(e) => L.patch({ status: e.target.value === 'open' ? '' : e.target.value })} className={`${selectCls} ml-2`}>
-            <option value="open">{t('abandoned.tab.open')}</option>
-            <option value="recovered">{t('abandoned.tab.recovered')}</option>
-          </select>
         </div>
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/orders/abandoned/${gidToNum(r.id)}`)}

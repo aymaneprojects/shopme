@@ -1,11 +1,12 @@
-import { Banner, Card, EmptyState, Input, Select, Skeleton, cx } from '@shopme/ui';
+import { Banner, Card, Dropdown, EmptyState, Input, Skeleton, cx } from '@shopme/ui';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowUpDown, ChevronRight, Download, RefreshCw, Search } from 'lucide-react';
+import { ArrowUpDown, ChevronRight, Download, FileText, MoreHorizontal, RefreshCw, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useParams, useSearchParams } from 'react-router';
 import { gql } from '../api';
 import { LineChart } from '../components/Charts';
 import type { Series } from '../components/Charts';
+import { TopBar } from '../components/OrderChrome';
 import { PageHeader } from '../components/PageHeader';
 import { SHOPME_REPORT } from '../graphql';
 import { useI18n } from '../i18n';
@@ -59,15 +60,20 @@ function useFilters() {
 }
 type Filters = ReturnType<typeof useFilters>;
 
+/** Rounded select pill used by the filter row. */
+function Pill({ label, value, onChange, children }: { label: string; value: string; onChange: (v: string) => void; children: React.ReactNode }) {
+  return <select aria-label={label} title={label} value={value} onChange={(e) => onChange(e.target.value)} className="h-8 cursor-pointer rounded-full border border-line bg-canvas px-3 text-[13px] font-medium shadow-card hover:bg-hover">{children}</select>;
+}
+
 function FilterBar({ f, compare = true, group = false }: { f: Filters; compare?: boolean; group?: boolean }) {
   const { t } = useI18n();
   const cls = 'w-auto';
   return (
     <div className="flex flex-wrap items-end gap-2">
-      <Select className={cls} label={t('analytics.range')} value={f.preset} onChange={(e) => f.patch({ preset: e.target.value, from: '', to: '' })}>
+      <Pill label={t('analytics.range')} value={f.preset} onChange={(v) => f.patch({ preset: v, from: '', to: '' })}>
         {PRESETS.map((p) => <option key={p} value={p}>{t(`analytics.preset.${p}` as Key)}</option>)}
         <option value="CUSTOM">{t('analytics.custom')}</option>
-      </Select>
+      </Pill>
       {f.preset === 'CUSTOM' && (
         <>
           <Input className={cls} type="date" label={t('analytics.from')} value={f.range.from} max={f.range.to} onChange={(e) => f.patch({ preset: 'CUSTOM', from: e.target.value })} />
@@ -75,14 +81,14 @@ function FilterBar({ f, compare = true, group = false }: { f: Filters; compare?:
         </>
       )}
       {compare && (
-        <Select className={cls} label={t('analytics.compare')} value={f.compare} onChange={(e) => f.patch({ compare: e.target.value })}>
+        <Pill label={t('analytics.compare')} value={f.compare} onChange={(v) => f.patch({ compare: v })}>
           {(['NONE', 'PREVIOUS_PERIOD', 'PREVIOUS_YEAR'] as const).map((c) => <option key={c} value={c}>{t(`analytics.compare.${c}` as Key)}</option>)}
-        </Select>
+        </Pill>
       )}
       {group && (
-        <Select className={cls} label={t('analytics.groupBy')} value={f.groupBy} onChange={(e) => f.patch({ group: e.target.value })}>
+        <Pill label={t('analytics.groupBy')} value={f.groupBy} onChange={(v) => f.patch({ group: v })}>
           {(['DAY', 'WEEK', 'MONTH'] as const).map((g) => <option key={g} value={g}>{t(`analytics.group.${g}` as Key)}</option>)}
-        </Select>
+        </Pill>
       )}
     </div>
   );
@@ -150,8 +156,10 @@ export function AnalyticsPage() {
     <>
       <PageHeader
         title={t('analytics.title')}
-        more={[{ key: 'csv', label: t('analytics.exportCsv'), onSelect: () => { window.location.href = csv; } }]}
-        actions={<Link to="/analytics/reports" className="btn btn-primary">{t('analytics.viewReports')}</Link>}
+        actions={<>
+          <Dropdown align="right" icon label={t('qa.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[{ key: 'csv', label: t('analytics.exportCsv'), onSelect: () => { window.location.href = csv; } }]} />
+          <Link to="/analytics/reports" className="btn btn-primary">{t('analytics.viewReports')}</Link>
+        </>}
       />
       <div className="flex flex-col gap-4">
         <FilterBar f={f} group />
@@ -275,11 +283,11 @@ export function ReportPage() {
 
   return (
     <>
-      <PageHeader
-        title={t(`analytics.report.${name}` as Key)} back="/analytics/reports"
-        more={[{ key: 'csv', label: t('analytics.exportCsv'), onSelect: () => { window.location.href = csv; } }, { key: 'refresh', label: t('analytics.refresh'), onSelect: () => void qc.invalidateQueries({ queryKey: ['report'] }) }]}
-        actions={<button type="button" className="btn btn-secondary" aria-pressed={auto} onClick={() => setAuto((v) => !v)}><RefreshCw className="size-4" />{auto ? t('analytics.autoRefreshOff') : t('analytics.autoRefreshOn')}</button>}
-      />
+      <TopBar back="/analytics/reports" icon={<FileText />} crumbs={[{ label: t('analytics.reports'), to: '/analytics/reports' }, { label: t(`analytics.report.${name}` as Key) }]}
+        actions={<>
+          <button type="button" className="btn btn-secondary" aria-pressed={auto} onClick={() => setAuto((v) => !v)}><RefreshCw className="size-4" />{auto ? t('analytics.autoRefreshOff') : t('analytics.autoRefreshOn')}</button>
+          <Dropdown align="right" chevron label={t('qa.moreActions')} trigger={t('qa.moreActions')} items={[{ key: 'csv', label: t('analytics.exportCsv'), onSelect: () => { window.location.href = csv; } }, { key: 'refresh', label: t('analytics.refresh'), onSelect: () => void qc.invalidateQueries({ queryKey: ['report'] }) }]} />
+        </>} />
       <div className="flex flex-col gap-4">
         {!snapshot && <FilterBar f={f} compare={isTime} group={isTime} />}
         {!f.valid && <Banner>{t('analytics.invalidRange')}</Banner>}

@@ -4,6 +4,7 @@ import { frContent } from './fr-content';
 import { frPublishing } from './fr-publishing';
 import type { Key } from './en';
 import { frOrdersUx } from './fr-orders-ux';
+import { frQaOrders } from './fr-qa-orders';
 import { frCommerce } from './fr-commerce';
 import { frExt } from './fr-ext';
 import { frPlatform } from './fr-platform';
@@ -16,7 +17,7 @@ import { frTimeline } from './fr-timeline';
 
 export const fr: Record<Key, string> = {
   'common.back': 'Retour', 'common.cancel': 'Annuler', 'common.close': 'Fermer', 'common.delete': 'Supprimer', 'common.loading': 'Chargement…',
-  'common.moreActions': 'Plus d’actions', 'common.next': 'Suivant', 'common.previous': 'Précédent', 'common.remove': 'Retirer',
+  'common.moreActions': 'Autres actions', 'common.next': 'Suivant', 'common.previous': 'Précédent', 'common.remove': 'Retirer',
   'common.selectAll': 'Tout sélectionner', 'common.selected': '{n} sélectionnés', 'common.selected.one': '{n} sélectionné', 'common.sort': 'Trier',
 
   'field.description': 'Description', 'field.email': 'E-mail', 'field.firstName': 'Prénom', 'field.lastName': 'Nom', 'field.password': 'Mot de passe',
@@ -107,6 +108,7 @@ export const fr: Record<Key, string> = {
   ...frCommerce,
   ...frCatalog,
   ...frOrdersUx,
+  ...frQaOrders,
   ...frSettings,
   ...frUx,
   ...frEditor,
