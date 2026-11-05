@@ -3,6 +3,7 @@ import {
   billSubscriptionContract, contractsDueForReminder, dueSubscriptionContracts, getShop, getSubscriptionContract, markRenewalReminderSent, schema, sendNotification, subscriptionMailVars,
   type BillOptions, type BillingOutcome, type NotificationKey, type OffSessionCharge, type Shop,
 } from '@shopme/core';
+import type { StripeGateway } from '@shopme/payments';
 import { eq } from 'drizzle-orm';
 
 /** How often due contracts are looked for (renewals run at most this late after their billing date). */
@@ -17,9 +18,12 @@ const STRIPE_ERRORS: Record<string, string> = {
   invalid_cvc: 'INVALID_PAYMENT_METHOD', processing_error: 'PAYMENT_PROVIDER_IS_NOT_ENABLED', lost_card: 'PAYMENT_METHOD_DECLINED', stolen_card: 'PAYMENT_METHOD_DECLINED',
 };
 
+/** The checkout's Stripe gateway (decorated by the checkout plugin; tests swap it for a fake). */
+const stripeOf = (app: FastifyInstance): StripeGateway | null => (app as unknown as { checkoutPayments?: { stripe: StripeGateway | null } }).checkoutPayments?.stripe ?? null;
+
 /** Off-session charge through the configured Stripe gateway (null when Stripe is off). */
 function stripeCharge(app: FastifyInstance): OffSessionCharge | null {
-  const gw = app.checkoutPayments?.stripe;
+  const gw = stripeOf(app);
   if (!gw) return null;
   return async (i) => {
     const r = await gw.chargeOffSession({ amount: i.amount, currency: i.currency, customer: i.customer, paymentMethod: i.paymentMethod, idempotencyKey: i.idempotencyKey, description: i.description, reference: i.reference, email: i.email });
@@ -30,7 +34,7 @@ function stripeCharge(app: FastifyInstance): OffSessionCharge | null {
 /** Bill one contract (scheduled renewal or "bill now") and queue the emails that follow: order confirmation, or payment failed. */
 export async function billContract(app: FastifyInstance, shop: Shop, contractId: number, opts: Omit<BillOptions, 'charge' | 'refund'> = {}): Promise<BillingOutcome> {
   const ctx = app.ctx;
-  const gw = app.checkoutPayments?.stripe ?? null;
+  const gw = stripeOf(app);
   const out = await billSubscriptionContract(ctx.db, shop, contractId, { ...opts, charge: stripeCharge(app), refund: gw ? (id, amount, key) => gw.refund(id, amount, key) : null });
   if (out.status === 'ordered') {
     for (const job of ['order.confirmation-email', 'order.staff-email', 'order.fulfillment-request']) ctx.queue.enqueue(job, { shopId: shop.id, orderId: out.orderId });

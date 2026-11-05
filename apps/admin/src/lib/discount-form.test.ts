@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blankDiscount, fromDiscountNode, generateCode, toDiscountInput, validateDiscount } from './discount-form';
+import { blankDiscount, fromDiscountNode, generateCode, summarizeDiscount, toDiscountInput, validateDiscount } from './discount-form';
 
 const valid = () => ({ ...blankDiscount('order'), code: 'SUMMER10', value: '10', startsAt: '2026-06-01T10:00' });
 
@@ -43,9 +43,9 @@ describe('discount form validation', () => {
 describe('discount input mapping', () => {
   it('maps a percentage to a 0-1 fraction and round-trips from the API node', () => {
     const input = toDiscountInput({ ...valid(), minType: 'subtotal', minValue: '50' }) as Record<string, unknown>;
-    expect(input.customerGets).toEqual({ value: { percentage: 0.1 }, items: { all: true } });
+    expect(input.customerGets).toEqual({ value: { percentage: 0.1 }, items: { all: true }, appliesOnOneTimePurchase: true, appliesOnSubscription: false });
     // DiscountCodeBasicInput has no `customerSelection` (server rejects the variable); only API-defined keys are sent
-    expect(Object.keys(input).sort()).toEqual(['appliesOncePerCustomer', 'code', 'combinesWith', 'context', 'customerGets', 'endsAt', 'minimumRequirement', 'shopmePublicationIds', 'startsAt', 'tags', 'title', 'usageLimit']);
+    expect(Object.keys(input).sort()).toEqual(['appliesOncePerCustomer', 'code', 'combinesWith', 'context', 'customerGets', 'endsAt', 'minimumRequirement', 'recurringCycleLimit', 'shopmePublicationIds', 'startsAt', 'tags', 'title', 'usageLimit']);
     expect(input.context).toEqual({ all: 'ALL' });
     expect(input.minimumRequirement).toEqual({ subtotal: { greaterThanOrEqualToSubtotal: '50.00' } });
     const back = fromDiscountNode({
@@ -124,5 +124,37 @@ describe('discount eligibility and tags', () => {
       tags: ['vip'], context: { __typename: 'DiscountCustomers', customers: [{ id: 'gid://shopify/Customer/7', displayName: 'Ada' }] },
     });
     expect(back).toMatchObject({ eligibility: 'customers', customers: [{ id: 'gid://shopify/Customer/7', title: 'Ada' }], tags: ['vip'] });
+  });
+});
+
+describe('purchase type', () => {
+  const base = () => ({ ...blankDiscount('order'), code: 'SUB20', value: '20' });
+  it('maps one-time, subscription and both, with the subscription payment limit', () => {
+    const one = toDiscountInput(base()) as { customerGets: Record<string, unknown>; recurringCycleLimit: number };
+    expect(one.customerGets).toMatchObject({ appliesOnOneTimePurchase: true, appliesOnSubscription: false });
+    const first = toDiscountInput({ ...base(), purchaseType: 'subscription', recurring: 'first' }) as { customerGets: Record<string, unknown>; recurringCycleLimit: number };
+    expect(first.customerGets).toMatchObject({ appliesOnOneTimePurchase: false, appliesOnSubscription: true });
+    expect(first.recurringCycleLimit).toBe(1);
+    expect((toDiscountInput({ ...base(), purchaseType: 'both', recurring: 'limited', recurringCycles: '3' }) as { recurringCycleLimit: number }).recurringCycleLimit).toBe(3);
+    expect((toDiscountInput({ ...base(), purchaseType: 'both', recurring: 'all' }) as { recurringCycleLimit: number }).recurringCycleLimit).toBe(0);
+    const ship = toDiscountInput({ ...blankDiscount('shipping'), code: 'SHIP', purchaseType: 'subscription', recurring: 'first' }) as Record<string, unknown>;
+    expect(ship).toMatchObject({ appliesOnOneTimePurchase: false, appliesOnSubscription: true, recurringCycleLimit: 1 });
+  });
+  it('validates the number of payments and reads the API node back', () => {
+    expect(validateDiscount({ ...base(), purchaseType: 'subscription', recurring: 'limited', recurringCycles: '1' })).toEqual({ recurringCycles: 'sub.disc.errCycles' });
+    expect(validateDiscount({ ...base(), purchaseType: 'subscription', recurring: 'limited', recurringCycles: '4' })).toEqual({});
+    const back = fromDiscountNode({
+      __typename: 'DiscountCodeBasic', title: 'SUB20', startsAt: '2026-06-01T10:00:00Z', endsAt: null, recurringCycleLimit: 3, combinesWith: { productDiscounts: false, orderDiscounts: false, shippingDiscounts: false },
+      customerGets: { appliesOnOneTimePurchase: true, appliesOnSubscription: true, value: { __typename: 'DiscountPercentage', percentage: 0.2 }, items: { __typename: 'AllDiscountItems' } },
+    });
+    expect(back).toMatchObject({ purchaseType: 'both', recurring: 'limited', recurringCycles: '3' });
+    const freeShip = fromDiscountNode({ __typename: 'DiscountCodeFreeShipping', title: 'S', startsAt: '2026-06-01T10:00:00Z', endsAt: null, recurringCycleLimit: 1, appliesOnOneTimePurchase: false, appliesOnSubscription: true, combinesWith: { productDiscounts: false, orderDiscounts: false, shippingDiscounts: false } });
+    expect(freeShip).toMatchObject({ purchaseType: 'subscription', recurring: 'first' });
+  });
+  it('summarises the purchase type', () => {
+    const t = (k: string, v?: Record<string, string | number>) => `${k}${v ? JSON.stringify(v) : ''}`;
+    const lines = summarizeDiscount({ ...base(), purchaseType: 'both', recurring: 'limited', recurringCycles: '3' }, t as never, (n) => String(n));
+    expect(lines).toContain('sub.disc.sum.both');
+    expect(lines).toContain('sub.disc.sum.limited{"n":"3"}');
   });
 });

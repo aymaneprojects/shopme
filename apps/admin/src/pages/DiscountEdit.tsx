@@ -20,7 +20,7 @@ import {
 import { useI18n } from '../i18n';
 import type { Key } from '../i18n';
 import { blankDiscount, fromDiscountNode, generateCode, summarizeDiscount, toDiscountInput, validateDiscount } from '../lib/discount-form';
-import type { BxgyForm, DiscountForm, DiscountKind, DiscountMethod, Ref } from '../lib/discount-form';
+import type { BxgyForm, DiscountForm, DiscountKind, DiscountMethod, PurchaseType, Ref } from '../lib/discount-form';
 import { useShop } from '../session';
 
 type Loaded = Parameters<typeof fromDiscountNode>[0] & { status: string };
@@ -131,6 +131,24 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
       {error && <p className="mt-1 text-xs text-critical">{error}</p>}
     </div>
   );
+  /** Purchase type select (one-time, subscription, both). */
+  const purchaseSelect = (
+    <Select label={t('sub.disc.purchaseType')} value={form.purchaseType} onChange={(e) => set({ purchaseType: e.target.value as PurchaseType })}>
+      <option value="one_time">{t('sub.disc.oneTime')}</option><option value="subscription">{t('sub.disc.subscription')}</option><option value="both">{t('sub.disc.both')}</option>
+    </Select>
+  );
+  /** For subscriptions: the payments the discount applies to. */
+  const recurringChoice = form.purchaseType !== 'one_time' && (
+    <div role="radiogroup" aria-label={t('sub.disc.recurring')} className="flex flex-col gap-2 border-t border-line pt-3 text-[13px]" data-testid="recurring-payments">
+      <span className="font-medium">{t('sub.disc.recurring')}</span>
+      {([['first', 'sub.disc.first'], ['limited', 'sub.disc.limited'], ['all', 'sub.disc.all']] as const).map(([v, label]) => (
+        <div key={v} className="flex flex-col gap-2">
+          <label className="inline-flex items-center gap-2"><input type="radio" name="recurring" className="accent-(--color-primary)" checked={form.recurring === v} onChange={() => set({ recurring: v })} />{t(label)}</label>
+          {v === 'limited' && form.recurring === 'limited' && <Input className="ml-6 max-w-48" label={t('sub.disc.cycles')} help={t('sub.disc.cyclesHelp')} inputMode="numeric" value={form.recurringCycles} error={err('recurringCycles')} onChange={(e) => set({ recurringCycles: e.target.value })} />}
+        </div>
+      ))}
+    </div>
+  );
   const combos = [['productDiscounts', 'discount.combine.product'], ['orderDiscounts', 'discount.combine.order'], ['shippingDiscounts', 'discount.combine.shipping']] as const;
   const b = form.bxgy;
   const heading = id ? (automatic ? form.title : form.code) : t(`discounts.kind.${form.kind}` as Key);
@@ -182,8 +200,22 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
                   </Select>
                   <Input className="flex-1" label={form.valueType === 'percentage' ? '%' : shop.currency} inputMode="decimal" value={form.value} error={err('value')} onChange={(e) => set({ value: e.target.value })} />
                 </div>
-                {form.kind === 'product' && targets(t('discount.appliesTo'), form.appliesTo === 'products' ? 'products' : 'collections', (v) => set({ appliesTo: v }), form.collections, form.products, ['products', 'collections'],
-                  (k, rid) => set(k === 'products' ? { products: without(form.products, rid) } : { collections: without(form.collections, rid) }), err('targets'))}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {form.kind === 'product' && (
+                    <Select label={t('discount.appliesTo')} value={form.appliesTo === 'products' ? 'products' : 'collections'} onChange={(e) => set({ appliesTo: e.target.value as 'collections' | 'products' })}>
+                      <option value="collections">{t('discount.specificCollections')}</option><option value="products">{t('discount.specificProducts')}</option>
+                    </Select>
+                  )}
+                  {purchaseSelect}
+                </div>
+                {form.kind === 'product' && (
+                  <div>
+                    <Button size="sm" onClick={() => setPicking(form.appliesTo === 'products' ? 'products' : 'collections')}>{t('discount.browse')}</Button>
+                    {refList(form.appliesTo === 'products' ? form.products : form.collections, (rid) => set(form.appliesTo === 'products' ? { products: without(form.products, rid) } : { collections: without(form.collections, rid) }))}
+                    {err('targets') && <p className="mt-1 text-xs text-critical">{err('targets')}</p>}
+                  </div>
+                )}
+                {recurringChoice}
               </div>
             </Card>
           )}
@@ -217,8 +249,14 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
 
           {shipping && (
             <Card title={t('discount.shippingRates')}>
-              <Checkbox label={t('discount.excludeOver')} checked={form.hasMaxShipping} onChange={(e) => set({ hasMaxShipping: e.target.checked })} />
-              {form.hasMaxShipping && <Input className="mt-2 max-w-48" label={shop.currency} inputMode="decimal" value={form.maxShipping} error={err('maxShipping')} onChange={(e) => set({ maxShipping: e.target.value })} />}
+              <div className="flex flex-col gap-3">
+                <div>
+                  <Checkbox label={t('discount.excludeOver')} checked={form.hasMaxShipping} onChange={(e) => set({ hasMaxShipping: e.target.checked })} />
+                  {form.hasMaxShipping && <Input className="mt-2 max-w-48" label={shop.currency} inputMode="decimal" value={form.maxShipping} error={err('maxShipping')} onChange={(e) => set({ maxShipping: e.target.value })} />}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">{purchaseSelect}</div>
+                {recurringChoice}
+              </div>
             </Card>
           )}
 

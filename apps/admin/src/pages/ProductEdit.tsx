@@ -19,7 +19,8 @@ import { PrevNext } from '../components/PrevNext';
 import { ViewAs } from '../components/ViewAs';
 import { SaveBar, guard } from '../components/SaveBar';
 import { VariantsManager } from '../components/VariantsManager';
-import { numToGid } from '../format';
+import { PurchaseOptions } from '../components/PurchaseOptions';
+import { formatMoney, numToGid } from '../format';
 import { LOCATIONS, PRODUCT, PRODUCT_DELETE, PRODUCT_DUPLICATE, PRODUCT_FILTER_OPTIONS, TAXONOMY_CATEGORIES } from '../graphql';
 import { useI18n } from '../i18n';
 import { flattenStrings } from '../lib/hooks';
@@ -50,12 +51,13 @@ const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
 
 function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { id: string | null; initial: ProductForm; locations: LocationRef[]; previewUrl: string | null }) {
   const [initial] = useState(initialProp); // frozen per mount; the parent remounts on refetch
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { shop } = useShop();
   const nav = useNavigate();
   const toast = useToast();
   const qc = useQueryClient();
   const [form, setForm] = useState(initial);
+  const planText = { t, money: (n: number) => formatMoney(n.toFixed(2), shop.currency, lang) };
   const [errors, setErrors] = useState<{ title?: string; price?: string; server?: UserErrors | string }>({});
   const [pickCollections, setPickCollections] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -74,7 +76,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
       const v = validate(form);
       if (Object.keys(v).length) { setErrors({ title: v.title && t('product.titleRequired'), price: v.price && t('product.priceInvalid') }); throw new Error('validation'); }
       setErrors({});
-      return id ? (await updateProduct(id, form, initial, locations), id) : createProduct(form, locations);
+      return id ? (await updateProduct(id, form, initial, locations, planText), id) : createProduct(form, locations, planText);
     },
     onSuccess: async (pid) => {
       toast(t('product.saved'));
@@ -157,6 +159,8 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
           {errors.price && <p className="-mb-2 text-xs text-critical">{errors.price}</p>}
           <VariantsManager options={form.options} variants={form.variants} locations={locations} currency={shop.currency} lockedCount={initial.options.length} giftCard={form.isGiftCard}
             media={form.media.filter(isPersistedMedia).map((m) => ({ id: m.key, url: m.url }))} onMetafields={id ? setVariantMf : undefined} onActiveChange={setActiveVariant} onChange={(p) => set(p)} />
+
+          {!form.isGiftCard && <PurchaseOptions value={form.purchaseOptions} onChange={(purchaseOptions) => set({ purchaseOptions })} currency={shop.currency} />}
 
           <ProductMetafields ownerId={id} edits={form.metafieldEdits} onChange={(metafieldEdits) => set({ metafieldEdits })} />
 

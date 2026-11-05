@@ -1,4 +1,5 @@
 // Product operations. Names/fields follow docs/spec/admin-api-mvp.md (Shopify Admin API compatible).
+import { SELLING_PLAN_GROUP_FIELDS } from './subscriptions';
 
 export const PRODUCTS = /* GraphQL */ `
   query Products($first: Int, $after: String, $last: Int, $before: String, $query: String, $sortKey: ProductSortKeys, $reverse: Boolean) {
@@ -56,6 +57,7 @@ export const PRODUCT = /* GraphQL */ `
       collections(first: 100) { nodes { id title ruleSet { appliedDisjunctively } } }
       resourcePublicationsV2(first: 50, onlyPublished: false) { nodes { isPublished publishDate publication { id name } } }
       shopmeCatalogs { id title status }
+      requiresSellingPlan sellingPlanGroups(first: 20) { nodes { ${SELLING_PLAN_GROUP_FIELDS} } }
       variants(first: 250) { nodes { ${VARIANT_FIELDS} } }
     }
   }

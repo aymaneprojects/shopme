@@ -30,6 +30,7 @@ import { enTransfers } from './en-transfers';
 import { enMetaobjects } from './en-metaobjects';
 import { enMarkets } from './en-markets';
 import { enBtnProducts } from './en-btn-products';
+import { enSubscriptions } from './en-subscriptions';
 export const en = {
   'common.back': 'Back', 'common.cancel': 'Cancel', 'common.close': 'Close', 'common.delete': 'Delete', 'common.loading': 'Loading…',
   'common.moreActions': 'More actions', 'common.next': 'Next', 'common.previous': 'Previous', 'common.remove': 'Remove',
@@ -149,6 +150,7 @@ export const en = {
   ...enBtnStore,
   ...enBtnSettings,
   ...enBtnCustomers,
+  ...enSubscriptions,
 } as const;
 
 export type Key = keyof typeof en;

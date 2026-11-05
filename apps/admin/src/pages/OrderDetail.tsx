@@ -23,6 +23,7 @@ import { ReturnDialog, ReturnsCard } from './orders/Returns';
 import type { OrderLine } from './orders/OrderDialogs';
 import { Thumb } from './Products';
 import { AddressProblemsText, ConversionSection, FulfilmentFields, RiskSection, useOrderExtras } from './orders/OrderExtras';
+import { LinePlan, OrderSubscriptionSection, useOrderSubscriptions, type OrderSubscriptionInfo } from '../components/SubscriptionCards';
 
 type Addr = Parameters<typeof AddressBlock>[0]['a'];
 interface OrderData {
@@ -36,7 +37,7 @@ interface OrderData {
   transactions: Array<{ id: string; kind: string; status: string; gateway: string; createdAt: string; amountSet: MoneySet }>;
   statusPageUrl: string;
   shopmeFulfillmentHold: { reason: string; reasonNotes: string | null } | null;
-  fulfillments: Array<FulfillmentValue & { status: string; createdAt: string; fulfillmentLineItems: { nodes: Array<{ quantity: number; lineItem: { title: string; variantTitle: string | null } }> } }>;
+  fulfillments: Array<FulfillmentValue & { status: string; createdAt: string; fulfillmentLineItems: { nodes: Array<{ quantity: number; lineItem: { title: string; variantTitle: string | null; sellingPlan?: { name: string } | null } }> } }>;
   refunds: Array<{ id: string; createdAt: string; note: string | null; totalRefundedSet: MoneySet }>;
   customer: { id: string; displayName: string; defaultEmailAddress: { emailAddress: string } | null; numberOfOrders: number } | null;
 }
@@ -66,6 +67,7 @@ function OrderView({ order: o }: { order: OrderData }) {
   const { lang } = useI18n();
   const extrasQ = useOrderExtras(o.id);
   const extras = extrasQ.data ?? null;
+  const subs = useOrderSubscriptions(o.id);
   const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['timeline'] }), qc.invalidateQueries({ queryKey: ['order'] }), qc.invalidateQueries({ queryKey: ['order-extras'] })]).then(() => qc.invalidateQueries({ queryKey: ['orders'] }));
   const fail = (e: Error) => toast(e.message, 'critical');
 
@@ -170,7 +172,7 @@ function OrderView({ order: o }: { order: OrderData }) {
                   {extras?.shopmeLocation && <span className="inline-flex items-center gap-1 rounded-full border border-line bg-canvas px-2 py-0.5 text-xs text-fg" title={t('btn.order.shipsFrom')}><MapPin className="size-3" aria-hidden />{extras.shopmeLocation.name}</span>}
                 </div>
                 {held && <div className="px-4 pt-3"><Banner tone="warning">{t('hold.banner', { reason: t(`hold.reason.${held.reason}` as Key) })}{held.reasonNotes ? ` — ${held.reasonNotes}` : ''}</Banner></div>}
-                <div className="px-4"><LineList lines={unfulfilled} qty={(l) => l.unfulfilledQuantity} /></div>
+                <div className="px-4"><LineList lines={unfulfilled} qty={(l) => l.unfulfilledQuantity} subs={subs} /></div>
               </Card>
             </section>
           )}
@@ -181,14 +183,14 @@ function OrderView({ order: o }: { order: OrderData }) {
                 { key: 'cancel', icon: <X />, label: t('ful.cancel'), danger: true, onSelect: () => setCancelling(f) },
               ]} />}>{t('ful.FULFILLED')} <span className="font-normal text-muted">{f.name} · {fmt.date(f.createdAt)}</span></IconHeading>
               <Card>
-                <ul className="mb-2 text-[13px]">{f.fulfillmentLineItems.nodes.map((n, i) => <li key={i}>{n.lineItem.title}{n.lineItem.variantTitle ? <span className="text-muted"> · {n.lineItem.variantTitle}</span> : null} <span className="text-muted">× {n.quantity}</span></li>)}</ul>
+                <ul className="mb-2 text-[13px]">{f.fulfillmentLineItems.nodes.map((n, i) => <li key={i}>{n.lineItem.title}{n.lineItem.variantTitle ? <span className="text-muted"> · {n.lineItem.variantTitle}</span> : null} <span className="text-muted">× {n.quantity}</span>{n.lineItem.sellingPlan ? <span className="text-muted"> · {n.lineItem.sellingPlan.name}</span> : null}</li>)}</ul>
                 {f.trackingInfo.length === 0 ? <p className="text-[13px] text-muted">{t('order.noTracking')}</p> : f.trackingInfo.map((tr, i) => (
                   <p key={i} className="flex items-center gap-2 text-[13px]"><Truck className="size-4 text-muted" />{tr.company}{' '}{tr.url ? <a href={tr.url} target="_blank" rel="noreferrer" className="text-accent underline">{tr.number}</a> : tr.number}</p>
                 ))}
               </Card>
             </section>
           ))}
-          {unfulfilled.length === 0 && liveFulfillments.length === 0 && <Card className="!p-0"><div className="px-4"><LineList lines={lines} qty={(l) => l.quantity} /></div></Card>}
+          {unfulfilled.length === 0 && liveFulfillments.length === 0 && <Card className="!p-0"><div className="px-4"><LineList lines={lines} qty={(l) => l.quantity} subs={subs} /></div></Card>}
 
           <ReturnsCard orderId={o.id} />
           <IssuedGiftCardsCard orderId={o.id} />
@@ -226,6 +228,7 @@ function OrderView({ order: o }: { order: OrderData }) {
             <p>{channel}</p>
           </SideSection>
           {extras && <FulfilmentFields key={`${extras.shopmeFulfillBy}|${extras.poNumber}`} orderId={o.id} extras={extras} disabled={!!o.cancelledAt} />}
+          <OrderSubscriptionSection orderId={o.id} info={subs} />
           <SideSection title={t('order.customer')} action={o.customer && <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
             { key: 'view', icon: <User />, label: t('order.viewCustomer'), onSelect: () => nav(`/customers/${gidToNum(o.customer!.id)}`) },
             { key: 'copy', icon: <Copy />, label: t('order.copyEmail'), onSelect: () => { void navigator.clipboard?.writeText(o.email ?? o.customer?.defaultEmailAddress?.emailAddress ?? '').then(() => toast(t('abandoned.copied'))); } },
@@ -266,7 +269,7 @@ function OrderView({ order: o }: { order: OrderData }) {
   );
 }
 
-function LineList({ lines, qty }: { lines: OrderLine[]; qty: (l: OrderLine) => number }) {
+function LineList({ lines, qty, subs }: { lines: OrderLine[]; qty: (l: OrderLine) => number; subs?: OrderSubscriptionInfo }) {
   const fmt = useFormat();
   return (
     <ul className="divide-y divide-line">
@@ -276,6 +279,7 @@ function LineList({ lines, qty }: { lines: OrderLine[]; qty: (l: OrderLine) => n
           <div className="min-w-0 flex-1">
             <p className="font-medium">{l.title}</p>
             {(l.variantTitle || l.sku) && <p className="mt-0.5 flex flex-wrap gap-1 text-xs text-muted">{[l.variantTitle, l.sku].filter(Boolean).map((x) => <span key={x} className="rounded-md bg-surface px-1.5">{x}</span>)}</p>}
+            <LinePlan info={subs?.lines.get(l.id)} />
           </div>
           <span className="flex items-center gap-1.5 text-muted">{fmt.money(l.originalUnitPriceSet)} × <QtyChip n={qty(l)} /></span>
           <span className="w-20 text-right">{fmt.money(l.discountedTotalSet)}</span>
