@@ -23,7 +23,7 @@ export const serializeTemplate = (t: Template) => `${JSON.stringify(t, null, 2)}
 export interface BlockDef { type: string; name?: string; limit?: number; settings?: SettingDef[] }
 type PresetBlock = { type: string; settings?: Record<string, SettingValue> };
 /** Preset blocks come as a list (older schemas) or as an id-keyed object plus `block_order` (newer ones). */
-export interface Preset { name: string; settings?: Record<string, SettingValue>; blocks?: PresetBlock[] | Record<string, PresetBlock>; block_order?: string[] }
+export interface Preset { name: string; category?: string; settings?: Record<string, SettingValue>; blocks?: PresetBlock[] | Record<string, PresetBlock>; block_order?: string[] }
 export interface SectionSchema { name?: string; settings?: SettingDef[]; blocks?: BlockDef[]; max_blocks?: number; presets?: Preset[] }
 
 /** Read the `{% schema %}` JSON of a `.liquid` file; null when absent or invalid. */
@@ -69,6 +69,8 @@ export type Action =
   | { kind: 'addSection'; type: string; preset?: Preset; id?: string; index?: number }
   | { kind: 'removeSection'; id: string }
   | { kind: 'duplicateSection'; id: string; newId: string }
+  | { kind: 'insertSection'; id: string; instance: SectionInstance; index?: number }
+  | { kind: 'renameSection'; id: string; name: string }
   | { kind: 'moveSection'; id: string; to: number }
   | { kind: 'toggleSection'; id: string }
   | { kind: 'setSetting'; id: string; key: string; value: SettingValue; block?: string }
@@ -126,6 +128,18 @@ export function templateReducer(t: Template, a: Action): Template {
       if (!src || t.sections[a.newId]) return t;
       const order = t.order.slice(); order.splice(t.order.indexOf(a.id) + 1, 0, a.newId);
       return { ...t, sections: { ...t.sections, [a.newId]: structuredClone(src) }, order };
+    }
+    case 'insertSection': {
+      if (t.sections[a.id]) return t;
+      const order = t.order.slice(); order.splice(a.index ?? order.length, 0, a.id);
+      return { ...t, sections: { ...t.sections, [a.id]: structuredClone(a.instance) }, order };
+    }
+    case 'renameSection': {
+      const s = sec(a.id); if (!s) return t;
+      const name = a.name.trim();
+      if ((s.name ?? '') === name) return t;
+      const { name: _old, ...rest } = s;
+      return { ...t, sections: { ...t.sections, [a.id]: name ? { ...rest, name } : rest } };
     }
     case 'moveSection': {
       const from = t.order.indexOf(a.id);

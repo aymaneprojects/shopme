@@ -116,6 +116,20 @@ describe('filters', () => {
 });
 
 describe('tags', () => {
+  it('design mode adds editor attributes to section and block wrappers only when asked', async () => {
+    const files = {
+      'layout/theme.liquid': '{{ content_for_layout }}',
+      'sections/a.liquid': 'A{% for block in section.blocks %}<i {{ block.shopify_attributes }}></i>{% endfor %}{% schema %}{"name":"A","blocks":[{"type":"x"}]}{% endschema %}',
+      'templates/index.json': '{"sections":{"s1":{"type":"a","blocks":{"b1":{"type":"x"}},"block_order":["b1"]}},"order":["s1"]}',
+    };
+    const r = new ThemeRenderer(new Theme(files));
+    const live = (await r.renderPage(page())).html;
+    expect(live).not.toContain('data-shopify-editor');
+    expect(live).toContain('<i ></i>');
+    const editor = (await r.renderPage(page({}, { designMode: true }))).html;
+    expect(editor).toContain('data-shopify-editor-section="{&quot;id&quot;:&quot;s1&quot;,&quot;type&quot;:&quot;a&quot;}"');
+    expect(editor).toContain('<i data-shopify-editor-block="{&quot;id&quot;:&quot;b1&quot;,&quot;type&quot;:&quot;x&quot;}"></i>');
+  });
   it('schema and doc emit nothing; stylesheet/javascript are hoisted once into the head', async () => {
     const files = {
       'layout/theme.liquid': '<head>{{ content_for_header }}</head>{{ content_for_layout }}',

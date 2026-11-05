@@ -105,3 +105,15 @@ describe('history', () => {
     expect(r(s, { kind: 'duplicateSection', id: 'hero', newId: 'hero_2' })).toBe(s);
   });
 });
+
+describe('insert and rename section', () => {
+  it('inserts a copy at an index and renames', () => {
+    const t0 = { sections: { a: { type: 'x' }, b: { type: 'y' } }, order: ['a', 'b'] };
+    const t1 = r(t0, { kind: 'insertSection', id: 'c', instance: { type: 'z' }, index: 1 });
+    expect(t1.order).toEqual(['a', 'c', 'b']);
+    expect(r(t1, { kind: 'insertSection', id: 'c', instance: { type: 'z' } })).toBe(t1);
+    const t2 = r(t1, { kind: 'renameSection', id: 'c', name: ' Mine ' });
+    expect(t2.sections.c!.name).toBe('Mine');
+    expect(r(t2, { kind: 'renameSection', id: 'c', name: '' }).sections.c).toEqual({ type: 'z' });
+  });
+});

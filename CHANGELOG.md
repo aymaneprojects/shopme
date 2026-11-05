@@ -20,6 +20,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Gift card products: "Add gift card product" creates a product flagged as gift card (no shipping, denominations); the order page lists the gift cards issued when it is paid.
 - Products metrics strip over 30 days: average sell-through rate, days of stock remaining and ABC analysis by revenue (`shopmeProductMetrics`).
 - Bulk actions: products (add or remove tags, add to or remove from collections), orders (mark as paid, mark as fulfilled, add or remove tags) and customers (remove tags); Duplicate product dialog with title, media and status.
+- Theme editor: click-to-select in the preview (hover outline with the element's name, mini toolbar to move, duplicate, hide and delete, insert handles between sections), with an Inspector toggle; editor attributes are rendered only in the signed-in preview, never on the live storefront.
+- Theme editor: live preview that follows unsaved changes (debounced, scroll position kept), also for themes that are not live.
+- Theme editor: section and block settings panel with back/close and a "..." menu, section menu in the tree (copy, paste, duplicate, rename, hide, add before/after, remove) and keyboard shortcuts.
+- Theme editor: one undo/redo history shared by sections and theme settings, and theme settings grouped with search.
+- Theme editor: "Add section" picker with categories, search and a live preview on hover; desktop, tablet, mobile and full-screen preview modes.
 - The demo store now ships real product, collection, home page, blog and About page photos (CC0, see `packages/core/assets/demo/README.md`).
 - Illustrated empty states in the admin (products, orders, customers, discounts, collections, analytics).
 - `pnpm screenshots` regenerates the README screenshots from a fresh demo store.

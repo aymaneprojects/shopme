@@ -253,13 +253,16 @@ function errorHtml(rt: Runtime, where: string, e: unknown): string {
   return `<!-- Liquid error (${where}): ${escapeHtml(msg).replace(/--/g, '- -')} -->`;
 }
 
+/** Editor attributes (`data-shopify-editor-block`) for a block; empty outside the theme editor preview. */
+const editorBlockAttrs = (rt: Runtime, id: string, type: string): string => (rt.designMode ? `data-shopify-editor-block="${escapeHtml(JSON.stringify({ id, type }))}"` : '');
+
 async function childBlocks(rt: Runtime, ownerPath: string, inst: BlockInstance, sc: { resolvers: Runtime['resolvers']; schemaLocale?: Record<string, unknown> }) {
   const ids = inst.block_order ?? Object.keys(inst.blocks ?? {});
   const out: Record<string, unknown>[] = [];
   for (const bid of ids) {
     const b = inst.blocks?.[bid];
     if (!b || b.disabled) continue;
-    out.push({ id: bid, type: b.type, settings: await resolveSettings(blockDefs(rt, ownerPath, b.type), b.settings, sc), shopify_attributes: '', 'static?': !!b.static });
+    out.push({ id: bid, type: b.type, settings: await resolveSettings(blockDefs(rt, ownerPath, b.type), b.settings, sc), shopify_attributes: editorBlockAttrs(rt, bid, b.type), 'static?': !!b.static });
   }
   return out;
 }
@@ -288,7 +291,8 @@ export async function renderSectionInstance(liquid: Liquid, ctx: Context, o: Ins
     const tag = schema?.tag === null ? null : (schema?.tag ?? 'div');
     if (!tag) return html;
     const cls = ['shopify-section', o.group ? `shopify-section-group-${o.group}` : '', schema?.class ?? ''].filter(Boolean).join(' ');
-    return `<${tag} id="shopify-section-${escapeHtml(o.id)}" class="${escapeHtml(cls)}">${html}</${tag}>`;
+    const editor = rt.designMode ? ` data-shopify-editor-section="${escapeHtml(JSON.stringify({ id: o.id, type: o.type }))}"` : '';
+    return `<${tag} id="shopify-section-${escapeHtml(o.id)}" class="${escapeHtml(cls)}"${editor}>${html}</${tag}>`;
   } catch (e) {
     return `<div id="shopify-section-${escapeHtml(o.id)}" class="shopify-section">${errorHtml(rt, path, e)}</div>`;
   }
@@ -304,7 +308,7 @@ export async function renderBlock(liquid: Liquid, ctx: Context, parent: Frame, i
   const closest = { ...parent.closest, ...extra };
   try {
     const settings = await resolveSettings(schema?.settings, inst.settings, sc);
-    const block = { id, type: inst.type, settings, shopify_attributes: '', 'static?': !!inst.static, blocks: await childBlocks(rt, path, inst, sc), index: 1 };
+    const block = { id, type: inst.type, settings, shopify_attributes: editorBlockAttrs(rt, id, inst.type), 'static?': !!inst.static, blocks: await childBlocks(rt, path, inst, sc), index: 1 };
     const section = ctx.getSync(['section']);
     const child = ctx.spawn({ block, section, closest });
     await evalSettingStrings(liquid, settings, child, { block, section, closest });
@@ -313,7 +317,8 @@ export async function renderBlock(liquid: Liquid, ctx: Context, parent: Frame, i
     try { html = (await toPromise(liquid.renderer.renderTemplates(templates, child))) as string; } finally { rt.stack.pop(); }
     const tag = schema && 'tag' in schema ? schema.tag : 'div';
     if (!tag) return html;
-    return `<${tag}${attrs({ class: ['shopify-block', schema?.class].filter(Boolean).join(' ') })}>${html}</${tag}>`;
+    const editor = rt.designMode ? ` ${editorBlockAttrs(rt, id, inst.type)}` : '';
+    return `<${tag}${attrs({ class: ['shopify-block', schema?.class].filter(Boolean).join(' ') })}${editor}>${html}</${tag}>`;
   } catch (e) {
     return errorHtml(rt, path, e);
   }
