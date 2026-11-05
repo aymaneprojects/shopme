@@ -82,7 +82,7 @@ export function guardedLookup(allowPrivate: boolean): LookupFunction {
   }) as LookupFunction;
 }
 
-export interface GuardedPost { headers: Record<string, string>; body: string; timeoutMs: number; allowPrivate: boolean }
+export interface GuardedPost { headers: Record<string, string>; body: string; timeoutMs: number; allowPrivate: boolean; /** Response body kept by {@link postGuardedJson} (default 64 KB). */ maxBytes?: number }
 
 /**
  * POST `url` and resolve with the HTTP status. Redirects are not followed (a 3xx is a failed delivery).
@@ -103,7 +103,7 @@ export function postGuarded(url: URL, o: GuardedPost): Promise<number> {
   });
 }
 
-/** Like {@link postGuarded} but resolves with the status and (at most 64 KB of) the response body. Used for carrier rate lookups and SMS gateways. */
+/** Like {@link postGuarded} but resolves with the status and (at most `maxBytes`, 64 KB by default, of) the response body. Used for carrier lookups and SMS gateways. */
 export function postGuardedJson(url: URL, o: GuardedPost): Promise<{ status: number; body: string }> {
   if (isIP(url.hostname.replace(/^\[|\]$/g, '')) && !o.allowPrivate && isPrivateAddress(url.hostname.replace(/^\[|\]$/g, ''))) {
     return Promise.reject(new BlockedAddressError(url.hostname));
@@ -114,7 +114,8 @@ export function postGuardedJson(url: URL, o: GuardedPost): Promise<{ status: num
       method: 'POST', headers: { ...o.headers, 'content-length': Buffer.byteLength(o.body) }, lookup: guardedLookup(o.allowPrivate),
     }, (res: IncomingMessage) => {
       const chunks: Buffer[] = []; let size = 0;
-      res.on('data', (c: Buffer) => { size += c.length; if (size <= 65_536) chunks.push(c); });
+      const max = o.maxBytes ?? 65_536;
+      res.on('data', (c: Buffer) => { size += c.length; if (size <= max) chunks.push(c); });
       res.on('end', () => { clearTimeout(timer); resolve({ status: res.statusCode ?? 0, body: Buffer.concat(chunks).toString('utf8') }); });
       res.on('error', (e) => { clearTimeout(timer); reject(e); });
     });

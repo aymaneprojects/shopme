@@ -17,6 +17,8 @@ import { lazyMap, liquidCart, localizationObject, requestObject, routesObject, s
 
 export const CART_COOKIE = 'cart';
 export const CUSTOMER_COOKIE = 'shopme_customer';
+/** Anonymous 30-minute visit id of the first-party analytics (see visits.ts). */
+export const VISIT_COOKIE = 'shopme_vid';
 
 /** The signed-in storefront customer of a request (signed session cookie), or null. */
 export async function customerOf(ctx: AppContext, req: FastifyRequest, shop: Shop): Promise<Customer | null> {

@@ -19,6 +19,7 @@ import { cumulate, emptyQuery } from '../lib/report-query';
 import type { QueryFilter, QueryOp, ReportQuery } from '../lib/report-query';
 import { useShop } from '../session';
 import { todayIn, useCells } from './Analytics';
+import { LiveMap, type LiveCountry } from '../components/LiveMap';
 
 type Viz = 'TABLE' | 'LINE' | 'BAR';
 type Dataset = 'ORDERS' | 'PRODUCTS' | 'CUSTOMERS' | 'SESSIONS';
@@ -208,6 +209,7 @@ interface Live {
   at: string; currencyCode: string; visitorsNow: number; sessionsToday: number; ordersToday: number; salesToday: number; activeCarts: number;
   viewsPerMinute: Array<{ minute: string; views: number }>; topPages: Array<{ path: string; views: number }>; topSources: Array<{ source: string; sessions: number }>;
   recentOrders: Array<{ id: string; name: string; total: number; createdAt: string; country: string | null }>;
+  countries: LiveCountry[]; visitorsUnlocated: number;
 }
 
 /** What is happening right now: visitors, sessions, orders and carts, refreshed every 10 seconds from the first-party visit log. */
@@ -232,6 +234,7 @@ export function LiveViewPage() {
             {tile(t('bc.live.sales'), cells.money(d.salesToday))}
             {tile(t('bc.live.carts'), nf.format(d.activeCarts), t('bc.live.cartsHint'))}
           </div>
+          <LiveMap countries={d.countries} unlocated={d.visitorsUnlocated} />
           <Card title={t('bc.live.perMinute')}>
             <BarChart series={[{ label: t('bc.live.views'), color: 'var(--color-primary)', points: d.viewsPerMinute.map((m) => [new Intl.DateTimeFormat(lang, { timeStyle: 'short' }).format(new Date(m.minute)), m.views] as [string, number]) }]} format={(n) => nf.format(Math.round(n))} label={t('bc.live.perMinute')} />
           </Card>
@@ -246,7 +249,6 @@ export function LiveViewPage() {
               {d.recentOrders.length === 0 ? <p className="text-[13px] text-muted">{t('bc.live.noOrders')}</p> : <ul className="divide-y divide-line text-[13px]">{d.recentOrders.map((o) => <li key={o.id} className="flex items-center justify-between gap-3 py-1.5"><span><Link className="font-medium hover:underline" to={`/orders/${o.id.split('/').pop()}`}>{o.name}</Link> <span className="text-muted">{o.country ?? ''} · {fmt.dateTime(o.createdAt)}</span></span><span className="tabular-nums">{cells.money(o.total)}</span></li>)}</ul>}
             </Card>
           </div>
-          <p className="text-xs text-muted">{t('bc.live.mapNote')}</p>
         </div>
       )}
     </>

@@ -72,7 +72,15 @@ const routingRule = z.object({
   locationIds: z.array(z.number().int().positive()).min(1, 'Choose at least one location').max(50),
 });
 const fulfillmentService = z.object({ id: id, name: text(80).min(1, 'Name is required'), email: text(200).default(''), notes: text(500).default('') });
-const carrierAccount = z.object({ id: id, provider: z.enum(['http']), name: text(80).min(1, 'Name is required'), endpoint: url.refine((v) => v !== '', 'Endpoint URL is required'), secret: text(200).default('') });
+/**
+ * A carrier account: `http` is any carrier fronted by a small service at `endpoint` (rates, and labels when `labels` is on: see
+ * docs/dev/carrier-labels.md); `test` is the built-in test carrier (no endpoint, fake labels with sample tracking numbers).
+ */
+const carrierAccount = z.object({
+  id: id, provider: z.enum(['http', 'test']), name: text(80).min(1, 'Name is required'), endpoint: url.default(''), secret: text(200).default(''),
+  /** The endpoint also sells postage (label rates, purchase and void). Always on for the test carrier. */
+  labels: z.boolean().default(false),
+}).refine((a) => a.provider !== 'http' || a.endpoint !== '', { message: 'Endpoint URL is required', path: ['endpoint'] });
 const shipping = z.object({
   /** Days between the order and the parcel leaving: added to the transit time shown at checkout. */
   handlingDays: z.number().int().min(0).max(60).default(0),

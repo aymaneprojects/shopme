@@ -188,6 +188,7 @@ export const LIVE_VIEW = /* GraphQL */ `
     shopmeLiveView {
       at currencyCode visitorsNow sessionsToday ordersToday salesToday activeCarts
       viewsPerMinute { minute views } topPages { path views } topSources { source sessions } recentOrders { id name total createdAt country }
+      countries { countryCode visitors } visitorsUnlocated
     }
   }
 `;

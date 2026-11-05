@@ -55,7 +55,7 @@ export const frBtnOrders = {
   'btn.labels.voided': 'Étiquette annulée', 'btn.labels.save': 'Enregistrer les étiquettes', 'btn.labels.notify': 'Envoyer la confirmation d’expédition aux clients',
   'btn.labels.dialogTitle': 'Ajouter des étiquettes pour {n} commandes', 'btn.labels.dialogTitle.one': 'Ajouter une étiquette pour {n} commande', 'btn.labels.created': '{n} étiquettes enregistrées, commandes traitées', 'btn.labels.created.one': '{n} étiquette enregistrée, commande traitée',
   'btn.labels.manualHelp': 'Achetez l’affranchissement chez votre transporteur, puis saisissez ici son numéro de suivi. La commande est traitée avec ce suivi et le client peut être prévenu.',
-  'btn.labels.noPurchase': 'ShopMe enregistre les étiquettes achetées chez un transporteur ; il n’achète pas l’affranchissement à votre place.', 'btn.labels.noneNeeded': 'Ces commandes ont déjà une étiquette ou ne peuvent pas être expédiées.',
+  'btn.labels.noneNeeded': 'Ces commandes ont déjà une étiquette ou ne peuvent pas être expédiées.',
   'btn.labels.emptyAwaitingTitle': 'Aucune commande n’attend d’étiquette', 'btn.labels.emptyAwaitingBody': 'Les commandes ouvertes avec des articles à expédier apparaissent ici.',
   'btn.labels.emptyLabelsTitle': 'Aucune étiquette pour le moment', 'btn.labels.emptyVoidedTitle': 'Aucune étiquette annulée', 'btn.labels.emptyLabelsBody': 'Les étiquettes que vous enregistrez apparaissent ici avec leur numéro de suivi.',
 

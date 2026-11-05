@@ -1157,6 +1157,83 @@
         "featured_collection": "Collection à la une"
       },
       "name": "Collection à la une"
+    },
+    "customer": {
+      "headers": {
+        "content": "Contenu",
+        "layout": "Mise en page"
+      },
+      "settings": {
+        "heading": "Titre",
+        "text": "Texte d’introduction",
+        "align": "Alignement",
+        "width": "Largeur",
+        "show_recover_link": "Afficher le lien « Mot de passe oublié »",
+        "show_register_link": "Afficher le lien pour créer un compte",
+        "show_login_link": "Afficher le lien pour se connecter",
+        "show_name_fields": "Demander le prénom et le nom",
+        "show_marketing": "Proposer l’inscription aux e-mails marketing",
+        "show_store_credit": "Afficher le solde du crédit en magasin",
+        "show_default_address": "Afficher l’adresse par défaut",
+        "orders_per_page": "Commandes par page",
+        "details_position": "Informations du compte",
+        "show_sku": "Afficher la colonne UGS",
+        "show_addresses": "Afficher les adresses de livraison et de facturation",
+        "show_shipments": "Afficher les expéditions et le suivi",
+        "columns": "Adresses par ligne"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut dans la langue du client.",
+        "order_heading": "Le numéro de commande est ajouté à la suite. Laissez vide pour le titre par défaut.",
+        "text_default": "Laissez vide pour utiliser le texte par défaut.",
+        "show_store_credit": "Affiché uniquement si le crédit en magasin est activé et que le client a un solde."
+      },
+      "options": {
+        "width": {
+          "narrow": "Étroite",
+          "page": "Largeur de page"
+        },
+        "details_position": {
+          "side": "À côté des commandes",
+          "below": "Sous les commandes"
+        }
+      }
+    },
+    "main_login": {
+      "name": "Connexion client"
+    },
+    "main_register": {
+      "name": "Création de compte"
+    },
+    "main_account": {
+      "name": "Compte client"
+    },
+    "main_order": {
+      "name": "Commande client"
+    },
+    "main_addresses": {
+      "name": "Adresses du client"
+    },
+    "main_activate_account": {
+      "name": "Activation du compte"
+    },
+    "main_reset_password": {
+      "name": "Réinitialisation du mot de passe"
+    },
+    "groups": {
+      "header": "En-tête",
+      "footer": "Pied de page",
+      "footer_utilities": "Utilitaires du pied de page",
+      "overlays": "Superpositions"
+    },
+    "header": {
+      "name": "En-tête"
+    },
+    "footer": {
+      "name": "Pied de page"
+    },
+    "announcement_bar": {
+      "name": "Barre d’annonces"
     }
   }
 }

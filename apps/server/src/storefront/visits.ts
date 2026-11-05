@@ -1,10 +1,10 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { randomToken, recordVisit, VISIT_SESSION_MS } from '@shopme/core';
 import type { AppContext } from '../context';
-import { primaryShop } from './env';
+import { primaryShop, VISIT_COOKIE } from './env';
 import { analyticsAllowed } from './privacy';
 
-export const VISIT_COOKIE = 'shopme_vid';
+export { VISIT_COOKIE };
 const BOT = /bot|crawl|spider|slurp|preview|monitor|uptime|curl|wget|python|headless|lighthouse|facebookexternalhit/i;
 
 const ids = new WeakMap<FastifyRequest, string>();
@@ -12,7 +12,8 @@ const ids = new WeakMap<FastifyRequest, string>();
 /**
  * First-party visit tracking for the analytics "Sessions" and conversion numbers: every successful storefront HTML page view is stored
  * with an anonymous 30-minute session id from the `shopme_vid` cookie (httpOnly, never shared). No IP address, user agent or
- * personal data is stored and nothing leaves the server.
+ * personal data is stored and nothing leaves the server. The only location kept is a country code, derived from the browser's time
+ * zone that the analytics beacon sends (`/.shopme/events`, under the same consent rules).
  */
 export function registerVisitTracking(scope: FastifyInstance, ctx: AppContext): void {
   scope.addHook('onRequest', async (req, reply) => {

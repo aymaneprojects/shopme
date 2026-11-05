@@ -11,7 +11,8 @@ import { setFlash } from './flash';
 import { crossSite, formBody } from './forms';
 import { messages } from './i18n';
 import { orderObject, productLookups } from './data/customer';
-import type { createContent } from './pages';
+import { sampleCustomer, sampleOrder } from './data/sample-customer';
+import { isEditorPreview, type createContent } from './pages';
 
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 const localPath = (v: unknown, fallback: string) => { const s = str(v); return s.startsWith('/') && !s.startsWith('//') ? s : fallback; };
@@ -45,8 +46,12 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
     reply.setCookie(CUSTOMER_COOKIE, session.token, { path: '/', httpOnly: true, sameSite: 'lax', signed: true, expires: session.expiresAt, secure });
   };
 
-  /** Routes for signed-in customers only; others go to the login page (and come back afterwards). */
-  const signedIn = (fn: (req: FastifyRequest, reply: FastifyReply, shop: Shop, customer: Customer) => Promise<unknown>) => withShop(async (req, reply, shop) => {
+  /**
+   * Routes for signed-in customers only; others go to the login page (and come back afterwards). In the theme editor preview the page is
+   * rendered with a made-up sample customer (`preview`) instead, so staff can design it without signing in and without real data.
+   */
+  const signedIn = (fn: (req: FastifyRequest, reply: FastifyReply, shop: Shop, customer: Customer) => Promise<unknown>, preview?: (req: FastifyRequest, reply: FastifyReply, shop: Shop) => Promise<unknown>) => withShop(async (req, reply, shop) => {
+    if (preview && (await isEditorPreview(req, shop))) { html(reply); return preview(req, reply, shop); }
     const customer = await customerOf(ctx, req, shop);
     if (!customer) return reply.redirect(`/account/login?return_url=${encodeURIComponent(req.url.split('?')[0]!)}`, 302);
     html(reply);
@@ -68,10 +73,12 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
   const titleOf = (shop: Shop, en: string, fr: string) => (shop.locale.startsWith('fr') ? fr : en);
 
   // --- account home
-  app.get('/account', signedIn(async (req, reply, shop) => page('account', titleOf(shop, 'Account', 'Compte'))(req, reply, shop)));
+  const accountTitle = (shop: Shop) => titleOf(shop, 'Account', 'Compte');
+  app.get('/account', signedIn(async (req, reply, shop) => page('account', accountTitle(shop))(req, reply, shop), async (req, reply, shop) => page('account', accountTitle(shop), { customer: sampleCustomer(shop) })(req, reply, shop)));
 
   // --- login / logout
   app.get('/account/login', withShop(async (req, reply, shop) => {
+    if (await isEditorPreview(req, shop)) return page('login', titleOf(shop, 'Login', 'Connexion'), { customer: null, login_step: 'start', login_email: '', login_return_url: '' })(req, reply, shop);
     if (await customerOf(ctx, req, shop)) return reply.redirect(localPath((req.query as Record<string, unknown>).return_url, '/account'), 302);
     const q = req.query as Record<string, unknown>;
     const back = localPath(q.return_url, '');
@@ -143,8 +150,9 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
 
   // --- registration
   app.get('/account/register', withShop(async (req, reply, shop) => {
-    if (await customerOf(ctx, req, shop)) return reply.redirect('/account', 302);
-    return page('register', titleOf(shop, 'Create account', 'Créer un compte'))(req, reply, shop);
+    const preview = await isEditorPreview(req, shop);
+    if (!preview && (await customerOf(ctx, req, shop))) return reply.redirect('/account', 302);
+    return page('register', titleOf(shop, 'Create account', 'Créer un compte'), preview ? { customer: null } : {})(req, reply, shop);
   }));
   const register = async (req: FastifyRequest, reply: FastifyReply, shop: Shop, body: Record<string, any>) => {
     const c = (body.customer ?? {}) as Record<string, unknown>;
@@ -180,6 +188,8 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
   // --- reset and activation links
   const tokenPage = (kind: 'reset' | 'activate', template: string, formType: string, title: [string, string]) => withShop(async (req, reply, shop) => {
     const { id, token } = req.params as { id: string; token: string };
+    // Theme editor preview: the page is shown without a real link (its form is not wired to any customer).
+    if (await isEditorPreview(req, shop)) return page(template, titleOf(shop, ...title), { customer: null, __form_actions: { [formType]: '#' } })(req, reply, shop);
     if (!/^\d+$/.test(id) || !(await isCustomerTokenValid(db, shop.id, Number(id), kind, token))) return back(reply, '/account/login', { type: 'customer_login', errors: { form: messages(shop.locale).t('token_invalid') } });
     const base = `/account/${kind}/${id}/${token}`;
     return page(template, titleOf(shop, ...title), { __form_actions: { [formType]: base } })(req, reply, shop);
@@ -224,6 +234,9 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
       },
     };
     return page('order', `${titleOf(shop, 'Order', 'Commande')} ${found.order.name}`, { order, order_notice: str((req.query as Record<string, unknown>).notice) })(req, reply, shop);
+  }, async (req, reply, shop) => {
+    const order = sampleOrder(shop);
+    return page('order', `${titleOf(shop, 'Order', 'Commande')} ${order.name}`, { customer: sampleCustomer(shop), order })(req, reply, shop);
   }));
   const ownOrder = async (req: FastifyRequest, shop: Shop, customer: Customer) => {
     const id = Number((req.params as { id: string }).id);
@@ -260,7 +273,8 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
   });
 
   // --- address book
-  app.get('/account/addresses', signedIn(async (req, reply, shop) => page('addresses', titleOf(shop, 'Addresses', 'Adresses'))(req, reply, shop)));
+  const addressesTitle = (shop: Shop) => titleOf(shop, 'Addresses', 'Adresses');
+  app.get('/account/addresses', signedIn(async (req, reply, shop) => page('addresses', addressesTitle(shop))(req, reply, shop), async (req, reply, shop) => page('addresses', addressesTitle(shop), { customer: sampleCustomer(shop) })(req, reply, shop)));
 
   const COUNTRIES = (locale: string) => countryOptions(null, locale);
   /** Form `address[...]` -> address input. `country` may be an ISO code or a country name; `province` a code or a name. */

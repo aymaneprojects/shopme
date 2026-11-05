@@ -13,8 +13,18 @@ export interface Sel { file: string; section: string; block?: string }
 
 export const baseName = (f: string) => f.replace(/^.*\//, '').replace(/\.(json|liquid)$/, '');
 
+/** Storefront paths of the customer account templates. The signed-in ones are previewed with a sample customer (see storefront/accounts.ts). */
+export const ACCOUNT_PATHS: Record<string, string> = {
+  'customers/login': '/account/login', 'customers/register': '/account/register', 'customers/account': '/account', 'customers/order': '/account/orders/sample',
+  'customers/addresses': '/account/addresses', 'customers/activate_account': '/account/activate/0/preview', 'customers/reset_password': '/account/reset/0/preview',
+};
+/** Account templates shown with the sample customer in the editor preview. */
+export const SAMPLE_CUSTOMER_TEMPLATES = ['customers/account', 'customers/order', 'customers/addresses'];
+
 /** Storefront path previewed for a template (alternates such as `page.contact` use their base type). */
 export function previewPath(template: string, h: { product?: string; collection?: string; page?: string; /** `<blog>/<article>` */ article?: string }): string {
+  const account = ACCOUNT_PATHS[template.split('.')[0]!];
+  if (account) return account;
   switch (template.split('.')[0]) {
     case 'product': return h.product ? `/products/${h.product}` : '/';
     case 'collection': return `/collections/${h.collection ?? 'all'}`;
@@ -40,7 +50,12 @@ export function templateForPath(path: string): string | null {
   if (p.startsWith('/blogs/')) return p.split('/').length > 3 ? 'article' : 'blog';
   if (p === '/cart') return 'cart';
   if (p === '/search') return 'search';
-  return null;
+  if (p === '/account') return 'customers/account';
+  if (p.startsWith('/account/orders/')) return 'customers/order';
+  if (p.startsWith('/account/activate/')) return 'customers/activate_account';
+  if (p.startsWith('/account/reset/')) return 'customers/reset_password';
+  const account = Object.entries(ACCOUNT_PATHS).find(([, path]) => path === p);
+  return account ? account[0] : null;
 }
 
 interface Ops {

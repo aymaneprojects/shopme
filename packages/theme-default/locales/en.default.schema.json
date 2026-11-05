@@ -1157,6 +1157,83 @@
         "featured_collection": "Featured collection"
       },
       "name": "Featured collection"
+    },
+    "customer": {
+      "headers": {
+        "content": "Content",
+        "layout": "Layout"
+      },
+      "settings": {
+        "heading": "Heading",
+        "text": "Introduction text",
+        "align": "Alignment",
+        "width": "Width",
+        "show_recover_link": "Show the forgotten password link",
+        "show_register_link": "Show the link to create an account",
+        "show_login_link": "Show the link to log in",
+        "show_name_fields": "Ask for first and last name",
+        "show_marketing": "Show the marketing email opt-in",
+        "show_store_credit": "Show the store credit balance",
+        "show_default_address": "Show the default address",
+        "orders_per_page": "Orders per page",
+        "details_position": "Account details",
+        "show_sku": "Show the SKU column",
+        "show_addresses": "Show the shipping and billing addresses",
+        "show_shipments": "Show shipments and tracking",
+        "columns": "Addresses per row"
+      },
+      "info": {
+        "heading": "Leave empty to use the default title in the customer's language.",
+        "order_heading": "The order number is added after it. Leave empty for the default title.",
+        "text_default": "Leave empty to use the default text.",
+        "show_store_credit": "Only shown when store credit is turned on and the customer has a balance."
+      },
+      "options": {
+        "width": {
+          "narrow": "Narrow",
+          "page": "Page width"
+        },
+        "details_position": {
+          "side": "Beside the orders",
+          "below": "Below the orders"
+        }
+      }
+    },
+    "main_login": {
+      "name": "Customer login"
+    },
+    "main_register": {
+      "name": "Create account"
+    },
+    "main_account": {
+      "name": "Customer account"
+    },
+    "main_order": {
+      "name": "Customer order"
+    },
+    "main_addresses": {
+      "name": "Customer addresses"
+    },
+    "main_activate_account": {
+      "name": "Activate account"
+    },
+    "main_reset_password": {
+      "name": "Reset password"
+    },
+    "groups": {
+      "header": "Header",
+      "footer": "Footer",
+      "footer_utilities": "Footer utilities",
+      "overlays": "Overlays"
+    },
+    "header": {
+      "name": "Header"
+    },
+    "footer": {
+      "name": "Footer"
+    },
+    "announcement_bar": {
+      "name": "Announcement bar"
     }
   }
 }

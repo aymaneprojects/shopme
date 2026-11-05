@@ -17,13 +17,13 @@ import { useShop } from '../../session';
 
 interface MarketShipping { marketId: number; name: string; status: string; primary: boolean; countries: string[]; uncovered: string[]; options: Array<{ profile: string; zone: string; name: string; price: number; countries: string[] }> }
 
-/** Shipping settings beyond rates: estimates, per-market options, fulfilment services, carrier accounts, order routing, delivery customisations, documents. */
+/** Shipping settings beyond rates: estimates, per-market options, fulfilment services, order routing, delivery customisations, documents (carrier accounts: ShippingCarriers.tsx). */
 export function ShippingExtras() {
   const { t } = useI18n();
   const cfg = useConfig<ShippingConfig>('SHIPPING');
-  const [modal, setModal] = useState<null | 'service' | 'carrier' | 'routing' | 'rule'>(null);
+  const [modal, setModal] = useState<null | 'service' | 'routing' | 'rule'>(null);
   const [edit, setEdit] = useState<string | null>(null);
-  const [del, setDel] = useState<{ list: 'fulfillmentServices' | 'carrierAccounts' | 'routing' | 'customizations'; id: string; name: string } | null>(null);
+  const [del, setDel] = useState<{ list: 'fulfillmentServices' | 'routing' | 'customizations'; id: string; name: string } | null>(null);
   const save = useSaveConfig<ShippingConfig>('SHIPPING', () => { setModal(null); setEdit(null); setDel(null); });
   if (cfg.isLoading) return <Skeleton className="h-32" />;
   if (cfg.error || !cfg.data) return <Banner>{cfg.error?.message}</Banner>;
@@ -76,23 +76,11 @@ export function ShippingExtras() {
         )}
       </Section>
 
-      <Section title={t('bs.carriers')} description={t('bs.carriersDesc')} action={<Button onClick={() => open('carrier')}><Plus className="size-4" />{t('bs.addCarrier')}</Button>}>
-        {c.carrierAccounts.length === 0 ? <Card><p className="text-[13px] text-muted">{t('bs.carriersEmpty')}</p></Card> : (
-          <RowCard>{c.carrierAccounts.map((a) => (
-            <div key={a.id} className="flex items-center gap-3 px-4 py-3">
-              <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium">{a.name}</span><span className="block truncate text-xs text-muted">{a.endpoint}</span></span>
-              {menu('carrier', 'carrierAccounts', a.id, a.name)}
-            </div>
-          ))}</RowCard>
-        )}
-      </Section>
-
       <Section title={t('bs.documents')} description={t('bs.documentsDesc')}>
         <RowCard><LinkRow to="/settings/shipping/documents" icon={FileText} title={t('bs.documentTemplates')} description={t('bs.documentTemplatesDesc')} /></RowCard>
       </Section>
 
       <ServiceModal open={modal === 'service'} cfg={c} id={edit} saving={save.isPending} onClose={() => setModal(null)} onSave={(l) => put({ fulfillmentServices: l })} />
-      <CarrierModal open={modal === 'carrier'} cfg={c} id={edit} saving={save.isPending} onClose={() => setModal(null)} onSave={(l) => put({ carrierAccounts: l })} />
       <RoutingModal open={modal === 'routing'} cfg={c} id={edit} saving={save.isPending} onClose={() => setModal(null)} onSave={(l) => put({ routing: l })} />
       <RuleModal open={modal === 'rule'} cfg={c} id={edit} saving={save.isPending} onClose={() => setModal(null)} onSave={(l) => put({ customizations: l })} />
       <ConfirmDialog open={!!del} danger onClose={() => setDel(null)} title={t('bs.deleteItemTitle', { name: del?.name ?? '' })} message={t('bs.deleteItemBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')}
@@ -162,24 +150,6 @@ function ServiceModal({ open, cfg, id, saving, onClose, onSave }: { open: boolea
         <Input label={t('bs.serviceName')} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
         <Input label={t('bs.serviceEmail')} type="email" help={t('bs.serviceEmailHelp')} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
         <Textarea label={t('bs.serviceNotes')} rows={3} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} />
-      </div>
-    </Modal>
-  );
-}
-
-function CarrierModal({ open, cfg, id, saving, onClose, onSave }: { open: boolean; cfg: ShippingConfig; id: string | null; saving: boolean; onClose: () => void; onSave: (l: ShippingConfig['carrierAccounts']) => void }) {
-  const { t } = useI18n();
-  const cur = cfg.carrierAccounts.find((s) => s.id === id);
-  const [f, setF] = useOpenState(open, id, () => ({ name: cur?.name ?? '', endpoint: cur?.endpoint ?? '', secret: cur?.secret ?? '' }));
-  return (
-    <Modal open={open} onClose={onClose} closeLabel={t('common.close')} title={t(cur ? 'bs.editCarrier' : 'bs.addCarrier')}
-      footer={<><Button onClick={onClose}>{t('common.cancel')}</Button><Button variant="primary" loading={saving} disabled={!f.name.trim() || !/^https?:\/\//.test(f.endpoint)} onClick={() => onSave(cur ? cfg.carrierAccounts.map((s) => (s.id === cur.id ? { ...s, ...f, name: f.name.trim() } : s)) : [...cfg.carrierAccounts, { id: newId(cfg.carrierAccounts.map((s) => s.id), f.name), provider: 'http', ...f, name: f.name.trim() }])}>{t('save.save')}</Button></>}>
-      <div className="flex flex-col gap-3">
-        <p className="text-[13px] text-muted">{t('bs.carrierIntro')}</p>
-        <Input label={t('bs.carrierName')} value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-        <Input label={t('bs.carrierEndpoint')} placeholder="https://rates.example.com/quote" value={f.endpoint} onChange={(e) => setF({ ...f, endpoint: e.target.value.trim() })} />
-        <Input label={t('bs.carrierSecret')} help={t('bs.carrierSecretHelp')} value={f.secret} onChange={(e) => setF({ ...f, secret: e.target.value })} />
-        <pre className="overflow-x-auto rounded-md bg-surface p-3 text-xs">{'POST → {"service":"…","grams":1200,"subtotal":4500,"destination":{"countryCode":"FR"}}\n← {"price":590}'}</pre>
       </div>
     </Modal>
   );

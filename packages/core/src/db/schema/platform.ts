@@ -11,8 +11,10 @@ export const visits = pgTable('visits', {
   path: text('path').notNull(),
   referrer: text('referrer'),
   utmSource: text('utm_source'), utmMedium: text('utm_medium'), utmCampaign: text('utm_campaign'),
+  /** ISO country of the visit, inferred from the browser's time zone (never from the IP address). Null when unknown. */
+  countryCode: text('country_code'),
   createdAt: createdAt(),
-}, (t) => [index('visits_shop_created_idx').on(t.shopId, t.createdAt)]);
+}, (t) => [index('visits_shop_created_idx').on(t.shopId, t.createdAt), index('visits_session_idx').on(t.shopId, t.sessionId)]);
 
 /** TOTP second factor of a staff member. `secret` is AES-GCM encrypted; `recoveryCodes` hold SHA-256 hashes of unused codes. */
 export const staffTwoFactor = pgTable('staff_two_factor', {

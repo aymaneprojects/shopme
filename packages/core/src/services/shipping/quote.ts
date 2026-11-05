@@ -85,7 +85,7 @@ async function profileOptions(profile: ProfileTree, lines: QuoteLine[], dest: Qu
       let price = m.price;
       if (m.rateType === 'CARRIER') {
         const provider = carrierProvider(m.carrierProvider);
-        const account = provider?.needsAccount ? q.cfg.carrierAccounts.find((a) => a.id === m.carrierParams.accountId) ?? null : null;
+        const account = provider?.needsAccount ? q.cfg.carrierAccounts.find((a) => a.id === m.carrierParams.accountId && a.provider === provider.id) ?? null : null;
         const quoted = provider ? await provider.quote({ params: m.carrierParams, account, totals, destination: dest, fallback: m.price }) : m.price;
         if (quoted === null) continue;
         price = quoted;

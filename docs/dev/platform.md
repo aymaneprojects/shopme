@@ -20,6 +20,14 @@ Visit tracking (storefront scope, `storefront/visits.ts`): one `visits` row per 
 Do-Not-Track and Global Privacy Control are skipped. With the cookie banner on (`shopmeCookieBanner`), only visitors whose
 `cookie_consent` cookie is `accepted|all|analytics|true|1` are counted. Rows older than 400 days are purged daily.
 
+Live view countries: the analytics beacon of the storefront runtime (`POST /.shopme/events`) also sends the browser's IANA time zone
+(`Intl.DateTimeFormat().resolvedOptions().timeZone`). The server maps it to an ISO country with a table derived from the IANA time zone
+database (`zone.tab`, `zone1970.tab` and the old-name links; `analytics/tz-countries.ts`, rebuilt with `node scripts/gen-tz-countries.mjs`) and
+stores only that code in `visits.country_code`, on the rows of the current visit. The time zone itself, the IP address, a region or a city are
+never stored. The same rules as visit tracking apply: no analytics consent, Do-Not-Track or Global Privacy Control means no country. Zones
+without a country (`UTC`, `Etc/*`) leave it empty. `shopmeLiveView { countries { countryCode visitors } visitorsUnlocated }` counts the visitors of
+the last 5 minutes by country; the admin draws them on a world map (`world-atlas` shapes, Natural Earth projection).
+
 ## Staff 2FA and sessions
 
 TOTP is implemented with `node:crypto` (RFC 6238, SHA-1, 6 digits, one step of drift); the QR code is `qrcode` (server only).

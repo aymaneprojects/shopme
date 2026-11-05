@@ -21,7 +21,7 @@ import type { PreviewChoices, PreviewData } from './PreviewDataMenu';
 import { PreviewFrame } from './PreviewFrame';
 import type { Device, Target, ToolbarActions } from './PreviewFrame';
 import { SectionPicker } from './SectionPicker';
-import { SectionsTree, previewPath, templateForPath } from './SectionsEditor';
+import { ACCOUNT_PATHS, SAMPLE_CUSTOMER_TEMPLATES, SectionsTree, previewPath, templateForPath } from './SectionsEditor';
 import type { Docs, Sel } from './SectionsEditor';
 import { SettingsPanel } from './SettingsPanel';
 import { ThemeSettingsPanel } from './ThemeSettingsPanel';
@@ -66,15 +66,16 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
   const setTab = (v: string) => setParams(v === 'settings' ? { tab: v } : {}, { replace: true });
 
   // ---- data
-  const [template, setTemplate] = useState('index');
-  const [frameTpl, setFrameTpl] = useState('index');
+  // `?template=customers/login` (Settings > Customer accounts > Customize) opens the editor on that template.
+  const [template, setTemplate] = useState(() => params.get('template') || 'index');
+  const [frameTpl, setFrameTpl] = useState(() => params.get('template') || 'index');
   const names = useQuery({ queryKey: ['theme-templates', themeId], queryFn: () => gql<FilesRes>(THEME_TEMPLATE_NAMES, { id: themeId }) });
   const schemas = useQuery({ queryKey: ['theme-schemas', themeId], queryFn: () => gql<FilesRes>(THEME_SCHEMAS, { id: themeId }), staleTime: 60_000 });
   const files = useQuery({ queryKey: ['theme-editor-files', themeId, template], queryFn: () => gql<FilesRes>(THEME_EDITOR_FILES, { id: themeId, filenames: [`templates/${template}.json`, 'sections/*.json'] }) });
   const pdata = useQuery({ queryKey: ['theme-preview-data'], retry: false, staleTime: 60_000, queryFn: () => gql<PreviewRes>(THEME_PREVIEW_DATA) });
   const [chosen, setChosen] = useState<PreviewData>(() => readChosen(num));
   const choices = useMemo(() => previewChoices(pdata.data), [pdata.data]);
-  const templateNames = useMemo(() => (names.data?.theme?.files.nodes ?? []).map((n) => /^templates\/([^/]+)\.json$/.exec(n.filename)?.[1]).filter((x): x is string => !!x), [names.data]);
+  const templateNames = useMemo(() => (names.data?.theme?.files.nodes ?? []).map((n) => /^templates\/((?:customers\/)?[^/]+)\.json$/.exec(n.filename)?.[1]).filter((x): x is string => !!x), [names.data]);
   const idx = useMemo(() => indexSchemas(nodes(schemas.data)), [schemas.data]);
   const dict = useMemo(() => parseDict(fileText(localesData, lang === 'fr' ? 'locales/fr.schema.json' : 'locales/en.default.schema.json') ?? fileText(localesData, 'locales/en.default.schema.json')), [localesData, lang]);
   const label = (l?: string) => resolveLabel(l, dict);
@@ -313,7 +314,8 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
     return () => window.removeEventListener('beforeunload', h);
   }, [dirty]);
   const status = role === 'MAIN' ? <Badge tone="success">{t('themes.live')}</Badge> : <Badge tone="info">{role && role !== 'UNPUBLISHED' ? t(`themes.role.${role}` as Key) : t('editor.draft')}</Badge>;
-  const pageName = t(`editor.page.${template.split('.')[0]}` as Key) === `editor.page.${template.split('.')[0]}` ? template : t(`editor.page.${template.split('.')[0]}` as Key);
+  const pageName = templateLabel(template, t);
+  const pageGroups = groupTemplates(templateNames.length ? templateNames : ['index']);
 
   const schemes = (settings.color_schemes && typeof settings.color_schemes === 'object' && !Array.isArray(settings.color_schemes) ? settings.color_schemes : {}) as SchemeSet;
   const bag = (defs: SettingDef[] | undefined, vals: Record<string, SettingValue> | undefined) => Object.fromEntries((defs ?? []).filter(isInput).map((d) => [d.id, coerceValue(d, vals?.[d.id])]));
@@ -336,7 +338,10 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
           <label className="pointer-events-auto relative flex h-7 items-center gap-1.5 rounded-md pl-1.5 pr-2 hover:bg-hover">
             <FileText className="size-3.5" aria-hidden />
             <span aria-hidden>{pageName}</span>
-            <select aria-label={t('editor.template')} value={template} onChange={(e) => chooseTemplate(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0">{(templateNames.length ? templateNames : ['index']).map((x) => <option key={x} value={x}>{x}</option>)}</select>
+            <select aria-label={t('editor.template')} value={template} onChange={(e) => chooseTemplate(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0">
+              <optgroup label={t('editor.groupPages')}>{pageGroups.pages.map((x) => <option key={x} value={x}>{templateLabel(x, t)}</option>)}</optgroup>
+              {pageGroups.account.length > 0 && <optgroup label={t('editor.groupAccount')}>{pageGroups.account.map((x) => <option key={x} value={x}>{templateLabel(x, t)}</option>)}</optgroup>}
+            </select>
           </label>
         </div>
         <div className="flex items-center gap-1">
@@ -359,6 +364,7 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
               : files.isLoading || schemas.isLoading ? <div className="p-3"><Skeleton className="h-64" /></div> : (
                 <>
                   {missing && !loadError && <div className="p-2"><Banner>{t('editor.templateMissing')}</Banner></div>}
+                  {SAMPLE_CUSTOMER_TEMPLATES.includes(template) && <p className="mx-3 mt-2 rounded-md bg-surface px-2.5 py-2 text-[11px] text-muted" data-testid="sample-customer-note">{t('editor.sampleCustomer')}</p>}
                   <SectionsTree docs={docs} order={ordered} idx={idx} label={label} fileLabel={fileLabel} sectionTitle={sectionTitle} blockTitle={blockTitle} sel={sel} onSel={setSel} onHover={setHovered} ops={ops} />
                 </>
               )}
@@ -408,6 +414,21 @@ interface PreviewRes {
   articles: { nodes: Array<{ handle: string; title: string; blog: { handle: string } }> };
   shopLocales: Array<{ locale: string; name: string; primary: boolean; published: boolean }>;
   markets: { nodes: Array<{ conditions: { regionsCondition: { regions: { nodes: Array<{ code?: string; name?: string }> } } | null } | null }> };
+}
+
+/** Name of a template in the page selector: `product` -> "Product page", `page.contact` -> "Page: contact", `customers/login` -> "Login". */
+export function templateLabel(name: string, t: (k: Key, v?: Record<string, string | number>) => string): string {
+  const [base, ...alt] = name.split('.');
+  const key = `editor.page.${base}` as Key;
+  const page = t(key) === key ? base! : t(key);
+  return alt.length ? t('editor.pageAlt', { page, name: alt.join('.') }) : page;
+}
+
+/** Templates of the page selector: storefront pages first, then the customer account pages in the order a customer meets them. */
+export function groupTemplates(names: string[]): { pages: string[]; account: string[] } {
+  const order = Object.keys(ACCOUNT_PATHS);
+  const rank = (n: string) => { const i = order.indexOf(n.split('.')[0]!); return i < 0 ? order.length : i; };
+  return { pages: names.filter((n) => !n.startsWith('customers/')), account: names.filter((n) => n.startsWith('customers/')).sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)) };
 }
 
 /** What the preview data panel can offer: the store's own resources, languages and the countries of its markets. */

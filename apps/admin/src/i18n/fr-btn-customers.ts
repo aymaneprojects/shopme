@@ -96,7 +96,6 @@ export const frBtnCustomers: Record<keyof typeof enBtnCustomers, string> = {
   'bc.live.updated': 'Actualisé à {time}', 'bc.live.visitors': 'Visiteurs en ce moment', 'bc.live.visitorsHint': 'Au cours des 5 dernières minutes', 'bc.live.sessions': 'Sessions aujourd’hui', 'bc.live.orders': 'Commandes aujourd’hui', 'bc.live.sales': 'Ventes aujourd’hui',
   'bc.live.carts': 'Paniers actifs', 'bc.live.cartsHint': 'Mis à jour au cours des 30 dernières minutes', 'bc.live.perMinute': 'Pages vues par minute, 30 dernières minutes', 'bc.live.views': 'Pages vues', 'bc.live.topPages': 'Pages les plus vues', 'bc.live.topSources': 'Sources de trafic',
   'bc.live.recentOrders': 'Dernières commandes', 'bc.live.quiet': 'Aucune visite au cours des 30 dernières minutes.', 'bc.live.noOrders': 'Aucune commande au cours des dernières 24 heures.', 'bc.live.direct': 'Direct',
-  'bc.live.mapNote': 'Il n’y a pas de carte des visiteurs : ShopMe ne conserve ni adresses IP ni localisations.',
 
   // noms des dimensions, indicateurs et filtres
   'bc.dim.day': 'Jour', 'bc.dim.week': 'Semaine', 'bc.dim.month': 'Mois', 'bc.dim.channel': 'Canal de vente', 'bc.dim.financial_status': 'Statut du paiement', 'bc.dim.fulfillment_status': 'Statut de préparation', 'bc.dim.country': 'Pays de livraison',

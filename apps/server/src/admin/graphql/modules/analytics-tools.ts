@@ -59,6 +59,10 @@ const LiveSource = builder.objectRef<LiveView['topSources'][number]>('ShopmeLive
 const LiveOrder = builder.objectRef<LiveView['recentOrders'][number]>('ShopmeLiveOrder').implement({
   fields: (t) => ({ id: t.id({ resolve: (o) => toGid('Order', o.id) }), name: t.exposeString('name'), total: t.float({ resolve: (o) => o.total }), createdAt: t.field({ type: 'DateTime', resolve: (o) => new Date(o.createdAt) }), country: t.exposeString('country', { nullable: true }) }),
 });
+const LiveCountry = builder.objectRef<LiveView['countries'][number]>('ShopmeLiveCountry').implement({
+  description: 'Active visitors of one country. The country comes from the browser time zone; no IP address or precise location is stored.',
+  fields: (t) => ({ countryCode: t.exposeString('countryCode'), visitors: t.exposeInt('visitors') }),
+});
 const LiveType = builder.objectRef<LiveView>('ShopmeLiveView').implement({
   description: 'Real-time store activity from the first-party visit log. `salesToday` is in minor units of `currencyCode`.',
   fields: (t) => ({
@@ -66,6 +70,8 @@ const LiveType = builder.objectRef<LiveView>('ShopmeLiveView').implement({
     ordersToday: t.exposeInt('ordersToday'), salesToday: t.float({ resolve: (l) => l.salesToday }), activeCarts: t.exposeInt('activeCarts'),
     viewsPerMinute: t.field({ type: [LiveMinute], resolve: (l) => l.viewsPerMinute }), topPages: t.field({ type: [LivePage], resolve: (l) => l.topPages }),
     topSources: t.field({ type: [LiveSource], resolve: (l) => l.topSources }), recentOrders: t.field({ type: [LiveOrder], resolve: (l) => l.recentOrders }),
+    countries: t.field({ type: [LiveCountry], description: 'Visitors of the last 5 minutes by country, most first.', resolve: (l) => l.countries }),
+    visitorsUnlocated: t.exposeInt('visitorsUnlocated', { description: 'Visitors of the last 5 minutes whose country is unknown (no consent for analytics, no time zone, or a zone without a country).' }),
   }),
 });
 

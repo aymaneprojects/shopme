@@ -33,6 +33,7 @@ function browser(config: Record<string, unknown>, cookie = '') {
     screen: { width: 100, height: 100 }, innerWidth: 100, innerHeight: 100, addEventListener: on,
     fetch: (url: string) => { fetches.push(url); return Promise.resolve({ ok: true }); },
     Blob: class { constructor(public parts: string[]) {} }, sessionStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+    Intl: { DateTimeFormat: () => ({ resolvedOptions: () => ({ timeZone: 'Europe/Paris' }) }) },
   };
   new Function('window', 'document', RUNTIME_BODY)(fakeWindow, fakeDocument);
   const fire = (type: string, e: unknown) => (listeners.get(type) ?? []).forEach((fn) => fn(e));
@@ -141,8 +142,10 @@ describe('customer privacy runtime', () => {
     vi.advanceTimersByTime(5000);
     expect(b.beacons).toHaveLength(1);
     expect(b.beacons[0].url).toBe('/.shopme/events');
-    const sent = JSON.parse(b.beacons[0].blob.parts[0]).events;
+    const body = JSON.parse(b.beacons[0].blob.parts[0]);
+    const sent = body.events;
     expect(sent.map((e: any) => e.name)).toEqual(['page_viewed', 'page_viewed']);
+    expect(body.tz).toBe('Europe/Paris'); // only the time zone: the server keeps the country it maps to
     b.window.Shopify.customerPrivacy.setTrackingConsent({ analytics: false });
     b.window.shopme.analytics.publish('product_viewed', {});
     vi.advanceTimersByTime(5000);

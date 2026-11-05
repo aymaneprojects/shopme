@@ -51,6 +51,9 @@ export function eventText(e: TimelineEvent, t: T, lang: string, order?: { name: 
     case 'order.fulfilled': return t('timeline.ev.order.fulfilled', { n: Number(a.quantity ?? 0), name: s('name') });
     case 'order.tracking_updated': return t('timeline.ev.order.tracking_updated', { name: s('name') });
     case 'order.fulfillment_cancelled': return t('timeline.ev.order.fulfillment_cancelled', { name: s('name') });
+    case 'order.label_purchased': return t(a.test ? 'postage.ev.purchasedTest' : 'postage.ev.purchased', { carrier: s('carrier'), service: s('service'), tracking: s('trackingNumber') });
+    case 'order.label_created': return a.carrier ? t('postage.ev.recorded', { carrier: s('carrier'), tracking: s('trackingNumber') }).replace(/ \)$/, ')') : e.message;
+    case 'order.label_voided': return a.labelId ? t(a.refunded ? 'postage.ev.voidedRefunded' : 'postage.ev.voided') : e.message;
     case 'order.held': return note(t('timeline.ev.order.held', { reason: reason(s('reason') || 'OTHER') }), s('note'));
     case 'order.hold_released': return t('timeline.ev.order.hold_released');
     case 'order.refunded': {

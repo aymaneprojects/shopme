@@ -1,5 +1,5 @@
 {
-  "name": "Footer utilities",
+  "name": "t:sections.groups.footer_utilities",
   "type": "footer-utilities",
   "sections": {
     "utilities": {

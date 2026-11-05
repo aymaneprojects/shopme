@@ -95,7 +95,6 @@ export const enBtnCustomers = {
   'bc.live.updated': 'Updated {time}', 'bc.live.visitors': 'Visitors right now', 'bc.live.visitorsHint': 'In the last 5 minutes', 'bc.live.sessions': 'Sessions today', 'bc.live.orders': 'Orders today', 'bc.live.sales': 'Sales today',
   'bc.live.carts': 'Active carts', 'bc.live.cartsHint': 'Updated in the last 30 minutes', 'bc.live.perMinute': 'Page views per minute, last 30 minutes', 'bc.live.views': 'Page views', 'bc.live.topPages': 'Top pages', 'bc.live.topSources': 'Traffic sources',
   'bc.live.recentOrders': 'Latest orders', 'bc.live.quiet': 'No visits in the last 30 minutes.', 'bc.live.noOrders': 'No orders in the last 24 hours.', 'bc.live.direct': 'Direct',
-  'bc.live.mapNote': 'There is no visitor map: ShopMe does not store IP addresses or locations.',
 
   // names of dimensions, metrics and filters
   'bc.dim.day': 'Day', 'bc.dim.week': 'Week', 'bc.dim.month': 'Month', 'bc.dim.channel': 'Sales channel', 'bc.dim.financial_status': 'Payment status', 'bc.dim.fulfillment_status': 'Fulfillment status', 'bc.dim.country': 'Shipping country',

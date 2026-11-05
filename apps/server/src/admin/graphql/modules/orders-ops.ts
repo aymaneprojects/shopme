@@ -1,7 +1,7 @@
 import {
   MARK_AS, activeLocations, attributionReport, campaignResults, captureOrderPayments, countShippingLabels, createBatch, createShippingLabel, deleteBatch, deleteCampaign, deliveryStatusOf, getBatch, getOrder,
   listBatches, listShippingLabels, markOrderAs, moveToBatch, orderAddressProblems, orderConversion, orderRisk, ordersAwaitingLabel, ordersStats, renameBatch, saveCampaign, salesChannels, schema, setStorefrontPublication,
-  voidShippingLabel, CAMPAIGN_CHANNELS, type MarketingCampaign, type MarkAs, type OrderBatch, type ShippingLabel,
+  isTestTracking, voidLabel, CAMPAIGN_CHANNELS, type MarketingCampaign, type MarkAs, type OrderBatch, type ShippingLabel,
 } from '@shopme/core';
 import { eq } from 'drizzle-orm';
 import { formatDecimal, parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
@@ -18,6 +18,13 @@ import { detailOf } from './orders';
  */
 
 const staffId = (ctx: GraphQLContext) => (ctx.auth.kind === 'session' ? ctx.auth.user.id : null);
+const labelCurrency = async (ctx: GraphQLContext, l: ShippingLabel) => {
+  if (l.currency) return l.currency;
+  const [o] = await ctx.db.select({ c: schema.orders.currency }).from(schema.orders).where(eq(schema.orders.id, l.orderId));
+  return o?.c ?? 'USD';
+};
+/** A stored label document is served by `GET /admin/api/shipping-labels/:id/label` (see label-routes.ts). */
+const labelUrlOf = (l: ShippingLabel & { hasDocument?: boolean }) => (l.source !== 'PURCHASED' ? null : l.labelUrl && !l.hasDocument ? l.labelUrl : `/admin/api/shipping-labels/${l.id}/label`);
 const fail = (field: string[] | null, message: string, code?: string): UserError[] => [{ field, message, ...(code ? { code } : {}) }];
 const oid = (v: string | number) => parseId(String(v), 'Order');
 
@@ -170,10 +177,19 @@ const Label = builder.objectRef<ShippingLabel & { orderName: string }>('ShopmeSh
   fields: (t) => ({
     id: t.id({ resolve: (l) => toGid('ShopmeShippingLabel', l.id) }), orderId: t.id({ resolve: (l) => toGid('Order', l.orderId) }), orderName: t.exposeString('orderName'),
     carrier: t.exposeString('carrier'), service: t.exposeString('service', { nullable: true }), trackingNumber: t.exposeString('trackingNumber', { nullable: true }), trackingUrl: t.exposeString('trackingUrl', { nullable: true }),
-    cost: t.field({ type: 'Money', resolve: async (l, _a, ctx) => { const [o] = await ctx.db.select({ c: schema.orders.currency }).from(schema.orders).where(eq(schema.orders.id, l.orderId)); return formatDecimal(l.cost, o?.c ?? 'USD'); } }),
+    cost: t.field({ type: 'Money', resolve: async (l, _a, ctx) => formatDecimal(l.cost, await labelCurrency(ctx, l)) }),
+    currencyCode: t.string({ description: 'Currency of `cost`: the carrier\'s for a bought label, else the order\'s.', resolve: (l, _a, ctx) => labelCurrency(ctx, l) }),
     status: t.exposeString('status'), createdAt: t.field({ type: 'DateTime', resolve: (l) => l.createdAt }),
+    source: t.string({ description: 'MANUAL (recorded by hand) or PURCHASED (bought from a carrier account).', resolve: (l) => l.source }),
+    fulfillmentId: t.id({ nullable: true, resolve: (l) => (l.fulfillmentId ? toGid('Fulfillment', l.fulfillmentId) : null) }),
+    weightGrams: t.int({ nullable: true, resolve: (l) => l.weightGrams }),
+    labelUrl: t.string({ nullable: true, description: 'Where to print a bought label: the stored document (staff only) or the carrier\'s link.', resolve: (l) => labelUrlOf(l) }),
+    labelFormat: t.string({ nullable: true, resolve: (l) => l.labelFormat }),
+    refundStatus: t.string({ nullable: true, description: 'For a voided bought label: REFUNDED or NOT_REFUNDED.', resolve: (l) => l.refundStatus }),
+    test: t.boolean({ description: 'Bought from the test carrier: the label is a sample and its tracking number is fake.', resolve: (l) => l.source === 'PURCHASED' && isTestTracking(l.trackingNumber) }),
   }),
 });
+export { Label as ShippingLabelRef };
 const LabelInput = builder.inputType('ShopmeShippingLabelInput', {
   fields: (t) => ({
     orderId: t.id({ required: true }), carrier: t.string({ required: true }), service: t.string(), trackingNumber: t.string(), trackingUrl: t.string(), cost: t.field({ type: 'Money' }), weightGrams: t.int(), notifyCustomer: t.boolean(),
@@ -194,7 +210,7 @@ builder.mutationFields((t) => ({
   shopmeShippingLabelCreate: t.field({
     type: definePayload<{ label: (ShippingLabel & { orderName: string }) | null }>('ShopmeShippingLabelCreatePayload', (u) => ({ label: u.field({ type: Label, nullable: true, resolve: (p) => p.label }) })),
     args: { input: t.arg({ type: LabelInput, required: true }) },
-    description: 'Records a shipping label (carrier, service, tracking) for an order and fulfills its remaining items with that tracking. ShopMe does not buy postage.',
+    description: 'Records a shipping label bought elsewhere (carrier, service, tracking) for an order and fulfills its remaining items with that tracking. To buy postage from a carrier account, use `shopmeShippingLabelPurchase`.',
     resolve: async (_r, { input }, ctx) => {
       requireScope(ctx, 'write_fulfillments');
       const orderId = oid(input.orderId);
@@ -209,10 +225,11 @@ builder.mutationFields((t) => ({
   shopmeShippingLabelVoid: t.field({
     type: definePayload<{ label: (ShippingLabel & { orderName: string }) | null }>('ShopmeShippingLabelVoidPayload', (u) => ({ label: u.field({ type: Label, nullable: true, resolve: (p) => p.label }) })),
     args: { id: t.arg.id({ required: true }) },
+    description: 'Voids a label. A label bought from a carrier account is voided at the carrier first (which refunds the postage when it can), then its fulfillment is cancelled so the items can be shipped again.',
     resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'write_fulfillments');
       const id = parseId(String(a.id), 'ShopmeShippingLabel');
-      const r = id ? await voidShippingLabel(ctx.db, ctx.shopId, id, staffId(ctx)) : null;
+      const r = id ? await voidLabel(ctx.db, ctx.shopId, id, staffId(ctx)) : null;
       if (!r?.ok) return { label: null, userErrors: r ? r.errors : fail(['id'], 'Label does not exist', 'NOT_FOUND') };
       const o = await getOrder(ctx.db, ctx.shopId, r.value.orderId);
       return { label: { ...r.value, orderName: o?.name ?? '' }, userErrors: [] };

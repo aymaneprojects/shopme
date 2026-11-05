@@ -14,10 +14,12 @@ export interface PaymentsConfig {
 }
 export interface ShipRule { id: string; name: string; enabled: boolean; action: 'hide' | 'rename' | 'move_first'; optionName: string; newName: string; countries: string[]; minSubtotal: number | null; maxSubtotal: number | null }
 export interface RoutingRule { id: string; name: string; enabled: boolean; countries: string[]; locationIds: number[] }
+/** `http`: a carrier fronted by a small service (labels when `labels` is on); `test`: the built-in test carrier. */
+export interface CarrierAccount { id: string; provider: 'http' | 'test'; name: string; endpoint: string; secret: string; labels: boolean }
 export interface ShippingConfig {
   handlingDays: number; pickupFromOtherLocations: boolean; routing: RoutingRule[]; customizations: ShipRule[];
   fulfillmentServices: Array<{ id: string; name: string; email: string; notes: string }>;
-  carrierAccounts: Array<{ id: string; provider: 'http'; name: string; endpoint: string; secret: string }>;
+  carrierAccounts: CarrierAccount[];
 }
 export interface TaxesConfig { digitalVat: boolean; customs: { originCountry: string; hsCode: string }; duties: { enabled: boolean; rules: Array<{ countryCode: string; rate: number; label: string }> } }
 export interface GeneralConfig { businessEntity: { legalName: string; address1: string; address2: string; city: string; zip: string; countryCode: string; taxId: string }; backupRegion: string }

@@ -7,7 +7,8 @@ import { createHash } from 'node:crypto';
  *  - consent: `window.Shopify.customerPrivacy` (and `window.shopme.consent`), the `_shopme_consent` cookie, the banner behaviour
  *  - event bus: `window.shopme.analytics.publish/subscribe`, standard events, replay (max 100) after consent, in-page subscribers
  *  - pixels: merchant code runs in a sandboxed null-origin iframe (`/.shopme/pixels/:id`) only once its required consent exists
- *  - first-party analytics: a consumer of the same bus that batches events to `/.shopme/events` while analytics consent is granted
+ *  - first-party analytics: a consumer of the same bus that batches events to `/.shopme/events` while analytics consent is granted,
+ *    with the browser's time zone (the server keeps only the country it maps to)
  *
  * Plain ES2017 without dependencies. Written as the body of a function of (window, document) so tests can run it against stubs.
  */
@@ -179,11 +180,13 @@ shopme._buffer = buffer;
 // ---------------------------------------------------------------------------------------------------------------------
 var queue = [];
 var flushTimer = null;
+// The browser's IANA time zone (such as Europe/Paris): the server turns it into a country for the live view and keeps nothing else.
+function timeZone() { try { return String(window.Intl.DateTimeFormat().resolvedOptions().timeZone || '').slice(0, 64); } catch (e) { return ''; } }
 function flush() {
   flushTimer = null;
   if (!queue.length || !cfg.endpoints || !cfg.endpoints.events) return;
   var batch = queue.splice(0, 100);
-  var body = JSON.stringify({ events: batch.map(function (e) { return { id: e.id, name: e.name, clientId: e.clientId, timestamp: e.timestamp, data: e.data, context: { document: { location: { pathname: e.context.document.location.pathname } } } }; }) });
+  var body = JSON.stringify({ tz: timeZone(), events: batch.map(function (e) { return { id: e.id, name: e.name, clientId: e.clientId, timestamp: e.timestamp, data: e.data, context: { document: { location: { pathname: e.context.document.location.pathname } } } }; }) });
   try {
     if (window.navigator && window.navigator.sendBeacon && window.Blob) { window.navigator.sendBeacon(cfg.endpoints.events, new window.Blob([body], { type: 'application/json' })); return; }
     if (window.fetch) window.fetch(cfg.endpoints.events, { method: 'POST', headers: { 'content-type': 'application/json' }, body: body, credentials: 'same-origin', keepalive: true }).catch(function () {});
