@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
+import { taxExtrasFor } from './settings/tax-presets';
 import { customers, draftOrders, inventoryItems, markets, media, orders, productMedia, productVariants, products, taxRates, type DraftAddress, type DraftCalc, type DraftDiscount, type DraftLine } from '../db/schema';
 import type { Db, Executor } from '../db/client';
 import { listNotificationTemplates, moneyOf, renderNotification, senderOf, shopUrl } from '../mail/notifications';
@@ -88,7 +89,7 @@ export async function priceDraft(db: Executor, shop: Shop, d: Priceable): Promis
   const input: PricingInput = {
     lines, discounts, shipping: d.shippingLine ? { id: 0, name: d.shippingLine.title, price: d.shippingLine.price } : null,
     taxRates: rates.map((r) => ({ name: r.name, countryCode: r.countryCode, provinceCode: r.provinceCode, rate: r.rate, appliesToShipping: r.appliesToShipping, priority: r.priority })),
-    taxesIncluded: shop.taxesIncluded, taxExempt: exempt, country, province: addr?.provinceCode ?? null,
+    taxesIncluded: shop.taxesIncluded, taxExempt: exempt, ...taxExtrasFor(shop, country), country, province: addr?.provinceCode ?? null,
   };
   const pricing = priceCheckout(input);
   // Applications follow the order of `discounts`: line discounts (in line order), then the order discount.

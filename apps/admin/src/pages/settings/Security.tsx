@@ -5,6 +5,7 @@ import { rest } from '../../api';
 import { useFormat } from '../../components/shared';
 import { useI18n } from '../../i18n';
 import { useSession } from '../../session';
+import { UsersTabs } from './Team';
 
 interface SessionRow { id: string; ip: string | null; userAgent: string; createdAt: string; current: boolean }
 interface Security { twoFactor: { enabled: boolean; recoveryCodesLeft: number }; require2fa: boolean; canManagePolicy: boolean; sessions: SessionRow[] }
@@ -100,6 +101,7 @@ export function SecuritySettings({ forced = false }: { forced?: boolean }) {
   const d = q.data;
   return (
     <div className="flex flex-col gap-4">
+      {!forced && <UsersTabs />}
       {forced && <Banner>{t('security.setupRequired')}</Banner>}
       {q.isLoading && <Skeleton className="h-40" />}
       {q.error && <Banner>{q.error.message}</Banner>}

@@ -11,7 +11,7 @@ export const SHOPME_REPORT = /* GraphQL */ `
 `;
 
 export const SHOP_LOCALES = /* GraphQL */ `
-  query ShopLocales { shopLocales { locale name primary published } }
+  query ShopLocales { shopLocales { locale name primary published domain: shopmeDomain } }
 `;
 
 export const SHOP_LOCALE_ENABLE = /* GraphQL */ `

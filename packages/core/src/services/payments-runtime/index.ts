@@ -3,15 +3,53 @@ import { manualProviders, parsePaymentSettings, type PaymentProvider } from '@sh
 import type { Executor } from '../../db/client';
 import * as s from '../../db/schema';
 import { addEvent } from '../events';
+import { configOf } from '../settings/config';
 import { revertOrderStoreCredit } from '../store-credit';
 import type { Db } from '../../db/client';
 
-/** Payment methods offered at checkout: enabled manual methods, plus Stripe when configured (env) and not switched off in settings. */
-export function availablePaymentMethods(settings: Record<string, unknown>, opts: { stripeConfigured: boolean }): PaymentProvider[] {
+/**
+ * Payment methods offered at checkout: enabled manual methods, merchant-defined manual methods and redirect gateways, the test gateway
+ * when switched on, plus Stripe when configured (env) and not switched off. Payment customisation rules then hide, rename or move methods
+ * for the destination country and order total (`context`).
+ */
+export function availablePaymentMethods(settings: Record<string, unknown>, opts: { stripeConfigured: boolean; context?: { country: string | null; total: number } }): PaymentProvider[] {
   const parsed = parsePaymentSettings(settings);
-  const methods = manualProviders(parsed);
+  const cfg = configOf({ settings }, 'PAYMENTS');
+  let methods = manualProviders(parsed);
   if (opts.stripeConfigured && parsed.stripe.enabled) methods.unshift({ id: 'stripe', kind: 'online' });
+  for (const m of cfg.customMethods) if (m.enabled) methods.push({ id: `manual:${m.id}`, kind: 'manual', name: m.name, instructions: m.instructions });
+  for (const g of cfg.redirectGateways) if (g.enabled && g.redirectUrl) methods.push({ id: `redirect:${g.id}`, kind: 'redirect', name: g.name });
+  if (cfg.testGateway) methods.push({ id: 'test', kind: 'test' });
+  const country = opts.context?.country?.toUpperCase() ?? null;
+  const total = opts.context?.total ?? 0;
+  for (const r of cfg.customizations) {
+    if (!r.enabled) continue;
+    if (r.countries.length && (!country || !r.countries.includes(country))) continue;
+    if (r.minTotal != null && total < r.minTotal) continue;
+    if (r.maxTotal != null && total > r.maxTotal) continue;
+    if (r.action === 'hide') methods = methods.filter((m) => m.id !== r.method);
+    else if (r.action === 'rename' && r.newName) methods = methods.map((m) => (m.id === r.method ? { ...m, name: r.newName } : m));
+    else if (r.action === 'move_first') { const m = methods.find((x) => x.id === r.method); if (m) methods = [m, ...methods.filter((x) => x !== m)]; }
+  }
   return methods;
+}
+
+/** Mark a pending Stripe-style payment as authorised: the money is held and can be captured from the order. Idempotent. */
+export async function markOrderAuthorized(db: Executor, shopId: number, orderId: number, info: { gateway: string; paymentId?: string | null }): Promise<boolean> {
+  const upd = await db.update(s.orders).set({ financialStatus: 'AUTHORIZED' })
+    .where(and(eq(s.orders.id, orderId), eq(s.orders.shopId, shopId), eq(s.orders.financialStatus, 'PENDING'))).returning({ id: s.orders.id });
+  if (!upd.length) return false;
+  await db.update(s.transactions).set({ kind: 'AUTHORIZATION', status: 'SUCCESS', processedAt: new Date(), ...(info.paymentId ? { paymentId: info.paymentId } : {}) })
+    .where(and(eq(s.transactions.orderId, orderId), eq(s.transactions.kind, 'SALE'), eq(s.transactions.status, 'PENDING')));
+  await addEvent(db, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.authorized', message: `Payment authorised (${info.gateway}): capture it from the order` });
+  return true;
+}
+
+/** An order paid or authorised by a gateway id (`redirect:<id>`), found by its display name (the reference sent to the payment page). */
+export async function findOrderIdByName(db: Executor, shopId: number, name: string, gateway: string): Promise<number | null> {
+  const [o] = await db.select({ id: s.orders.id }).from(s.orders).innerJoin(s.transactions, eq(s.transactions.orderId, s.orders.id))
+    .where(and(eq(s.orders.shopId, shopId), eq(s.orders.name, name), eq(s.transactions.gateway, gateway))).limit(1);
+  return o?.id ?? null;
 }
 
 /** Remember the provider reference (PaymentIntent id) on the order's pending sale transaction. */

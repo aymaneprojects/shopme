@@ -11,6 +11,8 @@ export interface CreateIntentInput {
   description?: string;
   email?: string | null;
   idempotencyKey: string;
+  /** `manual`: the card is authorised at checkout and captured later from the order. */
+  captureMethod?: 'automatic' | 'manual';
 }
 
 export interface StripeEventLike { id: string; type: string; data: { object: Record<string, any> } }
@@ -21,11 +23,16 @@ export interface StripeGateway {
   createPaymentIntent(input: CreateIntentInput): Promise<{ id: string; clientSecret: string }>;
   /** Verify the `Stripe-Signature` header over the raw body; throws when invalid. */
   verifyWebhook(rawBody: string | Buffer, signature: string): StripeEventLike;
+  /** Capture (part of) an authorised PaymentIntent; `amount` in minor units. */
+  capture(paymentIntentId: string, amount: number, idempotencyKey: string): Promise<void>;
 }
 
 /** The slice of the Stripe SDK used here (lets tests inject a fake). */
 export interface StripeClientLike {
-  paymentIntents: { create(params: Record<string, unknown>, options?: Record<string, unknown>): Promise<{ id: string; client_secret: string | null }> };
+  paymentIntents: {
+    create(params: Record<string, unknown>, options?: Record<string, unknown>): Promise<{ id: string; client_secret: string | null }>;
+    capture?(id: string, params?: Record<string, unknown>, options?: Record<string, unknown>): Promise<unknown>;
+  };
   webhooks: { constructEvent(payload: string | Buffer, header: string, secret: string): StripeEventLike };
 }
 
@@ -40,11 +47,16 @@ export function createStripeGateway(cfg: StripeConfig, client?: StripeClientLike
       const pi = await stripe.paymentIntents.create({
         amount: i.amount, currency: i.currency.toLowerCase(), automatic_payment_methods: { enabled: true },
         description: i.description, receipt_email: i.email ?? undefined,
+        ...(i.captureMethod === 'manual' ? { capture_method: 'manual' } : {}),
         metadata: { checkout_token: i.reference },
       }, { idempotencyKey: i.idempotencyKey });
       if (!pi.client_secret) throw new Error('Stripe returned no client secret');
       return { id: pi.id, clientSecret: pi.client_secret };
     },
     verifyWebhook: (raw, sig) => stripe.webhooks.constructEvent(raw, sig, webhookSecret),
+    async capture(id, amount, idempotencyKey) {
+      if (!stripe.paymentIntents.capture) throw new Error('Stripe client cannot capture');
+      await stripe.paymentIntents.capture(id, { amount_to_capture: amount }, { idempotencyKey });
+    },
   };
 }

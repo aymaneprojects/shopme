@@ -1,5 +1,6 @@
 import { boolean, check, index, jsonb, pgTable, text, uniqueIndex, bigint, primaryKey, integer } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { createdAt, oneOf, pk, ref, shopIdCol, timestamps, ts } from './_helpers';
 
 export const WEIGHT_UNITS = ['KILOGRAMS', 'GRAMS', 'POUNDS', 'OUNCES'] as const;
@@ -25,6 +26,16 @@ export const shops = pgTable('shops', {
   ...timestamps(),
 }, (t) => [check('shops_weight_unit_chk', oneOf(t.weightUnit, WEIGHT_UNITS))]);
 
+/** Custom staff roles: a named set of permission areas assigned to staff members. */
+export const staffRoles = pgTable('staff_roles', {
+  id: pk(),
+  shopId: shopIdCol().references(() => shops.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  permissions: text('permissions').array().notNull().default(sql`'{}'::text[]`),
+  ...timestamps(),
+}, (t) => [uniqueIndex('staff_roles_shop_name_uq').on(t.shopId, t.name)]);
+
 export const staffUsers = pgTable('staff_users', {
   id: pk(),
   shopId: shopIdCol().references(() => shops.id, { onDelete: 'cascade' }),
@@ -36,6 +47,8 @@ export const staffUsers = pgTable('staff_users', {
   active: boolean('active').notNull().default(true),
   /** Permission areas granted to role `staff` (owner/admin hold all). See services/permissions. */
   permissions: text('permissions').array().notNull().default(sql`'{}'::text[]`),
+  /** Custom role the permissions were taken from (kept in sync when the role changes). */
+  roleId: bigint('role_id', { mode: 'number' }).references((): AnyPgColumn => staffRoles.id, { onDelete: 'set null' }),
   /** Pending invitation: sha256 of the accept token and its expiry. Cleared once the password is set. */
   inviteTokenHash: text('invite_token_hash'),
   inviteExpiresAt: ts('invite_expires_at'),

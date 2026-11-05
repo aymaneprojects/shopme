@@ -1,7 +1,7 @@
 import type { IncomingMessage } from 'node:http';
 import { getPrimaryShop, publishedLocales, type Db } from '@shopme/core';
 
-export interface PublishedLocale { locale: string; name: string; primary: boolean }
+export interface PublishedLocale { locale: string; name: string; primary: boolean; domain?: string | null }
 
 /**
  * The published storefront languages, kept in memory so the URL rewrite (which runs before routing and is synchronous) can
@@ -12,18 +12,24 @@ export class LocaleCache {
   locales: PublishedLocale[] = [{ locale: 'en', name: 'English', primary: true }];
   private byPrefix = new Map<string, string>();
   private byReq = new WeakMap<IncomingMessage, string>();
+  /** Language served on its own host (Settings > Languages). */
+  private byHost = new Map<string, string>();
 
   async refresh(db: Db): Promise<void> {
     const shop = await getPrimaryShop(db);
     if (!shop) return;
     this.locales = await publishedLocales(db, shop.id);
     this.primary = shop.locale;
+    this.byHost = new Map(this.locales.flatMap((l) => (l.domain ? [[l.domain.toLowerCase(), l.locale] as const] : [])));
     this.byPrefix = new Map(this.locales.filter((l) => !l.primary).map((l) => [l.locale.toLowerCase(), l.locale]));
   }
 
   /** `/fr/products/x?y=1` -> `/products/x?y=1` (and remembers `fr` for the request); other URLs are returned unchanged. */
   rewrite(req: IncomingMessage): string {
     const url = req.url ?? '/';
+    const host = (req.headers.host ?? '').toLowerCase().replace(/:\d+$/, '');
+    const byHost = this.byHost.get(host);
+    if (byHost) this.byReq.set(req, byHost);
     if (!this.byPrefix.size) return url;
     const m = /^\/([A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?)(?=[/?#]|$)/.exec(url);
     const locale = m && this.byPrefix.get(m[1]!.toLowerCase());

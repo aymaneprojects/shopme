@@ -50,6 +50,7 @@ import './orders-parity';
 import './order-edit';
 import './checkout-settings';
 import './delivery';
+import './settings-ext';
 import './inventory-transfers';
 import './purchase-orders';
 import './bulk-operations';

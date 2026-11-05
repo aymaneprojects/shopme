@@ -103,6 +103,13 @@ const DeliveryMethodDefinition = builder.objectRef<MethodShape>('DeliveryMethodD
     methodConditions: t.field({ type: [DeliveryCondition], resolve: (m) => m.conditions.map((c) => ({ ...c, currency: m.currency })) }),
     rateProvider: t.field({ type: RateProvider, resolve: (m) => m }),
     shopmeFreeOverAmount: t.field({ type: MoneyV2, nullable: true, description: 'ShopMe: the price becomes 0 once the order subtotal reaches this amount.', resolve: (m) => (m.freeOverAmount != null ? moneyV2(m.freeOverAmount, m.currency) : null) }),
+    shopmeTransitMinDays: t.int({ nullable: true, description: 'ShopMe: estimated transit time in days (shortest).', resolve: (m) => m.transitMinDays }),
+    shopmeTransitMaxDays: t.int({ nullable: true, description: 'ShopMe: estimated transit time in days (longest).', resolve: (m) => m.transitMaxDays }),
+    shopmeCollectionIds: t.idList({ description: 'ShopMe: the rate applies only to items of these collections (empty: all).', resolve: (m) => m.collectionIds.map((id) => toGid('Collection', id)) }),
+    shopmeOriginLocationIds: t.idList({ description: 'ShopMe: the rate ships only from these locations (empty: any location of the group).', resolve: (m) => m.originLocationIds.map((id) => toGid('Location', id)) }),
+    shopmeRateType: t.string({ description: 'FIXED | CARRIER', resolve: (m) => m.rateType }),
+    shopmeCarrierProvider: t.string({ nullable: true, resolve: (m) => m.carrierProvider }),
+    shopmeCarrierParams: t.field({ type: 'JSON', resolve: (m) => m.carrierParams }),
   }),
 });
 const MethodConnection = defineConnection('DeliveryMethodDefinition', DeliveryMethodDefinition);
@@ -287,6 +294,9 @@ const MethodDefinitionInput = builder.inputType('DeliveryMethodDefinitionInput',
     weightConditionsToCreate: t.field({ type: [WeightConditionInput] }), priceConditionsToCreate: t.field({ type: [PriceConditionInput] }), conditionsToUpdate: t.field({ type: [UpdateConditionInput] }),
     shopmeFreeOverAmount: t.field({ type: MoneyInput, description: 'ShopMe: free shipping once the order subtotal reaches this amount. Pass `shopmeClearFreeOver` to remove it.' }),
     shopmeClearFreeOver: t.boolean(),
+    shopmeTransitMinDays: t.int(), shopmeTransitMaxDays: t.int(), shopmeClearTransit: t.boolean(),
+    shopmeCollectionIds: t.idList(), shopmeOriginLocationIds: t.idList(),
+    shopmeRateType: t.string(), shopmeCarrierProvider: t.string(), shopmeCarrierParams: t.field({ type: 'JSON' }),
   }),
 });
 const ZoneInputT = builder.inputType('DeliveryLocationGroupZoneInput', {
@@ -328,6 +338,10 @@ function toProfileInput(i: typeof ProfileInputT.$inferInput, currency: string, e
       price: m.rateDefinition ? parseMoney(String(m.rateDefinition.price.amount), currency) : undefined,
       freeOverAmount: m.shopmeFreeOverAmount ? parseMoney(String(m.shopmeFreeOverAmount.amount), currency) : undefined, clearFreeOver: m.shopmeClearFreeOver,
       conditionsToCreate: conds, conditionsToUpdate: updates,
+      ...(m.shopmeClearTransit ? { transitMinDays: null, transitMaxDays: null } : { transitMinDays: m.shopmeTransitMinDays, transitMaxDays: m.shopmeTransitMaxDays }),
+      collectionIds: gids(m.shopmeCollectionIds, 'Collection'), originLocationIds: gids(m.shopmeOriginLocationIds, 'Location'),
+      rateType: m.shopmeRateType === 'CARRIER' ? 'CARRIER' : m.shopmeRateType === 'FIXED' ? 'FIXED' : undefined, carrierProvider: m.shopmeCarrierProvider,
+      carrierParams: m.shopmeCarrierParams && typeof m.shopmeCarrierParams === 'object' ? (m.shopmeCarrierParams as Record<string, unknown>) : undefined,
     };
   };
   const zone = (z: typeof ZoneInputT.$inferInput): ZoneInput => ({

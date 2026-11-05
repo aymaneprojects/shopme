@@ -10,6 +10,7 @@ import { SaveBar } from '../../components/SaveBar';
 import { FINAL_SALE_TITLES, RETURN_RULES, RETURN_RULES_UPDATE, SHOP_POLICIES, SHOP_POLICY_UPDATE } from '../../graphql';
 import { CollectionPicker, ProductPicker } from '../../components/Pickers';
 import { useShop } from '../../session';
+import { PolicyMenu, ReturnRuleSets } from './PolicyExtras';
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 
@@ -25,7 +26,7 @@ export function PoliciesSettings() {
   return (
     <div className="flex flex-col gap-6">
       <ReturnRules />
-      <Section title={t('policies.written')} description={t('policies.footer')}>
+      <Section title={t('policies.written')} description={t('policies.footer')} action={<PolicyMenu />}>
         {q.isLoading && <Skeleton className="h-64" />}
         {q.error && <Banner>{q.error.message}</Banner>}
         {q.data && (
@@ -92,11 +93,13 @@ interface Rules { windowDays: number | null; shippingCost: 'free' | 'customer_fi
 function ReturnRules() {
   const { t } = useI18n();
   const q = useQuery({ queryKey: ['return-rules'], queryFn: () => gql<{ shopmeReturnRules: Rules }>(RETURN_RULES) });
+  const [editing, setEditing] = useState<string | 'new' | null>(null);
   return (
-    <Section title={t('returns.title')} description={t('returns.desc')}>
+    <Section title={t('returns.title')} description={t('returns.desc')} action={<Button onClick={() => setEditing('new')}>{t('bs.addRuleShort')}</Button>}>
       {q.isLoading && <Skeleton className="h-48" />}
       {q.error && <Banner>{q.error.message}</Banner>}
       {q.data && <ReturnRulesForm key={q.dataUpdatedAt} initial={q.data.shopmeReturnRules} />}
+      <ReturnRuleSets editing={editing} setEditing={setEditing} />
     </Section>
   );
 }

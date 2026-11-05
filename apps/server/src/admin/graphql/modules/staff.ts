@@ -13,6 +13,9 @@ import { StaffMember } from '../types/sales';
 builder.objectFields(StaffMember, (t) => ({
   shopmeRole: t.string({ description: 'owner | admin | staff', resolve: (s) => s.role }),
   shopmePermissions: t.stringList({ description: 'Permission areas: products, orders, customers, discounts, online_store, settings, staff.', resolve: (s) => s.permissions }),
+  shopmeTwoFactorEnabled: t.boolean({ description: 'True when the member has two-step authentication on.', resolve: (s) => !!s.twoFactor }),
+  shopmeRoleId: t.id({ nullable: true, description: 'Custom role of the member.', resolve: (s) => (s.roleId ? toGid('ShopmeStaffRole', s.roleId) : null) }),
+  shopmeRoleName: t.string({ nullable: true, resolve: (s) => s.roleName ?? null }),
   shopmeInvitePending: t.boolean({ resolve: (s) => s.invitePending }),
   shopmeLastLoginAt: t.field({ type: 'DateTime', nullable: true, resolve: (s) => s.lastLoginAt }),
 }));
@@ -49,12 +52,12 @@ builder.queryFields((t) => ({
 builder.mutationFields((t) => ({
   shopmeStaffInvite: t.field({
     type: Payload,
-    args: { email: t.arg.string({ required: true }), role: t.arg.string({ required: true }), permissions: t.arg.stringList(), firstName: t.arg.string(), lastName: t.arg.string() },
+    args: { email: t.arg.string({ required: true }), role: t.arg.string({ required: true }), roleId: t.arg.id(), permissions: t.arg.stringList(), firstName: t.arg.string(), lastName: t.arg.string() },
     resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'write_users');
       const denied = await mayManage(ctx, 0, a.role.toLowerCase());
       if (denied) return { staffMember: null, userErrors: [{ field: ['role'], message: denied.message }] };
-      const r = await inviteStaff(ctx.db, ctx.shopId, { email: a.email, role: a.role.toLowerCase(), permissions: lower(a.permissions), firstName: a.firstName, lastName: a.lastName });
+      const r = await inviteStaff(ctx.db, ctx.shopId, { email: a.email, role: a.role.toLowerCase(), roleId: a.roleId ? parseId(String(a.roleId), 'ShopmeStaffRole') : null, permissions: lower(a.permissions), firstName: a.firstName, lastName: a.lastName });
       if (!r.ok) return { staffMember: null, userErrors: r.errors };
       const shop = (await getShop(ctx.db, ctx.shopId))!;
       const inviteUrl = `${ctx.app.config.appUrl.replace(/\/$/, '')}/admin/invite/${r.value.token}`;

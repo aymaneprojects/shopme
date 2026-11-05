@@ -1,4 +1,5 @@
 import { frBtnOrders } from './fr-btn-orders';
+import { frBtnSettings } from './fr-btn-settings';
 import { frCheckout } from './fr-checkout';
 import { frPrivacy } from './fr-privacy';
 import { frBtnStore } from './fr-btn-store';
@@ -147,4 +148,5 @@ export const fr: Record<Key, string> = {
   ...frPrivacy,
   ...frBtnOrders,
   ...frBtnStore,
+  ...frBtnSettings,
 };

@@ -1,9 +1,11 @@
 import type { Key } from '../i18n';
 
-export type MetafieldOwnerType = 'PRODUCT' | 'PRODUCTVARIANT' | 'COLLECTION' | 'CUSTOMER' | 'ORDER';
+export type MetafieldOwnerType = 'PRODUCT' | 'PRODUCTVARIANT' | 'COLLECTION' | 'CUSTOMER' | 'ORDER' | 'DRAFTORDER' | 'LOCATION' | 'TRANSFER' | 'PAGE' | 'BLOG' | 'ARTICLE' | 'MARKET' | 'SHOP';
 export const OWNER_TYPES: Array<{ id: MetafieldOwnerType; label: Key }> = [
   { id: 'PRODUCT', label: 'mf.owner.PRODUCT' }, { id: 'PRODUCTVARIANT', label: 'mf.owner.PRODUCTVARIANT' }, { id: 'COLLECTION', label: 'mf.owner.COLLECTION' },
   { id: 'CUSTOMER', label: 'mf.owner.CUSTOMER' }, { id: 'ORDER', label: 'mf.owner.ORDER' },
+  { id: 'DRAFTORDER', label: 'mf.owner.DRAFTORDER' }, { id: 'LOCATION', label: 'mf.owner.LOCATION' }, { id: 'TRANSFER', label: 'mf.owner.TRANSFER' }, { id: 'PAGE', label: 'mf.owner.PAGE' },
+  { id: 'BLOG', label: 'mf.owner.BLOG' }, { id: 'ARTICLE', label: 'mf.owner.ARTICLE' }, { id: 'MARKET', label: 'mf.owner.MARKET' }, { id: 'SHOP', label: 'mf.owner.SHOP' },
 ];
 
 /** Types offered by the definition editor (the server accepts more; these are the ones with a real editor). */

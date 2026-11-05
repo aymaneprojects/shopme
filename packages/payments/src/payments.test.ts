@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import { describe, expect, it } from 'vitest';
-import { createStripeGateway, manualProviders, parsePaymentSettings } from './index';
+import { createStripeGateway, fillRedirectUrl, manualProviders, parsePaymentSettings, signPaymentWebhook, verifyPaymentWebhook } from './index';
 
 describe('payment settings', () => {
   it('enables manual methods by default', () => {
@@ -31,5 +31,33 @@ describe('stripe gateway', () => {
     expect(g.verifyWebhook(payload, header).type).toBe('payment_intent.succeeded');
     expect(() => g.verifyWebhook(payload + ' ', header)).toThrow();
     expect(() => g.verifyWebhook(payload, 't=1,v1=bad')).toThrow();
+  });
+});
+
+describe('redirect gateways', () => {
+  it('fills the payment page URL with encoded values and leaves unknown placeholders', () => {
+    expect(fillRedirectUrl('https://p.test/?r={reference}&a={amount}&x={unknown}', { reference: '#1001 B', amount: '12.50' })).toBe('https://p.test/?r=%231001%20B&a=12.50&x={unknown}');
+  });
+  it('verifies the HMAC signature of the webhook body', () => {
+    const body = '{"reference":"#1001","status":"paid"}';
+    const sig = signPaymentWebhook('secret', body);
+    expect(verifyPaymentWebhook('secret', body, sig)).toBe(true);
+    expect(verifyPaymentWebhook('secret', body, `sha256=${sig.toUpperCase()}`)).toBe(true);
+    expect(verifyPaymentWebhook('other', body, sig)).toBe(false);
+    expect(verifyPaymentWebhook('secret', `${body} `, sig)).toBe(false);
+    expect(verifyPaymentWebhook('', body, sig)).toBe(false);
+    expect(verifyPaymentWebhook('secret', body, 'zz')).toBe(false);
+  });
+  it('captures an authorised intent through the client', async () => {
+    const calls: unknown[][] = [];
+    const client = {
+      paymentIntents: { create: async (p: Record<string, unknown>) => { calls.push([p]); return { id: 'pi', client_secret: 's' }; }, capture: async (id: string, p?: Record<string, unknown>) => { calls.push([id, p]); } },
+      webhooks: { constructEvent: () => { throw new Error('x'); } },
+    };
+    const gw = createStripeGateway({ secretKey: 'sk', publishableKey: 'pk', webhookSecret: 'wh' }, client)!;
+    await gw.createPaymentIntent({ amount: 100, currency: 'EUR', reference: 't', idempotencyKey: 'k', captureMethod: 'manual' });
+    await gw.capture('pi', 100, 'idem');
+    expect(calls[0]![0]).toMatchObject({ capture_method: 'manual' });
+    expect(calls[1]).toEqual(['pi', { amount_to_capture: 100 }]);
   });
 });

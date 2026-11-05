@@ -7,6 +7,7 @@ import type { Executor } from '../../db/client';
 import * as s from '../../db/schema';
 import { adjustMinor, convertMinor, resolvePrice, type FixedPrice, type PriceAdjustment, type PriceRules } from './money';
 import { COUNTRY_CURRENCY, countryName } from './reference';
+import { configOf } from '../settings/config';
 
 export interface ShopBasics { id: number; currency: string; country: string }
 
@@ -59,6 +60,15 @@ export async function marketForCountry(db: Executor, shopId: number, countryCode
     .innerJoin(s.markets, eq(s.markets.id, s.marketRegions.marketId))
     .where(and(eq(s.marketRegions.shopId, shopId), eq(s.marketRegions.countryCode, countryCode.toUpperCase()), eq(s.markets.status, 'ACTIVE'))).limit(1);
   if (hit) return hit.m;
+  // Settings > General > backup region: a country no market lists buys from the market of the backup region (when it has one).
+  const [shopRow] = await db.select({ settings: s.shops.settings }).from(s.shops).where(eq(s.shops.id, shopId)).limit(1);
+  const backup = shopRow ? configOf(shopRow, 'GENERAL').backupRegion : '';
+  if (backup && backup !== countryCode.toUpperCase()) {
+    const [alt] = await db.select({ m: s.markets }).from(s.marketRegions)
+      .innerJoin(s.markets, eq(s.markets.id, s.marketRegions.marketId))
+      .where(and(eq(s.marketRegions.shopId, shopId), eq(s.marketRegions.countryCode, backup), eq(s.markets.status, 'ACTIVE'))).limit(1);
+    if (alt) return alt.m;
+  }
   const [primary] = await db.select().from(s.markets).where(and(eq(s.markets.shopId, shopId), eq(s.markets.isPrimary, true))).limit(1);
   return primary ?? null;
 }

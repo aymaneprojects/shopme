@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import type { UserError } from '@shopme/shopify-compat';
-import { collections, customers, locations, metafieldDefinitions, metafields, orders, productVariants, products, shops } from '../../db/schema';
+import { articles, blogs, collections, customers, draftOrders, inventoryTransfers, locations, markets, metafieldDefinitions, metafields, orders, pages, productVariants, products, shops } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { emit, txResult, type Result } from './common';
 import { checkReferenceTargets, dropMetafieldReferences, isMetaobjectRefType, metaobjectTargets, syncReferences } from '../metaobjects/refs';
@@ -11,10 +11,12 @@ export const DEFAULT_NAMESPACE = 'custom';
 
 const OWNER_TABLES = {
   PRODUCT: products, PRODUCTVARIANT: productVariants, COLLECTION: collections, LOCATION: locations, SHOP: shops, CUSTOMER: customers, ORDER: orders,
+  DRAFTORDER: draftOrders, MARKET: markets, PAGE: pages, BLOG: blogs, ARTICLE: articles, TRANSFER: inventoryTransfers,
 } as const;
 /** GID type name -> metafield owner type. */
 export const OWNER_TYPE_BY_GID: Record<string, keyof typeof OWNER_TABLES> = {
   Product: 'PRODUCT', ProductVariant: 'PRODUCTVARIANT', Collection: 'COLLECTION', Location: 'LOCATION', Shop: 'SHOP', Customer: 'CUSTOMER', Order: 'ORDER',
+  DraftOrder: 'DRAFTORDER', Market: 'MARKET', Page: 'PAGE', OnlineStorePage: 'PAGE', Blog: 'BLOG', OnlineStoreBlog: 'BLOG', Article: 'ARTICLE', OnlineStoreArticle: 'ARTICLE', InventoryTransfer: 'TRANSFER',
 };
 
 export const METAFIELD_BASE_TYPES = [

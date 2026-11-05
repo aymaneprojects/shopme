@@ -30,6 +30,8 @@ export const shopLocales = pgTable('shop_locales', {
   id: pk(), shopId: shopFk(),
   locale: text('locale').notNull(),
   published: boolean('published').notNull().default(false),
+  /** Host that serves this language (e.g. fr.example.com); the storefront switches to the language on that host. */
+  domain: text('domain'),
   createdAt: createdAt(),
 }, (t) => [uniqueIndex('shop_locales_uq').on(t.shopId, t.locale)]);
 

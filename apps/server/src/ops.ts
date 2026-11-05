@@ -1,5 +1,5 @@
 import {
-  attemptDelivery, dueDeliveries, getShop, onEvent, orderEventMail, recordOrderEmail, ORDER_EMAIL_VERBS, purgeOldDeliveries, recordDeliveries, recordLowStockForOrder, sendNotification, shopUrl, topicsForVerb,
+  attemptDelivery, dueDeliveries, getShop, onEvent, orderEventMail, recordOrderEmail, ORDER_EMAIL_VERBS, AUTOMATIC_EMAIL_VERBS, sendSms, purgeOldDeliveries, recordDeliveries, recordLowStockForOrder, sendNotification, shopUrl, topicsForVerb,
   type EventRow,
 } from '@shopme/core';
 import type { AppContext } from './context';
@@ -30,7 +30,7 @@ export function registerOpsJobs(ctx: AppContext): () => void {
     const shop = await getShop(db, e.shopId);
     if (!shop || e.subjectId == null || !e.verb) return;
     const mail = await orderEventMail(db, shop, e.verb, e.subjectId, e.data);
-    if (mail) await sendNotification(db, ctx.mailer, shop, config.appUrl, mail.key, mail.to, mail.vars, { onSent: (m) => recordOrderEmail(db, e.shopId, e.subjectId!, mail.key, mail.to, { subject: m.subject, html: m.html ?? m.text }) });
+    if (mail) { await sendNotification(db, ctx.mailer, shop, config.appUrl, mail.key, mail.to, mail.vars, { onSent: (m) => recordOrderEmail(db, e.shopId, e.subjectId!, mail.key, mail.to, { subject: m.subject, html: m.html ?? m.text }) }); await sendSms(shop, mail.key, mail.phone, mail.vars); }
   });
   queue.register<EventJob>('activity.low-stock', async (e) => { if (e.subjectId != null) await recordLowStockForOrder(db, e.shopId, e.subjectId); });
   queue.every('webhook-sweep', 30_000, async () => {
@@ -42,6 +42,6 @@ export function registerOpsJobs(ctx: AppContext): () => void {
     const job: EventJob = { shopId, verb: ev.verb, subjectId: ev.subjectId, data: ev.data };
     if (topicsForVerb(ev.verb).length) queue.enqueue('webhook.fanout', job, { delayMs: EVENT_SETTLE_MS, maxAttempts: 5 });
     if (ev.verb === 'order.created') queue.enqueue('activity.low-stock', job, { delayMs: EVENT_SETTLE_MS, maxAttempts: 3 });
-    if (ev.verb && ev.verb in ORDER_EMAIL_VERBS && ev.data?.notify) queue.enqueue('notify.order-event', job, { delayMs: EVENT_SETTLE_MS, maxAttempts: 5 });
+    if (ev.verb && ev.verb in ORDER_EMAIL_VERBS && (ev.data?.notify || AUTOMATIC_EMAIL_VERBS.has(ev.verb))) queue.enqueue('notify.order-event', job, { delayMs: EVENT_SETTLE_MS, maxAttempts: 5 });
   });
 }

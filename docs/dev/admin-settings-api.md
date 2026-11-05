@@ -77,3 +77,22 @@ Code discounts only: `discountCodeBasicCreate|Update`, `discountCodeFreeShipping
 selection, buy-X-get-Y, customer segments and markets are rejected with a userError), minimum subtotal or quantity
 (not both), usage limit, once per customer, start/end dates. Codes are stored upper-case. Deactivating reads as
 `EXPIRED`. `combinesWith` is accepted and ignored (reported all `false`).
+
+## Settings blocks, roles and tax presets (ShopMe)
+
+- `shopmeConfig(key)` / `shopmeConfigUpdate(key, value)` read and replace a validated settings block (`GENERAL`, `ORDERS`, `PAYMENTS`, `SHIPPING`,
+  `TAXES`, `NOTIFICATIONS`, `CHECKOUT`, `GIFT_CARDS`, `RETURNS`, `DOCUMENTS`). The whole block is validated; the first problem is returned as a userError
+  with its path. Reads return defaults for anything unset.
+- Order names follow `ORDERS.idPrefix` + number + `ORDERS.idSuffix` for new orders. `ORDERS.autoArchive` closes a paid order once it is fully
+  fulfilled; `ORDERS.autoFulfillGiftCards` fulfils gift card lines once their cards were issued.
+- `shopmeStaffRoles`, `shopmeStaffRoleCreate|Update|Delete|Assign` manage custom roles (a role is a permission set copied to its members and kept in
+  sync). `shopmeStaffImport(csv)` invites staff from CSV text (`email, first_name, last_name, role`). Staff members expose
+  `shopmeTwoFactorEnabled`, `shopmeRoleId` and `shopmeRoleName`.
+- `shopmeTaxRegions`, `shopmeTaxPresets`, `shopmeTaxPresetApply(id, replace)` (EU_VAT, US_STATES, CA_PROVINCES, OTHER_VAT) and `shopmeCustomsApply`
+  (fills origin country and HS code of inventory items that have none). `TAXES.digitalVat` taxes items that do not ship with the buyer-country VAT when the
+  store has no rate there; `TAXES.duties` adds import duties per destination country (always on top of the price).
+- Delivery method definitions accept `shopmeTransitMinDays`, `shopmeTransitMaxDays`, `shopmeCollectionIds`, `shopmeOriginLocationIds`,
+  `shopmeRateType` (`FIXED` or `CARRIER`), `shopmeCarrierProvider` and `shopmeCarrierParams`. `shopmeShippingByMarket` lists the options each market gets.
+- `shopmeLocalDeliveries` and `shopmeLocalDeliveryUpdate(orderId, status: DELIVERED | MISSED)` follow local delivery orders; `shopmeLocaleDomainUpdate`
+  sets the host of a language (`shopLocales { shopmeDomain }`); `shopmePoliciesGenerate(types, overwrite)` writes policies from templates;
+  `shopmeShopDelete(confirmName)` deletes the store after writing a final export (owner only).

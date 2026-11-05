@@ -62,11 +62,13 @@ export interface PricingDiscount {
 export type PricingScope = { productIds?: number[]; collectionIds?: number[] };
 export interface BxgyRule { buyQuantity: number; buyAppliesTo: PricingScope; getQuantity: number; getAppliesTo: PricingScope; usesPerOrder: number | null }
 
-export interface PricingTaxRate { name: string; countryCode: string; provinceCode: string | null; rate: number; appliesToShipping: boolean; priority: number }
+export interface PricingTaxRate { name: string; countryCode: string; provinceCode: string | null; rate: number; appliesToShipping: boolean; priority: number; /** Import duty collected at checkout: always added on top, even when prices include tax. */ duty?: boolean }
 export interface PricingShippingRate {
   id: number; name: string; price: number;
   /** How the option is delivered (default SHIPPING); pickup and local delivery carry their location and a line of detail text. */
   type?: 'SHIPPING' | 'PICK_UP' | 'LOCAL'; locationId?: number | null; detail?: string | null;
+  /** Estimated transit time in days, shown as a delivery date range. */
+  transit?: { min: number; max: number } | null;
 }
 
 export interface PricingInput {
@@ -76,6 +78,10 @@ export interface PricingInput {
   taxRates: PricingTaxRate[];
   taxesIncluded: boolean;
   taxExempt?: boolean;
+  /** Rates used for digital goods (items that do not ship) when the store has no rate of its own for the destination. */
+  digitalVatRates?: PricingTaxRate[];
+  /** Import duties collected at checkout for the destination. */
+  dutyRates?: PricingTaxRate[];
   country: string | null;
   province: string | null;
 }
@@ -231,12 +237,20 @@ export function priceCheckout(input: PricingInput): PricingResult {
   }
 
   const rates = input.taxExempt ? [] : applicableTaxRates(input.taxRates, input.country, input.province);
+  const digitalRates = !input.taxExempt && input.digitalVatRates ? applicableTaxRates(input.digitalVatRates, input.country, input.province) : [];
+  const dutyRates = input.taxExempt ? [] : (input.dutyRates ?? []);
   const taxLines: TaxLine[] = [];
+  let dutyTotal = 0;
   const pricedLines: PricedLine[] = lines.map((l, i) => {
     let tax = 0;
-    if (l.taxable) for (const r of rates) {
-      const t = taxFor(remaining[i]!, r.rate, input.taxesIncluded, rates);
+    const own = !l.requiresShipping && !rates.length ? digitalRates : rates;
+    if (l.taxable) for (const r of own) {
+      const t = taxFor(remaining[i]!, r.rate, input.taxesIncluded, own);
       if (t > 0) { taxLines.push({ title: r.name, rate: r.rate, price: t, lineId: l.id, shipping: false }); tax += t; }
+    }
+    if (l.requiresShipping) for (const r of dutyRates) {
+      const t = taxFor(remaining[i]!, r.rate, false, dutyRates);
+      if (t > 0) { taxLines.push({ title: r.name, rate: r.rate, price: t, lineId: l.id, shipping: false }); tax += t; dutyTotal += t; }
     }
     return { id: l.id, subtotal: subtotals[i]!, discount: perLineDiscount[i]!, total: remaining[i]!, tax };
   });
@@ -256,6 +270,6 @@ export function priceCheckout(input: PricingInput): PricingResult {
   const totalDiscounts = perLineDiscount.reduce((a, b) => a + b, 0) + shippingDiscount;
   const totalShipping = shipping ? shipping.price - shipping.discount : 0;
   const totalTax = taxLines.reduce((a, t) => a + t.price, 0);
-  const total = subtotal - perLineDiscount.reduce((a, b) => a + b, 0) + totalShipping + (input.taxesIncluded ? 0 : totalTax);
+  const total = subtotal - perLineDiscount.reduce((a, b) => a + b, 0) + totalShipping + (input.taxesIncluded ? dutyTotal : totalTax);
   return { lines: pricedLines, shipping, taxLines, discountApplications: applications, subtotal, totalDiscounts, totalShipping, totalTax, total };
 }

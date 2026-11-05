@@ -7,6 +7,7 @@ import { subscribedColumns } from '../privacy/marketing-columns';
 import { payWithStoreCredit } from '../store-credit/tender';
 import type { PricingLine, PricingResult } from '../pricing';
 import { unconvertMinor } from '../markets/money';
+import { orderNameOf, routedLocations } from '../settings/config';
 
 export interface CheckoutAddressInput {
   firstName?: string | null; lastName?: string | null; company?: string | null;
@@ -37,7 +38,7 @@ export interface CreateOrderInput {
   shippingAddress: CheckoutAddressInput | null;
   billingAddress: CheckoutAddressInput | null;
   /** PAID when the money is in (or nothing is due); PENDING for manual methods and unconfirmed online payments. */
-  payment: { gateway: string; status: 'PAID' | 'PENDING'; paymentId?: string | null; test?: boolean };
+  payment: { gateway: string; status: 'PAID' | 'PENDING' | 'AUTHORIZED'; paymentId?: string | null; test?: boolean };
   /** Gift cards that pay part (or all) of the total: balances are debited atomically with the order. */
   giftCards?: { giftCardId: number; amount: number }[];
   /** Store credit that pays part (or all) of the total, after gift cards: debited atomically with the order (see store-credit/tender). */
@@ -61,8 +62,8 @@ class Abort extends Error { constructor(readonly result: Extract<CreateOrderResu
 
 const normEmail = (e: string) => e.trim().toLowerCase();
 
-/** Move stock from available to committed for one variant, across the item's active locations. Fails when it is not there. */
-export async function commitStock(tx: Executor, shopId: number, variantId: number, quantity: number, orderId: number): Promise<boolean> {
+/** Move stock from available to committed for one variant, across the item's active locations (`preferred` locations first, from the order routing rules). Fails when it is not there. */
+export async function commitStock(tx: Executor, shopId: number, variantId: number, quantity: number, orderId: number, preferred: number[] = []): Promise<boolean> {
   const [row] = await tx.select({ itemId: s.inventoryItems.id, tracked: s.inventoryItems.tracked, policy: s.productVariants.inventoryPolicy })
     .from(s.productVariants).leftJoin(s.inventoryItems, eq(s.inventoryItems.variantId, s.productVariants.id))
     .where(and(eq(s.productVariants.id, variantId), eq(s.productVariants.shopId, shopId))).limit(1);
@@ -72,6 +73,10 @@ export async function commitStock(tx: Executor, shopId: number, variantId: numbe
     .where(and(eq(s.inventoryLevels.inventoryItemId, row.itemId), eq(s.inventoryLevels.isActive, true), eq(s.locations.isActive, true))).orderBy(asc(s.locations.priority), asc(s.locations.id));
   const online = rows.filter((r) => r.online);
   let levels = (online.length ? online : rows).map((r) => r.lv);
+  if (preferred.length) {
+    const rank = (id: number) => { const i = preferred.indexOf(id); return i < 0 ? preferred.length : i; };
+    levels = [...levels].sort((a, b) => rank(a.locationId) - rank(b.locationId));
+  }
   const whole = levels.find((l) => l.available >= quantity);
   if (whole) levels = [whole];
   if (!levels.length) return row.policy === 'CONTINUE';
@@ -152,11 +157,14 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
       }
 
       const orderNumber = await nextOrderNumber(tx, shopId);
+      const [shopRow] = await tx.select({ settings: s.shops.settings }).from(s.shops).where(eq(s.shops.id, shopId)).limit(1);
+      const shopLike = { settings: shopRow?.settings ?? {} };
       const paid = input.payment.status === 'PAID';
+      const authorized = input.payment.status === 'AUTHORIZED';
       const [order] = await tx.insert(s.orders).values({
-        shopId, orderNumber, name: `#${orderNumber}`, customerId: customer!.id, email, phone: input.phone ?? ship?.phone ?? null,
+        shopId, orderNumber, name: orderNameOf(shopLike, orderNumber), customerId: customer!.id, email, phone: input.phone ?? ship?.phone ?? null,
         currency: input.currency, presentmentCurrency: pm?.currency ?? input.currency, currencyRate: pm?.rate ?? 1, taxesIncluded: input.taxesIncluded, test: !!input.payment.test,
-        financialStatus: paid ? 'PAID' : 'PENDING', fulfillmentStatus: 'UNFULFILLED', note: input.note ?? null, sourceName: input.sourceName ?? 'web', cartToken: input.cartToken ?? null, visitSessionId: input.visitSessionId?.slice(0, 64) ?? null,
+        financialStatus: paid ? 'PAID' : authorized ? 'AUTHORIZED' : 'PENDING', fulfillmentStatus: 'UNFULFILLED', note: input.note ?? null, sourceName: input.sourceName ?? 'web', cartToken: input.cartToken ?? null, visitSessionId: input.visitSessionId?.slice(0, 64) ?? null,
         subtotal: shopSubtotal, totalShipping: shopShipping, totalTax: shopTax, totalDiscounts: shopDiscounts, total: shopTotal, totalTip: shopTip,
         ...(pm ? { presentmentMoney: { subtotal: pricing.subtotal, shipping: pricing.totalShipping, tax: pricing.totalTax, discounts: pricing.totalDiscounts, tip, total: pricing.total + tip } } : {}),
       }).returning();
@@ -174,8 +182,9 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
         lineIds.set(l.id, row!.id);
       }
       const bad: number[] = [];
+      const routed = routedLocations(shopLike, input.shippingAddress?.countryCode ?? null);
       for (const [variantId, quantity] of [...input.lines.reduce((m, l) => (l.variantId == null ? m : m.set(l.variantId, (m.get(l.variantId) ?? 0) + l.quantity)), new Map<number, number>())]) {
-        if (!(await commitStock(tx, shopId, variantId, quantity, orderId))) bad.push(variantId);
+        if (!(await commitStock(tx, shopId, variantId, quantity, orderId, routed))) bad.push(variantId);
       }
       if (bad.length) throw new Abort({ ok: false, error: 'out_of_stock', variantIds: bad });
 
@@ -207,9 +216,9 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
       const creditShop = !creditTotal ? 0 : pm ? input.storeCredit?.shopAmount ?? shopOf(creditTotal) : creditTotal;
       if (pricing.total + tip - giftTotal - creditTotal > 0) {
         await tx.insert(s.transactions).values({
-          shopId, orderId, kind: 'SALE', status: paid ? 'SUCCESS' : 'PENDING', gateway: input.payment.gateway, amount: pm ? shopTotal - shopGift(giftTotal) - creditShop : pricing.total + tip - giftTotal - creditTotal, currency: input.currency,
+          shopId, orderId, kind: authorized ? 'AUTHORIZATION' : 'SALE', status: paid || authorized ? 'SUCCESS' : 'PENDING', gateway: input.payment.gateway, amount: pm ? shopTotal - shopGift(giftTotal) - creditShop : pricing.total + tip - giftTotal - creditTotal, currency: input.currency,
           ...(pm ? { presentmentAmount: pricing.total + tip - giftTotal - creditTotal, presentmentCurrency: pm.currency } : {}),
-          test: !!input.payment.test, paymentId: input.payment.paymentId ?? null, processedAt: paid ? new Date() : null,
+          test: !!input.payment.test, paymentId: input.payment.paymentId ?? null, processedAt: paid || authorized ? new Date() : null,
         });
       }
       for (const g of input.giftCards ?? []) {

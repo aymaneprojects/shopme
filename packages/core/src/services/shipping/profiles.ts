@@ -5,10 +5,15 @@ import {
 import type { Db, Executor, Tx } from '../../db/client';
 import { errR, okR, txResult, type Result } from '../catalog/common';
 import type { Condition, ConditionField, ConditionOperator } from './rates';
+import { carrierProvider } from './carriers';
 
 export type DeliveryProfile = typeof deliveryProfiles.$inferSelect;
 export interface ConditionRow extends Condition { id: number }
-export interface MethodRow { id: number; zoneId: number; name: string; description: string | null; active: boolean; position: number; price: number; freeOverAmount: number | null; conditions: ConditionRow[] }
+export interface MethodExtras {
+  transitMinDays: number | null; transitMaxDays: number | null; collectionIds: number[]; originLocationIds: number[];
+  rateType: 'FIXED' | 'CARRIER'; carrierProvider: string | null; carrierParams: Record<string, unknown>;
+}
+export interface MethodRow extends MethodExtras { id: number; zoneId: number; name: string; description: string | null; active: boolean; position: number; price: number; freeOverAmount: number | null; conditions: ConditionRow[] }
 export interface ZoneCountryRow { id: number; countryCode: string | null; restOfWorld: boolean; provinceCodes: string[] }
 export interface ZoneRow { id: number; groupId: number; name: string; marketId: number | null; countries: ZoneCountryRow[]; methods: MethodRow[] }
 export interface GroupRow { id: number; profileId: number; locationIds: number[]; zones: ZoneRow[] }
@@ -76,6 +81,8 @@ export async function loadProfiles(db: Executor, shopId: number, ids?: number[])
         countries: countries.filter((c) => c.zoneId === z.id).map((c) => ({ id: c.id, countryCode: c.countryCode, restOfWorld: c.restOfWorld, provinceCodes: c.provinceCodes })),
         methods: methods.filter((m) => m.zoneId === z.id).map((m) => ({
           id: m.id, zoneId: z.id, name: m.name, description: m.description, active: m.active, position: m.position, price: m.price, freeOverAmount: m.freeOverAmount,
+          transitMinDays: m.transitMinDays, transitMaxDays: m.transitMaxDays, collectionIds: m.collectionIds, originLocationIds: m.originLocationIds,
+          rateType: m.rateType === 'CARRIER' ? 'CARRIER' : 'FIXED', carrierProvider: m.carrierProvider, carrierParams: m.carrierParams ?? {},
           conditions: conds.filter((c) => c.methodId === m.id).map((c) => ({ id: c.id, field: c.field as ConditionField, operator: c.operator as ConditionOperator, value: c.value })),
         })),
       })),
@@ -112,6 +119,11 @@ export interface MethodInput {
   id?: number | null; name?: string | null; description?: string | null; active?: boolean | null;
   /** Minor units. */
   price?: number | null; freeOverAmount?: number | null; clearFreeOver?: boolean | null;
+  /** Estimated transit time in days (both null clears it). */
+  transitMinDays?: number | null; transitMaxDays?: number | null;
+  /** Collections the rate is limited to / locations it ships from (empty array clears). */
+  collectionIds?: number[] | null; originLocationIds?: number[] | null;
+  rateType?: 'FIXED' | 'CARRIER' | null; carrierProvider?: string | null; carrierParams?: Record<string, unknown> | null;
   conditionsToCreate?: ConditionInput[] | null;
   conditionsToUpdate?: (ConditionInput & { id: number })[] | null;
 }
@@ -158,10 +170,27 @@ function checkMethodValues(m: MethodInput, creating: boolean, path: string[]): R
   if (m.price != null && m.price < 0) return errR([...path, 'rateDefinition', 'price'], 'Price must be greater than or equal to 0');
   if (creating && m.price == null) return errR([...path, 'rateDefinition'], 'A rate needs a price');
   if (m.freeOverAmount != null && m.freeOverAmount < 0) return errR([...path, 'freeOverAmount'], 'Free shipping threshold must be greater than or equal to 0');
+  for (const [k, v] of [['transitMinDays', m.transitMinDays], ['transitMaxDays', m.transitMaxDays]] as const) {
+    if (v != null && (!Number.isInteger(v) || v < 0 || v > 365)) return errR([...path, k], 'Transit time must be a whole number of days between 0 and 365');
+  }
+  if (m.transitMinDays != null && m.transitMaxDays != null && m.transitMinDays > m.transitMaxDays) return errR([...path, 'transitMaxDays'], 'The longest transit time must be at least the shortest');
+  if (m.rateType === 'CARRIER') {
+    if (!carrierProvider(m.carrierProvider)) return errR([...path, 'carrierProvider'], 'Choose a carrier provider');
+  }
   for (const [i, c] of [...(m.conditionsToCreate ?? []), ...(m.conditionsToUpdate ?? [])].entries()) {
     if (!(c.value >= 0)) return errR([...path, 'conditions', String(i), 'criteria'], 'Condition value must be greater than or equal to 0');
   }
   return okR(null);
+}
+
+/** Column values of the rate options (transit time, collections, origins, carrier); only the fields given. */
+function extraValues(m: MethodInput) {
+  return {
+    ...(m.transitMinDays !== undefined && { transitMinDays: m.transitMinDays }), ...(m.transitMaxDays !== undefined && { transitMaxDays: m.transitMaxDays }),
+    ...(m.collectionIds != null && { collectionIds: [...new Set(m.collectionIds)] }), ...(m.originLocationIds != null && { originLocationIds: [...new Set(m.originLocationIds)] }),
+    ...(m.rateType != null && { rateType: m.rateType }), ...(m.carrierProvider !== undefined && { carrierProvider: m.rateType === 'FIXED' ? null : m.carrierProvider }),
+    ...(m.carrierParams != null && { carrierParams: m.carrierParams }),
+  };
 }
 
 async function applyConditions(tx: Executor, shopId: number, methodId: number, m: MethodInput): Promise<void> {
@@ -203,6 +232,7 @@ async function createMethod(tx: Executor, shopId: number, zoneId: number, m: Met
   const [{ n } = { n: 0 }] = await tx.select({ n: sql<number>`count(*)::int` }).from(deliveryMethodDefinitions).where(eq(deliveryMethodDefinitions.zoneId, zoneId));
   const [row] = await tx.insert(deliveryMethodDefinitions).values({
     shopId, zoneId, name: m.name!.trim(), description: m.description?.trim() || null, active: m.active ?? true, position: n, price: Math.round(m.price!), freeOverAmount: m.freeOverAmount != null ? Math.round(m.freeOverAmount) : null,
+    ...extraValues(m),
   }).returning({ id: deliveryMethodDefinitions.id });
   await applyConditions(tx, shopId, row!.id, m);
   return okR(null);
@@ -217,6 +247,7 @@ async function updateMethod(tx: Executor, shopId: number, zoneId: number, m: Met
     ...(m.name != null && { name: m.name.trim() }), ...(m.description !== undefined && { description: m.description?.trim() || null }), ...(m.active != null && { active: m.active }),
     ...(m.price != null && { price: Math.round(m.price) }),
     ...(m.clearFreeOver ? { freeOverAmount: null } : m.freeOverAmount !== undefined ? { freeOverAmount: m.freeOverAmount != null ? Math.round(m.freeOverAmount) : null } : {}),
+    ...extraValues(m),
   };
   if (Object.keys(set).length) await tx.update(deliveryMethodDefinitions).set(set).where(eq(deliveryMethodDefinitions.id, cur.id));
   await applyConditions(tx, shopId, cur.id, m);

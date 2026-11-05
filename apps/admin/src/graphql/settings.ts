@@ -11,6 +11,7 @@ export const SHOP = /* GraphQL */ `
       currencyFormats { moneyFormat moneyWithCurrencyFormat }
       primaryDomain { host url }
       myshopifyDomain
+      address: billingAddress { company address1 address2 city zip provinceCode countryCode: countryCodeV2 phone }
       storefront: shopmeStorefront { passwordEnabled password }
     }
   }

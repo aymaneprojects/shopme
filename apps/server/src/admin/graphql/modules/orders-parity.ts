@@ -143,7 +143,11 @@ builder.mutationFields((t) => ({
       let amount: number | null = null;
       try { amount = parseMoney(String(input.amount), order[0].currency); } catch { /* invalid */ }
       if (amount == null) return { transaction: null, userErrors: [{ field: ['input', 'amount'], message: 'Amount is invalid' }] };
-      const r = await captureTransaction(ctx.db, ctx.shopId, { orderId, parentTransactionId: parentId, amount, currency: input.currency, finalCapture: input.finalCapture, staffId: staffId(ctx) });
+      const r = await captureTransaction(ctx.db, ctx.shopId, { orderId, parentTransactionId: parentId, amount, currency: input.currency, finalCapture: input.finalCapture, staffId: staffId(ctx),
+        collect: async (parent, amt) => {
+          const stripe = (ctx.request.server as unknown as { checkoutPayments?: { stripe: { capture(id: string, amount: number, key: string): Promise<void> } | null } }).checkoutPayments?.stripe;
+          if (parent.gateway === 'stripe' && parent.paymentId && stripe) await stripe.capture(parent.paymentId, amt, `capture-${parent.id}-${amt}`);
+        } });
       if (!r.ok) return { transaction: null, userErrors: r.errors };
       const full = await ctx.db.select().from(schema.orders).where(eq(schema.orders.id, orderId)).limit(1);
       return { transaction: { ...r.value, order: full[0]! }, userErrors: [] };

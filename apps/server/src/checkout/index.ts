@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
-  availablePaymentMethods, cleanAddress, findOrderIdByPayment, getDefaultAddress, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
-  accountsModeOf, checkoutSettingsOf, customerAccountsSettingsOf, orderVars, renderSubscriptionConfirmation, privacySettingsOf, type Customer, type Mail, recordOrderEmail, sendNotification, sendStaffNewOrder, shippableCountries, splitContact, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutSettings, type CheckoutError, type CheckoutView, type Shop,
+  availablePaymentMethods, configOf, findOrderIdByName, markOrderAuthorized, cleanAddress, findOrderIdByPayment, getDefaultAddress, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
+  accountsModeOf, sendFulfillmentRequests, sendSms, checkoutSettingsOf, customerAccountsSettingsOf, orderVars, renderSubscriptionConfirmation, privacySettingsOf, type Customer, type Mail, recordOrderEmail, sendNotification, sendStaffNewOrder, shippableCountries, splitContact, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutSettings, type CheckoutError, type CheckoutView, type Shop,
 } from '@shopme/core';
-import { createStripeGateway, readSetting, type StripeGateway } from '@shopme/payments';
+import { createStripeGateway, fillRedirectUrl, readSetting, verifyPaymentWebhook, type StripeGateway } from '@shopme/payments';
 import { parseMoney } from '@shopme/shopify-compat';
 import type { AppContext } from '../context';
 import { CART_COOKIE, customerOf, primaryShop } from '../storefront/env';
@@ -81,6 +81,11 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       const to = order.order.email;
       await sendNotification(db, ctx.mailer, shop, config.appUrl, 'order_confirmation', to, orderVars(order, shop), { onSent: (m) => recordOrderEmail(db, shopId, orderId, 'order_confirmation', to, { subject: m.subject, html: m.html ?? m.text }) });
     }
+    if (shop && order) await sendSms(shop, 'order_confirmation', order.order.phone, orderVars(order, shop));
+  });
+  ctx.queue.register<{ shopId: number; orderId: number }>('order.fulfillment-request', async ({ shopId, orderId }) => {
+    const shop = await getShop(db, shopId);
+    if (shop) await sendFulfillmentRequests(db, ctx.mailer, shop, config.appUrl, orderId);
   });
   ctx.queue.register<{ shopId: number; orderId: number }>('order.staff-email', async ({ shopId, orderId }) => {
     const [shop, order] = await Promise.all([getShop(db, shopId), getOrderSummary(db, shopId, orderId)]);
@@ -89,6 +94,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
   const enqueueEmails = (shopId: number, orderId: number) => {
     ctx.queue.enqueue('order.confirmation-email', { shopId, orderId });
     ctx.queue.enqueue('order.staff-email', { shopId, orderId });
+    ctx.queue.enqueue('order.fulfillment-request', { shopId, orderId });
   };
 
   const cartToken = (req: FastifyRequest) => (req.cookies[CART_COOKIE] ?? '').split('?')[0]!.split('%3F')[0]!;
@@ -118,7 +124,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
 
   async function pageData(shop: Shop, view: CheckoutView, extra: { errors?: string[]; values?: Body; chosenMethod?: string; marketing?: boolean } = {}) {
     const stripe = app.checkoutPayments.stripe;
-    const methods = availablePaymentMethods(shop.settings, { stripeConfigured: !!stripe });
+    const methods = availablePaymentMethods(shop.settings, { stripeConfigured: !!stripe, context: { country: view.address?.countryCode ?? null, total: view.amountDue } });
     return {
       view, methods, errors: extra.errors ?? [], values: extra.values, chosenMethod: extra.chosenMethod, marketing: extra.marketing ?? view.settings.marketing === 'checked',
       countries: view.requiresShipping ? await shippableCountries(db, shop.id) : null,
@@ -141,13 +147,34 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       try { event = gateway.verifyWebhook(req.body as string, sig); } catch { return reply.code(400).send({ error: 'Invalid signature' }); }
       const pi = event.data.object;
       const shop = await primaryShop(ctx);
-      if (shop && (event.type === 'payment_intent.succeeded' || event.type === 'payment_intent.payment_failed') && typeof pi.id === 'string') {
+      if (shop && (event.type === 'payment_intent.succeeded' || event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.amount_capturable_updated') && typeof pi.id === 'string') {
         const orderId = await findOrderIdByPayment(db, shop.id, pi.id);
         if (orderId) {
-          if (event.type === 'payment_intent.succeeded') { if (await markOrderPaid(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id })) enqueueEmails(shop.id, orderId); }
+          if (event.type === 'payment_intent.amount_capturable_updated') { if (await markOrderAuthorized(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id })) enqueueEmails(shop.id, orderId); }
+          else if (event.type === 'payment_intent.succeeded') { if (await markOrderPaid(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id })) enqueueEmails(shop.id, orderId); }
           else await recordPaymentFailure(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id, message: pi.last_payment_error?.message });
         } else ctx.log.warn({ paymentIntent: pi.id }, 'stripe webhook for an unknown payment');
       }
+      return { received: true };
+    });
+  });
+
+  // Payment confirmation of a redirect gateway: `POST {"reference": "<order name>", "status": "paid" | "failed"}` signed with the gateway secret (hex HMAC-SHA256 of the raw body in X-ShopMe-Signature).
+  await app.register(async (scope) => {
+    scope.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => done(null, body));
+    scope.post('/webhooks/payments/:gatewayId', async (req, reply) => {
+      const shop = await primaryShop(ctx);
+      const { gatewayId } = req.params as { gatewayId: string };
+      const gw = shop ? configOf(shop, 'PAYMENTS').redirectGateways.find((g) => g.id === gatewayId) : undefined;
+      const sig = req.headers['x-shopme-signature'];
+      if (!shop || !gw || !gw.secret || typeof sig !== 'string' || !verifyPaymentWebhook(gw.secret, req.body as string, sig)) return reply.code(400).send({ error: 'Invalid signature' });
+      let body: { reference?: unknown; status?: unknown };
+      try { body = JSON.parse(req.body as string); } catch { return reply.code(400).send({ error: 'Invalid JSON' }); }
+      const orderId = typeof body.reference === 'string' ? await findOrderIdByName(db, shop.id, body.reference, `redirect:${gw.id}`) : null;
+      if (!orderId) return reply.code(404).send({ error: 'Unknown order' });
+      if (body.status === 'paid') { if (await markOrderPaid(db, shop.id, orderId, { gateway: `redirect:${gw.id}` })) enqueueEmails(shop.id, orderId); }
+      else if (body.status === 'failed') await recordPaymentFailure(db, shop.id, orderId, { gateway: `redirect:${gw.id}` });
+      else return reply.code(400).send({ error: 'Unknown status' });
       return { received: true };
     });
   });
@@ -222,6 +249,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       return reply.header('cache-control', 'no-store').send({
         shipping: view.requiresShipping ? shippingFragment(c, view) : undefined, summary: summaryFragment(c, view), total: inCurrency(c, view.currency).money(view.amountDue),
         amount: view.amountDue, free: view.amountDue === 0, payments: true, discountError, giftError,
+        methods: availablePaymentMethods(shop.settings, { stripeConfigured: !!app.checkoutPayments.stripe, context: { country: view.address?.countryCode ?? null, total: view.amountDue } }).map((m) => m.id),
       });
     });
 
@@ -286,15 +314,18 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       if (!saved.ok) return saved.error === 'completed' ? reply.redirect(`/checkouts/${token}/thank-you`, 303) : fail([saved.error === 'invalid_email' ? c.t(settings.contactMethod === 'email_or_phone' ? 'err_contact' : 'err_email') : c.t('err_generic')]);
 
       let clientSecret = '';
-      const methods = availablePaymentMethods(shop.settings, { stripeConfigured: !!stripe });
+      const pre = await loadCheckout(db, shop, token, new Date(), { customerId: buyer?.id });
+      const methods = availablePaymentMethods(shop.settings, { stripeConfigured: !!stripe, context: { country: pre?.address?.countryCode ?? null, total: pre?.amountDue ?? 0 } });
+      const kinds = Object.fromEntries(methods.map((m) => [m.id, m.kind]));
+      const captureMethod = configOf(shop, 'PAYMENTS').captureMethod;
       let paymentError = false;
       const res = await submitCheckout(db, shop, token, {
         customerId: buyer?.id ?? null, doubleOptIn: privacySettingsOf(shop).doubleOptIn, visitSessionId: req.cookies.shopme_vid ?? null,
-        paymentMethod: str(b.paymentMethod), allowedMethods: methods.map((m) => m.id), acceptsMarketing: settings.marketing !== 'hidden' && !!b.acceptsMarketing, note: settings.orderNotes ? str(b.note).trim().slice(0, 5000) || null : undefined,
+        paymentMethod: str(b.paymentMethod), allowedMethods: methods.map((m) => m.id), methodKinds: kinds, acceptsMarketing: settings.marketing !== 'hidden' && !!b.acceptsMarketing, note: settings.orderNotes ? str(b.note).trim().slice(0, 5000) || null : undefined,
         shippingRateId: Number.isFinite(rate) && rate !== 0 ? rate : null,
         startOnlinePayment: async (view) => {
           if (!stripe) throw new Error('Stripe is not configured');
-          const pi = await stripe.createPaymentIntent({ amount: view.amountDue, currency: view.currency, reference: token, email: view.email, description: `${shop.name} checkout`, idempotencyKey: randomUUID() });
+          const pi = await stripe.createPaymentIntent({ amount: view.amountDue, currency: view.currency, reference: token, email: view.email, description: `${shop.name} checkout`, idempotencyKey: randomUUID(), captureMethod });
           clientSecret = pi.clientSecret;
           return pi.id;
         },
@@ -304,10 +335,17 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
         if (res.errors.some((e) => e.code === 'completed')) return reply.redirect(`/checkouts/${token}/thank-you`, 303);
         return fail(errorMessages(c, res.errors));
       }
-      if (!res.needsOnlinePayment) enqueueEmails(shop.id, res.orderId);
+      if (!res.needsOnlinePayment && kinds[str(b.paymentMethod)] !== 'redirect') enqueueEmails(shop.id, res.orderId);
       // Double opt-in: the marketing checkbox only started a pending subscription; the buyer confirms it from this email.
       if (res.marketingConfirmation) ctx.queue.enqueue<Mail>('mail.send', renderSubscriptionConfirmation(shop, res.marketingConfirmation.email, `${config.appUrl}/account/subscribe/confirm/${res.marketingConfirmation.customerId}/${res.marketingConfirmation.token}`));
       const returnUrl = `${config.appUrl.replace(/\/$/, '')}/checkouts/${token}/thank-you`;
+      // A redirect gateway: the order is placed and the buyer goes to the merchant's payment page; the provider confirms through the payment webhook.
+      const gw = kinds[str(b.paymentMethod)] === 'redirect' ? configOf(shop, 'PAYMENTS').redirectGateways.find((g) => `redirect:${g.id}` === str(b.paymentMethod)) : undefined;
+      if (gw) {
+        const payUrl = fillRedirectUrl(gw.redirectUrl, { order: res.name, reference: res.name, amount: (res.total / 100).toFixed(2), currency: res.currency, email: res.email, return_url: returnUrl });
+        if (json) return { ok: true, clientSecret, returnUrl, redirectUrl: payUrl };
+        return reply.redirect(payUrl, 303);
+      }
       if (json) return { ok: true, clientSecret, returnUrl };
       return reply.redirect(`/checkouts/${token}/thank-you`, 303);
     });
