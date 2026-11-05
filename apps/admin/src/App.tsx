@@ -92,6 +92,8 @@ const router = createBrowserRouter(
         ],
       },
       { path: '/online-store/themes/:id/editor', element: L(() => import('./pages/online-store/ThemeEditor'), 'ThemeEditorPage') },
+      { path: '/online-store/themes/:id/code', element: L(() => import('./pages/online-store/ThemeCode'), 'ThemeCodePage') },
+      { path: '/online-store/themes/:id/content', element: L(() => import('./pages/online-store/ThemeContent'), 'ThemeContentPage') },
       {
         path: '/settings', element: L(() => import('./pages/settings/Settings'), 'SettingsLayout'),
         children: [

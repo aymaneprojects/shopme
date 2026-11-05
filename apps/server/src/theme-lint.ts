@@ -43,7 +43,7 @@ export function lintThemeFile(filename: string, text: string): ThemeDiagnostic[]
     const msg = String(err.message ?? e).split('\n')[0]!;
     const m = /line:(\d+), col:(\d+)/.exec(String(err.message ?? ''));
     const [line, column] = m ? [Number(m[1]), Number(m[2])] : typeof err.token?.begin === 'number' ? lineCol(text, err.token.begin) : [err.line ?? 1, err.col ?? 1];
-    const message = msg.replace(/,\s*line:\d+, col:\d+$/, '');
+    const message = msg.replace(/,\s*line:\d+, col:\d+.*$/, '').replace(/,\s*file:.*$/, '');
     // A tag this engine does not implement is reported, but does not stop a save: the file may come from a theme written for another engine.
     out.push({ filename, line, column, severity: /tag ".*" not found/.test(message) ? 'warning' : 'error', message });
   }

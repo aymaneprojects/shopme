@@ -4,34 +4,8 @@
     "theme_name": "Aurora",
     "theme_version": "1.1.0",
     "theme_author": "ShopMe contributors",
-    "theme_documentation_url": "https://github.com/",
-    "theme_support_url": "https://github.com/"
-  },
-  {
-    "name": "t:settings_schema.brand.name",
-    "settings": [
-      {
-        "type": "image_picker",
-        "id": "logo",
-        "label": "t:settings_schema.brand.settings.logo"
-      },
-      {
-        "type": "range",
-        "id": "logo_width",
-        "label": "t:settings_schema.brand.settings.logo_width",
-        "min": 60,
-        "max": 240,
-        "step": 10,
-        "unit": "px",
-        "default": 120
-      },
-      {
-        "type": "image_picker",
-        "id": "favicon",
-        "label": "t:settings_schema.brand.settings.favicon",
-        "info": "t:settings_schema.brand.info.favicon"
-      }
-    ]
+    "theme_documentation_url": "https://github.com/aymaneprojects/shopme/blob/main/docs/spec/theme-format.md",
+    "theme_support_url": "https://github.com/aymaneprojects/shopme/issues"
   },
   {
     "name": "t:settings_schema.colors.name",
@@ -136,6 +110,32 @@
           "on_secondary_button": "text",
           "secondary_button_border": "text"
         }
+      }
+    ]
+  },
+  {
+    "name": "t:settings_schema.brand.name",
+    "settings": [
+      {
+        "type": "image_picker",
+        "id": "logo",
+        "label": "t:settings_schema.brand.settings.logo"
+      },
+      {
+        "type": "range",
+        "id": "logo_width",
+        "label": "t:settings_schema.brand.settings.logo_width",
+        "min": 60,
+        "max": 240,
+        "step": 10,
+        "unit": "px",
+        "default": 120
+      },
+      {
+        "type": "image_picker",
+        "id": "favicon",
+        "label": "t:settings_schema.brand.settings.favicon",
+        "info": "t:settings_schema.brand.info.favicon"
       }
     ]
   },

@@ -1,11 +1,11 @@
 {
   "current": {
-    "logo_width": 120,
     "color_primary": "#1E40AF",
     "color_background": "#ffffff",
     "color_surface": "#f1f5f9",
     "color_text": "#0f172a",
     "color_sale": "#b91c1c",
+    "logo_width": 120,
     "type_body_font": "system-sans",
     "type_subheading_font": "system-sans",
     "type_heading_font": "system-sans",
@@ -144,12 +144,12 @@
   },
   "presets": {
     "Aurora": {
-      "logo_width": 120,
       "color_primary": "#1E40AF",
       "color_background": "#ffffff",
       "color_surface": "#f1f5f9",
       "color_text": "#0f172a",
       "color_sale": "#b91c1c",
+      "logo_width": 120,
       "type_body_font": "system-sans",
       "type_subheading_font": "system-sans",
       "type_heading_font": "system-sans",

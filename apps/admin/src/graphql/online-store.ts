@@ -29,7 +29,7 @@ export const THEME_LOCALES = /* GraphQL */ `
 
 export const THEME_FILES_UPSERT = /* GraphQL */ `
   mutation ThemeFilesUpsert($themeId: ID!, $files: [OnlineStoreThemeFilesUpsertFileInput!]!) {
-    themeFilesUpsert(themeId: $themeId, files: $files) { upsertedThemeFiles { filename } userErrors { field message } }
+    themeFilesUpsert(themeId: $themeId, files: $files) { upsertedThemeFiles { filename } userErrors { field message filename } }
   }
 `;
 export const THEME_DUPLICATE = /* GraphQL */ `
@@ -61,6 +61,56 @@ export const THEME_SCHEMAS = /* GraphQL */ `
 /** One handle per resource type, so the preview iframe can open a real product / page. */
 export const THEME_PREVIEW_HANDLES = /* GraphQL */ `
   query ThemePreviewHandles { products(first: 1) { nodes { handle } } collections(first: 1) { nodes { handle } } pages(first: 1) { nodes { handle } } }
+`;
+
+/** Preview data selector: what the preview can show (products, collections, pages, articles), the shop languages and the market countries. */
+export const THEME_PREVIEW_DATA = /* GraphQL */ `
+  query ThemePreviewData {
+    products(first: 50, sortKey: TITLE) { nodes { handle title } }
+    collections(first: 50, sortKey: TITLE) { nodes { handle title } }
+    pages(first: 50) { nodes { handle title } }
+    articles(first: 50) { nodes { handle title blog { handle } } }
+    shopLocales { locale name primary published }
+    markets(first: 50) { nodes { id name conditions { regionsCondition { regions(first: 250) { nodes { ... on MarketRegionCountry { code name } } } } } } }
+  }
+`;
+
+/** Code editor: the file list (names, types, sizes), then a file's text on demand. */
+export const THEME_ALL_FILES = /* GraphQL */ `
+  query ThemeAllFiles($id: ID!, $after: String) {
+    theme(id: $id) { id name role files(first: 250, after: $after) { nodes { filename contentType size updatedAt } pageInfo { hasNextPage endCursor } } }
+  }
+`;
+export const THEME_FILE_BODY = /* GraphQL */ `
+  query ThemeFileBody($id: ID!, $filenames: [String!]) {
+    theme(id: $id) { id files(filenames: $filenames, first: 250) { nodes { filename contentType body { ... on OnlineStoreThemeFileBodyText { content } } } } }
+  }
+`;
+export const THEME_FILES_LINT = /* GraphQL */ `
+  query ThemeFilesLint($files: [ThemeFileLintInput!]!) { themeFilesLint(files: $files) { filename line column severity message } }
+`;
+export const THEME_FILE_VERSIONS = /* GraphQL */ `
+  query ThemeFileVersions($themeId: ID!, $filename: String!) { themeFileVersions(themeId: $themeId, filename: $filename) { id size createdAt } }
+`;
+export const THEME_FILE_VERSION = /* GraphQL */ `
+  query ThemeFileVersion($id: ID!) { themeFileVersion(id: $id) { id filename body createdAt } }
+`;
+export const THEME_FILES_WITH_HISTORY = /* GraphQL */ `
+  query ThemeFilesWithHistory($themeId: ID!) { themeFilesWithHistory(themeId: $themeId) }
+`;
+export const THEME_FILES_DELETE = /* GraphQL */ `
+  mutation ThemeFilesDelete($themeId: ID!, $files: [String!]!) { themeFilesDelete(themeId: $themeId, files: $files) { deletedThemeFiles { filename } userErrors { field message } } }
+`;
+export const THEME_FILES_COPY = /* GraphQL */ `
+  mutation ThemeFilesCopy($themeId: ID!, $files: [ThemeFilesCopyFileInput!]!) { themeFilesCopy(themeId: $themeId, files: $files) { copiedThemeFiles { filename } userErrors { field message } } }
+`;
+/** Default theme content: the locale files (`locales/<code>.json`, without the `.schema.json` ones that label the editor). */
+export const THEME_LOCALE_FILES = /* GraphQL */ `
+  query ThemeLocaleFiles($id: ID!) { theme(id: $id) { id name files(filenames: ["locales/*.json"], first: 250) { nodes { filename body { ... on OnlineStoreThemeFileBodyText { content } } } } } }
+`;
+/** Resources a theme setting can point at (collection, product, page, blog pickers). */
+export const THEME_SETTING_RESOURCES = /* GraphQL */ `
+  query ThemeSettingResources { collections(first: 100, sortKey: TITLE) { nodes { handle title } } products(first: 100, sortKey: TITLE) { nodes { handle title } } pages(first: 100) { nodes { handle title } } blogs(first: 100) { nodes { handle title } } }
 `;
 
 export const THEME_PUBLISH = /* GraphQL */ `

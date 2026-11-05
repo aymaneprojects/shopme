@@ -6,15 +6,18 @@ import { useBlocker, useNavigate, useParams, useSearchParams } from 'react-route
 import type { Key } from '../../i18n';
 import { gql, mutate, rest } from '../../api';
 import { gidToNum, numToGid } from '../../format';
-import { THEME_EDITOR_FILES, THEME_FILES_UPSERT, THEME_LOCALES, THEME_PREVIEW_HANDLES, THEME_SCHEMAS, THEME_SETTINGS, THEME_TEMPLATE_NAMES } from '../../graphql';
+import { THEME_EDITOR_FILES, THEME_FILES_UPSERT, THEME_LOCALES, THEME_PREVIEW_DATA, THEME_SCHEMAS, THEME_SETTINGS, THEME_TEMPLATE_NAMES } from '../../graphql';
 import { useI18n } from '../../i18n';
 import { changedDocs, changedSettings, emptySession, sessionReducer } from '../../lib/editor-session';
 import { categoryOf } from '../../lib/section-categories';
 import type { PickerItem } from '../../lib/section-categories';
-import { buildValues, parseCurrent, parseDict, parseSchema, resolveLabel, serializeData } from '../../lib/settings-schema';
-import type { SettingValue } from '../../lib/settings-schema';
+import { buildValues, coerceValue, isInput, parseCurrent, parseDict, parseSchema, resolveLabel, serializeData } from '../../lib/settings-schema';
+import type { SchemeSet, SettingDef, SettingValue } from '../../lib/settings-schema';
+import { SchemesContext, SourcesContext } from '../../components/theme-fields/context';
 import { addableSections, blockOrder, blockSettings, indexSchemas, parseTemplate, serializeTemplate, templateReducer, uniqueId } from '../../lib/theme-template';
 import type { Action, SectionInstance, Template } from '../../lib/theme-template';
+import { PreviewDataMenu } from './PreviewDataMenu';
+import type { PreviewChoices, PreviewData } from './PreviewDataMenu';
 import { PreviewFrame } from './PreviewFrame';
 import type { Device, Target, ToolbarActions } from './PreviewFrame';
 import { SectionPicker } from './SectionPicker';
@@ -68,12 +71,15 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
   const names = useQuery({ queryKey: ['theme-templates', themeId], queryFn: () => gql<FilesRes>(THEME_TEMPLATE_NAMES, { id: themeId }) });
   const schemas = useQuery({ queryKey: ['theme-schemas', themeId], queryFn: () => gql<FilesRes>(THEME_SCHEMAS, { id: themeId }), staleTime: 60_000 });
   const files = useQuery({ queryKey: ['theme-editor-files', themeId, template], queryFn: () => gql<FilesRes>(THEME_EDITOR_FILES, { id: themeId, filenames: [`templates/${template}.json`, 'sections/*.json'] }) });
-  const handles = useQuery({ queryKey: ['theme-preview-handles'], retry: false, staleTime: 60_000, queryFn: () => gql<{ products: { nodes: Array<{ handle: string }> }; collections: { nodes: Array<{ handle: string }> }; pages: { nodes: Array<{ handle: string }> } }>(THEME_PREVIEW_HANDLES) });
+  const pdata = useQuery({ queryKey: ['theme-preview-data'], retry: false, staleTime: 60_000, queryFn: () => gql<PreviewRes>(THEME_PREVIEW_DATA) });
+  const [chosen, setChosen] = useState<PreviewData>(() => readChosen(num));
+  const choices = useMemo(() => previewChoices(pdata.data), [pdata.data]);
   const templateNames = useMemo(() => (names.data?.theme?.files.nodes ?? []).map((n) => /^templates\/([^/]+)\.json$/.exec(n.filename)?.[1]).filter((x): x is string => !!x), [names.data]);
   const idx = useMemo(() => indexSchemas(nodes(schemas.data)), [schemas.data]);
   const dict = useMemo(() => parseDict(fileText(localesData, lang === 'fr' ? 'locales/fr.schema.json' : 'locales/en.default.schema.json') ?? fileText(localesData, 'locales/en.default.schema.json')), [localesData, lang]);
   const label = (l?: string) => resolveLabel(l, dict);
   const groups = useMemo(() => parseSchema(schemaJson), [schemaJson]);
+  const info = useMemo(() => themeInfo(schemaJson), [schemaJson]);
 
   // ---- state: what the server has (first read of each file, then what this session saved), and the session's edits on top
   const loaded = useRef<Docs>({});
@@ -115,7 +121,12 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
     const b = s.blocks?.[bid];
     return b ? label(b.name) || label(idx.sections[s.type]?.blocks?.find((x) => x.type === b.type)?.name ?? idx.blocks[b.type]?.name) || b.type : bid;
   };
-  const fileLabel = (f: string) => (f === tplFile ? t('editor.groupTemplate') : label(`t:${f.replace(/^.*\//, '').replace(/\.json$/, '').replace(/-group$/, '')}`).replace(/^./, (c) => c.toUpperCase()));
+  const fileLabel = (f: string) => {
+    if (f === tplFile) return t('editor.groupTemplate');
+    const own = docs[f]?.name;
+    if (typeof own === 'string' && own.trim()) return label(own);
+    return label(`t:${f.replace(/^.*\//, '').replace(/\.json$/, '').replace(/-group$/, '')}`).replace(/^./, (c) => c.toUpperCase());
+  };
 
   // ---- operations on sections and blocks (shared by the tree, the preview toolbar and the settings panel)
   const dropSel = (section: string, block?: string) => setSel((s) => (s && s.section === section && (!block || s.block === block) ? (block ? { file: s.file, section } : null) : s));
@@ -138,6 +149,7 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
       setSel({ file, section: id });
     },
     rename: (file: string, id: string) => setRenaming({ file, id, name: docs[file]?.sections[id]?.name ?? '' }),
+    editCode: (file: string, id: string) => { const type = docs[file]?.sections[id]?.type; if (type) nav(`/online-store/themes/${num}/code?file=${encodeURIComponent(`sections/${type}.liquid`)}`); },
     canPaste: !!clip,
   };
   const addSection = (file: string, type: string, presetIndex: number, index?: number) => {
@@ -162,6 +174,7 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
         down: !block.static && bi < order.length - 1 ? () => edit(sel.file, { kind: 'moveBlock', section: sel.section, block: sel.block!, to: bi + 1 }) : undefined,
         toggle: () => edit(sel.file, { kind: 'toggleBlock', section: sel.section, block: sel.block! }), hidden: !!block.disabled,
         remove: block.static ? undefined : () => ops.removeBlock(sel.file, sel.section, sel.block!),
+        editCode: () => nav(`/online-store/themes/${num}/code?file=${encodeURIComponent(`blocks/${block.type}.liquid`)}`),
       };
     }
     const i = doc.order.indexOf(sel.section);
@@ -171,6 +184,7 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
       duplicate: () => ops.duplicateSection(sel.file, sel.section),
       toggle: () => edit(sel.file, { kind: 'toggleSection', id: sel.section }), hidden: !!current.disabled,
       remove: () => ops.removeSection(sel.file, sel.section),
+      editCode: () => ops.editCode(sel.file, sel.section),
     };
   })();
   const toolbar: ToolbarActions | null = selActions;
@@ -198,8 +212,13 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
     return () => clearTimeout(timer);
   }, [draftSig, num]);
 
-  const h = { product: handles.data?.products.nodes[0]?.handle, collection: handles.data?.collections.nodes[0]?.handle, page: handles.data?.pages.nodes[0]?.handle };
-  const src = useMemo(() => withParams(previewPath(frameTpl, h), { preview_theme_id: String(num), ...(token.current ? { _draft: token.current } : {}) }), [frameTpl, h.product, h.collection, h.page, num]); // eslint-disable-line react-hooks/exhaustive-deps
+  const h = {
+    product: chosen.product ?? pdata.data?.products.nodes[0]?.handle, collection: chosen.collection ?? pdata.data?.collections.nodes[0]?.handle, page: chosen.page ?? pdata.data?.pages.nodes[0]?.handle,
+    article: chosen.article ?? (pdata.data?.articles.nodes[0] ? `${pdata.data.articles.nodes[0].blog.handle}/${pdata.data.articles.nodes[0].handle}` : undefined),
+  };
+  const frameUrl = (tpl: string, withDraft: boolean) => withParams(`${chosen.locale ? `/${chosen.locale}` : ''}${previewPath(tpl, h)}`, { preview_theme_id: String(num), ...(chosen.country ? { country: chosen.country } : {}), ...(withDraft && token.current ? { _draft: token.current } : {}) });
+  const src = useMemo(() => frameUrl(frameTpl, true), [frameTpl, h.product, h.collection, h.page, h.article, chosen.locale, chosen.country, num]); // eslint-disable-line react-hooks/exhaustive-deps
+  const changeChosen = (v: PreviewData) => { setChosen(v); writeChosen(num, v); };
   const chooseTemplate = (tpl: string) => { setSel(null); setTemplate(tpl); setFrameTpl(tpl); };
   const onNavigate = (path: string) => {
     const tpl = templateForPath(path);
@@ -296,7 +315,13 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
   const status = role === 'MAIN' ? <Badge tone="success">{t('themes.live')}</Badge> : <Badge tone="info">{role && role !== 'UNPUBLISHED' ? t(`themes.role.${role}` as Key) : t('editor.draft')}</Badge>;
   const pageName = t(`editor.page.${template.split('.')[0]}` as Key) === `editor.page.${template.split('.')[0]}` ? template : t(`editor.page.${template.split('.')[0]}` as Key);
 
+  const schemes = (settings.color_schemes && typeof settings.color_schemes === 'object' && !Array.isArray(settings.color_schemes) ? settings.color_schemes : {}) as SchemeSet;
+  const bag = (defs: SettingDef[] | undefined, vals: Record<string, SettingValue> | undefined) => Object.fromEntries((defs ?? []).filter(isInput).map((d) => [d.id, coerceValue(d, vals?.[d.id])]));
+  const visibility = { section: bag(secSchema?.settings, current?.settings), block: block ? bag(defs, block.settings) : undefined, settings };
+
   return (
+    <SchemesContext.Provider value={schemes}>
+    <SourcesContext.Provider value={template}>
     <div className="fixed inset-0 z-[45] flex flex-col bg-page text-fg">
       <ConfirmDialog open={blocker.state === 'blocked'} title={t('save.leaveTitle')} message={t('save.leaveBody')} confirmLabel={t('save.leave')} cancelLabel={t('save.stay')} closeLabel={t('common.close')} danger
         onConfirm={() => blocker.proceed?.()} onClose={() => blocker.reset?.()} />
@@ -315,11 +340,12 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
           </label>
         </div>
         <div className="flex items-center gap-1">
+          <PreviewDataMenu choices={choices} value={chosen} onChange={changeChosen} className={topBtn} />
           {inspectorBtn}
           {deviceBtn}
           <button type="button" aria-label={t('editor.undo')} title={t('editor.undo')} disabled={!hist.past.length} onClick={() => dispatch({ kind: 'undo' })} className={topBtn}><Undo2 className="size-4" /></button>
           <button type="button" aria-label={t('editor.redo')} title={t('editor.redo')} disabled={!hist.future.length} onClick={() => dispatch({ kind: 'redo' })} className={topBtn}><Redo2 className="size-4" /></button>
-          <ThemeToolbar onShortcuts={() => setShortcuts(true)} themeId={themeId} name={name} role={role} dirty={dirty} previewUrl={withParams(previewPath(frameTpl, h), { preview_theme_id: String(num) })} />
+          <ThemeToolbar onShortcuts={() => setShortcuts(true)} themeId={themeId} name={name} role={role} dirty={dirty} previewUrl={frameUrl(frameTpl, false)} docsUrl={info.docs} version={info.version} />
           <Button size="sm" variant="primary" disabled={!dirty} loading={save.isPending} onClick={doSave}>{t('save.save')}</Button>
         </div>
       </header>
@@ -353,10 +379,10 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
           <SettingsPanel
             title={block && sel.block ? blockTitle(current, sel.block) : sectionTitle(current)} scope={`${sel.file}:${sel.section}:${sel.block ?? ''}`}
             notice={block ? t('editor.blockOf', { name: sectionTitle(current) }) : undefined}
-            defs={defs} values={(block ?? current).settings ?? {}} label={label}
+            defs={defs} values={(block ?? current).settings ?? {}} label={label} visibility={visibility}
             onChange={(key, value) => edit(sel.file, { kind: 'setSetting', id: sel.section, block: sel.block, key, value }, `set:${sel.file}:${sel.section}:${sel.block ?? ''}:${key}`)}
             onBack={block ? () => setSel({ file: sel.file, section: sel.section }) : undefined} onClose={() => setSel(null)}
-            actions={{ duplicate: selActions.duplicate, toggle: selActions.toggle, hidden: selActions.hidden, remove: selActions.remove }} />
+            actions={{ duplicate: selActions.duplicate, toggle: selActions.toggle, hidden: selActions.hidden, remove: selActions.remove, editCode: selActions.editCode }} />
         )}
       </div>
       <SectionPicker open={!!adding} onClose={() => setAdding(null)} items={pickerItems} onAdd={(type, pi) => adding && addSection(adding.file, type, pi, adding.index)} previewUrl={presetUrl} />
@@ -372,5 +398,42 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
         </dl>
       </Modal>
     </div>
+    </SourcesContext.Provider>
+    </SchemesContext.Provider>
   );
+}
+
+interface PreviewRes {
+  products: { nodes: Array<{ handle: string; title: string }> }; collections: { nodes: Array<{ handle: string; title: string }> }; pages: { nodes: Array<{ handle: string; title: string }> };
+  articles: { nodes: Array<{ handle: string; title: string; blog: { handle: string } }> };
+  shopLocales: Array<{ locale: string; name: string; primary: boolean; published: boolean }>;
+  markets: { nodes: Array<{ conditions: { regionsCondition: { regions: { nodes: Array<{ code?: string; name?: string }> } } | null } | null }> };
+}
+
+/** What the preview data panel can offer: the store's own resources, languages and the countries of its markets. */
+export function previewChoices(d: PreviewRes | undefined): PreviewChoices | undefined {
+  if (!d) return undefined;
+  const countries = new Map<string, string>();
+  for (const m of d.markets?.nodes ?? []) for (const r of m.conditions?.regionsCondition?.regions.nodes ?? []) if (r.code) countries.set(r.code, r.name ?? r.code);
+  return {
+    products: d.products.nodes, collections: d.collections.nodes, pages: d.pages.nodes, articles: d.articles.nodes,
+    locales: d.shopLocales ?? [], countries: [...countries].map(([code, name]) => ({ code, name })).sort((a, b) => a.name.localeCompare(b.name)),
+  };
+}
+
+/** The documentation address and version a theme declares in `theme_info` of its settings schema. */
+export function themeInfo(schemaJson: string): { docs?: string; version?: string } {
+  try {
+    const info = (JSON.parse(schemaJson) as Array<Record<string, unknown>>).find((g) => g?.name === 'theme_info');
+    const docs = typeof info?.theme_documentation_url === 'string' && /^https?:\/\//.test(info.theme_documentation_url) ? info.theme_documentation_url : undefined;
+    return { docs, version: typeof info?.theme_version === 'string' ? info.theme_version : undefined };
+  } catch { return {}; }
+}
+
+const chosenKey = (num: string | number) => `shopme.preview-data.${num}`;
+function readChosen(num: string | number): PreviewData {
+  try { return JSON.parse(sessionStorage.getItem(chosenKey(num)) ?? '{}') as PreviewData; } catch { return {}; }
+}
+function writeChosen(num: string | number, v: PreviewData) {
+  try { sessionStorage.setItem(chosenKey(num), JSON.stringify(v)); } catch { /* storage unavailable */ }
 }

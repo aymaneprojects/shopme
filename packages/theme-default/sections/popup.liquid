@@ -1,4 +1,4 @@
-{%- if section.settings.enabled or request.design_mode -%}
+{%- if section.settings.enabled -%}
   <div class="popup {% render 'scheme-class', scheme: section.settings.color_scheme %}" data-popup data-delay="{{ section.settings.delay }}" data-days="{{ section.settings.days }}" data-key="{{ section.id }}-{{ section.settings.heading | handle }}"{% if request.design_mode %} data-preview{% endif %} role="dialog" aria-modal="true" aria-labelledby="Popup-{{ section.id }}" hidden>
     <div class="popup__card">
       <button type="button" class="icon-button popup__close" data-popup-close aria-label="{{ 'popup.close' | t }}">{% render 'icon', name: 'close' %}</button>

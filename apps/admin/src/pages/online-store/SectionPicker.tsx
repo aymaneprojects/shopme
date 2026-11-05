@@ -1,4 +1,4 @@
-import { Spinner, cx } from '@shopme/ui';
+import { Button, Spinner, cx } from '@shopme/ui';
 import { ChevronDown, LayoutPanelTop, LayoutTemplate, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../../i18n';
@@ -26,8 +26,8 @@ function Dialog({ open, onClose, title, children }: { open: boolean; onClose: ()
   );
 }
 
-const FRAME_W = 1280;
-const FRAME_H = 800;
+const FRAME_W = 900;
+const FRAME_H = 620;
 
 /** Scaled-down live render of a section preset (the storefront draws it from a throwaway draft, so it uses the theme's own styles). */
 function PresetPreview({ url, loading, title }: { url: string | null; loading: boolean; title: string }) {
@@ -65,6 +65,12 @@ export function SectionPicker({ open, onClose, items, onAdd, previewUrl }: {
   const seq = useRef(0);
 
   useEffect(() => { if (!open) { setFind(''); setActive(null); setUrl(null); } }, [open]);
+  // The preview pane is never empty: the first preset of the list is shown until the pointer or the keyboard picks another.
+  const same = (a: PickerItem | null, b: PickerItem) => !!a && a.type === b.type && a.presetIndex === b.presetIndex;
+  const firstItem = groups.map((g) => g.items[0]).find(Boolean) ?? null;
+  useEffect(() => {
+    if (open && firstItem && !groups.some((g) => g.items.some((i) => same(active, i)))) setActive(firstItem);
+  }, [open, groups]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!active) return;
     const n = ++seq.current;
@@ -107,10 +113,16 @@ export function SectionPicker({ open, onClose, items, onAdd, previewUrl }: {
             })}
           </div>
         </div>
-        <div className="flex min-w-0 flex-1 flex-col items-center justify-center bg-surface p-3" aria-live="polite">
+        <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 bg-surface p-3" aria-live="polite">
           {active ? (
-            <div className="w-full"><PresetPreview url={url} loading={loading} title={t('editor.presetPreview', { name: active.name })} /></div>
-          ) : <p className="p-6 text-center text-[12px] text-muted">{t('editor.hoverToPreview')}</p>}
+            <>
+              <div className="flex flex-col gap-2">
+                <div><h3 className="text-[13px] font-semibold">{active.name}</h3><p className="text-[11px] text-muted">{catLabel(active.category)}</p></div>
+                <PresetPreview url={url} loading={loading} title={t('editor.presetPreview', { name: active.name })} />
+              </div>
+              <Button variant="primary" size="sm" onClick={() => onAdd(active.type, active.presetIndex)}>{t('editor.addSection')}</Button>
+            </>
+          ) : <p className="m-auto p-6 text-center text-[12px] text-muted">{t('editor.hoverToPreview')}</p>}
         </div>
       </div>
     </Dialog>
