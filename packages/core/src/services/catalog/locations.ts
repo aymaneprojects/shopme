@@ -1,5 +1,5 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
-import { inventoryLevels, locations } from '../../db/schema';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { inventoryLevels, inventoryTransfers, locations } from '../../db/schema';
 import type { Db } from '../../db/client';
 import { emit, errR, okR, txResult, type Result } from './common';
 import { applyChanges, getInventoryItem, getLocation, listInventoryLevels, type AdjustmentGroup, type Location, type QuantityName } from './inventory';
@@ -76,6 +76,10 @@ export async function setLocationActive(db: Db, shopId: number, id: number, acti
     } else {
       const active = await tx.select({ id: locations.id }).from(locations).where(and(eq(locations.shopId, shopId), eq(locations.isActive, true)));
       if (active.length <= 1) return errR(['locationId'], 'You must keep at least one active location.', 'PERMANENTLY_BLOCKED_FROM_DEACTIVATION_ERROR');
+      const [open] = await tx.select({ n: sql<number>`count(*)::int` }).from(inventoryTransfers).where(and(
+        eq(inventoryTransfers.shopId, shopId), inArray(inventoryTransfers.status, ['READY_TO_SHIP', 'IN_PROGRESS']),
+        sql`(${inventoryTransfers.originLocationId} = ${id} or ${inventoryTransfers.destinationLocationId} = ${id})`));
+      if (open && open.n > 0) return errR(['locationId'], 'This location has transfers that are not finished. Receive or cancel them first.', 'HAS_ACTIVE_INVENTORY_ERROR');
       const stocked = (await tx.select().from(inventoryLevels).where(and(eq(inventoryLevels.shopId, shopId), eq(inventoryLevels.locationId, id), eq(inventoryLevels.isActive, true))))
         .some((l) => l.available > 0 || l.onHand > 0 || l.committed > 0 || l.incoming > 0);
       if (stocked) {

@@ -1,6 +1,6 @@
 # Purchase orders
 
-Status: draft for implementation. API version studied: 2026-10. Names are listed for interoperability; behavior text is ours.
+Status: MVP implemented (suppliers, purchase orders, receiving through linked transfers, cost updates, admin list/create/detail/receive, read API plus `shopme*` writes). Open: PDF and email to the supplier, CSV export, landed cost allocation, supplier catalog defaults, reorder suggestions. API version studied: 2026-10. Names are listed for interoperability; behavior text is ours.
 Admin screens were observed on our own development store (section 3.1). Receiving goes through inventory transfers
 ([inventory-transfers.md](inventory-transfers.md)).
 

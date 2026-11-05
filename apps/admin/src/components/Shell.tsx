@@ -1,5 +1,5 @@
 import { Skeleton, cx } from '@shopme/ui';
-import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, PanelLeft } from 'lucide-react';
+import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, PanelLeft, ClipboardList, ArrowLeftRight } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
@@ -24,6 +24,8 @@ export const NAV: NavItem[] = [
     children: [
       { id: 'collections', labelKey: 'nav.collections', to: '/collections', icon: FolderTree },
       { id: 'inventory', labelKey: 'nav.inventory', to: '/inventory', icon: Warehouse },
+      { id: 'purchase-orders', labelKey: 'nav.purchaseOrders', to: '/purchase-orders', icon: ClipboardList },
+      { id: 'transfers', labelKey: 'nav.transfers', to: '/transfers', icon: ArrowLeftRight },
       { id: 'gift-cards', labelKey: 'nav.giftCards', to: '/gift-cards', icon: Gift },
     ],
   },

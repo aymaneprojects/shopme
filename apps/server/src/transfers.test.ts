@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { and, eq } from 'drizzle-orm';
 import {
-  addLocation, addShipmentItems, cancelTransfer, closePurchaseOrder, computeTotals, createLocalStorage, createPurchaseOrder, createShipment, createSupplier, createTransfer, deleteShipment, deleteTransfer,
+  addLocation, setLocationActive, addShipmentItems, cancelTransfer, closePurchaseOrder, computeTotals, createLocalStorage, createPurchaseOrder, createShipment, createSupplier, createTransfer, deleteShipment, deleteTransfer,
   duplicateTransfer, editTransfer, getPrimaryShop, getPurchaseOrder, getShipment, getTransfer, listTransfers, markPurchaseOrderAsOrdered, markShipmentInTransit, markTransferReadyToShip,
   receivePurchaseOrder, receiveShipment, removeShipmentItems, removeTransferItems, schema as s, seedDemo, setTransferItems, updatePurchaseOrder, updateShipmentItemQuantities,
   type Result,
@@ -227,6 +227,17 @@ describe('inventory transfers: lifecycle and quantities', () => {
     ok(await markShipmentInTransit(db(), shopId, sh.id, new Date('2026-11-01')));
     expect(errCode(await deleteShipment(db(), shopId, sh.id))).toBe('INVALID_SHIPMENT_STATUS');
     expect(errCode(await addShipmentItems(db(), shopId, sh.id, [{ inventoryItemId: items[2]!, quantity: 1 }]))).toBe('INVALID_SHIPMENT_STATUS');
+  });
+
+  it('refuses to deactivate a location with unfinished transfers', async () => {
+    const loc = ok(await addLocation(db(), shopId, { name: 'Temp site', address: { countryCode: 'FR' } }));
+    await stock(items[0]!, main, 30);
+    const tr = await newTransfer([{ inventoryItemId: items[0]!, quantity: 2 }], main, loc.id);
+    ok(await markTransferReadyToShip(db(), shopId, tr.id));
+    const blocked = await setLocationActive(db(), shopId, loc.id, false, main);
+    expect(blocked.ok).toBe(false);
+    ok(await cancelTransfer(db(), shopId, tr.id));
+    expect((await setLocationActive(db(), shopId, loc.id, false, main)).ok).toBe(true);
   });
 
   it('lists, searches and sorts transfers', async () => {
