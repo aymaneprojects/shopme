@@ -1,6 +1,6 @@
 import { Banner, Card, Skeleton } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
-import { ExternalLink, Package, ShoppingCart } from 'lucide-react';
+import { BarChart3, ExternalLink, Package, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { gql } from '../api';
@@ -59,7 +59,7 @@ export function HomePage() {
         {kpi(t('home.aov'), fmt.money(d?.averageOrderValue))}
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_20rem]">
-        <Card title={t('home.salesByDay')}>
+        <Card title={t('home.salesByDay')} actions={<Link to="/analytics/SALES_OVER_TIME" className="text-[13px] text-primary underline">{t('analytics.viewReports')}</Link>}>
           {series.length ? <SalesChart data={series} label={t('home.salesByDay')} format={(n) => fmt.money({ amount: String(n), currencyCode: shop.currency })} /> : <p className="py-8 text-center text-[13px] text-muted">{t('home.noSales')}</p>}
         </Card>
         <Card title={t('home.topProducts')}>
@@ -77,6 +77,7 @@ export function HomePage() {
         <div className="flex flex-wrap gap-2">
           <Link to="/products/new" className={link}><Package className="size-4" />{t('products.add')}</Link>
           <Link to="/orders" className={link}><ShoppingCart className="size-4" />{t('home.viewOrders')}</Link>
+          <Link to="/analytics" className={link}><BarChart3 className="size-4" />{t('analytics.viewReports')}</Link>
           <a href="/" target="_blank" rel="noreferrer" className={link}><ExternalLink className="size-4" />{t('store.view')}</a>
         </div>
       </Card>

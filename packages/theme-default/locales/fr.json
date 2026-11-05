@@ -224,5 +224,9 @@
     "Shop by collection": "Acheter par collection",
     "<p>Pair an image with a short story about your products, your craft or your team.</p>": "<p>Associez une image à une courte histoire sur vos produits, votre savoir-faire ou votre équipe.</p>",
     "<p>Tell your story.</p>": "<p>Racontez votre histoire.</p>"
+  },
+  "localization": {
+    "language": "Langue",
+    "update": "Changer de langue"
   }
 }

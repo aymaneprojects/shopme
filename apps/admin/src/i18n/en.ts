@@ -1,4 +1,5 @@
 import { enExt } from './en-ext';
+import { enPlatform } from './en-platform';
 import { enShop } from './en-shop';
 export const en = {
   'common.back': 'Back', 'common.cancel': 'Cancel', 'common.close': 'Close', 'common.delete': 'Delete', 'common.loading': 'Loading…',
@@ -89,6 +90,7 @@ export const en = {
   'rte.source': 'HTML source', 'rte.paragraph': 'Paragraph', 'rte.heading': 'Heading', 'rte.subheading': 'Subheading', 'rte.linkPrompt': 'Link URL',
   ...enShop,
   ...enExt,
+  ...enPlatform,
 } as const;
 
 export type Key = keyof typeof en;

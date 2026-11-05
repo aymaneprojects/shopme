@@ -243,3 +243,6 @@ a.pagination__link:hover { border-color: var(--color-primary); color: var(--colo
 .article__nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--color-border); } .article__nav a { text-decoration: none; color: var(--color-primary); }
 .contact__title { margin-top: 32px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+.language-selector { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
+.language-selector__select { font: inherit; color: inherit; background: transparent; border: 1px solid var(--color-border); border-radius: 6px; padding: 4px 8px; }

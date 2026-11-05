@@ -211,5 +211,9 @@
     "label": "Email address",
     "submit": "Subscribe",
     "success": "Thanks for subscribing!"
+  },
+  "localization": {
+    "language": "Language",
+    "update": "Update language"
   }
 }

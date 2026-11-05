@@ -10,12 +10,14 @@ export type SessionState =
   | { status: 'loading' }
   | { status: 'setup' }
   | { status: 'anonymous' }
-  | { status: 'authenticated'; user: User; shop: Shop };
+  | { status: 'authenticated'; user: User; shop: Shop; /** The shop requires two-step verification and this member has not set it up. */ twoFactorSetupRequired?: boolean };
 
 interface SessionApi {
   state: SessionState;
   /** Store the result of login/setup. */
-  signedIn: (r: { user: User; shop: Shop }) => void;
+  signedIn: (r: { user: User; shop: Shop; twoFactorSetupRequired?: boolean }) => void;
+  /** Re-read /auth/me (after the security settings changed). */
+  refresh: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -42,7 +44,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       try {
         const { needsSetup } = await rest<{ needsSetup: boolean }>('/setup/status');
         if (needsSetup) return !cancelled && setState({ status: 'setup' });
-        const me = await rest<{ user: User; shop: Shop }>('/auth/me');
+        const me = await rest<{ user: User; shop: Shop; twoFactorSetupRequired?: boolean }>('/auth/me');
         if (!cancelled) setState({ status: 'authenticated', ...me });
       } catch {
         if (!cancelled) setState({ status: 'anonymous' });
@@ -53,12 +55,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized); };
   }, [qc]);
 
-  const signedIn = useCallback((r: { user: User; shop: Shop }) => setState({ status: 'authenticated', ...r }), []);
+  const signedIn = useCallback((r: { user: User; shop: Shop; twoFactorSetupRequired?: boolean }) => setState({ status: 'authenticated', ...r }), []);
+  const refresh = useCallback(async () => { const me = await rest<{ user: User; shop: Shop; twoFactorSetupRequired?: boolean }>('/auth/me'); setState({ status: 'authenticated', ...me }); }, []);
   const logout = useCallback(async () => {
     await rest('/auth/logout', { method: 'POST', body: {} }).catch(() => {});
     qc.clear();
     setState({ status: 'anonymous' });
   }, [qc]);
 
-  return <Ctx.Provider value={{ state, signedIn, logout }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ state, signedIn, refresh, logout }}>{children}</Ctx.Provider>;
 }

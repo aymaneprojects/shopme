@@ -18,6 +18,7 @@ const SECTIONS: Array<{ id: string; key: Key; perm?: Permission }> = [
   { id: 'taxes', key: 'settings.taxes' }, { id: 'domains', key: 'settings.domains' }, { id: 'languages', key: 'settings.languages' },
   { id: 'users', key: 'settings.users', perm: 'staff' }, { id: 'notifications', key: 'settings.notifications' }, { id: 'policies', key: 'settings.policies' },
   { id: 'webhooks', key: 'settings.webhooks' }, { id: 'shopify-import', key: 'settings.shopifyImport' },
+  { id: 'security', key: 'settings.security' }, { id: 'backup', key: 'settings.backup', perm: 'settings' },
 ];
 
 export function SettingsLayout() {
@@ -149,24 +150,6 @@ export function DomainsSettings() {
             </ol>
           </Card>
         </>
-      )}
-    </ShopPanel>
-  );
-}
-
-export function LanguagesSettings() {
-  const { t } = useI18n();
-  return (
-    <ShopPanel fields={['locale']}>
-      {(f, set) => (
-        <Card title={t('settings.languages')}>
-          <div className="flex flex-col gap-3">
-            <p className="text-[13px] text-muted">{t('settings.languagesHelp')}</p>
-            <Select className="max-w-xs" label={t('settings.storeLocale')} value={f.locale} onChange={(e) => set({ locale: e.target.value })}>
-              {[...new Set([f.locale, 'en', 'fr'])].map((l) => <option key={l} value={l}>{l === 'en' ? 'English' : l === 'fr' ? 'Français' : l}</option>)}
-            </Select>
-          </div>
-        </Card>
       )}
     </ShopPanel>
   );

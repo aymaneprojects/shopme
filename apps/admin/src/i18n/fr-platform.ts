@@ -1,0 +1,56 @@
+import type { enPlatform } from './en-platform';
+
+export const frPlatform: Record<keyof typeof enPlatform, string> = {
+  'nav.analytics': 'Analyses', 'settings.security': 'Sécurité', 'settings.backup': 'Sauvegarde et transfert',
+
+  'analytics.title': 'Analyses', 'analytics.reports': 'Rapports', 'analytics.viewReports': 'Voir les rapports', 'analytics.exportCsv': 'Exporter en CSV', 'analytics.noData': 'Aucune donnée pour cette période.',
+  'analytics.range': 'Période', 'analytics.custom': 'Personnalisée', 'analytics.from': 'Du', 'analytics.to': 'Au', 'analytics.invalidRange': 'La date de début ne peut pas être après la date de fin.',
+  'analytics.compare': 'Comparer à', 'analytics.compare.NONE': 'Aucune comparaison', 'analytics.compare.PREVIOUS_PERIOD': 'Période précédente', 'analytics.compare.PREVIOUS_YEAR': 'Même période l’an dernier',
+  'analytics.groupBy': 'Regrouper par', 'analytics.group.DAY': 'Jour', 'analytics.group.WEEK': 'Semaine', 'analytics.group.MONTH': 'Mois',
+  'analytics.metric': 'Graphique', 'analytics.current': 'Cette période', 'analytics.previous': 'Comparaison', 'analytics.vs': 'vs {value}', 'analytics.snapshotNote': 'Un instantané du stock actuel ; la période ne s’applique pas.',
+  'analytics.sessionsNote': 'Les sessions sont comptées uniquement sur votre serveur (aucun tiers). Avec la bannière de cookies activée, seuls les visiteurs qui ont accepté sont comptés ; Ne pas suivre est respecté.',
+  'analytics.preset.TODAY': 'Aujourd’hui', 'analytics.preset.LAST_7_DAYS': '7 derniers jours', 'analytics.preset.LAST_30_DAYS': '30 derniers jours', 'analytics.preset.LAST_90_DAYS': '90 derniers jours',
+  'analytics.preset.THIS_MONTH': 'Ce mois-ci', 'analytics.preset.LAST_MONTH': 'Le mois dernier', 'analytics.preset.THIS_YEAR': 'Cette année',
+  'analytics.report.SALES_OVER_TIME': 'Ventes dans le temps', 'analytics.report.ORDERS_OVER_TIME': 'Commandes dans le temps', 'analytics.report.AVERAGE_ORDER_VALUE': 'Panier moyen',
+  'analytics.report.SALES_BY_PRODUCT': 'Ventes par produit', 'analytics.report.SALES_BY_VARIANT': 'Ventes par variante', 'analytics.report.SALES_BY_VENDOR': 'Ventes par fournisseur',
+  'analytics.report.RETURNING_CUSTOMER_RATE': 'Taux de clients récurrents', 'analytics.report.TOP_CUSTOMERS': 'Meilleurs clients', 'analytics.report.DISCOUNT_USAGE': 'Utilisation des réductions',
+  'analytics.report.TAXES': 'Taxes', 'analytics.report.INVENTORY_SNAPSHOT': 'Instantané du stock', 'analytics.report.SESSIONS': 'Sessions et conversion',
+  'analytics.col.period': 'Période', 'analytics.col.orders': 'Commandes', 'analytics.col.gross': 'Ventes brutes', 'analytics.col.discounts': 'Réductions', 'analytics.col.refunds': 'Remboursements',
+  'analytics.col.shipping': 'Livraison', 'analytics.col.taxes': 'Taxes', 'analytics.col.total': 'Total des ventes', 'analytics.col.units': 'Unités vendues', 'analytics.col.aov': 'Panier moyen',
+  'analytics.col.product': 'Produit', 'analytics.col.variant': 'Variante', 'analytics.col.sku': 'UGS', 'analytics.col.vendor': 'Fournisseur', 'analytics.col.customers': 'Clients',
+  'analytics.col.returning': 'Clients récurrents', 'analytics.col.rate': 'Taux de clients récurrents', 'analytics.col.customer': 'Client', 'analytics.col.email': 'E-mail',
+  'analytics.col.spent': 'Total dépensé', 'analytics.col.discount': 'Réduction', 'analytics.col.amount': 'Montant remisé', 'analytics.col.title': 'Taxe', 'analytics.col.tax': 'Taxe collectée',
+  'analytics.col.available': 'Disponible', 'analytics.col.on_hand': 'En stock', 'analytics.col.committed': 'Engagé', 'analytics.col.value': 'Valeur du stock',
+  'analytics.col.sessions': 'Sessions', 'analytics.col.views': 'Pages vues', 'analytics.col.conversion': 'Taux de conversion',
+
+  'login.2fa.title': 'Vérification en deux étapes', 'login.2fa.subtitle': 'Saisissez le code à 6 chiffres de votre application d’authentification.', 'login.2fa.code': 'Code', 'login.2fa.verify': 'Vérifier',
+  'login.2fa.recovery': 'Utiliser un code de récupération', 'login.2fa.authenticator': 'Utiliser l’application d’authentification', 'login.2fa.back': 'Retour à la connexion', 'login.2fa.expired': 'La connexion a expiré. Saisissez de nouveau votre mot de passe.', 'login.2fa.invalid': 'Code invalide.',
+
+  'security.title': 'Sécurité', 'security.2fa': 'Vérification en deux étapes', 'security.2faHelp': 'Protégez votre compte avec un code d’une application d’authentification (Google Authenticator, 1Password, Authy…).',
+  'security.on': 'Activée', 'security.off': 'Désactivée', 'security.setup': 'Configurer', 'security.scan': 'Scannez ce QR code avec votre application d’authentification, ou saisissez la clé à la main.', 'security.key': 'Clé de configuration',
+  'security.code': 'Code de l’application', 'security.enable': 'Activer', 'security.enabledToast': 'Vérification en deux étapes activée', 'security.disabledToast': 'Vérification en deux étapes désactivée',
+  'security.recovery': 'Codes de récupération', 'security.recoveryHelp': 'Conservez ces codes en lieu sûr. Chacun permet une connexion si vous perdez votre appareil. Ils ne seront plus affichés.',
+  'security.recoveryLeft': '{n} codes de récupération restants', 'security.regenerate': 'Nouveaux codes de récupération', 'security.disable': 'Désactiver', 'security.password': 'Confirmez avec votre mot de passe', 'security.done': 'Je les ai enregistrés',
+  'security.require': 'Exiger la vérification en deux étapes', 'security.requireHelp': 'Chaque membre de l’équipe devra la configurer avant d’utiliser l’administration.', 'security.requireToast': 'Règle mise à jour',
+  'security.setupRequired': 'Votre boutique exige la vérification en deux étapes. Configurez-la pour continuer.',
+  'security.sessions': 'Sessions actives', 'security.sessionsHelp': 'Appareils connectés à votre compte. Déconnectez ceux que vous ne reconnaissez pas.', 'security.current': 'Cet appareil', 'security.signedIn': 'Connecté {date}',
+  'security.revoke': 'Déconnecter', 'security.revokeOthers': 'Déconnecter toutes les autres sessions', 'security.revoked': 'Session terminée', 'security.unknownDevice': 'Appareil inconnu',
+
+  'backup.title': 'Sauvegarde et transfert', 'backup.intro': 'Tout votre magasin (produits, commandes, clients, contenu, thèmes, fichiers et réglages) dans un seul fichier .shopme. Pour sauvegarder, ou passer de l’application de bureau à un serveur.',
+  'backup.export': 'Exporter votre boutique', 'backup.exportHelp': 'Les comptes de l’équipe et leurs mots de passe ne sont pas inclus.', 'backup.exportStart': 'Exporter ma boutique', 'backup.preparing': 'Préparation de l’export…', 'backup.download': 'Télécharger',
+  'backup.ready': 'Votre export est prêt ({size}).', 'backup.failed': 'L’opération a échoué : {error}',
+  'backup.import': 'Importer une boutique', 'backup.importHelp': 'Remplace les produits, commandes, clients, contenus, thèmes et réglages de cette boutique par ceux du fichier. Vous restez connecté. Importer le même fichier une seconde fois donne le même résultat.',
+  'backup.importChoose': 'Choisir un fichier .shopme', 'backup.importReplace': 'Je comprends que cela remplace la boutique actuelle', 'backup.importStart': 'Importer', 'backup.importing': 'Import en cours…', 'backup.imported': 'Import terminé.',
+  'backup.importNeedsConfirm': 'Cette boutique n’est pas vide. Confirmez le remplacement pour continuer.',
+  'backup.auto': 'Sauvegardes automatiques', 'backup.autoHelp': 'Enregistrées sur le serveur dans {dir}. Les plus anciennes sont supprimées au-delà du nombre à conserver.', 'backup.autoOn': 'Sauvegarder automatiquement', 'backup.every': 'Toutes les (heures)', 'backup.keep': 'Sauvegardes à conserver',
+  'backup.saved': 'Réglages enregistrés', 'backup.now': 'Sauvegarder maintenant', 'backup.list': 'Sauvegardes enregistrées', 'backup.empty': 'Aucune sauvegarde automatique pour l’instant.', 'backup.delete': 'Supprimer', 'backup.deleted': 'Sauvegarde supprimée',
+
+  'lang.title': 'Langues', 'lang.help': 'Vendez dans plusieurs langues. Chaque langue publiée a sa propre adresse (par exemple /fr) et un sélecteur de langue dans le thème.',
+  'lang.primary': 'Principale', 'lang.published': 'Publiée', 'lang.unpublished': 'Non publiée', 'lang.add': 'Ajouter une langue', 'lang.choose': 'Choisir une langue', 'lang.publish': 'Publier', 'lang.unpublish': 'Dépublier',
+  'lang.remove': 'Retirer', 'lang.removeTitle': 'Retirer {name} ?', 'lang.removeBody': 'Ses traductions sont aussi supprimées.', 'lang.translate': 'Traduire', 'lang.added': 'Langue ajoutée', 'lang.updated': 'Langue mise à jour', 'lang.removed': 'Langue retirée',
+
+  'tr.title': 'Traduire le contenu', 'tr.locale': 'Langue', 'tr.noLocales': 'Ajoutez d’abord une langue.', 'tr.addLanguage': 'Aller aux langues', 'tr.resources': 'Ressources', 'tr.source': 'Original ({locale})', 'tr.translation': 'Traduction ({locale})',
+  'tr.save': 'Enregistrer les traductions', 'tr.saved': 'Traductions enregistrées', 'tr.outdated': 'Obsolète', 'tr.empty': 'Rien à traduire ici pour l’instant.', 'tr.untitled': 'Sans titre', 'tr.select': 'Sélectionnez une ressource à traduire.', 'tr.more': 'Charger plus',
+  'tr.translated': '{done}/{total} traduits', 'tr.clear': 'Supprimer la traduction',
+  'tr.type.PRODUCT': 'Produits', 'tr.type.COLLECTION': 'Collections', 'tr.type.PAGE': 'Pages', 'tr.type.ARTICLE': 'Articles de blog', 'tr.type.MENU': 'Menus', 'tr.type.LINK': 'Éléments de menu', 'tr.type.ONLINE_STORE_THEME': 'Textes du thème',
+};

@@ -9,7 +9,7 @@ import type { Mail, Mailer } from '../mail';
 
 export const NOTIFICATION_KEYS = [
   'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund',
-  'customer_account_welcome', 'customer_account_invite', 'password_reset', 'draft_order_invoice', 'contact_form', 'staff_invite',
+  'customer_account_welcome', 'customer_account_invite', 'password_reset', 'draft_order_invoice', 'contact_form', 'staff_invite', 'staff_login_alert',
 ] as const;
 export type NotificationKey = (typeof NOTIFICATION_KEYS)[number];
 export const isNotificationKey = (k: string): k is NotificationKey => (NOTIFICATION_KEYS as readonly string[]).includes(k);
@@ -102,6 +102,11 @@ const DEFS: Record<NotificationKey, Def> = {
     name: 'Staff invitation', description: 'Sent when you invite someone to your admin.', audience: 'staff', variables: ['shop.name', 'invite.url', 'invite.email', 'invite.role', 'invite.inviter'],
     en: { subject: 'You are invited to {{ shop.name }}', body: `<p style="margin-top:0">{% if invite.inviter %}{{ invite.inviter }} invited you{% else %}You are invited{% endif %} to manage {{ shop.name }} as <strong>{{ invite.role }}</strong>.</p>${button('invite.url', 'Accept the invitation')}<p style="color:#64748b;font-size:13px">The link expires in 7 days.</p>` },
     fr: { subject: 'Invitation à rejoindre {{ shop.name }}', body: `<p style="margin-top:0">{% if invite.inviter %}{{ invite.inviter }} vous invite{% else %}Vous êtes invité{% endif %} à gérer {{ shop.name }} avec le rôle <strong>{{ invite.role }}</strong>.</p>${button('invite.url', "Accepter l'invitation")}<p style="color:#64748b;font-size:13px">Le lien expire dans 7 jours.</p>` },
+  },
+  staff_login_alert: {
+    name: 'Staff sign-in alert', description: 'Sent to a staff member when their account signs in to the admin.', audience: 'staff', variables: ['shop.name', 'login.email', 'login.ip', 'login.device', 'login.time'],
+    en: { subject: 'New sign-in to {{ shop.name }}', body: '<p style="margin-top:0">Your account {{ login.email }} just signed in to the admin of {{ shop.name }}.</p><p style="color:#64748b">Time: {{ login.time }}<br>IP address: {{ login.ip }}<br>Device: {{ login.device }}</p><p>If this was not you, change your password and sign out the other sessions in Settings, Security.</p>' },
+    fr: { subject: 'Nouvelle connexion à {{ shop.name }}', body: '<p style="margin-top:0">Votre compte {{ login.email }} vient de se connecter à l\'administration de {{ shop.name }}.</p><p style="color:#64748b">Heure : {{ login.time }}<br>Adresse IP : {{ login.ip }}<br>Appareil : {{ login.device }}</p><p>Si ce n\'était pas vous, changez votre mot de passe et déconnectez les autres sessions dans Paramètres, Sécurité.</p>' },
   },
 };
 

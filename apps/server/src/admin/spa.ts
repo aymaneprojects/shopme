@@ -13,7 +13,6 @@ const NOT_BUILT = `<!doctype html><meta charset="utf-8"><meta name="viewport" co
 export function registerAdminSpa(app: FastifyInstance) {
   const { paths } = app.ctx;
   app.register(async (scope) => {
-    scope.addHook('onSend', async (_req, reply) => { reply.header('x-frame-options', 'SAMEORIGIN'); });
     const apiNotFound = (url: string) => url.startsWith('/admin/api/');
     if (!adminBuilt(paths)) {
       scope.get('/admin', async (_r, reply) => reply.type('text/html').send(NOT_BUILT));

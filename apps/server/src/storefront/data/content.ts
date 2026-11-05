@@ -1,5 +1,5 @@
 import { and, asc, eq } from 'drizzle-orm';
-import { schema as s, type Db } from '@shopme/core';
+import { schema as s, type Db, type Translator } from '@shopme/core';
 
 export interface PageObject { id: number; handle: string; title: string; content: string; url: string; author: string; template_suffix: string; published_at: string | null; created_at: string; updated_at: string }
 
@@ -25,7 +25,7 @@ export interface LinklistObject { id: number; handle: string; title: string; lev
 const LINK_TYPES: Record<string, string> = { PRODUCT: 'product_link', COLLECTION: 'collection_link', PAGE: 'page_link', BLOG: 'blog_link', FRONTPAGE: 'frontpage_link', CATALOG: 'catalog_link', HTTP: 'http_link' };
 
 /** All navigation menus as Liquid `linklists` (nested links). `currentPath` marks active links. */
-export async function listMenus(db: Db, shopId: number, currentPath: string): Promise<LinklistObject[]> {
+export async function listMenus(db: Db, shopId: number, currentPath: string, tr?: Translator): Promise<LinklistObject[]> {
   const [menus, items] = await Promise.all([
     db.select().from(s.menus).where(eq(s.menus.shopId, shopId)).orderBy(asc(s.menus.id)),
     db.select().from(s.menuItems).where(eq(s.menuItems.shopId, shopId)).orderBy(asc(s.menuItems.position), asc(s.menuItems.id)),
@@ -37,11 +37,11 @@ export async function listMenus(db: Db, shopId: number, currentPath: string): Pr
     const active = current || (url !== '/' && currentPath.startsWith(`${url}/`));
     const handle = url.split('/').filter(Boolean).pop() ?? '';
     return {
-      title: i.title, url, type: LINK_TYPES[i.linkType] ?? 'http_link', handle, object: null, active: active || links.some((l) => l.active), current,
+      title: tr?.text('LINK', i.id, 'title', i.title) ?? i.title, url, type: LINK_TYPES[i.linkType] ?? 'http_link', handle, object: null, active: active || links.some((l) => l.active), current,
       child_active: links.some((l) => l.active), child_current: links.some((l) => l.current), levels: links.length ? 1 + Math.max(...links.map((l) => l.levels)) : 0, links,
     };
   });
-  return menus.map((m) => { const links = build(m.id, null); return { id: m.id, handle: m.handle, title: m.title, links, levels: links.length ? 1 + Math.max(...links.map((l) => l.levels)) : 0 }; });
+  return menus.map((m) => { const links = build(m.id, null); return { id: m.id, handle: m.handle, title: tr?.text('MENU', m.id, 'title', m.title) ?? m.title, links, levels: links.length ? 1 + Math.max(...links.map((l) => l.levels)) : 0 }; });
 }
 
 export interface Policy { title: string; body: string; handle: string; url: string }

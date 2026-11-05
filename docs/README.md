@@ -13,6 +13,7 @@
 - [Admin settings API](dev/admin-settings-api.md): ShopMe-specific settings and analytics operations.
 - [Admin authentication](dev/admin-auth.md): REST contract for setup, login and sessions.
 - [Checkout and payments](dev/payments.md): checkout flow, pricing rules, payment providers.
+- [Platform](dev/platform.md): analytics reports, staff 2FA and sessions, security headers and caching, store export/import and backups, languages and translations.
 
 ## Specifications
 

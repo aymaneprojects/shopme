@@ -16,8 +16,8 @@ const AREA_SCOPES: Record<PermissionArea, string[]> = {
   orders: ['orders', 'fulfillments', 'draft_orders', 'reports'],
   customers: ['customers'],
   discounts: ['discounts'],
-  online_store: ['themes', 'online_store_pages', 'online_store_navigation'],
-  settings: ['shop', 'shipping', 'webhooks'],
+  online_store: ['themes', 'online_store_pages', 'online_store_navigation', 'translations'],
+  settings: ['shop', 'shipping', 'webhooks', 'locales'],
   staff: ['users'],
 };
 

@@ -16,6 +16,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Cart-level discounts: `/discount/:code`, discounts in `/cart.js` and every Ajax cart response (`total_discount`, `cart_level_discount_applications`, line `discounts` and `line_level_discount_allocations`), Liquid `cart.discount_applications`.
 - `/sitemap.xml` is now an index of child sitemaps (products, collections, pages, blogs); `/robots.txt` lists the private areas.
 - Migration `wave6a_accounts` (`customer_tokens`, `blogs.comment_policy`).
+- Analytics: 12 reports (sales over time, by product, variant and vendor, orders, average order value, returning customer rate, top customers, discount usage, taxes, inventory snapshot, sessions and conversion) with a date range and comparison picker, SVG charts and CSV export; `shopmeReport` in the Admin API; first-party visit tracking that respects the cookie banner and Do Not Track.
+- Staff two-step verification (TOTP, QR code, recovery codes), per-shop enforcement, sign-in challenge step, active sessions list with revoke, and a sign-in alert email.
+- Security headers on the storefront and admin (frame protection, nosniff, referrer policy, strict admin CSP, report-only storefront CSP, optional HSTS via `HSTS=true`) and ETag / 304 for storefront HTML and assets.
+- Store export and import (`.shopme` zip with every table, uploaded files and themes), Settings, Backup and transfer, scheduled automatic backups with retention, and the desktop app's "Export my store..." and "Import a store..." menu items.
+- Languages and translations: `shopLocales`, `shopLocaleEnable/Update/Disable`, `translatableResources`, `translationsRegister/Remove`; storefront locale prefixes (`/fr`), `POST /localization`, `localization` Liquid object, hreflang, an Aurora language selector, Settings, Languages and a side-by-side translation editor.
+- Migration `wave7c_platform` (`visits`, `staff_two_factor`, `shop_locales`, `translations`).
 
 ## [0.1.0] - 2026-11-04
 

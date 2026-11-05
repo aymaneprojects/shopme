@@ -24,6 +24,8 @@ const schema = z.object({
   TRUSTED_ORIGINS: opt(z.string()),
   /** Set true behind a reverse proxy (Caddy, nginx) so X-Forwarded-* headers are trusted. */
   TRUST_PROXY: z.preprocess(emptyToUndef, z.enum(['true', 'false']).default('false')),
+  /** Send Strict-Transport-Security (only when APP_URL is https). */
+  HSTS: z.preprocess(emptyToUndef, z.enum(['true', 'false']).default('false')),
   LOG_LEVEL: z.preprocess(emptyToUndef, z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info')),
 });
 
@@ -42,6 +44,7 @@ export interface AppConfig {
   stripe: { secretKey?: string; publishableKey?: string; webhookSecret?: string };
   trustedOrigins: string[];
   trustProxy: boolean;
+  hsts: boolean;
   logLevel: string;
 }
 
@@ -81,6 +84,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     stripe: { secretKey: e.STRIPE_SECRET_KEY, publishableKey: e.STRIPE_PUBLISHABLE_KEY, webhookSecret: e.STRIPE_WEBHOOK_SECRET },
     trustedOrigins: (e.TRUSTED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
     trustProxy: e.TRUST_PROXY === 'true',
+    hsts: e.HSTS === 'true',
     logLevel: e.LOG_LEVEL,
   };
 }

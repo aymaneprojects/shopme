@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { resolveApiToken, resolveSession, scopesFor } from '@shopme/core';
+import { getSecuritySettings, isTwoFactorEnabled, resolveApiToken, resolveSession, scopesFor } from '@shopme/core';
 import type { AuthInfo } from '../context';
 
 export const SESSION_COOKIE = 'shopme_session';
@@ -21,10 +21,27 @@ export async function authenticate(req: FastifyRequest): Promise<AuthInfo | null
     const un = req.unsignCookie(raw);
     if (un.valid && un.value) {
       const user = await resolveSession(db, un.value);
-      if (user) return (req.auth = { kind: 'session', shopId: user.shopId, user, scopes: scopesFor(user) });
+      if (user) {
+        const needs2fa = await enrolmentRequired(req, user.shopId, user.id);
+        return (req.auth = { kind: 'session', shopId: user.shopId, user, scopes: needs2fa ? [] : scopesFor(user), needs2fa });
+      }
     }
   }
   return null;
+}
+
+const policyCache = new Map<number, { at: number; required: boolean }>();
+/** Drop the cached "shop requires 2FA" flag (after the policy changes). */
+export const invalidateSecurityPolicy = () => policyCache.clear();
+
+async function enrolmentRequired(req: FastifyRequest, shopId: number, userId: number): Promise<boolean> {
+  const { db } = req.server.ctx;
+  let hit = policyCache.get(shopId);
+  if (!hit || Date.now() - hit.at > 10_000) {
+    hit = { at: Date.now(), required: (await getSecuritySettings(db, shopId)).require2fa };
+    policyCache.set(shopId, hit);
+  }
+  return hit.required && !(await isTwoFactorEnabled(db, userId));
 }
 
 export function sessionToken(req: FastifyRequest): string | null {

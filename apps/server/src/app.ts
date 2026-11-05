@@ -3,6 +3,9 @@ import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { createInProcessQueue, createLocalStorage, createMailer, type AppConfig, type DbHandle } from '@shopme/core';
 import { registerAuthRoutes } from './admin/auth-routes';
+import { registerBackupRoutes } from './admin/backup-routes';
+import { registerReportRoutes } from './admin/report-routes';
+import { registerTwoFactorRoutes } from './admin/two-factor-routes';
 import { registerDataRoutes } from './admin/data-routes';
 import { registerFileUploadRoute } from './admin/files-routes';
 import { registerAdminGraphQL } from './admin/graphql/route';
@@ -10,11 +13,15 @@ import { registerAdminSpa, registerFilesStatic } from './admin/spa';
 import { registerCheckout } from './checkout';
 import type { AppContext } from './context';
 import { registerJobs } from './jobs';
+import { LocaleCache } from './locale-cache';
 import { registerOpsRoutes } from './ops-routes';
 import { resolvePaths, type ServerPaths } from './paths';
 import { installOriginCheck } from './plugins/auth';
+import { registerSecurity } from './security';
 import { registerStorefront } from './storefront';
 import { registerWebhooks } from './webhooks';
+
+export const APP_VERSION = '0.1.0';
 
 export interface BuildAppOptions {
   config: AppConfig;
@@ -39,19 +46,21 @@ function loggerOptions(config: AppConfig, enabled: boolean) {
 /** Build the Fastify app without listening (used by startServer and by tests via `app.inject`). */
 export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> {
   const { config, dbHandle } = opts;
-  const app = Fastify({ logger: loggerOptions(config, opts.logger ?? true), trustProxy: config.trustProxy, bodyLimit: 2 * 1024 * 1024 });
+  const locales = new LocaleCache();
+  const app = Fastify({ logger: loggerOptions(config, opts.logger ?? true), trustProxy: config.trustProxy, bodyLimit: 2 * 1024 * 1024, rewriteUrl: (req) => locales.rewrite(req) });
 
   const ctx: AppContext = {
     config, db: dbHandle.db, dbHandle, paths: resolvePaths(opts.paths), log: app.log,
     queue: createInProcessQueue(app.log),
     mailer: createMailer({ smtpUrl: config.smtpUrl, from: config.mailFrom, logger: app.log }),
     storage: createLocalStorage(config.storageDir),
+    locales, appVersion: APP_VERSION,
   };
   app.decorate('ctx', ctx);
   app.decorateRequest('auth', null);
 
   await app.register(cookie, { secret: config.sessionSecret });
-  app.addHook('onSend', async (_req, reply) => { reply.header('x-content-type-options', 'nosniff'); reply.header('referrer-policy', 'strict-origin-when-cross-origin'); });
+  registerSecurity(app);
   installOriginCheck(app);
 
   app.get('/healthz', async (_req, reply) => {
@@ -64,6 +73,9 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   });
 
   registerAuthRoutes(app);
+  registerTwoFactorRoutes(app);
+  registerReportRoutes(app);
+  registerBackupRoutes(app);
   registerFileUploadRoute(app);
   registerDataRoutes(app);
   registerAdminGraphQL(app);

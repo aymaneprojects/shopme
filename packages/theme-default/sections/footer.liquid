@@ -39,6 +39,7 @@
     {%- assign year = 'now' | date: '%Y' -%}
     <p>{{ 'general.copyright' | t: year: year, shop: shop.name }}</p>
     <p>{{ 'general.powered_by' | t }}</p>
+    {%- render 'language-selector' -%}
   </div>
 </footer>
 

@@ -1,6 +1,7 @@
 // The full merchant + shopper journey, driven in a real Chromium. See e2e/run.mjs.
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { createHmac } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -12,6 +13,19 @@ const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT_MODUL
 const OWNER = { email: 'camille@maison-lumiere.fr', password: 'correct horse battery', first: 'Camille', last: 'Martin' };
 const SHOT_DIR = 'docs/assets/screenshots';
 const T = 15_000;
+
+/** RFC 6238 code of a base32 secret (SHA-1, 6 digits, 30 s). */
+function totp(secret) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = '';
+  for (const ch of secret) bits += alphabet.indexOf(ch).toString(2).padStart(5, '0');
+  const key = Buffer.from(bits.match(/.{8}/g).map((b) => parseInt(b, 2)));
+  const counter = Buffer.alloc(8);
+  counter.writeBigUInt64BE(BigInt(Math.floor(Date.now() / 30000)));
+  const h = createHmac('sha1', key).update(counter).digest();
+  const o = h[h.length - 1] & 15;
+  return String((h.readUInt32BE(o) & 0x7fffffff) % 1_000_000).padStart(6, '0');
+}
 
 /** Small valid PNG (a warm gradient) so the product has a real image without binary fixtures. */
 function makePng(w = 600, h = 600) {
@@ -255,6 +269,7 @@ export async function runScenario({ baseUrl, root }) {
       await shot('05-theme-editor');
       await page.getByRole('button', { name: 'Save', exact: true }).click();
       await page.reload();
+      await page.getByRole('tab', { name: 'Theme settings' }).click();
       await vis(page.getByLabel('Primary color (hex)'));
       assert.equal((await page.getByLabel('Primary color (hex)').inputValue()).toLowerCase(), PRIMARY);
     });
@@ -621,6 +636,78 @@ export async function runScenario({ baseUrl, root }) {
       assert.match(await text(shop.locator('#shipping-methods')), /Livraison offerte\s*Gratuit/i);
       await shop.locator('#shipping-methods label', { hasText: 'Livraison offerte' }).locator('input').check();
       await vis(shop.locator('#summary-lines').getByText(/Total\s*64,00 €/));
+    });
+
+    // ---------------------------------------------------------------- 11. platform: analytics, languages, backup, two-step verification
+    const api = admin.request;
+    const gqlApi = async (query) => (await (await api.post(`${baseUrl}/admin/api/2026-10/graphql.json`, { data: { query } })).json());
+    await step('11a analytics report page and CSV export', async () => {
+      await admin.goto(`${baseUrl}/admin/analytics/SALES_BY_PRODUCT?preset=THIS_YEAR`);
+      await vis(admin.locator('table'));
+      assert.match(await text(admin.locator('table')), /Bougie parfumée/);
+      await shot('11-analytics', admin);
+      const csv = await api.get(`${baseUrl}/admin/api/reports/SALES_BY_PRODUCT.csv?from=2020-01-01&to=2099-12-31`);
+      assert.equal(csv.status(), 200);
+      assert.match(await csv.text(), /Bougie parfumée/);
+    });
+
+    await step('11b languages: publish French, translate a product, storefront /fr', async () => {
+      assert.deepEqual((await gqlApi('mutation { shopLocaleEnable(locale: "es") { userErrors { message } } }')).data.shopLocaleEnable.userErrors, []);
+      assert.deepEqual((await gqlApi('mutation { shopLocaleUpdate(locale: "es", shopLocale: { published: true }) { userErrors { message } } }')).data.shopLocaleUpdate.userErrors, []);
+      const first = (await gqlApi('{ translatableResources(resourceType: PRODUCT, first: 1) { nodes { resourceId translatableContent { key digest } } } }')).data.translatableResources.nodes[0];
+      const digest = first.translatableContent.find((c) => c.key === 'title').digest;
+      const reg = await gqlApi(`mutation { translationsRegister(resourceId: "${first.resourceId}", translations: [{ locale: "es", key: "title", value: "Vela perfumada", translatableContentDigest: "${digest}" }]) { userErrors { message } } }`);
+      assert.deepEqual(reg.data.translationsRegister.userErrors, []);
+      const page = await shopperCtx.request.get(`${baseUrl}/es/products/bougie-parfumee`);
+      assert.equal(page.status(), 200);
+      const html = await page.text();
+      assert.match(html, /Vela perfumada/);
+      assert.match(html, /hreflang="es"/);
+      assert.match(await (await shopperCtx.request.get(`${baseUrl}/products/bougie-parfumee`)).text(), /Bougie parfumée/);
+      await admin.goto(`${baseUrl}/admin/settings/languages/translate?locale=es`);
+      await vis(admin.locator('main textarea, main button').first());
+      assert.deepEqual((await gqlApi('mutation { shopLocaleDisable(locale: "es") { userErrors { message } } }')).data.shopLocaleDisable.userErrors, []);
+    });
+
+    await step('11c backup: export the store to a .shopme file', async () => {
+      const start = await api.post(`${baseUrl}/admin/api/store/export`, { data: {} });
+      assert.equal(start.status(), 202);
+      const { job } = await start.json();
+      let done;
+      for (let i = 0; i < 100 && !done; i++) {
+        const j = (await (await api.get(`${baseUrl}/admin/api/store/jobs/${job.id}`)).json()).job;
+        if (j.done) done = j; else await new Promise((r) => setTimeout(r, 200));
+      }
+      assert.equal(done?.status, 'COMPLETED', done?.error);
+      const dl = await api.get(`${baseUrl}/admin/api/store/export/${job.id}/download`);
+      assert.equal(dl.status(), 200);
+      const body = await dl.body();
+      assert.equal(body.subarray(0, 2).toString(), 'PK');
+      await admin.goto(`${baseUrl}/admin/settings/backup`);
+      await vis(admin.locator('main button').first());
+    });
+
+    await step('11d two-step verification: enrol, then sign in with a code', async () => {
+      const setup = await (await api.post(`${baseUrl}/admin/api/auth/2fa/setup`, { data: {} })).json();
+      assert.match(setup.qrSvg, /<svg/);
+      const enabled = await api.post(`${baseUrl}/admin/api/auth/2fa/enable`, { data: { code: totp(setup.secret) } });
+      assert.equal(enabled.status(), 200);
+      assert.equal((await enabled.json()).recoveryCodes.length, 10);
+      await api.post(`${baseUrl}/admin/api/auth/logout`, { data: {} });
+      await admin.goto(`${baseUrl}/admin`);
+      await vis(admin.locator('input[type="password"]'));
+      await admin.locator('input[type="email"]').fill(OWNER.email);
+      await admin.locator('input[type="password"]').fill(OWNER.password);
+      await admin.locator('button[type="submit"]').click();
+      const codeInput = admin.locator('input[autocomplete="one-time-code"]');
+      await vis(codeInput);
+      await shot('11-two-factor-login', admin);
+      await codeInput.fill(totp(setup.secret));
+      await admin.locator('button[type="submit"]').click();
+      await vis(admin.locator('nav').first());
+      assert.equal((await api.get(`${baseUrl}/admin/api/auth/me`)).status(), 200);
+      const off = await api.post(`${baseUrl}/admin/api/auth/2fa/disable`, { data: { password: OWNER.password } });
+      assert.equal(off.status(), 200);
     });
 
     await shopperCtx.close();

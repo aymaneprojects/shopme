@@ -102,6 +102,41 @@ function openAdmin(): void {
   void win.loadURL(`${server.url}/admin`);
 }
 
+const archiveFilter = [{ name: 'ShopMe store', extensions: ['shopme'] }];
+const parentWindow = () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined);
+
+/** "Export my store…": save dialog, then write the whole store (data, uploads, themes) to one .shopme file. */
+async function exportStoreFlow(): Promise<void> {
+  if (!server) return;
+  const win = parentWindow();
+  const opts = { title: 'Export my store', defaultPath: path.join(app.getPath('documents'), `shopme-store-${new Date().toISOString().slice(0, 10)}.shopme`), filters: archiveFilter };
+  const { canceled, filePath } = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts);
+  if (canceled || !filePath) return;
+  try {
+    await server.exportStore(filePath);
+    const r = await dialog.showMessageBox({ type: 'info', message: 'Your store was exported.', detail: `${filePath}\n\nTo move it to a server: install ShopMe there, create the owner account, then Settings > Backup and transfer > Import a store.`, buttons: ['OK', 'Show in folder'] });
+    if (r.response === 1) shell.showItemInFolder(filePath);
+  } catch (err) {
+    dialog.showErrorBox('Export failed', err instanceof Error ? err.message : String(err));
+  }
+}
+
+/** "Import a store…": pick a .shopme file, confirm the replacement, import, reload the admin. */
+async function importStoreFlow(): Promise<void> {
+  if (!server) return;
+  const win = parentWindow();
+  const opts = { title: 'Import a store', properties: ['openFile' as const], filters: archiveFilter };
+  const { canceled, filePaths } = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts);
+  const file = filePaths[0];
+  if (canceled || !file) return;
+  const ok = await dialog.showMessageBox({ type: 'warning', message: 'Replace this store with the imported one?', detail: 'Products, orders, customers, content, themes and settings are replaced. Your sign-in stays.', buttons: ['Cancel', 'Replace and import'], defaultId: 0, cancelId: 0 });
+  if (ok.response !== 1) return;
+  const error = await server.importStore(file).catch((e: unknown) => (e instanceof Error ? e.message : String(e)));
+  if (error) { dialog.showErrorBox('Import failed', error); return; }
+  await dialog.showMessageBox({ type: 'info', message: 'Import finished.' });
+  win?.webContents.reloadIgnoringCache();
+}
+
 function buildMenu(): void {
   const template: MenuItemConstructorOptions[] = [
     {
@@ -111,7 +146,8 @@ function buildMenu(): void {
         { label: 'Open storefront', accelerator: 'CmdOrCtrl+Shift+S', click: () => server && openExternal(server.url) },
         { label: 'Open data folder', click: () => void shell.openPath(path.join(app.getPath('userData'), 'data')) },
         { type: 'separator' },
-        { label: 'Export my store… (coming soon)', enabled: false },
+        { label: 'Export my store…', click: () => void exportStoreFlow() },
+        { label: 'Import a store…', click: () => void importStoreFlow() },
         { type: 'separator' },
         { label: 'Quit', accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Alt+F4', click: () => app.quit() },
       ],

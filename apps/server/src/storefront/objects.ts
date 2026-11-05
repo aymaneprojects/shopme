@@ -22,22 +22,38 @@ export function shopObject(shop: Shop, origin: string, counts: { products: numbe
   };
 }
 
-export const routesObject = () => ({
-  root_url: '/', account_url: '/account', account_login_url: '/account/login', account_logout_url: '/account/logout', account_register_url: '/account/register', account_addresses_url: '/account/addresses',
-  collections_url: '/collections', all_products_collection_url: '/collections/all', search_url: '/search', predictive_search_url: '/search/suggest', cart_url: '/cart', cart_add_url: '/cart/add',
-  cart_change_url: '/cart/change', cart_clear_url: '/cart/clear', cart_update_url: '/cart/update', product_recommendations_url: '/recommendations/products', storefront_login_url: '/account/login',
-});
+/** Theme routes; with a locale prefix (`/fr`) every URL carries it, as in Shopify's localized storefronts. */
+export const routesObject = (prefix = '') => {
+  const r = {
+    root_url: '/', account_url: '/account', account_login_url: '/account/login', account_logout_url: '/account/logout', account_register_url: '/account/register', account_addresses_url: '/account/addresses',
+    collections_url: '/collections', all_products_collection_url: '/collections/all', search_url: '/search', predictive_search_url: '/search/suggest', cart_url: '/cart', cart_add_url: '/cart/add',
+    cart_change_url: '/cart/change', cart_clear_url: '/cart/clear', cart_update_url: '/cart/update', product_recommendations_url: '/recommendations/products', storefront_login_url: '/account/login',
+    localization_url: '/localization',
+  };
+  return prefix ? Object.fromEntries(Object.entries(r).map(([k, v]) => [k, k === 'root_url' ? prefix : k === 'localization_url' ? v : prefix + v])) : r;
+};
 
-export function localizationObject(shop: Shop) {
+export interface LanguageView { locale: string; name: string; primary: boolean; prefix: string }
+
+const endonym = (code: string): string => {
+  try { const n = new Intl.DisplayNames([code], { type: 'language' }).of(code); if (n) return n.charAt(0).toLocaleUpperCase(code) + n.slice(1); } catch { /* fall through */ }
+  return code;
+};
+
+/** Liquid `localization`: the published languages (`url` is the same page in that language, for hreflang) and the current one. */
+export function localizationObject(shop: Shop, current: string, languages: LanguageView[], origin: string, path: string) {
   const country = { iso_code: shop.country, name: shop.country, currency: currencyObject(shop.currency, shop.locale), market: { handle: 'default', id: 1 }, unit_system: 'metric' };
-  const language = { iso_code: shop.locale, name: shop.locale, endonym_name: shop.locale, primary: true, root_url: '/' };
-  return { country, language, available_countries: [country], available_languages: [language], market: { handle: 'default', id: 1 } };
+  const lang = (l: LanguageView) => ({ iso_code: l.locale, name: l.name, endonym_name: endonym(l.locale), primary: l.primary, root_url: l.prefix || '/', url: origin + l.prefix + (path === '/' && l.prefix ? '' : path) });
+  const all = languages.length ? languages.map(lang) : [lang({ locale: shop.locale, name: shop.locale, primary: true, prefix: '' })];
+  const language = all.find((l) => l.iso_code === current) ?? all[0]!;
+  return { country, language, available_countries: [country], available_languages: all, market: { handle: 'default', id: 1 } };
 }
 
-export function requestObject(shop: Shop, origin: string, path: string, pageType: string) {
+export function requestObject(shop: Shop, origin: string, path: string, pageType: string, locale = shop.locale, prefix = '') {
   const host = new URL(origin).host;
   return {
-    host, origin, path, page_type: pageType, design_mode: false, visual_preview_mode: false, locale: { iso_code: shop.locale, name: shop.locale, endonym_name: shop.locale, primary: true, root_url: '/', direction: 'ltr' },
+    host, origin, path, page_type: pageType, design_mode: false, visual_preview_mode: false,
+    locale: { iso_code: locale, name: locale, endonym_name: endonym(locale), primary: locale === shop.locale, root_url: prefix || '/', direction: 'ltr' },
   };
 }
 

@@ -1,0 +1,13 @@
+{%- comment -%} Language switcher: posts to /localization (Shopify's localization form). Only shown with 2+ published languages. {%- endcomment -%}
+{%- if localization.available_languages.size > 1 -%}
+  {%- form 'localization', id: 'language-form', class: 'language-selector' -%}
+    <input type="hidden" name="return_to" value="{{ request.path | escape }}">
+    <label class="visually-hidden" for="language-select">{{ 'localization.language' | t }}</label>
+    <select id="language-select" name="language_code" class="language-selector__select" onchange="this.form.submit()">
+      {%- for language in localization.available_languages -%}
+        <option value="{{ language.iso_code }}" lang="{{ language.iso_code }}"{% if language.iso_code == localization.language.iso_code %} selected{% endif %}>{{ language.endonym_name | escape }}</option>
+      {%- endfor -%}
+    </select>
+    <noscript><button class="button button--secondary" type="submit">{{ 'localization.update' | t }}</button></noscript>
+  {%- endform -%}
+{%- endif -%}

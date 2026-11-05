@@ -5,3 +5,4 @@ export * from './content';
 export * from './ops';
 export * from './accounts';
 export * from './migrate';
+export * from './platform';

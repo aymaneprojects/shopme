@@ -30,3 +30,8 @@ export * from './jobs';
 export * from './import-export';
 export * from './theme-zip';
 export * from './net-guard';
+export * from './two-factor';
+export * from './locales';
+export * from './translations';
+export * from './store-export';
+export * from './backups';

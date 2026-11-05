@@ -31,3 +31,4 @@ import './staff';
 import './notifications';
 import './policies';
 import './webhooks';
+import './locales';
