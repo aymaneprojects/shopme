@@ -43,6 +43,14 @@ function passwordOf(shop: Shop): { enabled: boolean; password: string; message: 
 
 const unlockToken = (ctx: AppContext, password: string) => sha256(`${ctx.config.sessionSecret}:storefront:${password}`);
 
+/** Whether a request is a theme editor preview of this shop: it carries `preview_theme_id` and comes from a signed-in staff member. */
+export async function isEditorPreview(req: FastifyRequest, shop: Pick<Shop, 'id'>): Promise<boolean> {
+  const id = Number(first((req.query as Query).preview_theme_id));
+  if (!Number.isSafeInteger(id) || id <= 0) return false;
+  const auth = await authenticate(req);
+  return !!auth && auth.shopId === shop.id;
+}
+
 /**
  * Theme editor preview: a signed-in staff request carrying `preview_theme_id` (and optionally `_draft`, the token of the unsaved
  * changes) renders that theme in design mode. Anyone else, and every other request, gets the live theme without editor markup.

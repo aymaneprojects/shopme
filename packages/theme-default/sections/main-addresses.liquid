@@ -1,8 +1,10 @@
-<div class="page-width section-pad customer">
+{%- assign s = section.settings -%}
+<div class="page-width section-pad customer {% render 'scheme-class', scheme: s.color_scheme %}">
   <div class="section-head">
-    <h1 class="page-title">{{ 'customer.addresses.title' | t }}</h1>
+    <h1 class="page-title">{%- if s.heading != blank -%}{{ s.heading | escape }}{%- else -%}{{ 'customer.addresses.title' | t }}{%- endif -%}</h1>
     <a class="link-arrow" href="{{ routes.account_url }}">{{ 'customer.addresses.back' | t }}</a>
   </div>
+  {%- if s.text != blank -%}<div class="rte customer__intro">{{ s.text }}</div>{%- endif -%}
 
   <details class="customer__details"{% if form.errors %} open{% endif %}>
     <summary class="button button--outline">{{ 'customer.addresses.add' | t }}</summary>
@@ -18,7 +20,7 @@
   {%- if customer.addresses_count == 0 -%}
     <p class="empty">{{ 'customer.addresses.none' | t }}</p>
   {%- else -%}
-    <ul class="grid grid--3 customer__addresses" role="list">
+    <ul class="grid grid--{{ s.columns | default: 3 }} customer__addresses" role="list">
       {%- for address in customer.addresses -%}
         <li class="customer__address">
           {%- if address.id == customer.default_address.id -%}<p class="badge">{{ 'customer.addresses.default' | t }}</p>{%- endif -%}
@@ -43,5 +45,17 @@
 </div>
 
 {% schema %}
-{ "name": "Addresses", "tag": "section", "settings": [] }
+{
+  "name": "t:sections.main_addresses.name",
+  "tag": "section",
+  "settings": [
+    { "type": "header", "content": "t:sections.customer.headers.content" },
+    { "type": "text", "id": "heading", "label": "t:sections.customer.settings.heading", "info": "t:sections.customer.info.heading" },
+    { "type": "richtext", "id": "text", "label": "t:sections.customer.settings.text" },
+    { "type": "header", "content": "t:sections.customer.headers.layout" },
+    { "type": "select", "id": "columns", "label": "t:sections.customer.settings.columns", "variant": "segmented", "default": "3", "options": [
+      { "value": "1", "label": "1" }, { "value": "2", "label": "2" }, { "value": "3", "label": "3" } ] },
+    { "type": "color_scheme", "id": "color_scheme", "label": "t:shared.color_scheme", "default": "" }
+  ]
+}
 {% endschema %}

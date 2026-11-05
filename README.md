@@ -146,6 +146,10 @@ third-party code, theme files, schema dumps or documentation text into issues or
 
 - The core is licensed under **AGPL-3.0** ([LICENSE](LICENSE)).
 - `packages/theme-default`, `packages/sdk` and `packages/ui` are licensed under **MIT** (each has its own `LICENSE`).
+- Bundled data: the country shapes of the analytics live view map come from the `world-atlas` package (ISC licence, copyright Michael Bostock),
+  derived from Natural Earth (public domain), and are read with `topojson-client` (ISC licence). The time zone to country table
+  (`packages/core/src/services/analytics/tz-countries.ts`, built by `scripts/gen-tz-countries.mjs`) is derived from the IANA time zone database
+  (public domain).
 
 ## Disclaimer
 

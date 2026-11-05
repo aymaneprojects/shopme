@@ -151,6 +151,10 @@ de code tiers, de fichiers de thème, de vidages de schéma ni de texte de docum
 
 - Le cœur est sous licence **AGPL-3.0** ([LICENSE](LICENSE)).
 - `packages/theme-default`, `packages/sdk` et `packages/ui` sont sous licence **MIT** (chacun a son propre `LICENSE`).
+- Données incluses : les contours des pays de la carte de la vue en direct viennent du paquet `world-atlas` (licence ISC, copyright Michael Bostock),
+  dérivé de Natural Earth (domaine public), et sont lus avec `topojson-client` (licence ISC). La table fuseau horaire vers pays
+  (`packages/core/src/services/analytics/tz-countries.ts`, produite par `scripts/gen-tz-countries.mjs`) est dérivée de la base de fuseaux horaires
+  IANA (domaine public).
 
 ## Avertissement
 

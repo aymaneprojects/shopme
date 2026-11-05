@@ -1,17 +1,19 @@
+{%- assign s = section.settings -%}
 {%- assign date_format = 'general.date_format' | t -%}
-<div class="page-width section-pad customer">
+<div class="page-width section-pad customer {% render 'scheme-class', scheme: s.color_scheme %}">
   <div class="section-head">
-    <h1 class="page-title">{{ 'customer.account_page.title' | t }}</h1>
+    <h1 class="page-title">{%- if s.heading != blank -%}{{ s.heading | escape }}{%- else -%}{{ 'customer.account_page.title' | t }}{%- endif -%}</h1>
     <a class="link-arrow" href="{{ routes.account_logout_url }}">{{ 'customer.logout' | t }}</a>
   </div>
+  {%- if s.text != blank -%}<div class="rte customer__intro">{{ s.text }}</div>{%- endif -%}
 
-  <div class="customer__layout">
+  <div class="customer__layout{% if s.details_position == 'below' %} customer__layout--stacked{% endif %}">
     <section aria-labelledby="orders-title">
       <h2 id="orders-title">{{ 'customer.account_page.order_history' | t }}</h2>
       {%- if customer.orders_count == 0 -%}
         <p class="empty">{{ 'customer.account_page.no_orders' | t }}</p>
       {%- else -%}
-        {%- paginate customer.orders by 10 -%}
+        {%- paginate customer.orders by s.orders_per_page -%}
           <table class="customer__table">
             <thead>
               <tr>
@@ -40,7 +42,7 @@
     </section>
 
     <aside aria-labelledby="details-title">
-      {%- if customer.store_credit_account -%}
+      {%- if s.show_store_credit and customer.store_credit_account -%}
         <div class="customer__credit">
           <h2>{{ 'customer.account_page.store_credit' | t }}</h2>
           <p><strong>{{ customer.store_credit_account.balance | money }}</strong></p>
@@ -48,7 +50,7 @@
       {%- endif -%}
       <h2 id="details-title">{{ 'customer.account_page.details' | t }}</h2>
       <p><strong>{{ customer.name | escape }}</strong><br>{{ customer.email | escape }}</p>
-      {%- if customer.default_address -%}
+      {%- if s.show_default_address and customer.default_address -%}
         <h3>{{ 'customer.account_page.default_address' | t }}</h3>
         <p>{{ customer.default_address.name | escape }}<br>
           {{ customer.default_address.street | escape }}<br>
@@ -61,5 +63,20 @@
 </div>
 
 {% schema %}
-{ "name": "Account", "tag": "section", "settings": [] }
+{
+  "name": "t:sections.main_account.name",
+  "tag": "section",
+  "settings": [
+    { "type": "header", "content": "t:sections.customer.headers.content" },
+    { "type": "text", "id": "heading", "label": "t:sections.customer.settings.heading", "info": "t:sections.customer.info.heading" },
+    { "type": "richtext", "id": "text", "label": "t:sections.customer.settings.text" },
+    { "type": "checkbox", "id": "show_store_credit", "label": "t:sections.customer.settings.show_store_credit", "info": "t:sections.customer.info.show_store_credit", "default": true },
+    { "type": "checkbox", "id": "show_default_address", "label": "t:sections.customer.settings.show_default_address", "default": true },
+    { "type": "header", "content": "t:sections.customer.headers.layout" },
+    { "type": "range", "id": "orders_per_page", "label": "t:sections.customer.settings.orders_per_page", "min": 5, "max": 50, "step": 5, "default": 10 },
+    { "type": "select", "id": "details_position", "label": "t:sections.customer.settings.details_position", "default": "side", "options": [
+      { "value": "side", "label": "t:sections.customer.options.details_position.side" }, { "value": "below", "label": "t:sections.customer.options.details_position.below" } ] },
+    { "type": "color_scheme", "id": "color_scheme", "label": "t:shared.color_scheme", "default": "" }
+  ]
+}
 {% endschema %}

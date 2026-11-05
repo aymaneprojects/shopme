@@ -41,7 +41,7 @@ export function RateOptions({ card, set, locations }: { card: RateCard; set: (p:
           </Select>
           {provider?.needsAccount && (
             <Select label={t('bs.carrierAccount')} value={card.params.accountId ?? ''} onChange={(e) => set({ params: { ...card.params, accountId: e.target.value } })}>
-              <option value="" />{(shipping.data?.carrierAccounts ?? []).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              <option value="" />{(shipping.data?.carrierAccounts ?? []).filter((a) => a.provider === card.provider).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </Select>
           )}
           {provider?.params.map((p) => <Input key={p.key} label={p.kind === 'money' ? `${p.label} (${t('bs.minorUnits')})` : p.label} inputMode={p.kind === 'money' ? 'numeric' : undefined} value={card.params[p.key] ?? ''} onChange={(e) => set({ params: { ...card.params, [p.key]: e.target.value } })} />)}

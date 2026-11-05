@@ -299,7 +299,8 @@ export interface LabelInput { orderId: number; carrier: string; service?: string
 
 /**
  * Record a label bought outside (or printed from a carrier's own site): the carrier, service and tracking number are stored with the order and
- * the unfulfilled items are fulfilled with that tracking, so the customer gets their shipping notification. ShopMe does not buy postage itself.
+ * the unfulfilled items are fulfilled with that tracking, so the customer gets their shipping notification. Buying postage from a carrier account
+ * is `purchaseLabel` (services/shipping/labels.ts).
  */
 export async function createShippingLabel(db: Db, shopId: number, i: LabelInput): Promise<Result<ShippingLabel>> {
   const carrier = i.carrier.trim();

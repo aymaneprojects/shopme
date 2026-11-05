@@ -1,7 +1,7 @@
 import { PickupCard } from '../components/PickupCard';
 import { Badge, Banner, Button, ButtonGroup, Card, Checkbox, ConfirmDialog, Dropdown, Modal, Skeleton, SplitButton, TagInput, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, ArchiveRestore, Ban, ChevronDown, ChevronUp, CircleDollarSign, Copy, CopyPlus, CornerUpLeft, Eye, Inbox, MapPin, MoreHorizontal, Pause, Pencil, Plus, Printer, Truck, User, X } from 'lucide-react';
+import { Archive, ArchiveRestore, Ban, ChevronDown, ChevronUp, CircleDollarSign, Copy, CopyPlus, CornerUpLeft, Eye, Inbox, MapPin, MoreHorizontal, Pause, Pencil, Plus, Printer, Tag, Truck, User, X } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -23,6 +23,7 @@ import { ReturnDialog, ReturnsCard } from './orders/Returns';
 import type { OrderLine } from './orders/OrderDialogs';
 import { Thumb } from './Products';
 import { AddressProblemsText, ConversionSection, FulfilmentFields, RiskSection, useOrderExtras } from './orders/OrderExtras';
+import { BuyLabelDialog, LabelLine, VoidLabelDialog, labelOf, useOrderLabels, type OrderLabel } from './orders/BuyLabel';
 
 type Addr = Parameters<typeof AddressBlock>[0]['a'];
 interface OrderData {
@@ -61,12 +62,15 @@ function OrderView({ order: o }: { order: OrderData }) {
   const [dialog, setDialog] = useState<'fulfill' | 'cancel' | 'return' | 'address' | 'billing' | 'hold' | 'print' | null>(null);
   const [tracking, setTracking] = useState<FulfillmentValue | null>(null);
   const [cancelling, setCancelling] = useState<FulfillmentValue | null>(null);
+  const [buying, setBuying] = useState<{ fulfillmentId: string | null } | null>(null);
+  const [voiding, setVoiding] = useState<OrderLabel | null>(null);
+  const labels = useOrderLabels(o.id);
   const [note, setNote] = useState(o.note ?? '');
   const [editNote, setEditNote] = useState(false);
   const { lang } = useI18n();
   const extrasQ = useOrderExtras(o.id);
   const extras = extrasQ.data ?? null;
-  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['timeline'] }), qc.invalidateQueries({ queryKey: ['order'] }), qc.invalidateQueries({ queryKey: ['order-extras'] })]).then(() => qc.invalidateQueries({ queryKey: ['orders'] }));
+  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['timeline'] }), qc.invalidateQueries({ queryKey: ['order'] }), qc.invalidateQueries({ queryKey: ['order-extras'] }), qc.invalidateQueries({ queryKey: ['order-labels'] })]).then(() => qc.invalidateQueries({ queryKey: ['orders'] }));
   const fail = (e: Error) => toast(e.message, 'critical');
 
   const act = useMutation({
@@ -160,6 +164,7 @@ function OrderView({ order: o }: { order: OrderData }) {
               <IconHeading icon={<Inbox />} tone="attention"
                 actions={!o.cancelledAt && <>
                   <Dropdown align="right" variant="plain" size="sm" icon label={t('ful.cardMenu')} trigger={<MoreHorizontal className="size-4" />} items={[{ key: 'loc', icon: <MapPin />, label: t('ful.changeLocation'), disabled: !!held, onSelect: () => setDialog('fulfill') }]} />
+                  {needsShipping && !held && <Button size="sm" onClick={() => setBuying({ fulfillmentId: null })}><Tag className="size-3.5" />{t('postage.buy')}</Button>}
                   {held
                     ? <Button size="sm" variant="primary" loading={release.isPending} onClick={() => release.mutate()}>{t('hold.release')}</Button>
                     : <SplitButton size="sm" menuLabel={t('hold.menu')} onClick={() => setDialog('fulfill')} items={[{ key: 'hold', icon: <Pause />, label: t('hold.mark'), onSelect: () => setDialog('hold') }]}>{t('order.markFulfilled')}</SplitButton>}
@@ -177,6 +182,9 @@ function OrderView({ order: o }: { order: OrderData }) {
           {liveFulfillments.map((f) => (
             <section key={f.id}>
               <IconHeading icon={<Truck />} tone="success" actions={<Dropdown align="right" variant="plain" size="sm" icon label={t('ful.cardMenu')} trigger={<MoreHorizontal className="size-4" />} items={[
+                ...(labelOf(labels.data?.shopmeShippingLabels, f.id)
+                  ? [{ key: 'void-label', icon: <Tag />, label: t('postage.void'), danger: true, onSelect: () => setVoiding(labelOf(labels.data?.shopmeShippingLabels, f.id)) }]
+                  : f.trackingInfo.length === 0 && !o.cancelledAt ? [{ key: 'buy-label', icon: <Tag />, label: t('postage.buy'), onSelect: () => setBuying({ fulfillmentId: f.id }) }] : []),
                 { key: 'track', icon: <Pencil />, label: t('ful.editTracking'), onSelect: () => setTracking(f) },
                 { key: 'cancel', icon: <X />, label: t('ful.cancel'), danger: true, onSelect: () => setCancelling(f) },
               ]} />}>{t('ful.FULFILLED')} <span className="font-normal text-muted">{f.name} · {fmt.date(f.createdAt)}</span></IconHeading>
@@ -185,6 +193,7 @@ function OrderView({ order: o }: { order: OrderData }) {
                 {f.trackingInfo.length === 0 ? <p className="text-[13px] text-muted">{t('order.noTracking')}</p> : f.trackingInfo.map((tr, i) => (
                   <p key={i} className="flex items-center gap-2 text-[13px]"><Truck className="size-4 text-muted" />{tr.company}{' '}{tr.url ? <a href={tr.url} target="_blank" rel="noreferrer" className="text-accent underline">{tr.number}</a> : tr.number}</p>
                 ))}
+                {labelOf(labels.data?.shopmeShippingLabels, f.id) && <LabelLine label={labelOf(labels.data?.shopmeShippingLabels, f.id)!} />}
               </Card>
             </section>
           ))}
@@ -252,6 +261,8 @@ function OrderView({ order: o }: { order: OrderData }) {
           <div className="border-b border-line py-3.5"><MetafieldsEditor ownerId={o.id} ownerType="ORDER" /></div>
           <SideSection title={t('field.tags')}><TagInput value={o.tags} onChange={(v) => tags.mutate(v)} removeLabel={t('common.remove')} /></SideSection>
         </>} />
+      {buying && <BuyLabelDialog orderId={o.id} orderName={o.name} fulfillmentId={buying.fulfillmentId} shipTo={o.shippingAddress} onClose={() => setBuying(null)} onDone={() => void refresh()} />}
+      {voiding && <VoidLabelDialog label={voiding} onClose={() => setVoiding(null)} onDone={() => void refresh()} />}
       {dialog === 'fulfill' && <FulfillDialog open onClose={() => setDialog(null)} orderId={o.id} lines={unfulfilled} onDone={() => void refresh()} />}
       {dialog === 'address' && <AddressDialog open onClose={() => setDialog(null)} orderId={o.id} value={o.shippingAddress as never} onDone={() => void refresh()} />}
       {dialog === 'billing' && <AddressDialog open kind="billing" onClose={() => setDialog(null)} orderId={o.id} value={o.billingAddress as never} onDone={() => void refresh()} />}

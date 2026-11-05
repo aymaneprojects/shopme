@@ -58,3 +58,5 @@ Settings blocks live in `shops.settings.config.<key>` and are read and written t
 Carrier-calculated shipping rates ask a provider registered in `packages/core/src/services/shipping/carriers.ts`. `demo_flat` computes
 `base + perKg * started kilograms`; `http` POSTs `{service, grams, subtotal, destination}` to a carrier account of `SHIPPING.carrierAccounts`
 (bearer secret) and reads `{"price": <minor units>}` (`null`: no offer). The rate price is the fallback when the carrier does not answer.
+The same endpoint can also sell shipping labels, and a built-in `test` carrier quotes sample prices and makes fake labels: see
+[Carrier accounts: rates and shipping labels](carrier-labels.md) for the full request and response JSON.

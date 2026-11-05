@@ -162,6 +162,13 @@
       "when": 1793899009889,
       "tag": "0022_customers_companies_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793905879240,
+      "tag": "0023_visit_country_label_purchase",
+      "breakpoints": true
     }
   ]
 }

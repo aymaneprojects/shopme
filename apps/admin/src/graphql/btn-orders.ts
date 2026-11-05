@@ -109,7 +109,7 @@ export const ORDER_EDIT_SET_ORDER_DISCOUNT = /* GraphQL */ `
 
 export const LABELS_PAGE = /* GraphQL */ `
   query ShopmeShippingLabelsPage($status: String) {
-    shopmeShippingLabels(status: $status, first: 100) { id orderId orderName carrier service trackingNumber trackingUrl cost status createdAt }
+    shopmeShippingLabels(status: $status, first: 100) { id orderId orderName carrier service trackingNumber trackingUrl cost currencyCode status source labelUrl refundStatus test createdAt }
     shopmeShippingLabelsCount { count }
     shopmeOrdersAwaitingLabel { id name createdAt totalPriceSet { ${MONEY} } customer { displayName } shippingAddress { city country } lineItems(first: 20) { nodes { quantity } } }
   }
@@ -120,7 +120,7 @@ export const LABEL_CREATE = /* GraphQL */ `
   }
 `;
 export const LABEL_VOID = /* GraphQL */ `
-  mutation ShopmeShippingLabelVoid($id: ID!) { shopmeShippingLabelVoid(id: $id) { label { id status } userErrors { field message } } }
+  mutation ShopmeShippingLabelVoid($id: ID!) { shopmeShippingLabelVoid(id: $id) { label { id status refundStatus } userErrors { field message } } }
 `;
 export const ORDER_LABEL_PRINT = /* GraphQL */ `
   query OrderForLabel($id: ID!) {

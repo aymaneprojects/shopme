@@ -15,6 +15,7 @@ import { useI18n } from '../../i18n';
 import { LENGTH_ABBR, PICKUP_TIMES, WEIGHT_ABBR } from '../../lib/shipping';
 import { useShop } from '../../session';
 import { LocalDeliveryFollowUp, PickupFromOthers, ShippingExtras } from './ShippingExtras';
+import { CarrierAccountsRow, LabelsRow } from './ShippingCarriers';
 
 const errText = (e: unknown) => (e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e instanceof Error ? e.message : String(e));
 
@@ -103,6 +104,7 @@ export function ShippingSettings() {
               <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13px] hover:bg-hover" onClick={() => { setError(null); setCreating(''); }}><PlusCircle className="size-4" />{t('delivery.createProfileRow')}</button>
             </RowCard>
           </CollapseRow>
+          <LabelsRow />
           <CollapseRow title={t('delivery.packages')} description={t('delivery.packagesHelp')} summary={t('delivery.packagesCount', { n: pkgs.length })}>
             <RowCard className="border border-line shadow-none">
               {pkgs.map((p) => (
@@ -120,6 +122,7 @@ export function ShippingSettings() {
               <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13px] hover:bg-hover" onClick={() => { setError(null); setPkg(blankPkg(shop.weightUnit)); }}><PlusCircle className="size-4" />{t('delivery.addPackage')}</button>
             </RowCard>
           </CollapseRow>
+          <CarrierAccountsRow />
         </RowCard>
       </Section>
 

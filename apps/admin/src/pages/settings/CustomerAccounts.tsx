@@ -1,12 +1,13 @@
 import { Banner, Button, Checkbox, Input, Modal, Skeleton, Switch, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router';
-import { KeyRound, LogIn, Package, Wallet, Link as LinkIcon } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import { KeyRound, LayoutTemplate, LogIn, Package, Wallet, Link as LinkIcon } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 import { useState } from 'react';
 import { UserErrors, gql, mutate } from '../../api';
 import { RowCard, Section } from '../../components/SettingsKit';
-import { CUSTOMER_ACCOUNTS_SETTINGS, CUSTOMER_ACCOUNTS_SETTINGS_UPDATE } from '../../graphql';
+import { ACCOUNT_PAGES_THEME, CUSTOMER_ACCOUNTS_SETTINGS, CUSTOMER_ACCOUNTS_SETTINGS_UPDATE } from '../../graphql';
+import { gidToNum } from '../../format';
 import { useI18n } from '../../i18n';
 
 type Mode = 'DISABLED' | 'OPTIONAL' | 'REQUIRED';
@@ -42,10 +43,23 @@ function ControlRow({ icon: Icon, title, description, control }: { icon: Compone
   );
 }
 
+/** Opens the theme editor of the live theme on the customer login page (the page selector lists the other account pages). */
+function useCustomizeAccountPages() {
+  const { t } = useI18n();
+  const toast = useToast();
+  const nav = useNavigate();
+  return useMutation({
+    mutationFn: async () => (await gql<{ themes: { nodes: Array<{ id: string; role: string }> } }>(ACCOUNT_PAGES_THEME)).themes.nodes.find((n) => n.role === 'MAIN') ?? null,
+    onSuccess: (theme) => (theme ? nav(`/online-store/themes/${gidToNum(theme.id)}/editor?template=${encodeURIComponent('customers/login')}`) : toast(t('acct.noTheme'), 'critical')),
+    onError: (e) => toast(e.message, 'critical'),
+  });
+}
+
 /** Settings > Customer accounts. */
 export function CustomerAccountsSettings() {
   const { t } = useI18n();
   const { q, save } = useAccounts();
+  const customize = useCustomizeAccountPages();
   const [dialog, setDialog] = useState<'orders' | 'auth' | 'url' | null>(null);
   if (q.isLoading) return <Skeleton className="h-96" />;
   if (q.error) return <Banner>{q.error.message}</Banner>;
@@ -62,6 +76,8 @@ export function CustomerAccountsSettings() {
       </Section>
       <Section title={t('acct.title')} description={t('acct.titleDesc')}>
         <RowCard>
+          <ControlRow icon={LayoutTemplate} title={t('acct.pages')} description={t('acct.pagesDesc')}
+            control={<Button size="sm" loading={customize.isPending} onClick={() => customize.mutate()}>{t('acct.customize')}</Button>} />
           <ControlRow icon={Package} title={t('acct.orderActions')} description={<>{t('acct.orderActionsDesc')} <Link className="underline" to="/settings/policies">{t('acct.returnRules')}</Link>.</>}
             control={<Button size="sm" onClick={() => setDialog('orders')}>{t('acct.manage')}</Button>} />
         </RowCard>

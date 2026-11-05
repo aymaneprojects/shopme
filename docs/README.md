@@ -13,6 +13,7 @@
 - [Admin settings API](dev/admin-settings-api.md): ShopMe-specific settings and analytics operations.
 - [Admin authentication](dev/admin-auth.md): REST contract for setup, login and sessions.
 - [Checkout and payments](dev/payments.md): checkout flow, pricing rules, payment providers.
+- [Carrier accounts: rates and shipping labels](dev/carrier-labels.md): the HTTP contract for carrier-calculated rates and label purchase, and the built-in test carrier.
 - [Accounts, privacy, events and store credit](dev/privacy-and-credit.md): consent model and region table (data to review, not legal advice), cookie banner and `Shopify.customerPrivacy`, event bus and sandboxed pixels, email-code sign-in, store credit and its checkout tender.
 - [Platform](dev/platform.md): analytics reports, staff 2FA and sessions, security headers and caching, store export/import and backups, languages and translations.
 

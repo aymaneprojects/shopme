@@ -362,6 +362,8 @@ export interface LiveView {
   viewsPerMinute: Array<{ minute: string; views: number }>;
   topPages: Array<{ path: string; views: number }>; topSources: Array<{ source: string; sessions: number }>;
   recentOrders: Array<{ id: number; name: string; total: number; createdAt: string; country: string | null }>;
+  /** Visitors of the last 5 minutes by country (from the browser time zone), most first; `visitorsUnlocated` have none. */
+  countries: Array<{ countryCode: string; visitors: number }>; visitorsUnlocated: number;
 }
 
 /** What is happening on the store right now, from the first-party visit log and the orders table. */
@@ -372,6 +374,7 @@ export async function liveView(db: Executor, shopId: number, now = new Date()): 
   const t = now.toISOString();
   const q = async (query: SQL) => rowsOf(await db.execute(query));
   const [visitors] = await q(sql`select count(distinct session_id)::int as n from visits where shop_id = ${shopId} and created_at >= ${t}::timestamptz - interval '5 minutes' and created_at <= ${t}::timestamptz`);
+  const byCountry = await q(sql`select country, count(*)::int as visitors from (select session_id, max(country_code) as country from visits where shop_id = ${shopId} and created_at >= ${t}::timestamptz - interval '5 minutes' and created_at <= ${t}::timestamptz group by session_id) s group by country order by 2 desc, 1`);
   const dayStart = sql`(date_trunc('day', ${t}::timestamptz at time zone ${tz}) at time zone ${tz})`;
   const [today] = await q(sql`select count(distinct session_id)::int as n from visits where shop_id = ${shopId} and created_at >= ${dayStart}`);
   const [ord] = await q(sql`select count(*)::int as n, coalesce(sum(total - total_refunded), 0)::text as total from orders where shop_id = ${shopId} and cancelled_at is null and test = false and processed_at >= ${dayStart}`);
@@ -389,6 +392,7 @@ export async function liveView(db: Executor, shopId: number, now = new Date()): 
     at: t, currency: shop.currency, visitorsNow: n(visitors?.n), sessionsToday: n(today?.n), ordersToday: n(ord?.n), salesToday: n(ord?.total), activeCarts: n(carts?.n), viewsPerMinute,
     topPages: topPages.map((r) => ({ path: String(r.path), views: n(r.views) })), topSources: topSources.map((r) => ({ source: String(r.source), sessions: n(r.sessions) })),
     recentOrders: recent.map((r) => ({ id: n(r.id), name: String(r.name), total: n(r.total), createdAt: new Date(String(r.at)).toISOString(), country: (r.country as string) ?? null })),
+    countries: byCountry.filter((r) => r.country).map((r) => ({ countryCode: String(r.country), visitors: n(r.visitors) })), visitorsUnlocated: n(byCountry.find((r) => !r.country)?.visitors),
   };
 }
 

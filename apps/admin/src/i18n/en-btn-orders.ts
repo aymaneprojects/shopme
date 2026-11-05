@@ -63,7 +63,7 @@ export const enBtnOrders = {
   'btn.labels.voided': 'Label voided', 'btn.labels.save': 'Save labels', 'btn.labels.notify': 'Send the shipping confirmation to the customers',
   'btn.labels.dialogTitle': 'Add labels for {n} orders', 'btn.labels.dialogTitle.one': 'Add a label for {n} order', 'btn.labels.created': '{n} labels saved, orders fulfilled', 'btn.labels.created.one': '{n} label saved, order fulfilled',
   'btn.labels.manualHelp': 'Buy the postage from your carrier, then enter its tracking number here. The order is fulfilled with that tracking and the customer can be notified.',
-  'btn.labels.noPurchase': 'ShopMe records labels you bought from a carrier; it does not buy postage for you.', 'btn.labels.noneNeeded': 'Those orders already have a label or cannot be shipped.',
+  'btn.labels.noneNeeded': 'Those orders already have a label or cannot be shipped.',
   'btn.labels.emptyAwaitingTitle': 'No order is waiting for a label', 'btn.labels.emptyAwaitingBody': 'Open orders with items to ship appear here.',
   'btn.labels.emptyLabelsTitle': 'No labels yet', 'btn.labels.emptyVoidedTitle': 'No voided labels', 'btn.labels.emptyLabelsBody': 'Labels you record show up here with their tracking number.',
 

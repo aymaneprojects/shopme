@@ -1,4 +1,4 @@
-import { Banner, Button, Card, Checkbox, EmptyState, IndexTable, Input, Modal, Tabs, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Card, Checkbox, EmptyState, IndexTable, Input, Modal, Tabs, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Package, Printer, Tag } from 'lucide-react';
@@ -12,9 +12,10 @@ import { gidToNum } from '../../format';
 import { LABELS_PAGE, LABEL_CREATE, LABEL_VOID, ORDER_LABEL_PRINT } from '../../graphql';
 import { useI18n, useT } from '../../i18n';
 import { printDocuments } from '../../lib/print';
+import { VoidLabelDialog } from './BuyLabel';
 import { useShop } from '../../session';
 
-interface Label { id: string; orderId: string; orderName: string; carrier: string; service: string | null; trackingNumber: string | null; trackingUrl: string | null; cost: string; status: string; createdAt: string }
+interface Label { id: string; orderId: string; orderName: string; carrier: string; service: string | null; trackingNumber: string | null; trackingUrl: string | null; cost: string; currencyCode: string; status: string; source: string; labelUrl: string | null; refundStatus: string | null; test: boolean; createdAt: string }
 interface Awaiting { id: string; name: string; createdAt: string; totalPriceSet: MoneySet; customer: { displayName: string } | null; shippingAddress: { city: string | null; country: string | null } | null; lineItems: { nodes: Array<{ quantity: number }> } }
 interface PageData { shopmeShippingLabels: Label[]; shopmeShippingLabelsCount: { count: number }; shopmeOrdersAwaitingLabel: Awaiting[] }
 type Tab = 'awaiting' | 'labels' | 'voided';
@@ -95,6 +96,7 @@ export function ShippingLabelsPage() {
   const tab = (['awaiting', 'labels', 'voided'].includes(params.get('tab') ?? '') ? params.get('tab') : 'awaiting') as Tab;
   const [selected, setSelected] = useState<string[]>([]);
   const [dialog, setDialog] = useState<string[] | null>(null);
+  const [voiding, setVoiding] = useState<Label | null>(null);
   const q = useQuery({ queryKey: ['shipping-labels', tab], queryFn: () => gql<PageData>(LABELS_PAGE, { status: tab === 'labels' ? 'ACTIVE' : tab === 'voided' ? 'VOIDED' : null }) });
   const awaiting = q.data?.shopmeOrdersAwaitingLabel ?? [];
   const wanted = useMemo(() => (params.get('orders') ?? '').split(',').filter(Boolean), [params]);
@@ -124,16 +126,16 @@ export function ShippingLabelsPage() {
   ];
   const labelCols: Array<Column<Label>> = [
     { key: 'order', header: t('orders.order'), cell: (l) => <span className="font-medium">{l.orderName}</span> },
-    { key: 'carrier', header: t('btn.labels.carrier'), cell: (l) => <>{l.carrier}{l.service && <span className="text-muted"> · {l.service}</span>}</> },
+    { key: 'carrier', header: t('btn.labels.carrier'), cell: (l) => <span className="inline-flex flex-wrap items-center gap-1.5">{l.carrier}{l.service && <span className="text-muted">· {l.service}</span>}<Badge tone={l.source === 'PURCHASED' ? 'info' : 'neutral'}>{t(l.source === 'PURCHASED' ? 'postage.sourcePurchased' : 'postage.sourceManual')}</Badge>{l.test && <Badge tone="attention">{t('postage.testBadge')}</Badge>}</span> },
     { key: 'tracking', header: t('btn.labels.tracking'), cell: (l) => (l.trackingNumber ? (l.trackingUrl ? <a href={l.trackingUrl} target="_blank" rel="noreferrer" className="text-accent underline">{l.trackingNumber}</a> : l.trackingNumber) : <span className="text-muted">—</span>) },
-    { key: 'cost', header: t('btn.labels.cost'), cell: (l) => (Number(l.cost) ? fmt.money({ amount: l.cost, currencyCode: shop.currency }) : <span className="text-muted">—</span>) },
+    { key: 'cost', header: t('btn.labels.cost'), cell: (l) => (Number(l.cost) ? <>{fmt.money({ amount: l.cost, currencyCode: l.currencyCode || shop.currency })}{l.refundStatus && <span className="block text-xs text-muted">{t(l.refundStatus === 'REFUNDED' ? 'postage.refunded' : 'postage.notRefunded')}</span>}</> : <span className="text-muted">—</span>) },
     { key: 'date', header: t('orders.date'), cell: (l) => fmt.date(l.createdAt) },
     {
       key: 'act', header: '', className: 'text-right',
       cell: (l) => (
         <span className="inline-flex gap-1.5">
-          <Button size="sm" onClick={() => { void printLabel(l, { shipTo: t('order.shippingAddress'), tracking: t('btn.labels.tracking'), contents: t('btn.labels.contents'), carrier: t('btn.labels.carrier') }, lang).then((ok) => { if (!ok) toast(t('order.printFailed'), 'critical'); }); }}><Printer className="size-3.5" />{t('btn.labels.print')}</Button>
-          {l.status === 'ACTIVE' && <Button size="sm" onClick={() => voidLabel.mutate(l.id)} loading={voidLabel.isPending && voidLabel.variables === l.id}>{t('btn.labels.void')}</Button>}
+          <Button size="sm" onClick={() => { if (l.labelUrl) { window.open(l.labelUrl, '_blank', 'noopener'); return; } void printLabel(l, { shipTo: t('order.shippingAddress'), tracking: t('btn.labels.tracking'), contents: t('btn.labels.contents'), carrier: t('btn.labels.carrier') }, lang).then((ok) => { if (!ok) toast(t('order.printFailed'), 'critical'); }); }}><Printer className="size-3.5" />{t('btn.labels.print')}</Button>
+          {l.status === 'ACTIVE' && <Button size="sm" onClick={() => (l.source === 'PURCHASED' ? setVoiding(l) : voidLabel.mutate(l.id))} loading={voidLabel.isPending && voidLabel.variables === l.id}>{t('btn.labels.void')}</Button>}
         </span>
       ),
     },
@@ -159,7 +161,8 @@ export function ShippingLabelsPage() {
             empty={q.isError ? null : <EmptyState icon={<Tag className="size-10" />} title={t(tab === 'voided' ? 'btn.labels.emptyVoidedTitle' : 'btn.labels.emptyLabelsTitle')} description={t('btn.labels.emptyLabelsBody')} />} />
         )}
       </Card>
-      <p className="mt-3 text-center text-xs text-muted">{t('btn.labels.noPurchase')}</p>
+      <p className="mt-3 text-center text-xs text-muted">{t('postage.labelsFooter')}</p>
+      {voiding && <VoidLabelDialog label={voiding} onClose={() => setVoiding(null)} onDone={() => void refresh()} />}
       {dialog && dialogOrders.length > 0 && <LabelDialog orders={dialogOrders} onClose={() => setDialog(null)} onDone={() => { setSelected([]); void refresh(); }} />}
     </>
   );

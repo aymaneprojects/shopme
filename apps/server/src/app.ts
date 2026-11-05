@@ -5,6 +5,7 @@ import { createInProcessQueue, createLocalStorage, createMailer, ensureSearchExt
 import { registerAuthRoutes } from './admin/auth-routes';
 import { registerBackupRoutes } from './admin/backup-routes';
 import { registerReportRoutes } from './admin/report-routes';
+import { registerLabelRoutes } from './admin/label-routes';
 import { registerTwoFactorRoutes } from './admin/two-factor-routes';
 import { registerDataRoutes } from './admin/data-routes';
 import { registerFileUploadRoute } from './admin/files-routes';
@@ -87,6 +88,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   registerAuthRoutes(app);
   registerTwoFactorRoutes(app);
   registerReportRoutes(app);
+  registerLabelRoutes(app);
   registerBackupRoutes(app);
   registerFileUploadRoute(app);
   registerDataRoutes(app);

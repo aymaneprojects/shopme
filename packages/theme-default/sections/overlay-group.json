@@ -1,5 +1,5 @@
 {
-  "name": "Overlays",
+  "name": "t:sections.groups.overlays",
   "type": "overlay",
   "sections": {
     "popup": {

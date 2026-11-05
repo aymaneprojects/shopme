@@ -1,12 +1,12 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   confirmSubscription, CONSENT_COOKIE, CONSENT_COOKIE_MAX_AGE, CONSENT_VERSION, connectedPixels, consentAnswer, consentFromCustomer, decodeConsentCookie, getPixel, listConsentPolicies, optOutOfDataSale, policiesOf, policyFor,
-  privacySettingsOf, recordStorefrontEvents, resolveVisitorConsent, saveCustomerConsent, schema as s, type ConsentCookie, type Customer, type PixelRow, type PrivacySettings, type RegionPolicy, type Shop, type VisitorConsent,
+  privacySettingsOf, recordStorefrontEvents, resolveVisitorConsent, saveCustomerConsent, setVisitCountry, schema as s, type ConsentCookie, type Customer, type PixelRow, type PrivacySettings, type RegionPolicy, type Shop, type VisitorConsent,
 } from '@shopme/core';
 import { eq } from 'drizzle-orm';
 import type { AppContext } from '../context';
 import { FailureLimiter } from '../plugins/rate-limit';
-import { customerOf, makeEnv } from './env';
+import { customerOf, makeEnv, VISIT_COOKIE } from './env';
 import { crossSite, formBody } from './forms';
 import { messages } from './i18n';
 import type { createContent } from './pages';
@@ -208,8 +208,12 @@ export function registerPrivacyRoutes(app: FastifyInstance, ctx: AppContext, con
     const customer = await customerOf(ctx, req, shop);
     const env = await privacyEnvFor(ctx, req, shop, customer);
     if (!env.consent.allowed.analytics || req.headers.dnt === '1') return reply.code(204).send();
-    const events = Array.isArray((req.body as { events?: unknown } | undefined)?.events) ? ((req.body as { events: unknown[] }).events as never[]) : [];
+    const body = (req.body ?? {}) as { events?: unknown; tz?: unknown };
+    const events = Array.isArray(body.events) ? (body.events as never[]) : [];
     await recordStorefrontEvents(db, shop.id, events, { customerId: customer?.id ?? null });
+    // Live view map: the time zone becomes a country on this visit's page views (same rules as visit tracking: GPC opts out too).
+    const vid = req.cookies[VISIT_COOKIE];
+    if (vid && typeof body.tz === 'string' && req.headers['sec-gpc'] !== '1') await setVisitCountry(db, shop.id, vid, body.tz).catch((err) => req.log.warn({ err }, 'visit country not stored'));
     return reply.code(204).send();
   }));
 
