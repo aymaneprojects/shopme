@@ -5,6 +5,8 @@ name: Release desktop apps
 on:
   push:
     tags: ['v*']
+    branches: [main]
+    paths: ['apps/desktop/**', '.github/workflows/release.yml']
   workflow_dispatch:
 
 permissions:
@@ -31,6 +33,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo run build
 
+      # Windows Defender scanning freshly written files makes electron-builder copies fail with EBUSY.
+      - name: Exclude workspace from Windows Defender
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE", "$env:LOCALAPPDATA\electron-builder", "$env:TEMP"
+
       - name: Set version from tag
         if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
@@ -53,7 +61,13 @@ jobs:
           elif [ "${{ matrix.name }}" = "macos" ] && [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
             EXTRA="$EXTRA -c.mac.notarize=true"
           fi
-          pnpm --filter @shopme/desktop ${{ matrix.script }} $EXTRA
+          # One retry: transient file locks on Windows runners.
+          for attempt in 1 2; do
+            rm -rf apps/desktop/dist
+            pnpm --filter @shopme/desktop ${{ matrix.script }} $EXTRA && exit 0
+            echo "desktop build failed (attempt $attempt)"; sleep 10
+          done
+          exit 1
 
       - uses: actions/upload-artifact@v4
         with:
