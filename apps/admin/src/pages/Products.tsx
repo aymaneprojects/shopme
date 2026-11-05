@@ -148,6 +148,7 @@ export function ProductsPage() {
           sort={sort} onSortChange={(s) => patch({ sort: s.key, dir: s.reverse ? 'desc' : 'asc' })}
           onRowClick={(r) => nav(`/products/${gidToNum(r.id)}`)}
           bulkActions={[
+            { key: 'bulk', label: t('products.bulkEdit'), onRun: (ids) => nav(`/products/bulk?ids=${ids.map(gidToNum).join(',')}`) },
             { key: 'active', label: t('products.setActive'), onRun: (ids) => bulk.mutate({ ids, action: 'ACTIVE' }) },
             { key: 'draft', label: t('products.setDraft'), onRun: (ids) => bulk.mutate({ ids, action: 'DRAFT' }) },
             { key: 'archive', label: t('products.setArchived'), onRun: (ids) => bulk.mutate({ ids, action: 'ARCHIVED' }) },

@@ -28,14 +28,14 @@ export async function getLocation(db: Executor, shopId: number, id: number): Pro
   return r ?? null;
 }
 
-export interface ListLocationsOptions { includeInactive?: boolean; query?: string | null; sortKey?: 'ID' | 'NAME' | 'CREATED_AT' | 'RELEVANCE'; reverse?: boolean; offset: number; limit: number }
+export interface ListLocationsOptions { includeInactive?: boolean; query?: string | null; sortKey?: 'ID' | 'NAME' | 'CREATED_AT' | 'RELEVANCE' | 'PRIORITY'; reverse?: boolean; offset: number; limit: number }
 
 export async function listLocations(db: Executor, shopId: number, o: ListLocationsOptions): Promise<Location[]> {
   const search = buildSearch(o.query, {
     fields: { name: (_op, v) => likeCi(locations.name, v), id: (_op, v) => idTerm(locations.id, v), active: (_op, v) => sql`${locations.isActive} = ${v === 'true'}` },
     text: (v) => likeCi(locations.name, v),
   });
-  const col = o.sortKey === 'ID' ? locations.id : o.sortKey === 'CREATED_AT' ? locations.createdAt : locations.name;
+  const col = o.sortKey === 'PRIORITY' ? locations.priority : o.sortKey === 'ID' ? locations.id : o.sortKey === 'CREATED_AT' ? locations.createdAt : locations.name;
   return db.select().from(locations)
     .where(and(eq(locations.shopId, shopId), o.includeInactive ? undefined : eq(locations.isActive, true), search))
     .orderBy(o.reverse ? desc(col) : asc(col), o.reverse ? desc(locations.id) : asc(locations.id))
@@ -85,7 +85,7 @@ export async function editLocation(db: Executor, shopId: number, id: number, inp
 
 /** The location new stock goes to by default: the oldest active one. */
 export async function defaultLocationId(db: Executor, shopId: number): Promise<number | null> {
-  const [r] = await db.select({ id: locations.id }).from(locations).where(and(eq(locations.shopId, shopId), eq(locations.isActive, true))).orderBy(asc(locations.id)).limit(1);
+  const [r] = await db.select({ id: locations.id }).from(locations).where(and(eq(locations.shopId, shopId), eq(locations.isActive, true))).orderBy(asc(locations.priority), asc(locations.id)).limit(1);
   return r?.id ?? null;
 }
 
@@ -127,7 +127,11 @@ export function listInventoryLevels(db: Executor, shopId: number, filter: { item
 /** Start stocking an item at a location (idempotent; reactivates a deactivated level). */
 export async function activateLevel(db: Executor, shopId: number, inventoryItemId: number, locationId: number, available = 0): Promise<InventoryLevel> {
   const [row] = await db.insert(inventoryLevels).values({ shopId, inventoryItemId, locationId, available, onHand: available })
-    .onConflictDoUpdate({ target: [inventoryLevels.inventoryItemId, inventoryLevels.locationId], set: { isActive: true } }).returning();
+    .onConflictDoUpdate({
+      target: [inventoryLevels.inventoryItemId, inventoryLevels.locationId],
+      // Reactivating a deactivated level starts from the given quantity; an active level keeps its stock.
+      set: { isActive: true, available: sql`case when ${inventoryLevels.isActive} then ${inventoryLevels.available} else ${available} end`, onHand: sql`case when ${inventoryLevels.isActive} then ${inventoryLevels.onHand} else ${available} end` },
+    }).returning();
   return row!;
 }
 
@@ -193,7 +197,7 @@ function effects(name: QuantityName, d: number): [QuantityName, number][] {
 }
 
 /** Core of adjust/set: validates and applies changes inside `tx`, writes the ledger. */
-async function applyChanges(
+export async function applyChanges(
   tx: Executor, shopId: number, name: QuantityName, reason: string, referenceUri: string | null | undefined,
   changes: (QuantityChange & { absolute?: number })[], fieldRoot: string[], createLevels: boolean,
 ): Promise<Result<AdjustmentGroup>> {

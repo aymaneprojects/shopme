@@ -11,6 +11,7 @@ import { gidToNum, numToGid } from '../format';
 import { ORDER, ORDER_CLOSE, ORDER_MARK_AS_PAID, ORDER_OPEN, ORDER_TIMELINE_COMMENT_CREATE, ORDER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
 import { useT } from '../i18n';
 import { toCents } from '../lib/refund';
+import { MetafieldsEditor } from '../components/MetafieldsEditor';
 import { CancelDialog, FulfillDialog, RefundDialog } from './orders/OrderDialogs';
 import type { OrderLine } from './orders/OrderDialogs';
 import { Thumb } from './Products';
@@ -159,6 +160,7 @@ function OrderView({ order: o }: { order: OrderData }) {
           </Card>
           <Card title={t('order.shippingAddress')}><AddressBlock a={o.shippingAddress} /></Card>
           <Card title={t('order.billingAddress')}><AddressBlock a={o.billingAddress} /></Card>
+          <MetafieldsEditor ownerId={o.id} ownerType="ORDER" />
           <Card title={t('field.tags')}><TagInput value={o.tags} onChange={(v) => tags.mutate(v)} removeLabel={t('common.remove')} /></Card>
         </div>
       </div>

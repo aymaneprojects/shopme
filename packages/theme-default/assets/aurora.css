@@ -243,3 +243,23 @@ a.pagination__link:hover { border-color: var(--color-primary); color: var(--colo
 .article__nav { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--color-border); } .article__nav a { text-decoration: none; color: var(--color-primary); }
 .contact__title { margin-top: 32px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Predictive search */
+.predictive-search { border-top: 1px solid var(--color-border); background: var(--color-background); padding: 12px 0 16px; }
+.predictive-search[hidden] { display: none; }
+.predictive-search__form { display: flex; gap: 8px; }
+.predictive-search__results { margin-top: 12px; display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.predictive-search__group h3 { margin: 0 0 6px; font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--color-muted); }
+.predictive-search__group ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.predictive-search__item { display: flex; gap: 10px; align-items: center; padding: 6px; border-radius: var(--radius); text-decoration: none; color: inherit; }
+.predictive-search__item:hover, .predictive-search__item:focus-visible, .predictive-search__item[aria-selected="true"] { background: var(--color-surface, rgba(0,0,0,.05)); }
+.predictive-search__item img { width: 44px; height: 44px; object-fit: cover; border-radius: var(--radius); }
+.predictive-search__price { color: var(--color-muted); font-size: .9rem; }
+.predictive-search__item mark { background: none; font-weight: 700; }
+.search-result__link { display: grid; gap: 2px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius); text-decoration: none; color: inherit; }
+.search-result__type { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--color-muted); }
+.search-result__title { font-weight: 600; }
+.search-result__excerpt, .search-corrected { color: var(--color-muted); }
+.product__details { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 16px 0; }
+.product__details dt { color: var(--color-muted); }
+.product__details dd { margin: 0; }

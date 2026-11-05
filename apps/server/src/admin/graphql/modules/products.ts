@@ -21,12 +21,12 @@ import { CollectionSortKeys, UniqueMetafieldValueInput } from './collections';
 import { CreateMediaInput, Image, imageOf } from './files';
 import { InventoryItemInput, toItemUpdate } from './inventory';
 
-const ProductStatus = builder.enumType('ProductStatus', { values: ['ACTIVE', 'ARCHIVED', 'DRAFT'] as const });
+export const ProductStatus = builder.enumType('ProductStatus', { values: ['ACTIVE', 'ARCHIVED', 'DRAFT'] as const });
 const ProductSortKeys = builder.enumType('ProductSortKeys', { values: ['CREATED_AT', 'ID', 'INVENTORY_TOTAL', 'PRODUCT_TYPE', 'PUBLISHED_AT', 'RELEVANCE', 'TITLE', 'UPDATED_AT', 'VENDOR'] as const });
 const ProductVariantSortKeys = builder.enumType('ProductVariantSortKeys', {
   values: ['CREATED_AT', 'FULL_TITLE', 'ID', 'INVENTORY_LEVELS_AVAILABLE', 'INVENTORY_MANAGEMENT', 'INVENTORY_POLICY', 'INVENTORY_QUANTITY', 'NAME', 'POPULAR', 'POSITION', 'RELEVANCE', 'SKU', 'TITLE'] as const,
 });
-const ProductVariantInventoryPolicy = builder.enumType('ProductVariantInventoryPolicy', { values: ['DENY', 'CONTINUE'] as const });
+export const ProductVariantInventoryPolicy = builder.enumType('ProductVariantInventoryPolicy', { values: ['DENY', 'CONTINUE'] as const });
 const VariantStrategyCreate = builder.enumType('ProductOptionCreateVariantStrategy', { values: ['LEAVE_AS_IS', 'CREATE'] as const });
 const BulkCreateStrategy = builder.enumType('ProductVariantsBulkCreateStrategy', { values: ['DEFAULT', 'REMOVE_STANDALONE_VARIANT', 'PRESERVE_STANDALONE_VARIANT'] as const });
 
@@ -175,21 +175,24 @@ ProductVariant.implement({
 
 const OptionValueCreateInput = builder.inputType('OptionValueCreateInput', { fields: (t) => ({ name: t.string(), linkedMetafieldValue: t.string() }) });
 const OptionCreateInput = builder.inputType('OptionCreateInput', { fields: (t) => ({ name: t.string(), position: t.int(), values: t.field({ type: [OptionValueCreateInput] }) }) });
-const VariantOptionValueInput = builder.inputType('VariantOptionValueInput', {
+export const VariantOptionValueInput = builder.inputType('VariantOptionValueInput', {
   fields: (t) => ({ id: t.id(), name: t.string(), linkedMetafieldValue: t.string(), optionId: t.id(), optionName: t.string() }),
 });
-const BarcodeInput = builder.inputType('BarcodeInput', { fields: (t) => ({ value: t.string({ required: true }), type: t.string() }) });
+export const BarcodeInput = builder.inputType('BarcodeInput', { fields: (t) => ({ value: t.string({ required: true }), type: t.string() }) });
 const InventoryLevelInput = builder.inputType('InventoryLevelInput', { fields: (t) => ({ availableQuantity: t.int({ required: true }), locationId: t.id({ required: true }) }) });
-const ProductVariantsBulkInput = builder.inputType('ProductVariantsBulkInput', {
+export const UnitPriceMeasurementInput = builder.inputType('UnitPriceMeasurementInput', {
+  fields: (t) => ({ quantityValue: t.float({ required: true }), quantityUnit: t.string({ required: true }), referenceValue: t.int({ required: true }), referenceUnit: t.string({ required: true }) }),
+});
+export const ProductVariantsBulkInput = builder.inputType('ProductVariantsBulkInput', {
   fields: (t) => ({
     barcode: t.string({ deprecationReason: 'Use `barcodes` instead.' }), barcodes: t.field({ type: [BarcodeInput] }), compareAtPrice: t.field({ type: 'Money' }), id: t.id(),
     inventoryPolicy: t.field({ type: ProductVariantInventoryPolicy }), inventoryQuantities: t.field({ type: [InventoryLevelInput] }), inventoryItem: t.field({ type: InventoryItemInput }),
     mediaId: t.id(), metafields: t.field({ type: [MetafieldInput] }), optionValues: t.field({ type: [VariantOptionValueInput] }), price: t.field({ type: 'Money' }),
-    taxable: t.boolean(), taxCode: t.string(),
+    taxable: t.boolean(), taxCode: t.string(), unitPriceMeasurement: t.field({ type: UnitPriceMeasurementInput }),
   }),
 });
 
-const productInputFields = (t: any) => ({
+export const productInputFields = (t: any) => ({
   descriptionHtml: t.string(), handle: t.string(), seo: t.field({ type: SEOInput }), productType: t.string(), tags: t.stringList(), templateSuffix: t.string(),
   giftCardTemplateSuffix: t.string(), title: t.string(), vendor: t.string(), category: t.id(), collectionsToJoin: t.idList(), metafields: t.field({ type: [MetafieldInput] }),
   status: t.field({ type: ProductStatus }),
@@ -213,7 +216,7 @@ const ProductUpdateIdentifiers = builder.inputType('ProductUpdateIdentifiers', {
 const ids = (xs: (string | number)[] | null | undefined, type: string) => xs?.map((x) => parseId(String(x), type)).filter((x): x is number => x !== null);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const toProduct = (i: any): ServiceProductInput => ({
+export const toProduct = (i: any): ServiceProductInput => ({
   ...i,
   collectionsToJoin: ids(i.collectionsToJoin, 'Collection'), collectionsToLeave: ids(i.collectionsToLeave, 'Collection'),
   metafields: i.metafields?.map((m: { namespace?: string | null; key?: string | null; value?: string | null; type?: string | null }) => ({ ownerType: 'PRODUCT', ownerId: 0, namespace: m.namespace, key: m.key ?? '', value: m.value ?? '', type: m.type })),
@@ -228,13 +231,14 @@ function minor(v: MoneyIn, currency: string): number | null | undefined {
   return parseMoney(v, currency);
 }
 
-interface VariantInputShape {
+export interface VariantInputShape {
+  unitPriceMeasurement?: { quantityValue: number; quantityUnit: string; referenceValue: number; referenceUnit: string } | null;
   id?: string | number | null; price?: MoneyIn; compareAtPrice?: MoneyIn; barcode?: string | null; barcodes?: { value: string }[] | null; taxable?: boolean | null; taxCode?: string | null;
   inventoryPolicy?: string | null; mediaId?: string | number | null; optionValues?: { id?: string | number | null; name?: string | null; optionId?: string | number | null; optionName?: string | null }[] | null;
   inventoryItem?: Parameters<typeof toItemUpdate>[0]; inventoryQuantities?: { availableQuantity: number; locationId: string | number }[] | null;
   metafields?: { namespace?: string | null; key?: string | null; value?: string | null; type?: string | null }[] | null;
 }
-function toVariant(v: VariantInputShape, currency: string): VariantInput {
+export function toVariant(v: VariantInputShape, currency: string): VariantInput {
   return {
     id: v.id ? parseId(String(v.id), 'ProductVariant') : null,
     price: minor(v.price, currency), compareAtPrice: minor(v.compareAtPrice, currency),
@@ -243,7 +247,7 @@ function toVariant(v: VariantInputShape, currency: string): VariantInput {
     optionValues: v.optionValues?.map((o) => ({ id: o.id ? parseId(String(o.id), 'ProductOptionValue') : null, name: o.name, optionId: o.optionId ? parseId(String(o.optionId), 'ProductOption') : null, optionName: o.optionName })),
     inventoryItem: toItemUpdate(v.inventoryItem, currency),
     inventoryQuantities: v.inventoryQuantities?.map((q) => ({ availableQuantity: q.availableQuantity, locationId: parseId(String(q.locationId), 'Location') ?? 0 })),
-    metafields: v.metafields?.map((m) => ({ ownerType: 'PRODUCTVARIANT', ownerId: 0, namespace: m.namespace, key: m.key ?? '', value: m.value ?? '', type: m.type })),
+    unitPriceMeasurement: v.unitPriceMeasurement, metafields: v.metafields?.map((m) => ({ ownerType: 'PRODUCTVARIANT', ownerId: 0, namespace: m.namespace, key: m.key ?? '', value: m.value ?? '', type: m.type })),
   };
 }
 

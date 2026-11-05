@@ -16,9 +16,14 @@ import './locations';
 import './inventory';
 import './collections';
 import './products';
+import './product-set';
+import './catalog-ext';
+import './files-ext';
+import './metafield-definitions';
 
 import './orders';
 import './customers';
+import './customers-ext';
 import './discounts';
 import './settings';
 import './content';

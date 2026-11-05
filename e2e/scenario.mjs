@@ -248,6 +248,7 @@ export async function runScenario({ baseUrl, root }) {
       await page.goto(`${baseUrl}/admin/online-store`);
       await vis(page.getByText('Aurora'));
       await page.getByRole('button', { name: 'Customize' }).click();
+      await page.getByRole('tab', { name: 'Theme settings' }).click();
       await vis(page.getByLabel('Primary color (hex)'));
       await page.getByLabel('Primary color (hex)').fill(PRIMARY);
       await shot('05-theme-editor');
@@ -619,6 +620,50 @@ export async function runScenario({ baseUrl, root }) {
       assert.match(await text(shop.locator('#shipping-methods')), /Livraison offerte\s*Gratuit/i);
       await shop.locator('#shipping-methods label', { hasText: 'Livraison offerte' }).locator('input').check();
       await vis(shop.locator('#summary-lines').getByText(/Total\s*64,00 €/));
+    });
+
+    await step('11a settings: add a second location', async () => {
+      page = await ctx.newPage(); // the page of the mobile step is closed; the admin session cookie lives in `ctx`
+      await page.goto(`${baseUrl}/admin/settings/locations`);
+      await page.getByRole('button', { name: 'Add location' }).click();
+      await page.getByLabel('Location name').fill('Entrepôt Lille');
+      await page.getByLabel('City').fill('Lille');
+      await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(page.getByText('Entrepôt Lille'));
+      await vis(page.getByText('Priority 2'));
+    });
+
+    const sku = await (await shopperCtx.request.get(`${baseUrl}/products/bougie-parfumee.js`)).json();
+    await step('11b custom data: definition, value in the product editor, value in the storefront', async () => {
+      await page.goto(`${baseUrl}/admin/settings/metafields`);
+      await page.getByRole('button', { name: 'Add definition' }).click();
+      await page.getByLabel('Name', { exact: true }).fill('Matière');
+      await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(page.getByText('custom.matiere'));
+      await page.goto(`${baseUrl}/admin/products/${sku.id}`);
+      await page.getByLabel('Matière').fill('Cire de soja');
+      await page.getByRole('button', { name: 'Save metafields' }).click();
+      await vis(page.getByText('Metafields saved'));
+      await shop.goto(`${baseUrl}/products/bougie-parfumee`);
+      assert.match(await text(shop.locator('.product__details')), /Cire de soja/);
+    });
+
+    await step('11c bulk editor: change a price', async () => {
+      await page.goto(`${baseUrl}/admin/products/bulk?ids=${sku.id}`);
+      const price = page.getByLabel(/^Price Bougie.*Vanille \/ S/);
+      await vis(price);
+      await price.fill('19.50');
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(page.getByText('1 variants updated'));
+      const after = await (await shopperCtx.request.get(`${baseUrl}/products/bougie-parfumee.js`)).json();
+      assert.equal(after.variants.find((v) => v.title === 'Vanille / S').price, 1950);
+    });
+
+    await step('11d storefront: predictive search', async () => {
+      await shop.goto(baseUrl);
+      await shop.locator('[data-search-toggle]').click();
+      await shop.locator('#predictive-search-q').fill('bougi');
+      await vis(shop.locator('[data-predictive-results] a', { hasText: /Bougie/ }));
     });
 
     await shopperCtx.close();

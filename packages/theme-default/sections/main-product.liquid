@@ -64,10 +64,20 @@
       {%- if product.description != blank -%}
         <div class="product__description rte">{{ product.description }}</div>
       {%- endif -%}
+      {%- assign details = product.metafields.custom -%}
+      {%- if details != blank -%}
+        <dl class="product__details">
+          {%- for entry in details -%}
+            <dt>{{ entry[0] | replace: '_', ' ' | capitalize }}</dt>
+            <dd>{{ entry[1] | metafield_tag }}</dd>
+          {%- endfor -%}
+        </dl>
+      {%- endif -%}
       {%- content_for 'blocks' -%}
     </div>
   </div>
   <script type="application/json" data-product-json>{{ product | json }}</script>
+  <script type="application/ld+json">{{ product | structured_data }}</script>
 </div>
 
 {% schema %}

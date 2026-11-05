@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Cart-level discounts: `/discount/:code`, discounts in `/cart.js` and every Ajax cart response (`total_discount`, `cart_level_discount_applications`, line `discounts` and `line_level_discount_allocations`), Liquid `cart.discount_applications`.
 - `/sitemap.xml` is now an index of child sitemaps (products, collections, pages, blogs); `/robots.txt` lists the private areas.
 - Migration `wave6a_accounts` (`customer_tokens`, `blogs.comment_policy`).
+- Catalog (wave 7b): metafield definitions (`metafieldDefinitions`, `metafieldDefinitionCreate/Update/Delete`, typed editors on products, variants, collections, customers and orders, Liquid `metafields` with `metafield_tag`/`metafield_text`); storefront search upgrade (ranking, `type`, `options[prefix]`, typo tolerance, pages and articles, predictive `queries`, Aurora dropdown); multi-location inventory (Settings > Locations, `inventoryActivate/Deactivate/MoveQuantities`, `locationActivate/Deactivate`, priority allocation, ship-from location); product editor (variant images, unit price, category, duplicate, preview, bulk editor); Admin API `productSet`, `productChangeStatus`, `publications`, `publishablePublish/Unpublish`, `customerAddress*`, `files`, `fileUpdate/Delete`, `stagedUploadsCreate`, `locationsCount`, `taxonomy`, more `Product`, `ProductVariant`, `Order`, `Customer` and `Shop` fields; `extensions.cost` with a throttle status; `/collections/:handle.atom`, `/meta.json`, `/search.json`, `x-robots-tag`, hreflang and Product JSON-LD.
+- Migration `wave7b_catalog` (`metafield_definitions`, `products.category`, variant unit price columns, `locations.priority`, full-text index).
 
 ## [0.1.0] - 2026-11-04
 

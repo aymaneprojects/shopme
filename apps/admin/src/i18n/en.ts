@@ -1,3 +1,4 @@
+import { enCatalog } from './en-catalog';
 import { enExt } from './en-ext';
 import { enShop } from './en-shop';
 export const en = {
@@ -89,6 +90,7 @@ export const en = {
   'rte.source': 'HTML source', 'rte.paragraph': 'Paragraph', 'rte.heading': 'Heading', 'rte.subheading': 'Subheading', 'rte.linkPrompt': 'Link URL',
   ...enShop,
   ...enExt,
+  ...enCatalog,
 } as const;
 
 export type Key = keyof typeof en;

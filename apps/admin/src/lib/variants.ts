@@ -23,6 +23,10 @@ export interface VariantDraft {
   requiresShipping: boolean;
   weight: string;
   weightUnit: WeightUnit;
+  /** Media (image) of the variant: a `MediaImage` GID of the product, or empty. */
+  mediaId: string;
+  /** Unit price measurement: `unitQuantity` `unitQuantityUnit` priced per `unitReference` `unitReferenceUnit`. */
+  unitQuantity: string; unitQuantityUnit: string; unitReference: string; unitReferenceUnit: string;
   /** Available quantity per location id, as typed. */
   quantities: Record<string, string>;
 }
@@ -32,7 +36,7 @@ export const newKey = () => `v${Date.now().toString(36)}${(seq++).toString(36)}`
 
 export const blankVariant = (over: Partial<VariantDraft> = {}): VariantDraft => ({
   key: newKey(), optionValues: [], price: '0.00', compareAtPrice: '', cost: '', sku: '', barcode: '',
-  taxable: true, tracked: true, continueSelling: false, requiresShipping: true, weight: '', weightUnit: 'KILOGRAMS', quantities: {}, ...over,
+  taxable: true, tracked: true, continueSelling: false, requiresShipping: true, weight: '', weightUnit: 'KILOGRAMS', mediaId: '', unitQuantity: '', unitQuantityUnit: 'L', unitReference: '1', unitReferenceUnit: 'L', quantities: {}, ...over,
 });
 
 /** Options that count: named and with at least one distinct non-empty value. */

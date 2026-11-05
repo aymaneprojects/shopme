@@ -52,8 +52,13 @@ async function commitStock(tx: Executor, shopId: number, variantId: number, quan
     .from(s.productVariants).leftJoin(s.inventoryItems, eq(s.inventoryItems.variantId, s.productVariants.id))
     .where(and(eq(s.productVariants.id, variantId), eq(s.productVariants.shopId, shopId))).limit(1);
   if (!row?.itemId || !row.tracked) return true;
-  const levels = await tx.select().from(s.inventoryLevels)
-    .where(and(eq(s.inventoryLevels.inventoryItemId, row.itemId), eq(s.inventoryLevels.isActive, true))).orderBy(sql`${s.inventoryLevels.available} desc`, asc(s.inventoryLevels.id));
+  // Allocation rule: locations that fulfil online orders, by priority; the first one holding the whole quantity wins, else stock spills over in priority order.
+  const rows = await tx.select({ lv: s.inventoryLevels, online: s.locations.fulfillsOnlineOrders }).from(s.inventoryLevels).innerJoin(s.locations, eq(s.locations.id, s.inventoryLevels.locationId))
+    .where(and(eq(s.inventoryLevels.inventoryItemId, row.itemId), eq(s.inventoryLevels.isActive, true), eq(s.locations.isActive, true))).orderBy(asc(s.locations.priority), asc(s.locations.id));
+  const online = rows.filter((r) => r.online);
+  let levels = (online.length ? online : rows).map((r) => r.lv);
+  const whole = levels.find((l) => l.available >= quantity);
+  if (whole) levels = [whole];
   if (!levels.length) return row.policy === 'CONTINUE';
   const deny = row.policy !== 'CONTINUE';
   let left = quantity;

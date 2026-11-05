@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { createInProcessQueue, createLocalStorage, createMailer, type AppConfig, type DbHandle } from '@shopme/core';
+import { createInProcessQueue, createLocalStorage, createMailer, ensureSearchExtensions, type AppConfig, type DbHandle } from '@shopme/core';
 import { registerAuthRoutes } from './admin/auth-routes';
 import { registerDataRoutes } from './admin/data-routes';
 import { registerFileUploadRoute } from './admin/files-routes';
@@ -36,10 +36,17 @@ function loggerOptions(config: AppConfig, enabled: boolean) {
   return base;
 }
 
+/** `X-Robots-Tag` for paths that must not be indexed (matches the reference store: search, discount links, checkouts). */
+export function robotsHeader(path: string, status: number): string | null {
+  if (path.startsWith('/checkout') || path.startsWith('/checkouts/')) return 'none';
+  if (path.startsWith('/admin') || path.startsWith('/search') || path.startsWith('/discount/') || path === '/cart' || path.startsWith('/account')) return 'noindex, nofollow';
+  return status === 301 || status === 302 ? 'noindex' : null;
+}
+
 /** Build the Fastify app without listening (used by startServer and by tests via `app.inject`). */
 export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> {
   const { config, dbHandle } = opts;
-  const app = Fastify({ logger: loggerOptions(config, opts.logger ?? true), trustProxy: config.trustProxy, bodyLimit: 2 * 1024 * 1024 });
+  const app = Fastify({ logger: loggerOptions(config, opts.logger ?? true), trustProxy: config.trustProxy, bodyLimit: 2 * 1024 * 1024, routerOptions: { maxParamLength: 600 } });
 
   const ctx: AppContext = {
     config, db: dbHandle.db, dbHandle, paths: resolvePaths(opts.paths), log: app.log,
@@ -48,10 +55,15 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
     storage: createLocalStorage(config.storageDir),
   };
   app.decorate('ctx', ctx);
+  if (dbHandle.driver === 'postgres') await ensureSearchExtensions(ctx.db); // pg_trgm for typo tolerance when the server allows it
   app.decorateRequest('auth', null);
 
   await app.register(cookie, { secret: config.sessionSecret });
-  app.addHook('onSend', async (_req, reply) => { reply.header('x-content-type-options', 'nosniff'); reply.header('referrer-policy', 'strict-origin-when-cross-origin'); });
+  app.addHook('onSend', async (req, reply) => {
+    reply.header('x-content-type-options', 'nosniff'); reply.header('referrer-policy', 'strict-origin-when-cross-origin');
+    const robots = robotsHeader(req.url.split('?')[0]!, reply.statusCode);
+    if (robots && !reply.hasHeader('x-robots-tag')) reply.header('x-robots-tag', robots);
+  });
   installOriginCheck(app);
 
   app.get('/healthz', async (_req, reply) => {

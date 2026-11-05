@@ -30,7 +30,7 @@ export const NOTIFICATION_TEMPLATE_RESET = /* GraphQL */ `
   mutation NotificationTemplateReset($key: String!) { shopmeNotificationTemplateReset(key: $key) { template { key } userErrors { field message } } }
 `;
 export const NOTIFICATION_PREVIEW = /* GraphQL */ `
-  query NotificationPreview($key: String!) { shopmeNotificationPreview(key: $key) { subject html } }
+  mutation NotificationPreview($key: String!) { shopmeNotificationPreview(key: $key) { preview { subject html } userErrors { message } } }
 `;
 
 export const SHOP_POLICIES = /* GraphQL */ `
@@ -40,15 +40,16 @@ export const SHOP_POLICY_UPDATE = /* GraphQL */ `
   mutation ShopPolicyUpdate($shopPolicy: ShopPolicyInput!) { shopPolicyUpdate(shopPolicy: $shopPolicy) { shopPolicy { id } userErrors { field message } } }
 `;
 export const COOKIE_BANNER = /* GraphQL */ `
-  query CookieBanner { shop { id cookieBannerEnabled: shopmeCookieBannerEnabled } }
+  query CookieBanner { shop { id shopmeCookieBanner { enabled message } } }
 `;
 export const COOKIE_BANNER_UPDATE = /* GraphQL */ `
-  mutation CookieBannerUpdate($input: ShopmeShopInput!) { shopmeShopUpdate(input: $input) { shop { id } userErrors { field message } } }
+  mutation CookieBannerUpdate($enabled: Boolean) { shopmeCookieBannerUpdate(enabled: $enabled) { cookieBanner { enabled message } userErrors { field message } } }
 `;
 
 export const WEBHOOKS = /* GraphQL */ `
   query Webhooks {
-    webhookSubscriptions(first: 100) { nodes { id topic format createdAt secret: shopmeSecret endpoint { __typename ... on WebhookHttpEndpoint { callbackUrl } } } }
+    webhookSubscriptions(first: 100) { nodes { id topic format createdAt endpoint { __typename ... on WebhookHttpEndpoint { callbackUrl } } } }
+    shopmeWebhookSettings { signingSecret }
   }
 `;
 export const WEBHOOK_CREATE = /* GraphQL */ `
@@ -65,5 +66,6 @@ export const WEBHOOK_DELETE = /* GraphQL */ `
   mutation WebhookDelete($id: ID!) { webhookSubscriptionDelete(id: $id) { deletedWebhookSubscriptionId userErrors { field message } } }
 `;
 export const WEBHOOK_DELIVERIES = /* GraphQL */ `
-  query WebhookDeliveries($subscriptionId: ID!) { shopmeWebhookDeliveries(subscriptionId: $subscriptionId) { id status responseCode createdAt error } }
+  query WebhookDeliveries($subscriptionId: ID!) { shopmeWebhookDeliveries(first: 50, subscriptionId: $subscriptionId) { nodes { id status responseCode createdAt error: lastError } } }
+
 `;

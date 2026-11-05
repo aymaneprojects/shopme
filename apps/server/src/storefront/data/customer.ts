@@ -1,3 +1,4 @@
+import { loadMetafields } from './metafields';
 import { inArray } from 'drizzle-orm';
 import { lazyList } from '@shopme/liquid-compat';
 import { countCustomerOrders, listAddressBook, listCustomerOrders, schema as s, type Customer, type CustomerAddress, type Db, type Order, type OrderDetail, type Shop } from '@shopme/core';
@@ -89,7 +90,7 @@ const ORDER_PREVIEW = 20;
 
 /** The signed-in customer as Liquid sees it. `orders` carry list-level data only (no lines); the order page loads the full detail. */
 export async function buildCustomer(db: Db, shop: Shop, c: Customer): Promise<CustomerObject> {
-  const [addrRows, total] = await Promise.all([listAddressBook(db, shop.id, c.id), countCustomerOrders(db, shop.id, c.id)]);
+  const [addrRows, total, mf] = await Promise.all([listAddressBook(db, shop.id, c.id), countCustomerOrders(db, shop.id, c.id), loadMetafields(db, shop.id, 'CUSTOMER', [c.id])]);
   const addresses = addrRows.map((a) => addressObject(a, shop, `/account/addresses/${a.id}`));
   const load = async (offset: number, limit: number) => (await listCustomerOrders(db, shop.id, c.id, { offset, limit })).map((o) => orderObject(o, shop));
   const orders = await load(0, ORDER_PREVIEW);
@@ -99,6 +100,6 @@ export async function buildCustomer(db: Db, shop: Shop, c: Customer): Promise<Cu
     orders: lazyList(orders, total, load) as OrderObject[], orders_count: total, total_spent: c.amountSpent, last_order: orders[0] ?? null,
     addresses, addresses_count: addresses.length, default_address: addresses.find((a) => a.id === c.defaultAddressId) ?? addresses[0] ?? null,
     new_address: addressObject({ id: 0, firstName: c.firstName, lastName: c.lastName, company: null, address1: null, address2: null, city: null, province: null, provinceCode: null, zip: null, country: null, countryCode: null, phone: null }, shop),
-    created_at: c.createdAt.toISOString(), metafields: {},
+    created_at: c.createdAt.toISOString(), metafields: mf.get(c.id) ?? {},
   };
 }

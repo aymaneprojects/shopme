@@ -157,5 +157,64 @@ export async function changeCustomerTags(db: Db, shopId: number, id: number, mod
   return okR(row!);
 }
 
-export const customersByIds = (db: Executor, shopId: number, ids: number[]) =>
+/* ------------------------------ address book ------------------------------ */
+
+const noCustomer = errR(['customerId'], "Customer can't be found", 'CUSTOMER_DOES_NOT_EXIST');
+const noAddress = errR(['addressId'], 'Address does not exist', 'ADDRESS_DOES_NOT_EXIST');
+
+async function addressOf(db: Executor, customerId: number, addressId: number): Promise<CustomerAddress | null> {
+  const [a] = await db.select().from(customerAddresses).where(and(eq(customerAddresses.customerId, customerId), eq(customerAddresses.id, addressId)));
+  return a ?? null;
+}
+
+export async function addressBookAdd(db: Db, shopId: number, customerId: number, input: AddressInput, setAsDefault = false): Promise<Result<CustomerAddress>> {
+  const c = await getCustomer(db, shopId, customerId);
+  if (!c) return noCustomer;
+  return txResult(db, async (tx) => {
+    const [row] = await tx.insert(customerAddresses).values({ shopId, customerId, ...addressColumns(input) }).returning();
+    if (setAsDefault || !c.defaultAddressId) await tx.update(customers).set({ defaultAddressId: row!.id, updatedAt: new Date() }).where(eq(customers.id, customerId));
+    return okR(row!);
+  });
+}
+
+export async function addressBookUpdate(db: Db, shopId: number, customerId: number, addressId: number, input: AddressInput, setAsDefault = false): Promise<Result<CustomerAddress>> {
+  if (!(await getCustomer(db, shopId, customerId))) return noCustomer;
+  if (!(await addressOf(db, customerId, addressId))) return noAddress;
+  return txResult(db, async (tx) => {
+    const [row] = await tx.update(customerAddresses).set({ ...addressColumns(input), updatedAt: new Date() }).where(eq(customerAddresses.id, addressId)).returning();
+    if (setAsDefault) await tx.update(customers).set({ defaultAddressId: addressId, updatedAt: new Date() }).where(eq(customers.id, customerId));
+    return okR(row!);
+  });
+}
+
+/** Deleting the default address promotes the oldest remaining one. */
+export async function addressBookDelete(db: Db, shopId: number, customerId: number, addressId: number): Promise<Result<number>> {
+  const c = await getCustomer(db, shopId, customerId);
+  if (!c) return noCustomer;
+  if (!(await addressOf(db, customerId, addressId))) return noAddress;
+  return txResult(db, async (tx) => {
+    await tx.update(customers).set({ defaultAddressId: null }).where(and(eq(customers.id, customerId), eq(customers.defaultAddressId, addressId)));
+    await tx.delete(customerAddresses).where(eq(customerAddresses.id, addressId));
+    if (c.defaultAddressId === addressId) {
+      const [next] = await tx.select({ id: customerAddresses.id }).from(customerAddresses).where(eq(customerAddresses.customerId, customerId)).orderBy(customerAddresses.id).limit(1);
+      await tx.update(customers).set({ defaultAddressId: next?.id ?? null, updatedAt: new Date() }).where(eq(customers.id, customerId));
+    }
+    return okR(addressId);
+  });
+}
+
+export async function addressBookSetDefault(db: Db, shopId: number, customerId: number, addressId: number): Promise<Result<Customer>> {
+  if (!(await getCustomer(db, shopId, customerId))) return noCustomer;
+  if (!(await addressOf(db, customerId, addressId))) return noAddress;
+  await db.update(customers).set({ defaultAddressId: addressId, updatedAt: new Date() }).where(eq(customers.id, customerId));
+  return okR((await getCustomer(db, shopId, customerId))!);
+}
+
+/** Last order of a customer (by creation). */
+export async function lastOrderOf(db: Executor, shopId: number, customerId: number) {
+  const [o] = await db.select().from(orders).where(and(eq(orders.shopId, shopId), eq(orders.customerId, customerId))).orderBy(sql`${orders.createdAt} desc`, sql`${orders.id} desc`).limit(1);
+  return o ?? null;
+}
+
+export const customersByIds =(db: Executor, shopId: number, ids: number[]) =>
   ids.length ? db.select().from(customers).where(and(eq(customers.shopId, shopId), inArray(customers.id, ids))) : Promise.resolve([] as Customer[]);

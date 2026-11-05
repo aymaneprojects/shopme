@@ -24,7 +24,7 @@ const staffId = (ctx: GraphQLContext) => (ctx.auth.kind === 'session' ? ctx.auth
 /* ------------------------------ shop details ------------------------------ */
 
 interface AddressShape { company?: string | null; address1?: string | null; address2?: string | null; city?: string | null; provinceCode?: string | null; province?: string | null; zip?: string | null; countryCode?: string | null; phone?: string | null }
-const ShopAddress = builder.objectRef<AddressShape>('ShopAddress').implement({
+export const ShopAddress = builder.objectRef<AddressShape>('ShopAddress').implement({
   fields: (t) => ({
     address1: t.string({ nullable: true, resolve: (a) => a.address1 ?? null }),
     address2: t.string({ nullable: true, resolve: (a) => a.address2 ?? null }),
@@ -43,9 +43,10 @@ const Storefront = builder.objectRef<{ passwordEnabled: boolean; password: strin
   fields: (t) => ({ passwordEnabled: t.exposeBoolean('passwordEnabled'), password: t.exposeString('password'), passwordMessage: t.string({ resolve: (s) => s.message }) }),
 });
 
+const UnitSystem = builder.enumType('UnitSystem', { values: ['IMPERIAL_SYSTEM', 'METRIC_SYSTEM'] as const });
 builder.objectFields(Shop, (t) => ({
   billingAddress: t.field({ type: ShopAddress, resolve: (s) => shopAddressOf(s) }),
-  unitSystem: t.string({ resolve: (s) => (s.weightUnit === 'POUNDS' || s.weightUnit === 'OUNCES' ? 'IMPERIAL_SYSTEM' : 'METRIC_SYSTEM') }),
+  unitSystem: t.field({ type: UnitSystem, resolve: (s) => (s.weightUnit === 'POUNDS' || s.weightUnit === 'OUNCES' ? 'IMPERIAL_SYSTEM' : 'METRIC_SYSTEM') as 'METRIC_SYSTEM' }),
   /** ShopMe: "Charge tax on shipping" (settings > taxes). */
   shopmeTaxShipping: t.boolean({ resolve: (s) => s.settings.taxShipping === true }),
   /** ShopMe: storefront password protection (settings > preferences). */

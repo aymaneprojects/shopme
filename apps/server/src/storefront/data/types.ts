@@ -12,7 +12,7 @@ export interface VariantObject {
   requires_shipping: boolean; taxable: boolean; weight: number; weight_unit: string;
   featured_image: Image | null; featured_media: Image | null; image: Image | null; url: string; position: number; product_id: number;
   quantity_rule: { min: number; max: number | null; increment: number }; quantity_price_breaks: unknown[]; selling_plan_allocations: unknown[]; requires_selling_plan: boolean;
-  unit_price_measurement: null; unit_price: null; metafields: Record<string, unknown>; created_at: string | null; updated_at: string | null;
+  unit_price_measurement: { quantity_value: number; quantity_unit: string; reference_value: number; reference_unit: string } | null; unit_price: number | null; metafields: Record<string, unknown>; created_at: string | null; updated_at: string | null;
 }
 
 export interface ProductObject {

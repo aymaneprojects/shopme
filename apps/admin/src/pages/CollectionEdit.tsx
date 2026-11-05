@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
 import { ConditionsBuilder } from '../components/ConditionsBuilder';
+import { MetafieldsEditor } from '../components/MetafieldsEditor';
 import { PageHeader } from '../components/PageHeader';
 import { ProductPicker } from '../components/Pickers';
 import type { PickedProduct } from '../components/Pickers';
@@ -143,6 +144,8 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
               </ul>
             )}
           </Card>
+
+          {id && <MetafieldsEditor ownerId={id} ownerType="COLLECTION" />}
 
           <Card title={t('product.seo')}>
             <div className="flex flex-col gap-3">

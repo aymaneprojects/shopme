@@ -3,6 +3,14 @@
   "rootType": "Collection",
   "fields": [
     {
+      "path": "availablePublicationsCount",
+      "type": "Count"
+    },
+    {
+      "path": "availablePublicationsCount.count",
+      "type": "Int!"
+    },
+    {
       "path": "descriptionHtml",
       "type": "HTML!"
     },
@@ -32,6 +40,18 @@
     },
     {
       "path": "productsCount.count",
+      "type": "Int!"
+    },
+    {
+      "path": "publishedOnCurrentPublication",
+      "type": "Boolean!"
+    },
+    {
+      "path": "resourcePublicationsCount",
+      "type": "Count"
+    },
+    {
+      "path": "resourcePublicationsCount.count",
       "type": "Int!"
     },
     {

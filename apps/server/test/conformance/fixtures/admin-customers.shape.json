@@ -43,6 +43,10 @@
       "type": "CurrencyCode!"
     },
     {
+      "path": "canDelete",
+      "type": "Boolean!"
+    },
+    {
       "path": "createdAt",
       "type": "DateTime!"
     },
@@ -71,6 +75,10 @@
       "type": "String!"
     },
     {
+      "path": "emailMarketingConsent",
+      "type": "CustomerEmailMarketingConsentState"
+    },
+    {
       "path": "firstName",
       "type": "String"
     },
@@ -83,8 +91,16 @@
       "type": "String"
     },
     {
+      "path": "lastOrder",
+      "type": "Order"
+    },
+    {
       "path": "legacyResourceId",
       "type": "UnsignedInt64!"
+    },
+    {
+      "path": "lifetimeDuration",
+      "type": "String!"
     },
     {
       "path": "locale",
@@ -99,8 +115,24 @@
       "type": "UnsignedInt64!"
     },
     {
+      "path": "smsMarketingConsent",
+      "type": "CustomerSmsMarketingConsentState"
+    },
+    {
       "path": "state",
       "type": "CustomerState!"
+    },
+    {
+      "path": "statistics",
+      "type": "CustomerStatistics!"
+    },
+    {
+      "path": "statistics.predictedSpendTier",
+      "type": "CustomerPredictedSpendTier"
+    },
+    {
+      "path": "statistics.rfmGroup",
+      "type": "CustomerRfmGroup"
     },
     {
       "path": "tags",
@@ -109,6 +141,10 @@
     {
       "path": "taxExempt",
       "type": "Boolean!"
+    },
+    {
+      "path": "unsubscribeUrl",
+      "type": "URL!"
     },
     {
       "path": "verifiedEmail",

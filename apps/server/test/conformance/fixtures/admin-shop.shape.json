@@ -1,0 +1,146 @@
+{
+  "root": "shop",
+  "rootType": "Shop",
+  "fields": [
+    {
+      "path": "billingAddress",
+      "type": "ShopAddress!"
+    },
+    {
+      "path": "billingAddress.city",
+      "type": "String"
+    },
+    {
+      "path": "checkoutApiSupported",
+      "type": "Boolean!"
+    },
+    {
+      "path": "contactEmail",
+      "type": "String!"
+    },
+    {
+      "path": "currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "currencySettings",
+      "type": "CurrencySettingConnection!"
+    },
+    {
+      "path": "currencySettings.nodes",
+      "type": "[CurrencySetting!]!"
+    },
+    {
+      "path": "currencySettings.nodes[].currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
+      "path": "currencySettings.nodes[].currencyName",
+      "type": "String!"
+    },
+    {
+      "path": "currencySettings.nodes[].enabled",
+      "type": "Boolean!"
+    },
+    {
+      "path": "enabledPresentmentCurrencies",
+      "type": "[CurrencyCode!]!"
+    },
+    {
+      "path": "features",
+      "type": "ShopFeatures!"
+    },
+    {
+      "path": "features.storefront",
+      "type": "Boolean!"
+    },
+    {
+      "path": "ianaTimezone",
+      "type": "String!"
+    },
+    {
+      "path": "myshopifyDomain",
+      "type": "String!"
+    },
+    {
+      "path": "orderNumberFormatPrefix",
+      "type": "String!"
+    },
+    {
+      "path": "orderNumberFormatSuffix",
+      "type": "String!"
+    },
+    {
+      "path": "plan",
+      "type": "ShopPlan!"
+    },
+    {
+      "path": "plan.displayName",
+      "type": "String!"
+    },
+    {
+      "path": "plan.partnerDevelopment",
+      "type": "Boolean!"
+    },
+    {
+      "path": "plan.shopifyPlus",
+      "type": "Boolean!"
+    },
+    {
+      "path": "primaryDomain",
+      "type": "Domain!"
+    },
+    {
+      "path": "primaryDomain.url",
+      "type": "URL!"
+    },
+    {
+      "path": "setupRequired",
+      "type": "Boolean!"
+    },
+    {
+      "path": "shipsToCountries",
+      "type": "[CountryCode!]!"
+    },
+    {
+      "path": "shopAddress",
+      "type": "ShopAddress!"
+    },
+    {
+      "path": "shopAddress.address1",
+      "type": "String"
+    },
+    {
+      "path": "shopAddress.countryCodeV2",
+      "type": "CountryCode"
+    },
+    {
+      "path": "taxesIncluded",
+      "type": "Boolean!"
+    },
+    {
+      "path": "taxShipping",
+      "type": "Boolean!"
+    },
+    {
+      "path": "timezoneAbbreviation",
+      "type": "String!"
+    },
+    {
+      "path": "timezoneOffset",
+      "type": "String!"
+    },
+    {
+      "path": "timezoneOffsetMinutes",
+      "type": "Int!"
+    },
+    {
+      "path": "unitSystem",
+      "type": "UnitSystem!"
+    },
+    {
+      "path": "weightUnit",
+      "type": "WeightUnit!"
+    }
+  ]
+}

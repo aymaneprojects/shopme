@@ -1,4 +1,4 @@
-import { Banner, Button, Card, EmptyState, IndexTable, Pagination, useToast } from '@shopme/ui';
+import { Banner, Button, Card, EmptyState, IndexTable, Input, Modal, Pagination, Select, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Warehouse } from 'lucide-react';
@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { gql, mutate } from '../api';
 import { PageHeader } from '../components/PageHeader';
 import { ExportButton, ImportButton } from '../components/CsvTools';
-import { INVENTORY_SET_QUANTITIES, INVENTORY_VARIANTS, LOCATIONS } from '../graphql';
+import { INVENTORY_ACTIVATE, INVENTORY_MOVE, INVENTORY_SET_QUANTITIES, INVENTORY_VARIANTS, LOCATIONS } from '../graphql';
 import { useT } from '../i18n';
 import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
@@ -30,6 +30,7 @@ export function InventoryPage() {
   const term = useDebounced(search);
   const [cursor, setCursor] = useState<{ after?: string; before?: string }>({});
   const [edits, setEdits] = useState<Record<string, string>>({});
+  const [moving, setMoving] = useState<{ v: VariantRow; to: string; qty: string } | null>(null);
 
   const locs = useQuery({ queryKey: ['locations'], queryFn: () => gql<{ locations: { nodes: Array<{ id: string; name: string; isActive: boolean }> } }>(LOCATIONS) });
   const list = useQuery({
@@ -54,6 +55,18 @@ export function InventoryPage() {
     onError: (e) => toast(e.message, 'critical'),
   });
 
+  const move = useMutation({
+    mutationFn: async () => {
+      const { v, to, qty: n } = moving!;
+      const item = v.inventoryItem.id;
+      // Stock the item at the destination first if it is not there yet (a no-op otherwise).
+      await mutate(INVENTORY_ACTIVATE, { inventoryItemId: item, locationId: to, available: 0 }, 'inventoryActivate');
+      return mutate(INVENTORY_MOVE, { input: { reason: 'movement_created', referenceDocumentUri: `shopme://inventory/${item.split('/').pop()}`, changes: [{ inventoryItemId: item, quantity: Math.trunc(Number(n)), from: { locationId: location, name: 'available' }, to: { locationId: to, name: 'available' } }] } }, 'inventoryMoveQuantities');
+    },
+    onSuccess: () => { toast(t('inventory.moved')); setMoving(null); void qc.invalidateQueries({ queryKey: ['inventory'] }); void qc.invalidateQueries({ queryKey: ['products'] }); },
+    onError: (e) => toast(e.message, 'critical'),
+  });
+
   const columns: Array<Column<VariantRow>> = [
     { key: 'img', header: '', className: 'w-14', cell: (v) => <Thumb url={v.product.featuredMedia?.image?.url} /> },
     { key: 'product', header: t('products.product'), cell: (v) => <div><div className="font-medium">{v.product.title}</div>{v.title !== 'Default Title' && <div className="text-xs text-muted">{v.title}</div>}</div> },
@@ -73,6 +86,9 @@ export function InventoryPage() {
       },
     },
     { key: 'onhand', header: t('inventory.onHand'), cell: (v) => qty(levelsOf(v), 'on_hand') },
+    ...(location && (locs.data?.locations.nodes.filter((l) => l.isActive !== false).length ?? 0) > 1
+      ? [{ key: 'move', header: '', className: 'w-24', cell: (v: VariantRow) => <Button size="sm" aria-label={`${t('inventory.move')} ${v.product.title}`} onClick={() => setMoving({ v, to: '', qty: '1' })}>{t('inventory.move')}</Button> }]
+      : []),
   ];
   const pi = list.data?.productVariants.pageInfo;
   const dirtyCount = Object.keys(edits).length;
@@ -99,6 +115,19 @@ export function InventoryPage() {
           previousLabel={t('common.previous')} nextLabel={t('common.next')}
           onPrevious={() => setCursor({ before: pi?.startCursor ?? undefined })} onNext={() => setCursor({ after: pi?.endCursor ?? undefined })} />
       </Card>
+      <Modal open={!!moving} onClose={() => setMoving(null)} closeLabel={t('common.close')} title={t('inventory.moveTitle')}
+        footer={<><Button onClick={() => setMoving(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={move.isPending} disabled={!moving?.to || !(Number(moving.qty) >= 1)} onClick={() => move.mutate()}>{t('inventory.move')}</Button></>}>
+        {moving && (
+          <div className="grid gap-3">
+            <p className="text-sm">{moving.v.product.title}{moving.v.title !== 'Default Title' && ` · ${moving.v.title}`}</p>
+            <Select label={t('inventory.moveTo')} value={moving.to} onChange={(e) => setMoving({ ...moving, to: e.target.value })}>
+              <option value="">{t('loc.chooseLocation')}</option>
+              {locs.data?.locations.nodes.filter((l) => l.isActive !== false && l.id !== location).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </Select>
+            <Input label={t('inventory.moveQuantity')} type="number" min={1} max={Math.max(0, qty(levelsOf(moving.v), 'available'))} value={moving.qty} onChange={(e) => setMoving({ ...moving, qty: e.target.value })} />
+          </div>
+        )}
+      </Modal>
     </>
   );
 }

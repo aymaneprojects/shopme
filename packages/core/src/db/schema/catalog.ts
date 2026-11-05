@@ -43,6 +43,8 @@ export const products = pgTable('products', {
   seoTitle: text('seo_title'), seoDescription: text('seo_description'),
   publishedAt: ts('published_at'),
   isGiftCard: boolean('is_gift_card').notNull().default(false),
+  /** Taxonomy category id (see services/catalog/taxonomy). */
+  category: text('category'),
   ...timestamps(),
 }, (t) => [
   uniqueIndex('products_shop_handle_uq').on(t.shopId, t.handle),
@@ -81,6 +83,9 @@ export const productVariants = pgTable('product_variants', {
   taxCode: text('tax_code'),
   inventoryPolicy: text('inventory_policy').notNull().default('DENY'),
   mediaId: ref('media_id').references(() => media.id, { onDelete: 'set null' }),
+  /** Unit price measurement, e.g. 750 ml priced per 100 ml. */
+  unitQuantityValue: numeric('unit_quantity_value', { precision: 12, scale: 4, mode: 'number' }), unitQuantityUnit: text('unit_quantity_unit'),
+  unitReferenceValue: integer('unit_reference_value'), unitReferenceUnit: text('unit_reference_unit'),
   ...timestamps(),
 }, (t) => [index('product_variants_product_idx').on(t.productId, t.position), index('product_variants_sku_idx').on(t.shopId, t.sku),
   check('product_variants_policy_chk', oneOf(t.inventoryPolicy, ['DENY', 'CONTINUE']))]);
@@ -98,6 +103,8 @@ export const locations = pgTable('locations', {
   name: text('name').notNull(),
   isActive: boolean('is_active').notNull().default(true),
   fulfillsOnlineOrders: boolean('fulfills_online_orders').notNull().default(true),
+  /** Stock allocation order for online orders: lowest first. */
+  priority: integer('priority').notNull().default(0),
   address1: text('address1'), address2: text('address2'), city: text('city'), provinceCode: text('province_code'),
   zip: text('zip'), countryCode: text('country_code'), phone: text('phone'),
   ...timestamps(),

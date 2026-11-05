@@ -177,4 +177,47 @@ describe('checkout with Stripe', () => {
   });
 });
 
+describe('multi-location stock allocation', () => {
+  it('commits from the first online location by priority that holds the whole quantity, then spills over; fulfillment ships from the chosen location', async () => {
+    const db = t.dbHandle.db;
+    const shop = (await getPrimaryShop(db))!;
+    const [item] = await db.select().from(s.inventoryItems).where(eq(s.inventoryItems.variantId, sku['CPD-SL']!));
+    const [main] = await db.select().from(s.locations).where(eq(s.locations.shopId, shop.id)).orderBy(s.locations.id);
+    const [b] = await db.insert(s.locations).values({ shopId: shop.id, name: 'Warehouse B', priority: 1 }).returning();
+    const [c] = await db.insert(s.locations).values({ shopId: shop.id, name: 'Retail only', fulfillsOnlineOrders: false, priority: 0 }).returning();
+    await db.update(s.inventoryLevels).set({ available: 1, onHand: 1 }).where(eq(s.inventoryLevels.inventoryItemId, item!.id));
+    await db.insert(s.inventoryLevels).values([
+      { shopId: shop.id, inventoryItemId: item!.id, locationId: b!.id, available: 5, onHand: 5 },
+      { shopId: shop.id, inventoryItemId: item!.id, locationId: c!.id, available: 9, onHand: 9 },
+    ]);
+    await db.update(s.locations).set({ priority: 0 }).where(eq(s.locations.id, main!.id));
+    const level = async (loc: number) => (await db.select().from(s.inventoryLevels).where(eq(s.inventoryLevels.inventoryItemId, item!.id))).find((l) => l.locationId === loc)!;
+    const place = async (qty: number) => {
+      const { token } = await startCheckout('CPD-SL', qty);
+      await refresh(token, ADDRESS);
+      const done = await t.app.inject({ method: 'POST', url: `/checkouts/${token}/complete`, payload: new URLSearchParams({ ...ADDRESS, paymentMethod: 'bank_transfer' }).toString(), headers: { 'content-type': 'application/x-www-form-urlencoded' } });
+      expect(done.statusCode).toBe(303);
+      return (await db.select().from(s.orders).where(eq(s.orders.cartToken, token)))[0]!;
+    };
+
+    // 3 units: the main location only has 1, so the whole quantity comes from Warehouse B (retail-only location is skipped).
+    const o1 = await place(3);
+    expect(await level(b!.id)).toMatchObject({ available: 2, committed: 3 });
+    expect(await level(main!.id)).toMatchObject({ available: 1, committed: 0 });
+    expect(await level(c!.id)).toMatchObject({ available: 9, committed: 0 });
+    // 1 unit: priority 0 (main) holds it.
+    const o2 = await place(1);
+    expect(await level(main!.id)).toMatchObject({ available: 0, committed: 1 });
+    // Fulfil order 1 from Warehouse B explicitly, order 2 from the default location.
+    const f1 = await createFulfillment(db, shop.id, o1.id, { locationId: b!.id });
+    expect(f1.ok && f1.value.fulfillment.locationId).toBe(b!.id);
+    expect(await level(b!.id)).toMatchObject({ committed: 0, onHand: 2 });
+    const f2 = await createFulfillment(db, shop.id, o2.id, {});
+    expect(f2.ok && f2.value.fulfillment.locationId).toBe(main!.id);
+    expect(await level(main!.id)).toMatchObject({ committed: 0, onHand: 0 });
+    const bad = await createFulfillment(db, shop.id, o2.id, { locationId: 999999 });
+    expect(bad.ok).toBe(false);
+  });
+});
+
 describe('seed', () => { it('shop exists', async () => { expect(await getPrimaryShop(t.dbHandle.db)).not.toBeNull(); }); });

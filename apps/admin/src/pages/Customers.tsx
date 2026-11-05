@@ -13,6 +13,7 @@ import { gidToNum, numToGid } from '../format';
 import { CUSTOMER, CUSTOMERS, CUSTOMERS_COUNT, CUSTOMER_DELETE, CUSTOMER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
+import { MetafieldsEditor } from '../components/MetafieldsEditor';
 import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
 
@@ -168,6 +169,7 @@ function CustomerView({ c }: { c: CustomerData }) {
               <div><dt className="text-muted">{t('customers.since')}</dt><dd className="text-lg font-semibold">{since}</dd></div>
             </dl>
           </Card>
+          <MetafieldsEditor ownerId={c.id} ownerType="CUSTOMER" />
           <Card title={t('customers.recentOrders')} actions={c.numberOfOrders > 0 && <Link className="text-sm text-primary hover:underline" to={`/orders?q=${encodeURIComponent(`customer_id:${num}`)}`}>{t('customers.viewAllOrders')}</Link>}>
             {c.orders.nodes.length === 0 ? <p className="text-sm text-muted">{t('customers.noOrders')}</p> : (
               <ul className="divide-y divide-line">

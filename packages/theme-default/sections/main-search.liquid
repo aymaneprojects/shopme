@@ -3,7 +3,7 @@
   <form class="search-form" role="search" action="{{ routes.search_url }}" method="get">
     <label class="visually-hidden" for="search-q">{{ 'accessibility.search' | t }}</label>
     <input id="search-q" class="search-form__input" type="search" name="q" value="{{ search.terms | escape }}" placeholder="{{ 'search.placeholder' | t }}" autocomplete="off">
-    <input type="hidden" name="type" value="product">
+    <input type="hidden" name="type" value="{{ search.types | join: ',' }}">
     <button class="button" type="submit">{{ 'search.submit' | t }}</button>
   </form>
 
@@ -11,9 +11,20 @@
     {%- paginate search.results by section.settings.products_per_page -%}
       {%- if search.results_count > 0 -%}
         <p class="toolbar__count">{{ 'search.results' | t: count: search.results_count, terms: search.terms }}</p>
+        {%- if search.corrected_terms -%}<p class="search-corrected">{{ 'search.corrected' | t: terms: search.corrected_terms }}</p>{%- endif -%}
         <ul class="grid grid--4" role="list">
-          {%- for product in search.results -%}
-            <li>{% render 'product-card', card_product: product %}</li>
+          {%- for item in search.results -%}
+            {%- if item.object_type == 'article' or item.object_type == 'page' -%}
+              <li class="search-result">
+                <a class="search-result__link" href="{{ item.url }}">
+                  <span class="search-result__type">{{ 'search.type.' | append: item.object_type | t }}</span>
+                  <span class="search-result__title">{{ item.title | escape }}</span>
+                  <span class="search-result__excerpt">{{ item.excerpt_or_content | default: item.content | strip_html | truncate: 140 }}</span>
+                </a>
+              </li>
+            {%- else -%}
+              <li>{% render 'product-card', card_product: item %}</li>
+            {%- endif -%}
           {%- endfor -%}
         </ul>
         {% render 'pagination', paginate: paginate %}

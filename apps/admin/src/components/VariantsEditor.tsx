@@ -1,4 +1,4 @@
-import { Button, Checkbox, Input, Select, Switch, TagInput } from '@shopme/ui';
+import { Button, Checkbox, Input, Select, Switch, TagInput, cx } from '@shopme/ui';
 import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { formatMoney, parseDecimal } from '../format';
@@ -7,6 +7,8 @@ import { MAX_OPTIONS, WEIGHT_UNITS, generateVariants, variantLabel } from '../li
 import type { OptionDef, VariantDraft } from '../lib/variants';
 
 export interface LocationRef { id: string; name: string }
+export interface MediaRef { id: string; url: string }
+export const UNIT_MEASURES = ['ML', 'CL', 'L', 'M3', 'MG', 'G', 'KG', 'MM', 'CM', 'M', 'M2', 'ITEM'] as const;
 type Patch = (p: Partial<VariantDraft>) => void;
 
 /** Options (name + values) editor. Every change regenerates the variant combinations. */
@@ -49,7 +51,49 @@ export function PricingFields({ v, patch, currency }: { v: VariantDraft; patch: 
       <Input label={t('pricing.cost')} inputMode="decimal" help={t('pricing.costHelp')} value={v.cost} onChange={(e) => patch({ cost: e.target.value })} />
       <div className="sm:col-span-3"><Switch checked={v.taxable} onChange={(taxable) => patch({ taxable })} label={t('pricing.chargeTax')} /></div>
       {profit !== null && price ? <p className="text-xs text-muted sm:col-span-3">{t('pricing.margin', { profit: formatMoney(profit, currency), pct: Math.round((profit / price) * 100) })}</p> : null}
+      <UnitPriceFields v={v} patch={patch} currency={currency} />
     </div>
+  );
+}
+
+/** "Unit price": 750 ml sold at 9.00 is shown as 1.20 per 100 ml on the storefront. */
+export function UnitPriceFields({ v, patch, currency }: { v: VariantDraft; patch: Patch; currency: string }) {
+  const t = useT();
+  const price = parseDecimal(v.price), q = parseDecimal(v.unitQuantity), r = parseDecimal(v.unitReference);
+  const unitPrice = price !== null && q && q > 0 && r && r > 0 ? (price / q) * r : null;
+  const measures = (id: string, value: string, onChange: (x: string) => void, label: string) => (
+    <Select label={label} value={value} onChange={(e) => onChange(e.target.value)}>{UNIT_MEASURES.map((u) => <option key={u} value={u}>{u}</option>)}</Select>
+  );
+  return (
+    <details className="rounded-md border border-line p-3 sm:col-span-3" open={!!v.unitQuantity}>
+      <summary className="cursor-pointer text-sm font-medium">{t('pricing.unitPrice')}</summary>
+      <div className="mt-3 grid gap-3 sm:grid-cols-4">
+        <Input label={t('pricing.unitQuantity')} inputMode="decimal" value={v.unitQuantity} onChange={(e) => patch({ unitQuantity: e.target.value })} />
+        {measures('uq', v.unitQuantityUnit, (unitQuantityUnit) => patch({ unitQuantityUnit }), t('pricing.unitUnit'))}
+        <Input label={t('pricing.unitReference')} inputMode="decimal" value={v.unitReference} onChange={(e) => patch({ unitReference: e.target.value })} />
+        {measures('ur', v.unitReferenceUnit, (unitReferenceUnit) => patch({ unitReferenceUnit }), t('pricing.unitUnit'))}
+        <p className="text-xs text-muted sm:col-span-4">{unitPrice !== null ? t('pricing.unitPriceShown', { price: formatMoney(unitPrice, currency), ref: `${v.unitReference} ${v.unitReferenceUnit}` }) : t('pricing.unitPriceHelp')}</p>
+      </div>
+    </details>
+  );
+}
+
+/** Pick the variant's image among the product's media. */
+export function VariantMediaPicker({ v, patch, media }: { v: VariantDraft; patch: Patch; media: MediaRef[] }) {
+  const t = useT();
+  if (!media.length) return <p className="text-xs text-muted">{t('variants.noMedia')}</p>;
+  return (
+    <fieldset className="flex flex-col gap-1.5">
+      <legend className="text-sm font-medium">{t('variants.image')}</legend>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" aria-pressed={!v.mediaId} onClick={() => patch({ mediaId: '' })} className={cx('grid size-14 place-items-center rounded-md border text-xs text-muted', !v.mediaId ? 'border-primary ring-2 ring-primary' : 'border-line')}>{t('variants.noImage')}</button>
+        {media.map((m) => (
+          <button key={m.id} type="button" aria-label={t('variants.useImage')} aria-pressed={v.mediaId === m.id} onClick={() => patch({ mediaId: m.id })} className={cx('size-14 overflow-hidden rounded-md border', v.mediaId === m.id ? 'border-primary ring-2 ring-primary' : 'border-line')}>
+            <img src={m.url} alt="" className="size-full object-cover" />
+          </button>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
@@ -92,7 +136,7 @@ export function ShippingFields({ v, patch }: { v: VariantDraft; patch: Patch }) 
 }
 
 /** One row per variant: quick edit of price/SKU, expandable for the rest. */
-export function VariantsTable({ variants, locations, currency, onChange }: { variants: VariantDraft[]; locations: LocationRef[]; currency: string; onChange: (v: VariantDraft[]) => void }) {
+export function VariantsTable({ variants, locations, currency, media = [], onMetafields, onChange }: { variants: VariantDraft[]; locations: LocationRef[]; currency: string; media?: MediaRef[]; onMetafields?: (variantId: string) => void; onChange: (v: VariantDraft[]) => void }) {
   const t = useT();
   const [open, setOpen] = useState<string | null>(null);
   const patchAt = (key: string): Patch => (p) => onChange(variants.map((v) => (v.key === key ? { ...v, ...p } : v)));
@@ -110,7 +154,7 @@ export function VariantsTable({ variants, locations, currency, onChange }: { var
               <Fragment key={v.key}>
                 <tr className="border-t border-line">
                   <td className="pl-2"><button type="button" aria-label={t('variants.details')} aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : v.key)}>{isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}</button></td>
-                  <td className="px-3 py-2 font-medium">{variantLabel(v, t('variants.default'))}</td>
+                  <td className="px-3 py-2 font-medium"><span className="inline-flex items-center gap-2">{media.find((m) => m.id === v.mediaId) && <img src={media.find((m) => m.id === v.mediaId)!.url} alt="" className="size-7 rounded object-cover" />}{variantLabel(v, t('variants.default'))}</span></td>
                   <td className="px-3 py-1"><input aria-label={`${t('pricing.price')} ${variantLabel(v, '')}`} inputMode="decimal" className="w-24 rounded-md border border-line bg-canvas px-2 py-1" value={v.price} onChange={(e) => patchAt(v.key)({ price: e.target.value })} /></td>
                   <td className="px-3 py-2">{v.tracked ? total : <span className="text-muted">{t('products.notTracked')}</span>}</td>
                 </tr>
@@ -120,6 +164,8 @@ export function VariantsTable({ variants, locations, currency, onChange }: { var
                       <PricingFields v={v} patch={patchAt(v.key)} currency={currency} />
                       <InventoryFields v={v} patch={patchAt(v.key)} locations={locations} compact />
                       <ShippingFields v={v} patch={patchAt(v.key)} />
+                      <VariantMediaPicker v={v} patch={patchAt(v.key)} media={media} />
+                      {v.id && onMetafields && <div><Button size="sm" onClick={() => onMetafields(v.id!)}>{t('mf.variantMetafields')}</Button></div>}
                       {v.id === undefined && <Button variant="plain" size="sm" onClick={() => onChange(variants.filter((x) => x.key !== v.key))}><Trash2 className="size-4" />{t('variants.remove')}</Button>}
                     </div>
                   </td></tr>

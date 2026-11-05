@@ -37,7 +37,7 @@
     </nav>
 
     <div class="site-header__actions">
-      <a class="icon-button" href="{{ routes.search_url }}">
+      <a class="icon-button" href="{{ routes.search_url }}" data-search-toggle aria-controls="predictive-search" aria-expanded="false">
         <span class="visually-hidden">{{ 'header.search' | t }}</span>
         {% render 'icon', name: 'search' %}
       </a>
@@ -52,6 +52,19 @@
         {% render 'icon', name: 'cart' %}
         <span class="cart-count{% if cart.item_count == 0 %} is-empty{% endif %}" data-cart-count aria-hidden="true">{{ cart.item_count }}</span>
       </a>
+    </div>
+  </div>
+  <div class="predictive-search" id="predictive-search" data-predictive-search data-url="{{ routes.predictive_search_url }}" hidden>
+    <div class="page-width">
+      <form class="predictive-search__form" role="search" action="{{ routes.search_url }}" method="get">
+        <label class="visually-hidden" for="predictive-search-q">{{ 'accessibility.search' | t }}</label>
+        <input id="predictive-search-q" class="search-form__input" type="search" name="q" placeholder="{{ 'search.placeholder' | t }}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="predictive-search-results" data-predictive-input>
+        <button class="button" type="submit">{{ 'search.submit' | t }}</button>
+      </form>
+      {%- capture search_labels -%}
+        {"queries":{{ 'search.predictive.queries' | t | json }},"products":{{ 'search.predictive.products' | t | json }},"collections":{{ 'search.predictive.collections' | t | json }},"pages":{{ 'search.predictive.pages' | t | json }},"articles":{{ 'search.predictive.articles' | t | json }},"none":{{ 'search.predictive.none' | t | json }},"all":{{ 'search.predictive.all' | t | json }}}
+      {%- endcapture -%}
+      <div class="predictive-search__results" id="predictive-search-results" role="listbox" aria-live="polite" data-predictive-results data-labels="{{ search_labels | escape }}"></div>
     </div>
   </div>
 </header>
