@@ -1,6 +1,6 @@
-import { Badge, Banner, Button, Card, Checkbox, ConfirmDialog, Dropdown, Input, Select, Skeleton, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, ButtonGroup, Card, Checkbox, ConfirmDialog, Dropdown, Input, Select, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
@@ -148,16 +148,19 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
           <Card title={t('discount.method')}>
             <div className="flex flex-col gap-3">
               {!id && (
-                <Select label={t('discounts.method')} value={form.method} onChange={(e) => set({ method: e.target.value as DiscountMethod })}>
-                  <option value="code">{t('discounts.method.code')}</option><option value="automatic">{t('discounts.method.automatic')}</option>
-                </Select>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[13px] font-medium">{t('discounts.method')}</span>
+                  <ButtonGroup aria-label={t('discounts.method')}>
+                    {(['code', 'automatic'] as const).map((m) => <Button key={m} aria-pressed={form.method === m} onClick={() => set({ method: m })}>{t(`discounts.method.${m}` as Key)}</Button>)}
+                  </ButtonGroup>
+                </div>
               )}
               {automatic ? (
                 <Input label={t('discount.title')} help={t('discount.titleHelp')} value={form.title} error={err('title')} onChange={(e) => set({ title: e.target.value })} />
               ) : (
                 <div className="flex items-end gap-2">
                   <Input className="flex-1" label={t('discounts.code')} help={t('discount.codeHelp')} value={form.code} error={err('code')} onChange={(e) => set({ code: e.target.value.toUpperCase() })} />
-                  <Button onClick={() => set({ code: generateCode() })}>{t('discount.generate')}</Button>
+                  <Button variant="plain" onClick={() => set({ code: generateCode() })}>{t('discount.generate')}</Button>
                 </div>
               )}
             </div>
@@ -243,8 +246,10 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
           <Card title={t('discount.dates')}>
             <div className="flex flex-col gap-3">
               <Input className="max-w-64" type="datetime-local" label={t('discount.startsAt')} value={form.startsAt} onChange={(e) => set({ startsAt: e.target.value })} />
-              <Checkbox label={t('discount.setEnd')} checked={form.hasEnd} onChange={(e) => set({ hasEnd: e.target.checked })} />
-              {form.hasEnd && <Input className="max-w-64" type="datetime-local" label={t('discount.endsAt')} value={form.endsAt} error={err('endsAt')} onChange={(e) => set({ endsAt: e.target.value })} />}
+              {form.hasEnd
+                ? <><Input className="max-w-64" type="datetime-local" label={t('discount.endsAt')} value={form.endsAt} error={err('endsAt')} onChange={(e) => set({ endsAt: e.target.value })} />
+                  <div><Button variant="plain" onClick={() => set({ hasEnd: false })}>{t('discount.removeEnd')}</Button></div></>
+                : <div><Button onClick={() => set({ hasEnd: true })}><Plus className="size-4" />{t('discount.setEnd')}</Button></div>}
               <p className="text-xs text-muted">{t('discount.timezone', { tz: shop.timezone })}</p>
             </div>
           </Card>

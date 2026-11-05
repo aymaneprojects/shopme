@@ -1,14 +1,15 @@
-import { Banner, Button, Card, EmptyState, IndexTable, Input, Modal, Pagination, Select, useToast } from '@shopme/ui';
+import { Banner, Button, Card, EmptyState, IndexTable, Input, Modal, Pagination, Select, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, Warehouse } from 'lucide-react';
+import { ClipboardList, Search, Warehouse } from 'lucide-react';
 import { useState } from 'react';
 import { gql, mutate } from '../api';
+import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
 import { PageHeader } from '../components/PageHeader';
 import { ExportButton, ImportButton } from '../components/CsvTools';
 import { INVENTORY_ACTIVATE, INVENTORY_MOVE, INVENTORY_SET_QUANTITIES, INVENTORY_VARIANTS, LOCATIONS } from '../graphql';
 import { useT } from '../i18n';
-import { useDebounced } from '../lib/hooks';
+import { q as quote, useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
 import { Thumb } from './Products';
 
@@ -31,6 +32,8 @@ export function InventoryPage() {
   const [cursor, setCursor] = useState<{ after?: string; before?: string }>({});
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [moving, setMoving] = useState<{ v: VariantRow; to: string; qty: string } | null>(null);
+  const [counting, setCounting] = useState<{ location: string; text: string } | null>(null);
+  const cols = useColumnVisibility('inventory');
 
   const locs = useQuery({ queryKey: ['locations'], queryFn: () => gql<{ locations: { nodes: Array<{ id: string; name: string; isActive: boolean }> } }>(LOCATIONS) });
   const list = useQuery({
@@ -67,10 +70,30 @@ export function InventoryPage() {
     onError: (e) => toast(e.message, 'critical'),
   });
 
+  const countStock = useMutation({
+    mutationFn: async () => {
+      const { location: loc, text } = counting!;
+      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).map((l) => { const [sku = '', n = ''] = l.split(/[,;\t]/).map((x) => x.trim()); return { sku, n: Number(n) }; });
+      const bad = lines.find((l) => !l.sku || !Number.isInteger(l.n) || l.n < 0);
+      if (bad) throw new Error(t('inventory.countBadLine', { line: `${bad.sku || '?'}` }));
+      const quantities: Array<{ inventoryItemId: string; locationId: string; quantity: number }> = [];
+      for (const l of lines) {
+        const r = await gql<{ productVariants: Connection<VariantRow> }>(INVENTORY_VARIANTS, { first: 5, query: `sku:${quote(l.sku)}` });
+        const v = r.productVariants.nodes.find((x) => x.sku === l.sku && x.inventoryItem.tracked);
+        if (!v) throw new Error(t('inventory.countUnknownSku', { sku: l.sku }));
+        quantities.push({ inventoryItemId: v.inventoryItem.id, locationId: loc, quantity: l.n });
+      }
+      return mutate(INVENTORY_SET_QUANTITIES, { input: { reason: 'cycle_count_available', name: 'available', quantities } }, 'inventorySetQuantities');
+    },
+    onSuccess: () => { toast(t('inventory.countDone')); setCounting(null); void qc.invalidateQueries({ queryKey: ['inventory'] }); void qc.invalidateQueries({ queryKey: ['products'] }); },
+    onError: (e) => toast(e.message, 'critical'),
+  });
+
   const columns: Array<Column<VariantRow>> = [
     { key: 'img', header: '', className: 'w-14', cell: (v) => <Thumb url={v.product.featuredMedia?.image?.url} /> },
     { key: 'product', header: t('products.product'), cell: (v) => <div><div className="font-medium">{v.product.title}</div>{v.title !== 'Default Title' && <div className="text-xs text-muted">{v.title}</div>}</div> },
     { key: 'sku', header: t('inventory.sku'), cell: (v) => v.sku || <span className="text-muted">{t('inventory.noSku')}</span> },
+    { key: 'unavailable', header: t('inventory.unavailable'), cell: (v) => qty(levelsOf(v), 'reserved') },
     { key: 'committed', header: t('inventory.committed'), cell: (v) => qty(levelsOf(v), 'committed') },
     {
       key: 'available', header: t('inventory.available'),
@@ -86,6 +109,7 @@ export function InventoryPage() {
       },
     },
     { key: 'onhand', header: t('inventory.onHand'), cell: (v) => qty(levelsOf(v), 'on_hand') },
+    { key: 'incoming', header: t('inventory.incoming'), cell: (v) => qty(levelsOf(v), 'incoming') },
     ...(location && (locs.data?.locations.nodes.filter((l) => l.isActive !== false).length ?? 0) > 1
       ? [{ key: 'move', header: '', className: 'w-24', cell: (v: VariantRow) => <Button size="sm" aria-label={`${t('inventory.move')} ${v.product.title}`} onClick={() => setMoving({ v, to: '', qty: '1' })}>{t('inventory.move')}</Button> }]
       : []),
@@ -95,26 +119,45 @@ export function InventoryPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.inventory')} actions={<><ExportButton kind="inventory" /><ImportButton kind="inventory" invalidate={['inventory']} />{dirtyCount > 0 && <><Button onClick={() => setEdits({})}>{t('save.discard')}</Button><Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('inventory.saveN', { n: dirtyCount })}</Button></>}</>} />
+      <PageHeader
+        title={<span className="flex items-center gap-2">{t('nav.inventory')}
+          <select aria-label={t('inventory.location')} value={location} onChange={(e) => { setLocation(e.target.value); setEdits({}); }} className="field-control font-normal">
+            <option value="">{t('inventory.allLocations')}</option>
+            {locs.data?.locations.nodes.filter((l) => l.isActive !== false).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select></span>}
+        actions={<>
+          {dirtyCount > 0 && <><Button onClick={() => setEdits({})}>{t('save.discard')}</Button><Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('inventory.saveN', { n: dirtyCount })}</Button></>}
+          <Button onClick={() => setCounting({ location: location || locs.data?.locations.nodes.find((l) => l.isActive !== false)?.id || '', text: '' })}><ClipboardList className="size-4" />{t('inventory.counts')}</Button>
+          <ExportButton kind="inventory" /><ImportButton kind="inventory" invalidate={['inventory']} />
+        </>} />
       <Card className="!p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
           <div className="relative min-w-48 flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); setCursor({}); }} placeholder={t('inventory.search')} aria-label={t('inventory.search')} className="field-control w-full pl-8" />
           </div>
-          <select aria-label={t('inventory.location')} value={location} onChange={(e) => { setLocation(e.target.value); setEdits({}); }} className="field-control">
-            <option value="">{t('inventory.allLocations')}</option>
-            {locs.data?.locations.nodes.filter((l) => l.isActive !== false).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
+          <ColumnPicker locked={['product']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
         </div>
         {!location && rows.length > 0 && <p className="border-b border-line px-4 py-2 text-xs text-muted">{t('inventory.pickLocation')}</p>}
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
-        <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading}
+        <IndexTable rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading}
           empty={list.isError ? null : <EmptyState icon={<Warehouse className="size-10" />} title={t('inventory.emptyTitle')} description={t('inventory.emptyBody')} />} />
         <Pagination hasPrevious={cursor.before ? !!pi?.hasPreviousPage : !!cursor.after} hasNext={cursor.before ? true : !!pi?.hasNextPage}
           previousLabel={t('common.previous')} nextLabel={t('common.next')}
           onPrevious={() => setCursor({ before: pi?.startCursor ?? undefined })} onNext={() => setCursor({ after: pi?.endCursor ?? undefined })} />
       </Card>
+      <Modal open={!!counting} onClose={() => setCounting(null)} closeLabel={t('common.close')} title={t('inventory.counts')}
+        footer={<><Button onClick={() => setCounting(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={countStock.isPending} disabled={!counting?.location || !counting.text.trim()} onClick={() => countStock.mutate()}>{t('inventory.countApply')}</Button></>}>
+        {counting && (
+          <div className="grid gap-3">
+            <p className="text-[13px] text-muted">{t('inventory.countHelp')}</p>
+            <Select label={t('inventory.location')} value={counting.location} onChange={(e) => setCounting({ ...counting, location: e.target.value })}>
+              {locs.data?.locations.nodes.filter((l) => l.isActive !== false).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </Select>
+            <Textarea label={t('inventory.countLines')} rows={6} placeholder={'SKU-001, 12\nSKU-002, 0'} value={counting.text} onChange={(e) => setCounting({ ...counting, text: e.target.value })} />
+          </div>
+        )}
+      </Modal>
       <Modal open={!!moving} onClose={() => setMoving(null)} closeLabel={t('common.close')} title={t('inventory.moveTitle')}
         footer={<><Button onClick={() => setMoving(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={move.isPending} disabled={!moving?.to || !(Number(moving.qty) >= 1)} onClick={() => move.mutate()}>{t('inventory.move')}</Button></>}>
         {moving && (

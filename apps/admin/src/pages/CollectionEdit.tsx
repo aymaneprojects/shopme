@@ -1,12 +1,13 @@
-import { Banner, Button, Card, ConfirmDialog, Dropdown, ImageUploader, Input, RichTextEditor, Select, Skeleton, Textarea, useToast } from '@shopme/ui';
+import { Banner, Button, ButtonGroup, Card, ConfirmDialog, ImageUploader, Input, RichTextEditor, Select, Skeleton, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
+import { Copy, Eye, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
 import { ConditionsBuilder } from '../components/ConditionsBuilder';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
 import { PageHeader } from '../components/PageHeader';
+import { PrevNext } from '../components/PrevNext';
 import { ProductPicker } from '../components/Pickers';
 import type { PickedProduct } from '../components/Pickers';
 import { SaveBar, guard } from '../components/SaveBar';
@@ -98,11 +99,32 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
     onError: (e) => toast(e.message, 'critical'),
   });
 
+  const duplicate = useMutation({
+    mutationFn: async () => {
+      const input = {
+        title: t('product.copyOf', { title: form.title.trim() || initial.title }), descriptionHtml: form.descriptionHtml, sortOrder: form.sortOrder, templateSuffix: form.templateSuffix.trim() || null,
+        ...(form.smart && { ruleSet: { appliedDisjunctively: form.ruleSet.appliedDisjunctively, rules: toRuleInput(form.ruleSet.rules) } }),
+      };
+      const created = (await mutate<{ collection: { id: string } }>(COLLECTION_CREATE, { collection: input }, 'collectionCreate')).collection.id;
+      if (!form.smart && form.products.length) await mutate(COLLECTION_ADD_PRODUCTS, { id: created, productIds: form.products.map((p) => p.id) }, 'collectionAddProductsV2');
+      return created;
+    },
+    onSuccess: (cid) => { toast(t('collection.duplicated')); void qc.invalidateQueries({ queryKey: ['collections'] }); guard.off = true; nav(`/collections/${cid.split('/').pop()}`); },
+    onError: (e) => toast(e.message, 'critical'),
+  });
+
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setError(null); setTitleError(null); }} />
       <PageHeader back="/collections" title={id ? form.title || t('collection.untitled') : t('collection.addTitle')}
-        actions={id && <Dropdown align="right" label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[{ key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirmDelete(true) }]} />} />
+        actions={id && <>
+          <ButtonGroup>
+            <Button icon aria-label={t('collection.duplicate')} loading={duplicate.isPending} onClick={() => duplicate.mutate()}><Copy className="size-4" /></Button>
+            <Button icon aria-label={t('collection.view')} onClick={() => { window.open(`/collections/${form.handle || initial.handle}`, '_blank', 'noopener'); }}><Eye className="size-4" /></Button>
+            <Button icon className="text-critical" aria-label={t('common.delete')} onClick={() => setConfirmDelete(true)}><Trash2 className="size-4" /></Button>
+          </ButtonGroup>
+          <PrevNext kind="collections" gid={id} />
+        </>} />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">

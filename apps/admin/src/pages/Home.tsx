@@ -1,13 +1,13 @@
-import { Banner, Card, Skeleton } from '@shopme/ui';
+import { Badge, Banner, Button, Card, Skeleton } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, ExternalLink, Package, ShoppingCart } from 'lucide-react';
+import { BarChart3, CreditCard, ExternalLink, Globe, Package, ScrollText, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { gql } from '../api';
 import { PageHeader } from '../components/PageHeader';
 import { selectCls, useFormat } from '../components/shared';
 import type { Money } from '../components/shared';
-import { SHOPME_DASHBOARD } from '../graphql';
+import { ORDERS_COUNT, SHOPME_DASHBOARD } from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useShop } from '../session';
@@ -40,6 +40,8 @@ export function HomePage() {
   const t = useT();
   const fmt = useFormat();
   const { shop, user } = useShop();
+  const nav = useNavigate();
+  const toProcess = useQuery({ queryKey: ['orders-count', 'to-process'], queryFn: () => gql<{ ordersCount: { count: number } }>(ORDERS_COUNT, { query: 'fulfillment_status:unfulfilled status:open' }) });
   const [range, setRange] = useState('LAST_7_DAYS');
   const q = useQuery({ queryKey: ['dashboard', range], queryFn: () => gql<{ shopmeDashboard: Dash }>(SHOPME_DASHBOARD, { range }) });
   const d = q.data?.shopmeDashboard;
@@ -52,6 +54,10 @@ export function HomePage() {
     <>
       <PageHeader title={t('home.welcome', { name: user.firstName || shop.name })}
         actions={<select aria-label={t('home.range')} value={range} onChange={(e) => setRange(e.target.value)} className={selectCls}>{RANGES.map((r) => <option key={r} value={r}>{t(`home.range.${r}` as Key)}</option>)}</select>} />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <a href="/" target="_blank" rel="noreferrer" className="btn btn-primary"><ExternalLink className="size-4" />{t('store.view')}</a>
+        <Button onClick={() => nav('/orders?tab=unfulfilled')}>{t('home.processOrders')}{toProcess.data && <Badge tone={toProcess.data.ordersCount.count ? 'attention' : 'neutral'}>{toProcess.data.ordersCount.count}</Badge>}</Button>
+      </div>
       {q.isError && <div className="mb-4"><Banner>{(q.error as Error).message}</Banner></div>}
       <div className="grid gap-4 sm:grid-cols-3">
         {kpi(t('home.sales'), fmt.money(d?.totalSales))}
@@ -78,9 +84,16 @@ export function HomePage() {
           <Link to="/products/new" className={link}><Package className="size-4" />{t('products.add')}</Link>
           <Link to="/orders" className={link}><ShoppingCart className="size-4" />{t('home.viewOrders')}</Link>
           <Link to="/analytics" className={link}><BarChart3 className="size-4" />{t('analytics.viewReports')}</Link>
-          <a href="/" target="_blank" rel="noreferrer" className={link}><ExternalLink className="size-4" />{t('store.view')}</a>
         </div>
       </Card>
+      <h2 className="mb-2 mt-6 text-[13px] font-semibold">{t('home.nextSteps')}</h2>
+      <div className="grid gap-4 sm:grid-cols-3">
+        {([['/settings/payments', CreditCard, 'home.setupPayments'], ['/settings/domains', Globe, 'home.setupDomain'], ['/settings/policies', ScrollText, 'home.setupPolicies']] as const).map(([to, Icon, key]) => (
+          <Link key={to} to={to} className="flex flex-col gap-1 rounded-lg border border-line bg-canvas p-4 hover:bg-surface">
+            <Icon className="size-5 text-accent" aria-hidden /><span className="text-[13px] font-semibold">{t(key)}</span><span className="text-xs text-muted">{t(`${key}.body` as Key)}</span>
+          </Link>
+        ))}
+      </div>
     </>
   );
 }

@@ -1,13 +1,15 @@
 import { Banner, Button, Card, ConfirmDialog, Dropdown, ImageUploader, Input, MediaGallery, Modal, RichTextEditor, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { GalleryItem } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ExternalLink, MoreHorizontal, Plus, X } from 'lucide-react';
+import { Eye, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
 import { CollectionPicker } from '../components/Pickers';
 import { PageHeader } from '../components/PageHeader';
+import { PrevNext } from '../components/PrevNext';
+import { ViewAs } from '../components/ViewAs';
 import { SaveBar, guard } from '../components/SaveBar';
 import { InventoryFields, OptionsEditor, PricingFields, ShippingFields, VariantsTable } from '../components/VariantsEditor';
 import { formatMoney, numToGid } from '../format';
@@ -94,17 +96,28 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
   const gallery = { remove: t('common.remove'), moveLeft: t('media.moveLeft'), moveRight: t('media.moveRight'), featured: t('media.featured'), alt: t('media.alt') };
   const seoTitle = form.seoTitle || form.title || t('product.untitled');
   const seoUrl = `/products/${form.handle || slug(form.title) || 'handle'}`;
+  const publicUrl = id ? (form.status === 'ACTIVE' ? seoUrl : previewUrl) : null;
 
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setErrors({}); }} />
       <PageHeader
         back="/products" title={id ? form.title || t('product.untitled') : t('product.addTitle')}
-        actions={id && <Dropdown align="right" label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
-          ...(previewUrl ? [{ key: 'preview', label: <span className="inline-flex items-center gap-1.5"><ExternalLink className="size-3.5" />{form.status === 'ACTIVE' ? t('product.viewOnStore') : t('product.preview')}</span>, onSelect: () => { window.open(previewUrl, '_blank', 'noopener'); } }] : []),
-          { key: 'duplicate', label: t('product.duplicate'), onSelect: () => duplicate.mutate() },
-          { key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirmDelete(true) },
-        ]} />}
+        actions={id && <>
+          <ViewAs url={publicUrl} />
+          <Button disabled={!previewUrl} onClick={() => { if (previewUrl) window.open(previewUrl, '_blank', 'noopener'); }}><Eye className="size-4" />{t('product.preview')}</Button>
+          <Dropdown align="right" chevron trigger={t('share.label')} items={[
+            { key: 'copy', label: t('share.copyLink'), disabled: !publicUrl, onSelect: () => { void navigator.clipboard?.writeText(new URL(publicUrl!, window.location.origin).href).then(() => toast(t('share.copied')), () => toast(t('share.copyFailed'), 'critical')); } },
+            { key: 'mail', label: t('share.email'), disabled: !publicUrl, onSelect: () => { window.location.href = `mailto:?subject=${encodeURIComponent(form.title)}&body=${encodeURIComponent(new URL(publicUrl!, window.location.origin).href)}`; } },
+          ]} />
+          <Dropdown align="right" chevron trigger={t('common.moreActions')} items={[
+            { key: 'duplicate', label: t('product.duplicate'), onSelect: () => duplicate.mutate() },
+            ...(form.status === 'ARCHIVED' ? [] : [{ key: 'archive', label: t('products.setArchived'), onSelect: () => set({ status: 'ARCHIVED' }) }]),
+            ...(form.status === 'ACTIVE' ? [] : [{ key: 'activate', label: t('products.setActive'), onSelect: () => set({ status: 'ACTIVE' }) }]),
+            { key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirmDelete(true) },
+          ]} />
+          <PrevNext kind="products" gid={id} />
+        </>}
       />
       {serverError && <div className="mb-4"><Banner>{typeof serverError === 'string' ? serverError : serverError.errors.map((e) => `${e.field?.join('.') ?? ''} ${e.message}`.trim()).join(' · ')}</Banner></div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">

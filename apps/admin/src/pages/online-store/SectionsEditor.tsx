@@ -1,6 +1,6 @@
 import { Banner, Button, Dropdown, Modal, Select, Skeleton, cx, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, Eye, EyeOff, GripVertical, Monitor, Plus, Smartphone, Trash2, Undo2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, GripVertical, Monitor, Plus, Redo2, Search, Smartphone, Trash2, Undo2 } from 'lucide-react';
 import { useMemo, useReducer, useState } from 'react';
 import type { ReactNode } from 'react';
 import { gql, mutate } from '../../api';
@@ -15,6 +15,7 @@ import type { SettingDef } from '../../lib/settings-schema';
 import { addableSections, allowedBlocks, blockOrder, blockSettings, historyReducer, indexSchemas, parseTemplate, serializeTemplate, templateReducer, uniqueId } from '../../lib/theme-template';
 import type { Action, SchemaIndex, SectionInstance, Template } from '../../lib/theme-template';
 import { fileText } from './ThemeEditor';
+import { ThemeToolbar } from './ThemeToolbar';
 import type { FilesRes } from './ThemeEditor';
 
 type Docs = Record<string, Template>;
@@ -27,6 +28,7 @@ const docsReducer = (d: Docs, { file, action }: DocAction): Docs => {
 const historyDocs = historyReducer(docsReducer);
 interface Sel { file: string; section: string; block?: string }
 
+const schemaStatic = (s: SectionInstance, bid?: string) => !!bid && !!s.blocks?.[bid]?.static;
 const isField = (s: SettingDef): s is SettingDef & { id: string } => !!s.id;
 const nodes = (r?: FilesRes) => (r?.theme?.files.nodes ?? []).map((n) => ({ filename: n.filename, content: n.body?.content }));
 const baseName = (f: string) => f.replace(/^.*\//, '').replace(/\.(json|liquid)$/, '');
@@ -45,7 +47,7 @@ export function previewPath(template: string, h: { product?: string; collection?
   }
 }
 
-export function SectionsEditor({ themeId, name, tabs, localesData }: { themeId: string; name: string; tabs: ReactNode; localesData?: FilesRes }) {
+export function SectionsEditor({ themeId, name, role, tabs, localesData }: { themeId: string; name: string; role?: string; tabs: ReactNode; localesData?: FilesRes }) {
   const { t } = useI18n();
   const [template, setTemplate] = useState('index');
   const names = useQuery({ queryKey: ['theme-templates', themeId], queryFn: () => gql<FilesRes>(THEME_TEMPLATE_NAMES, { id: themeId }) });
@@ -64,13 +66,13 @@ export function SectionsEditor({ themeId, name, tabs, localesData }: { themeId: 
   for (const f of nodes(files.data)) { const d = parseTemplate(f.content); if (d) parsed[f.filename] = d; }
   const h = { product: handles.data?.products.nodes[0]?.handle, collection: handles.data?.collections.nodes[0]?.handle, page: handles.data?.pages.nodes[0]?.handle };
   return (
-    <Inner key={`${template}:${files.dataUpdatedAt}`} themeId={themeId} name={name} tabs={tabs} template={template} templates={templateNames.length ? templateNames : ['index']} onTemplate={setTemplate}
+    <Inner key={`${template}:${files.dataUpdatedAt}`} themeId={themeId} name={name} role={role} tabs={tabs} template={template} templates={templateNames.length ? templateNames : ['index']} onTemplate={setTemplate}
       initial={parsed} idx={idx} dict={dict} error={err?.message ?? (parsed[`templates/${template}.json`] ? null : t('editor.templateMissing'))} previewUrl={previewPath(template, h)} />
   );
 }
 
-function Inner({ themeId, name, tabs, template, templates, onTemplate, initial, idx, dict, error: loadError, previewUrl }: {
-  themeId: string; name: string; tabs: ReactNode; template: string; templates: string[]; onTemplate: (t: string) => void; initial: Docs; idx: SchemaIndex; dict: unknown;
+function Inner({ themeId, name, role, tabs, template, templates, onTemplate, initial, idx, dict, error: loadError, previewUrl }: {
+  themeId: string; name: string; role?: string; tabs: ReactNode; template: string; templates: string[]; onTemplate: (t: string) => void; initial: Docs; idx: SchemaIndex; dict: unknown;
   error: string | null; previewUrl: string;
 }) {
   const { t } = useI18n();
@@ -81,6 +83,7 @@ function Inner({ themeId, name, tabs, template, templates, onTemplate, initial, 
   const docs = hist.present;
   const [sel, setSel] = useState<Sel | null>(null);
   const [adding, setAdding] = useState<string | null>(null);
+  const [find, setFind] = useState('');
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [reload, setReload] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -104,28 +107,36 @@ function Inner({ themeId, name, tabs, template, templates, onTemplate, initial, 
   const defs = (block && sel?.block ? blockSettings(secSchema, block.type, idx) : secSchema?.settings ?? []);
   const values = (block ?? current)?.settings ?? {};
   const fileLabel = (f: string) => (f === tplFile ? t('editor.templateSections', { name: template }) : label(`t:${baseName(f).replace(/-group$/, '')}`).replace(/^./, (c) => c.toUpperCase()));
-  const sectionPicker = adding ? addableSections(idx) : [];
+  const needle = find.trim().toLowerCase();
+  const sectionPicker = adding ? addableSections(idx).filter((s) => !needle || s.presets.some((p) => (label(p.name) || label(s.name)).toLowerCase().includes(needle)) || s.type.includes(needle)) : [];
   const url = `${previewUrl}${previewUrl.includes('?') ? '&' : '?'}preview_theme_id=${gidToNum(themeId)}&_=${reload}`;
 
   const addSection = (file: string, type: string, presetIndex: number) => {
     const preset = idx.sections[type]?.presets?.[presetIndex];
     const id = uniqueId(type, Object.keys(docs[file]?.sections ?? {}));
     edit(file, { kind: 'addSection', type, preset, id });
-    setSel({ file, section: id }); setAdding(null);
+    setSel({ file, section: id }); setAdding(null); setFind('');
+  };
+  const duplicateSection = (file: string, id: string) => {
+    const newId = uniqueId(docs[file]?.sections[id]?.type ?? id, Object.keys(docs[file]?.sections ?? {}));
+    edit(file, { kind: 'duplicateSection', id, newId });
+    setSel({ file, section: newId });
   };
 
   return (
-    <>
+    <div className="pt-10">
       <SaveBar dirty={changed.length > 0} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { dispatch({ kind: 'reset', to: base }); setSel(null); }} />
       <PageHeader back="/online-store" title={t('themes.customizeTitle', { name })}
         actions={<>
           <Select aria-label={t('editor.template')} value={template} onChange={(e) => { setSel(null); onTemplate(e.target.value); }}>{templates.map((x) => <option key={x} value={x}>{x}</option>)}</Select>
           <Button aria-label={t('editor.undo')} disabled={!hist.past.length} onClick={() => dispatch({ kind: 'undo' })}><Undo2 className="size-4" />{t('editor.undo')}</Button>
+          <Button aria-label={t('editor.redo')} disabled={!hist.future?.length} onClick={() => dispatch({ kind: 'redo' })}><Redo2 className="size-4" />{t('editor.redo')}</Button>
           <div className="flex rounded-md border border-line" role="group" aria-label={t('themes.device')}>
             {([['desktop', Monitor], ['mobile', Smartphone]] as const).map(([d, Icon]) => (
               <button key={d} type="button" aria-pressed={device === d} aria-label={t(`themes.${d}`)} onClick={() => setDevice(d)} className={cx('p-2', device === d ? 'bg-primary-subtle text-accent' : 'text-muted')}><Icon className="size-4" /></button>
             ))}
           </div>
+          <ThemeToolbar themeId={themeId} name={name} role={role} dirty={changed.length > 0} previewUrl={url} />
         </>} />
       {tabs}
       {(error ?? loadError) && <div className="mb-4"><Banner>{error ?? loadError}</Banner></div>}
@@ -148,9 +159,9 @@ function Inner({ themeId, name, tabs, template, templates, onTemplate, initial, 
                       <li key={id} draggable onDragStart={() => setDrag({ file, id })} onDragEnd={() => setDrag(null)} onDragOver={(e) => drag?.file === file && e.preventDefault()}
                         onDrop={() => { if (drag?.file === file && drag.id !== id) edit(file, { kind: 'moveSection', id: drag.id, to: i }); setDrag(null); }}>
                         <Row selected={selected} dim={!!s.disabled} onSelect={() => setSel({ file, section: id })} grip
-                          title={sectionTitle(s)} hidden={!!s.disabled} labels={{ up: t('editor.moveUp'), down: t('editor.moveDown'), show: t('editor.show'), hide: t('editor.hide'), remove: t('common.remove') }}
+                          title={sectionTitle(s)} hidden={!!s.disabled} labels={{ up: t('editor.moveUp'), down: t('editor.moveDown'), show: t('editor.show'), hide: t('editor.hide'), remove: t('common.remove'), duplicate: t('editor.duplicate') }}
                           onUp={i > 0 ? () => edit(file, { kind: 'moveSection', id, to: i - 1 }) : undefined} onDown={i < doc.order.length - 1 ? () => edit(file, { kind: 'moveSection', id, to: i + 1 }) : undefined}
-                          onToggle={() => edit(file, { kind: 'toggleSection', id })} onRemove={() => { edit(file, { kind: 'removeSection', id }); if (sel?.section === id) setSel(null); }} />
+                          onDuplicate={() => duplicateSection(file, id)} onToggle={() => edit(file, { kind: 'toggleSection', id })} onRemove={() => { edit(file, { kind: 'removeSection', id }); if (sel?.section === id) setSel(null); }} />
                         <ul className="ml-6 border-l border-line pl-1">
                           {order.map((bid, bi) => {
                             const b = s.blocks![bid]!;
@@ -196,6 +207,11 @@ function Inner({ themeId, name, tabs, template, templates, onTemplate, initial, 
                     value={coerceValue(d, values[d.id])} onChange={(v) => edit(sel.file, { kind: 'setSetting', id: sel.section, block: sel.block, key: d.id, value: v })} />
                   : d.type === 'header' ? <h3 key={i} className="text-[13px] font-semibold">{label(d.content)}</h3>
                     : d.type === 'paragraph' ? <p key={i} className="text-xs text-muted">{label(d.content)}</p> : null)}
+                {!(block && schemaStatic(current, sel.block)) && (
+                  <Button variant="plain-critical" onClick={() => { if (sel.block) edit(sel.file, { kind: 'removeBlock', section: sel.section, block: sel.block }); else edit(sel.file, { kind: 'removeSection', id: sel.section }); setSel(sel.block ? { file: sel.file, section: sel.section } : null); }}>
+                    <Trash2 className="size-4" />{t(sel.block ? 'editor.deleteBlock' : 'editor.deleteSection')}
+                  </Button>
+                )}
               </div>
             </section>
           )}
@@ -204,7 +220,11 @@ function Inner({ themeId, name, tabs, template, templates, onTemplate, initial, 
           <iframe key={`${reload}:${template}`} title={t('themes.preview')} src={url} className={cx('h-[70vh] rounded-md border border-line bg-white', device === 'mobile' ? 'w-[390px]' : 'w-full')} />
         </div>
       </div>
-      <Modal open={!!adding} onClose={() => setAdding(null)} closeLabel={t('common.close')} title={t('editor.addSection')} wide>
+      <Modal open={!!adding} onClose={() => { setAdding(null); setFind(''); }} closeLabel={t('common.close')} title={t('editor.addSection')} wide>
+        <div className="relative mb-3">
+          <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
+          <input type="search" autoFocus value={find} onChange={(e) => setFind(e.target.value)} placeholder={t('editor.searchSections')} aria-label={t('editor.searchSections')} className="field-control w-full pl-8" />
+        </div>
         {sectionPicker.length === 0 ? <p className="text-[13px] text-muted">{t('editor.noPresets')}</p> : (
           <ul className="grid gap-2 sm:grid-cols-2">
             {sectionPicker.flatMap((s) => s.presets.map((p, pi) => (
@@ -214,13 +234,13 @@ function Inner({ themeId, name, tabs, template, templates, onTemplate, initial, 
           </ul>
         )}
       </Modal>
-    </>
+    </div>
   );
 }
 
-function Row({ title, selected, dim, hidden, grip, labels, onSelect, onUp, onDown, onToggle, onRemove }: {
-  title: string; selected: boolean; dim: boolean; hidden: boolean; grip?: boolean; labels: Record<'up' | 'down' | 'show' | 'hide' | 'remove', string>;
-  onSelect: () => void; onUp?: () => void; onDown?: () => void; onToggle: () => void; onRemove?: () => void;
+function Row({ title, selected, dim, hidden, grip, labels, onSelect, onUp, onDown, onToggle, onRemove, onDuplicate }: {
+  title: string; selected: boolean; dim: boolean; hidden: boolean; grip?: boolean; labels: Record<'up' | 'down' | 'show' | 'hide' | 'remove', string> & { duplicate?: string };
+  onSelect: () => void; onUp?: () => void; onDown?: () => void; onToggle: () => void; onRemove?: () => void; onDuplicate?: () => void;
 }) {
   const btn = 'rounded p-1 text-muted hover:bg-surface hover:text-fg disabled:opacity-30';
   return (
@@ -230,6 +250,7 @@ function Row({ title, selected, dim, hidden, grip, labels, onSelect, onUp, onDow
       <button type="button" className={btn} aria-label={`${labels.up}: ${title}`} disabled={!onUp} onClick={onUp}><ArrowUp className="size-3.5" /></button>
       <button type="button" className={btn} aria-label={`${labels.down}: ${title}`} disabled={!onDown} onClick={onDown}><ArrowDown className="size-3.5" /></button>
       <button type="button" className={btn} aria-label={`${hidden ? labels.show : labels.hide}: ${title}`} onClick={onToggle}>{hidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}</button>
+      {onDuplicate && <button type="button" className={btn} aria-label={`${labels.duplicate}: ${title}`} onClick={onDuplicate}><Copy className="size-3.5" /></button>}
       {onRemove && <button type="button" className={btn} aria-label={`${labels.remove}: ${title}`} onClick={onRemove}><Trash2 className="size-3.5" /></button>}
     </div>
   );

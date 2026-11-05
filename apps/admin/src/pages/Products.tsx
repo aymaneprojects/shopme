@@ -5,7 +5,9 @@ import { ImageIcon, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
+import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
 import { PageHeader } from '../components/PageHeader';
+import { ViewAs } from '../components/ViewAs';
 import { ExportButton, ImportButton } from '../components/CsvTools';
 import { gidToNum } from '../format';
 import { PRODUCTS, PRODUCTS_COUNT, PRODUCT_DELETE, PRODUCT_FILTER_OPTIONS, PRODUCT_UPDATE } from '../graphql';
@@ -48,6 +50,7 @@ export function ProductsPage() {
   const sort = { key: get('sort') || 'UPDATED_AT', reverse: get('dir') !== 'asc' };
   const [selected, setSelected] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<string[] | null>(null);
+  const cols = useColumnVisibility('products');
 
   const terms = [
     debounced.trim() && debounced.trim(),
@@ -117,7 +120,7 @@ export function ProductsPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.products')} actions={<><ExportButton kind="products" /><ImportButton kind="products" invalidate={['products', 'products-count']} /><Button variant="primary" onClick={() => nav('/products/new')}><Plus className="size-4" />{t('products.add')}</Button></>} />
+      <PageHeader title={t('nav.products')} actions={<><ViewAs /><ImportButton kind="products" invalidate={['products', 'products-count']} /><ExportButton kind="products" /><Button variant="primary" onClick={() => nav('/products/new')}><Plus className="size-4" />{t('products.add')}</Button></>} />
       <Card className="!p-0">
         <div className="px-4 pt-2">
           <Tabs
@@ -141,10 +144,11 @@ export function ProductsPage() {
           <select aria-label={t('common.sort')} value={sort.key} onChange={(e) => patch({ sort: e.target.value })} className="field-control">
             {Object.keys(SORTS).map((k) => <option key={k} value={k}>{t(`sort.${k}` as 'sort.TITLE')}</option>)}
           </select>
+          <ColumnPicker locked={['title']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
         </div>
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable
-          rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading}
+          rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading}
           selected={selected} onSelectedChange={setSelected} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           sort={sort} onSortChange={(s) => patch({ sort: s.key, dir: s.reverse ? 'desc' : 'asc' })}
           onRowClick={(r) => nav(`/products/${gidToNum(r.id)}`)}

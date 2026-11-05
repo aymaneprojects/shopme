@@ -1,10 +1,11 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Modal, Pagination, Tabs, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Gift, Package, Plus, Search, ShoppingBag, Truck } from 'lucide-react';
+import { ChevronRight, Download, Gift, Package, Plus, Search, ShoppingBag, Tag, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql, mutate } from '../api';
+import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
 import { PageHeader } from '../components/PageHeader';
 import { searchCls, useFormat, useListParams } from '../components/shared';
 import { gidToNum } from '../format';
@@ -13,13 +14,14 @@ import {
 } from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
+import { downloadText, toCsv } from '../lib/download';
 import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
 import emptyDiscounts from '../assets/empty/empty-discounts.webp';
 
 export interface DiscountRow {
   id: string;
-  discount: { __typename: string; title: string; status: string; startsAt: string; endsAt: string | null; usageLimit?: number | null; asyncUsageCount: number; summary: string; codes?: { nodes: Array<{ code: string }> } };
+  discount: { __typename: string; title: string; status: string; startsAt: string; endsAt: string | null; usageLimit?: number | null; asyncUsageCount: number; summary: string; combinesWith?: { productDiscounts: boolean; orderDiscounts: boolean; shippingDiscounts: boolean }; codes?: { nodes: Array<{ code: string }> } };
 }
 const PAGE_SIZE = 25;
 const TABS = ['all', 'active', 'scheduled', 'expired'] as const;
@@ -39,6 +41,8 @@ export function DiscountsPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [chooser, setChooser] = useState(false);
   const [confirm, setConfirm] = useState<string[] | null>(null);
+  const cols = useColumnVisibility('discounts');
+  const [exporting, setExporting] = useState(false);
   const terms = [term.trim(), tab !== 'all' && `status:${tab}`].filter(Boolean).join(' ');
 
   const list = useQuery({
@@ -59,6 +63,23 @@ export function DiscountsPage() {
     onError: (e) => toast(e.message, 'critical'),
   });
 
+  /** Every discount matching the current search and tab, as a CSV download. */
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const out: unknown[][] = [['Title', 'Code', 'Method', 'Status', 'Type', 'Starts', 'Ends', 'Used', 'Summary']];
+      for (let after: string | null = null; ;) {
+        const r: { discountNodes: Connection<DiscountRow> } = await gql(DISCOUNT_NODES, { query: terms || null, first: 100, after });
+        for (const { discount: d } of r.discountNodes.nodes) {
+          out.push([d.title, d.codes?.nodes[0]?.code ?? '', d.__typename.startsWith('DiscountAutomatic') ? 'automatic' : 'code', d.status, d.__typename.replace(/^Discount(Code|Automatic)/, '').toLowerCase(), d.startsAt, d.endsAt ?? '', d.asyncUsageCount, d.summary]);
+        }
+        if (!r.discountNodes.pageInfo.hasNextPage) break;
+        after = r.discountNodes.pageInfo.endCursor ?? null;
+      }
+      downloadText('discounts.csv', toCsv(out));
+    } catch (e) { toast((e as Error).message, 'critical'); } finally { setExporting(false); }
+  };
+
   const rows = list.data?.discountNodes.nodes ?? [];
   const pi = list.data?.discountNodes.pageInfo;
   const typeKey = (d: DiscountRow) => (/FreeShipping$/.test(d.discount.__typename) ? 'discounts.type.shipping' : /Bxgy$/.test(d.discount.__typename) ? 'discounts.type.bxgy' : 'discounts.type.amount');
@@ -67,6 +88,10 @@ export function DiscountsPage() {
     { key: 'status', header: t('field.status'), cell: (d) => <Badge tone={tone[d.discount.status as keyof typeof tone] ?? 'neutral'}>{t(`discounts.status.${d.discount.status}` as Key)}</Badge> },
     { key: 'method', header: t('discounts.method'), cell: (d) => t(d.discount.__typename.startsWith('DiscountAutomatic') ? 'discounts.method.automatic' : 'discounts.method.code') },
     { key: 'type', header: t('discounts.typeCol'), cell: (d) => t(typeKey(d) as Key) },
+    { key: 'combines', header: t('discounts.combines'), cell: (d) => (
+      <span className="flex gap-1.5">{([['productDiscounts', Tag, 'discount.combine.product'], ['orderDiscounts', ShoppingBag, 'discount.combine.order'], ['shippingDiscounts', Truck, 'discount.combine.shipping']] as const).map(([k, Icon, label]) => (
+        <Icon key={k} role="img" aria-label={`${t(label)}: ${d.discount.combinesWith?.[k] ? t('discounts.combines.yes') : t('discounts.combines.no')}`} className={`size-4 ${d.discount.combinesWith?.[k] ? 'text-fg' : 'text-muted opacity-40'}`} />
+      ))}</span>) },
     { key: 'used', header: t('discounts.used'), cell: (d) => (d.discount.usageLimit ? `${d.discount.asyncUsageCount} / ${d.discount.usageLimit}` : d.discount.asyncUsageCount) },
     { key: 'dates', header: t('discounts.dates'), cell: (d) => <span className="text-muted">{fmt.date(d.discount.startsAt)}{d.discount.endsAt ? ` → ${fmt.date(d.discount.endsAt)}` : ''}</span> },
   ];
@@ -74,17 +99,18 @@ export function DiscountsPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.discounts')} actions={create} />
+      <PageHeader title={t('nav.discounts')} actions={<><Button loading={exporting} onClick={() => void exportCsv()}><Download className="size-4" />{t('csv.export')}</Button>{create}</>} />
       <Card className="!p-0">
         <div className="px-3 pt-1"><Tabs tabs={TABS.map((id) => ({ id, label: t(`discounts.tab.${id}` as Key) }))} value={tab} onChange={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v }); }} /></div>
-        <div className="border-b border-line p-3">
-          <div className="relative max-w-md">
+        <div className="flex items-center gap-2 border-b border-line p-3">
+          <div className="relative max-w-md flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('discounts.search')} aria-label={t('discounts.search')} className={searchCls} />
           </div>
+          <ColumnPicker locked={['code']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
         </div>
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
-        <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading}
+        <IndexTable rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading}
           selected={selected} onSelectedChange={setSelected} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           onRowClick={(r) => nav(`/discounts/${gidToNum(r.id)}`)}
           bulkActions={[
@@ -100,13 +126,14 @@ export function DiscountsPage() {
           onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
       </Card>
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} danger title={t('discounts.deleteTitle', { n: confirm?.length ?? 0 })} message={t('discounts.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { if (confirm) bulk.mutate({ ids: confirm, action: 'delete' }); setConfirm(null); }} />
-      <Modal open={chooser} onClose={() => setChooser(false)} title={t('discounts.chooseType')} closeLabel={t('common.close')}>
+      <Modal open={chooser} onClose={() => setChooser(false)} title={t('discounts.chooseType')} closeLabel={t('common.close')} footer={<Button onClick={() => setChooser(false)}>{t('common.cancel')}</Button>}>
         <ul className="flex flex-col gap-2">
           {([['product', Package], ['bxgy', Gift], ['order', ShoppingBag], ['shipping', Truck]] as const).map(([k, Icon]) => (
             <li key={k}>
               <button type="button" onClick={() => nav(`/discounts/new?type=${k}`)} className="flex w-full items-start gap-3 rounded-md border border-line p-3 text-left hover:bg-surface">
                 <Icon className="mt-0.5 size-5 text-accent" />
-                <span><span className="block text-[13px] font-medium">{t(`discounts.kind.${k}` as Key)}</span><span className="block text-xs text-muted">{t(`discounts.kind.${k}.help` as Key)}</span></span>
+                <span className="flex-1"><span className="block text-[13px] font-medium">{t(`discounts.kind.${k}` as Key)}</span><span className="block text-xs text-muted">{t(`discounts.kind.${k}.help` as Key)}</span></span>
+                <ChevronRight className="mt-1 size-4 text-muted" aria-hidden />
               </button>
             </li>
           ))}

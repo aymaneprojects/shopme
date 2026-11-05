@@ -6,18 +6,19 @@ import type { ReactNode } from 'react';
 import { gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
 import { SaveBar } from '../../components/SaveBar';
-import { numToGid } from '../../format';
+import { gidToNum, numToGid } from '../../format';
 import { THEME_FILES_UPSERT, THEME_LOCALES, THEME_SETTINGS } from '../../graphql';
 import { useI18n } from '../../i18n';
 import { useParams, useSearchParams } from 'react-router';
 import { SettingField } from '../../components/SettingField';
 import { SectionsEditor } from './SectionsEditor';
+import { ThemeToolbar } from './ThemeToolbar';
 import { buildValues, isInput, parseCurrent, parseDict, parseSchema, resolveLabel, serializeData } from '../../lib/settings-schema';
 import type { SettingGroup, SettingValue } from '../../lib/settings-schema';
 
 export const fileText = (r: FilesRes | undefined, name: string) => r?.theme?.files.nodes.find((n) => n.filename === name)?.body?.content;
 export const DATA_FILE = 'config/settings_data.json';
-export interface FilesRes { theme: { id: string; name?: string; files: { nodes: Array<{ filename: string; body: { content?: string } | null }> } } | null }
+export interface FilesRes { theme: { id: string; name?: string; role?: string; files: { nodes: Array<{ filename: string; body: { content?: string } | null }> } } | null }
 
 export function ThemeEditorPage() {
   const { id = '' } = useParams();
@@ -31,11 +32,11 @@ export function ThemeEditorPage() {
   if (q.isLoading) return <div className="grid gap-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-96" /></div>;
   if (q.error) return <Banner>{q.error.message}</Banner>;
   if (!q.data?.theme) return <Banner>{t('themes.notFound')}</Banner>;
-  if (tab === 'sections') return <SectionsEditor themeId={gid} name={q.data.theme.name ?? ''} tabs={tabs} localesData={loc.data} />;
-  return <Editor key={q.dataUpdatedAt} tabs={tabs} themeId={gid} name={q.data.theme.name ?? ''} schemaJson={fileText(q.data, 'config/settings_schema.json') ?? '[]'} dataJson={fileText(q.data, DATA_FILE)} localesData={loc.data} />;
+  if (tab === 'sections') return <SectionsEditor themeId={gid} name={q.data.theme.name ?? ''} role={q.data.theme.role} tabs={tabs} localesData={loc.data} />;
+  return <Editor key={q.dataUpdatedAt} tabs={tabs} themeId={gid} name={q.data.theme.name ?? ''} role={q.data.theme.role} schemaJson={fileText(q.data, 'config/settings_schema.json') ?? '[]'} dataJson={fileText(q.data, DATA_FILE)} localesData={loc.data} />;
 }
 
-function Editor({ tabs, themeId, name, schemaJson, dataJson, localesData }: { tabs: ReactNode; themeId: string; name: string; schemaJson: string; dataJson: string | undefined; localesData: FilesRes | undefined }) {
+function Editor({ tabs, themeId, name, role, schemaJson, dataJson, localesData }: { tabs: ReactNode; themeId: string; name: string; role?: string; schemaJson: string; dataJson: string | undefined; localesData: FilesRes | undefined }) {
   const { t, lang } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
@@ -61,14 +62,17 @@ function Editor({ tabs, themeId, name, schemaJson, dataJson, localesData }: { ta
   const label = (l?: string) => resolveLabel(l, dict);
 
   return (
-    <>
+    <div className="pt-10">
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => setValues(initial)} />
       <PageHeader back="/online-store" title={t('themes.customizeTitle', { name })}
-        actions={<div className="flex rounded-md border border-line" role="group" aria-label={t('themes.device')}>
-          {([['desktop', Monitor], ['mobile', Smartphone]] as const).map(([d, Icon]) => (
-            <button key={d} type="button" aria-pressed={device === d} aria-label={t(`themes.${d}`)} onClick={() => setDevice(d)} className={`p-2 ${device === d ? 'bg-primary-subtle text-accent' : 'text-muted'}`}><Icon className="size-4" /></button>
-          ))}
-        </div>} />
+        actions={<>
+          <div className="flex rounded-md border border-line" role="group" aria-label={t('themes.device')}>
+            {([['desktop', Monitor], ['mobile', Smartphone]] as const).map(([d, Icon]) => (
+              <button key={d} type="button" aria-pressed={device === d} aria-label={t(`themes.${d}`)} onClick={() => setDevice(d)} className={`p-2 ${device === d ? 'bg-primary-subtle text-accent' : 'text-muted'}`}><Icon className="size-4" /></button>
+            ))}
+          </div>
+          <ThemeToolbar themeId={themeId} name={name} role={role} dirty={dirty} previewUrl={`/?preview_theme_id=${gidToNum(themeId)}`} />
+        </>} />
       {tabs}
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
       <div className="grid gap-4 lg:grid-cols-[22rem_1fr]">
@@ -80,7 +84,7 @@ function Editor({ tabs, themeId, name, schemaJson, dataJson, localesData }: { ta
           <iframe key={reload} title={t('themes.preview')} src={`/?preview=${reload}`} className={`h-[70vh] rounded-md border border-line bg-white ${device === 'mobile' ? 'w-[390px]' : 'w-full'}`} />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

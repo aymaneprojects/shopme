@@ -493,10 +493,10 @@ export async function runScenario({ baseUrl, root }) {
       const row = admin.getByRole('row', { name: /Figue \/ L/ });
       await vis(row);
       const cells = (await row.locator('td').allInnerTexts()).map((c) => c.trim());
-      // columns: product, SKU, committed, available, on hand (10 in stock, 1 sold and shipped)
-      assert.deepEqual(cells.slice(-3), ['0', '9', '9'], `committed/available/on hand: ${cells.join(' | ')}`);
+      // columns: product, SKU, unavailable, committed, available, on hand, incoming (10 in stock, 1 sold and shipped)
+      assert.deepEqual(cells.slice(-4, -1), ['0', '9', '9'], `committed/available/on hand: ${cells.join(' | ')}`);
       const other = await text(admin.getByRole('row', { name: /Vanille \/ S/ }));
-      assert.match(other, /BOUG-VAN-S\s+0\s+10\s+10/);
+      assert.match(other, /BOUG-VAN-S\s+0\s+0\s+10\s+10\s+0/);
       await shot('17-admin-inventory');
     });
 

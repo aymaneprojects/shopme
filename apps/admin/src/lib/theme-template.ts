@@ -68,6 +68,7 @@ export const addableSections = (idx: SchemaIndex) => Object.entries(idx.sections
 export type Action =
   | { kind: 'addSection'; type: string; preset?: Preset; id?: string; index?: number }
   | { kind: 'removeSection'; id: string }
+  | { kind: 'duplicateSection'; id: string; newId: string }
   | { kind: 'moveSection'; id: string; to: number }
   | { kind: 'toggleSection'; id: string }
   | { kind: 'setSetting'; id: string; key: string; value: SettingValue; block?: string }
@@ -120,6 +121,12 @@ export function templateReducer(t: Template, a: Action): Template {
       const { [a.id]: _gone, ...rest } = t.sections;
       return { ...t, sections: rest, order: t.order.filter((x) => x !== a.id) };
     }
+    case 'duplicateSection': {
+      const src = sec(a.id);
+      if (!src || t.sections[a.newId]) return t;
+      const order = t.order.slice(); order.splice(t.order.indexOf(a.id) + 1, 0, a.newId);
+      return { ...t, sections: { ...t.sections, [a.newId]: structuredClone(src) }, order };
+    }
     case 'moveSection': {
       const from = t.order.indexOf(a.id);
       return from < 0 || from === a.to ? t : { ...t, order: move(t.order, from, a.to) };
@@ -163,14 +170,15 @@ export function templateReducer(t: Template, a: Action): Template {
 
 /* ----------------------------- history (undo) ----------------------------- */
 
-export interface History<T> { past: T[]; present: T }
-export type HistoryAction<T, A> = { kind: 'do'; action: A } | { kind: 'undo' } | { kind: 'reset'; to: T };
+export interface History<T> { past: T[]; present: T; future?: T[] }
+export type HistoryAction<T, A> = { kind: 'do'; action: A } | { kind: 'undo' } | { kind: 'redo' } | { kind: 'reset'; to: T };
 
-/** Wrap a reducer with an undo stack. Actions that change nothing are not recorded. */
+/** Wrap a reducer with an undo/redo stack. Actions that change nothing are not recorded; a new change clears what could be redone. */
 export function historyReducer<T, A>(inner: (s: T, a: A) => T) {
   return (h: History<T>, e: HistoryAction<T, A>): History<T> => {
     if (e.kind === 'reset') return { past: [], present: e.to };
-    if (e.kind === 'undo') return h.past.length ? { past: h.past.slice(0, -1), present: h.past[h.past.length - 1]! } : h;
+    if (e.kind === 'undo') return h.past.length ? { past: h.past.slice(0, -1), present: h.past[h.past.length - 1]!, future: [h.present, ...(h.future ?? [])] } : h;
+    if (e.kind === 'redo') return h.future?.length ? { past: [...h.past, h.present], present: h.future[0]!, future: h.future.slice(1) } : h;
     const next = inner(h.present, e.action);
     return next === h.present ? h : { past: [...h.past, h.present].slice(-100), present: next };
   };

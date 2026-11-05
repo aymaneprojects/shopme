@@ -5,6 +5,7 @@ import { Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
+import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
 import { PageHeader } from '../components/PageHeader';
 import { gidToNum } from '../format';
 import { COLLECTIONS, COLLECTION_DELETE } from '../graphql';
@@ -40,6 +41,7 @@ export function CollectionsPage() {
   const type = params.get('type') ?? '';
   const [selected, setSelected] = useState<string[]>([]);
   const [confirm, setConfirm] = useState<string[] | null>(null);
+  const cols = useColumnVisibility('collections');
   const after = params.get('after'), before = params.get('before');
   const query = [term.trim(), type && `collection_type:${type}`].filter(Boolean).join(' ');
   const patch = (c: Record<string, string>) => { const n = new URLSearchParams(params); for (const [k, v] of Object.entries(c)) v ? n.set(k, v) : n.delete(k); if (!('after' in c || 'before' in c)) { n.delete('after'); n.delete('before'); } setParams(n, { replace: true }); };
@@ -78,10 +80,11 @@ export function CollectionsPage() {
             <option value="custom">{t('collections.manual')}</option>
             <option value="smart">{t('collections.automated')}</option>
           </select>
+          <ColumnPicker locked={['title']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
         </div>
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable
-          rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading}
+          rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading}
           selected={selected} onSelectedChange={setSelected} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           onRowClick={(r) => nav(`/collections/${gidToNum(r.id)}`)}
           bulkActions={[{ key: 'delete', label: t('common.delete'), danger: true, onRun: (ids) => setConfirm(ids) }]}
