@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync } from 'node:fs';
 import fastifyStatic from '@fastify/static';
 import type { FastifyInstance } from 'fastify';
+import { registerImageResizing } from '../images';
 import { adminBuilt } from '../paths';
 
 const NOT_BUILT = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -41,6 +42,7 @@ export function registerFilesStatic(app: FastifyInstance) {
   const root = app.ctx.config.storageDir;
   if (!existsSync(root)) mkdirSync(root, { recursive: true });
   app.register(async (scope) => {
+    registerImageResizing(app, scope);
     await scope.register(fastifyStatic, {
       root, prefix: '/files/', index: false, dotfiles: 'deny',
       setHeaders(res) {

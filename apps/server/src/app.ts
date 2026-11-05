@@ -3,6 +3,7 @@ import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { createInProcessQueue, createLocalStorage, createMailer, type AppConfig, type DbHandle } from '@shopme/core';
 import { registerAuthRoutes } from './admin/auth-routes';
+import { registerDataRoutes } from './admin/data-routes';
 import { registerFileUploadRoute } from './admin/files-routes';
 import { registerAdminGraphQL } from './admin/graphql/route';
 import { registerAdminSpa, registerFilesStatic } from './admin/spa';
@@ -64,6 +65,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
 
   registerAuthRoutes(app);
   registerFileUploadRoute(app);
+  registerDataRoutes(app);
   registerAdminGraphQL(app);
   registerFilesStatic(app);
   registerAdminSpa(app);

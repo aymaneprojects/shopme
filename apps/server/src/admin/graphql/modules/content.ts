@@ -115,7 +115,7 @@ const MenuDeletePayload = payloadWith<{ deletedMenuId: string | null }>('MenuDel
 
 /* ------------------------------ themes ------------------------------ */
 
-const ThemeRoleEnum = builder.enumType('ThemeRole', { values: ['MAIN', 'UNPUBLISHED', 'DEMO', 'DEVELOPMENT', 'ARCHIVED', 'LOCKED'] as const });
+export const ThemeRoleEnum = builder.enumType('ThemeRole', { values: ['MAIN', 'UNPUBLISHED', 'DEMO', 'DEVELOPMENT', 'ARCHIVED', 'LOCKED'] as const });
 const BodyText = builder.objectRef<{ content: string }>('OnlineStoreThemeFileBodyText').implement({ fields: (t) => ({ content: t.exposeString('content') }) });
 const BodyUnion = builder.unionType('OnlineStoreThemeFileBody', { types: [BodyText], resolveType: () => BodyText });
 
@@ -132,7 +132,7 @@ const ThemeFileShape = builder.objectRef<ThemeFile>('OnlineStoreThemeFile').impl
 });
 const ThemeFileConnection = defineConnection('OnlineStoreThemeFile', ThemeFileShape);
 
-const Theme = builder.objectRef<ThemeRow>('OnlineStoreTheme');
+export const Theme = builder.objectRef<ThemeRow>('OnlineStoreTheme');
 Theme.implement({
   interfaces: [Node],
   fields: (t) => ({
@@ -160,14 +160,14 @@ const FileInput = builder.inputType('OnlineStoreThemeFilesUpsertFileInput', {
     body: t.field({ type: builder.inputType('OnlineStoreThemeFileBodyInput', { fields: (u) => ({ type: u.field({ type: BodyType, required: true }), value: u.string({ required: true }) }) }), required: true }),
   }),
 });
-const UpsertResult = builder.objectRef<ThemeFile>('OnlineStoreThemeFileOperationResult').implement({
+export const UpsertResult = builder.objectRef<ThemeFile>('OnlineStoreThemeFileOperationResult').implement({
   fields: (t) => ({
     filename: t.exposeString('path'), checksumMd5: t.exposeString('checksum', { nullable: true }), size: t.field({ type: 'UnsignedInt64', resolve: (f) => String(f.sizeBytes) }),
     createdAt: t.field({ type: 'DateTime', resolve: (f) => f.updatedAt }), updatedAt: t.field({ type: 'DateTime', resolve: (f) => f.updatedAt }),
   }),
 });
 const ThemeFilesErrorCode = builder.enumType('OnlineStoreThemeFilesUserErrorsCode', { values: ['INVALID', 'NOT_FOUND', 'TOO_MANY_FILES', 'ACCESS_DENIED', 'THEME_FILES_NOT_FOUND'] as const });
-const ThemeFilesError = builder.objectRef<UserError & { filename?: string | null }>('OnlineStoreThemeFilesUserErrors').implement({
+export const ThemeFilesError = builder.objectRef<UserError & { filename?: string | null }>('OnlineStoreThemeFilesUserErrors').implement({
   interfaces: [DisplayableError],
   fields: (t) => ({
     code: t.field({ type: ThemeFilesErrorCode, nullable: true, resolve: (e) => (e.code === 'INVALID' || e.code === 'NOT_FOUND' ? e.code : null) }),

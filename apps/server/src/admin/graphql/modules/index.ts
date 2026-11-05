@@ -24,6 +24,7 @@ import './settings';
 import './content';
 import './blogs';
 import './redirects';
+import './themes';
 import './analytics';
 import './draft-orders';
 import './staff';

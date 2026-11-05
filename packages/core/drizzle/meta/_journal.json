@@ -22,6 +22,13 @@
       "when": 1793837734324,
       "tag": "0002_wave6a_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793837864629,
+      "tag": "0003_wave6d_data",
+      "breakpoints": true
     }
   ]
 }

@@ -359,11 +359,14 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     app.get('/cdn/shop/t/:themeId/assets/*', async (req, reply) => {
       const { themeId, '*': name } = req.params as { themeId: string; '*': string };
       if (name.includes('..')) return reply.code(404).send('');
-      const [row] = await db.select({ body: s.themeFiles.body, type: s.themeFiles.contentType, checksum: s.themeFiles.checksum }).from(s.themeFiles).where(and(eq(s.themeFiles.themeId, Number(themeId) || 0), eq(s.themeFiles.path, `assets/${name}`))).limit(1);
-      if (!row || row.body === null) return reply.code(404).send('');
+      const [row] = await db.select({ body: s.themeFiles.body, storageKey: s.themeFiles.storageKey, type: s.themeFiles.contentType, checksum: s.themeFiles.checksum }).from(s.themeFiles).where(and(eq(s.themeFiles.themeId, Number(themeId) || 0), eq(s.themeFiles.path, `assets/${name}`))).limit(1);
+      if (!row || (row.body === null && !row.storageKey)) return reply.code(404).send('');
       const ext = name.split('.').pop()?.toLowerCase() ?? '';
       const versioned = 'v' in (req.query as object);
-      return reply.header('cache-control', versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300').header('etag', `"${createHash('md5').update(row.checksum).digest('hex')}"`).type(ASSET_TYPES[ext] ?? row.type).send(row.body);
+      // Text files live in the database; binaries (images, fonts) in object storage.
+      const payload = row.body ?? (await app.ctx.storage.open(row.storageKey!));
+      if (payload === null) return reply.code(404).send('');
+      return reply.header('cache-control', versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300').header('etag', `"${createHash('md5').update(row.checksum).digest('hex')}"`).type(ASSET_TYPES[ext] ?? row.type).send(payload);
     });
 
     // --- anything else: themed 404 for browsers

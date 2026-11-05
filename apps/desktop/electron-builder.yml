@@ -25,6 +25,9 @@ win:
   files:
     - "!**/node_modules/@node-rs/argon2-darwin-*/**"
     - "!**/node_modules/@node-rs/argon2-linux-*/**"
+    - "!**/node_modules/@img/sharp-darwin-*/**"
+    - "!**/node_modules/@img/sharp-libvips-*/**"
+    - "!**/node_modules/@img/sharp-linux-*/**"
 mac:
   icon: build/icon.icns
   category: public.app-category.business
