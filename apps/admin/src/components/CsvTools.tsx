@@ -1,6 +1,7 @@
 import { Banner, Button, ExportDialog, Modal } from '@shopme/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useReducer, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { upload } from '../api';
 import { useI18n } from '../i18n';
 import type { Key } from '../i18n';
@@ -21,26 +22,30 @@ export function startDownload(href: string) {
 }
 
 /** "Export" button opening the export dialog: current page, everything or the selection, then the CSV flavour. */
-export function ExportButton({ kind, what, currentIds, selectedIds = [], query }: { kind: ImportKind | 'orders' | 'draft_orders'; what?: string; /** Ids on the current page; enables the "current page" option (products and customers). */ currentIds?: string[]; selectedIds?: string[]; /** The active search and filters; enables the "matching your search" option. */ query?: string }) {
+export function ExportButton({ kind, what, currentIds, selectedIds = [], query, matchCount }: { kind: ImportKind | 'orders' | 'draft_orders'; what?: string; /** Ids on the current page; enables the "current page" option (products and customers). */ currentIds?: string[]; selectedIds?: string[]; /** The active search and filters; enables the "matching your search" option. */ query?: string; /** How many rows the search matches (the whole list when there is no search). */ matchCount?: number }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const label = what ?? t(`export.noun.${kind}` as Key);
   const narrowable = kind === 'products' || kind === 'customers' || kind === 'orders' || kind === 'draft_orders';
   const searched = !!query?.trim() && narrowable;
   const nums = (ids: string[]) => ids.map((i) => i.replace(/\D/g, '')).join(',');
+  /** "3 products selected", "27 products matching your search": counted labels for the list kinds that have them. */
+  const countLabel = (k: string, what: 'selected' | 'matching', n: number) => (['products', 'customers', 'orders', 'draft_orders'].includes(k) ? t(`fid.export.${what}.${k}` as Key, { n }) : null);
   return (
     <>
       <Button onClick={() => setOpen(true)}>{t('csv.export')}</Button>
       <ExportDialog
         key={String(open)} open={open} onClose={() => setOpen(false)} title={t('export.title', { what: label })} closeLabel={t('common.close')}
-        description={t('export.description', { what: label })}
+        description={kind === 'products'
+          ? <>{t('fid.export.productsBody')} <Link to="/inventory" className="text-accent hover:underline" onClick={() => setOpen(false)}>{t('fid.export.inventoryCsv')}</Link> {t('fid.export.or')} <Link to="/products/bulk" className="text-accent hover:underline" onClick={() => setOpen(false)}>{t('fid.export.bulkEditor')}</Link>.</>
+          : t('export.description', { what: label })}
         scopeTitle={t('export.what')} defaultScope={selectedIds.length ? 'selected' : currentIds ? 'current' : 'all'}
-        footnote={<span className="flex flex-col gap-1"><a href="https://github.com/aymaneprojects/shopme#readme" target="_blank" rel="noreferrer" className="text-accent hover:underline">{t('bp.export.helpFormat')}</a><a href="https://github.com/aymaneprojects/shopme#readme" target="_blank" rel="noreferrer" className="text-accent hover:underline">{t('bp.export.helpImport')}</a></span>}
+        footnote={<><a href="https://github.com/aymaneprojects/shopme#readme" target="_blank" rel="noreferrer" className="text-accent hover:underline">{t('fid.export.learnMore')}</a> {t('fid.export.learnTopic')}</>}
         scopes={[
           ...(currentIds && narrowable ? [{ key: 'current', label: t('export.current') }] : []),
           { key: 'all', label: t('export.all', { what: label }) },
-          ...(searched ? [{ key: 'search', label: t('bp.export.matching') }] : []),
-          ...(narrowable ? [{ key: 'selected', label: t('export.selected', { n: selectedIds.length }), disabled: selectedIds.length === 0 }] : []),
+          ...(narrowable ? [{ key: 'selected', label: countLabel(kind, 'selected', selectedIds.length) ?? t('export.selected', { n: selectedIds.length }), disabled: selectedIds.length === 0 }] : []),
+          ...(narrowable && (searched || matchCount !== undefined) ? [{ key: 'search', label: countLabel(kind, 'matching', matchCount ?? 0) ?? t('bp.export.matching'), disabled: !searched }] : []),
         ]}
         formatTitle={t('export.format')} formats={[{ key: 'sheet', label: t('export.formatSheet') }, { key: 'plain', label: t('export.formatPlain') }]}
         confirmLabel={t('export.confirm', { what: label })} cancelLabel={t('common.cancel')}

@@ -1,13 +1,14 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, Input, Popover, Select, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, ChevronRight, Globe, Coins, Minus, Monitor, Pencil, Percent, Plus, Receipt, ShoppingBag, Store, Truck, Undo2, WalletCards } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronRight, CirclePlus, Globe, Coins, MapPin, Minus, Monitor, MoreHorizontal, Pencil, Percent, Plus, Receipt, ShoppingBag, Store, Tag, Truck, Undo2, WalletCards } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
 import { SaveBar, guard } from '../../components/SaveBar';
 import { numToGid } from '../../format';
-import { DELIVERY_PROFILE, DELIVERY_PROFILES, MARKET_DELETE, MARKET_DETAIL, MARKET_UPDATE } from '../../graphql';
+import { DELIVERY_PROFILES, LOCATIONS_SIMPLE, MARKET_DELETE, MARKET_DETAIL, MARKET_UPDATE, SHIPPING_BY_MARKET, SHOP_POLICIES } from '../../graphql';
+import { useFormat } from '../../components/shared';
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 import { countryName } from '../../lib/countries';
@@ -47,52 +48,49 @@ function SettingRow({ icon: Icon, label, children, trailing }: { icon: typeof Co
 }
 const Inherited = ({ children }: { children: React.ReactNode }) => <span className="flex min-w-0 items-center gap-2 text-muted"><Store className="size-3.5 shrink-0" aria-hidden /><span aria-hidden>→</span><span className="truncate text-fg">{children}</span></span>;
 const iconBtn = 'btn btn-plain btn-icon btn-sm';
+const capitalize = (s: string, lang: string) => s.charAt(0).toLocaleUpperCase(lang) + s.slice(1);
 
 /** "+" that opens the page where the customization of a market area is managed. */
 function CustomizeLink({ to, label }: { to: string; label: string }) {
   return <Link to={to} aria-label={label} title={label} className={iconBtn}><Plus className="size-4" /></Link>;
 }
 
-interface ProfileDetail {
-  deliveryProfile: { id: string; name: string; profileLocationGroups: Array<{ locationGroupZones: { nodes: Array<{
-    zone: { id: string; name: string; countries: Array<{ code: { countryCode: string | null; restOfWorld: boolean } }> };
-    methodDefinitions: { nodes: Array<{ id: string; name: string; active: boolean; rateProvider: { __typename: string; price?: { amount: string } } | null }> };
-  }> } }> } | null;
-}
+interface MarketShippingRow { marketId: number; options: Array<{ profile: string; zone: string; name: string; price: number; countries: string[]; profileId: number; freeOverAmount: number | null; transitMinDays: number | null; transitMaxDays: number | null; collectionIds: number[]; originLocationIds: number[] }> }
 
-/** Shipping options a market's countries get: the rates of the delivery profile zones that cover them. */
-function MarketShipping({ codes }: { codes: string[] }) {
+/** Shipping options a market's countries get (from the delivery profiles), shown as a chip that opens the list. */
+function ShippingChip({ marketId, profileId }: { marketId: string; profileId?: string }) {
   const { t } = useI18n();
+  const nav = useNavigate();
+  const fmt = useFormat();
   const { shop } = useShop();
-  const profiles = useQuery({ queryKey: ['delivery-profiles'], queryFn: () => gql<{ deliveryProfiles: { nodes: Array<{ id: string; name: string }> } }>(DELIVERY_PROFILES) });
-  const ids = profiles.data?.deliveryProfiles.nodes.map((p) => p.id) ?? [];
-  const details = useQuery({
-    queryKey: ['delivery-profile-details', ids], enabled: ids.length > 0,
-    queryFn: () => Promise.all(ids.map((id) => gql<ProfileDetail>(DELIVERY_PROFILE, { id }))),
-  });
-  const set = new Set(codes);
-  const rows = (details.data ?? []).flatMap((d) => {
-    const p = d.deliveryProfile;
-    if (!p) return [];
-    return p.profileLocationGroups.flatMap((g) => g.locationGroupZones.nodes
-      .filter((z) => z.zone.countries.some((c) => (c.code.countryCode && set.has(c.code.countryCode)) || c.code.restOfWorld))
-      .flatMap((z) => z.methodDefinitions.nodes.filter((m) => m.active).map((m) => ({ key: `${p.id}-${z.zone.id}-${m.id}`, profile: p.name, zone: z.zone.name, name: m.name, price: m.rateProvider?.price?.amount ?? null }))));
-  });
+  const q = useShippingByMarket();
+  const options = q.data?.find((m) => String(m.marketId) === marketId)?.options ?? [];
+  const locs = useQuery({ queryKey: ['locations-simple'], queryFn: async () => (await gql<{ locations: { nodes: Array<{ id: string; name: string; isActive: boolean }> } }>(LOCATIONS_SIMPLE)).locations.nodes.filter((l) => l.isActive) });
+  const locName = (id: number) => locs.data?.find((l) => Number(l.id.split('/').pop()) === id)?.name;
+  const money = (minor: number) => fmt.money({ amount: (minor / 100).toFixed(2), currencyCode: shop.currency });
+  const transit = (a: number | null, b: number | null) => (a == null && b == null ? '' : (a ?? b) === (b ?? a) ? t('fid.markets.businessDay', { n: a ?? b ?? 0 }) : t('fid.markets.businessDays', { a: a ?? 0, b: b ?? 0 }));
   return (
-    <section>
-      <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-semibold">{t('bp.markets.shipping')}</h2><Link to="/settings/shipping" className="text-[13px] text-accent hover:underline">{t('bp.markets.manageShipping')}</Link></div>
-      <Card className="divide-y divide-line !p-0">
-        {profiles.isLoading || details.isLoading ? <p className="p-3 text-[13px] text-muted">{t('common.loading')}</p> : rows.length === 0 ? <p className="p-3 text-[13px] text-muted">{t('bp.markets.noShipping')}</p> : rows.map((r) => (
-          <div key={r.key} className="flex items-center gap-3 px-3 py-2 text-[13px]">
-            <Truck className="size-4 shrink-0 text-muted" aria-hidden />
-            <span className="min-w-0 flex-1"><span className="block truncate font-medium">{r.name}</span><span className="block truncate text-xs text-muted">{r.profile} · {r.zone}</span></span>
-            <span className="tabular-nums">{r.price == null ? '—' : Number(r.price) === 0 ? t('bp.markets.free') : `${r.price} ${shop.currency}`}</span>
-          </div>
-        ))}
-      </Card>
-    </section>
+    <Popover label={t('bp.markets.shipping')} className="w-[26rem] p-0" triggerVariant="secondary" triggerClassName="!h-7 !min-h-0 !gap-1 !px-2.5 !text-[13px] !font-normal"
+      trigger={<>{options.map((o) => o.name).join(', ')}<ChevronDown className="size-3.5" /></>}>
+      <div className="text-[13px]">
+        <div className="border-b border-line px-4 py-3"><p className="font-semibold">{t('bp.markets.shipping')}</p><p className="text-muted">{t('fid.markets.activeOptions', { n: options.length })}</p></div>
+        <ul className="divide-y divide-line px-4">
+          {options.map((o, i) => (
+            <li key={i} className="py-3">
+              <p className="flex items-center justify-between gap-2"><span className="font-semibold">{o.name}</span>
+                <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[{ key: 'edit', label: t('fid.markets.editOption'), onSelect: () => nav(`/settings/shipping/profiles/${o.profileId}`) }]} /></p>
+              <p className="text-muted">{[`${o.price ? money(o.price) : t('bp.markets.free')}${o.freeOverAmount != null ? ` (${t('fid.markets.freeFrom', { amount: money(o.freeOverAmount) })})` : ''}`, transit(o.transitMinDays, o.transitMaxDays)].filter(Boolean).join(' · ')}</p>
+              <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-muted"><Tag className="size-3.5" aria-hidden />{o.collectionIds.length ? t('fid.markets.collectionsCount', { n: o.collectionIds.length }) : t('bs.allProducts')}<span aria-hidden>·</span><MapPin className="size-3.5" aria-hidden />{o.originLocationIds.map(locName).filter(Boolean).join(', ') || o.profile}</p>
+            </li>
+          ))}
+        </ul>
+        <Link to={profileId ? `/settings/shipping/profiles/${profileId}` : '/settings/shipping'} className="flex items-center gap-2 border-t border-line px-4 py-3 font-medium hover:bg-hover"><CirclePlus className="size-4" aria-hidden />{t('fid.markets.addShippingOption')}</Link>
+      </div>
+    </Popover>
   );
 }
+
+const useShippingByMarket = () => useQuery({ queryKey: ['shipping-by-market'], staleTime: 60_000, queryFn: async () => (await gql<{ shopmeShippingByMarket: MarketShippingRow[] }>(SHIPPING_BY_MARKET)).shopmeShippingByMarket });
 
 function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
   const { t, lang } = useI18n();
@@ -114,6 +112,12 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
   const strategy = market.priceInclusions?.inclusiveTaxPricingStrategy ?? 'ADD_TAXES_AT_CHECKOUT';
   const taxOverridden = !primary && ((strategy === 'INCLUDES_TAXES_IN_PRICE') !== shopInfo.taxesIncluded);
   const effectiveCurrency = currency?.baseCurrency.currencyCode ?? shopInfo.currencyCode;
+  const marketNum = market.id.split('/').pop() ?? '';
+  const byMarket = useShippingByMarket();
+  const policies = useQuery({ queryKey: ['shop-policies'], queryFn: () => gql<{ shop: { shopPolicies: Array<{ body: string }> } }>(SHOP_POLICIES) });
+  const ships = !primary && (byMarket.data?.find((m) => String(m.marketId) === marketNum)?.options.length ?? 0) > 0;
+  const profiles = useQuery({ queryKey: ['delivery-profiles'], queryFn: () => gql<{ deliveryProfiles: { nodes: Array<{ id: string; default: boolean }> } }>(DELIVERY_PROFILES) });
+  const defaultProfile = profiles.data?.deliveryProfiles.nodes.find((p) => p.default)?.id.split('/').pop();
 
   const update = useMutation({
     mutationFn: (input: Record<string, unknown>) => mutate(MARKET_UPDATE, { id: market.id, input }, 'marketUpdate'),
@@ -172,7 +176,7 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
             {primary && <p className="mt-2 text-xs text-muted">{t('markets.primaryNote')}</p>}
           </Card>
 
-          {(catalog || overridden || taxOverridden) && (
+          {(catalog || overridden || taxOverridden || ships) && (
             <section>
               <h2 className="mb-2 text-sm font-semibold">{t('markets.customizations')}</h2>
               <Card className="divide-y divide-line">
@@ -188,6 +192,9 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
                       trigger={<span className="inline-flex items-center gap-2 rounded-md bg-hover px-2.5 py-1">{currencyLabel(effectiveCurrency, lang)}{currency?.baseCurrency.manualRate && <span className="text-muted">1 {shopInfo.currencyCode} = {currency.baseCurrency.manualRate}</span>}</span>} />
                   </SettingRow>
                 )}
+                {ships && (
+                  <SettingRow icon={Truck} label={t('bp.markets.shipping')}><ShippingChip marketId={marketNum} profileId={defaultProfile} /></SettingRow>
+                )}
                 {taxOverridden && (
                   <SettingRow icon={Receipt} label={t('markets.taxes')} trailing={<button type="button" className={iconBtn} aria-label={t('markets.remove')} onClick={() => update.mutate({ removePriceInclusions: true })}><Minus className="size-4" /></button>}>
                     <span>{strategy === 'INCLUDES_TAXES_IN_PRICE' ? t('markets.taxesIncluded') : t('markets.taxesCollected')}</span>
@@ -196,8 +203,6 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
               </Card>
             </section>
           )}
-
-          <MarketShipping codes={cs.map((c) => c.code)} />
 
           <section>
             <h2 className="mb-2 text-sm font-semibold">{t('markets.inherited')}</h2>
@@ -227,7 +232,7 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
                 </SettingRow>
               )}
               <SettingRow icon={Percent} label={t('markets.discounts')} trailing={<CustomizeLink to="/discounts" label={t('bp.markets.customize')} />}><Inherited>{t('markets.allDiscounts')}</Inherited></SettingRow>
-              <SettingRow icon={Monitor} label={t('markets.domain')} trailing={<CustomizeLink to="/settings/domains" label={t('bp.markets.customize')} />}><Inherited>{shop.name} · {new Intl.DisplayNames([lang], { type: 'language' }).of(shop.locale) ?? shop.locale}</Inherited></SettingRow>
+              <SettingRow icon={Monitor} label={t('markets.domain')} trailing={<CustomizeLink to="/settings/domains" label={t('bp.markets.customize')} />}><Inherited>{window.location.host} · {capitalize(new Intl.DisplayNames([lang], { type: 'language' }).of(shop.locale) ?? shop.locale, lang)}</Inherited></SettingRow>
               {!taxOverridden && (
                 <SettingRow icon={Receipt} label={t('markets.taxes')} trailing={primary ? undefined : (
                   <Popover label={t('markets.add')} align="right" className="w-72 p-3" triggerVariant="plain" triggerClassName="btn-icon btn-sm" trigger={<Plus className="size-4" />}>
@@ -241,10 +246,10 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
                   <Inherited>{shopInfo.taxesIncluded ? t('markets.taxesIncluded') : t('markets.taxesCollected')}</Inherited>
                 </SettingRow>
               )}
-              <SettingRow icon={Truck} label={t('bp.markets.shipping')} trailing={<CustomizeLink to="/settings/shipping" label={t('bp.markets.customize')} />}><Inherited>{t('bp.markets.shippingInherited')}</Inherited></SettingRow>
+              {!ships && <SettingRow icon={Truck} label={t('bp.markets.shipping')} trailing={primary ? undefined : <CustomizeLink to={defaultProfile ? `/settings/shipping/profiles/${defaultProfile}` : '/settings/shipping'} label={t('bp.markets.customize')} />}><Inherited>{t('bp.markets.shippingInherited')}</Inherited></SettingRow>}
               <SettingRow icon={Undo2} label={t('markets.returns')} trailing={<CustomizeLink to="/settings/policies" label={t('bp.markets.customize')} />}><Inherited>{t('markets.noRule')}</Inherited></SettingRow>
-              <SettingRow icon={ShoppingBag} label={t('markets.onlineStore')} trailing={<CustomizeLink to="/online-store/preferences" label={t('bp.markets.customize')} />}><Inherited>{shop.name}</Inherited></SettingRow>
-              <SettingRow icon={WalletCards} label={t('markets.payment')} trailing={<CustomizeLink to="/settings/payments" label={t('bp.markets.customize')} />}><Inherited>{t('markets.checkoutConfig', { name: shop.name })}</Inherited></SettingRow>
+              <SettingRow icon={ShoppingBag} label={t('markets.onlineStore')}><Inherited>{shop.name}</Inherited></SettingRow>
+              <SettingRow icon={WalletCards} label={t('markets.payment')}><Inherited>{t('markets.checkoutConfig', { name: shop.name })}</Inherited></SettingRow>
             </div>
           </section>
         </div>
@@ -266,7 +271,7 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
                 <span className="min-w-0 flex-1"><span className="block font-medium">{t('qaf.markets.privacy')}</span><span className="block text-muted">{t('qaf.markets.privacyBody')}</span></span><ChevronRight className="size-4 text-muted" aria-hidden />
               </Link>
               <Link to="/settings/policies" className="flex items-center gap-2 px-3 py-2.5 text-[13px] hover:bg-hover">
-                <span className="min-w-0 flex-1"><span className="block font-medium">{t('markets.policies')}</span><span className="block text-muted">{t('markets.policiesBody')}</span></span><ChevronRight className="size-4 text-muted" aria-hidden />
+                <span className="min-w-0 flex-1"><span className="block font-medium">{t('markets.policies')}</span><span className="block text-muted">{policies.data ? t('fid.markets.policiesPublished', { n: policies.data.shop.shopPolicies.filter((x) => x.body.trim()).length }) : t('markets.policiesBody')}</span></span><ChevronRight className="size-4 text-muted" aria-hidden />
               </Link>
             </div>
           </div>
@@ -301,8 +306,8 @@ function CurrencyPopover({ market, shopCurrency, lang, busy, onSave, trigger, pl
     <Popover label={t('markets.currency.title')} align="right" className="w-80 p-3" triggerVariant={plain ? 'plain' : undefined} triggerClassName={plain ? 'btn-icon btn-sm' : undefined} trigger={trigger}>
       {(close) => (
         <div className="flex flex-col gap-3">
-          <Select label={t('markets.currency.pick')} value={code} onChange={(e) => { const next = e.target.value; setCode(next); setRate(next === cur?.baseCurrency.currencyCode && next !== shopCurrency ? cur.baseCurrency.manualRate ?? '' : ''); }}>
-            {options.map((c) => <option key={c} value={c}>{c === shopCurrency ? t('markets.currency.shopCurrency', { currency: currencyLabel(c, lang) }) : currencyLabel(c, lang)}</option>)}
+          <Select aria-label={t('markets.currency.pick')} value={code} onChange={(e) => { const next = e.target.value; setCode(next); setRate(next === cur?.baseCurrency.currencyCode && next !== shopCurrency ? cur.baseCurrency.manualRate ?? '' : ''); }}>
+            {options.map((c) => <option key={c} value={c}>{currencyLabel(c, lang)}</option>)}
           </Select>
           {foreign && (
             <div>
@@ -315,10 +320,9 @@ function CurrencyPopover({ market, shopCurrency, lang, busy, onSave, trigger, pl
             <legend className="mb-1 font-medium">{t('markets.currency.rounding')}</legend>
             <label className="flex items-center gap-2"><input type="radio" name="rounding" checked={rounding} onChange={() => setRounding(true)} />{t('markets.currency.roundUp', { unit: oneUnit(code, lang) })}</label>
             <label className="flex items-center gap-2"><input type="radio" name="rounding" checked={!rounding} onChange={() => setRounding(false)} />{t('markets.currency.noRound')}</label>
-            <p className="text-xs text-muted">{t('markets.currency.fixedNote')}</p>
           </fieldset>
           {multi && <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={local} onChange={(e) => setLocal(e.target.checked)} />{t('markets.currency.local')}</label>}
-          <div className="flex justify-end gap-2 border-t border-line pt-3">
+          <div className="flex justify-end gap-2 pt-1">
             <Button onClick={close}>{t('markets.currency.cancel')}</Button>
             <Button variant="primary" loading={busy} disabled={!rateOk} onClick={() => { onSave({ baseCurrency: code, ...(foreign && { baseCurrencyManualRate: String(rateNum) }), roundingEnabled: rounding, ...(multi && { localCurrencies: local }) }); close(); }}>{t('markets.currency.done')}</Button>
           </div>

@@ -67,7 +67,7 @@ export const DELIVERY_LOCATIONS = /* GraphQL */ `
   query DeliveryLocations {
     locations(first: 100, sortKey: PRIORITY) {
       nodes {
-        id name isActive address { address1 city zip countryCode }
+        id name isActive address { address1 city zip provinceCode countryCode }
         localPickupSettingsV2 { pickupTime instructions }
         shopmeLocalDelivery { enabled postalCodes price { amount } minimumOrder { amount } freeOverAmount { amount } info phone }
       }

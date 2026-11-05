@@ -1,18 +1,18 @@
 import { Badge, Checkbox, cx } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Clock, CornerDownLeft, FileText, ListFilter, Search, Settings, ShoppingCart, Tag, Users } from 'lucide-react';
+import { Clock, CornerDownLeft, FileText, ListFilter, Search, Settings, ShoppingCart, Store, Tag, Users } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql } from '../api';
-import { CUSTOMERS, ORDERS, PRODUCTS } from '../graphql';
+import { CUSTOMERS, ORDERS, PRODUCTS, PUBLICATIONS } from '../graphql';
 import { useI18n } from '../i18n';
 import type { Key } from '../i18n';
 import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
 import { useShop } from '../session';
 
-type Scope = 'customers' | 'orders' | 'products' | 'pages';
+type Scope = 'customers' | 'orders' | 'products' | 'channels' | 'pages';
 interface Entry { id: string; label: string; to: string; group: Key; icon: ComponentType<{ className?: string }>; hint?: string }
 
 const PAGES: Array<{ key: Key; to: string; icon: ComponentType<{ className?: string }>; group?: Key }> = [
@@ -27,7 +27,7 @@ const PAGES: Array<{ key: Key; to: string; icon: ComponentType<{ className?: str
   { key: 'settings.users', to: '/settings/users', icon: Settings, group: 'cmd.settings' }, { key: 'settings.notifications', to: '/settings/notifications', icon: Settings, group: 'cmd.settings' },
   { key: 'settings.policies', to: '/settings/policies', icon: Settings, group: 'cmd.settings' }, { key: 'settings.webhooks', to: '/settings/webhooks', icon: Settings, group: 'cmd.settings' },
 ];
-const SCOPES: Array<{ id: Scope; key: Key }> = [{ id: 'customers', key: 'cmd.customers' }, { id: 'orders', key: 'cmd.orders' }, { id: 'products', key: 'cmd.products' }, { id: 'pages', key: 'cmd.pages' }];
+const SCOPES: Array<{ id: Scope; key: Key }> = [{ id: 'customers', key: 'cmd.customers' }, { id: 'orders', key: 'cmd.orders' }, { id: 'products', key: 'cmd.products' }, { id: 'channels', key: 'fid.cmd.channels' }, { id: 'pages', key: 'cmd.pages' }];
 
 const RECENT_KEY = 'shopme.recentSearches';
 const readRecent = (): string[] => { try { const v = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]'); return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 5) : []; } catch { return []; } };
@@ -58,6 +58,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const products = useRemote<{ id: string; title: string; status: string }>(PRODUCTS, 'products', term, live('products'));
   const orders = useRemote<{ id: string; name: string; displayFinancialStatus: string }>(ORDERS, 'orders', term, live('orders'));
   const customers = useRemote<{ id: string; displayName: string }>(CUSTOMERS, 'customers', term, live('customers'));
+  const channels = useQuery({ queryKey: ['palette-channels'], enabled: open && on('channels'), staleTime: 60_000, queryFn: async () => (await gql<{ publications: { nodes: Array<{ id: string; name: string; shopmeKind?: string | null }> } }>(PUBLICATIONS)).publications.nodes }).data ?? [];
 
   useEffect(() => {
     const d = ref.current;
@@ -75,9 +76,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       ...(on('customers') ? customers.map((c) => ({ id: c.id, label: c.displayName, to: `/customers/${id(c.id)}`, group: 'cmd.customers' as Key, icon: Users })) : []),
       ...(on('orders') ? orders.map((o) => ({ id: o.id, label: o.name, to: `/orders/${id(o.id)}`, group: 'cmd.orders' as Key, icon: ShoppingCart, hint: o.displayFinancialStatus })) : []),
       ...(on('products') ? products.map((p) => ({ id: p.id, label: p.title, to: `/products/${id(p.id)}`, group: 'cmd.products' as Key, icon: Tag, hint: p.status })) : []),
+      ...(on('channels') && (q || scope === 'channels') ? channels.filter((c) => !q || c.name.toLowerCase().includes(q)).map((c) => ({ id: c.id, label: c.name, to: c.shopmeKind === 'ONLINE_STORE' ? '/online-store' : '/channels', group: 'fid.cmd.channels' as Key, icon: Store })) : []),
       ...pages,
     ];
-  }, [q, t, scope, hidden, products, orders, customers]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [q, t, scope, hidden, products, orders, customers, channels]); // eslint-disable-line react-hooks/exhaustive-deps
   const idle = !q && !scope;
 
   useEffect(() => setActive(0), [text, scope]);
@@ -105,15 +107,14 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             <Search className="size-4 shrink-0 text-muted" />
             <input autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder={t('cmd.placeholder')} aria-label={t('shell.search')} role="combobox" aria-expanded aria-controls="cmd-list" aria-activedescendant={`cmd-${active}`}
               className="h-12 w-full bg-transparent text-[13px] placeholder:text-muted focus:outline-none" />
-            <kbd className="rounded border border-line px-1.5 py-0.5 text-[11px] text-muted">Esc</kbd>
+            <button type="button" aria-label={t('btn.cmd.refine')} title={t('btn.cmd.refine')} aria-expanded={refine} aria-pressed={refine || hidden.length > 0} onClick={() => setRefine(!refine)}
+              className={cx('grid size-7 shrink-0 place-items-center rounded-lg transition-colors hover:bg-hover', (refine || hidden.length > 0) ? 'bg-hover text-fg' : 'text-muted')}><ListFilter className="size-4" /></button>
           </div>
-          <div className="flex flex-wrap gap-1.5 border-b border-line px-3 py-2" role="group" aria-label={t('cmd.filters')}>
+          <div className="flex flex-wrap gap-1.5 px-3 pb-2 pt-2.5" role="group" aria-label={t('cmd.filters')}>
             {SCOPES.map((s) => (
               <button key={s.id} type="button" aria-pressed={scope === s.id} onClick={() => setScope(scope === s.id ? null : s.id)}
                 className={cx('rounded-lg px-2.5 py-1 text-xs font-medium transition-colors', scope === s.id ? 'bg-primary text-white' : 'bg-surface text-fg hover:bg-hover')}>{t(s.key)}</button>
             ))}
-            <button type="button" aria-label={t('btn.cmd.refine')} title={t('btn.cmd.refine')} aria-expanded={refine} aria-pressed={refine || hidden.length > 0} onClick={() => setRefine(!refine)}
-              className={cx('ml-auto grid size-7 place-items-center rounded-lg transition-colors hover:bg-hover', (refine || hidden.length > 0) ? 'bg-hover text-fg' : 'text-muted')}><ListFilter className="size-4" /></button>
           </div>
           {refine && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface px-3 py-2 text-xs" role="group" aria-label={t('btn.cmd.include')}>

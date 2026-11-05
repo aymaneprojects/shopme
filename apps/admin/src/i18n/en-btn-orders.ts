@@ -105,6 +105,6 @@ export const enBtnOrders = {
   // "Learn more" topics
   'btn.learn.collections': 'collections', 'btn.learn.orders': 'orders', 'btn.learn.refunds': 'refunds', 'btn.learn.orderEdit': 'editing orders', 'btn.learn.drafts': 'draft orders', 'btn.learn.abandoned': 'abandoned checkouts',
   'btn.learn.labels': 'shipping labels', 'btn.learn.discounts': 'discounts', 'btn.learn.pages': 'pages', 'btn.learn.users': 'users and permissions', 'btn.learn.policies': 'policies', 'btn.learn.payments': 'payments',
-  'btn.learn.pickup': 'local pickup', 'btn.learn.localDelivery': 'local delivery', 'btn.learn.taxes': 'taxes and duties', 'btn.learn.domains': 'domains', 'btn.learn.languages': 'languages', 'btn.learn.events': 'customer events',
+  'btn.learn.pickup': 'local pickup', 'btn.learn.localDelivery': 'local delivery', 'btn.learn.taxes': 'taxes and duties', 'btn.learn.domains': 'domains', 'btn.learn.languages': 'languages', 'btn.learn.events': 'pixels',
   'btn.learn.marketing': 'marketing', 'btn.learn.channels': 'sales channels',
 } as const;

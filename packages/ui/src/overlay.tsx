@@ -64,7 +64,7 @@ function useDismiss(open: boolean, close: () => void) {
   return ref;
 }
 
-export interface MenuItem { key: string; label: ReactNode; onSelect: () => void; danger?: boolean; disabled?: boolean; /** Optional leading icon. */ icon?: ReactNode; /** Draws a divider above this item (groups related actions). */ separatorBefore?: boolean; /** Keyboard shortcut hint shown on the right, e.g. `Ctrl+D`. */ shortcut?: string }
+export interface MenuItem { key: string; label: ReactNode; onSelect: () => void; danger?: boolean; disabled?: boolean; /** Optional leading icon. */ icon?: ReactNode; /** Draws a divider above this item (groups related actions). */ separatorBefore?: boolean; /** Keyboard shortcut hint shown on the right, e.g. `Ctrl+D`. */ shortcut?: string; /** Small heading drawn above this item (starts a titled group, e.g. "Print"). */ section?: string }
 
 /** Button + popup menu with arrow-key navigation. Closes on outside click, Escape and selection. */
 export function Dropdown({ trigger, items, align = 'left', label, variant = 'secondary', size = 'md', icon, chevron, className, menuClassName, footer, disabled, title }: { /** Block shown under the items (e.g. a hint or a link). */ footer?: ReactNode; /** Greys the trigger out (for example while the page has unsaved changes). */ disabled?: boolean; title?: string; trigger: ReactNode; items: MenuItem[]; align?: 'left' | 'right'; label?: string; variant?: ButtonProps['variant']; size?: ButtonProps['size']; icon?: boolean; chevron?: boolean; /** Extra classes for the trigger button (e.g. `chip`). */ className?: string; menuClassName?: string }) {
@@ -91,11 +91,12 @@ export function Dropdown({ trigger, items, align = 'left', label, variant = 'sec
       {open && (
         <ul ref={menu} role="menu" onKeyDown={nav} className={cx('anim-menu absolute z-30 mt-1 min-w-48 rounded-lg bg-canvas p-1 shadow-pop', align === 'right' ? 'right-0' : 'left-0', menuClassName)}>
           {items.map((it) => (
-            <li key={it.key} role="none" className={it.separatorBefore ? 'mt-1 border-t border-line pt-1' : undefined}>
+            <li key={it.key} role="none" className={it.separatorBefore || it.section ? 'mt-1 border-t border-line pt-1 first:mt-0 first:border-t-0 first:pt-0' : undefined}>
+              {it.section && <div role="presentation" className="px-2.5 pb-0.5 pt-1 text-xs font-medium text-muted">{it.section}</div>}
               <button role="menuitem" type="button" disabled={it.disabled} onClick={() => { setOpen(false); it.onSelect(); }}
                 className={cx('flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover focus-visible:bg-hover focus-visible:outline-none disabled:opacity-50', it.danger && 'text-critical hover:bg-critical-subtle')}>
                 {it.icon && <span className="grid size-4 shrink-0 place-items-center [&_svg]:size-4" aria-hidden>{it.icon}</span>}
-                <span className="flex-1">{it.label}</span>
+                <span className="flex-1 whitespace-nowrap">{it.label}</span>
                 {it.shortcut && <kbd className="ml-4 text-xs text-muted">{it.shortcut}</kbd>}
               </button>
             </li>

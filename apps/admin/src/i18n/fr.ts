@@ -4,6 +4,7 @@ import { frCheckout } from './fr-checkout';
 import { frPrivacy } from './fr-privacy';
 import { frBtnStore } from './fr-btn-store';
 import { frBtnCustomers } from './fr-btn-customers';
+import { frFidelity } from './fr-fidelity';
 import { frCatalog } from './fr-catalog';
 import { frContent } from './fr-content';
 import { frPublishing } from './fr-publishing';
@@ -65,7 +66,7 @@ export const fr: Record<Key, string> = {
   'products.stockIn': 'En stock', 'products.stockOut': 'En rupture', 'products.count': '{n} produits', 'products.count.one': '{n} produit',
   'products.emptyTitle': 'Ajoutez votre premier produit', 'products.emptyBody': 'Les produits que vous ajoutez apparaîtront ici. Commencez par un titre, un prix et une photo.',
   'products.noResults': 'Aucun résultat', 'products.noResultsBody': 'Essayez de modifier la recherche ou les filtres.', 'products.clearFilters': 'Effacer les filtres',
-  'products.setActive': 'Passer en actif', 'products.setDraft': 'Passer en brouillon', 'products.setArchived': 'Archiver',
+  'products.setActive': 'Définir comme actif', 'products.setDraft': 'Définir comme brouillon', 'products.setArchived': 'Archiver',
   'products.updated': '{n} produits mis à jour', 'products.updated.one': '{n} produit mis à jour', 'products.deleted': '{n} produits supprimés', 'products.deleted.one': '{n} produit supprimé', 'products.deleteTitle': 'Supprimer {n} produits ?', 'products.deleteTitle.one': 'Supprimer {n} produit ?',
   'products.deleteBody': 'Cette action est irréversible.',
 
@@ -81,9 +82,9 @@ export const fr: Record<Key, string> = {
 
   'pricing.price': 'Prix', 'pricing.compareAt': 'Prix avant réduction', 'pricing.cost': 'Coût par article', 'pricing.costHelp': 'Les clients ne verront pas cette information.',
   'pricing.chargeTax': 'Facturer la taxe sur ce produit', 'pricing.margin': 'Bénéfice : {profit} (marge {pct} %)',
-  'inventory.track': 'Suivre la quantité', 'inventory.available': 'Disponible', 'inventory.sku': 'UGS', 'inventory.barcode': 'Code-barres (ISBN, UPC, GTIN)',
-  'inventory.continueSelling': 'Continuer à vendre en cas de rupture de stock', 'inventory.committed': 'Engagé', 'inventory.onHand': 'En stock', 'inventory.noSku': 'Pas d’UGS',
-  'inventory.location': 'Emplacement', 'inventory.allLocations': 'Tous les emplacements', 'inventory.search': 'Rechercher par produit ou UGS',
+  'inventory.track': 'Suivre la quantité', 'inventory.available': 'Disponible', 'inventory.sku': 'SKU', 'inventory.barcode': 'Code-barres (ISBN, UPC, GTIN)',
+  'inventory.continueSelling': 'Continuer à vendre en cas de rupture de stock', 'inventory.committed': 'Engagé', 'inventory.onHand': 'En stock', 'inventory.noSku': 'Aucun SKU',
+  'inventory.location': 'Emplacement', 'inventory.allLocations': 'Tous les emplacements', 'inventory.search': 'Rechercher par produit ou SKU',
   'inventory.pickLocation': 'Choisissez un emplacement pour modifier les quantités disponibles.', 'inventory.saveN': 'Enregistrer {n} modifications', 'inventory.saveN.one': 'Enregistrer {n} modification', 'inventory.saved': 'Stock mis à jour',
   'inventory.emptyTitle': 'Aucun stock suivi', 'inventory.emptyBody': 'Les produits dont la quantité est suivie seront listés ici.',
   'shipping.physical': 'Il s’agit d’un produit physique', 'shipping.weight': 'Poids', 'shipping.unit': 'Unité',
@@ -153,4 +154,5 @@ export const fr: Record<Key, string> = {
   ...frBtnStore,
   ...frBtnSettings,
   ...frBtnCustomers,
+  ...frFidelity,
 };

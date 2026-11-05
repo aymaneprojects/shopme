@@ -1,13 +1,13 @@
 import { Badge, Banner, cx, Button, Card, Checkbox, ConfirmDialog, Dropdown, EmptyState, Input, Modal, Select, Skeleton, Switch, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, MapPin, MoreHorizontal, Pencil, Plus, Trash2, Truck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsUpDown, MapPin, MoreHorizontal, Pencil, Plus, Trash2, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
 import { SubHeader } from '../../components/SettingsKit';
 import { SaveBar } from '../../components/SaveBar';
 import { RateDialog } from '../../components/RateDialog';
-import { RateOptions } from '../../components/RateOptions';
+import { AppliesToPill, CarrierConfig, ShipsFromPill, TransitSelect, useCarrierProviders } from '../../components/RateOptions';
 import { ProductPicker, type PickedProduct } from '../../components/Pickers';
 import { useFormat } from '../../components/shared';
 import { Thumb } from '../Products';
@@ -52,6 +52,7 @@ export function ShippingProfilePage() {
   const [optionInit, setOptionInit] = useState('');
   const [showDesc, setShowDesc] = useState(false);
   const [previewIdx0, setPreview] = useState(0);
+  const providers = useCarrierProviders();
   const [zone, setZone] = useState<ZoneForm | null>(null);
   const [origins, setOrigins] = useState<{ groupId: string | null; ids: string[] } | null>(null);
   const [picker, setPicker] = useState(false);
@@ -234,16 +235,25 @@ export function ShippingProfilePage() {
       <RateDialog open={!!option} title={option?.originalIds.length ? t('delivery.editOptionTitle') : t('delivery.addOptionTitle')} onClose={() => setOption(null)}>
         {option && (
           <>
-            <SaveBar dirty={JSON.stringify(option) !== optionInit} saving={update.isPending} saveDisabled={!optionValid} onSave={saveOption} onDiscard={() => setOption(null)} />
+            <SaveBar dirty={JSON.stringify(option) !== optionInit} saving={update.isPending} saveDisabled={!optionValid} onSave={saveOption} onDiscard={() => setOption(null)} discardLabel={t('common.cancel')} saveLabel={t('fid.rate.done')} />
             <div className="mx-auto flex w-full max-w-[648px] flex-col gap-4 px-4 pb-16 pt-6">
               {error && <Banner>{error}</Banner>}
               <Input label={t('delivery.optionName')} value={option.name} onChange={(e) => setOption({ ...option, name: e.target.value })} />
               <div className="flex flex-wrap items-center gap-2">
                 <label className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-hover pl-2 text-[13px]">
                   <span className={cx('size-2 rounded-full', option.active ? 'bg-success' : 'bg-muted')} />
-                  <select aria-label={t('delivery.status')} className="h-7 cursor-pointer appearance-none bg-transparent pr-2 text-[13px] font-medium outline-none" value={option.active ? '1' : '0'} onChange={(e) => setOption({ ...option, active: e.target.value === '1' })}>
+                  <select aria-label={t('delivery.status')} className="h-7 cursor-pointer appearance-none bg-transparent pr-6 text-[13px] font-medium outline-none [field-sizing:content]" value={option.active ? '1' : '0'} onChange={(e) => setOption({ ...option, active: e.target.value === '1' })}>
                     <option value="1">{t('delivery.active')}</option><option value="0">{t('delivery.inactive')}</option>
                   </select>
+                  <ChevronsUpDown className="pointer-events-none -ml-6 mr-1.5 size-3.5 text-muted" aria-hidden />
+                </label>
+                <label className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-hover pl-2 text-[13px]">
+                  <span className="text-muted">{t('bs.rateType')}</span>
+                  <select aria-label={t('bs.rateType')} className="h-7 cursor-pointer appearance-none bg-transparent pr-6 text-[13px] font-medium outline-none [field-sizing:content]" value={option.cards[0]?.rateType ?? 'FIXED'}
+                    onChange={(e) => { const rateType = e.target.value as RateCard['rateType']; setOption({ ...option, cards: option.cards.map((c) => ({ ...c, rateType, provider: rateType === 'CARRIER' ? c.provider || providers.data?.[0]?.id || '' : '', params: rateType === c.rateType ? c.params : {} })) }); }}>
+                    <option value="FIXED">{t('fid.rate.fixed')}</option><option value="CARRIER">{t('bs.rateCarrier')}</option>
+                  </select>
+                  <ChevronsUpDown className="pointer-events-none -ml-6 mr-1.5 size-3.5 text-muted" aria-hidden />
                 </label>
                 {!showDesc && !option.description && <button type="button" className="inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[13px] text-muted hover:bg-hover" onClick={() => setShowDesc(true)}><Plus className="size-3.5" />{t('delivery.rateDescription')}</button>}
               </div>
@@ -272,10 +282,19 @@ export function ShippingProfilePage() {
                     </div>
                     <div className="flex flex-col gap-3 rounded-lg bg-canvas p-3 shadow-card">
                       <div className="grid gap-3 sm:grid-cols-2">
-                        <Input label={`${c.rateType === 'CARRIER' ? t('bs.fallbackPrice') : t('shipping.price')} (${shop.currency})`} inputMode="decimal" placeholder="0.00" value={c.price} onChange={(e) => set({ price: e.target.value })} error={problem === 'price' && c.price !== '' ? t('delivery.errPrice') : undefined} />
-                        <Select label={t('shipping.condition')} value={c.cond} onChange={(e) => set({ cond: e.target.value as RateCard['cond'], min: '', max: '' })}>
-                          <option value="none">{t('delivery.condNone')}</option><option value="weight">{t('delivery.condWeight')}</option><option value="price">{t('delivery.condPrice')}</option>
-                        </Select>
+                        <Input label={c.rateType === 'CARRIER' ? t('bs.fallbackPrice') : t('shipping.price')} aria-label={`${c.rateType === 'CARRIER' ? t('bs.fallbackPrice') : t('shipping.price')} (${shop.currency})`} suffix={shop.currency} inputMode="decimal" placeholder={(0).toLocaleString(lang, { minimumFractionDigits: 2 })} value={c.price} onChange={(e) => set({ price: e.target.value })} error={problem === 'price' && c.price !== '' ? t('delivery.errPrice') : undefined} />
+                        <TransitSelect card={c} set={set} />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <AppliesToPill card={c} set={set} />
+                        <ShipsFromPill card={c} set={set} locations={p.profileLocationGroups.find((g) => g.locationGroup.id === option.groupId)?.locationGroup.locations.nodes ?? []} />
+                        <label className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-hover pl-2 text-[13px]">
+                          <span className="text-muted">{t('shipping.condition')}</span>
+                          <select aria-label={t('shipping.condition')} className="h-7 cursor-pointer appearance-none bg-transparent pr-6 text-[13px] font-medium outline-none [field-sizing:content]" value={c.cond} onChange={(e) => set({ cond: e.target.value as RateCard['cond'], min: '', max: '' })}>
+                            <option value="none">{t('delivery.condNone')}</option><option value="weight">{t('delivery.condWeight')}</option><option value="price">{t('delivery.condPrice')}</option>
+                          </select>
+                          <ChevronsUpDown className="pointer-events-none -ml-6 mr-1.5 size-3.5 text-muted" aria-hidden />
+                        </label>
                       </div>
                       {c.cond !== 'none' && (
                         <div className="grid gap-3 sm:grid-cols-2">
@@ -283,14 +302,19 @@ export function ShippingProfilePage() {
                           <Input label={c.cond === 'weight' ? t('delivery.maxWeight', { unit }) : t('delivery.maxPrice', { currency: shop.currency })} inputMode="decimal" value={c.max} onChange={(e) => set({ max: e.target.value })} />
                         </div>
                       )}
-                      <Switch placement="end" checked={c.freeOn} onChange={(v) => set({ freeOn: v })} label={t('delivery.offerFree')} />
-                      {c.freeOn && <Input label={`${t('delivery.freeMinimum')} (${shop.currency})`} inputMode="decimal" value={c.freeOver} onChange={(e) => set({ freeOver: e.target.value })} error={problem === 'free' ? t('delivery.errPrice') : undefined} />}
-                      <RateOptions card={c} set={set} locations={p.profileLocationGroups.find((g) => g.locationGroup.id === option.groupId)?.locationGroup.locations.nodes ?? []} />
+                      <CarrierConfig card={c} set={set} />
                     </div>
                   </section>
                 );
               })}
               <button type="button" onClick={() => { setOption({ ...option, cards: [...option.cards, blankCard()] }); setPreview(option.cards.length); }} className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-line py-4 text-[13px] font-medium hover:bg-hover"><Plus className="size-4" />{t('delivery.rate')}</button>
+              <section className="mt-2 flex flex-col gap-2">
+                <Switch placement="end" checked={!!option.cards[0]?.freeOn} onChange={(v) => setOption({ ...option, cards: option.cards.map((c) => ({ ...c, freeOn: v })) })} label={<span className="text-sm font-semibold">{t('delivery.offerFree')}</span>} />
+                <div className="rounded-lg bg-canvas p-3 shadow-card">
+                  <Input label={t('delivery.freeMinimum')} aria-label={`${t('delivery.freeMinimum')} (${shop.currency})`} suffix={shop.currency} disabled={!option.cards[0]?.freeOn} inputMode="decimal" placeholder={(0).toLocaleString(lang, { minimumFractionDigits: 2 })} value={option.cards[0]?.freeOver ?? ''}
+                    onChange={(e) => setOption({ ...option, cards: option.cards.map((c) => ({ ...c, freeOver: e.target.value })) })} error={option.cards.some((c) => cardProblem(c) === 'free') ? t('delivery.errPrice') : undefined} />
+                </div>
+              </section>
             </div>
           </>
         )}

@@ -1157,6 +1157,35 @@
         "featured_collection": "Featured collection"
       },
       "name": "Featured collection"
+    },
+    "announcement_bar": {
+      "name": "Announcement bar",
+      "settings": {
+        "show": "Show announcement",
+        "text": "Text",
+        "link": "Link"
+      }
+    },
+    "header": {
+      "name": "Header",
+      "settings": {
+        "menu": "Menu",
+        "sticky": "Sticky header"
+      }
+    },
+    "footer": {
+      "name": "Footer",
+      "settings": {
+        "menu": "Menu",
+        "show_description": "Show store description",
+        "show_newsletter": "Show newsletter sign-up"
+      }
+    },
+    "groups": {
+      "header": "Header",
+      "footer": "Footer",
+      "footer_utilities": "Footer utilities",
+      "overlays": "Overlays"
     }
   }
 }

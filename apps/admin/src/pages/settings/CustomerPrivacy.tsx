@@ -1,6 +1,6 @@
 import { Badge, Banner, Button, Card, Checkbox, Input, Select, Skeleton, Switch, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Cookie, Lock, Mail, MailCheck, Share2, Trash2, Plus } from 'lucide-react';
+import { Cookie, Lock, Mail, MailCheck, Server, Share2, Trash2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { UserErrors, gql, mutate } from '../../api';
@@ -66,7 +66,7 @@ export function CustomerPrivacySettings() {
         </RowCard>
       </Section>
       <Section title={t('priv.storage')}>
-        <Card><p className="text-[13px]">{p.storageLocation}</p></Card>
+        <Card><p className="flex items-center gap-2 text-[13px]"><Server className="size-4 text-muted" aria-hidden />{p.storageLocation === 'Self-hosted' ? t('fid.priv.selfHosted') : p.storageLocation}</p></Card>
         <p className="text-[13px] text-muted">{t('priv.disclaimer')}</p>
       </Section>
     </div>

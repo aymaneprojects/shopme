@@ -101,7 +101,7 @@ export function ProductsPage() {
   const count = useQuery({ queryKey: ['products-count', terms], queryFn: () => gql<{ productsCount: { count: number } }>(PRODUCTS_COUNT, { query: terms || null }) });
 
   const bulk = useMutation({
-    mutationFn: async ({ ids, action }: { ids: string[]; action: 'ACTIVE' | 'DRAFT' | 'ARCHIVED' | 'DELETE' }) => {
+    mutationFn: async ({ ids, action }: { ids: string[]; action: 'ACTIVE' | 'DRAFT' | 'ARCHIVED' | 'UNLISTED' | 'DELETE' }) => {
       await Promise.all(ids.map((id) => action === 'DELETE'
         ? mutate(PRODUCT_DELETE, { input: { id } }, 'productDelete')
         : mutate(PRODUCT_UPDATE, { product: { id, status: action } }, 'productUpdate')));
@@ -167,15 +167,16 @@ export function ProductsPage() {
 
   const opt = options.data;
   const toOptions = (items: string[]) => items.map((i) => ({ value: i, label: i }));
+  const selectedStatuses = rows.filter((r) => selected.includes(r.id)).map((r) => r.status);
   const filters = [
+    { key: 'vendor', label: t('filter.vendor'), options: toOptions(flattenStrings(opt?.productVendors)) },
+    { key: 'tag', label: t('filter.tag'), options: toOptions(flattenStrings(opt?.productTags)) },
     { key: 'status', label: t('field.status'), options: (['ACTIVE', 'DRAFT', 'UNLISTED', 'ARCHIVED'] as const).map((s) => ({ value: s.toLowerCase(), label: label(s) })) },
-    { key: 'category', label: t('product.category'), options: (categories.data?.taxonomy?.categories.nodes ?? []).map((c) => ({ value: c.id, label: c.fullName })) },
+    { key: 'category', label: t('qa.products.category'), options: (categories.data?.taxonomy?.categories.nodes ?? []).map((c) => ({ value: c.id, label: c.fullName })) },
     { key: 'channel', label: t('bp.filter.channel'), options: (pubs.data ?? []).map((p) => ({ value: gidToNum(p.id), label: p.name })) },
     { key: 'catalog', label: t('bp.filter.catalog'), options: [{ value: 'none', label: t('bp.filter.noCatalog') }, ...(catalogOptions.data ?? []).map((c) => ({ value: gidToNum(c.id), label: c.title }))] },
     { key: 'collection', label: t('nav.collections'), options: (collectionOptions.data?.collections.nodes ?? []).map((c) => ({ value: gidToNum(c.id), label: c.title })) },
-    { key: 'vendor', label: t('filter.vendor'), options: toOptions(flattenStrings(opt?.productVendors)) },
     { key: 'type', label: t('filter.type'), options: toOptions(flattenStrings(opt?.productTypes)) },
-    { key: 'tag', label: t('filter.tag'), options: toOptions(flattenStrings(opt?.productTags)) },
     { key: 'stock', label: t('filter.stock'), options: [{ value: 'in', label: t('products.stockIn') }, { value: 'out', label: t('products.stockOut') }] },
   ];
 
@@ -185,7 +186,7 @@ export function ProductsPage() {
 
   return (
     <>
-      <PageHeader icon={<Tag className="size-4" />} title={t('nav.products')} actions={<><ViewAs /><ImportButton kind="products" invalidate={['products', 'products-count']} /><ExportButton kind="products" currentIds={rows.map((r) => r.id)} selectedIds={selected} query={terms} /><Button variant="primary" onClick={() => nav('/products/new')}>{t('products.add')}</Button></>} />
+      <PageHeader icon={<Tag className="size-4" />} title={t('nav.products')} actions={<><ViewAs /><ImportButton kind="products" invalidate={['products', 'products-count']} /><ExportButton kind="products" currentIds={rows.map((r) => r.id)} selectedIds={selected} query={terms} matchCount={count.data?.productsCount.count} /><Button variant="primary" onClick={() => nav('/products/new')}>{t('products.add')}</Button></>} />
       <ProductMetricsStrip />
       <Card className="!p-0">
         <ListToolbar
@@ -211,14 +212,16 @@ export function ProductsPage() {
           bulkInline={2} moreLabel={t('list.moreBulk')} selectPageLabel={(n) => t('list.selectPage', { n })} deselectLabel={t('list.deselectAll')} showSelectedLabel={t('list.showSelected')}
           bulkActions={[
             { key: 'bulk', label: t('products.bulkEdit'), onRun: (ids) => nav(`/products/bulk?ids=${ids.map(gidToNum).join(',')}`) },
-            { key: 'draft', label: t('products.setDraft'), onRun: (ids) => bulk.mutate({ ids, action: 'DRAFT' }) },
+            selectedStatuses.every((s) => s === 'DRAFT')
+              ? { key: 'active', label: t('products.setActive'), onRun: (ids) => bulk.mutate({ ids, action: 'ACTIVE' }) }
+              : { key: 'draft', label: t('products.setDraft'), onRun: (ids) => bulk.mutate({ ids, action: 'DRAFT' }) },
+            ...(selectedStatuses.includes('DRAFT') && selectedStatuses.some((s) => s !== 'DRAFT') ? [{ key: 'active', label: t('products.setActive'), icon: <CircleCheck className="size-4" />, onRun: (ids: string[]) => bulk.mutate({ ids, action: 'ACTIVE' }) }] : []),
             { key: 'archive', label: t('bulk.archive'), icon: <Archive className="size-4" />, onRun: (ids) => bulk.mutate({ ids, action: 'ARCHIVED' }) },
-            { key: 'active', label: t('products.setActive'), icon: <CircleCheck className="size-4" />, onRun: (ids) => bulk.mutate({ ids, action: 'ACTIVE' }) },
+            { key: 'unlist', label: t('bp.bulk.unpublish'), icon: <EyeOff className="size-4" />, onRun: (ids) => bulk.mutate({ ids, action: 'UNLISTED' }) },
             { key: 'delete', label: t('bulk.deleteProducts'), icon: <Trash2 className="size-4" />, danger: true, onRun: (ids) => setConfirmDelete(ids) },
-            { key: 'unpublish', label: t('bp.bulk.unpublish'), icon: <EyeOff className="size-4" />, onRun: (ids) => channelBulk.mutate({ ids, mode: 'exclude', channels: (pubs.data ?? []).map((p) => p.id) }) },
             { key: 'includeChannels', label: t('bp.bulk.includeChannels'), separatorBefore: true, onRun: (ids) => setChanneling({ ids, mode: 'include' }) },
             { key: 'excludeChannels', label: t('bp.bulk.excludeChannels'), onRun: (ids) => setChanneling({ ids, mode: 'exclude' }) },
-            { key: 'includeCatalogs', label: t('bp.bulk.includeCatalogs'), onRun: (ids) => setCataloging({ ids, mode: 'include' }) },
+            { key: 'includeCatalogs', label: t('bp.bulk.includeCatalogs'), separatorBefore: true, onRun: (ids) => setCataloging({ ids, mode: 'include' }) },
             { key: 'excludeCatalogs', label: t('bp.bulk.excludeCatalogs'), onRun: (ids) => setCataloging({ ids, mode: 'exclude' }) },
             { key: 'addTags', label: t('products.addTags'), separatorBefore: true, onRun: (ids) => setTagging({ ids, mode: 'add' }) },
             { key: 'removeTags', label: t('products.removeTags'), onRun: (ids) => setTagging({ ids, mode: 'remove' }) },

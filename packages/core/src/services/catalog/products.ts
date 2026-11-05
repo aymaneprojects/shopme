@@ -655,7 +655,7 @@ export async function deleteProduct(db: Db, shopId: number, id: number): Promise
   return okR(id);
 }
 
-export async function duplicateProduct(db: Db, shopId: number, id: number, o: { newTitle: string; newStatus?: string | null; includeImages?: boolean | null; includeInventory?: boolean | null; includeTranslations?: boolean | null; includeSkus?: boolean | null }): Promise<Result<Product>> {
+export async function duplicateProduct(db: Db, shopId: number, id: number, o: { newTitle: string; newStatus?: string | null; includeImages?: boolean | null; includeInventory?: boolean | null; includeTranslations?: boolean | null; includeSkus?: boolean | null; /** Copy the variants' barcodes; follows `includeSkus` when not given. */ includeBarcodes?: boolean | null }): Promise<Result<Product>> {
   const src = await getProduct(db, shopId, id);
   if (!src) return errR(['productId'], 'Product does not exist', 'PRODUCT_DOES_NOT_EXIST');
   if (!o.newTitle.trim()) return errR(['newTitle'], "Title can't be blank", 'BLANK');
@@ -680,9 +680,10 @@ export async function duplicateProduct(db: Db, shopId: number, id: number, o: { 
     for (const v of variants) {
       const [item] = await tx.select().from(inventoryItems).where(eq(inventoryItems.variantId, v.id));
       const keepSkus = o.includeSkus !== false;
+      const keepBarcodes = o.includeBarcodes ?? keepSkus;
       const levels = o.includeInventory && item ? await tx.select().from(inventoryLevels).where(and(eq(inventoryLevels.inventoryItemId, item.id), eq(inventoryLevels.isActive, true))) : [];
       await insertVariant(tx, shopId, copy!.id, {
-        input: { price: v.price, compareAtPrice: v.compareAtPrice, barcode: keepSkus ? v.barcode : null, ...(levels.length && { inventoryQuantities: levels.map((l) => ({ locationId: l.locationId, availableQuantity: l.available })) }), taxable: v.taxable, taxCode: v.taxCode, inventoryPolicy: v.inventoryPolicy,
+        input: { price: v.price, compareAtPrice: v.compareAtPrice, barcode: keepBarcodes ? v.barcode : null, ...(levels.length && { inventoryQuantities: levels.map((l) => ({ locationId: l.locationId, availableQuantity: l.available })) }), taxable: v.taxable, taxCode: v.taxCode, inventoryPolicy: v.inventoryPolicy,
           unitPriceMeasurement: v.unitQuantityValue && v.unitReferenceValue ? { quantityValue: v.unitQuantityValue, quantityUnit: v.unitQuantityUnit ?? '', referenceValue: v.unitReferenceValue, referenceUnit: v.unitReferenceUnit ?? '' } : null,
           inventoryItem: item ? { sku: keepSkus ? item.sku ?? v.sku : null, tracked: item.tracked, requiresShipping: item.requiresShipping, cost: item.unitCost, countryCodeOfOrigin: item.countryCodeOfOrigin, harmonizedSystemCode: item.harmonizedSystemCode, weight: item.weightValue != null ? { value: item.weightValue, unit: item.weightUnit as 'KILOGRAMS' } : null } : { sku: keepSkus ? v.sku : null } },
         position: v.position, title: v.title, optionValueIds: (sel.get(v.id) ?? []).map((s) => map.get(s.valueId)!).filter(Boolean),

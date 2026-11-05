@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../api';
 import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
-import { ContentTabs } from '../components/ContentTabs';
 import { LearnMore } from '../components/LearnMore';
 import { PageHeader } from '../components/PageHeader';
 import { searchCls, selectCls, useFormat, useListParams } from '../components/shared';
@@ -61,7 +60,6 @@ export function MetaobjectsPage() {
   ];
   return (
     <>
-      <ContentTabs />
       <PageHeader icon={<Boxes className="size-4" />} title={t('mo.title')} actions={<>
         <Link to="/settings/metafields/metaobjects" className="btn btn-secondary">{t('mo.manage')}</Link>
         <Link to="/settings/metafields/metaobjects/new" className="btn btn-primary">{t('mo.addDefinition')}</Link>
@@ -86,12 +84,12 @@ export function MetaobjectsPage() {
       </div>
       <Card className="!p-0">
         <div className="flex items-center gap-2 border-b border-line p-3">
+          <Dropdown variant="plain" size="sm" className="btn-neutral" label={t('bc.mo.view')} trigger={<>{t(`bc.mo.view.${view}` as Key)}<ChevronsUpDown className="size-3.5 text-muted" /></>}
+            items={VIEWS.map((v) => ({ key: v, label: t(`bc.mo.view.${v}` as Key), icon: view === v ? <Check className="size-4" /> : undefined, onSelect: () => L.patch({ view: v === 'all' ? '' : v }) }))} />
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('mo.searchDefinitions')} aria-label={t('mo.searchDefinitions')} className={searchCls} />
           </div>
-          <Dropdown align="right" variant="secondary" size="sm" label={t('bc.mo.view')} trigger={<>{t(`bc.mo.view.${view}` as Key)}<ChevronsUpDown className="size-3.5 text-muted" /></>}
-            items={VIEWS.map((v) => ({ key: v, label: t(`bc.mo.view.${v}` as Key), icon: view === v ? <Check className="size-4" /> : undefined, onSelect: () => L.patch({ view: v === 'all' ? '' : v }) }))} />
           <ColumnPicker locked={['name']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
           <button type="button" className="btn btn-secondary btn-icon btn-sm" aria-pressed={showSystem} aria-label={t(showSystem ? 'bc.mo.hideSystem' : 'bc.mo.showSystem')} title={t(showSystem ? 'bc.mo.hideSystem' : 'bc.mo.showSystem')} onClick={() => L.patch({ system: showSystem ? '' : '1' })}>{showSystem ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</button>
         </div>

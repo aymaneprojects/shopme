@@ -51,7 +51,7 @@ export const LinkRow = ({ to, ...p }: RowProps & { to: string }) => <Link to={to
 export const ButtonRow = ({ onClick, chevron = true, ...p }: RowProps & { onClick: () => void; chevron?: boolean }) => <button type="button" onClick={onClick} className={rowCls}><RowBody {...p} chevron={chevron} /></button>;
 
 /** Header of a settings sub-page: round back button with the parent name, then the large title; actions go on the right. */
-export function SubHeader({ back, parent, title, actions }: { back: string; parent: ReactNode; title: ReactNode; actions?: ReactNode }) {
+export function SubHeader({ back, parent, title, actions, description }: { back: string; parent: ReactNode; title: ReactNode; actions?: ReactNode; /** Line under the title. */ description?: ReactNode }) {
   const t = useT();
   return (
     <div className="mb-5">
@@ -61,6 +61,7 @@ export function SubHeader({ back, parent, title, actions }: { back: string; pare
         <div className="ml-auto flex items-center gap-2">{actions}</div>
       </div>
       <h1 className="text-xl font-semibold leading-8">{title}</h1>
+      {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
     </div>
   );
 }

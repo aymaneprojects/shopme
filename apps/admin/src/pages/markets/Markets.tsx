@@ -1,15 +1,15 @@
 import { Badge, Banner, Button, Card, Dropdown, EmptyState, IndexTable, Input, Modal, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Coins, Globe, ListFilter, Network, PanelRight, Plus, Rocket, Search, ArrowUpDown, List as ListIcon } from 'lucide-react';
+import { BookOpen, Coins, Globe, ListFilter, Network, PanelRight, Search, Truck, ArrowUpDown, List as ListIcon } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import { gql, mutate } from '../../api';
 import { LearnMore } from '../../components/LearnMore';
 import { PageHeader } from '../../components/PageHeader';
 import { searchCls, useListParams } from '../../components/shared';
 import { gidToNum } from '../../format';
-import { MARKETS_LIST, MARKET_CREATE } from '../../graphql';
+import { MARKETS_LIST, MARKET_CREATE, SHIPPING_BY_MARKET } from '../../graphql';
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 import { useDebounced } from '../../lib/hooks';
@@ -32,7 +32,7 @@ export function MarketsPage() {
   const reverse = L.get('dir') === 'desc';
   const [creating, setCreating] = useState(false);
   const [view, setView] = useState<'list' | 'graph'>(() => { try { return localStorage.getItem('shopme.markets.view') === 'graph' ? 'graph' : 'list'; } catch { return 'list'; } });
-  const [side, setSide] = useState(() => { try { return localStorage.getItem('shopme.markets.side') !== 'off'; } catch { return true; } });
+  const [side, setSide] = useState(() => { try { return localStorage.getItem('shopme.markets.side') === 'on'; } catch { return false; } });
   const remember = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } };
   const query = [term, status && `status:${status.toLowerCase()}`].filter(Boolean).join(' ');
 
@@ -42,6 +42,8 @@ export function MarketsPage() {
     placeholderData: (p) => p,
   });
   const rows = list.data?.markets.nodes ?? [];
+  const shipping = useQuery({ queryKey: ['shipping-by-market'], staleTime: 60_000, queryFn: async () => (await gql<{ shopmeShippingByMarket: Array<{ marketId: number; options: unknown[] }> }>(SHIPPING_BY_MARKET)).shopmeShippingByMarket });
+  const shipsTo = new Set((shipping.data ?? []).filter((m) => m.options.length > 0).map((m) => String(m.marketId)));
   const columns: Array<Column<MarketRow>> = [
     { key: 'name', header: t('markets.col.market'), cell: (m) => <span className="flex items-center gap-2 font-medium"><Globe className="size-4 text-muted" aria-hidden />{m.name}{m.primary && <Badge tone="info">{t('markets.primary')}</Badge>}</span> },
     { key: 'status', header: t('markets.col.status'), cell: (m) => <Badge tone={m.status === 'ACTIVE' ? 'success' : 'neutral'}>{t(`markets.status.${m.status}` as Key)}</Badge> },
@@ -57,11 +59,12 @@ export function MarketsPage() {
         <span className="flex items-center gap-2 text-muted">
           {(m.catalogsCount?.count ?? 0) > 0 && <span title={t('markets.customizationCatalog')}><BookOpen className="size-4" aria-label={t('markets.customizationCatalog')} /></span>}
           {!m.primary && m.currencySettings && m.currencySettings.baseCurrency.currencyCode !== list.data?.shop.currencyCode && <span title={t('markets.customizationCurrency')}><Coins className="size-4" aria-label={t('markets.customizationCurrency')} /></span>}
+          {!m.primary && shipsTo.has(gidToNum(m.id)) && <span title={t('bp.markets.shipping')}><Truck className="size-4" aria-label={t('bp.markets.shipping')} /></span>}
         </span>
       ),
     },
   ];
-  const create = <Button variant="primary" onClick={() => setCreating(true)}><Plus className="size-4" />{t('markets.create')}</Button>;
+  const create = <Button variant="primary" onClick={() => setCreating(true)}>{t('markets.create')}</Button>;
   const filterItems = [{ key: '', label: t('markets.allStatuses') }, { key: 'ACTIVE', label: t('markets.status.ACTIVE') }, { key: 'DRAFT', label: t('markets.status.DRAFT') }]
     .map((o) => ({ key: o.key || 'all', label: <span className={status === o.key ? 'font-semibold' : ''}>{o.label}</span>, onSelect: () => L.patch({ status: o.key }) }));
   const sortItems = SORTS.flatMap((k) => (['asc', 'desc'] as const).map((d) => ({
@@ -79,18 +82,17 @@ export function MarketsPage() {
   return (
     <>
       <PageHeader icon={<Globe className="size-4" />} title={t('markets.title')} actions={<>
-        <Link to="/markets/rollouts" className="btn btn-secondary"><Rocket className="size-4" />{t('bp.markets.rollouts')}</Link>
-        <Button icon aria-label={t('bp.markets.toggleSide')} aria-pressed={side} onClick={() => { setSide(!side); remember('shopme.markets.side', side ? 'off' : 'on'); }}><PanelRight className="size-4" /></Button>
+        <Button aria-pressed={view === 'graph'} onClick={() => { const next = view === 'list' ? 'graph' : 'list'; setView(next); remember('shopme.markets.view', next); }}>{view === 'list' ? <Network className="size-4" /> : <ListIcon className="size-4" />}{t(view === 'list' ? 'bp.markets.graphView' : 'bp.markets.listView')}</Button>
         {create}</>} />
       <div className={side ? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]' : ''}>
       <div className="min-w-0">
       <Card className="!p-0">
         <div className="flex items-center gap-2 border-b border-line p-3">
+          <Button icon size="sm" variant="plain" className="btn-neutral" aria-label={t('bp.markets.toggleSide')} aria-pressed={side} onClick={() => { setSide(!side); remember('shopme.markets.side', side ? 'off' : 'on'); }}><PanelRight className="size-4" /></Button>
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('markets.search')} aria-label={t('markets.search')} className={searchCls} />
           </div>
-          <Button icon aria-label={t(view === 'list' ? 'bp.markets.graphView' : 'bp.markets.listView')} aria-pressed={view === 'graph'} onClick={() => { const next = view === 'list' ? 'graph' : 'list'; setView(next); remember('shopme.markets.view', next); }}>{view === 'list' ? <Network className="size-4" /> : <ListIcon className="size-4" />}</Button>
           <Dropdown align="right" label={t('markets.filter')} trigger={<ListFilter className="size-4" />} items={filterItems} />
           <Dropdown align="right" label={t('markets.sort')} trigger={<ArrowUpDown className="size-4" />} items={sortItems} />
         </div>

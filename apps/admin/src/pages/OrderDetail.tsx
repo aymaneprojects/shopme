@@ -138,11 +138,11 @@ function OrderView({ order: o }: { order: OrderData }) {
           <Button disabled={!!o.cancelledAt} onClick={() => nav(`/orders/${gidToNum(o.id)}/edit`)}>{t('order.edit')}</Button>
           <Dropdown align="right" chevron label={t('qa.moreActions')} trigger={t('qa.moreActions')} items={nowrapItems([
             { key: 'duplicate', icon: <CopyPlus />, label: t('order.duplicate'), onSelect: () => duplicate.mutate() },
-            { key: 'return', icon: <CornerUpLeft />, label: t('returns.createTitle'), disabled: !!o.cancelledAt || !lines.some((l) => l.quantity > l.unfulfilledQuantity), onSelect: () => setDialog('return') },
+            ...(!o.cancelledAt && lines.some((l) => l.quantity > l.unfulfilledQuantity) ? [{ key: 'return', icon: <CornerUpLeft />, label: t('returns.createTitle'), onSelect: () => setDialog('return') }] : []),
             { key: 'cancel', icon: <Ban />, label: t('order.cancel'), disabled: !!o.cancelledAt, onSelect: () => setDialog('cancel') },
             { key: 'close', icon: isClosed ? <ArchiveRestore /> : <Archive />, label: isClosed ? t('order.reopen') : t('order.archive'), onSelect: () => act.mutate(isClosed ? 'open' : 'close') },
             { key: 'status', icon: <Eye />, label: t('order.statusPage'), onSelect: () => { window.open(o.statusPageUrl, '_blank', 'noopener'); } },
-            { key: 'print-many', icon: <Printer />, label: t('order.printMany'), onSelect: () => setDialog('print') },
+            { key: 'print-many', icon: <Printer />, label: t('order.printMany'), section: t('btn.bulk.print'), onSelect: () => setDialog('print') },
             { key: 'print-order', icon: <Printer />, label: t('order.printOrder'), onSelect: () => print(['order']) },
             { key: 'print-packing', icon: <Printer />, label: t('order.printPacking'), onSelect: () => print(['packing']) },
           ])} />
@@ -159,7 +159,7 @@ function OrderView({ order: o }: { order: OrderData }) {
             <section>
               <IconHeading icon={<Inbox />} tone="attention"
                 actions={!o.cancelledAt && <>
-                  <Dropdown align="right" variant="plain" size="sm" icon label={t('ful.cardMenu')} trigger={<MoreHorizontal className="size-4" />} items={[{ key: 'loc', icon: <MapPin />, label: t('ful.changeLocation'), disabled: !!held, onSelect: () => setDialog('fulfill') }]} />
+                  <Dropdown align="right" variant="plain" size="sm" icon label={t('ful.cardMenu')} trigger={<MoreHorizontal className="size-4" />} items={[{ key: 'loc', label: t('ful.changeLocation'), disabled: !!held, onSelect: () => setDialog('fulfill') }]} />
                   {held
                     ? <Button size="sm" variant="primary" loading={release.isPending} onClick={() => release.mutate()}>{t('hold.release')}</Button>
                     : <SplitButton size="sm" menuLabel={t('hold.menu')} onClick={() => setDialog('fulfill')} items={[{ key: 'hold', icon: <Pause />, label: t('hold.mark'), onSelect: () => setDialog('hold') }]}>{t('order.markFulfilled')}</SplitButton>}
@@ -225,7 +225,6 @@ function OrderView({ order: o }: { order: OrderData }) {
             <p className="text-muted">{t('qa.channel')}</p>
             <p>{channel}</p>
           </SideSection>
-          {extras && <FulfilmentFields key={`${extras.shopmeFulfillBy}|${extras.poNumber}`} orderId={o.id} extras={extras} disabled={!!o.cancelledAt} />}
           <SideSection title={t('order.customer')} action={o.customer && <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
             { key: 'view', icon: <User />, label: t('order.viewCustomer'), onSelect: () => nav(`/customers/${gidToNum(o.customer!.id)}`) },
             { key: 'copy', icon: <Copy />, label: t('order.copyEmail'), onSelect: () => { void navigator.clipboard?.writeText(o.email ?? o.customer?.defaultEmailAddress?.emailAddress ?? '').then(() => toast(t('abandoned.copied'))); } },
@@ -248,6 +247,7 @@ function OrderView({ order: o }: { order: OrderData }) {
             { key: 'edit', icon: <MapPin />, label: t('order.billingEdit'), disabled: !!o.cancelledAt, onSelect: () => setDialog('billing') },
           ]} />}><AddressBlock a={o.billingAddress} /></SideSection>
           {extras && <ConversionSection c={extras.shopmeConversion} />}
+          {extras && <FulfilmentFields key={`${extras.shopmeFulfillBy}|${extras.poNumber}`} orderId={o.id} extras={extras} disabled={!!o.cancelledAt} />}
           {extras && <RiskSection risk={extras.shopmeRisk} />}
           <div className="border-b border-line py-3.5"><MetafieldsEditor ownerId={o.id} ownerType="ORDER" /></div>
           <SideSection title={t('field.tags')}><TagInput value={o.tags} onChange={(v) => tags.mutate(v)} removeLabel={t('common.remove')} /></SideSection>

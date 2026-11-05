@@ -1,7 +1,7 @@
 import type { enCatalog } from './en-catalog';
 
 export const frCatalog: Record<keyof typeof enCatalog, string> = {
-  'settings.locations': 'Emplacements', 'settings.metafields': 'Données personnalisées',
+  'settings.locations': 'Emplacements', 'settings.metafields': 'Champs méta et métaobjets',
   'loc.intro': 'Les lieux où vous stockez et expédiez vos produits. Les commandes en ligne sont préparées depuis le premier emplacement de cette liste qui a le stock.',
   'loc.add': 'Ajouter un emplacement', 'loc.edit': 'Modifier l’emplacement', 'loc.saved': 'Emplacement enregistré', 'loc.emptyTitle': 'Aucun emplacement', 'loc.emptyBody': 'Ajoutez un emplacement pour suivre où se trouve votre stock.',
   'loc.name': 'Nom de l’emplacement', 'loc.address1': 'Adresse', 'loc.address2': 'Appartement, bâtiment, etc.', 'loc.zip': 'Code postal', 'loc.city': 'Ville', 'loc.country': 'Pays', 'loc.phone': 'Téléphone',
@@ -36,7 +36,7 @@ export const frCatalog: Record<keyof typeof enCatalog, string> = {
   'pricing.unitPrice': 'Prix unitaire', 'pricing.unitQuantity': 'Quantité totale', 'pricing.unitReference': 'Mesure de base', 'pricing.unitUnit': 'Unité',
   'pricing.unitPriceHelp': 'Affiche un prix par unité de mesure, par exemple pour 100 ml.', 'pricing.unitPriceShown': 'Affiché aux clients : {price} pour {ref}',
   'variants.image': 'Image de la variante', 'variants.noImage': 'Aucune', 'variants.noMedia': 'Ajoutez des médias au produit pour choisir une image de variante.', 'variants.useImage': 'Utiliser cette image',
-  'product.category': 'Catégorie de produit', 'product.categoryHelp': 'Détermine les taux de taxe et améliore la recherche et les recommandations.', 'product.noCategory': 'Aucune catégorie',
-  'product.duplicate': 'Dupliquer', 'product.duplicated': 'Produit dupliqué', 'product.copyOf': 'Copie de {title}', 'product.preview': 'Aperçu', 'product.viewOnStore': 'Voir sur la boutique en ligne',
+  'product.category': 'Catégorie', 'product.categoryHelp': 'Détermine les taux de taxe et améliore la recherche et les recommandations.', 'product.noCategory': 'Non catégorisé',
+  'product.duplicate': 'Dupliquer', 'product.duplicated': 'Produit dupliqué', 'product.copyOf': '{title} (Copie)', 'product.preview': 'Prévisualiser', 'product.viewOnStore': 'Voir sur la boutique en ligne',
   'order.fulfillFrom': 'Expédier depuis', 'order.fulfillFromHelp': 'Le stock part de l’emplacement où il a d’abord été réservé.', 'order.fulfillFromAuto': 'Là où le stock est réservé',
 };

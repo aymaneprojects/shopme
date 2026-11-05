@@ -23,7 +23,7 @@ export const frPrivacy: Record<keyof typeof enPrivacy, string> = {
 
   'priv.settings': 'Paramètres de confidentialité', 'priv.automated': 'Automatisé', 'priv.manual': 'Manuel', 'priv.off': 'Désactivé',
   'priv.policy': 'Politique de confidentialité', 'priv.policy.published': 'Publiée sur votre boutique en ligne', 'priv.policy.missing': 'Rédigez votre politique de confidentialité pour que les visiteurs puissent la lire', 'priv.policy.set': 'Publiée', 'priv.policy.notSet': 'Non définie',
-  'priv.banner': 'Bandeau concernant les cookies', 'priv.banner.autoDesc': 'Affiché uniquement aux visiteurs des régions qui exigent un consentement', 'priv.banner.alwaysDesc': 'Affiché à chaque visiteur tant qu’il n’a pas choisi', 'priv.banner.offDesc': 'Désactivé',
+  'priv.banner': 'Bannière concernant les cookies', 'priv.banner.autoDesc': 'Affiché uniquement aux visiteurs des régions qui exigent un consentement', 'priv.banner.alwaysDesc': 'Affiché à chaque visiteur tant qu’il n’a pas choisi', 'priv.banner.offDesc': 'Désactivé',
   'priv.dataSale': 'Page d’opposition au partage de données', 'priv.dataSale.active': 'Active dans {names} et {n} autres États',
   'priv.marketing': 'Paramètres marketing', 'priv.marketingDesc': 'Comment les clients acceptent de recevoir des e-mails marketing.',
   'priv.checkout': 'Marketing par e-mail lors du paiement', 'priv.checkout.hidden': 'Pas de case marketing lors du paiement', 'priv.checkout.unchecked': 'Case affichée, décochée par défaut', 'priv.checkout.checked': 'Case affichée, cochée par défaut',

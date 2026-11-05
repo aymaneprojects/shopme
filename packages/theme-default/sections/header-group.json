@@ -1,5 +1,5 @@
 {
-  "name": "Header",
+  "name": "t:sections.groups.header",
   "type": "header",
   "sections": {
     "announcement": {

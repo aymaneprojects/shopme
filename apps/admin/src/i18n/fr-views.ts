@@ -31,7 +31,7 @@ export const frViews = {
 
   'products.addTags': 'Ajouter des balises', 'products.removeTags': 'Supprimer des balises', 'products.addToCollections': 'Ajouter aux collections', 'products.removeFromCollections': 'Retirer des collections',
   'metrics.title': 'Indicateurs des produits', 'metrics.days': '{n} jours', 'metrics.sellThrough': 'Taux de vente moyen', 'metrics.sellThroughHelp': 'Unités vendues divisées par les unités vendues plus les unités en stock, sur la période.',
-  'metrics.daysLeft': 'Jours de stock restants', 'metrics.daysLeftHelp': 'Unités en stock divisées par la moyenne des unités vendues par jour sur la période.', 'metrics.daysValue': '{n} jours',
+  'metrics.daysLeft': 'Produits par jours de stock restants', 'metrics.daysLeftHelp': 'Unités en stock divisées par la moyenne des unités vendues par jour sur la période.', 'metrics.daysValue': '{n} jours',
   'metrics.abc': 'Analyse ABC des produits', 'metrics.abcHelp': 'Produits classés par chiffre d’affaires : A fait les 80 % premiers, B les 15 % suivants, C le reste et les produits non vendus.',
   'metrics.abcValue': 'A {a} · B {b} · C {c}', 'metrics.noData': 'Aucune donnée',
 } as const;

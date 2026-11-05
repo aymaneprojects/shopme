@@ -1,10 +1,11 @@
-import { Banner, Button, Input, Modal, Select, Skeleton, Switch, Tabs, useToast } from '@shopme/ui';
+import { Banner, Button, Input, Modal, Select, Skeleton, Switch, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil } from 'lucide-react';
+import { CalendarDays, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { UserErrors, gql, mutate } from '../api';
 import { CUSTOMER_STORE_CREDIT, STORE_CREDIT_CREDIT, STORE_CREDIT_DEBIT } from '../graphql';
 import { useI18n } from '../i18n';
+import { currencyLabel } from '../lib/markets';
 import { useFormat } from './shared';
 import type { Money } from './shared';
 
@@ -70,7 +71,6 @@ function DialogBody({ customerId, data, onClose }: { customerId: string; data?: 
   const { t, lang } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
-  const [mode, setMode] = useState<'credit' | 'debit'>('credit');
   const [amount, setAmount] = useState('');
   const [expires, setExpires] = useState('');
   const [pickExpiry, setPickExpiry] = useState(false);
@@ -79,12 +79,15 @@ function DialogBody({ customerId, data, onClose }: { customerId: string; data?: 
   const currency = data?.shop.currencyCode ?? '';
   const tz = data?.shop.ianaTimezone ?? 'UTC';
   const account = data?.customer?.storeCreditAccounts.nodes.find((a) => a.balance.currencyCode === currency);
-  const parsed = Number(amount.replace(',', '.'));
-  const valid = Number.isFinite(parsed) && parsed > 0 && /^\d*([.,]\d{0,2})?$/.test(amount.trim());
+  // A negative amount removes credit from the balance; a positive one issues credit.
+  const text = amount.trim().replace(/^[−–]/, '-');
+  const parsed = Number(text.replace(',', '.'));
+  const mode: 'credit' | 'debit' = parsed < 0 ? 'debit' : 'credit';
+  const valid = Number.isFinite(parsed) && parsed !== 0 && /^-?\d*([.,]\d{0,2})?$/.test(text) && (mode === 'credit' || !!account);
   const refresh = () => { void qc.invalidateQueries({ queryKey: creditKey(customerId) }); void qc.invalidateQueries({ queryKey: ['customer'] }); void qc.invalidateQueries({ queryKey: ['timeline'] }); };
   const submit = useMutation({
     mutationFn: async () => {
-      const money = { amount: parsed.toFixed(2), currencyCode: currency };
+      const money = { amount: Math.abs(parsed).toFixed(2), currencyCode: currency };
       if (mode === 'credit') return mutate(STORE_CREDIT_CREDIT, { id: customerId, input: { creditAmount: money, notify, ...(expires ? { expiresAt: endOfDayIn(expires, tz).toISOString() } : {}) } }, 'storeCreditAccountCredit');
       return mutate(STORE_CREDIT_DEBIT, { id: account!.id, input: { debitAmount: money } }, 'storeCreditAccountDebit');
     },
@@ -93,25 +96,21 @@ function DialogBody({ customerId, data, onClose }: { customerId: string; data?: 
   });
   const today = new Date().toISOString().slice(0, 10);
   const label = expires ? new Intl.DateTimeFormat(lang, { dateStyle: 'medium' }).format(new Date(`${expires}T12:00:00Z`)) : t('credit.noExpiry');
+  const currencyName = currencyLabel(currency, lang);
   return (
     <Modal open onClose={onClose} title={t('credit.adjust')} closeLabel={t('common.close')}
       footer={<><Button onClick={onClose}>{t('common.cancel')}</Button><Button variant="primary" disabled={!valid || !data} loading={submit.isPending} onClick={() => submit.mutate()}>{t(mode === 'credit' ? 'credit.issue' : 'credit.remove')}</Button></>}>
       <div className="flex flex-col gap-4">
         {error && <Banner>{error}</Banner>}
-        <Tabs tabs={[{ id: 'credit', label: t('credit.issue') }, { id: 'debit', label: t('credit.remove') }]} value={mode} onChange={(m) => { setMode(m); setError(null); }} />
         <div className="grid gap-3 sm:grid-cols-2">
-          <Select label={t('credit.currency')} disabled value={currency}><option value={currency}>{currency}</option></Select>
-          <div className="relative">
-            <Input label={t('credit.amount')} inputMode="decimal" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="pr-12" />
-            <span className="pointer-events-none absolute bottom-2 right-3 text-[13px] text-muted">{currency}</span>
-          </div>
+          <Select label={t('credit.currency')} disabled value={currency}><option value={currency}>{currencyName}</option></Select>
+          <Input label={t('credit.amount')} inputMode="decimal" suffix={currency} placeholder={(0).toLocaleString(lang, { minimumFractionDigits: 2 })} value={amount} onChange={(e) => setAmount(e.target.value)} help={mode === 'debit' ? (account ? t('credit.balanceNow', { amount: `${(Number(account.balance.amount)).toFixed(2)} ${currency}` }) : t('credit.nothingToRemove')) : undefined} />
         </div>
-        {mode === 'debit' && <p className="text-[13px] text-muted">{account ? t('credit.balanceNow', { amount: `${(Number(account.balance.amount)).toFixed(2)} ${currency}` }) : t('credit.nothingToRemove')}</p>}
         {mode === 'credit' && (
           <>
             <div className="flex items-start justify-between gap-3">
               <div><p className="text-[13px] font-semibold">{t('credit.expiry')}</p><p className="text-[13px] text-muted">{t('credit.expiryHelp')}</p></div>
-              <Button size="sm" onClick={() => setPickExpiry(!pickExpiry)} aria-expanded={pickExpiry}>{label}</Button>
+              <Button size="sm" onClick={() => setPickExpiry(!pickExpiry)} aria-expanded={pickExpiry}><CalendarDays className="size-3.5" />{label}</Button>
             </div>
             {pickExpiry && (
               <div className="flex items-end gap-2">

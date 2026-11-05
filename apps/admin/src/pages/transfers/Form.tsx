@@ -1,7 +1,7 @@
 import { Banner, Button, Card, ConfirmDialog, TagInput, Textarea, Input } from '@shopme/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeftRight, CalendarDays, Hash, NotebookPen, StickyNote, X } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { mutate } from '../../api';
@@ -14,7 +14,7 @@ import {
   TRANSFER_CREATE, TRANSFER_CREATE_READY, TRANSFER_DELETE, TRANSFER_EDIT, TRANSFER_READY, TRANSFER_REMOVE_ITEMS, TRANSFER_SET_ITEMS, STOCK_VARIANT_SEARCH,
 } from '../../graphql';
 import { gql } from '../../api';
-import { useT } from '../../i18n';
+import { useI18n, useT } from '../../i18n';
 import { Thumb } from '../Products';
 import { PinSelect, Pipeline, TransitStep, dayValue, errText, useLocationOptions } from './shared';
 
@@ -31,6 +31,19 @@ function DetailRow({ icon, label, open, onOpen, children }: { icon: ReactNode; l
       <span className="mt-0.5 text-muted" aria-hidden>{icon}</span>
       {open ? <div className="flex-1">{children}</div> : <button type="button" className="text-[13px] hover:underline" onClick={onOpen}>{label}</button>}
     </div>
+  );
+}
+
+/** A date shown as a chip in words ("5 November 2026"); clicking it opens the browser's date picker. */
+function DateChip({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const { lang } = useI18n();
+  const ref = useRef<HTMLInputElement>(null);
+  const shown = value ? new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T12:00:00Z`)) : label;
+  return (
+    <span className="relative inline-flex">
+      <button type="button" aria-label={`${label} : ${shown}`} onClick={() => { try { ref.current?.showPicker(); } catch { ref.current?.focus(); } }} className="inline-flex h-6 items-center rounded-md bg-hover px-2 text-[13px] font-medium hover:bg-line">{shown}</button>
+      <input ref={ref} type="date" tabIndex={-1} aria-hidden className="pointer-events-none absolute inset-0 opacity-0" value={value} onChange={(e) => e.target.value && onChange(e.target.value)} />
+    </span>
   );
 }
 
@@ -140,7 +153,7 @@ export function TransferForm({ initial }: { initial: TransferDraft }) {
       <Card>
         <div className="flex items-center gap-3 py-1.5">
           <CalendarDays className="size-4 text-muted" aria-hidden />
-          <input type="date" aria-label={t('transfers.date')} className="field-control h-7 w-auto rounded-full bg-surface px-3 text-[13px]" value={f.date} onChange={(e) => set({ date: e.target.value })} />
+          <DateChip label={t('transfers.date')} value={f.date} onChange={(date) => set({ date })} />
         </div>
         <DetailRow icon={<NotebookPen className="size-4" />} label={t('transfers.addReference')} open={open.reference} onOpen={() => setOpen((o) => ({ ...o, reference: true }))}>
           <Input autoFocus label={t('transfers.reference')} value={f.reference} maxLength={255} onChange={(e) => set({ reference: e.target.value })} />

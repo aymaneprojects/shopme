@@ -35,7 +35,7 @@ export function InventoryPage() {
     for (const [k, v] of Object.entries(changes)) (v ? next.set(k, v) : next.delete(k));
     setParams(next, { replace: true });
   };
-  const location = params.get('loc') ?? '';
+  const locParam = params.get('loc') ?? '';
   const untracked = params.get('tracking') === 'untracked';
   const setLocation = (v: string) => patch({ loc: v });
   const urlQ = params.get('q') ?? '';
@@ -50,6 +50,8 @@ export function InventoryPage() {
   const cols = useColumnVisibility('inventory');
 
   const locs = useQuery({ queryKey: ['locations'], queryFn: () => gql<{ locations: { nodes: Array<{ id: string; name: string; isActive: boolean }> } }>(LOCATIONS) });
+  // A location is always chosen (the first active one by default); "all" shows the totals of every location.
+  const location = locParam === 'all' ? '' : locParam || (locs.data?.locations.nodes.find((l) => l.isActive !== false)?.id ?? '');
   const list = useQuery({
     queryKey: ['inventory', term, cursor],
     queryFn: () => gql<{ productVariants: Connection<VariantRow> }>(INVENTORY_VARIANTS, { query: term.trim() || null, ...(cursor.before ? { last: PAGE_SIZE, before: cursor.before } : { first: PAGE_SIZE, after: cursor.after ?? null }) }),
@@ -60,11 +62,13 @@ export function InventoryPage() {
   const levelsOf = (v: VariantRow) => v.inventoryItem.inventoryLevels.nodes.filter((l) => !location || l.location.id === location);
 
   const adjust = useMutation({
-    mutationFn: ({ v, change }: { v: VariantRow; change: { mode: 'adjust' | 'set'; amount: number; reason: string } }) => {
-      const base = { inventoryItemId: v.inventoryItem.id, locationId: location };
+    mutationFn: async ({ v, change, name = 'available' }: { v: VariantRow; name?: 'available' | 'on_hand'; change: { mode: 'adjust' | 'set'; amount: number; reason: string; locationId?: string } }) => {
+      const locationId = change.locationId || location;
+      const base = { inventoryItemId: v.inventoryItem.id, locationId };
+      if (!v.inventoryItem.inventoryLevels.nodes.some((l) => l.location.id === locationId)) await mutate(INVENTORY_ACTIVATE, { inventoryItemId: v.inventoryItem.id, locationId, available: 0 }, 'inventoryActivate');
       return change.mode === 'set'
-        ? mutate(INVENTORY_SET_QUANTITIES, { input: { reason: change.reason, name: 'available', quantities: [{ ...base, quantity: change.amount }] } }, 'inventorySetQuantities')
-        : mutate(INVENTORY_ADJUST_QUANTITIES, { input: { reason: change.reason, name: 'available', changes: [{ ...base, delta: change.amount }] } }, 'inventoryAdjustQuantities');
+        ? mutate(INVENTORY_SET_QUANTITIES, { input: { reason: change.reason, name, quantities: [{ ...base, quantity: change.amount }] } }, 'inventorySetQuantities')
+        : mutate(INVENTORY_ADJUST_QUANTITIES, { input: { reason: change.reason, name, changes: [{ ...base, delta: change.amount }] } }, 'inventoryAdjustQuantities');
     },
     onSuccess: () => { toast(t('inventory.saved')); void qc.invalidateQueries({ queryKey: ['inventory'] }); void qc.invalidateQueries({ queryKey: ['products'] }); },
     onError: (e) => toast(e.message, 'critical'),
@@ -145,14 +149,21 @@ export function InventoryPage() {
       key: 'available', header: <HeaderHint label={t('inventory.available')} hint={t('bp.stock.availableHelp')} />,
       cell: (v) => {
         const current = qty(levelsOf(v), 'available');
-        if (!location) return current;
-        return <AdjustPopover value={current} label={`${t('qty.adjust')} ${v.product.title}`} onApply={(change) => adjust.mutate({ v, change })} />;
+        if (!location || !v.inventoryItem.tracked) return current;
+        return <AdjustPopover value={current} label={`${t('qty.adjust')} ${v.product.title}`} locations={activeLocations} location={location} onApply={(change) => adjust.mutate({ v, change })} />;
       },
     },
-    { key: 'onhand', header: <HeaderHint label={t('inventory.onHand')} hint={t('bp.stock.onHandHelp2')} />, cell: (v) => qty(levelsOf(v), 'on_hand') },
+    {
+      key: 'onhand', header: <HeaderHint label={t('inventory.onHand')} hint={t('bp.stock.onHandHelp2')} />,
+      cell: (v) => {
+        const current = qty(levelsOf(v), 'on_hand');
+        if (!location || !v.inventoryItem.tracked) return current;
+        return <AdjustPopover name="on_hand" value={current} label={`${t('fid.adjust.onHand')} ${v.product.title}`} locations={activeLocations} location={location} onApply={(change) => adjust.mutate({ v, change, name: 'on_hand' })} />;
+      },
+    },
     { key: 'incoming', header: <HeaderHint label={t('inventory.incoming')} hint={t('bp.stock.incomingHelp')} />, cell: (v) => qty(levelsOf(v), 'incoming') },
     ...(location && (locs.data?.locations.nodes.filter((l) => l.isActive !== false).length ?? 0) > 1
-      ? [{ key: 'move', header: '', className: 'w-24', cell: (v: VariantRow) => <Button size="sm" aria-label={`${t('inventory.move')} ${v.product.title}`} onClick={() => setMoving({ v, to: '', qty: '1' })}>{t('inventory.move')}</Button> }]
+      ? [{ key: 'move', header: '', className: 'w-24', cell: (v: VariantRow) => <Button size="sm" variant="plain" className="btn-neutral opacity-0 focus-visible:opacity-100 [tr:hover_&]:opacity-100" aria-label={`${t('inventory.move')} ${v.product.title}`} onClick={() => setMoving({ v, to: '', qty: '1' })}>{t('inventory.move')}</Button> }]
       : []),
   ];
   const pi = list.data?.productVariants.pageInfo;
@@ -161,8 +172,8 @@ export function InventoryPage() {
     <>
       <PageHeader icon={<Warehouse className="size-4" />}
         title={<span className="flex items-center gap-2">{t('nav.inventory')}
-          <select aria-label={t('inventory.location')} value={location} onChange={(e) => { setLocation(e.target.value); }} className="field-control font-normal">
-            <option value="">{t('inventory.allLocations')}</option>
+          <select aria-label={t('inventory.location')} value={locParam === 'all' ? 'all' : location} onChange={(e) => { setLocation(e.target.value); }} className="chip-select !min-h-7 h-7 cursor-pointer pl-2.5 pr-7 font-medium">
+            <option value="all">{t('inventory.allLocations')}</option>
             {locs.data?.locations.nodes.filter((l) => l.isActive !== false).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select></span>}
         actions={<>

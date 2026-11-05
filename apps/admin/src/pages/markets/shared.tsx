@@ -20,6 +20,8 @@ export const errText = (e: unknown) => (e instanceof UserErrors ? e.errors.map((
 
 /** A country as a flag and its name, the way the market conditions show it. */
 export function CountryChip({ code, name }: { code: string; name: string }) {
+  const { lang } = useI18n();
+  try { name = new Intl.DisplayNames([lang], { type: 'region' }).of(code) ?? name; } catch { /* unknown code: keep the given name */ }
   return <span className="inline-flex items-center gap-1.5 rounded-md bg-hover px-2 py-0.5 text-[13px]"><span aria-hidden>{flag(code)}</span>{name}</span>;
 }
 

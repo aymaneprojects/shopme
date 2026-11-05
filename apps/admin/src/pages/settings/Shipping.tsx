@@ -12,16 +12,17 @@ import {
 } from '../../graphql';
 import { gidToNum, parseDecimal } from '../../format';
 import { useI18n } from '../../i18n';
+import { countryName } from '../../lib/countries';
 import { LENGTH_ABBR, PICKUP_TIMES, WEIGHT_ABBR } from '../../lib/shipping';
 import { useShop } from '../../session';
-import { LocalDeliveryFollowUp, PickupFromOthers, ShippingExtras } from './ShippingExtras';
+import { CarrierAccountsRow, EstimatesRow, LocalDeliveryFollowUp, MarketOptionsTable, PickupFromOthers, RoutingRow, ShippingExtras, useShippingByMarket } from './ShippingExtras';
 
 const errText = (e: unknown) => (e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e instanceof Error ? e.message : String(e));
 
 interface ProfileRow { id: string; name: string; default: boolean; productVariantsCount: { count: number } | null; activeMethodDefinitionsCount: number; originLocationCount: number; zoneCountryCount: number; locationsWithoutRatesCount: number }
 interface Pkg { id: string; name: string; type: string; default: boolean; length: number | null; width: number | null; height: number | null; dimensionUnit: string; weight: { value: number; unit: string } | null }
 export interface DeliveryLocation {
-  id: string; name: string; isActive: boolean; address: { address1: string | null; city: string | null; zip: string | null; countryCode: string | null };
+  id: string; name: string; isActive: boolean; address: { address1: string | null; city: string | null; zip: string | null; provinceCode?: string | null; countryCode: string | null };
   localPickupSettings: { pickupTime: string; instructions: string } | null;
   shopmeLocalDelivery: { enabled: boolean; postalCodes: string[]; price: { amount: string }; minimumOrder: { amount: string } | null; freeOverAmount: { amount: string } | null; info: string | null; phone: string | null } | null;
 }
@@ -32,7 +33,8 @@ const useLocations = () => useQuery({
     return d.locations.nodes.filter((l) => l.isActive).map((l) => ({ ...l, localPickupSettings: l.localPickupSettingsV2 }) as DeliveryLocation);
   },
 });
-const addressLine = (l: DeliveryLocation) => [l.address.address1, [l.address.zip, l.address.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+/** "123 Main St, Toronto ON A1A 1A1, Canada": street, city with region and postal code, country in the admin language. */
+const addressLine = (l: DeliveryLocation, lang: string) => [l.address.address1, [l.address.city, l.address.provinceCode, l.address.zip].filter(Boolean).join(' '), l.address.countryCode ? countryName(l.address.countryCode, lang) : null].filter(Boolean).join(', ');
 
 /* ------------------------------ home ------------------------------ */
 
@@ -48,6 +50,7 @@ export function ShippingSettings() {
   const profiles = useQuery({ queryKey: ['delivery-profiles'], queryFn: () => gql<{ deliveryProfiles: { nodes: ProfileRow[] } }>(DELIVERY_PROFILES) });
   const packages = useQuery({ queryKey: ['shipping-packages'], queryFn: () => gql<{ shopmeShippingPackages: Pkg[] }>(SHIPPING_PACKAGES) });
   const locations = useLocations();
+  const byMarket = useShippingByMarket();
   const [creating, setCreating] = useState<string | null>(null);
   const [pkg, setPkg] = useState<PkgForm | null>(null);
   const [delPkg, setDelPkg] = useState<Pkg | null>(null);
@@ -93,7 +96,9 @@ export function ShippingSettings() {
         {profiles.isError && <Banner>{(profiles.error as Error).message}</Banner>}
         {profiles.isLoading && <Skeleton className="h-24" />}
         <RowCard>
-          <CollapseRow defaultOpen title={t('delivery.profiles')} description={t('delivery.profilesHelp')} summary={t('delivery.profilesCount', { n: rows.length })}>
+          <CollapseRow defaultOpen title={t('fid.ship.options')} description={t('fid.ship.optionsDesc')} summary={t('fid.ship.marketsCount', { n: (byMarket.data ?? []).filter((m) => !m.primary || m.options.length > 0).length })}>
+            <MarketOptionsTable />
+            <p className="mb-1.5 px-1 text-xs font-medium text-muted">{t('delivery.profiles')}</p>
             <RowCard className="border border-line shadow-none">
               {rows.map((p) => (
                 <LinkRow key={p.id} to={`/settings/shipping/profiles/${gidToNum(p.id)}`} icon={Truck} title={p.name}
@@ -103,6 +108,7 @@ export function ShippingSettings() {
               <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13px] hover:bg-hover" onClick={() => { setError(null); setCreating(''); }}><PlusCircle className="size-4" />{t('delivery.createProfileRow')}</button>
             </RowCard>
           </CollapseRow>
+          <EstimatesRow />
           <CollapseRow title={t('delivery.packages')} description={t('delivery.packagesHelp')} summary={t('delivery.packagesCount', { n: pkgs.length })}>
             <RowCard className="border border-line shadow-none">
               {pkgs.map((p) => (
@@ -120,6 +126,8 @@ export function ShippingSettings() {
               <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13px] hover:bg-hover" onClick={() => { setError(null); setPkg(blankPkg(shop.weightUnit)); }}><PlusCircle className="size-4" />{t('delivery.addPackage')}</button>
             </RowCard>
           </CollapseRow>
+          <CarrierAccountsRow />
+          <RoutingRow />
         </RowCard>
       </Section>
 
@@ -171,7 +179,7 @@ export function ShippingSettings() {
 /* ------------------------------ local pickup ------------------------------ */
 
 export function PickupSettings() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
   const q = useLocations();
@@ -191,13 +199,12 @@ export function PickupSettings() {
       <SubHeader back="/settings/shipping" parent={t('delivery.title')} title={t('delivery.localPickup')} />
       <div className="flex flex-col gap-4">
         <Section title={t('delivery.yourLocations')}>
-          <Banner tone="info">{t('delivery.pickupIntro')}</Banner>
-          <PickupFromOthers />
+          <Banner tone="info"><div className="flex flex-col gap-2"><span>{t('delivery.pickupIntro')}</span><PickupFromOthers /></div></Banner>
           {q.isLoading && <Skeleton className="h-24" />}
           {q.isError && <Banner>{(q.error as Error).message}</Banner>}
           <RowCard>
             {(q.data ?? []).map((l) => (
-              <ButtonRow key={l.id} chevron={false} title={l.name} description={addressLine(l)}
+              <ButtonRow key={l.id} chevron={false} icon={MapPin} title={l.name} description={addressLine(l, lang)}
                 trailing={l.localPickupSettings ? <Badge tone="success">{t(`delivery.time.${l.localPickupSettings.pickupTime}` as never)}</Badge> : <Badge>{t('delivery.noPickup')}</Badge>}
                 onClick={() => { setError(null); setEdit({ loc: l, time: l.localPickupSettings?.pickupTime ?? 'TWO_TO_FOUR_DAYS', instructions: l.localPickupSettings?.instructions ?? '' }); }} />
             ))}
@@ -229,7 +236,7 @@ export function PickupSettings() {
 interface LocalForm { loc: DeliveryLocation; enabled: boolean; postalCodes: string; price: string; minimumOrder: string; freeOver: string; info: string; phone: string }
 
 export function LocalDeliverySettings() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { shop } = useShop();
   const fmt = useFormat();
   const toast = useToast();
@@ -256,15 +263,14 @@ export function LocalDeliverySettings() {
   const valid = !!edit && [edit.price, edit.minimumOrder, edit.freeOver].every((v) => v.trim() === '' || (parseDecimal(v) ?? -1) >= 0);
   return (
     <>
-      <SubHeader back="/settings/shipping" parent={t('delivery.title')} title={t('delivery.localDelivery')} />
+      <SubHeader back="/settings/shipping" parent={t('delivery.title')} title={t('delivery.localDelivery')} description={t('delivery.localDeliveryIntro')} />
       <div className="flex flex-col gap-4">
-        <p className="text-[13px] text-muted">{t('delivery.localDeliveryIntro')}</p>
         <LocalDeliveryFollowUp />
         {q.isLoading && <Skeleton className="h-24" />}
         {q.isError && <Banner>{(q.error as Error).message}</Banner>}
         <RowCard>
           {(q.data ?? []).map((l) => (
-            <ButtonRow key={l.id} chevron={false} title={l.name} description={addressLine(l)}
+            <ButtonRow key={l.id} chevron={false} icon={MapPin} title={l.name} description={addressLine(l, lang)}
               trailing={l.shopmeLocalDelivery?.enabled ? <Badge tone="success">{t('delivery.delivers', { price: Number(l.shopmeLocalDelivery.price.amount) ? fmt.money({ amount: l.shopmeLocalDelivery.price.amount, currencyCode: shop.currency }) : t('shipping.free') })}</Badge> : <Badge>{t('delivery.noLocalDelivery')}</Badge>}
               onClick={() => open(l)} />
           ))}

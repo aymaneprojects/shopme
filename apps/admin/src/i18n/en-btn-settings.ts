@@ -35,7 +35,7 @@ export const enBtnSettings = {
   'bs.customizations': 'Payment customizations', 'bs.customizationsDesc': 'Hide, rename or reorder payment methods depending on the country or the order total.', 'bs.customizationsEmpty': 'No rule yet.',
   'bs.giftCards': 'Gift cards', 'bs.giftCardsDesc': 'Validity of the gift cards you issue.', 'bs.giftExpiry': 'Default expiration', 'bs.giftNever': 'Never expires', 'bs.giftMonths': '{n} months', 'bs.giftMonths.one': '{n} month',
   // Shipping
-  'bs.transit': 'Transit time', 'bs.transitNone': 'Not shown', 'bs.transitDay': '{n} days', 'bs.transitDay.one': '{n} day', 'bs.transitDays': '{a} to {b} days',
+  'bs.transit': 'Transit time', 'bs.transitNone': 'Select', 'bs.transitDay': '{n} days', 'bs.transitDay.one': '{n} day', 'bs.transitDays': '{a} to {b} days',
   'bs.rateType': 'Type', 'bs.rateFixed': 'Fixed price', 'bs.rateCarrier': 'Carrier-calculated', 'bs.carrierProvider': 'Carrier provider', 'bs.carrierAccount': 'Carrier account', 'bs.minorUnits': 'minor units, e.g. cents',
   'bs.carrierRateHelp': 'The price is asked from the carrier at checkout for the cart weight and destination.', 'bs.carrierFallback': 'If the carrier does not answer, the fallback price is used.', 'bs.fallbackPrice': 'Fallback price',
   'bs.appliesTo': 'Applies to', 'bs.allProducts': 'All products', 'bs.addCollections': 'Collections', 'bs.collectionsCount': '{n} collections', 'bs.collectionsCount.one': '{n} collection', 'bs.shipsFrom': 'Ships from',

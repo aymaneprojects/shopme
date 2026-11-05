@@ -100,13 +100,13 @@ export function CustomersPage() {
 
   return (
     <>
-      <PageHeader icon={<Users className="size-4" />} title={t('nav.customers')} actions={<><Link to="/customers/companies" className="btn btn-secondary"><Building2 className="size-4" />{t('bc.companies')}</Link><ExportButton kind="customers" /><ImportButton kind="customers" invalidate={['customers', 'customers-count']} />{add}</>} />
+      <PageHeader icon={<Users className="size-4" />} title={t('nav.customers')} actions={<><ExportButton kind="customers" /><ImportButton kind="customers" invalidate={['customers', 'customers-count']} />{add}</>} />
       <CustomerQueryBar value={L.get('sq')} onApply={(v) => { setSelected([]); L.patch({ sq: v, view: '' }); }} onSave={(v) => nav(`/customers/segments/new?q=${encodeURIComponent(v)}`)} />
       <Card className="!p-0">
         <ListToolbar
           className="!rounded-b-none !shadow-none border-b border-line"
           leading={<ViewTabs resource="CUSTOMER" query={terms} tabs={TABS.map((id) => ({ id, label: t(`customers.tab.${id}` as Key) }))} value={tab} onTab={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v, view: '' }); }} />}
-          query={search} onQuery={(v) => { setSearch(v); L.patch({ q: v }); }} placeholder={t('list.searchAndFilter')} removeFilterLabel={t('list.removeFilter')}
+          query={search} onQuery={(v) => { setSearch(v); L.patch({ q: v }); }} placeholder={t('fid.customers.search')} removeFilterLabel={t('list.removeFilter')}
           filters={[{ key: 'tag', label: t('filter.tag'), options: [], text: true }]} values={{ tag: L.get('tag') }} onFilter={(_k, v) => L.patch({ tag: v })}
           trailing={<><ColumnPicker locked={['name']} columns={pickable} hidden={cols.hidden} onToggle={cols.toggle} /><Dropdown align="right" variant="plain" size="sm" icon className="btn-neutral" label={t('common.sort')} trigger={<ArrowUpDown className="size-4" />}
             items={SORTS.map((x) => ({ key: x, label: t(`customers.sort.${x}` as Key), icon: sort.key === x ? <Check className="size-4" /> : undefined, onSelect: () => L.patch({ sort: x }) }))} /></>}
@@ -123,8 +123,8 @@ export function CustomersPage() {
             ...(selected.length === 2 ? [{ key: 'merge', label: t('bc.merge'), icon: <GitMerge className="size-4" />, onRun: (ids: string[]) => setMerging([ids[0]!, ids[1]!]) }] : []),
             { key: 'tag', label: t('orders.addTags'), onRun: (ids) => setTagging({ ids, mode: 'add' }) },
             { key: 'untag', label: t('products.removeTags'), onRun: (ids) => setTagging({ ids, mode: 'remove' }) },
-            { key: 'company', label: t('bc.addToCompany'), icon: <Building2 className="size-4" />, onRun: (ids) => setCompanyFor(ids) },
-            { key: 'delete', label: t('customers.deleteBulk'), icon: <Trash2 className="size-4" />, danger: true, separatorBefore: true, onRun: setConfirm },
+            { key: 'company', label: t('bc.addToCompany'), onRun: (ids) => setCompanyFor(ids) },
+            { key: 'delete', label: t('customers.deleteBulk'), icon: <Trash2 className="size-4" />, danger: true, onRun: setConfirm },
           ]}
           empty={list.isError ? null : terms
             ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} action={<Button onClick={() => { setSearch(''); L.clear(); }}>{t('products.clearFilters')}</Button>} />
@@ -139,7 +139,7 @@ export function CustomersPage() {
       {merging && <MergeDialog open ids={merging} onClose={() => setMerging(null)} onDone={(id) => { setMerging(null); setSelected([]); nav(`/customers/${gidToNum(id)}`); }} />}
       <AddToCompanyDialog open={!!companyFor} ids={companyFor ?? []} onClose={() => setCompanyFor(null)} onDone={() => setSelected([])} />
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} danger title={t('customers.deleteTitle', { n: confirm?.length ?? 0 })} message={t('customers.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { if (confirm) bulk.mutate({ ids: confirm }); setConfirm(null); }} />
-      <TagPickerDialog open={!!tagging} onClose={() => setTagging(null)} title={t(tagging?.mode === 'remove' ? 'products.removeTags' : 'orders.addTags')} suggestions={customerTags.data ?? []}
+      <TagPickerDialog open={!!tagging} onClose={() => setTagging(null)} title={tagging?.mode === 'remove' ? t('products.removeTags') : t('fid.customers.tagTitle', { n: tagging?.ids.length ?? 0 })} suggestions={customerTags.data ?? []}
         onSave={(list) => { if (tagging) bulk.mutate({ ids: tagging.ids, tags: list, remove: tagging.mode === 'remove' }); setTagging(null); }}
         labels={{ search: t('tagpicker.search'), available: t('tagpicker.available'), save: t('save.save'), cancel: t('common.cancel'), close: t('common.close'), create: (x) => t('tagpicker.create', { tag: x }) }} />
     </>
@@ -232,15 +232,12 @@ function CustomerView({ c }: { c: CustomerData }) {
         actions={<>
           <Dropdown align="right" menuClassName="min-w-64" label={t('common.moreActions')} trigger={<>{t('common.moreActions')}<ChevronDown className="size-4" /></>} items={[
             { key: 'credit', icon: <Wallet className="size-4" />, label: t('bc.grantCredit'), onSelect: () => setCreditOpen(true) },
-            { key: 'edit', icon: <Pencil className="size-4" />, label: t('customers.edit'), onSelect: () => nav(`/customers/${num}/edit`) },
-            { key: 'orders', icon: <ShoppingCart className="size-4" />, label: t('customers.viewAllOrders'), disabled: c.numberOfOrders === 0, onSelect: () => nav(`/orders?q=${encodeURIComponent(`customer_id:${num}`)}`) },
             { key: 'merge', icon: <GitMerge className="size-4" />, label: t('bc.mergeCustomer'), onSelect: () => setMergeWith('pick') },
-            { key: 'company', icon: <Building2 className="size-4" />, label: t('bc.addToCompany'), onSelect: () => setCompanyOpen(true) },
             { key: 'data', icon: <FileDown className="size-4" />, label: t('customers.requestData'), onSelect: () => request.mutate() },
             ...(x?.shopmeErasedAt ? [] : x?.shopmeErasureScheduledAt
               ? [{ key: 'cancelErase', icon: <Undo2 className="size-4" />, label: t('bc.erase.cancel'), onSelect: () => cancelErase.mutate() }]
               : [{ key: 'erase', icon: <ShieldOff className="size-4" />, label: t('bc.erase.action'), onSelect: () => setEraseOpen(true) }]),
-            { key: 'delete', icon: <Trash2 className="size-4" />, label: t('common.delete'), danger: true, onSelect: () => setConfirm(true) },
+            { key: 'delete', icon: <Trash2 className="size-4" />, label: t('fid.customers.delete'), danger: true, onSelect: () => setConfirm(true) },
           ]} />
           <span className="inline-flex gap-1">
             <Button size="sm" icon aria-label={t('customers.previous')} disabled={!neighbours.prev} onClick={() => neighbours.prev && nav(`/customers/${gidToNum(neighbours.prev)}`)}><ChevronUp className="size-4" /></Button>
@@ -290,7 +287,7 @@ function CustomerView({ c }: { c: CustomerData }) {
           <MetafieldsEditor ownerId={c.id} ownerType="CUSTOMER" />
         </div>
         <div className="flex flex-col divide-y divide-line">
-          <Section title={t('qaf.customer.contact')} action={<Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[{ key: 'edit', label: t('customers.editContact'), onSelect: () => nav(`/customers/${num}/edit`) }]} />}>
+          <Section title={t('qaf.customer.contact')} action={<Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[{ key: 'edit', label: t('customers.editContact'), onSelect: () => nav(`/customers/${num}/edit`) }, { key: 'company', label: t('bc.addToCompany'), onSelect: () => setCompanyOpen(true) }]} />}>
             <div className="flex flex-col gap-0.5">
               <span className="flex items-center justify-between gap-2">{c.defaultEmailAddress ? <a className="truncate text-accent hover:underline" href={`mailto:${c.defaultEmailAddress.emailAddress}`}>{c.defaultEmailAddress.emailAddress}</a> : '—'}
                 {c.defaultEmailAddress && <Button variant="plain" size="sm" icon aria-label={t('customers.copyEmail')} onClick={() => { void navigator.clipboard?.writeText(c.defaultEmailAddress!.emailAddress); toast(t('customers.copied')); }}><Copy className="size-3.5" /></Button>}</span>
@@ -301,7 +298,7 @@ function CustomerView({ c }: { c: CustomerData }) {
           </Section>
           <Section title={t('qaf.customer.defaultAddress')}>{c.addressesV2.nodes[0] ? <AddressBlock a={c.addressesV2.nodes[0]} /> : <p className="text-muted">{t('customers.noAddress')}</p>}</Section>
           <Section title={t('qaf.customer.marketing')}>
-            {!c.defaultEmailAddress && !c.defaultPhoneNumber ? <p className="text-muted">{t('qaf.customer.noChannel')}</p> : (
+            {![c.defaultEmailAddress?.marketingState, c.defaultPhoneNumber && x?.smsMarketingConsent?.marketingState, c.defaultPhoneNumber && x?.shopmeWhatsappMarketingConsent?.marketingState].some((s) => s === 'SUBSCRIBED' || s === 'PENDING') ? <p className="text-muted">{t('qaf.customer.noChannel')}</p> : (
               <ul className="flex flex-col gap-1">
                 {c.defaultEmailAddress && <li className="flex items-center justify-between gap-2"><span>{t('bc.channel.email')}</span><MarketingBadge state={c.defaultEmailAddress.marketingState} /></li>}
                 {c.defaultPhoneNumber && <li className="flex items-center justify-between gap-2"><span>{t('bc.channel.sms')}</span><MarketingBadge state={x?.smsMarketingConsent?.marketingState} /></li>}
@@ -309,16 +306,16 @@ function CustomerView({ c }: { c: CustomerData }) {
               </ul>
             )}
           </Section>
-          <Section title={t('bc.companies')} action={editBtn(t('bc.addToCompany'), () => setCompanyOpen(true))}>
-            {x?.shopmeCompanies.length ? (
+          {!!x?.shopmeCompanies.length && (
+            <Section title={t('bc.companies')} action={editBtn(t('bc.addToCompany'), () => setCompanyOpen(true))}>
               <ul className="flex flex-col gap-0.5">{x.shopmeCompanies.map((m) => <li key={m.id}><Link className="text-accent hover:underline" to={`/customers/companies/${gidToNum(m.company.id)}`}>{m.company.name}</Link>{m.title && <span className="text-muted"> · {m.title}</span>}{m.isMainContact && <span className="text-muted"> · {t('bc.company.main')}</span>}</li>)}</ul>
-            ) : <p className="text-muted">{t('bc.company.noneYet')}</p>}
-          </Section>
+            </Section>
+          )}
           <Section title={t('qaf.customer.tax')}><p className="text-muted">{c.taxExempt ? t('qaf.customer.taxExempt') : t('qaf.customer.collectTax')}</p></Section>
           <StoreCreditCard customerId={c.id} onEdit={() => setCreditOpen(true)} />
-          <Section title={t('field.tags')}><TagInput value={c.tags} onChange={(v) => tags.mutate(v)} removeLabel={t('common.remove')} /></Section>
+          <Section title={t('field.tags')}><TagInput value={c.tags} onChange={(v) => tags.mutate(v)} placeholder={t('pv.addTags')} removeLabel={t('common.remove')} /></Section>
           <Section title={t('order.notes')} action={editBtn(t('order.notes'), () => setNoteOpen(true))}>
-            <p className={c.note ? 'whitespace-pre-wrap' : 'text-muted'}>{c.note || t('qaf.customer.none')}</p>
+            <p className={c.note ? 'whitespace-pre-wrap' : 'text-muted'}>{c.note || t('fid.customers.noNote')}</p>
           </Section>
         </div>
       </div>

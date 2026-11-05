@@ -1,5 +1,5 @@
 import { Dropdown, Skeleton, cx, useToast } from '@shopme/ui';
-import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Building2, Activity, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
+import { BarChart3, Rocket, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Building2, Activity, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -23,7 +23,7 @@ interface NavItem { id: string; labelKey: Key; to: string; icon: ComponentType<{
 // Data-driven so later items can be gated by a feature flag instead of removed.
 export const NAV: NavItem[] = [
   { id: 'home', labelKey: 'nav.home', to: '/', icon: Home, end: true },
-  { id: 'orders', labelKey: 'nav.orders', to: '/orders', icon: ShoppingCart, children: [{ id: 'drafts', labelKey: 'nav.drafts', to: '/orders/drafts', icon: FilePlus2 }, { id: 'abandoned', labelKey: 'nav.abandoned', to: '/orders/abandoned', icon: ShoppingBasket }, { id: 'shipping-labels', labelKey: 'nav.shippingLabels', to: '/orders/shipping-labels', icon: Truck }] },
+  { id: 'orders', labelKey: 'nav.orders', to: '/orders', icon: ShoppingCart, children: [{ id: 'drafts', labelKey: 'nav.drafts', to: '/orders/drafts', icon: FilePlus2 }, { id: 'shipping-labels', labelKey: 'nav.shippingLabels', to: '/orders/shipping-labels', icon: Truck }, { id: 'abandoned', labelKey: 'nav.abandoned', to: '/orders/abandoned', icon: ShoppingBasket }] },
   {
     id: 'products', labelKey: 'nav.products', to: '/products', icon: Tag,
     children: [
@@ -35,6 +35,7 @@ export const NAV: NavItem[] = [
     ],
   },
   { id: 'customers', labelKey: 'nav.customers', to: '/customers', icon: Users, children: [{ id: 'segments', labelKey: 'nav.segments', to: '/customers/segments', icon: Users }, { id: 'companies', labelKey: 'bc.companies', to: '/customers/companies', icon: Building2 }] },
+  { id: 'marketing', labelKey: 'nav.growth', to: '/marketing', icon: Megaphone },
   { id: 'discounts', labelKey: 'nav.discounts', to: '/discounts', icon: Percent },
   { id: 'content', labelKey: 'nav.content', to: '/content', icon: Boxes, children: [
     { id: 'metaobjects', labelKey: 'nav.metaobjects', to: '/content/metaobjects', icon: Boxes },
@@ -42,9 +43,8 @@ export const NAV: NavItem[] = [
     { id: 'content-menus', labelKey: 'nav.contentMenus', to: '/content/navigation', icon: Menu },
     { id: 'content-blog-posts', labelKey: 'store.blogPosts', to: '/content/blog-posts', icon: FileText },
   ] },
-  { id: 'markets', labelKey: 'nav.markets', to: '/markets', icon: Globe, children: [{ id: 'catalogs', labelKey: 'nav.catalogs', to: '/markets/catalogs', icon: BookOpen }] },
+  { id: 'markets', labelKey: 'nav.markets', to: '/markets', icon: Globe, children: [{ id: 'catalogs', labelKey: 'nav.catalogs', to: '/markets/catalogs', icon: BookOpen }, { id: 'rollouts', labelKey: 'bp.markets.rollouts', to: '/markets/rollouts', icon: Rocket }] },
   { id: 'analytics', labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, children: [{ id: 'reports', labelKey: 'nav.reports', to: '/analytics/reports', icon: FileText }, { id: 'live-view', labelKey: 'bc.analytics.live', to: '/analytics/live', icon: Activity }] },
-  { id: 'marketing', labelKey: 'nav.growth', to: '/marketing', icon: Megaphone },
   {
     id: 'online-store', labelKey: 'nav.onlineStore', to: '/online-store', icon: Store,
     children: [
@@ -255,10 +255,18 @@ function AccountMenu({ collapsed, userBlock }: { collapsed: boolean; userBlock?:
           </div>
           <div className="my-1.5 border-t border-line" />
           <div className="flex items-center gap-2.5 px-2 py-1.5 text-[13px]"><span className="grid size-5 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold text-on-primary">{(user.email[0] ?? 'U').toUpperCase()}</span><span className="min-w-0 flex-1 truncate">{user.email}</span></div>
-          {LANGS.map((l) => <button key={l.id} type="button" role="menuitem" aria-current={lang === l.id} className={row} onClick={() => setLang(l.id)}><Languages className="size-4 text-muted" />{l.label}{lang === l.id && <Check className="ml-auto size-4" />}</button>)}
-          {themes.map(([id, label, Icon]) => <button key={id} type="button" role="menuitem" aria-current={theme === id} className={row} onClick={() => pick(id)}><Icon className="size-4 text-muted" />{label}{theme === id && <Check className="ml-auto size-4" />}</button>)}
           <a role="menuitem" href="https://github.com/aymaneprojects/shopme#readme" target="_blank" rel="noreferrer" className={row}><CircleHelp className="size-4 text-muted" />{t('shell.help')}</a>
           <button type="button" role="menuitem" className={row} onClick={() => void logout()}><LogOut className="size-4 text-muted" />{t('shell.logout')}</button>
+          <div className="my-1.5 border-t border-line" />
+          {/* Admin preferences of this browser: language and theme, as two compact segmented rows. */}
+          <div className="flex items-center gap-2 px-2 py-1 text-[13px]" role="group" aria-label={t('fid.shell.language')}>
+            <Languages className="size-4 shrink-0 text-muted" aria-hidden />
+            <span className="flex flex-1 rounded-lg bg-surface p-0.5">{LANGS.map((l) => <button key={l.id} type="button" role="menuitem" aria-current={lang === l.id} className={cx('flex-1 rounded-md px-2 py-0.5 text-xs font-medium', lang === l.id ? 'bg-canvas shadow-card' : 'text-muted hover:text-fg')} onClick={() => setLang(l.id)}>{l.label}</button>)}</span>
+          </div>
+          <div className="flex items-center gap-2 px-2 py-1 text-[13px]" role="group" aria-label={t('fid.shell.theme')}>
+            <Sun className="size-4 shrink-0 text-muted" aria-hidden />
+            <span className="flex flex-1 rounded-lg bg-surface p-0.5">{themes.map(([id, label, Icon]) => <button key={id} type="button" role="menuitem" aria-current={theme === id} aria-label={label} title={label} className={cx('grid flex-1 place-items-center rounded-md py-1', theme === id ? 'bg-canvas shadow-card' : 'text-muted hover:text-fg')} onClick={() => pick(id)}><Icon className="size-3.5" /></button>)}</span>
+          </div>
         </div>
       )}
     </div>

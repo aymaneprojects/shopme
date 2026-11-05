@@ -2,7 +2,7 @@ import type { enBtnStore } from './en-btn-store';
 
 export const frBtnStore: Record<keyof typeof enBtnStore, string> = {
   // top bar menu
-  'bs.editCode': 'Modifier le code', 'bs.editContent': 'Modifier le contenu par défaut du thème', 'bs.docs': 'Voir la documentation',
+  'bs.editCode': 'Modifier le code', 'bs.editContent': 'Modifier le contenu de thème par défaut', 'bs.docs': 'Afficher la documentation',
   // preview data
   'bs.preview.title': 'Données d’aperçu', 'bs.preview.intro': 'Choisissez ce que l’aperçu affiche. Cela ne change que votre affichage.',
   'bs.preview.product': 'Produit', 'bs.preview.collection': 'Collection', 'bs.preview.page': 'Page', 'bs.preview.article': 'Article',

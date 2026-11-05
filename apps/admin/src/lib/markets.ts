@@ -12,8 +12,22 @@ export const MARKET_CURRENCIES = [
 /** Regional flag emoji of a country code. */
 export const flag = (code: string): string => (/^[A-Z]{2}$/.test(code) ? String.fromCodePoint(...[...code].map((c) => 0x1f1a5 + c.charCodeAt(0))) : '');
 
+/** "Euro (EUR €)": the currency's display name in the admin language (capitalized), its code and its symbol. */
 export const currencyLabel = (code: string, lang: string): string => {
-  try { return `${new Intl.DisplayNames([lang], { type: 'currency' }).of(code) ?? code} (${code})`; } catch { return code; }
+  if (!code) return '';
+  try {
+    const name = new Intl.DisplayNames([lang], { type: 'currency' }).of(code) ?? code;
+    const symbol = new Intl.NumberFormat(lang, { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find((p) => p.type === 'currency')?.value;
+    return `${name.charAt(0).toLocaleUpperCase(lang) + name.slice(1)} (${code}${symbol && symbol !== code ? ` ${symbol}` : ''})`;
+  } catch { return code; }
+};
+
+/** "EUR €": a currency code followed by its symbol (the code alone when the symbol is the code). */
+export const currencySymbolLabel = (code: string, lang: string): string => {
+  try {
+    const symbol = new Intl.NumberFormat(lang, { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find((p) => p.type === 'currency')?.value;
+    return symbol && symbol !== code ? `${code} ${symbol}` : code;
+  } catch { return code; }
 };
 
 /** Countries sorted by their name in the UI language. */
