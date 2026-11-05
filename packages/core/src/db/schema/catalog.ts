@@ -4,6 +4,7 @@ import { shops, WEIGHT_UNITS } from './shop';
 
 const shopFk = () => shopIdCol().references(() => shops.id, { onDelete: 'cascade' });
 
+export const LENGTH_UNITS = ['MILLIMETERS', 'CENTIMETERS', 'METERS', 'INCHES', 'FEET', 'YARDS'] as const;
 export const PRODUCT_STATUSES = ['ACTIVE', 'ARCHIVED', 'DRAFT'] as const;
 export const COLLECTION_SORT_ORDERS = ['ALPHA_ASC', 'ALPHA_DESC', 'BEST_SELLING', 'CREATED', 'CREATED_DESC', 'MANUAL', 'PRICE_ASC', 'PRICE_DESC'] as const;
 
@@ -125,9 +126,12 @@ export const inventoryItems = pgTable('inventory_items', {
   weightValue: numeric('weight_value', { precision: 12, scale: 4, mode: 'number' }),
   weightUnit: text('weight_unit').default('KILOGRAMS'),
   countryCodeOfOrigin: text('country_code_of_origin'), harmonizedSystemCode: text('harmonized_system_code'),
+  /** Package dimensions (ShopMe extension; Shopify only has a shipping package id). */
+  lengthValue: numeric('length_value', { precision: 12, scale: 4, mode: 'number' }), widthValue: numeric('width_value', { precision: 12, scale: 4, mode: 'number' }), heightValue: numeric('height_value', { precision: 12, scale: 4, mode: 'number' }),
+  dimensionUnit: text('dimension_unit').default('CENTIMETERS'),
   unitCost: money('unit_cost'),
   ...timestamps(),
-}, (t) => [check('inventory_items_weight_chk', oneOf(t.weightUnit, WEIGHT_UNITS))]);
+}, (t) => [check('inventory_items_weight_chk', oneOf(t.weightUnit, WEIGHT_UNITS)), check('inventory_items_dimension_chk', oneOf(t.dimensionUnit, LENGTH_UNITS))]);
 
 export const inventoryLevels = pgTable('inventory_levels', {
   id: pk(), shopId: shopFk(),

@@ -567,6 +567,8 @@ export async function createProduct(db: Db, shopId: number, input: ProductInput,
       if (!made.ok) return made;
       await insertVariant(tx, shopId, id, { input: {}, position: 1, title: titleOf(made.value.map((o) => o.values[0]!.name)), optionValueIds: made.value.map((o) => ({ optionId: o.id, valueId: o.values[0]!.id })) }, shop?.weightUnit ?? 'KILOGRAMS', loc);
     } else await insertDefaultVariant(tx, shopId, id, shop?.weightUnit ?? 'KILOGRAMS', loc);
+    // A gift card is delivered by email: nothing to ship.
+    if (input.giftCard) await tx.update(inventoryItems).set({ requiresShipping: false }).where(and(eq(inventoryItems.shopId, shopId), inArray(inventoryItems.variantId, tx.select({ id: productVariants.id }).from(productVariants).where(eq(productVariants.productId, id)))));
     if (input.metafields?.length) {
       const mf = await setMetafieldsTx(tx, shopId, input.metafields.map((m) => ({ ...m, ownerType: 'PRODUCT', ownerId: id })), 'metafields');
       if (!mf.ok) return mf;

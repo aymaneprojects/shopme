@@ -1,9 +1,11 @@
-import { Button, Checkbox, Input, Select, Switch, TagInput, cx } from '@shopme/ui';
-import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { Button, Checkbox, Dropdown, Input, Select, Switch, TagInput, cx } from '@shopme/ui';
+import type { MenuItem } from '@shopme/ui';
+import { ChevronDown, ChevronRight, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { formatMoney, parseDecimal } from '../format';
-import { useT } from '../i18n';
-import { MAX_OPTIONS, WEIGHT_UNITS, generateVariants, variantLabel } from '../lib/variants';
+import { useI18n, useT } from '../i18n';
+import { countryOptions } from '../lib/countries';
+import { LENGTH_UNITS, MAX_OPTIONS, WEIGHT_UNITS, generateVariants, variantLabel } from '../lib/variants';
 import type { OptionDef, VariantDraft } from '../lib/variants';
 
 export interface LocationRef { id: string; name: string }
@@ -119,54 +121,90 @@ export function InventoryFields({ v, patch, locations, compact }: { v: VariantDr
 }
 
 export function ShippingFields({ v, patch }: { v: VariantDraft; patch: Patch }) {
-  const t = useT();
+  const { t, lang } = useI18n();
   return (
     <div className="flex flex-col gap-3">
       <Switch checked={v.requiresShipping} onChange={(requiresShipping) => patch({ requiresShipping })} label={t('shipping.physical')} />
       {v.requiresShipping && (
-        <div className="grid grid-cols-2 gap-3 sm:max-w-sm">
-          <Input label={t('shipping.weight')} inputMode="decimal" value={v.weight} onChange={(e) => patch({ weight: e.target.value })} />
-          <Select label={t('shipping.unit')} value={v.weightUnit} onChange={(e) => patch({ weightUnit: e.target.value as VariantDraft['weightUnit'] })}>
-            {WEIGHT_UNITS.map((u) => <option key={u} value={u}>{t(`unit.${u}` as 'unit.GRAMS')}</option>)}
-          </Select>
-        </div>
+        <>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3">
+              <Input label={t('shipping.weight')} inputMode="decimal" value={v.weight} onChange={(e) => patch({ weight: e.target.value })} />
+              <Select label={t('shipping.unit')} value={v.weightUnit} onChange={(e) => patch({ weightUnit: e.target.value as VariantDraft['weightUnit'] })}>
+                {WEIGHT_UNITS.map((u) => <option key={u} value={u}>{t(`unit.${u}` as 'unit.GRAMS')}</option>)}
+              </Select>
+            </div>
+            <fieldset className="grid grid-cols-[1fr_1fr_1fr_auto] items-end gap-2">
+              <legend className="mb-1 text-[13px] font-medium">{t('shipping.dimensions')}</legend>
+              <Input aria-label={t('shipping.length')} placeholder={t('shipping.length')} inputMode="decimal" value={v.length} onChange={(e) => patch({ length: e.target.value })} />
+              <Input aria-label={t('shipping.width')} placeholder={t('shipping.width')} inputMode="decimal" value={v.width} onChange={(e) => patch({ width: e.target.value })} />
+              <Input aria-label={t('shipping.height')} placeholder={t('shipping.height')} inputMode="decimal" value={v.height} onChange={(e) => patch({ height: e.target.value })} />
+              <Select aria-label={t('shipping.dimensionUnit')} value={v.dimensionUnit} onChange={(e) => patch({ dimensionUnit: e.target.value as VariantDraft['dimensionUnit'] })}>
+                {LENGTH_UNITS.map((u) => <option key={u} value={u}>{t(`lengthUnit.${u}` as 'lengthUnit.CENTIMETERS')}</option>)}
+              </Select>
+            </fieldset>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Select label={t('shipping.origin')} value={v.countryOfOrigin} onChange={(e) => patch({ countryOfOrigin: e.target.value })}>
+              <option value="">{t('shipping.noOrigin')}</option>
+              {countryOptions(lang).map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+            </Select>
+            <Input label={t('shipping.hsCode')} help={t('shipping.hsCodeHelp')} value={v.hsCode} maxLength={14} onChange={(e) => patch({ hsCode: e.target.value })} />
+          </div>
+        </>
       )}
     </div>
   );
 }
 
-/** One row per variant: quick edit of price/SKU, expandable for the rest. */
-export function VariantsTable({ variants, locations, currency, media = [], onMetafields, onChange }: { variants: VariantDraft[]; locations: LocationRef[]; currency: string; media?: MediaRef[]; onMetafields?: (variantId: string) => void; onChange: (v: VariantDraft[]) => void }) {
+/** One row per variant: quick edit of price, expandable for the rest. Optional selection checkboxes, filtering and a per-row menu. */
+export function VariantsTable({ variants, locations, currency, media = [], onMetafields, onChange, selection, visible, menu }: {
+  variants: VariantDraft[]; locations: LocationRef[]; currency: string; media?: MediaRef[]; onMetafields?: (variantId: string) => void; onChange: (v: VariantDraft[]) => void;
+  selection?: { selected: string[]; onChange: (keys: string[]) => void };
+  visible?: (v: VariantDraft) => boolean;
+  menu?: (v: VariantDraft, actions: { edit: () => void }) => MenuItem[];
+}) {
   const t = useT();
   const [open, setOpen] = useState<string | null>(null);
   const patchAt = (key: string): Patch => (p) => onChange(variants.map((v) => (v.key === key ? { ...v, ...p } : v)));
+  const shown = variants.filter((v) => !visible || visible(v));
+  const allOn = shown.length > 0 && shown.every((v) => selection?.selected.includes(v.key));
+  const cols = 4 + (selection ? 1 : 0) + (menu ? 1 : 0);
   return (
-    <div className="overflow-x-auto rounded-md border border-line">
+    <div className={cx('rounded-md border border-line', menu ? 'sm:overflow-visible overflow-x-auto' : 'overflow-x-auto')}>
       <table className="w-full text-[13px]">
         <thead className="bg-surface text-left text-xs text-muted">
-          <tr><th className="w-8" /><th className="px-3 py-2 font-medium">{t('variants.variant')}</th><th className="px-3 py-2 font-medium">{t('pricing.price')} ({currency})</th><th className="px-3 py-2 font-medium">{t('inventory.available')}</th></tr>
+          <tr>
+            {selection && <th className="w-8 pl-3"><Checkbox aria-label={t('common.selectAll')} checked={allOn} onChange={() => selection.onChange(allOn ? selection.selected.filter((k) => !shown.some((v) => v.key === k)) : [...new Set([...selection.selected, ...shown.map((v) => v.key)])])} /></th>}
+            <th className="w-8" /><th className="px-3 py-2 font-medium">{t('variants.variant')}</th><th className="px-3 py-2 font-medium">{t('pricing.price')} ({currency})</th><th className="px-3 py-2 font-medium">{t('inventory.available')}</th>
+            {menu && <th className="w-10" />}
+          </tr>
         </thead>
         <tbody>
-          {variants.map((v) => {
+          {shown.length === 0 && <tr className="border-t border-line"><td colSpan={cols} className="px-3 py-6 text-center text-muted">{t('variants.noMatch')}</td></tr>}
+          {shown.map((v) => {
             const isOpen = open === v.key;
             const total = locations.reduce((n, l) => n + (Number(v.quantities[l.id]) || 0), 0);
+            const label = variantLabel(v, t('variants.default'));
             return (
               <Fragment key={v.key}>
-                <tr className="border-t border-line">
+                <tr className="border-t border-line" data-selected={selection?.selected.includes(v.key) ? 'true' : undefined}>
+                  {selection && <td className="pl-3"><Checkbox aria-label={`${t('variants.select')} ${label}`} checked={selection.selected.includes(v.key)} onChange={() => selection.onChange(selection.selected.includes(v.key) ? selection.selected.filter((k) => k !== v.key) : [...selection.selected, v.key])} /></td>}
                   <td className="pl-2"><button type="button" aria-label={t('variants.details')} aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : v.key)}>{isOpen ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}</button></td>
-                  <td className="px-3 py-2 font-medium"><span className="inline-flex items-center gap-2">{media.find((m) => m.id === v.mediaId) && <img src={media.find((m) => m.id === v.mediaId)!.url} alt="" className="size-7 rounded object-cover" />}{variantLabel(v, t('variants.default'))}</span></td>
+                  <td className="px-3 py-2 font-medium"><span className="inline-flex items-center gap-2">{media.find((m) => m.id === v.mediaId) && <img src={media.find((m) => m.id === v.mediaId)!.url} alt="" className="size-7 rounded object-cover" />}{label}</span></td>
                   <td className="px-3 py-1"><input aria-label={`${t('pricing.price')} ${variantLabel(v, '')}`} inputMode="decimal" className="w-24 field-control" value={v.price} onChange={(e) => patchAt(v.key)({ price: e.target.value })} /></td>
                   <td className="px-3 py-2">{v.tracked ? total : <span className="text-muted">{t('products.notTracked')}</span>}</td>
+                  {menu && <td className="pr-2 text-right"><Dropdown align="right" variant="plain" size="sm" icon label={`${t('variants.actions')} ${label}`} trigger={<MoreHorizontal className="size-4" />} items={menu(v, { edit: () => setOpen(v.key) })} /></td>}
                 </tr>
                 {isOpen && (
-                  <tr className="border-t border-line bg-surface"><td colSpan={4} className="p-4">
+                  <tr className="border-t border-line bg-surface"><td colSpan={cols} className="p-4">
                     <div className="grid gap-6">
                       <PricingFields v={v} patch={patchAt(v.key)} currency={currency} />
                       <InventoryFields v={v} patch={patchAt(v.key)} locations={locations} compact />
                       <ShippingFields v={v} patch={patchAt(v.key)} />
                       <VariantMediaPicker v={v} patch={patchAt(v.key)} media={media} />
                       {v.id && onMetafields && <div><Button size="sm" onClick={() => onMetafields(v.id!)}>{t('mf.variantMetafields')}</Button></div>}
-                      {v.id === undefined && <Button variant="plain" size="sm" onClick={() => onChange(variants.filter((x) => x.key !== v.key))}><Trash2 className="size-4" />{t('variants.remove')}</Button>}
+                      {v.id === undefined && !menu && <Button variant="plain" size="sm" onClick={() => onChange(variants.filter((x) => x.key !== v.key))}><Trash2 className="size-4" />{t('variants.remove')}</Button>}
                     </div>
                   </td></tr>
                 )}

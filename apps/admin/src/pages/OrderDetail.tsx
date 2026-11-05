@@ -12,6 +12,7 @@ import { ORDER, ORDERS, ORDER_CLOSE, ORDER_MARK_AS_PAID, ORDER_OPEN, ORDER_TIMEL
 import { useT } from '../i18n';
 import { toCents } from '../lib/refund';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
+import { IssuedGiftCardsCard } from '../components/IssuedGiftCards';
 import { AddressDialog, CancelDialog, FulfillDialog } from './orders/OrderDialogs';
 import { ReturnDialog, ReturnsCard } from './orders/Returns';
 import type { OrderLine } from './orders/OrderDialogs';
@@ -124,6 +125,7 @@ function OrderView({ order: o }: { order: OrderData }) {
           {unfulfilled.length === 0 && o.fulfillments.length === 0 && <Card title={t('order.items')}><LineList lines={lines} qty={(l) => l.quantity} /></Card>}
 
           <ReturnsCard orderId={o.id} />
+          <IssuedGiftCardsCard orderId={o.id} />
 
           <Card title={<span className="flex items-center gap-2"><FinancialBadge status={o.displayFinancialStatus} />{t('order.payment')}</span>}
             actions={<span className="flex gap-2">{canMarkPaid && <Button size="sm" variant="primary" loading={act.isPending} onClick={() => act.mutate('paid')}>{t('order.markPaid')}</Button>}</span>}>

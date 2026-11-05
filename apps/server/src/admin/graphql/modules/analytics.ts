@@ -1,6 +1,6 @@
 /** ShopMe-specific (no Shopify equivalent): numbers for the admin home screen. See docs/dev/admin-settings-api.md. */
 import { GraphQLError } from 'graphql';
-import { GROUP_BYS, REPORT_NAMES, shopDashboard, shopmeReport, type Report } from '@shopme/core';
+import { GROUP_BYS, REPORT_NAMES, productMetrics, shopDashboard, shopmeReport, type ProductMetrics, type Report } from '@shopme/core';
 import { builder } from '../builder';
 import { requireScope } from '../context';
 import { Count, MoneyV2, moneyV2 } from '../types/money';
@@ -40,6 +40,24 @@ builder.queryFields((t) => ({
   shopmeDashboard: t.field({
     type: Dashboard, args: { range: t.arg({ type: Range, defaultValue: 'LAST_7_DAYS' }) },
     resolve: (_r, a, ctx) => { requireScope(ctx, 'read_reports'); return shopDashboard(ctx.db, ctx.shopId, a.range ?? 'LAST_7_DAYS'); },
+  }),
+}));
+
+const AbcCounts = builder.objectRef<ProductMetrics['abc']>('ShopmeAbcCounts').implement({ fields: (t) => ({ a: t.exposeInt('a'), b: t.exposeInt('b'), c: t.exposeInt('c') }) });
+const ProductMetricsType = builder.objectRef<ProductMetrics>('ShopmeProductMetrics').implement({
+  description: 'Figures of the strip above the products list. `sellThroughRate` is 0-1.',
+  fields: (t) => ({
+    days: t.exposeInt('days'), unitsSold: t.exposeInt('unitsSold'), unitsInStock: t.exposeInt('unitsInStock'),
+    sellThroughRate: t.float({ nullable: true, resolve: (m) => m.sellThroughRate }),
+    daysOfStockLeft: t.int({ nullable: true, resolve: (m) => m.daysOfStockLeft }),
+    abc: t.field({ type: AbcCounts, resolve: (m) => m.abc }),
+    unsold: t.exposeInt('unsold'),
+  }),
+});
+builder.queryFields((t) => ({
+  shopmeProductMetrics: t.field({
+    type: ProductMetricsType, args: { days: t.arg.int({ defaultValue: 30 }) },
+    resolve: (_r, a, ctx) => { requireScope(ctx, 'read_products'); return productMetrics(ctx.db, ctx.shopId, { days: a.days ?? 30 }); },
   }),
 }));
 

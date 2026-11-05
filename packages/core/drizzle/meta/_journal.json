@@ -64,6 +64,13 @@
       "when": 1793880593740,
       "tag": "0008_content_files_folders_seo",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793882294406,
+      "tag": "0009_catalog_views_dimensions",
+      "breakpoints": true
     }
   ]
 }

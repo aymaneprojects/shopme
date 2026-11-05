@@ -5,8 +5,8 @@ import {
   INVENTORY_SET_QUANTITIES, PRODUCT_CREATE, PRODUCT_OPTIONS_CREATE, PRODUCT_REORDER_MEDIA, PRODUCT_UPDATE,
   VARIANTS_BULK_CREATE, VARIANTS_BULK_DELETE, VARIANTS_BULK_UPDATE,
 } from '../graphql';
-import { blankVariant, cleanOptions } from './variants';
-import type { OptionDef, VariantDraft, WeightUnit } from './variants';
+import { blankVariant, cleanOptions, generateVariants } from './variants';
+import type { LengthUnit, OptionDef, VariantDraft, WeightUnit } from './variants';
 
 export interface LocationRef { id: string; name: string }
 export interface CollectionRef { id: string; title: string }
@@ -17,6 +17,8 @@ export interface ProductForm {
   /** Taxonomy category GID, or empty. */
   category: string;
   seoTitle: string; seoDescription: string;
+  /** A gift card product: buying it issues gift cards. Only set when the product is created. */
+  isGiftCard: boolean;
   options: OptionDef[]; variants: VariantDraft[];
   media: GalleryItem[]; collections: CollectionRef[];
 }
@@ -24,7 +26,7 @@ export interface ProductForm {
 /** Shape of the `product(id:)` query (see graphql/products.ts). */
 export interface ApiProduct {
   id: string; title: string; handle: string; descriptionHtml: string; status: ProductForm['status']; vendor: string; productType: string;
-  tags: string[]; templateSuffix: string | null; updatedAt: string; onlineStorePreviewUrl?: string | null;
+  tags: string[]; templateSuffix: string | null; isGiftCard?: boolean; updatedAt: string; onlineStorePreviewUrl?: string | null;
   category?: { id: string; fullName: string } | null;
   seo: { title: string | null; description: string | null };
   options: Array<{ id: string; name: string; values: string[] }>;
@@ -38,7 +40,8 @@ export interface ApiVariant {
   media?: { nodes: Array<{ id: string }> };
   unitPriceMeasurement?: { quantityValue: number; quantityUnit: string; referenceValue: number; referenceUnit: string } | null;
   inventoryItem: {
-    id: string; tracked: boolean; requiresShipping: boolean; unitCost: { amount: string } | null; measurement: { weight: { unit: WeightUnit; value: number } | null } | null;
+    id: string; tracked: boolean; requiresShipping: boolean; unitCost: { amount: string } | null; countryCodeOfOrigin?: string | null; harmonizedSystemCode?: string | null;
+    measurement: { weight: { unit: WeightUnit; value: number } | null; dimensions?: { length: number | null; width: number | null; height: number | null; unit: LengthUnit } | null } | null;
     inventoryLevels: { nodes: Array<{ location: { id: string }; quantities: Array<{ name: string; quantity: number }> }> };
   };
 }
@@ -47,9 +50,18 @@ export const isPersistedMedia = (i: GalleryItem) => i.key.startsWith('gid://');
 
 export function emptyForm(locations: LocationRef[]): ProductForm {
   return {
-    title: '', descriptionHtml: '', status: 'DRAFT', vendor: '', productType: '', tags: [], templateSuffix: '', handle: '', category: '', seoTitle: '', seoDescription: '',
+    title: '', descriptionHtml: '', status: 'DRAFT', vendor: '', productType: '', tags: [], templateSuffix: '', handle: '', category: '', seoTitle: '', seoDescription: '', isGiftCard: false,
     options: [], variants: [blankVariant({ quantities: Object.fromEntries(locations.map((l) => [l.id, '0'])) })], media: [], collections: [],
   };
+}
+
+/** Blank form of a gift card product: delivered by email (no shipping, no stock) in three denominations. */
+export function giftCardForm(locations: LocationRef[], title: string): ProductForm {
+  const base = emptyForm(locations);
+  const options: OptionDef[] = [{ name: 'Denomination', values: ['25', '50', '100'] }];
+  const variants = generateVariants(options, [blankVariant({ tracked: false, requiresShipping: false, taxable: false, quantities: base.variants[0]!.quantities })])
+    .map((v) => ({ ...v, price: `${v.optionValues[0]}.00`, tracked: false, requiresShipping: false }));
+  return { ...base, title, isGiftCard: true, options, variants };
 }
 
 export function formFromProduct(p: ApiProduct, locations: LocationRef[]): ProductForm {
@@ -59,20 +71,24 @@ export function formFromProduct(p: ApiProduct, locations: LocationRef[]): Produc
     const levels = Object.fromEntries(locations.map((l) => [l.id, '0']));
     for (const lv of v.inventoryItem.inventoryLevels.nodes) levels[lv.location.id] = String(lv.quantities.find((q) => q.name === 'available')?.quantity ?? 0);
     const w = v.inventoryItem.measurement?.weight;
+    const d = v.inventoryItem.measurement?.dimensions;
+    const side = (n: number | null | undefined) => (n ? String(n) : '');
     const u = v.unitPriceMeasurement;
     return {
       key: v.id, id: v.id, inventoryItemId: v.inventoryItem.id,
       optionValues: defaultTitle ? [] : options.map((o) => v.selectedOptions.find((s) => s.name === o.name)?.value ?? ''),
       price: v.price, compareAtPrice: v.compareAtPrice ?? '', cost: v.inventoryItem.unitCost?.amount ?? '', sku: v.sku ?? '', barcode: v.barcode ?? '',
       taxable: v.taxable, tracked: v.inventoryItem.tracked, continueSelling: v.inventoryPolicy === 'CONTINUE', requiresShipping: v.inventoryItem.requiresShipping,
-      weight: w ? String(w.value) : '', weightUnit: w?.unit ?? 'KILOGRAMS', quantities: levels, mediaId: v.media?.nodes[0]?.id ?? '',
+      weight: w ? String(w.value) : '', weightUnit: w?.unit ?? 'KILOGRAMS',
+      length: side(d?.length), width: side(d?.width), height: side(d?.height), dimensionUnit: d?.unit ?? 'CENTIMETERS',
+      countryOfOrigin: v.inventoryItem.countryCodeOfOrigin ?? '', hsCode: v.inventoryItem.harmonizedSystemCode ?? '', quantities: levels, mediaId: v.media?.nodes[0]?.id ?? '',
       unitQuantity: u ? String(u.quantityValue) : '', unitQuantityUnit: u?.quantityUnit || 'L', unitReference: u ? String(u.referenceValue) : '1', unitReferenceUnit: u?.referenceUnit || 'L',
     };
   });
   return {
     title: p.title, descriptionHtml: p.descriptionHtml, status: p.status === 'ARCHIVED' || p.status === 'ACTIVE' ? p.status : 'DRAFT',
     vendor: p.vendor, productType: p.productType, tags: p.tags, templateSuffix: p.templateSuffix ?? '', handle: p.handle, category: p.category?.id ?? '',
-    seoTitle: p.seo.title ?? '', seoDescription: p.seo.description ?? '', options, variants,
+    seoTitle: p.seo.title ?? '', seoDescription: p.seo.description ?? '', isGiftCard: !!p.isGiftCard, options, variants,
     media: p.media.nodes.filter((m) => m.image).map((m) => ({ key: m.id, url: m.image!.url, alt: m.alt ?? '' })),
     collections: p.collections.nodes.filter((c) => !c.ruleSet).map((c) => ({ id: c.id, title: c.title })),
   };
@@ -97,6 +113,7 @@ function unitOf(v: VariantDraft) {
 
 function variantInput(v: VariantDraft, options: OptionDef[], locations: LocationRef[], create: boolean) {
   const weight = parseDecimal(v.weight);
+  const side = (x: string) => { const n = parseDecimal(x); return n !== null && n > 0 ? n : null; };
   return {
     ...(v.id && { id: v.id }),
     ...(create && { optionValues: v.optionValues.map((name, i) => ({ optionName: options[i]!.name, name })) }),
@@ -109,7 +126,13 @@ function variantInput(v: VariantDraft, options: OptionDef[], locations: Location
     unitPriceMeasurement: unitOf(v),
     inventoryItem: {
       sku: v.sku.trim() || null, tracked: v.tracked, cost: dec(v.cost), requiresShipping: v.requiresShipping,
-      ...(v.requiresShipping && weight !== null && { measurement: { weight: { value: weight, unit: v.weightUnit } } }),
+      countryCodeOfOrigin: v.countryOfOrigin || null, harmonizedSystemCode: v.hsCode.trim() || null,
+      ...(v.requiresShipping && {
+        measurement: {
+          ...(weight !== null && { weight: { value: weight, unit: v.weightUnit } }),
+          dimensions: { length: side(v.length), width: side(v.width), height: side(v.height), unit: v.dimensionUnit },
+        },
+      }),
     },
     ...(create && v.tracked && { inventoryQuantities: locations.map((l) => ({ locationId: l.id, availableQuantity: Math.max(0, Math.trunc(Number(v.quantities[l.id]) || 0)) })) }),
   };
@@ -152,7 +175,7 @@ export async function createProduct(f: ProductForm, locations: LocationRef[]): P
   const options = cleanOptions(f.options);
   const res = await mutate<{ product: { id: string; variants: { nodes: Array<{ id: string; inventoryItem: { id: string } }> } } }>(PRODUCT_CREATE, {
     product: {
-      ...productInput(f), collectionsToJoin: f.collections.map((c) => c.id),
+      ...productInput(f), collectionsToJoin: f.collections.map((c) => c.id), ...(f.isGiftCard && { giftCard: true }),
       ...(options.length && { productOptions: options.map((o) => ({ name: o.name, values: o.values.map((name) => ({ name })) })) }),
     },
     media: newMedia(f),

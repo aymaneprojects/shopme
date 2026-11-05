@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { inventoryAdjustments, inventoryItems, inventoryLevels, locations, productVariants } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
+import { LENGTH_UNITS } from '../../db/schema/catalog';
 import { WEIGHT_UNITS } from '../../db/schema/shop';
 import { buildSearch, idTerm, likeCi } from './search';
 import { emit, errR, okR, txResult, type Result } from './common';
@@ -10,6 +11,7 @@ export type Location = typeof locations.$inferSelect;
 export type InventoryItem = typeof inventoryItems.$inferSelect;
 export type InventoryLevel = typeof inventoryLevels.$inferSelect;
 export type WeightUnit = (typeof WEIGHT_UNITS)[number];
+export type LengthUnit = (typeof LENGTH_UNITS)[number];
 
 /** Quantity names exposed by the API, mapped to `inventory_levels` columns. */
 export const QUANTITY_COLUMNS = { available: 'available', on_hand: 'onHand', committed: 'committed', incoming: 'incoming', reserved: 'reserved' } as const;
@@ -149,6 +151,8 @@ export async function availableByVariant(db: Executor, shopId: number, variantId
 export interface InventoryItemUpdate {
   sku?: string | null; cost?: number | null; tracked?: boolean | null; countryCodeOfOrigin?: string | null; harmonizedSystemCode?: string | null;
   requiresShipping?: boolean | null; weight?: { value: number; unit: WeightUnit } | null;
+  /** Package size (ShopMe extension); null values clear a side. */
+  dimensions?: { length?: number | null; width?: number | null; height?: number | null; unit?: LengthUnit | null } | null;
 }
 
 export function inventoryItemPatch(input: InventoryItemUpdate) {
@@ -160,6 +164,12 @@ export function inventoryItemPatch(input: InventoryItemUpdate) {
     ...(input.harmonizedSystemCode !== undefined && { harmonizedSystemCode: input.harmonizedSystemCode }),
     ...(input.requiresShipping != null && { requiresShipping: input.requiresShipping }),
     ...(input.weight && { weightValue: input.weight.value, weightUnit: input.weight.unit }),
+    ...(input.dimensions && {
+      ...(input.dimensions.length !== undefined && { lengthValue: input.dimensions.length }),
+      ...(input.dimensions.width !== undefined && { widthValue: input.dimensions.width }),
+      ...(input.dimensions.height !== undefined && { heightValue: input.dimensions.height }),
+      ...(input.dimensions.unit && { dimensionUnit: input.dimensions.unit }),
+    }),
   };
 }
 
@@ -167,6 +177,8 @@ export async function updateInventoryItem(db: Db, shopId: number, id: number, in
   const cur = await getInventoryItem(db, shopId, id);
   if (!cur) return errR(['id'], "The product couldn't be found.");
   if (input.weight && (!Number.isFinite(input.weight.value) || input.weight.value < 0)) return errR(['input', 'measurement', 'weight', 'value'], 'Weight must be greater than or equal to 0');
+  const bad = input.dimensions && [input.dimensions.length, input.dimensions.width, input.dimensions.height].some((n) => n != null && (!Number.isFinite(n) || n < 0));
+  if (bad) return errR(['input', 'measurement', 'dimensions'], 'Dimensions must be greater than or equal to 0');
   if (input.cost != null && input.cost < 0) return errR(['input', 'cost'], 'Cost must be greater than or equal to 0');
   const patch = inventoryItemPatch(input);
   const row = await db.transaction(async (tx) => {

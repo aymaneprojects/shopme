@@ -1,6 +1,6 @@
 import {
   adjustQuantities, getInventoryItem, getInventoryLevel, getLocation, getVariant, listInventoryItems, listInventoryLevels,
-  QUANTITY_COLUMNS, setQuantities, updateInventoryItem, type AdjustmentGroup, type AppliedChange, type InventoryItemUpdate, type InventoryLevel, type WeightUnit,
+  QUANTITY_COLUMNS, setQuantities, updateInventoryItem, type AdjustmentGroup, type AppliedChange, type InventoryItemUpdate, type InventoryLevel, type LengthUnit as LengthUnitT, type WeightUnit,
 } from '@shopme/core';
 import { parseId, parseMoney, toGid } from '@shopme/shopify-compat';
 import { builder } from '../builder';
@@ -14,7 +14,12 @@ import {
 import { definePayload } from '../types/errors';
 
 export const WeightInput = builder.inputType('WeightInput', { fields: (t) => ({ value: t.float({ required: true }), unit: t.field({ type: WEIGHT_UNIT, required: true }) }) });
-const InventoryItemMeasurementInput = builder.inputType('InventoryItemMeasurementInput', { fields: (t) => ({ weight: t.field({ type: WeightInput }), shippingPackageId: t.id() }) });
+export const LengthUnit = builder.enumType('LengthUnit', { values: ['MILLIMETERS', 'CENTIMETERS', 'METERS', 'INCHES', 'FEET', 'YARDS'] as const });
+/** ShopMe extension: package size of an inventory item. */
+const DimensionsInput = builder.inputType('InventoryItemDimensionsInput', {
+  fields: (t) => ({ length: t.float(), width: t.float(), height: t.float(), unit: t.field({ type: LengthUnit }) }),
+});
+const InventoryItemMeasurementInput = builder.inputType('InventoryItemMeasurementInput', { fields: (t) => ({ weight: t.field({ type: WeightInput }), shippingPackageId: t.id(), dimensions: t.field({ type: DimensionsInput }) }) });
 export const InventoryItemInput = builder.inputType('InventoryItemInput', {
   fields: (t) => ({
     sku: t.string(), cost: t.field({ type: 'Decimal' }), tracked: t.boolean(), countryCodeOfOrigin: t.string(), harmonizedSystemCode: t.string(),
@@ -22,7 +27,7 @@ export const InventoryItemInput = builder.inputType('InventoryItemInput', {
   }),
 });
 
-interface ItemInputShape { sku?: string | null; cost?: string | null; tracked?: boolean | null; countryCodeOfOrigin?: string | null; harmonizedSystemCode?: string | null; requiresShipping?: boolean | null; measurement?: { weight?: { value: number; unit: unknown } | null } | null }
+interface ItemInputShape { sku?: string | null; cost?: string | null; tracked?: boolean | null; countryCodeOfOrigin?: string | null; harmonizedSystemCode?: string | null; requiresShipping?: boolean | null; measurement?: { weight?: { value: number; unit: unknown } | null; dimensions?: { length?: number | null; width?: number | null; height?: number | null; unit?: unknown } | null } | null }
 /** GraphQL InventoryItemInput -> service update (cost converted to minor units). */
 export function toItemUpdate(i: ItemInputShape | null | undefined, currency: string): InventoryItemUpdate | null {
   if (!i) return null;
@@ -30,14 +35,25 @@ export function toItemUpdate(i: ItemInputShape | null | undefined, currency: str
     sku: i.sku, cost: i.cost == null ? (i.cost as null | undefined) : parseMoney(i.cost, currency), tracked: i.tracked, countryCodeOfOrigin: i.countryCodeOfOrigin,
     harmonizedSystemCode: i.harmonizedSystemCode, requiresShipping: i.requiresShipping,
     weight: i.measurement?.weight ? { value: i.measurement.weight.value, unit: i.measurement.weight.unit as WeightUnit } : undefined,
+    dimensions: i.measurement?.dimensions ? { ...i.measurement.dimensions, unit: i.measurement.dimensions.unit as LengthUnitT | null | undefined } : undefined,
   };
 }
 
 const Weight = builder.objectRef<{ unit: string; value: number }>('Weight').implement({
   fields: (t) => ({ unit: t.field({ type: WEIGHT_UNIT, resolve: (w) => w.unit as never }), value: t.exposeFloat('value') }),
 });
-const InventoryItemMeasurement = builder.objectRef<{ id: string; weight: { unit: string; value: number } }>('InventoryItemMeasurement').implement({
-  fields: (t) => ({ id: t.exposeID('id'), weight: t.field({ type: Weight, nullable: true, resolve: (m) => m.weight }) }),
+const Dimensions = builder.objectRef<{ unit: string; length: number | null; width: number | null; height: number | null }>('InventoryItemDimensions').implement({
+  fields: (t) => ({
+    unit: t.field({ type: LengthUnit, resolve: (d) => d.unit as never }),
+    length: t.float({ nullable: true, resolve: (d) => d.length }), width: t.float({ nullable: true, resolve: (d) => d.width }), height: t.float({ nullable: true, resolve: (d) => d.height }),
+  }),
+});
+const InventoryItemMeasurement = builder.objectRef<{ id: string; weight: { unit: string; value: number }; dimensions: { unit: string; length: number | null; width: number | null; height: number | null } }>('InventoryItemMeasurement').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'), weight: t.field({ type: Weight, nullable: true, resolve: (m) => m.weight }),
+    /** ShopMe extension. */
+    dimensions: t.field({ type: Dimensions, nullable: true, resolve: (m) => m.dimensions }),
+  }),
 });
 const InventoryQuantity = builder.objectRef<{ id: string; name: string; quantity: number; updatedAt: Date }>('InventoryQuantity').implement({
   fields: (t) => ({ id: t.exposeID('id'), name: t.exposeString('name'), quantity: t.exposeInt('quantity'), updatedAt: t.field({ type: 'DateTime', nullable: true, resolve: (q) => q.updatedAt }) }),
@@ -53,7 +69,7 @@ InventoryItem_.implement({
     unitCost: t.field({ type: MoneyV2, nullable: true, resolve: async (i, _a, ctx) => (i.unitCost == null ? null : moneyV2(i.unitCost, (await shopOf(ctx)).currency)) }),
     measurement: t.field({
       type: InventoryItemMeasurement,
-      resolve: async (i, _a, ctx) => ({ id: toGid('InventoryItemMeasurement', i.id), weight: { unit: i.weightUnit ?? (await shopOf(ctx)).weightUnit, value: i.weightValue ?? 0 } }),
+      resolve: async (i, _a, ctx) => ({ id: toGid('InventoryItemMeasurement', i.id), weight: { unit: i.weightUnit ?? (await shopOf(ctx)).weightUnit, value: i.weightValue ?? 0 }, dimensions: { unit: i.dimensionUnit ?? 'CENTIMETERS', length: i.lengthValue, width: i.widthValue, height: i.heightValue } }),
     }),
     countryCodeOfOrigin: t.exposeString('countryCodeOfOrigin', { nullable: true }),
     harmonizedSystemCode: t.exposeString('harmonizedSystemCode', { nullable: true }),

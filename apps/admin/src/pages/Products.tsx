@@ -1,16 +1,19 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Pagination, Tabs, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Modal, Pagination, TagInput, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ImageIcon, Plus, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
 import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
 import { PageHeader } from '../components/PageHeader';
 import { ViewAs } from '../components/ViewAs';
+import { CollectionPicker } from '../components/Pickers';
+import { ViewTabs } from '../components/SavedViews';
+import { ProductMetricsStrip } from '../components/ProductMetrics';
 import { ExportButton, ImportButton } from '../components/CsvTools';
 import { gidToNum } from '../format';
-import { PRODUCTS, PRODUCTS_COUNT, PRODUCT_DELETE, PRODUCT_FILTER_OPTIONS, PRODUCT_UPDATE } from '../graphql';
+import { COLLECTION_ADD_PRODUCTS, COLLECTION_REMOVE_PRODUCTS, PRODUCTS, PRODUCTS_COUNT, PRODUCT_DELETE, PRODUCT_FILTER_OPTIONS, PRODUCT_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
 import { useT } from '../i18n';
 import { flattenStrings, q, useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
@@ -46,11 +49,16 @@ export function ProductsPage() {
   };
   const [search, setSearch] = useState(get('q'));
   const debounced = useDebounced(search);
+  const urlQ = get('q');
+  useEffect(() => { setSearch(urlQ); }, [urlQ]); // a saved view or the browser history changed the search
   const status = get('status') || 'all';
   const sort = { key: get('sort') || 'UPDATED_AT', reverse: get('dir') !== 'asc' };
   const [selected, setSelected] = useState<string[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<string[] | null>(null);
   const cols = useColumnVisibility('products');
+  const [tagging, setTagging] = useState<{ ids: string[]; mode: 'add' | 'remove' } | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [collecting, setCollecting] = useState<{ ids: string[]; mode: 'add' | 'remove' } | null>(null);
 
   const terms = [
     debounced.trim() && debounced.trim(),
@@ -89,6 +97,22 @@ export function ProductsPage() {
     onError: (e) => toast(e.message, 'critical'),
   });
 
+  const done = (n: number) => { toast(t('products.updated', { n })); setSelected([]); void qc.invalidateQueries({ queryKey: ['products'] }); };
+  const tagBulk = useMutation({
+    mutationFn: async ({ ids, mode, tags: list }: { ids: string[]; mode: 'add' | 'remove'; tags: string[] }) => {
+      await Promise.all(ids.map((id) => (mode === 'add' ? mutate(TAGS_ADD, { id, tags: list }, 'tagsAdd') : mutate(TAGS_REMOVE, { id, tags: list }, 'tagsRemove'))));
+    },
+    onSuccess: (_d, v) => { done(v.ids.length); void qc.invalidateQueries({ queryKey: ['product-filter-options'] }); },
+    onError: (e) => toast(e.message, 'critical'),
+  });
+  const collectionBulk = useMutation({
+    mutationFn: async ({ ids, mode, collections }: { ids: string[]; mode: 'add' | 'remove'; collections: string[] }) => {
+      for (const id of collections) await mutate(mode === 'add' ? COLLECTION_ADD_PRODUCTS : COLLECTION_REMOVE_PRODUCTS, { id, productIds: ids }, mode === 'add' ? 'collectionAddProductsV2' : 'collectionRemoveProducts');
+    },
+    onSuccess: (_d, v) => done(v.ids.length),
+    onError: (e) => toast(e.message, 'critical'),
+  });
+
   const rows = list.data?.products.nodes ?? [];
   const pageInfo = list.data?.products.pageInfo;
   const label = (s: string) => t(`status.${s}` as 'status.ACTIVE');
@@ -121,10 +145,11 @@ export function ProductsPage() {
   return (
     <>
       <PageHeader title={t('nav.products')} actions={<><ViewAs /><ImportButton kind="products" invalidate={['products', 'products-count']} /><ExportButton kind="products" /><Button variant="primary" onClick={() => nav('/products/new')}><Plus className="size-4" />{t('products.add')}</Button></>} />
+      <ProductMetricsStrip />
       <Card className="!p-0">
         <div className="px-4 pt-2">
-          <Tabs
-            value={status} onChange={(v) => { setSelected([]); patch({ status: v === 'all' ? '' : v }); }}
+          <ViewTabs
+            resource="PRODUCT" query={terms} value={status} onTab={(v) => { setSelected([]); patch({ status: v === 'all' ? '' : v, view: '' }); }}
             tabs={[{ id: 'all', label: t('products.tabAll') }, { id: 'active', label: label('ACTIVE') }, { id: 'draft', label: label('DRAFT') }, { id: 'archived', label: label('ARCHIVED') }]}
           />
         </div>
@@ -157,6 +182,10 @@ export function ProductsPage() {
             { key: 'active', label: t('products.setActive'), onRun: (ids) => bulk.mutate({ ids, action: 'ACTIVE' }) },
             { key: 'draft', label: t('products.setDraft'), onRun: (ids) => bulk.mutate({ ids, action: 'DRAFT' }) },
             { key: 'archive', label: t('products.setArchived'), onRun: (ids) => bulk.mutate({ ids, action: 'ARCHIVED' }) },
+            { key: 'addTags', label: t('products.addTags'), onRun: (ids) => { setTags([]); setTagging({ ids, mode: 'add' }); } },
+            { key: 'removeTags', label: t('products.removeTags'), onRun: (ids) => { setTags([]); setTagging({ ids, mode: 'remove' }); } },
+            { key: 'addColl', label: t('products.addToCollections'), onRun: (ids) => setCollecting({ ids, mode: 'add' }) },
+            { key: 'removeColl', label: t('products.removeFromCollections'), onRun: (ids) => setCollecting({ ids, mode: 'remove' }) },
             { key: 'delete', label: t('common.delete'), danger: true, onRun: (ids) => setConfirmDelete(ids) },
           ]}
           empty={list.isError ? null : empty}
@@ -169,6 +198,11 @@ export function ProductsPage() {
         />
         {count.data && rows.length > 0 && <p className="border-t border-line px-4 py-2 text-xs text-muted">{t('products.count', { n: count.data.productsCount.count })}</p>}
       </Card>
+      <Modal open={!!tagging} onClose={() => setTagging(null)} closeLabel={t('common.close')} title={tagging?.mode === 'remove' ? t('products.removeTags') : t('products.addTags')}
+        footer={<><Button onClick={() => setTagging(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!tags.length} onClick={() => { if (tagging) tagBulk.mutate({ ...tagging, tags }); setTagging(null); }}>{t('common.apply')}</Button></>}>
+        <TagInput label={t('field.tags')} value={tags} onChange={setTags} suggestions={flattenStrings(opt?.productTags)} removeLabel={t('common.remove')} />
+      </Modal>
+      <CollectionPicker open={!!collecting} onClose={() => setCollecting(null)} onConfirm={(c) => { if (collecting) collectionBulk.mutate({ ...collecting, collections: c.map((x) => x.id) }); setCollecting(null); }} />
       <ConfirmDialog
         open={!!confirmDelete} onClose={() => setConfirmDelete(null)} danger
         title={t('products.deleteTitle', { n: confirmDelete?.length ?? 0 })} message={t('products.deleteBody')}

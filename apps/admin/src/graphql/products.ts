@@ -33,9 +33,9 @@ const VARIANT_FIELDS = /* GraphQL */ `
   media(first: 1) { nodes { id } }
   unitPriceMeasurement { quantityValue quantityUnit referenceValue referenceUnit }
   inventoryItem {
-    id tracked requiresShipping
+    id tracked requiresShipping countryCodeOfOrigin harmonizedSystemCode
     unitCost { amount }
-    measurement { weight { unit value } }
+    measurement { weight { unit value } dimensions { length width height unit } }
     inventoryLevels(first: 50) {
       nodes { location { id name } quantities(names: ["available", "committed"]) { name quantity } }
     }
@@ -45,7 +45,7 @@ const VARIANT_FIELDS = /* GraphQL */ `
 export const PRODUCT = /* GraphQL */ `
   query Product($id: ID!) {
     product(id: $id) {
-      id title handle descriptionHtml status vendor productType tags templateSuffix updatedAt onlineStorePreviewUrl
+      id title handle descriptionHtml status vendor productType tags templateSuffix isGiftCard updatedAt onlineStorePreviewUrl
       category { id fullName }
       seo { title description }
       options { id name position values }

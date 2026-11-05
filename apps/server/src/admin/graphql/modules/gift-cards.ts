@@ -1,6 +1,6 @@
 import {
   adjustGiftCard, countGiftCards, createGiftCard, deactivateGiftCard, getCustomer, getGiftCard, getOrder, getShop, giftCardAddressees, giftCardMailVars, isRedeemable, listGiftCardTransactions,
-  listGiftCards, markGiftCardNotified, maskedGiftCardCode, lastCharacters, sendNotification, updateGiftCard, GIFT_CARD_LIMIT,
+  listGiftCards, listGiftCardsForOrder, markGiftCardNotified, maskedGiftCardCode, lastCharacters, sendNotification, updateGiftCard, GIFT_CARD_LIMIT,
   type GiftCard as GiftCardRow, type GiftCardTransaction as TxRow,
 } from '@shopme/core';
 import { parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
@@ -93,6 +93,14 @@ GiftCard.implement({
 const GiftCardConnection = defineConnection('GiftCard', GiftCard);
 const load = async (ctx: GraphQLContext, c: GiftCardRow | null): Promise<Shape | null> => (c ? { ...c, _shopCurrency: (await shopOf(ctx)).currency } : null);
 registerNode('GiftCard', async (ctx, id) => load(ctx, await getGiftCard(ctx.db, ctx.shopId, id)));
+
+/** ShopMe extension: the gift cards issued when the order's gift card products were paid. */
+builder.objectFields(Order_, (t) => ({
+  shopmeIssuedGiftCards: t.field({
+    type: [GiftCard],
+    resolve: async (o, _a, ctx) => { requireScope(ctx, 'read_gift_cards'); return (await Promise.all((await listGiftCardsForOrder(ctx.db, ctx.shopId, o.id)).map((c) => load(ctx, c)))).filter((c): c is Shape => !!c); },
+  }),
+}));
 
 const Configuration = builder.objectRef<{ currency: string }>('GiftCardConfiguration').implement({
   fields: (t) => ({

@@ -83,8 +83,8 @@ export const TAXONOMY_CATEGORIES = /* GraphQL */ `
 `;
 
 export const PRODUCT_DUPLICATE = /* GraphQL */ `
-  mutation ProductDuplicate($productId: ID!, $newTitle: String!, $includeImages: Boolean) {
-    productDuplicate(productId: $productId, newTitle: $newTitle, includeImages: $includeImages) { newProduct { id } userErrors { field message } }
+  mutation ProductDuplicate($productId: ID!, $newTitle: String!, $includeImages: Boolean, $newStatus: ProductStatus) {
+    productDuplicate(productId: $productId, newTitle: $newTitle, includeImages: $includeImages, newStatus: $newStatus) { newProduct { id } userErrors { field message } }
   }
 `;
 
