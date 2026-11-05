@@ -4,6 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="{{ settings.color_primary }}">
+    {%- if settings.favicon -%}
+      <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+      <link rel="apple-touch-icon" href="{{ settings.favicon | image_url: width: 180, height: 180 }}">
+    {%- endif -%}
     <title>{{ page_title }}</title>
     {%- if page_description != blank %}
       <meta name="description" content="{{ page_description | escape }}">
@@ -28,18 +32,22 @@
     {{ content_for_header }}
     <script src="{{ 'aurora.js' | asset_url }}" defer></script>
   </head>
-  <body class="template-{{ template.name }}">
+  <body class="template-{{ template.name }}{% if settings.anim_reveal and request.design_mode == false %} has-reveal{% endif %}{% if settings.anim_card_zoom == false %} no-card-zoom{% endif %}" data-button-hover="{{ settings.button_hover | default: 'darken' }}">
     <a class="skip-link" href="#main">{{ 'accessibility.skip_to_content' | t }}</a>
     {% sections 'header-group' %}
     <main id="main" tabindex="-1">
       {{ content_for_layout }}
     </main>
     {% sections 'footer-group' %}
+    {% sections 'footer-utilities-group' %}
+    {% sections 'overlay-group' %}
     {%- render 'cookie-banner' -%}
     <script>
       window.aurora = {
         moneyFormat: {{ shop.money_format | json }},
         currency: {{ shop.currency | json }},
+        reveal: {{ settings.anim_reveal | default: false | json }},
+        search: { predictive: {{ settings.search_predictive | default: true | json }} },
         routes: { cart: {{ routes.cart_url | json }}, cartAdd: '/cart/add.js', cartChange: '/cart/change.js', cartJson: '/cart.js' },
         strings: { added: {{ 'products.added_to_cart' | t | json }}, error: {{ 'general.error' | t | json }}, soldOut: {{ 'products.sold_out' | t | json }}, addToCart: {{ 'products.add_to_cart' | t | json }} }
       };

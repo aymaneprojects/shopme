@@ -17,8 +17,8 @@ async function main() {
     await runMigrations(handle);
     const r = await seedDemo(handle.db, createLocalStorage(config.storageDir), { adminPassword: process.env.SEED_ADMIN_PASSWORD });
     const themeDir = process.env.THEME_DEFAULT_DIR ?? path.resolve(import.meta.dirname, '../../theme-default');
-    if (await ensureDefaultTheme(handle.db, r.shop.id, themeDir)) console.log('Installed the default theme (Aurora).');
     const storage = createLocalStorage(config.storageDir);
+    if (await ensureDefaultTheme(handle.db, r.shop.id, themeDir, storage)) console.log('Installed the default theme (Aurora).');
     if (await seedHomeImages(handle.db, storage, r.shop.id)) console.log('Added the demo photos to the home page.');
     console.log(`Seeded demo data into shop "${r.shop.name}".`);
     if (r.adminPassword) console.log(`Admin login: ${r.adminEmail} / ${r.adminPassword}  (change it after first login)`);

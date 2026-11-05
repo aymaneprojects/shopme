@@ -35,17 +35,6 @@
       </nav>
     {%- endif -%}
   </div>
-  <div class="page-width site-footer__legal">
-    {%- assign year = 'now' | date: '%Y' -%}
-    <p>{{ 'general.copyright' | t: year: year, shop: shop.name }}</p>
-    <p>{{ 'general.powered_by' | t }}</p>
-    <p class="site-footer__privacy">
-      {%- if privacy.banner_enabled %}<a href="#cookie-preferences" data-consent-open>{{ 'privacy.footer.cookie_preferences' | t }}</a>{% endif -%}
-      {%- if privacy.data_sale_opt_out_url != blank %}<a href="{{ privacy.data_sale_opt_out_url }}">{{ 'privacy.footer.opt_out' | t }}</a>{% endif -%}
-    </p>
-    {%- render 'language-selector' -%}
-    {%- if section.settings.show_country_selector -%}{%- render 'country-selector' -%}{%- endif -%}
-  </div>
 </footer>
 
 {% schema %}
@@ -56,8 +45,7 @@
   "settings": [
     { "type": "link_list", "id": "menu", "label": "Menu", "default": "footer" },
     { "type": "checkbox", "id": "show_description", "label": "Show store description", "default": true },
-    { "type": "checkbox", "id": "show_newsletter", "label": "Show newsletter sign-up", "default": true },
-    { "type": "checkbox", "id": "show_country_selector", "label": "Show country and currency selector", "default": true }
+    { "type": "checkbox", "id": "show_newsletter", "label": "Show newsletter sign-up", "default": true }
   ]
 }
 {% endschema %}

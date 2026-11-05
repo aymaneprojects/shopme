@@ -1,0 +1,76 @@
+<div class="page-width page-width--narrow section-pad {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  {%- if section.settings.heading != blank -%}<h2 class="section-title contact__title">{{ section.settings.heading | escape }}</h2>{%- endif -%}
+  {%- if section.settings.text != blank -%}<div class="rte">{{ section.settings.text }}</div>{%- endif -%}
+  {%- form 'contact', id: section.id, class: 'customer__form' -%}
+    {%- if form.posted_successfully? -%}
+      <p class="form-success" role="status">{{ 'contact.success' | t }}</p>
+    {%- endif -%}
+    {%- if form.errors -%}
+      <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+    {%- endif -%}
+    <div class="field">
+      <label for="{{ section.id }}-name">{{ 'contact.name' | t }}</label>
+      <input id="{{ section.id }}-name" type="text" name="contact[name]" value="{{ form.name | escape }}" autocomplete="name">
+    </div>
+    <div class="field">
+      <label for="{{ section.id }}-email">{{ 'contact.email' | t }}</label>
+      <input id="{{ section.id }}-email" type="email" name="contact[email]" value="{{ form.email | escape }}" autocomplete="email" autocapitalize="off" required>
+    </div>
+    {%- if section.settings.show_phone -%}
+      <div class="field">
+        <label for="{{ section.id }}-phone">{{ 'contact.phone' | t }}</label>
+        <input id="{{ section.id }}-phone" type="tel" name="contact[phone]" value="{{ form.phone | escape }}" autocomplete="tel">
+      </div>
+    {%- endif -%}
+    <div class="field">
+      <label for="{{ section.id }}-body">{{ 'contact.message' | t }}</label>
+      <textarea id="{{ section.id }}-body" name="contact[body]" rows="6" required>{{ form.body | escape }}</textarea>
+    </div>
+    <div class="customer__actions"><button class="button" type="submit">{%- if section.settings.button_label != blank -%}{{ section.settings.button_label | escape }}{%- else -%}{{ 'contact.submit' | t }}{%- endif -%}</button></div>
+  {%- endform -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.contact_form.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.contact_form.settings.heading",
+      "default": "Contact us"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:sections.contact_form.settings.text",
+      "default": "<p>We usually answer within one business day.</p>"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_phone",
+      "label": "t:sections.contact_form.settings.show_phone",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.contact_form.settings.button_label",
+      "info": "t:sections.contact_form.info.button_label"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.contact_form.presets.contact_form",
+      "category": "form"
+    }
+  ]
+}
+{% endschema %}

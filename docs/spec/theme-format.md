@@ -359,3 +359,27 @@ Missing keys take the schema `default`. Liquid reads these as `settings.<id>`.
 7. Provide `content_for_header` and `content_for_layout`.
 8. Serve `assets/`, compute CSS/JS aggregation for `stylesheet`/`javascript` tags, and implement the image, font and
    translation helpers.
+
+## 13. ShopMe additions (Aurora and the theme editor)
+
+These are ShopMe conventions on top of the Online Store 2.0 format. A theme that does not use them is unaffected.
+
+- **`visible_if`** is evaluated by the theme editor: `{{ section.settings.x == 'y' }}`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, and
+  `and` / `or`, over `section.settings`, `block.settings` and `settings`. An unreadable condition keeps the setting visible.
+- **`variant`** on a `select` setting (ShopMe hint, ignored elsewhere): `segmented` draws a segmented control (up to four options),
+  `font` marks a font choice.
+- **`color_scheme_group`** (`settings_schema.json`, id `color_schemes`) holds named color schemes. `definition` lists the fields of
+  one scheme (`name` plus colors); `settings_data.json` stores `current.color_schemes` as `{ "scheme-1": { "settings": { "name": "Soft", "background": "#f1f5f9", ... } } }`.
+  A **`color_scheme`** setting stores a scheme id (empty means the theme colors). Aurora emits `.color-<id>` CSS classes that redefine
+  the color variables, so a section or block with a scheme restyles everything inside it.
+- **Dynamic sources**: a text setting may hold Liquid outputs such as `{{ closest.product.title }}` or `{{ shop.name }}`; they are
+  evaluated when the setting is read. The theme editor's "connect dynamic source" button inserts them for the page being previewed.
+- **Section groups** are any `sections/*-group.json`; Aurora ships `header-group`, `footer-group`, `footer-utilities-group` and
+  `overlay-group` (a popup). A group file may carry a `name` shown in the editor.
+- **Block style settings** (Aurora's `heading`, `text` and `button` blocks): width, maximum width, text preset, color scheme,
+  text color, background and four paddings, applied through the `block-attrs` snippet.
+- **Text presets** (`preset_<paragraph|h1..h6>_font|size|weight|line_height|case`) and **font roles** (`type_body_font`,
+  `type_subheading_font`, `type_heading_font`, `type_accent_font`) choose among system stacks and the fonts shipped in `assets/font-*.woff2`.
+- **Code editor**: `themeFilesUpsert` refuses Liquid files with a syntax error and JSON files that do not parse (a tag the engine
+  does not know is only a warning in `themeFilesLint`); the previous text of each saved or deleted file is kept (30 versions per file)
+  and read with `themeFileVersions`.

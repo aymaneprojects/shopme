@@ -1,0 +1,69 @@
+<div class="big-logo big-logo--{{ section.settings.align }} {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width">
+    {%- if settings.logo and section.settings.use_logo -%}
+      {{ settings.logo | image_url: width: 1600 | image_tag: class: 'big-logo__image', loading: 'lazy', alt: shop.name, widths: '600, 1000, 1600', sizes: '100vw' }}
+    {%- else -%}
+      <p class="big-logo__text" style="--big-logo-size: {{ section.settings.size }};">{{ section.settings.text | default: shop.name | escape }}</p>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.big_logo.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "use_logo",
+      "label": "t:sections.big_logo.settings.use_logo",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.big_logo.settings.text",
+      "info": "t:sections.big_logo.info.text"
+    },
+    {
+      "type": "range",
+      "id": "size",
+      "label": "t:sections.big_logo.settings.size",
+      "min": 4,
+      "max": 20,
+      "step": 1,
+      "unit": "vw",
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "align",
+      "label": "t:sections.big_logo.settings.align",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:sections.big_logo.options.align.left"
+        },
+        {
+          "value": "center",
+          "label": "t:sections.big_logo.options.align.center"
+        }
+      ],
+      "default": "center",
+      "variant": "segmented"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.big_logo.presets.big_logo",
+      "category": "banner"
+    }
+  ]
+}
+{% endschema %}

@@ -5,8 +5,8 @@ import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { themeFiles, themes } from '../db/schema';
 import type { Db } from '../db/client';
 import { errR, okR, txResult, type Result } from './catalog/common';
-import { getTheme, publishTheme, type Theme } from './content/content';
-import { THEME_DIRS } from './theme-install';
+import { getTheme, publishTheme, snapshotThemeFiles, type Theme } from './content/content';
+import { BINARY_ASSET_TYPES, THEME_DIRS } from './theme-install';
 import type { Storage } from './storage';
 
 export const MAX_THEME_ZIP_BYTES = 50 * 1024 * 1024;
@@ -16,11 +16,7 @@ const MAX_THEME_FILES = 5000;
 const TEXT_TYPES: Record<string, string> = {
   '.liquid': 'text/x-liquid', '.json': 'application/json', '.css': 'text/css', '.js': 'text/javascript', '.mjs': 'text/javascript', '.svg': 'image/svg+xml', '.txt': 'text/plain', '.html': 'text/html',
 };
-/** Binary files allowed under assets/ (stored in object storage, served by the storefront). */
-const BINARY_TYPES: Record<string, string> = {
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif', '.ico': 'image/x-icon',
-  '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.otf': 'font/otf', '.eot': 'application/vnd.ms-fontobject', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mp3': 'audio/mpeg',
-};
+const BINARY_TYPES = BINARY_ASSET_TYPES;
 const SAFE_PATH = /^[\w\-. ]+(\/[\w\-. ]+)+$/;
 
 export interface ThemeEntry { path: string; data: Uint8Array }
@@ -172,12 +168,13 @@ export async function copyThemeFiles(db: Db, shopId: number, themeId: number, fi
 }
 
 /** Shopify `themeFilesDelete`. Wildcards (`*`) are not supported; required files (`layout/theme.liquid`) cannot be removed. */
-export async function deleteThemeFiles(db: Db, storage: Storage, shopId: number, themeId: number, filenames: string[]): Promise<Result<string[]>> {
+export async function deleteThemeFiles(db: Db, storage: Storage, shopId: number, themeId: number, filenames: string[], staffId?: number | null): Promise<Result<string[]>> {
   if (!(await getTheme(db, shopId, themeId))) return errR(['themeId'], 'Theme does not exist', 'NOT_FOUND');
   if (filenames.includes('layout/theme.liquid')) return errR(['files'], 'layout/theme.liquid is required and cannot be deleted', 'INVALID');
   const rows = await db.select().from(themeFiles).where(and(eq(themeFiles.themeId, themeId), inArray(themeFiles.path, filenames)));
   const missing = filenames.find((f) => !rows.some((r) => r.path === f));
   if (missing) return errR(['files'], `File ${missing} does not exist`, 'THEME_FILES_NOT_FOUND');
+  await snapshotThemeFiles(db, shopId, themeId, rows.filter((r) => r.body !== null).map((r) => r.path), staffId);
   await db.delete(themeFiles).where(and(eq(themeFiles.themeId, themeId), inArray(themeFiles.path, filenames)));
   await db.update(themes).set({ updatedAt: new Date() }).where(eq(themes.id, themeId));
   await releaseObjects(db, storage, rows.map((r) => r.storageKey).filter((k): k is string => !!k));

@@ -11,7 +11,7 @@ export interface Target { section: string; block?: string }
 interface Box { x: number; y: number; w: number; h: number }
 interface Hit { target: Target; box: Box }
 
-export interface ToolbarActions { up?: () => void; down?: () => void; duplicate?: () => void; toggle: () => void; hidden: boolean; remove?: () => void }
+export interface ToolbarActions { up?: () => void; down?: () => void; duplicate?: () => void; toggle: () => void; hidden: boolean; remove?: () => void; editCode?: () => void }
 
 const SECTION = '[data-shopify-editor-section]';
 const BLOCK = '[data-shopify-editor-block]';

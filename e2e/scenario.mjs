@@ -266,10 +266,13 @@ export async function runScenario({ baseUrl, root }) {
 
     // ---------------------------------------------------------------- 4. online store
     const PRIMARY = '#c2410c';
+    let themeNum = '1';
     await step('4a theme editor: primary colour', async () => {
       await page.goto(`${baseUrl}/admin/online-store`);
       await vis(page.getByText('Aurora'));
       await page.getByRole('button', { name: 'Customize' }).click();
+      await page.waitForURL(/\/themes\/\d+\/editor/, { timeout: T });
+      themeNum = /\/themes\/(\d+)\//.exec(page.url())[1];
       // the editor opens on the Sections tab; colours live under "Theme settings"
       await page.getByRole('tab', { name: 'Theme settings' }).click();
       await vis(page.getByLabel('Primary color (hex)'));
@@ -280,6 +283,61 @@ export async function runScenario({ baseUrl, root }) {
       await page.getByRole('tab', { name: 'Theme settings' }).click();
       await vis(page.getByLabel('Primary color (hex)'));
       assert.equal((await page.getByLabel('Primary color (hex)').inputValue()).toLowerCase(), PRIMARY);
+    });
+
+    await step('4a2 theme editor: preview data, add section preview, menu entries', async () => {
+      await page.goto(`${baseUrl}/admin/online-store/themes/${themeNum}/editor`);
+      await vis(page.getByRole('region', { name: 'Template', exact: true }));
+      await page.getByRole('button', { name: 'Preview data' }).click();
+      await vis(page.getByRole('dialog', { name: 'Preview data' }).getByLabel('Product'));
+      await page.keyboard.press('Escape');
+      await page.getByRole('region', { name: 'Template', exact: true }).getByRole('button', { name: 'Add section' }).click();
+      const picker = page.getByRole('dialog', { name: 'Add section' });
+      await vis(picker.getByRole('button', { name: /Slideshow/ }).first());
+      await vis(picker.getByRole('button', { name: 'Add section' }));
+      await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: 'More actions' }).click();
+      for (const name of ['Edit code', 'Edit default theme content', 'View documentation']) await vis(page.getByRole('menuitem', { name }));
+      await page.keyboard.press('Escape');
+    });
+
+    await step('4a3 theme code editor: open, check, refuse a syntax error, save, history', async () => {
+      await page.goto(`${baseUrl}/admin/online-store/themes/${themeNum}/code?file=snippets/price.liquid`);
+      await vis(page.getByRole('tab', { name: 'price.liquid' }));
+      const editor = page.locator('.cm-content');
+      await vis(editor);
+      await editor.click();
+      await page.keyboard.press('Control+Home');
+      await page.keyboard.type('{% if x %}');
+      await vis(page.getByRole('list', { name: 'Problems' }));
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(page.getByText(/snippets\/price\.liquid line \d+/));
+      await editor.click();
+      await page.keyboard.press('Control+Home');
+      for (let i = 0; i < 10; i++) await page.keyboard.press('Delete');
+      await page.keyboard.type('{%- comment -%}saved by the e2e{%- endcomment -%}\n');
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(page.getByText('Theme files saved'));
+      await page.getByRole('button', { name: 'History' }).click();
+      await vis(page.getByRole('complementary', { name: 'History' }).locator('button[aria-pressed]').first());
+      // a new file appears in the tree
+      await page.getByRole('button', { name: 'Add a file to snippets' }).click();
+      await page.getByLabel('File name').fill('e2e-note');
+      await page.getByRole('button', { name: 'Create file' }).click();
+      await vis(page.getByRole('tab', { name: 'e2e-note.liquid' }));
+    });
+
+    await step('4a4 default theme content: edit a text and keep it', async () => {
+      await page.goto(`${baseUrl}/admin/online-store/themes/${themeNum}/content`);
+      await page.getByPlaceholder('Search texts').fill('products.add_to_cart');
+      const box = page.getByLabel('products.add_to_cart', { exact: true });
+      await vis(box);
+      await box.fill('Add to bag');
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(page.getByText('Theme content saved'));
+      await page.reload();
+      await page.getByPlaceholder('Search texts').fill('products.add_to_cart');
+      assert.equal(await page.getByLabel('products.add_to_cart', { exact: true }).inputValue(), 'Add to bag');
     });
 
     await step('4b page "À propos"', async () => {

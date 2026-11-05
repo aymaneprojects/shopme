@@ -1,0 +1,255 @@
+{%- assign slides = section.blocks -%}
+<div class="slideshow slideshow--{{ section.settings.variant }} slideshow--{{ section.settings.height }}" data-slideshow data-autoplay="{{ section.settings.autoplay }}" data-interval="{{ section.settings.interval | times: 1000 }}" style="--hero-overlay: {{ section.settings.overlay | divided_by: 100.0 }};" role="region" aria-roledescription="carousel" aria-label="{{ 'slideshow.label' | t }}">
+  {%- if section.settings.variant == 'inset' -%}<div class="page-width">{%- endif -%}
+  <div class="slideshow__frame">
+    <ul class="slideshow__track" data-slideshow-track role="list">
+      {%- for block in slides -%}
+        <li class="slideshow__slide hero hero--{{ block.settings.text_align }}{% unless block.settings.image %} hero--no-image{% endunless %}" id="Slide-{{ section.id }}-{{ forloop.index }}" role="group" aria-roledescription="slide" aria-label="{{ forloop.index }} / {{ forloop.length }}" {{ block.shopify_attributes }}>
+          {%- if block.settings.image -%}
+            <div class="hero__media">
+              {%- render 'media', media_type: 'image', image: block.settings.image, mobile_image: block.settings.mobile_image, use_mobile: block.settings.mobile_media, eager: forloop.first, sizes: '100vw' -%}
+            </div>
+          {%- endif -%}
+          <div class="page-width hero__content">
+            <div class="hero__text-group">
+              {%- if block.settings.heading != blank -%}<h2 class="hero__heading">{{ block.settings.heading | escape }}</h2>{%- endif -%}
+              {%- if block.settings.text != blank -%}<p class="hero__text">{{ block.settings.text | escape }}</p>{%- endif -%}
+            </div>
+            {%- if block.settings.button_label != blank -%}
+              <a class="button button--light" href="{{ block.settings.button_link | default: routes.all_products_collection_url }}">{{ block.settings.button_label | escape }}</a>
+            {%- endif -%}
+          </div>
+        </li>
+      {%- endfor -%}
+    </ul>
+    {%- if slides.size > 1 -%}
+      <div class="slideshow__controls">
+        <button type="button" class="slideshow__arrow" data-slideshow-prev aria-label="{{ 'slideshow.previous' | t }}">&#8592;</button>
+        <div class="slideshow__dots">
+          {%- for block in slides -%}
+            <button type="button" class="slideshow__dot" data-slideshow-dot="{{ forloop.index0 }}" aria-label="{{ 'slideshow.go_to' | t: number: forloop.index }}"></button>
+          {%- endfor -%}
+        </div>
+        <button type="button" class="slideshow__arrow" data-slideshow-next aria-label="{{ 'slideshow.next' | t }}">&#8594;</button>
+      </div>
+    {%- endif -%}
+  </div>
+  {%- if section.settings.variant == 'inset' -%}</div>{%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.slideshow.name",
+  "tag": "section",
+  "max_blocks": 8,
+  "settings": [
+    {
+      "type": "select",
+      "id": "variant",
+      "label": "t:sections.slideshow.settings.variant",
+      "options": [
+        {
+          "value": "overlay",
+          "label": "t:sections.slideshow.options.variant.overlay"
+        },
+        {
+          "value": "inset",
+          "label": "t:sections.slideshow.options.variant.inset"
+        },
+        {
+          "value": "full",
+          "label": "t:sections.slideshow.options.variant.full"
+        }
+      ],
+      "default": "overlay"
+    },
+    {
+      "type": "select",
+      "id": "height",
+      "label": "t:sections.slideshow.settings.height",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:sections.slideshow.options.height.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:sections.slideshow.options.height.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:sections.slideshow.options.height.large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "range",
+      "id": "overlay",
+      "label": "t:sections.slideshow.settings.overlay",
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "default": 30
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "t:sections.slideshow.settings.autoplay",
+      "default": true
+    },
+    {
+      "type": "range",
+      "id": "interval",
+      "label": "t:sections.slideshow.settings.interval",
+      "min": 3,
+      "max": 12,
+      "step": 1,
+      "unit": "s",
+      "default": 5,
+      "visible_if": "{{ section.settings.autoplay }}"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "slide",
+      "name": "t:sections.slideshow.blocks.slide.name",
+      "limit": 8,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:sections.slideshow.blocks.slide.settings.image"
+        },
+        {
+          "type": "checkbox",
+          "id": "mobile_media",
+          "label": "t:sections.slideshow.blocks.slide.settings.mobile_media",
+          "default": false
+        },
+        {
+          "type": "image_picker",
+          "id": "mobile_image",
+          "label": "t:sections.slideshow.blocks.slide.settings.mobile_image",
+          "visible_if": "{{ block.settings.mobile_media }}"
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "t:sections.slideshow.blocks.slide.settings.heading",
+          "default": "Slide heading"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.slideshow.blocks.slide.settings.text",
+          "default": "A short sentence about this slide."
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:sections.slideshow.blocks.slide.settings.button_label",
+          "default": "Shop now"
+        },
+        {
+          "type": "url",
+          "id": "button_link",
+          "label": "t:sections.slideshow.blocks.slide.settings.button_link"
+        },
+        {
+          "type": "select",
+          "id": "text_align",
+          "label": "t:sections.slideshow.blocks.slide.settings.text_align",
+          "options": [
+            {
+              "value": "left",
+              "label": "t:sections.slideshow.blocks.slide.options.text_align.left"
+            },
+            {
+              "value": "center",
+              "label": "t:sections.slideshow.blocks.slide.options.text_align.center"
+            }
+          ],
+          "default": "left",
+          "variant": "segmented"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.slideshow.presets.slideshow_overlay",
+      "settings": {
+        "variant": "overlay"
+      },
+      "blocks": [
+        {
+          "type": "slide",
+          "settings": {
+            "heading": "New arrivals",
+            "text": "Fresh picks for the season."
+          }
+        },
+        {
+          "type": "slide",
+          "settings": {
+            "heading": "Best sellers",
+            "text": "Loved by our customers.",
+            "text_align": "center"
+          }
+        }
+      ],
+      "category": "banner"
+    },
+    {
+      "name": "t:sections.slideshow.presets.slideshow_inset",
+      "settings": {
+        "variant": "inset"
+      },
+      "blocks": [
+        {
+          "type": "slide",
+          "settings": {
+            "heading": "New arrivals",
+            "text": "Fresh picks for the season."
+          }
+        },
+        {
+          "type": "slide",
+          "settings": {
+            "heading": "Best sellers",
+            "text": "Loved by our customers.",
+            "text_align": "center"
+          }
+        }
+      ],
+      "category": "banner"
+    },
+    {
+      "name": "t:sections.slideshow.presets.slideshow_full",
+      "settings": {
+        "variant": "full"
+      },
+      "blocks": [
+        {
+          "type": "slide",
+          "settings": {
+            "heading": "New arrivals",
+            "text": "Fresh picks for the season."
+          }
+        },
+        {
+          "type": "slide",
+          "settings": {
+            "heading": "Best sellers",
+            "text": "Loved by our customers.",
+            "text_align": "center"
+          }
+        }
+      ],
+      "category": "banner"
+    }
+  ]
+}
+{% endschema %}

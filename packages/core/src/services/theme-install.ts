@@ -4,6 +4,7 @@ import path from 'node:path';
 import { and, eq, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../db/client';
 import { shops, themeFiles, themes } from '../db/schema';
+import type { Storage } from './storage';
 
 /** Theme directories that make up a theme (anything else in a package, such as `src/`, is ignored). */
 export const THEME_DIRS = ['layout', 'templates', 'sections', 'blocks', 'snippets', 'config', 'locales', 'assets'] as const;
@@ -11,6 +12,12 @@ export const THEME_DIRS = ['layout', 'templates', 'sections', 'blocks', 'snippet
 const TEXT_TYPES: Record<string, string> = {
   '.liquid': 'text/x-liquid', '.json': 'application/json', '.css': 'text/css', '.js': 'text/javascript', '.mjs': 'text/javascript',
   '.svg': 'image/svg+xml', '.txt': 'text/plain', '.html': 'text/html',
+};
+
+/** Binary files allowed under assets/ (stored in object storage, served by the storefront). */
+export const BINARY_ASSET_TYPES: Record<string, string> = {
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif', '.ico': 'image/x-icon',
+  '.woff': 'font/woff', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.otf': 'font/otf', '.eot': 'application/vnd.ms-fontobject', '.mp4': 'video/mp4', '.webm': 'video/webm', '.mp3': 'audio/mpeg',
 };
 
 function walk(dir: string, base: string, out: string[]): void {
@@ -29,6 +36,20 @@ export function readThemeDir(dir: string): { path: string; body: string; content
   for (const f of files.sort()) {
     const contentType = TEXT_TYPES[path.extname(f).toLowerCase()];
     if (contentType) out.push({ path: f, body: readFileSync(path.join(dir, f), 'utf8'), contentType });
+  }
+  return out;
+}
+
+/** The binary assets (fonts, images) of a theme directory. */
+export function readThemeBinaries(dir: string): { path: string; data: Buffer; contentType: string }[] {
+  const root = path.join(dir, 'assets');
+  if (!existsSync(root)) return [];
+  const files: string[] = [];
+  walk(root, dir, files);
+  const out: { path: string; data: Buffer; contentType: string }[] = [];
+  for (const f of files.sort()) {
+    const contentType = BINARY_ASSET_TYPES[path.extname(f).toLowerCase()];
+    if (contentType) out.push({ path: f, data: readFileSync(path.join(dir, f)), contentType });
   }
   return out;
 }
@@ -56,8 +77,15 @@ export function frenchSeedDefaults(dir: string): Record<string, string> {
 }
 
 /** Replace all files of a theme with those found in `dir` (optionally transformed first). */
-export async function installThemeFiles(db: Db, shopId: number, themeId: number, dir: string, transform?: (files: ReturnType<typeof readThemeDir>) => ReturnType<typeof readThemeDir>): Promise<number> {
+export async function installThemeFiles(db: Db, shopId: number, themeId: number, dir: string, transform?: (files: ReturnType<typeof readThemeDir>) => ReturnType<typeof readThemeDir>, storage?: Storage): Promise<number> {
   const files = transform ? transform(readThemeDir(dir)) : readThemeDir(dir);
+  const binaries: (typeof themeFiles.$inferInsert)[] = [];
+  for (const b of storage ? readThemeBinaries(dir) : []) {
+    const checksum = createHash('md5').update(b.data).digest('hex');
+    const key = `themes/${themeId}/${checksum}-${path.basename(b.path).replace(/[^A-Za-z0-9._-]/g, '_')}`;
+    await storage!.put(key, b.data);
+    binaries.push({ themeId, shopId, path: b.path, contentType: b.contentType, body: null, storageKey: key, checksum, sizeBytes: b.data.length });
+  }
   await db.transaction(async (tx) => {
     await tx.delete(themeFiles).where(and(eq(themeFiles.themeId, themeId), eq(themeFiles.shopId, shopId)));
     for (let i = 0; i < files.length; i += 50) {
@@ -66,8 +94,9 @@ export async function installThemeFiles(db: Db, shopId: number, themeId: number,
         checksum: createHash('md5').update(f.body).digest('hex'), sizeBytes: Buffer.byteLength(f.body),
       })));
     }
+    if (binaries.length) await tx.insert(themeFiles).values(binaries);
   });
-  return files.length;
+  return files.length + binaries.length;
 }
 
 /** The MAIN theme row of a shop (created if missing). */
@@ -79,14 +108,14 @@ export async function ensureMainTheme(db: Executor, shopId: number): Promise<{ i
 }
 
 /** Install the default theme into the shop's MAIN theme when that theme has no files yet. Returns true when files were installed. */
-export async function ensureDefaultTheme(db: Db, shopId: number, dir: string): Promise<boolean> {
+export async function ensureDefaultTheme(db: Db, shopId: number, dir: string, storage?: Storage): Promise<boolean> {
   const main = await ensureMainTheme(db, shopId);
   const [r] = await db.select({ n: sql<number>`count(*)::int` }).from(themeFiles).where(eq(themeFiles.themeId, main.id));
   if ((r?.n ?? 0) > 0 || !existsSync(dir)) return false;
   // A French shop gets the seed texts in French; other locales keep the English defaults.
   const [shop] = await db.select({ locale: shops.locale }).from(shops).where(eq(shops.id, shopId)).limit(1);
   const fr = shop?.locale.toLowerCase().startsWith('fr') ? frenchSeedDefaults(dir) : {};
-  await installThemeFiles(db, shopId, main.id, dir, (files) => localizeSeedTexts(files, fr));
+  await installThemeFiles(db, shopId, main.id, dir, (files) => localizeSeedTexts(files, fr), storage);
   await db.update(themes).set({ name: 'Aurora' }).where(and(eq(themes.id, main.id), eq(themes.name, 'Default')));
   return true;
 }

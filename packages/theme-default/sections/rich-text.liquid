@@ -1,27 +1,90 @@
-<div class="page-width section-pad rich-text rich-text--{{ section.settings.align }}">
-  <div class="rich-text__inner">
+<div class="page-width section-pad rich-text rich-text--{{ section.settings.align }} {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="rich-text__inner rich-text__inner--{{ section.settings.direction }}">
     {%- content_for 'blocks' -%}
   </div>
 </div>
 
 {% schema %}
 {
-  "name": "Rich text",
+  "name": "t:sections.rich_text.name",
   "tag": "section",
   "settings": [
-    { "type": "select", "id": "align", "label": "Alignment", "default": "center", "options": [
-      { "value": "left", "label": "Left" }, { "value": "center", "label": "Center" } ] }
+    {
+      "type": "select",
+      "id": "align",
+      "label": "t:sections.rich_text.settings.align",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:sections.rich_text.options.align.left"
+        },
+        {
+          "value": "center",
+          "label": "t:sections.rich_text.options.align.center"
+        }
+      ],
+      "default": "center",
+      "variant": "segmented"
+    },
+    {
+      "type": "select",
+      "id": "direction",
+      "label": "t:sections.rich_text.settings.direction",
+      "options": [
+        {
+          "value": "vertical",
+          "label": "t:sections.rich_text.options.direction.vertical"
+        },
+        {
+          "value": "horizontal",
+          "label": "t:sections.rich_text.options.direction.horizontal"
+        }
+      ],
+      "default": "vertical",
+      "variant": "segmented"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
   ],
-  "blocks": [{ "type": "@theme" }],
+  "blocks": [
+    {
+      "type": "@theme"
+    }
+  ],
   "presets": [
     {
-      "name": "Rich text",
+      "name": "t:sections.rich_text.presets.rich_text",
       "blocks": {
-        "heading": { "type": "heading", "settings": { "text": "Our story" } },
-        "text": { "type": "text", "settings": { "text": "<p>Share the story of your brand, a promotion or shipping details.</p>" } },
-        "button": { "type": "button", "settings": { "label": "Learn more", "link": "/pages/about-us" } }
+        "heading": {
+          "type": "heading",
+          "settings": {
+            "text": "Our story"
+          }
+        },
+        "text": {
+          "type": "text",
+          "settings": {
+            "text": "<p>Share the story of your brand, a promotion or shipping details.</p>"
+          }
+        },
+        "button": {
+          "type": "button",
+          "settings": {
+            "label": "Learn more",
+            "link": "/pages/about-us"
+          }
+        }
       },
-      "block_order": ["heading", "text", "button"]
+      "block_order": [
+        "heading",
+        "text",
+        "button"
+      ],
+      "category": "text"
     }
   ]
 }

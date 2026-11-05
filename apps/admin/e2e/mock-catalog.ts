@@ -100,7 +100,12 @@ const answers: Record<string, unknown | ((v: Record<string, unknown>) => unknown
   ThemeTemplateNames: themeNode(dirFiles('templates', '.json').map((f) => ({ filename: f.filename }))),
   ThemeSchemas: themeNode([...dirFiles('sections', '.liquid'), ...dirFiles('blocks', '.liquid')]),
   ThemeEditorFiles: (v: Record<string, unknown>) => themeNode([textFile((v.filenames as string[])[0]!), textFile('sections/header-group.json'), textFile('sections/footer-group.json')]),
-  ThemePreviewHandles: { products: { nodes: [{ handle: 'ember-candle' }] }, collections: { nodes: [{ handle: 'all' }] }, pages: { nodes: [] } },
+  ThemePreviewData: {
+    products: { nodes: [{ handle: 'ember-candle', title: 'Ember Candle' }] }, collections: { nodes: [{ handle: 'all', title: 'All products' }] }, pages: { nodes: [{ handle: 'about-us', title: 'About us' }] },
+    articles: { nodes: [{ handle: 'hello', title: 'Hello', blog: { handle: 'news' } }] },
+    shopLocales: [{ locale: 'en', name: 'English', primary: true, published: true }, { locale: 'fr', name: 'French', primary: false, published: true }],
+    markets: { nodes: [{ id: 'gid://shopify/Market/1', name: 'Europe', conditions: { regionsCondition: { regions: { nodes: [{ code: 'FR', name: 'France' }, { code: 'DE', name: 'Germany' }] } } } }] },
+  },
   ThemeSettings: { theme: { id: 'gid://shopify/OnlineStoreTheme/1', name: 'Aurora', role: 'MAIN', files: { nodes: [themeFile('settings_schema.json'), themeFile('settings_data.json')] } } },
   ThemeLocales: { theme: { id: 'gid://shopify/OnlineStoreTheme/1', files: { nodes: [{ filename: 'locales/en.default.schema.json', body: { content: readFileSync(path.join(themeDir, '../locales/en.default.schema.json'), 'utf8') } }] } } },
 };

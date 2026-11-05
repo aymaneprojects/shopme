@@ -1,0 +1,53 @@
+<div class="page-width site-footer__legal {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  {%- if section.settings.show_copyright -%}
+    {%- assign year = 'now' | date: '%Y' -%}
+    <p>{{ 'general.copyright' | t: year: year, shop: shop.name }}</p>
+  {%- endif -%}
+  {%- if section.settings.show_powered_by -%}<p>{{ 'general.powered_by' | t }}</p>{%- endif -%}
+  <p class="site-footer__privacy">
+    {%- if privacy.banner_enabled %}<a href="#cookie-preferences" data-consent-open>{{ 'privacy.footer.cookie_preferences' | t }}</a>{% endif -%}
+    {%- if privacy.data_sale_opt_out_url != blank %}<a href="{{ privacy.data_sale_opt_out_url }}">{{ 'privacy.footer.opt_out' | t }}</a>{% endif -%}
+  </p>
+  {%- if section.settings.show_language_selector -%}{%- render 'language-selector' -%}{%- endif -%}
+  {%- if section.settings.show_country_selector -%}{%- render 'country-selector' -%}{%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.footer_utilities.name",
+  "tag": "div",
+  "class": "footer-utilities",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_copyright",
+      "label": "t:sections.footer_utilities.settings.show_copyright",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_powered_by",
+      "label": "t:sections.footer_utilities.settings.show_powered_by",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_language_selector",
+      "label": "t:sections.footer_utilities.settings.show_language_selector",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_country_selector",
+      "label": "t:sections.footer_utilities.settings.show_country_selector",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ]
+}
+{% endschema %}

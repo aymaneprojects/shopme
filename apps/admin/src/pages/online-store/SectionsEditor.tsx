@@ -1,5 +1,5 @@
 import { cx } from '@shopme/ui';
-import { AlignLeft, ChevronRight, ClipboardPaste, Copy, CopyPlus, Eye, EyeOff, GripVertical, Image as ImageIcon, LayoutPanelTop, MousePointerClick, Pencil, PlusCircle, SquareDashed, Trash2 } from 'lucide-react';
+import { AlignLeft, ChevronRight, ClipboardPaste, Code, Copy, CopyPlus, Eye, EyeOff, GripVertical, Image as ImageIcon, LayoutPanelTop, MousePointerClick, Pencil, PlusCircle, SquareDashed, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useI18n } from '../../i18n';
@@ -14,12 +14,14 @@ export interface Sel { file: string; section: string; block?: string }
 export const baseName = (f: string) => f.replace(/^.*\//, '').replace(/\.(json|liquid)$/, '');
 
 /** Storefront path previewed for a template (alternates such as `page.contact` use their base type). */
-export function previewPath(template: string, h: { product?: string; collection?: string; page?: string }): string {
+export function previewPath(template: string, h: { product?: string; collection?: string; page?: string; /** `<blog>/<article>` */ article?: string }): string {
   switch (template.split('.')[0]) {
     case 'product': return h.product ? `/products/${h.product}` : '/';
     case 'collection': return `/collections/${h.collection ?? 'all'}`;
     case 'list-collections': return '/collections';
     case 'page': return h.page ? `/pages/${h.page}` : '/';
+    case 'article': return h.article ? `/blogs/${h.article}` : '/blogs/news';
+    case 'blog': return `/blogs/${(h.article ?? 'news').split('/')[0]}`;
     case 'cart': return '/cart';
     case 'search': return '/search?q=a';
     case '404': return '/404-preview-not-found';
@@ -35,6 +37,7 @@ export function templateForPath(path: string): string | null {
   if (p.startsWith('/collections/')) return 'collection';
   if (p.startsWith('/products/')) return 'product';
   if (p.startsWith('/pages/')) return 'page';
+  if (p.startsWith('/blogs/')) return p.split('/').length > 3 ? 'article' : 'blog';
   if (p === '/cart') return 'cart';
   if (p === '/search') return 'search';
   return null;
@@ -49,6 +52,8 @@ interface Ops {
   copy: (file: string, id: string) => void;
   paste: (file: string, index: number) => void;
   rename: (file: string, id: string) => void;
+  /** Open the section's file in the code editor. */
+  editCode?: (file: string, id: string) => void;
   canPaste: boolean;
 }
 
@@ -76,6 +81,7 @@ export function SectionsTree({ docs, order, idx, label, fileLabel, sectionTitle,
       { key: 'dup', label: t('editor.duplicate'), icon: <CopyPlus />, onSelect: () => ops.duplicateSection(file, id) },
       { key: 'rename', label: t('editor.rename'), icon: <Pencil />, onSelect: () => ops.rename(file, id) },
       { key: 'hide', label: s.disabled ? t('editor.show') : t('editor.hide'), icon: s.disabled ? <Eye /> : <EyeOff />, shortcut: 'Ctrl+Shift+H', onSelect: () => edit(file, { kind: 'toggleSection', id }) },
+      ...(ops.editCode ? [{ key: 'code', label: t('bs.editCode'), icon: <Code />, onSelect: () => ops.editCode!(file, id) }] : []),
       { key: 'before', label: t('editor.addBefore'), icon: <PlusCircle />, separator: true, onSelect: () => ops.add(file, i) },
       { key: 'after', label: t('editor.addAfter'), icon: <PlusCircle />, onSelect: () => ops.add(file, i + 1) },
       { key: 'remove', label: t('common.delete'), icon: <Trash2 />, danger: true, separator: true, shortcut: 'Shift+⌫', onSelect: () => ops.removeSection(file, id) },

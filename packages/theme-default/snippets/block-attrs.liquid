@@ -1,0 +1,41 @@
+{%- doc -%}
+  The class and style attributes of a block's box: width, maximum width, text preset, color scheme, text color, background and spacing.
+  @param {block} block - the block
+  @param {string} [class] - the block's own classes
+{%- enddoc -%}
+{%- liquid
+  assign s = block.settings
+  assign classes = class | append: ' block-box block-box--' | append: s.width
+  if s.text_preset != blank
+    assign classes = classes | append: ' text-preset-' | append: s.text_preset
+  endif
+  if s.color_scheme != blank
+    assign classes = classes | append: ' color-' | append: s.color_scheme
+  endif
+  if s.show_background
+    assign classes = classes | append: ' block-box--filled'
+  endif
+  assign style = ''
+  if s.padding_top > 0
+    assign style = style | append: '--bb-pt:' | append: s.padding_top | append: 'px;'
+  endif
+  if s.padding_bottom > 0
+    assign style = style | append: '--bb-pb:' | append: s.padding_bottom | append: 'px;'
+  endif
+  if s.padding_left > 0
+    assign style = style | append: '--bb-pl:' | append: s.padding_left | append: 'px;'
+  endif
+  if s.padding_right > 0
+    assign style = style | append: '--bb-pr:' | append: s.padding_right | append: 'px;'
+  endif
+  if s.max_width > 0
+    assign style = style | append: '--bb-max:' | append: s.max_width | append: 'px;'
+  endif
+  if s.text_color != blank
+    assign style = style | append: '--bb-color:' | append: s.text_color | append: ';'
+  endif
+  if s.show_background and s.background_color != blank
+    assign style = style | append: '--bb-bg:' | append: s.background_color | append: ';'
+  endif
+-%}
+class="{{ classes | strip }}"{% if style != blank %} style="{{ style | escape }}"{% endif %}

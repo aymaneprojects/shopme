@@ -7,7 +7,7 @@
   assign image = card_product.featured_image
   assign sizes_attr = sizes | default: '(min-width: 990px) 25vw, (min-width: 600px) 33vw, 50vw'
 -%}
-<article class="card">
+<article class="card card--align-{{ settings.card_text_align | default: 'left' }}">
   <a class="card__media" href="{{ card_product.url }}" tabindex="-1" aria-hidden="true">
     {%- if image -%}
       {{ image | image_url: width: 640 | image_tag: loading: 'lazy', widths: '240, 360, 480, 640', sizes: sizes_attr, alt: card_product.title }}
@@ -15,9 +15,18 @@
       {{ 'product-1' | placeholder_svg_tag: 'card__placeholder' }}
     {%- endif -%}
     {%- unless card_product.available -%}
-      <span class="badge badge--sold-out">{{ 'products.sold_out' | t }}</span>
-    {%- elsif card_product.compare_at_price > card_product.price -%}
-      <span class="badge badge--sale">{{ 'products.sale' | t }}</span>
+      {%- if settings.badge_show_sold_out != false -%}
+        <span class="badge badge--sold-out badge--{{ settings.badge_position | default: 'top-left' }} badge--{{ settings.badge_shape | default: 'pill' }}">{{ 'products.sold_out' | t }}</span>
+      {%- endif -%}
+    {%- elsif card_product.compare_at_price > card_product.price and settings.badge_show_sale != false -%}
+      <span class="badge badge--sale badge--{{ settings.badge_position | default: 'top-left' }} badge--{{ settings.badge_shape | default: 'pill' }}">
+        {%- if settings.badge_sale_percent -%}
+          {%- assign saved = card_product.compare_at_price | minus: card_product.price | times: 100 | divided_by: card_product.compare_at_price -%}
+          -{{ saved }}%
+        {%- else -%}
+          {{ 'products.sale' | t }}
+        {%- endif -%}
+      </span>
     {%- endunless -%}
   </a>
   <div class="card__body">

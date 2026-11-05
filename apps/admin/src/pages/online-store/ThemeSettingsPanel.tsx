@@ -2,7 +2,7 @@ import { ChevronDown, Search } from 'lucide-react';
 import { useState } from 'react';
 import { SettingField } from '../../components/SettingField';
 import { useT } from '../../i18n';
-import { isInput } from '../../lib/settings-schema';
+import { isInput, visibleSettings } from '../../lib/settings-schema';
 import type { SettingDef, SettingGroup, SettingValue } from '../../lib/settings-schema';
 
 /** Keep the settings that match `needle` (label, help or id), with the headers and paragraphs that introduce them. */
@@ -22,7 +22,7 @@ export function filterSettings(settings: SettingDef[], needle: string, label: (l
 export function ThemeSettingsPanel({ groups, values, label, onChange }: { groups: SettingGroup[]; values: Record<string, SettingValue>; label: (l?: string) => string; onChange: (id: string, v: SettingValue) => void }) {
   const t = useT();
   const [find, setFind] = useState('');
-  const shown = groups.map((g) => ({ g, settings: filterSettings(g.settings, find, label), nameHit: !!find.trim() && label(g.name).toLowerCase().includes(find.trim().toLowerCase()) }))
+  const shown = groups.map((g) => ({ g, settings: visibleSettings(filterSettings(g.settings, find, label), { settings: values }), nameHit: !!find.trim() && label(g.name).toLowerCase().includes(find.trim().toLowerCase()) }))
     .map((x) => (x.nameHit && !x.settings.length ? { ...x, settings: x.g.settings } : x)).filter((x) => x.settings.length);
   return (
     <div className="flex flex-col">

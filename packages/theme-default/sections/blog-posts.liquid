@@ -1,0 +1,118 @@
+{%- assign blog = section.settings.blog -%}
+{%- assign date_format = 'general.date_format' | t -%}
+<div class="page-width section-pad {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="section-head">
+    {%- if section.settings.heading != blank -%}<h2 class="section-title">{{ section.settings.heading | escape }}</h2>{%- endif -%}
+    {%- if blog != blank -%}
+      {%- if section.settings.layout == 'carousel' -%}{%- render 'carousel-arrows' -%}{%- else -%}<a class="link-arrow" href="{{ blog.url }}">{{ 'general.view_all' | t }}</a>{%- endif -%}
+    {%- endif -%}
+  </div>
+  {%- if blog == blank or blog.articles_count == 0 -%}
+    <p class="empty">{{ 'blog_posts.empty' | t }}</p>
+  {%- else -%}
+    <ul class="post-list post-list--{{ section.settings.layout }}"{% if section.settings.layout == 'carousel' %} data-carousel{% endif %} role="list">
+      {%- for article in blog.articles limit: section.settings.posts_to_show -%}
+        <li>
+          <article class="card blog__card">
+            {%- if section.settings.show_image and article.image -%}
+              <a class="card__media" href="{{ article.url }}" tabindex="-1" aria-hidden="true">{{ article.image | image_url: width: 600 | image_tag: alt: article.image.alt, loading: 'lazy' }}</a>
+            {%- endif -%}
+            <div class="card__body">
+              {%- if section.settings.show_date or section.settings.show_author -%}
+                <p class="card__vendor">
+                  {%- if section.settings.show_date -%}{{ article.published_at | date: date_format }}{%- endif -%}
+                  {%- if section.settings.show_author and article.author != blank -%}{%- if section.settings.show_date %} &middot; {% endif -%}{{ 'blog.by' | t: author: article.author }}{%- endif -%}
+                </p>
+              {%- endif -%}
+              <h3 class="card__title"><a href="{{ article.url }}">{{ article.title | escape }}</a></h3>
+              {%- if section.settings.show_excerpt -%}<p>{{ article.excerpt_or_content | strip_html | truncatewords: 24 }}</p>{%- endif -%}
+              <a class="link-arrow" href="{{ article.url }}">{{ 'blog.read_more' | t }}</a>
+            </div>
+          </article>
+        </li>
+      {%- endfor -%}
+    </ul>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.blog_posts.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.blog_posts.settings.heading",
+      "default": "From the blog"
+    },
+    {
+      "type": "blog",
+      "id": "blog",
+      "label": "t:sections.blog_posts.settings.blog"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "t:sections.blog_posts.settings.layout",
+      "options": [
+        {
+          "value": "carousel",
+          "label": "t:sections.blog_posts.options.layout.carousel"
+        },
+        {
+          "value": "grid",
+          "label": "t:sections.blog_posts.options.layout.grid"
+        }
+      ],
+      "default": "carousel",
+      "variant": "segmented"
+    },
+    {
+      "type": "range",
+      "id": "posts_to_show",
+      "label": "t:sections.blog_posts.settings.posts_to_show",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 6
+    },
+    {
+      "type": "checkbox",
+      "id": "show_image",
+      "label": "t:sections.blog_posts.settings.show_image",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_date",
+      "label": "t:sections.blog_posts.settings.show_date",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_author",
+      "label": "t:sections.blog_posts.settings.show_author",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_excerpt",
+      "label": "t:sections.blog_posts.settings.show_excerpt",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.blog_posts.presets.blog_posts",
+      "category": "blog"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,85 @@
+{%- assign product = section.settings.product -%}
+<div class="page-width section-pad {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  {%- if product == blank -%}
+    <p class="empty">{{ 'featured_product.empty' | t }}</p>
+  {%- else -%}
+    {%- assign current = product.selected_or_first_available_variant -%}
+    <div class="split split--image-{{ section.settings.image_position }}">
+      <div class="split__media">
+        {%- if product.featured_image -%}
+          {{ product.featured_image | image_url: width: 1000 | image_tag: loading: 'lazy', widths: '500, 750, 1000', sizes: '(min-width: 750px) 50vw, 100vw', alt: product.title }}
+        {%- else -%}
+          {{ 'product-1' | placeholder_svg_tag: 'split__placeholder' }}
+        {%- endif -%}
+      </div>
+      <div class="split__body">
+        {%- if product.vendor != blank and section.settings.show_vendor -%}<p class="product__vendor">{{ product.vendor | escape }}</p>{%- endif -%}
+        <h2 class="section-title"><a href="{{ product.url }}">{{ product.title | escape }}</a></h2>
+        {% render 'price', product: product, variant: current, class: 'price--large' %}
+        {%- if section.settings.show_description -%}<div class="rte">{{ product.description | strip_html | truncatewords: 40 }}</div>{%- endif -%}
+        {%- if product.available and product.has_only_default_variant -%}
+          {%- form 'product', product, class: 'product-form' -%}
+            <input type="hidden" name="id" value="{{ current.id }}">
+            <button type="submit" class="button">{{ 'products.add_to_cart' | t }}</button>
+          {%- endform -%}
+        {%- endif -%}
+        <a class="link-arrow" href="{{ product.url }}">{{ 'featured_product.view_details' | t }}</a>
+      </div>
+    </div>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.featured_product.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "product",
+      "id": "product",
+      "label": "t:sections.featured_product.settings.product"
+    },
+    {
+      "type": "select",
+      "id": "image_position",
+      "label": "t:sections.featured_product.settings.image_position",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:sections.featured_product.options.image_position.left"
+        },
+        {
+          "value": "right",
+          "label": "t:sections.featured_product.options.image_position.right"
+        }
+      ],
+      "default": "left",
+      "variant": "segmented"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "label": "t:sections.featured_product.settings.show_vendor",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "t:sections.featured_product.settings.show_description",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.featured_product.presets.featured_product",
+      "category": "product"
+    }
+  ]
+}
+{% endschema %}
