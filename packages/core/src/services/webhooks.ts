@@ -9,6 +9,7 @@ import { postGuarded, resolvesToPrivate, webhooksAllowPrivate } from './net-guar
 import type { EventRow } from './events';
 import { getOrderSummary } from './orders/create';
 import type { Shop } from './shops';
+import { recordWebhookFailure } from './activity';
 
 /** Webhook topics in Shopify's enum form; the wire form (`X-Shopify-Topic`) is lower case with `/`. */
 export const WEBHOOK_TOPICS = [
@@ -264,6 +265,7 @@ export async function attemptDelivery(db: Db, shop: Shop, id: number, deps: Deli
   await db.update(webhookDeliveries).set({
     attempts, responseCode: code, lastError: error, status: delay == null ? 'FAILED' : 'PENDING', nextAttemptAt: delay == null ? null : new Date(now.getTime() + delay),
   }).where(eq(webhookDeliveries.id, id));
+  if (delay == null) await recordWebhookFailure(db, shop.id, { topic: d.topic, endpoint: sub.endpointUrl, error, deliveryId: id }).catch(() => undefined);
   return delay ?? null;
 }
 

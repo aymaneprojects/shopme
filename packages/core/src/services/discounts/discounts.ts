@@ -4,6 +4,9 @@ import type { Db, Executor } from '../../db/client';
 import { buildSearch, compare, dateCompare, idTerm, likeCi } from '../catalog/search';
 import { errR, okR, txResult, type Result } from '../catalog/common';
 import { addEvent } from '../events';
+import { getCustomer } from '../customers/customers';
+import { listCustomerSegments } from '../customers/segments';
+import { cleanTags, DISCOUNT_ELIGIBILITIES, type DiscountEligibility } from './eligibility';
 
 export type Discount = typeof discounts.$inferSelect;
 export type DiscountCode = typeof discountCodes.$inferSelect;
@@ -30,7 +33,7 @@ async function withCodes(db: Executor, rows: Discount[]): Promise<CodeDiscount[]
   ]);
   return rows.map((r) => ({
     ...r, codes: codes.filter((c) => c.discountId === r.id),
-    ext: exts.find((e) => e.discountId === r.id) ?? { discountId: r.id, shopId: r.shopId, subtype: r.target === 'SHIPPING' ? 'FREE_SHIPPING' : 'BASIC', combinesWith: { product: false, order: false, shipping: false }, bxgy: null },
+    ext: exts.find((e) => e.discountId === r.id) ?? { discountId: r.id, shopId: r.shopId, subtype: r.target === 'SHIPPING' ? 'FREE_SHIPPING' : 'BASIC', combinesWith: { product: false, order: false, shipping: false }, bxgy: null, eligibility: 'ALL', segmentIds: [], customerIds: [], tags: [] },
   }));
 }
 
@@ -69,6 +72,10 @@ const search = (q: string | null | undefined) => buildSearch(q, {
     starts_at: (op, v) => dateCompare(discounts.startsAt, op, v),
     ends_at: (op, v) => dateCompare(discounts.endsAt, op, v),
     created_at: (op, v) => dateCompare(discounts.createdAt, op, v),
+    tag: (_o, v) => sql`exists (select 1 from discount_extensions e where e.discount_id = ${discounts.id} and exists (select 1 from unnest(e.tags) t where lower(t) = ${v.toLowerCase()}))`,
+    eligibility: (_o, v) => (DISCOUNT_ELIGIBILITIES as readonly string[]).includes(v.toUpperCase())
+      ? (v.toUpperCase() === 'ALL' ? sql`not exists (select 1 from discount_extensions e where e.discount_id = ${discounts.id} and e.eligibility <> 'ALL')` : sql`exists (select 1 from discount_extensions e where e.discount_id = ${discounts.id} and e.eligibility = ${v.toUpperCase()})`)
+      : null,
   },
   text: (v) => sql`(${likeCi(discounts.title, v)} or exists (select 1 from discount_codes c where c.discount_id = ${discounts.id} and c.code ilike ${`%${v}%`}))`,
 });
@@ -108,6 +115,11 @@ export interface CodeDiscountInput {
   combinesWith?: { product?: boolean; order?: boolean; shipping?: boolean };
   /** Buy X get Y (subtype BXGY): the get effect is `valueType`/`value`. */
   bxgy?: BxgyConfig;
+  /** Who may use the discount (default everyone); segment ids are shop customer segment ids, customer ids are customer row ids. */
+  eligibility?: DiscountEligibility;
+  segmentIds?: number[];
+  customerIds?: number[];
+  tags?: string[];
 }
 
 /** Field prefix for error paths (e.g. `basicCodeDiscount`). */
@@ -127,6 +139,10 @@ function validate(i: CodeDiscountInput, creating: boolean): Result<null> {
   if (i.code !== undefined && i.code !== null && /\s{2,}|[\r\n]/.test(i.code)) return errR(['code'], 'Code is invalid', 'INVALID');
   if (i.code && i.code.trim().length > 255) return errR(['code'], 'Code is too long (maximum is 255 characters)', 'TOO_LONG');
   if (i.title !== undefined && i.title !== null && !i.title.trim() && !i.code) return errR(['title'], "Title can't be blank", 'BLANK');
+  if (i.eligibility && !(DISCOUNT_ELIGIBILITIES as readonly string[]).includes(i.eligibility)) return errR(['customerSelection'], 'Eligibility is invalid', 'INVALID');
+  if (i.eligibility === 'SEGMENTS' && !i.segmentIds?.length) return errR(['customerSelection', 'customerSegments', 'add'], 'Select at least one customer segment', 'BLANK');
+  if (i.eligibility === 'CUSTOMERS' && !i.customerIds?.length) return errR(['customerSelection', 'customers', 'add'], 'Select at least one customer', 'BLANK');
+  if (i.tags && i.tags.some((t) => t.trim().length > 255)) return errR(['tags'], 'Tags are too long (maximum is 255 characters)', 'TOO_LONG');
   if (i.startsAt && i.endsAt && i.endsAt <= i.startsAt) return errR(['endsAt'], 'Ends at needs to be after starts at', 'END_DATE_BEFORE_START_DATE');
   if (i.valueType === 'PERCENTAGE' && i.target !== 'SHIPPING' && (i.value == null || i.value <= 0 || i.value > 10000)) return errR(['customerGets', 'value', 'percentage'], 'Value must be between 0 and 1', 'VALUE_OUTSIDE_RANGE');
   if (i.valueType === 'FIXED_AMOUNT' && (i.value == null || i.value <= 0)) return errR(['customerGets', 'value', 'discountAmount', 'amount'], 'Value must be greater than 0', 'GREATER_THAN');
@@ -137,9 +153,35 @@ function validate(i: CodeDiscountInput, creating: boolean): Result<null> {
   return okR(null);
 }
 
+/** The segments and customers a discount targets must exist. */
+async function checkEligibility(db: Executor, shopId: number, i: CodeDiscountInput): Promise<Result<null>> {
+  if (i.eligibility === 'SEGMENTS') {
+    const known = new Set((await listCustomerSegments(db, shopId)).map((s) => s.id));
+    if (i.segmentIds?.some((id) => !known.has(id))) return errR(['customerSelection', 'customerSegments', 'add'], 'Customer segment does not exist', 'INVALID');
+  }
+  if (i.eligibility === 'CUSTOMERS') {
+    for (const id of i.customerIds ?? []) if (!(await getCustomer(db, shopId, id))) return errR(['customerSelection', 'customers', 'add'], 'Customer does not exist', 'INVALID');
+  }
+  return okR(null);
+}
+
+/** Extension columns for the eligibility and tag inputs (only the ones given). */
+function extFromInput(i: CodeDiscountInput): Partial<typeof discountExtensions.$inferInsert> {
+  const o: Partial<typeof discountExtensions.$inferInsert> = {};
+  if (i.eligibility) {
+    o.eligibility = i.eligibility;
+    o.segmentIds = i.eligibility === 'SEGMENTS' ? [...new Set(i.segmentIds ?? [])] : [];
+    o.customerIds = i.eligibility === 'CUSTOMERS' ? [...new Set(i.customerIds ?? [])] : [];
+  }
+  if (i.tags) o.tags = cleanTags(i.tags);
+  return o;
+}
+
 export async function createCodeDiscount(db: Db, shopId: number, i: CodeDiscountInput, staffId?: number | null): Promise<Result<CodeDiscount>> {
   const v = validate(i, true);
   if (!v.ok) return v;
+  const el = await checkEligibility(db, shopId, i);
+  if (!el.ok) return el;
   const automatic = i.kind === 'AUTOMATIC';
   const code = automatic ? null : i.code!.trim().toUpperCase();
   if (code && (await db.select({ id: discountCodes.id }).from(discountCodes).where(and(eq(discountCodes.shopId, shopId), eq(discountCodes.code, code)))).length) return errR(['code'], 'Discount code must be unique. Please try a different code.', 'TAKEN');
@@ -152,7 +194,7 @@ export async function createCodeDiscount(db: Db, shopId: number, i: CodeDiscount
     if (code) await tx.insert(discountCodes).values({ shopId, discountId: d!.id, code });
     await tx.insert(discountExtensions).values({
       discountId: d!.id, shopId, subtype: i.subtype ?? (i.bxgy ? 'BXGY' : i.target === 'SHIPPING' ? 'FREE_SHIPPING' : 'BASIC'),
-      combinesWith: { product: !!i.combinesWith?.product, order: !!i.combinesWith?.order, shipping: !!i.combinesWith?.shipping }, bxgy: i.bxgy ?? null,
+      combinesWith: { product: !!i.combinesWith?.product, order: !!i.combinesWith?.order, shipping: !!i.combinesWith?.shipping }, bxgy: i.bxgy ?? null, ...extFromInput(i),
     });
     await addEvent(tx, shopId, { subjectType: 'discount', subjectId: d!.id, verb: 'discounts/create', message: `Discount ${code ?? d!.title} was created`, authorStaffUserId: staffId });
     return okR((await getCodeDiscount(tx, shopId, d!.id, null))!);
@@ -165,6 +207,8 @@ export async function updateCodeDiscount(db: Db, shopId: number, id: number, i: 
   const merged = { ...i, startsAt: i.startsAt ?? cur.startsAt, endsAt: i.endsAt === undefined ? cur.endsAt : i.endsAt };
   const v = validate({ ...merged, valueType: i.valueType ?? cur.valueType as 'PERCENTAGE', value: i.value ?? cur.value, target: i.target ?? cur.target as 'ORDER', bxgy: i.bxgy ?? cur.ext.bxgy ?? undefined }, false);
   if (!v.ok) return v;
+  const el = await checkEligibility(db, shopId, i);
+  if (!el.ok) return el;
   const code = i.code?.trim().toUpperCase();
   if (code && code !== cur.codes[0]?.code) {
     if ((await db.select({ id: discountCodes.id }).from(discountCodes).where(and(eq(discountCodes.shopId, shopId), eq(discountCodes.code, code)))).length) return errR(['code'], 'Discount code must be unique. Please try a different code.', 'TAKEN');
@@ -177,10 +221,11 @@ export async function updateCodeDiscount(db: Db, shopId: number, id: number, i: 
       ...(i.startsAt && { startsAt: i.startsAt }), ...(i.endsAt !== undefined && { endsAt: i.endsAt }), updatedAt: new Date(),
     }).where(eq(discounts.id, id));
     if (code && cur.codes[0] && code !== cur.codes[0].code) await tx.update(discountCodes).set({ code }).where(eq(discountCodes.id, cur.codes[0].id));
-    if (i.combinesWith || i.bxgy) {
+    const extra = extFromInput(i);
+    if (i.combinesWith || i.bxgy || Object.keys(extra).length) {
       const combinesWith = { product: !!i.combinesWith?.product, order: !!i.combinesWith?.order, shipping: !!i.combinesWith?.shipping };
-      await tx.insert(discountExtensions).values({ discountId: id, shopId, subtype: cur.ext.subtype, combinesWith: i.combinesWith ? combinesWith : cur.ext.combinesWith, bxgy: i.bxgy ?? cur.ext.bxgy })
-        .onConflictDoUpdate({ target: discountExtensions.discountId, set: { ...(i.combinesWith && { combinesWith }), ...(i.bxgy && { bxgy: i.bxgy }) } });
+      await tx.insert(discountExtensions).values({ discountId: id, shopId, subtype: cur.ext.subtype, combinesWith: i.combinesWith ? combinesWith : cur.ext.combinesWith, bxgy: i.bxgy ?? cur.ext.bxgy, ...extra })
+        .onConflictDoUpdate({ target: discountExtensions.discountId, set: { ...(i.combinesWith && { combinesWith }), ...(i.bxgy && { bxgy: i.bxgy }), ...extra } });
     }
     await addEvent(tx, shopId, { subjectType: 'discount', subjectId: id, verb: 'discounts/update', message: 'Discount was updated', authorStaffUserId: staffId });
     return okR((await getCodeDiscount(tx, shopId, id, null))!);

@@ -81,6 +81,7 @@ const router = createBrowserRouter(
           { index: true, element: L(() => import('./pages/settings/Settings'), 'SettingsIndex') },
           { path: 'general', element: L(() => import('./pages/settings/Settings'), 'GeneralSettings') },
           { path: 'payments', element: L(() => import('./pages/settings/Commerce'), 'PaymentsSettings') },
+          { path: 'checkout', element: L(() => import('./pages/settings/Checkout'), 'CheckoutSettings') },
           { path: 'shipping', element: L(() => import('./pages/settings/Commerce'), 'ShippingSettings') },
           { path: 'taxes', element: L(() => import('./pages/settings/Commerce'), 'TaxesSettings') },
           { path: 'domains', element: L(() => import('./pages/settings/Settings'), 'DomainsSettings') },

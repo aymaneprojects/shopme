@@ -1,17 +1,17 @@
-import { Banner, Button, Card, ConfirmDialog, Input, Modal, Skeleton, useToast } from '@shopme/ui';
+import { Banner, Button, Card, ConfirmDialog, Input, Modal, Skeleton, Switch, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, ChevronDown, Users, Webhook } from 'lucide-react';
+import { Bell, ChevronDown, ChevronRight, Trash2, Users, Webhook } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
 import { LinkRow, RowCard, Section, SubHeader } from '../../components/SettingsKit';
 import { SaveBar } from '../../components/SaveBar';
-import { NOTIFICATION_PREVIEW, NOTIFICATION_SEND_TEST, NOTIFICATION_SETTINGS, NOTIFICATION_SETTINGS_UPDATE, NOTIFICATION_TEMPLATES, NOTIFICATION_TEMPLATE_RESET, NOTIFICATION_TEMPLATE_UPDATE } from '../../graphql';
+import { NOTIFICATION_TOGGLE, STAFF_ORDER_RECIPIENTS, STAFF_ORDER_RECIPIENTS_UPDATE, NOTIFICATION_PREVIEW, NOTIFICATION_SEND_TEST, NOTIFICATION_SETTINGS, NOTIFICATION_SETTINGS_UPDATE, NOTIFICATION_TEMPLATES, NOTIFICATION_TEMPLATE_RESET, NOTIFICATION_TEMPLATE_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 import { ShopPanel, useShopSettings } from './Settings';
 
-interface Template { key: string; name: string; description: string; audience: 'customer' | 'staff'; subject: string; body: string; customized: boolean }
+interface Template { key: string; name: string; description: string; audience: 'customer' | 'staff'; subject: string; body: string; customized: boolean; enabled: boolean; toggleable: boolean }
 const useTemplates = () => useQuery({ queryKey: ['notification-templates'], queryFn: () => gql<{ shopmeNotificationTemplates: Template[] }>(NOTIFICATION_TEMPLATES) });
 const errText = (e: unknown) => (e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : (e as Error).message);
 
@@ -73,6 +73,27 @@ const GROUPS: Array<{ id: string; title: Key; keys: string[] }> = [
   { id: 'accounts', title: 'notif.group.accounts', keys: ['customer_account_welcome', 'customer_account_invite', 'password_reset'] },
 ];
 
+/** One notification: opens its template; a switch turns the email on or off. */
+function NotificationRow({ n }: { n: Template }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const toggle = useMutation({
+    mutationFn: (enabled: boolean) => mutate(NOTIFICATION_TOGGLE, { key: n.key, enabled }, 'shopmeNotificationToggle'),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['notification-templates'] }), onError: (e) => toast(errText(e), 'critical'),
+  });
+  const on = toggle.isPending ? !!toggle.variables : n.enabled;
+  return (
+    <div className="flex items-center hover:bg-hover">
+      <Link to={`/settings/notifications/${encodeURIComponent(n.key)}`} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3">
+        <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium">{n.name}{n.customized ? ' •' : ''}</span><span className="block text-[13px] text-muted">{n.description}</span></span>
+        {!n.toggleable && <ChevronRight className="size-4 shrink-0 text-muted" aria-hidden />}
+      </Link>
+      {n.toggleable && <div className="shrink-0 pr-4"><Switch checked={on} onChange={(v) => toggle.mutate(v)} label={<span className="sr-only">{`${t('notif.enabled')}: ${n.name}`}</span>} /></div>}
+    </div>
+  );
+}
+
 function Group({ title, items }: { title: string; items: Template[] }) {
   const [open, setOpen] = useState(true);
   if (items.length === 0) return null;
@@ -81,8 +102,43 @@ function Group({ title, items }: { title: string; items: Template[] }) {
       <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex w-full items-center justify-between px-4 py-3 text-[13px] font-semibold hover:bg-hover">
         {title}<ChevronDown className={`size-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
       </button>
-      {open && items.map((n) => <LinkRow key={n.key} to={`/settings/notifications/${encodeURIComponent(n.key)}`} title={n.name} description={n.description} trailing={n.customized ? <span className="text-xs">{`•`}</span> : undefined} />)}
+      {open && items.map((n) => <NotificationRow key={n.key} n={n} />)}
     </RowCard>
+  );
+}
+
+/** Who receives the "New order" email. */
+function StaffRecipients() {
+  const { t } = useI18n();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [email, setEmail] = useState('');
+  const q = useQuery({ queryKey: ['staff-recipients'], queryFn: () => gql<{ shopmeStaffOrderRecipients: { emails: string[]; isDefault: boolean } }>(STAFF_ORDER_RECIPIENTS) });
+  const save = useMutation({
+    mutationFn: (emails: string[]) => mutate(STAFF_ORDER_RECIPIENTS_UPDATE, { emails }, 'shopmeStaffOrderRecipientsUpdate'),
+    onSuccess: () => { setEmail(''); toast(t('settings.saved')); void qc.invalidateQueries({ queryKey: ['staff-recipients'] }); }, onError: (e) => toast(errText(e), 'critical'),
+  });
+  const cur = q.data?.shopmeStaffOrderRecipients;
+  const emails = cur?.emails ?? [];
+  const add = () => { const v = email.trim().toLowerCase(); if (v && !(cur?.isDefault ? [] : emails).includes(v)) save.mutate([...(cur?.isDefault ? [] : emails), v]); };
+  return (
+    <Card title={t('notif.recipients')}>
+      <p className="mb-3 text-[13px] text-muted">{t('notif.recipientsDesc')}</p>
+      {!cur ? <Skeleton className="h-16" /> : (
+        <>
+          <ul className="mb-3 divide-y divide-line">
+            {emails.map((e) => (
+              <li key={e} className="flex items-center gap-2 py-1.5 text-[13px]"><span className="flex-1">{e}{cur.isDefault && <span className="ml-2 text-muted">{t('notif.recipientsDefault')}</span>}</span>
+                {!cur.isDefault && <button type="button" aria-label={`${t('common.remove')} ${e}`} className="rounded p-1 text-muted hover:bg-surface" onClick={() => save.mutate(emails.filter((x) => x !== e))}><Trash2 className="size-4" /></button>}</li>
+            ))}
+          </ul>
+          <form className="flex items-end gap-2" onSubmit={(e) => { e.preventDefault(); add(); }}>
+            <Input className="flex-1" type="email" label={t('notif.recipientsAdd')} value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Button type="submit" loading={save.isPending} disabled={!email.includes('@')}>{t('notif.recipientsAddBtn')}</Button>
+          </form>
+        </>
+      )}
+    </Card>
   );
 }
 
@@ -102,6 +158,7 @@ function AudiencePage({ audience }: { audience: 'customer' | 'staff' }) {
         actions={first && <Button onClick={() => navigate(`/settings/notifications/${encodeURIComponent(first.key)}`)}>{t('notif.customizeTemplates')}</Button>} />
       {q.isLoading && <Skeleton className="h-48" />}
       {q.error && <Banner>{q.error.message}</Banner>}
+      {audience === 'staff' && <div className="mb-3"><StaffRecipients /></div>}
       <div className="flex flex-col gap-3">{groups.map((g) => <Group key={g.id} title={g.title} items={g.items} />)}</div>
     </>
   );

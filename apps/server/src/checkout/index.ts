@@ -2,9 +2,10 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   availablePaymentMethods, cleanAddress, findOrderIdByPayment, getDefaultAddress, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
-  orderVars, sendNotification, shippableCountries, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutError, type CheckoutView, type Shop,
+  checkoutSettingsOf, orderVars, sendNotification, sendStaffNewOrder, shippableCountries, splitContact, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutSettings, type CheckoutError, type CheckoutView, type Shop,
 } from '@shopme/core';
 import { createStripeGateway, readSetting, type StripeGateway } from '@shopme/payments';
+import { parseMoney } from '@shopme/shopify-compat';
 import type { AppContext } from '../context';
 import { CART_COOKIE, customerOf, primaryShop } from '../storefront/env';
 import { CSS, JS } from './assets';
@@ -25,12 +26,35 @@ function addressFrom(b: Body): CheckoutAddressInput {
   return cleanAddress({ ...b, provinceCode: known ? provinceCode : '', province: known ? known.name : b.province, country: country ? countryName(country, 'en') : null })!;
 }
 
+/** Address from the form, without the fields the checkout settings hide; the contact phone (email or phone mode) fills the phone. */
+function addressWithRules(b: Body, settings: CheckoutSettings, contactPhone: string | null): CheckoutAddressInput {
+  const a = addressFrom(b);
+  if (settings.nameMode === 'last') a.firstName = null;
+  if (settings.company === 'hidden') a.company = null;
+  if (settings.address2 === 'hidden') a.address2 = null;
+  if (settings.phone === 'hidden') a.phone = null;
+  if (contactPhone && !a.phone) a.phone = contactPhone;
+  return a;
+}
+
+/** Tip choice of the form: `tip` is a preset percentage, `custom` (with `tipCustom` as an amount) or empty for no tip. Undefined when tipping is off or the form has no tip field. */
+function tipPatch(b: Body, shop: Shop, settings: CheckoutSettings): { tipPercent: number | null; tipAmount: number } | undefined {
+  if (!settings.tipping.enabled || b.tip === undefined) return undefined;
+  const choice = str(b.tip);
+  if (choice === 'custom') {
+    try { return { tipPercent: null, tipAmount: parseMoney(str(b.tipCustom).replace(',', '.').trim() || '0', shop.currency) }; } catch { return { tipPercent: null, tipAmount: 0 }; }
+  }
+  const pct = Number(choice);
+  return Number.isInteger(pct) && settings.tipping.presets.includes(pct) ? { tipPercent: pct, tipAmount: 0 } : { tipPercent: null, tipAmount: 0 };
+}
+
 function errorMessages(c: PageCtx, errors: CheckoutError[]): string[] {
   const { t } = c;
   return errors.map((e) => {
     switch (e.code) {
       case 'email': return t('err_email');
-      case 'address': return t('err_address', { fields: e.fields.map((f) => (({ firstName: t('firstName'), lastName: t('lastName'), address1: t('address1'), city: t('city'), zip: t('zip'), countryCode: t('country') } as Record<string, string>)[f] ?? f)).join(', ') });
+      case 'contact': return t('err_contact');
+      case 'address': return t('err_address', { fields: e.fields.map((f) => (({ firstName: t('firstName'), lastName: t('lastName'), address1: t('address1'), city: t('city'), zip: t('zip'), countryCode: t('country'), company: t('companyField'), address2: t('address2Field'), phone: t('phoneField') } as Record<string, string>)[f] ?? f)).join(', ') });
       case 'shipping_method': return t('err_shipping_method');
       case 'payment_method': return t('err_payment_method');
       case 'stock': return t('err_stock', { items: e.issues.map((i) => `${i.title} (${i.available})`).join(', ') });
@@ -55,7 +79,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
   });
   ctx.queue.register<{ shopId: number; orderId: number }>('order.staff-email', async ({ shopId, orderId }) => {
     const [shop, order] = await Promise.all([getShop(db, shopId), getOrderSummary(db, shopId, orderId)]);
-    if (shop && order) await sendNotification(db, ctx.mailer, shop, config.appUrl, 'staff_new_order', shop.email, orderVars(order, shop));
+    if (shop && order) await sendStaffNewOrder(db, ctx.mailer, shop, config.appUrl, orderVars(order, shop));
   });
   const enqueueEmails = (shopId: number, orderId: number) => {
     ctx.queue.enqueue('order.confirmation-email', { shopId, orderId });
@@ -69,11 +93,14 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
   };
   const html = (reply: FastifyReply, body: string, status = 200) => reply.code(status).header('cache-control', 'no-store').type('text/html; charset=utf-8').send(body);
 
+  /** Settings > Checkout "require sign-in": the buyer must hold a customer session. */
+  const loginRequired = async (req: FastifyRequest, shop: Shop) => checkoutSettingsOf(shop).accountMode === 'required' && !(await customerOf(ctx, req, shop));
+
   async function pageData(shop: Shop, view: CheckoutView, extra: { errors?: string[]; values?: Body; chosenMethod?: string; marketing?: boolean } = {}) {
     const stripe = app.checkoutPayments.stripe;
     const methods = availablePaymentMethods(shop.settings, { stripeConfigured: !!stripe });
     return {
-      view, methods, errors: extra.errors ?? [], values: extra.values, chosenMethod: extra.chosenMethod, marketing: extra.marketing,
+      view, methods, errors: extra.errors ?? [], values: extra.values, chosenMethod: extra.chosenMethod, marketing: extra.marketing ?? view.settings.marketing === 'checked',
       countries: view.requiresShipping ? await shippableCountries(db, shop.id) : null,
       bankInstructions: bankInstructions(shop),
       stripe: stripe && methods.some((m) => m.id === 'stripe') ? { publishableKey: stripe.publishableKey } : null,
@@ -127,6 +154,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       if (!view) return html(reply, notFoundPage(c), 404);
       if (view.completed) return reply.redirect(`/checkouts/${token}/thank-you`, 303);
       if (!view.lines.length) return reply.redirect('/cart', 303);
+      if (await loginRequired(req, shop)) return reply.redirect(`/account/login?return_url=${encodeURIComponent(`/checkouts/${token}`)}`, 303);
       // Signed-in customers start with their email and default address (the order then belongs to their account by email).
       const customer = !view.email && !view.address ? await customerOf(ctx, req, shop) : null;
       if (customer?.email) {
@@ -144,11 +172,14 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       const { token } = req.params as { token: string };
       const b = (req.body ?? {}) as Body;
       const c = pageCtx(shop);
-      const email = str(b.email).trim();
+      if (await loginRequired(req, shop)) return reply.code(401).send({});
+      const settings = checkoutSettingsOf(shop);
+      const contact = splitContact(settings, str(b.email));
+      const email = contact.email ?? '';
       const rate = Number(b.shippingRateId);
       const first = await updateCheckout(db, shop, token, {
         ...(email === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { email: email || null } : {}),
-        address: addressFrom(b), shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : undefined,
+        address: addressWithRules(b, settings, contact.phone), shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : undefined, ...tipPatch(b, shop, settings),
         removeDiscountCode: str(b.removeDiscountCode) || undefined, removeGiftCardCode: str(b.removeGiftCardCode) || undefined,
       });
       if (!first.ok) return reply.code(first.error === 'not_found' ? 404 : 409).send({});
@@ -214,6 +245,9 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       const json = String(req.headers['content-type'] ?? '').includes('json');
       const c = pageCtx(shop);
       const stripe = app.checkoutPayments.stripe;
+      if (await loginRequired(req, shop)) return json ? reply.code(401).send({ ok: false, errors: [c.t('err_login')] }) : reply.redirect(`/account/login?return_url=${encodeURIComponent(`/checkouts/${token}`)}`, 303);
+      const settings = checkoutSettingsOf(shop);
+      const contact = splitContact(settings, str(b.email));
       const fail = async (errors: string[]) => {
         if (json) return reply.code(422).send({ ok: false, errors });
         const view = await loadCheckout(db, shop, token);
@@ -222,14 +256,14 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       };
 
       const rate = Number(b.shippingRateId);
-      const saved = await updateCheckout(db, shop, token, { email: str(b.email).trim() || null, address: addressFrom(b), shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : undefined });
-      if (!saved.ok) return saved.error === 'completed' ? reply.redirect(`/checkouts/${token}/thank-you`, 303) : fail([saved.error === 'invalid_email' ? c.t('err_email') : c.t('err_generic')]);
+      const saved = await updateCheckout(db, shop, token, { email: contact.email, address: addressWithRules(b, settings, contact.phone), shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : undefined, ...tipPatch(b, shop, settings) });
+      if (!saved.ok) return saved.error === 'completed' ? reply.redirect(`/checkouts/${token}/thank-you`, 303) : fail([saved.error === 'invalid_email' ? c.t(settings.contactMethod === 'email_or_phone' ? 'err_contact' : 'err_email') : c.t('err_generic')]);
 
       let clientSecret = '';
       const methods = availablePaymentMethods(shop.settings, { stripeConfigured: !!stripe });
       let paymentError = false;
       const res = await submitCheckout(db, shop, token, {
-        paymentMethod: str(b.paymentMethod), allowedMethods: methods.map((m) => m.id), acceptsMarketing: !!b.acceptsMarketing,
+        paymentMethod: str(b.paymentMethod), allowedMethods: methods.map((m) => m.id), acceptsMarketing: settings.marketing !== 'hidden' && !!b.acceptsMarketing, note: settings.orderNotes ? str(b.note).trim().slice(0, 5000) || null : undefined,
         shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : null,
         startOnlinePayment: async (view) => {
           if (!stripe) throw new Error('Stripe is not configured');

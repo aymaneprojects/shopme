@@ -20,8 +20,10 @@ export interface DiscountForm {
   limitTotal: boolean; usageLimit: string; oncePerCustomer: boolean;
   startsAt: string; hasEnd: boolean; endsAt: string;
   combines: { productDiscounts: boolean; orderDiscounts: boolean; shippingDiscounts: boolean };
+  /** Who can use it: everyone, customer segments or specific customers. */
+  eligibility: 'all' | 'segments' | 'customers'; segments: Ref[]; customers: Ref[]; tags: string[];
 }
-export type DiscountErrors = Partial<Record<'code' | 'title' | 'value' | 'targets' | 'maxShipping' | 'minValue' | 'usageLimit' | 'endsAt' | 'buyQty' | 'buyTargets' | 'getQty' | 'getTargets' | 'getPercent' | 'usesLimit', Key>>;
+export type DiscountErrors = Partial<Record<'code' | 'title' | 'value' | 'targets' | 'maxShipping' | 'minValue' | 'usageLimit' | 'endsAt' | 'eligibility' | 'buyQty' | 'buyTargets' | 'getQty' | 'getTargets' | 'getPercent' | 'usesLimit', Key>>;
 
 /** Local `datetime-local` value (YYYY-MM-DDTHH:mm). */
 export const nowLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -34,6 +36,7 @@ export const blankDiscount = (kind: DiscountKind, method: DiscountMethod = 'code
   kind, method, title: '', bxgy: blankBxgy(), code: '', valueType: 'percentage', value: '', appliesTo: kind === 'product' ? 'collections' : 'all', collections: [], products: [],
   hasMaxShipping: false, maxShipping: '', minType: 'none', minValue: '', limitTotal: false, usageLimit: '', oncePerCustomer: false,
   startsAt: nowLocal(), hasEnd: false, endsAt: '', combines: { productDiscounts: false, orderDiscounts: false, shippingDiscounts: false },
+  eligibility: 'all', segments: [], customers: [], tags: [],
 });
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -76,23 +79,35 @@ export function validateDiscount(f: DiscountForm): DiscountErrors {
     const n = parseDecimal(f.usageLimit);
     if (n === null || n < 1 || !Number.isInteger(n)) e.usageLimit = 'discount.err.usageLimit';
   }
+  if (f.eligibility === 'segments' && !f.segments.length) e.eligibility = 'discount.err.segments';
+  if (f.eligibility === 'customers' && !f.customers.length) e.eligibility = 'discount.err.customers';
   if (f.hasEnd) {
     if (!f.endsAt || (f.startsAt && new Date(f.endsAt) <= new Date(f.startsAt))) e.endsAt = 'discount.err.endAfterStart';
   }
   return e;
 }
 
+const idDiff = (now: string[], before: string[] = []) => ({ add: now.filter((i) => !before.includes(i)), remove: before.filter((i) => !now.includes(i)) });
+/** `DiscountContextInput`: all customers, or the segments / customers added and removed since the form was loaded. */
+function contextInput(f: DiscountForm, prev?: { segments?: string[]; customers?: string[] }) {
+  if (f.eligibility === 'segments') return { customerSegments: idDiff(f.segments.map((s) => s.id), prev?.segments) };
+  if (f.eligibility === 'customers') return { customers: idDiff(f.customers.map((c) => c.id), prev?.customers) };
+  return { all: 'ALL' };
+}
+
 const iso = (local: string) => new Date(local).toISOString();
 const money = (s: string) => (parseDecimal(s) ?? 0).toFixed(2);
 
 /** Shared fields of DiscountCodeBasicInput / DiscountCodeFreeShippingInput. `prev` lets an update remove deselected targets. */
-export function toDiscountInput(f: DiscountForm, prev?: { collections: string[]; products: string[] }) {
+export function toDiscountInput(f: DiscountForm, prev?: { collections: string[]; products: string[]; segments?: string[]; customers?: string[] }) {
   const code = f.method === 'code';
   const common = {
     title: code ? f.code.trim() : f.title.trim(), ...(code && { code: f.code.trim() }),
     startsAt: iso(f.startsAt || nowLocal()), endsAt: f.hasEnd && f.endsAt ? iso(f.endsAt) : null,
     ...(code && { usageLimit: f.limitTotal ? Number(f.usageLimit) : null, appliesOncePerCustomer: f.oncePerCustomer }),
     combinesWith: { ...f.combines },
+    tags: f.tags,
+    context: contextInput(f, prev),
     ...(f.kind !== 'bxgy' && f.minType === 'subtotal' && { minimumRequirement: { subtotal: { greaterThanOrEqualToSubtotal: money(f.minValue) } } }),
     ...(f.kind !== 'bxgy' && f.minType === 'quantity' && { minimumRequirement: { quantity: { greaterThanOrEqualToQuantity: String(Number(f.minValue)) } } }),
   };
@@ -127,6 +142,8 @@ interface NodeShape {
   usesPerOrderCode?: number | null; usesPerOrderAuto?: string | null;
   customerBuys?: { value: { quantity?: string | number }; items: ItemsShape };
   combinesWith: { productDiscounts: boolean; orderDiscounts: boolean; shippingDiscounts: boolean };
+  tags?: string[];
+  context?: { __typename: string; customers?: Array<{ id: string; displayName: string }>; segments?: Array<{ id: string; name: string }> };
   maximumShippingPrice?: { amount: string } | null;
   minimumRequirement?: { __typename: string; greaterThanOrEqualToSubtotal?: { amount: string }; greaterThanOrEqualToQuantity?: string | number } | null;
   customerGets?: {
@@ -146,6 +163,9 @@ export function fromDiscountNode(d: NodeShape): DiscountForm {
   if (d.endsAt) { f.hasEnd = true; f.endsAt = toLocal(d.endsAt); }
   f.limitTotal = d.usageLimit != null; f.usageLimit = d.usageLimit != null ? String(d.usageLimit) : '';
   f.oncePerCustomer = !!d.appliesOncePerCustomer; f.combines = { ...d.combinesWith };
+  f.tags = d.tags ?? [];
+  if (d.context?.segments) { f.eligibility = 'segments'; f.segments = d.context.segments.map((s) => ({ id: s.id, title: s.name })); }
+  else if (d.context?.customers) { f.eligibility = 'customers'; f.customers = d.context.customers.map((c) => ({ id: c.id, title: c.displayName })); }
   if (bxgy) {
     const b = f.bxgy;
     const uses = d.usesPerOrderCode ?? (d.usesPerOrderAuto != null ? Number(d.usesPerOrderAuto) : null);

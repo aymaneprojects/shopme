@@ -4,6 +4,7 @@ import { MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
+import { EligibilityCard, TagsCard } from '../components/EligibilityCard';
 import { CollectionPicker, ProductPicker } from '../components/Pickers';
 import { PageHeader } from '../components/PageHeader';
 import { SaveBar, guard } from '../components/SaveBar';
@@ -83,7 +84,7 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
       setErrors(e);
       if (Object.keys(e).length) throw new Error('validation');
       setError(null);
-      const input = toDiscountInput(form, id ? { collections: initial.collections.map((c) => c.id), products: initial.products.map((p) => p.id) } : undefined);
+      const input = toDiscountInput(form, id ? { collections: initial.collections.map((c) => c.id), products: initial.products.map((p) => p.id), segments: initial.segments.map((s) => s.id), customers: initial.customers.map((c) => c.id) } : undefined);
       const [createDoc, updateDoc, key, createRoot, updateRoot] = ops(form.kind, form.method);
       const r = await mutate<Record<string, { id: string }>>(id ? updateDoc : createDoc, { ...(id && { id }), [key]: input }, id ? updateRoot : createRoot);
       return (r.codeDiscountNode ?? r.automaticDiscountNode)!.id;
@@ -236,12 +237,16 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
             </Card>
           )}
 
+          <EligibilityCard form={form} set={set} error={err('eligibility')} />
+
           <Card title={t('discount.combinations')}>
             <div className="flex flex-col gap-2">
               <p className="text-xs text-muted">{t('discount.combineHelp')}</p>
               {combos.map(([k, label]) => <Checkbox key={k} label={t(label)} checked={form.combines[k]} onChange={(e) => set({ combines: { ...form.combines, [k]: e.target.checked } })} />)}
             </div>
           </Card>
+
+          <TagsCard value={form.tags} onChange={(tags) => set({ tags })} />
 
           <Card title={t('discount.dates')}>
             <div className="flex flex-col gap-3">

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { and, eq, ne } from 'drizzle-orm';
-import { findRedirect, safeEqual, searchArticles, searchPages, searchProducts, suggestQueries, tokenize, schema as s, sha256, type CartView, type Shop } from '@shopme/core';
+import { findRedirect, returnRulesHtml, safeEqual, searchArticles, searchPages, searchProducts, suggestQueries, tokenize, schema as s, sha256, type CartView, type Shop } from '@shopme/core';
 import { formatMoney } from '@shopme/shopify-compat';
 import type { AppContext } from '../context';
 import { authenticate } from '../plugins/auth';
@@ -351,7 +351,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       const env = await makeEnv(ctx, req, shop);
       const policy = policiesOf(shop.settings as Record<string, unknown>).find((p) => p.handle === handle);
       if (!policy) return notFound(req, reply, shop, env);
-      return renderTemplate(req, reply, env, { template: 'page', pageType: 'policy', title: policy.title, extra: { page: { id: 0, handle, title: policy.title, content: policy.body, url: policy.url, author: '', template_suffix: '', published_at: null }, policy } });
+      return renderTemplate(req, reply, env, { template: 'page', pageType: 'policy', title: policy.title, extra: { page: { id: 0, handle, title: policy.title, content: policy.body + (handle === 'refund-policy' && policy.body.trim() ? await returnRulesHtml(db, shop) : ''), url: policy.url, author: '', template_suffix: '', published_at: null }, policy } });
     }));
 
     // --- password page

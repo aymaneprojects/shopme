@@ -1,3 +1,4 @@
+import { enCheckout } from './en-checkout';
 import { enOrdersUx } from './en-orders-ux';
 import { enCommerce } from './en-commerce';
 import { enCatalog } from './en-catalog';
@@ -18,7 +19,7 @@ export const en = {
   'nav.home': 'Home', 'nav.orders': 'Orders', 'nav.products': 'Products', 'nav.collections': 'Collections', 'nav.inventory': 'Inventory',
   'nav.customers': 'Customers', 'nav.discounts': 'Discounts', 'nav.onlineStore': 'Online Store', 'nav.settings': 'Settings',
   'nav.menu': 'Open menu', 'nav.notFound': 'Page not found',
-  'shell.search': 'Search', 'shell.searchPlaceholder': 'Search', 'shell.account': 'Account menu', 'cmd.placeholder': 'Search pages, products, orders, customers…', 'cmd.pages': 'Pages', 'cmd.products': 'Products', 'cmd.orders': 'Orders', 'cmd.customers': 'Customers', 'cmd.empty': 'No results', 'cmd.hint': 'Type to search', 'cmd.dismiss': 'Dismiss', 'cmd.settings': 'Settings', 'theme.light': 'Light theme', 'theme.dark': 'Dark theme', 'theme.system': 'Match system', 'shell.logout': 'Log out',
+  'shell.search': 'Search', 'shell.searchPlaceholder': 'Search', 'shell.account': 'Account menu', 'cmd.pages': 'Pages', 'cmd.products': 'Products', 'cmd.orders': 'Orders', 'cmd.customers': 'Customers', 'cmd.empty': 'No results', 'cmd.hint': 'Type to search', 'cmd.dismiss': 'Dismiss', 'cmd.settings': 'Settings', 'theme.light': 'Light theme', 'theme.dark': 'Dark theme', 'theme.system': 'Match system', 'shell.logout': 'Log out',
 
   'login.title': 'Log in', 'login.subtitle': 'Sign in to manage your store.', 'login.submit': 'Log in', 'login.invalid': 'Incorrect email or password.',
   'setup.title': 'Set up your store', 'setup.subtitle': 'Create the owner account and basic store details.', 'setup.shopName': 'Store name',
@@ -103,6 +104,7 @@ export const en = {
   ...enSettings,
   ...enUx,
   ...enContent,
+  ...enCheckout,
 } as const;
 
 export type Key = keyof typeof en;

@@ -49,10 +49,11 @@ export function summaryFragment(c: PageCtx, v: CheckoutView): string {
     + (p.totalDiscounts ? `<div><dt>${esc(c.t('discount'))}</dt><dd>-${esc(c.money(p.totalDiscounts))}</dd></div>` : '')
     + (v.requiresShipping ? `<div><dt>${esc(c.t('shipping'))}</dt><dd>${shippingValue}</dd></div>` : '')
     + (p.totalTax && !v.taxesIncluded ? `<div><dt>${esc(c.t('taxes'))}</dt><dd>${esc(c.money(p.totalTax))}</dd></div>` : '')
+    + (v.tip ? `<div><dt>${esc(c.t('tipLine'))}</dt><dd>${esc(c.money(v.tip))}</dd></div>` : '')
     + (v.giftCardTotal
-      ? `<div><dt>${esc(c.t('total'))}</dt><dd>${esc(c.money(p.total))}</dd></div>` + v.giftCards.filter((g) => g.applied).map((g) => `<div><dt>${esc(c.t('giftCard'))} &bull;&bull;${esc(g.lastCharacters)}</dt><dd>-${esc(c.money(g.applied))}</dd></div>`).join('')
+      ? `<div><dt>${esc(c.t('total'))}</dt><dd>${esc(c.money(p.total + v.tip))}</dd></div>` + v.giftCards.filter((g) => g.applied).map((g) => `<div><dt>${esc(c.t('giftCard'))} &bull;&bull;${esc(g.lastCharacters)}</dt><dd>-${esc(c.money(g.applied))}</dd></div>`).join('')
         + `<div class="grand"><dt>${esc(c.t('amountDue'))}</dt><dd>${esc(c.money(v.amountDue))}</dd></div>`
-      : `<div class="grand"><dt>${esc(c.t('total'))}</dt><dd>${esc(c.money(p.total))}</dd></div>`)
+      : `<div class="grand"><dt>${esc(c.t('total'))}</dt><dd>${esc(c.money(p.total + v.tip))}</dd></div>`)
     + (p.totalTax && v.taxesIncluded ? `<div><dt><small>${esc(c.t('includedTaxes'))}</small></dt><dd><small>${esc(c.money(p.totalTax))}</small></dd></div>` : '')
     + `</dl>`;
 }
@@ -103,15 +104,31 @@ export function checkoutPage(c: PageCtx, d: PageData): string {
     stripe: d.stripe ? { publishableKey: d.stripe.publishableKey, amount: v.amountDue, currency: v.currency.toLowerCase() } : null,
   };
   const val = (k: string) => d.values?.[k] ?? '';
+  const st = v.settings;
+  const rule = (r: 'hidden' | 'optional' | 'required', optLabel: 'company' | 'address2' | 'phone', reqLabel: 'companyField' | 'address2Field' | 'phoneField', key: string, value: string | null | undefined, o: { autocomplete: string; type?: string }) =>
+    r === 'hidden' ? '' : field(c, r === 'required' ? reqLabel : optLabel, key, val(key) || value, { ...o, required: r === 'required' });
+  const nameRow = st.nameMode === 'last'
+    ? `<div class="row">${field(c, 'lastName', 'lastName', val('lastName') || a.lastName, { autocomplete: 'family-name', required: true })}</div>`
+    : `<div class="row two">${field(c, 'firstName', 'firstName', val('firstName') || a.firstName, { autocomplete: 'given-name', required: true })}${field(c, 'lastName', 'lastName', val('lastName') || a.lastName, { autocomplete: 'family-name', required: true })}</div>`;
   const addressForm = `<div class="row"><label class="field"><span>${esc(t('country'))}</span><select name="countryCode" autocomplete="country" required>${countries.length > 1 ? `<option value=""${defaultCountry ? '' : ' selected'} disabled>—</option>` : ''}${countries.map((x) => `<option value="${x.code}"${x.code === defaultCountry ? ' selected' : ''}>${esc(x.name)}</option>`).join('')}</select></label></div>`
-    + `<div class="row two">${field(c, 'firstName', 'firstName', a.firstName, { autocomplete: 'given-name', required: true })}${field(c, 'lastName', 'lastName', a.lastName, { autocomplete: 'family-name', required: true })}</div>`
-    + field(c, 'company', 'company', a.company, { autocomplete: 'organization' })
+    + nameRow
+    + rule(st.company, 'company', 'companyField', 'company', a.company, { autocomplete: 'organization' })
     + field(c, 'address1', 'address1', a.address1, { autocomplete: 'address-line1', required: true })
-    + field(c, 'address2', 'address2', a.address2, { autocomplete: 'address-line2' })
+    + rule(st.address2, 'address2', 'address2Field', 'address2', a.address2, { autocomplete: 'address-line2' })
     + `<div class="row three">${field(c, 'zip', 'zip', a.zip, { autocomplete: 'postal-code', required: true })}${field(c, 'city', 'city', a.city, { autocomplete: 'address-level2', required: true })}<label class="field" id="province-box">${provinceBox}</label></div>`
-    + field(c, 'phone', 'phone', a.phone, { autocomplete: 'tel', type: 'tel' });
+    + rule(st.phone, 'phone', 'phoneField', 'phone', st.contactMethod === 'email_or_phone' && !v.email ? null : a.phone, { autocomplete: 'tel', type: 'tel' });
   const tag = (name: string) => d.view.rejectedCodes.length && name ? '' : '';
   void tag;
+  const phoneContact = st.contactMethod === 'email_or_phone';
+  const contactValue = val('email') || v.email || (phoneContact ? v.address?.phone ?? '' : '');
+  const contactField = `<label class="field"><span>${esc(t(phoneContact ? 'contactOrPhone' : 'email'))}</span><input id="email" name="email" type="${phoneContact ? 'text' : 'email'}" value="${attr(contactValue)}" autocomplete="${phoneContact ? 'username' : 'email'}"${phoneContact ? ' inputmode="email"' : ''} required></label>`;
+  const tipBox = st.tipping.enabled
+    ? `<h2>${esc(t('tipTitle'))}</h2><div class="options" role="radiogroup" id="tip-options">`
+      + `<label class="option"><input type="radio" name="tip" value=""${!v.tipChoice.percent && !v.tipChoice.amount ? ' checked' : ''}><span class="grow">${esc(t('tipNone'))}</span></label>`
+      + st.tipping.presets.map((pc) => `<label class="option"><input type="radio" name="tip" value="${pc}"${v.tipChoice.percent === pc ? ' checked' : ''}><span class="grow">${pc}%</span><span class="price">${esc(c.money(Math.round(Math.max(0, v.pricing.subtotal - v.pricing.totalDiscounts) * pc / 100)))}</span></label>`).join('')
+      + `<label class="option"><input type="radio" name="tip" value="custom"${!v.tipChoice.percent && v.tipChoice.amount ? ' checked' : ''}><span class="grow">${esc(t('tipCustom'))}</span><input name="tipCustom" inputmode="decimal" aria-label="${attr(t('tipCustom'))}" style="max-width:8rem" value="${attr(v.tipChoice.amount ? (v.tipChoice.amount / 100).toFixed(2) : '')}"></label></div>`
+    : '';
+  const noteBox = st.orderNotes ? `<label class="field" style="margin-top:16px"><span>${esc(t('orderNote'))}</span><textarea name="note" rows="3" maxlength="5000">${esc(val('note') || v.note)}</textarea></label>` : '';
   const discountErr = v.rejectedCodes.map((r) => `${r.code}: ${discountMessage(t, r.reason)}`).join(' ');
 
   const body = `<div class="co">
@@ -129,10 +146,11 @@ export function checkoutPage(c: PageCtx, d: PageData): string {
 <div class="errors" id="errors" role="alert" aria-live="assertive">${d.errors.map((e) => `<p>${esc(e)}</p>`).join('')}</div>
 <form id="checkout-form" method="post" action="/checkouts/${v.token}/complete" novalidate>
  <h2 style="margin-top:0">${esc(t('contact'))}</h2>
- <label class="field"><span>${esc(t('email'))}</span><input id="email" name="email" type="email" value="${attr(val('email') || v.email)}" autocomplete="email" required></label>
- <label class="check"><input type="checkbox" name="acceptsMarketing" value="1"${d.marketing ? ' checked' : ''}> ${esc(t('marketing'))}</label>
+ ${contactField}
+ ${st.marketing === 'hidden' ? '' : `<label class="check"><input type="checkbox" name="acceptsMarketing" value="1"${d.marketing ? ' checked' : ''}> ${esc(t('marketing'))}</label>`}
  <h2>${esc(t(v.requiresShipping ? 'delivery' : 'billingAddress'))}</h2>${addressForm}
  ${v.requiresShipping ? `<h2>${esc(t('shippingMethod'))}</h2><div id="shipping-methods" aria-live="polite">${shippingFragment(c, v)}</div>` : ''}
+ ${tipBox}${noteBox}
  <h2>${esc(t('payment'))}</h2>
  <p class="note" id="free-note"${free ? '' : ' hidden'}>${esc(t('noPayment'))}</p>
  <div id="payments"${free ? ' hidden' : ''}>${d.methods.length ? `<div class="options" role="radiogroup">${payOptions}</div>` : `<p class="note">${esc(t('noMethods'))}</p>`}</div>
@@ -159,6 +177,7 @@ export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: stri
     + (o2.totalDiscounts ? `<div><dt>${esc(t('discount'))}</dt><dd>-${esc(money(o2.totalDiscounts))}</dd></div>` : '')
     + (o.shippingLines.length ? `<div><dt>${esc(o.shippingLines[0]!.title)}</dt><dd>${o2.totalShipping ? esc(money(o2.totalShipping)) : esc(t('free'))}</dd></div>` : '')
     + (o2.totalTax ? `<div><dt>${esc(t(o2.taxesIncluded ? 'includedTaxes' : 'taxes'))}</dt><dd>${esc(money(o2.totalTax))}</dd></div>` : '')
+    + (o2.totalTip ? `<div><dt>${esc(t('tipLine'))}</dt><dd>${esc(money(o2.totalTip))}</dd></div>` : '')
     + `<div class="grand"><dt>${esc(t('total'))}</dt><dd>${esc(money(o2.total))}</dd></div>`
     + (giftPaid ? `<div><dt>${esc(t('giftCard'))}</dt><dd>-${esc(money(giftPaid))}</dd></div>` : '') + `</dl>`;
   const online = gateway === 'stripe';

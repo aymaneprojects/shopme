@@ -91,7 +91,7 @@ function refresh(extra){
       .then(function(r){return r.json()}).then(function(r){apply(r);var dm=$('#discount-msg');if(dm)dm.textContent=r.discountError||'';var gm=$('#gift-msg');if(gm)gm.textContent=r.giftError||'';if(extra&&extra.addGiftCardCode&&!r.giftError){var gi=$('#gift-input');if(gi)gi.value=''}if(extra&&extra.addDiscountCode&&!r.discountError){var i=$('#discount-input');if(i)i.value=''}}).catch(function(){});
   },extra?0:250);
 }
-form.addEventListener('change',function(e){var n=e.target.name;if(n==='countryCode')setProvinces();if(n!=='paymentMethod'&&n!=='acceptsMarketing'&&n!=='firstName'&&n!=='lastName'&&n!=='phone'&&n!=='company'&&n!=='address2')refresh();if(n==='paymentMethod')togglePanels()});
+form.addEventListener('change',function(e){var n=e.target.name;if(n==='countryCode')setProvinces();if(n!=='paymentMethod'&&n!=='acceptsMarketing'&&n!=='firstName'&&n!=='lastName'&&n!=='phone'&&n!=='company'&&n!=='address2'&&n!=='note')refresh();if(n==='paymentMethod')togglePanels()});
 var em=document.getElementById('email');if(em)em.addEventListener('blur',function(){refresh()});
 function setProvinces(){
   var c=form.elements.countryCode.value,box=document.getElementById('province-box');if(!box)return;

@@ -45,7 +45,8 @@ describe('discount input mapping', () => {
     const input = toDiscountInput({ ...valid(), minType: 'subtotal', minValue: '50' }) as Record<string, unknown>;
     expect(input.customerGets).toEqual({ value: { percentage: 0.1 }, items: { all: true } });
     // DiscountCodeBasicInput has no `customerSelection` (server rejects the variable); only API-defined keys are sent
-    expect(Object.keys(input).sort()).toEqual(['appliesOncePerCustomer', 'code', 'combinesWith', 'customerGets', 'endsAt', 'minimumRequirement', 'startsAt', 'title', 'usageLimit']);
+    expect(Object.keys(input).sort()).toEqual(['appliesOncePerCustomer', 'code', 'combinesWith', 'context', 'customerGets', 'endsAt', 'minimumRequirement', 'startsAt', 'tags', 'title', 'usageLimit']);
+    expect(input.context).toEqual({ all: 'ALL' });
     expect(input.minimumRequirement).toEqual({ subtotal: { greaterThanOrEqualToSubtotal: '50.00' } });
     const back = fromDiscountNode({
       __typename: 'DiscountCodeBasic', title: 'SUMMER10', startsAt: '2026-06-01T10:00:00Z', endsAt: null, usageLimit: 5, appliesOncePerCustomer: true,
@@ -103,5 +104,25 @@ describe('automatic and buy-X-get-Y discounts', () => {
     });
     expect(back).toMatchObject({ kind: 'bxgy', method: 'automatic', title: 'Half price', combines: { productDiscounts: true } });
     expect(back.bxgy).toMatchObject({ buyQty: '2', buyAppliesTo: 'collections', getAppliesTo: 'products', getEffect: 'percentage', getPercent: '50', getQty: '1' });
+  });
+});
+
+describe('discount eligibility and tags', () => {
+  const base = () => ({ ...blankDiscount('order'), code: 'VIP', value: '10', startsAt: '2026-06-01T10:00' });
+  it('requires a selection for segments and customers', () => {
+    expect(validateDiscount({ ...base(), eligibility: 'segments' }).eligibility).toBe('discount.err.segments');
+    expect(validateDiscount({ ...base(), eligibility: 'customers' }).eligibility).toBe('discount.err.customers');
+    expect(validateDiscount({ ...base(), eligibility: 'customers', customers: [{ id: 'gid://shopify/Customer/1', title: 'Ada' }] }).eligibility).toBeUndefined();
+  });
+  it('sends only the segments and customers added or removed, plus tags, and reads them back', () => {
+    const f = { ...base(), eligibility: 'segments' as const, segments: [{ id: 'gid://shopify/ShopmeCustomerSegment/2', title: 'B' }], tags: ['vip'] };
+    const input = toDiscountInput(f, { collections: [], products: [], segments: ['gid://shopify/ShopmeCustomerSegment/1'] }) as Record<string, unknown>;
+    expect(input.context).toEqual({ customerSegments: { add: ['gid://shopify/ShopmeCustomerSegment/2'], remove: ['gid://shopify/ShopmeCustomerSegment/1'] } });
+    expect(input.tags).toEqual(['vip']);
+    const back = fromDiscountNode({
+      __typename: 'DiscountCodeBasic', title: 'VIP', startsAt: '2026-06-01T10:00:00Z', endsAt: null, combinesWith: { productDiscounts: false, orderDiscounts: false, shippingDiscounts: false },
+      tags: ['vip'], context: { __typename: 'DiscountCustomers', customers: [{ id: 'gid://shopify/Customer/7', displayName: 'Ada' }] },
+    });
+    expect(back).toMatchObject({ eligibility: 'customers', customers: [{ id: 'gid://shopify/Customer/7', title: 'Ada' }], tags: ['vip'] });
   });
 });

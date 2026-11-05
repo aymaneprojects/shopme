@@ -2,7 +2,7 @@ import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import { carts, checkoutMeta, customers, shops } from '../db/schema';
 import type { Executor } from '../db/client';
 import type { Mailer } from '../mail';
-import { moneyOf, sendNotification, shopUrl } from '../mail/notifications';
+import { moneyOf, notificationEnabled, sendNotification, shopUrl } from '../mail/notifications';
 import { buildSearch, dateCompare, idTerm, likeCi } from './catalog/search';
 import { loadCheckout, type CheckoutView } from './checkout';
 import type { Shop } from './shops';
@@ -83,7 +83,7 @@ export async function sendRecoveryEmail(db: Executor, mailer: Mailer, shop: Shop
       line_items: view.lines.map((l) => ({ title: [l.product.title, l.hasOnlyDefaultVariant ? '' : l.variantTitle].filter(Boolean).join(' - '), quantity: l.quantity, total: money(l.price * l.quantity) })),
       recovery_url: recoveryUrl(shop, appUrl, cart.token),
     },
-  });
+  }, { force: true });
   await db.insert(checkoutMeta).values({ cartId: cart.id, shopId: shop.id, recoveryEmailCount: 1, recoverySentAt: new Date() })
     .onConflictDoUpdate({ target: checkoutMeta.cartId, set: { recoveryEmailCount: sql`${checkoutMeta.recoveryEmailCount} + 1`, recoverySentAt: new Date() } });
   return true;
@@ -95,7 +95,7 @@ export async function sendRecoveryEmail(db: Executor, mailer: Mailer, shop: Shop
  */
 export async function recoverAbandonedCheckouts(db: Executor, mailer: Mailer, shop: Shop, appUrl: string, o: { now?: Date; limit?: number } = {}): Promise<number> {
   const settings = abandonedSettingsOf(shop);
-  if (!settings.enabled) return 0;
+  if (!settings.enabled || !notificationEnabled(shop, 'abandoned_checkout')) return 0;
   const rows = await findAbandonedCheckouts(db, shop, { offset: 0, limit: 500, now: o.now });
   let sent = 0;
   for (const r of rows) {

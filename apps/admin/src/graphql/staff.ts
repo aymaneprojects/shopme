@@ -21,7 +21,7 @@ export const STAFF_DELETE = /* GraphQL */ `
 `;
 
 export const NOTIFICATION_TEMPLATES = /* GraphQL */ `
-  query NotificationTemplates { shopmeNotificationTemplates { key name description audience subject body customized } }
+  query NotificationTemplates { shopmeNotificationTemplates { key name description audience subject body customized enabled toggleable } }
 `;
 export const NOTIFICATION_TEMPLATE_UPDATE = /* GraphQL */ `
   mutation NotificationTemplateUpdate($key: String!, $subject: String!, $body: String!) { shopmeNotificationTemplateUpdate(key: $key, subject: $subject, body: $body) { template { key } userErrors { field message } } }

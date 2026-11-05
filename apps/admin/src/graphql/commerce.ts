@@ -171,7 +171,8 @@ export const RETURN_CLOSE = /* GraphQL */ `
 
 /* ------------------------------ discounts: all types, code and automatic ------------------------------ */
 
-const DISC_COMMON = `title status startsAt endsAt summary asyncUsageCount combinesWith { productDiscounts orderDiscounts shippingDiscounts }`;
+const DISC_ELIGIBILITY = `tags context { __typename ... on DiscountCustomers { customers { id displayName } } ... on DiscountCustomerSegments { segments { id name } } }`;
+const DISC_COMMON = `title status startsAt endsAt summary asyncUsageCount combinesWith { productDiscounts orderDiscounts shippingDiscounts } ${DISC_ELIGIBILITY}`;
 const DISC_MIN = `minimumRequirement { __typename ... on DiscountMinimumSubtotal { greaterThanOrEqualToSubtotal { amount } } ... on DiscountMinimumQuantity { greaterThanOrEqualToQuantity } }`;
 const DISC_ITEMS = `
   items {
@@ -204,12 +205,12 @@ export const DISCOUNT_NODES = /* GraphQL */ `
         id
         discount {
           __typename
-          ... on DiscountCodeBasic { title status startsAt endsAt usageLimit asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } codes(first: 1) { nodes { code } } }
-          ... on DiscountCodeBxgy { title status startsAt endsAt usageLimit asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } codes(first: 1) { nodes { code } } }
-          ... on DiscountCodeFreeShipping { title status startsAt endsAt usageLimit asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } codes(first: 1) { nodes { code } } }
-          ... on DiscountAutomaticBasic { title status startsAt endsAt asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } }
-          ... on DiscountAutomaticBxgy { title status startsAt endsAt asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } }
-          ... on DiscountAutomaticFreeShipping { title status startsAt endsAt asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } }
+          ... on DiscountCodeBasic { title status startsAt endsAt usageLimit asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } ${DISC_ELIGIBILITY} codes(first: 1) { nodes { code } } }
+          ... on DiscountCodeBxgy { title status startsAt endsAt usageLimit asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } ${DISC_ELIGIBILITY} codes(first: 1) { nodes { code } } }
+          ... on DiscountCodeFreeShipping { title status startsAt endsAt usageLimit asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } ${DISC_ELIGIBILITY} codes(first: 1) { nodes { code } } }
+          ... on DiscountAutomaticBasic { title status startsAt endsAt asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } ${DISC_ELIGIBILITY} }
+          ... on DiscountAutomaticBxgy { title status startsAt endsAt asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } ${DISC_ELIGIBILITY} }
+          ... on DiscountAutomaticFreeShipping { title status startsAt endsAt asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } ${DISC_ELIGIBILITY} }
         }
       }
       pageInfo { hasNextPage hasPreviousPage startCursor endCursor }

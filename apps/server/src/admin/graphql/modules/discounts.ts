@@ -1,6 +1,6 @@
 import {
   countCodeDiscounts, createCodeDiscount, deleteCodeDiscount, effectiveStatus, getCodeDiscount, getCodeDiscountByCode, getCollection, getProduct, listCodeDiscounts, setDiscountActive, updateCodeDiscount,
-  type CodeDiscount, type CodeDiscountInput, type DiscountKind,
+  customersByIds, listCustomerSegments, type CodeDiscount, type CodeDiscountInput, type DiscountKind,
 } from '@shopme/core';
 import { parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
@@ -10,6 +10,8 @@ import { DisplayableError } from '../types/errors';
 import { Count, MoneyV2, moneyV2 } from '../types/money';
 import { Node, legacyId, registerNode } from '../types/node';
 import { Collection_, CollectionConnection, ProductConnection, shopOf } from '../types/catalog';
+import { Customer_ } from '../types/sales';
+import { Segment } from './segments';
 
 const Status = builder.enumType('DiscountStatus', { values: ['ACTIVE', 'EXPIRED', 'SCHEDULED'] as const });
 const DiscountClass = builder.enumType('DiscountClass', { values: ['PRODUCT', 'ORDER', 'SHIPPING'] as const });
@@ -112,7 +114,16 @@ const CombinesWith = builder.objectRef<Shape>('DiscountCombinesWith').implement(
   }),
 });
 const BuyerAll = builder.objectRef<{ all: 'ALL' }>('DiscountBuyerSelectionAll').implement({ fields: (t) => ({ all: t.field({ type: BuyerSelection, resolve: () => 'ALL' as const }) }) });
-const ContextUnion = builder.unionType('DiscountContext', { types: [BuyerAll], resolveType: () => BuyerAll });
+const SegmentsContext = builder.objectRef<Shape>('DiscountCustomerSegments').implement({
+  fields: (t) => ({ segments: t.field({ type: [Segment], resolve: async (d, _a, ctx) => (await listCustomerSegments(ctx.db, ctx.shopId)).filter((s) => d.ext.segmentIds.includes(s.id)) }) }),
+});
+const CustomersContext = builder.objectRef<Shape>('DiscountCustomers').implement({
+  fields: (t) => ({ customers: t.field({ type: [Customer_], resolve: (d, _a, ctx) => (d.ext.customerIds.length ? customersByIds(ctx.db, ctx.shopId, d.ext.customerIds) : []) }) }),
+});
+const ContextUnion = builder.unionType('DiscountContext', {
+  types: [BuyerAll, SegmentsContext, CustomersContext],
+  resolveType: (v) => ('ext' in (v as object) ? ((v as Shape).ext.eligibility === 'SEGMENTS' ? SegmentsContext : CustomersContext) : BuyerAll),
+});
 const CountryAll = builder.objectRef<{ allCountries: boolean }>('DiscountCountryAll').implement({ fields: (t) => ({ allCountries: t.exposeBoolean('allCountries') }) });
 const DestinationUnion = builder.unionType('DiscountShippingDestinationSelection', { types: [CountryAll], resolveType: () => CountryAll });
 
@@ -143,12 +154,12 @@ const shared = (t: FB) => ({
   asyncUsageCount: t.exposeInt('usageCount'),
   recurringCycleLimit: t.int({ nullable: true, resolve: () => null }),
   hasTimelineComment: t.boolean({ resolve: () => false }),
-  tags: t.stringList({ resolve: () => [] }),
+  tags: t.stringList({ resolve: (d) => d.ext.tags }),
   totalSales: t.field({ type: MoneyV2, nullable: true, resolve: () => null }),
   summary: t.string({ resolve: summaryOf }),
   shortSummary: t.string({ resolve: summaryOf }),
   combinesWith: t.field({ type: CombinesWith, resolve: (d) => d }),
-  context: t.field({ type: ContextUnion, resolve: () => ({ all: 'ALL' as const }) }),
+  context: t.field({ type: ContextUnion, resolve: (d) => (d.ext.eligibility === 'ALL' ? ({ all: 'ALL' as const }) : d) as never }),
   minimumRequirement: t.field({ type: MinUnion, nullable: true, resolve: minimumOf }),
   discountClasses: t.field({ type: [DiscountClass], resolve: (d) => [d.target === 'SHIPPING' ? 'SHIPPING' : d.target === 'PRODUCTS' ? 'PRODUCT' : 'ORDER'] as ('ORDER')[] }),
 });
@@ -286,7 +297,13 @@ function page(ctx: Ctx, a: { first?: number | null; after?: string | null; last?
 const CombinesWithInput = builder.inputType('DiscountCombinesWithInput', {
   fields: (t) => ({ productDiscounts: t.boolean({ defaultValue: false }), orderDiscounts: t.boolean({ defaultValue: false }), shippingDiscounts: t.boolean({ defaultValue: false }) }),
 });
-const ContextInput = builder.inputType('DiscountContextInput', { fields: (t) => ({ all: t.field({ type: BuyerSelection }) }) });
+const ContextInput = builder.inputType('DiscountContextInput', {
+  fields: (t) => ({
+    all: t.field({ type: BuyerSelection }),
+    customers: t.field({ type: builder.inputType('DiscountCustomersInput', { fields: (u) => ({ add: u.idList(), remove: u.idList() }) }) }),
+    customerSegments: t.field({ type: builder.inputType('DiscountCustomerSegmentsInput', { fields: (u) => ({ add: u.idList(), remove: u.idList() }) }) }),
+  }),
+});
 const MinRequirementInput = builder.inputType('DiscountMinimumRequirementInput', {
   fields: (t) => ({
     quantity: t.field({ type: builder.inputType('DiscountMinimumQuantityInput', { fields: (u) => ({ greaterThanOrEqualToQuantity: u.field({ type: 'UnsignedInt64' }) }) }) }),
@@ -369,7 +386,28 @@ async function convert(ctx: Ctx, root: string, i: AnyIn, kind: Kind, cur: CodeDi
     ...(discountKind === 'CODE' && { code: code.code, usageLimit: code.usageLimit, oncePerCustomer: code.appliesOncePerCustomer }),
     ...(i.combinesWith && { combinesWith: { product: !!i.combinesWith.productDiscounts, order: !!i.combinesWith.orderDiscounts, shipping: !!i.combinesWith.shippingDiscounts } }),
   };
-  
+    const tagsIn = (i as { tags?: string[] | null }).tags;
+  if (tagsIn) out.tags = tagsIn;
+  const cx = (i as { context?: typeof ContextInput.$inferInput | null }).context;
+  if (cx) {
+    if ([cx.all, cx.customers, cx.customerSegments].filter(Boolean).length > 1) return { errors: fail([root, 'context'], 'Specify only one of all, customers or customerSegments', 'TOO_MANY_ARGUMENTS') };
+    const merge = (prev: number[], add: (string | number)[] | null | undefined, remove: (string | number)[] | null | undefined, types: string[], path: string): number[] | UserError[] => {
+      const parse = (x: string | number) => types.map((tp) => parseId(String(x), tp)).find((n) => n != null) ?? null;
+      const plus = (add ?? []).map(parse); const minus = (remove ?? []).map(parse);
+      if ([...plus, ...minus].some((n) => n == null)) return fail([root, 'context', path], 'Invalid id');
+      return [...new Set([...prev.filter((n) => !minus.includes(n)), ...(plus as number[])])];
+    };
+    if (cx.all) out.eligibility = 'ALL';
+    else if (cx.customerSegments) {
+      const r = merge(cur?.ext.eligibility === 'SEGMENTS' ? cur.ext.segmentIds : [], cx.customerSegments.add, cx.customerSegments.remove, ['ShopmeCustomerSegment', 'Segment'], 'customerSegments');
+      if (r.length && typeof r[0] === 'object') return { errors: r as UserError[] };
+      out.eligibility = 'SEGMENTS'; out.segmentIds = r as number[];
+    } else if (cx.customers) {
+      const r = merge(cur?.ext.eligibility === 'CUSTOMERS' ? cur.ext.customerIds : [], cx.customers.add, cx.customers.remove, ['Customer'], 'customers');
+      if (r.length && typeof r[0] === 'object') return { errors: r as UserError[] };
+      out.eligibility = 'CUSTOMERS'; out.customerIds = r as number[];
+    }
+  }
   const minReq = (i as BasicIn).minimumRequirement;
   if (minReq) {
     const sub = minReq.subtotal?.greaterThanOrEqualToSubtotal;

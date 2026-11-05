@@ -1,9 +1,10 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
-import { orderLines, returnLines, returns } from '../db/schema';
+import { orderLines, returnLines, returns, shops } from '../db/schema';
 import type { Db, Executor } from '../db/client';
 import { errR, okR, txResult, type Result } from './catalog/common';
 import { addEvent } from './events';
 import { getOrder, restockVariant, type OrderLine } from './orders/orders';
+import { finalSaleProductIds, returnRulesOf, returnWindowStart } from './return-rules';
 
 export type Return = typeof returns.$inferSelect;
 export type ReturnLine = typeof returnLines.$inferSelect;
@@ -36,10 +37,25 @@ export async function returnableQuantities(db: Executor, shopId: number, orderId
 }
 
 /** Create a return (status OPEN) or a return request from the customer (REQUESTED, waiting for `approveReturn`). */
-export async function createReturn(db: Db, shopId: number, orderId: number, lines: ReturnLineInput[], o: { requested?: boolean; note?: string | null; staffId?: number | null } = {}): Promise<Result<ReturnWithLines>> {
+export async function createReturn(db: Db, shopId: number, orderId: number, lines: ReturnLineInput[], o: { requested?: boolean; note?: string | null; staffId?: number | null; ignoreRules?: boolean; now?: Date } = {}): Promise<Result<ReturnWithLines>> {
   const order = await getOrder(db, shopId, orderId);
   if (!order) return errR(['orderId'], 'Order does not exist', 'NOT_FOUND');
   if (!lines.length) return errR(['returnLineItems'], 'Select at least one item to return', 'BLANK');
+  // Shop return rules (Settings > Policies): window and final sale items are validated, fees become the return's defaults.
+  const [shopRow] = await db.select({ settings: shops.settings }).from(shops).where(eq(shops.id, shopId));
+  const rules = returnRulesOf({ settings: shopRow?.settings ?? {} });
+  if (!o.ignoreRules) {
+    if (rules.windowDays) {
+      const since = await returnWindowStart(db, shopId, orderId, order.createdAt);
+      if (((o.now ?? new Date()).getTime() - since.getTime()) / 86_400_000 > rules.windowDays) return errR(['returnLineItems'], `The ${rules.windowDays}-day return window for this order has passed`, 'INVALID');
+    }
+    const lineRows = await db.select({ id: orderLines.id, productId: orderLines.productId, title: orderLines.title }).from(orderLines).where(and(eq(orderLines.orderId, orderId), inArray(orderLines.id, lines.map((l) => l.orderLineId))));
+    const finals = await finalSaleProductIds(db, shopId, rules, lineRows.flatMap((r) => (r.productId ? [r.productId] : [])));
+    for (const [i, l] of lines.entries()) {
+      const row = lineRows.find((r) => r.id === l.orderLineId);
+      if (row?.productId && finals.has(row.productId)) return errR(['returnLineItems', String(i), 'fulfillmentLineItemId'], `${row.title} is a final sale item and cannot be returned`, 'INVALID');
+    }
+  }
   return txResult(db, async (tx) => {
     const room = await returnableQuantities(tx, shopId, orderId);
     const wanted = new Map<number, number>();
@@ -56,6 +72,7 @@ export async function createReturn(db: Db, shopId: number, orderId: number, line
     const now = new Date();
     const [r] = await tx.insert(returns).values({
       shopId, orderId, number, name: `${order.name}-R${number}`, status: o.requested ? 'REQUESTED' : 'OPEN', note: o.note ?? null, requestApprovedAt: o.requested ? null : now,
+      returnShippingFee: rules.shippingCost === 'customer_fixed' ? rules.shippingFee : 0, restockingFeeBps: Math.round(rules.restockingFeePercent * 100),
     }).returning();
     await tx.insert(returnLines).values(lines.map((l) => ({
       shopId, returnId: r!.id, orderLineId: l.orderLineId, quantity: l.quantity, reason: l.reason ?? 'UNKNOWN', note: l.note ?? null, restockType: l.restock ? 'RETURN' : 'NO_RESTOCK', locationId: l.locationId ?? null,

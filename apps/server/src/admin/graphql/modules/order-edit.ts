@@ -8,7 +8,7 @@ import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
 import { ConnectionArgs, defineConnection, paginateArray } from '../types/connection';
 import { DisplayableError, UserError as UserErrorRef, definePayload } from '../types/errors';
-import { MoneyBag, MoneyInput, moneyBag, type MoneyBagShape } from '../types/money';
+import { MoneyBag, MoneyInput, MoneyV2, moneyBag, moneyV2, type MoneyBagShape } from '../types/money';
 import { Node, registerNode } from '../types/node';
 import { ProductVariant } from '../types/catalog';
 import { Order_ } from '../types/sales';
@@ -213,6 +213,8 @@ Return.implement({
     closedAt: t.field({ type: 'DateTime', nullable: true, resolve: (r) => r.closedAt }),
     requestApprovedAt: t.field({ type: 'DateTime', nullable: true, resolve: (r) => r.requestApprovedAt }),
     totalQuantity: t.int({ resolve: (r) => r.lines.reduce((n, l) => n + l.quantity, 0) }),
+    shopmeReturnShippingFee: t.field({ type: MoneyV2, resolve: (r) => moneyV2(r.returnShippingFee, r.order.currency) }),
+    shopmeRestockingFeePercent: t.float({ resolve: (r) => r.restockingFeeBps / 100 }),
     order: t.field({ type: Order_, resolve: (r) => r.order }),
     returnLineItems: t.field({
       type: ReturnLineConnection, args: { ...ConnectionArgs, processingStatus: t.arg({ type: builder.inputType('ReturnProcessingStatusFilterInput', { fields: (u) => ({ statuses: u.stringList() }) }) }) },
@@ -254,7 +256,7 @@ const ReturnLineInput = builder.inputType('ReturnLineItemInput', {
     shopmeRestock: t.boolean({ description: 'Put the items back in stock when the return is closed (default true).' }), shopmeLocationId: t.id(),
   }),
 });
-const ReturnInput = builder.inputType('ReturnInput', { fields: (t) => ({ orderId: t.id({ required: true }), returnLineItems: t.field({ type: [ReturnLineInput], required: true }), requestedAt: t.field({ type: 'DateTime' }), notifyCustomer: t.boolean() }) });
+const ReturnInput = builder.inputType('ReturnInput', { fields: (t) => ({ orderId: t.id({ required: true }), returnLineItems: t.field({ type: [ReturnLineInput], required: true }), requestedAt: t.field({ type: 'DateTime' }), notifyCustomer: t.boolean(), shopmeIgnoreReturnRules: t.boolean({ description: 'Skip the return window and final sale checks of the shop return rules.' }) }) });
 const RequestLineInput = builder.inputType('ReturnRequestLineItemInput', {
   fields: (t) => ({ fulfillmentLineItemId: t.id({ required: true }), quantity: t.int({ required: true }), returnReason: t.field({ type: ReturnReason }), customerNote: t.string() }),
 });
@@ -280,7 +282,7 @@ async function orderLineOf(ctx: GraphQLContext, v: string | number): Promise<num
   return row?.id ?? null;
 }
 
-async function makeReturn(ctx: GraphQLContext, root: string, orderRaw: string, lines: { id: string; quantity: number; reason?: string | null; note?: string | null; restock?: boolean | null; locationId?: string | null }[], requested: boolean) {
+async function makeReturn(ctx: GraphQLContext, root: string, orderRaw: string, lines: { id: string; quantity: number; reason?: string | null; note?: string | null; restock?: boolean | null; locationId?: string | null }[], requested: boolean, ignoreRules = false) {
   requireScope(ctx, requested ? 'write_returns' : 'write_returns');
   const orderId = parseId(String(orderRaw), 'Order');
   if (!orderId) return { return: null, userErrors: fail([root, 'orderId'], 'Order does not exist', 'NOT_FOUND') };
@@ -290,14 +292,14 @@ async function makeReturn(ctx: GraphQLContext, root: string, orderRaw: string, l
     if (!orderLineId) return { return: null, userErrors: fail([root, 'returnLineItems', String(i), 'fulfillmentLineItemId'], 'Line item does not exist', 'NOT_FOUND') };
     resolved.push({ orderLineId, quantity: l.quantity, reason: l.reason, note: l.note, restock: l.restock ?? true, locationId: l.locationId ? parseId(String(l.locationId), 'Location') : null });
   }
-  const r = await createReturn(ctx.db, ctx.shopId, orderId, resolved, { requested, staffId: staffOf(ctx) });
+  const r = await createReturn(ctx.db, ctx.shopId, orderId, resolved, { requested, staffId: staffOf(ctx), ignoreRules });
   return r.ok ? { return: await loadReturn(ctx, r.value), userErrors: [] } : { return: null, userErrors: r.errors.map((e) => ({ ...e, field: e.field ? [root, ...e.field] : [root] })) };
 }
 
 builder.mutationFields((t) => ({
   returnCreate: t.field({
     type: CreatePayload, args: { returnInput: t.arg({ type: ReturnInput, required: true }) },
-    resolve: (_r, { returnInput: i }, ctx) => makeReturn(ctx, 'returnInput', String(i.orderId), i.returnLineItems.map((l) => ({ id: String(l.fulfillmentLineItemId), quantity: l.quantity, reason: l.returnReason, note: l.returnReasonNote, restock: l.shopmeRestock, locationId: l.shopmeLocationId ? String(l.shopmeLocationId) : null })), false),
+    resolve: (_r, { returnInput: i }, ctx) => makeReturn(ctx, 'returnInput', String(i.orderId), i.returnLineItems.map((l) => ({ id: String(l.fulfillmentLineItemId), quantity: l.quantity, reason: l.returnReason, note: l.returnReasonNote, restock: l.shopmeRestock, locationId: l.shopmeLocationId ? String(l.shopmeLocationId) : null })), false, !!i.shopmeIgnoreReturnRules),
   }),
   returnRequest: t.field({
     type: RequestPayload, args: { input: t.arg({ type: RequestInput, required: true }) },

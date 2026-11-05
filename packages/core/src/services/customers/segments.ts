@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import { shops } from '../../db/schema';
-import type { Db } from '../../db/client';
+import type { Db, Executor } from '../../db/client';
 import { errR, okR, type Result } from '../catalog/common';
 
 /**
@@ -12,14 +12,14 @@ export interface CustomerSegment { id: number; name: string; query: string; crea
 const KEY = 'customerSegments';
 const read = (settings: Record<string, unknown>): CustomerSegment[] => (Array.isArray(settings[KEY]) ? (settings[KEY] as CustomerSegment[]) : []);
 
-async function load(db: Db, shopId: number) {
+async function load(db: Executor, shopId: number) {
   const [row] = await db.select({ settings: shops.settings }).from(shops).where(eq(shops.id, shopId));
   return row?.settings ?? null;
 }
 const save = (db: Db, shopId: number, settings: Record<string, unknown>, list: CustomerSegment[]) =>
   db.update(shops).set({ settings: { ...settings, [KEY]: list }, updatedAt: new Date() }).where(eq(shops.id, shopId));
 
-export async function listCustomerSegments(db: Db, shopId: number): Promise<CustomerSegment[]> {
+export async function listCustomerSegments(db: Executor, shopId: number): Promise<CustomerSegment[]> {
   const s = await load(db, shopId);
   return s ? read(s) : [];
 }

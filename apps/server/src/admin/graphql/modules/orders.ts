@@ -327,7 +327,7 @@ Order_.implement({
       cartDiscountAmountSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => money(o, o.totalDiscounts) }),
       currentCartDiscountAmountSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalDiscounts) }),
       totalCapturableSet: t.field({ type: MoneyBag, resolve: (o) => money(o, 0) }),
-      totalTipReceivedSet: t.field({ type: MoneyBag, resolve: (o) => money(o, 0) }),
+      totalTipReceivedSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalTip) }),
       totalRefundedShippingSet: t.field({ type: MoneyBag, resolve: (o) => money(o, 0) }),
       // Deprecated shop-currency scalars, kept because many clients still select them.
       ...Object.fromEntries(([
@@ -335,7 +335,7 @@ Order_.implement({
         ['totalShippingPrice', (o: OrderRow) => o.totalShipping], ['totalRefunded', (o: OrderRow) => o.totalRefunded], ['cartDiscountAmount', (o: OrderRow) => o.totalDiscounts],
         ['totalCapturable', () => 0],
       ] as const).map(([name, f]) => [name, t.field({ type: 'Money', nullable: name === 'subtotalPrice' || name === 'totalTax' || name === 'totalDiscounts' || name === 'cartDiscountAmount', deprecationReason: `Use \`${name}Set\` instead.`, resolve: (o: OrderRow) => formatMoney(f(o), o.currency) })])),
-      totalTipReceived: t.field({ type: MoneyV2, deprecationReason: 'Use `totalTipReceivedSet` instead.', resolve: (o) => moneyV2(0, o.currency) }),
+      totalTipReceived: t.field({ type: MoneyV2, deprecationReason: 'Use `totalTipReceivedSet` instead.', resolve: (o) => moneyV2(o.totalTip, o.currency) }),
       totalReceived: t.field({ type: 'Money', deprecationReason: 'Use `totalReceivedSet` instead.', resolve: async (o, _a, ctx) => formatMoney(paidAmounts((await detailOf(ctx, o)).transactions).received, o.currency) }),
       netPayment: t.field({ type: 'Money', deprecationReason: 'Use `netPaymentSet` instead.', resolve: async (o, _a, ctx) => { const p = paidAmounts((await detailOf(ctx, o)).transactions); return formatMoney(p.received - p.refunded, o.currency); } }),
       confirmationNumber: t.string({ nullable: true, resolve: (o) => createHash('sha256').update(`order:${o.id}`).digest('hex').slice(0, 9).toUpperCase() }),

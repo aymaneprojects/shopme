@@ -1,4 +1,4 @@
-import { getPrimaryShop, purgeExpiredSessions, purgeOldVisits, runScheduledBackup } from '@shopme/core';
+import { getPrimaryShop, purgeExpiredSessions, purgeOldVisits, recordBackupResult, runScheduledBackup } from '@shopme/core';
 import type { AppContext } from './context';
 import { registerCommerceJobs } from './commerce-jobs';
 import { registerOpsJobs } from './ops';
@@ -13,7 +13,14 @@ export function registerJobs(ctx: AppContext): () => void {
   // Automatic backups: checked hourly (and once shortly after start); only runs when enabled and the newest one is older than the interval.
   const backup = async () => {
     const shop = await getPrimaryShop(ctx.db);
-    if (shop) await runScheduledBackup(ctx.db, ctx.storage, shop.id, ctx.config.dataDir, ctx.appVersion);
+    if (!shop) return;
+    try {
+      const name = await runScheduledBackup(ctx.db, ctx.storage, shop.id, ctx.config.dataDir, ctx.appVersion);
+      if (name) await recordBackupResult(ctx.db, shop.id, { ok: true, name });
+    } catch (e) {
+      await recordBackupResult(ctx.db, shop.id, { ok: false, error: e instanceof Error ? e.message.slice(0, 300) : 'Backup failed' });
+      throw e;
+    }
   };
   ctx.queue.register('store.auto-backup', backup);
   ctx.queue.every('auto-backup', 3600_000, backup);

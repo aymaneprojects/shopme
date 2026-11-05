@@ -1,5 +1,5 @@
 import {
-  attemptDelivery, dueDeliveries, getShop, onEvent, orderEventMail, ORDER_EMAIL_VERBS, purgeOldDeliveries, recordDeliveries, sendNotification, shopUrl, topicsForVerb,
+  attemptDelivery, dueDeliveries, getShop, onEvent, orderEventMail, ORDER_EMAIL_VERBS, purgeOldDeliveries, recordDeliveries, recordLowStockForOrder, sendNotification, shopUrl, topicsForVerb,
   type EventRow,
 } from '@shopme/core';
 import type { AppContext } from './context';
@@ -32,6 +32,7 @@ export function registerOpsJobs(ctx: AppContext): () => void {
     const mail = await orderEventMail(db, shop, e.verb, e.subjectId, e.data);
     if (mail) await sendNotification(db, ctx.mailer, shop, config.appUrl, mail.key, mail.to, mail.vars);
   });
+  queue.register<EventJob>('activity.low-stock', async (e) => { if (e.subjectId != null) await recordLowStockForOrder(db, e.shopId, e.subjectId); });
   queue.every('webhook-sweep', 30_000, async () => {
     for (const d of await dueDeliveries(db)) queue.enqueue('webhook.deliver', { shopId: d.shopId, id: d.id });
   });
@@ -40,6 +41,7 @@ export function registerOpsJobs(ctx: AppContext): () => void {
   return onEvent((shopId: number, ev: EventRow) => {
     const job: EventJob = { shopId, verb: ev.verb, subjectId: ev.subjectId, data: ev.data };
     if (topicsForVerb(ev.verb).length) queue.enqueue('webhook.fanout', job, { delayMs: EVENT_SETTLE_MS, maxAttempts: 5 });
+    if (ev.verb === 'order.created') queue.enqueue('activity.low-stock', job, { delayMs: EVENT_SETTLE_MS, maxAttempts: 3 });
     if (ev.verb && ev.verb in ORDER_EMAIL_VERBS && ev.data?.notify) queue.enqueue('notify.order-event', job, { delayMs: EVENT_SETTLE_MS, maxAttempts: 5 });
   });
 }

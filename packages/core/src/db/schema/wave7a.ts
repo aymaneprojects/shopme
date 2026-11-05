@@ -50,6 +50,9 @@ export const checkoutMeta = pgTable('checkout_meta', {
   giftCardCodes: text('gift_card_codes').array().notNull().default([]),
   recoveryEmailCount: integer('recovery_email_count').notNull().default(0),
   recoverySentAt: ts('recovery_sent_at'),
+  /** Tip chosen at checkout: a percentage of the subtotal (preset) or a fixed amount in minor units. */
+  tipPercent: integer('tip_percent'),
+  tipAmount: integer('tip_amount').notNull().default(0),
 });
 
 /** Ids of staged additions start at 900000000 so they never collide with order line ids (`quantities` keys are `String(id)` of either). */
@@ -78,6 +81,9 @@ export const returns = pgTable('returns', {
   status: text('status').notNull().default('OPEN'),
   note: text('note'),
   requestApprovedAt: ts('request_approved_at'), closedAt: ts('closed_at'),
+  /** Defaults copied from the shop return rules when the return is created. */
+  returnShippingFee: integer('return_shipping_fee').notNull().default(0),
+  restockingFeeBps: integer('restocking_fee_bps').notNull().default(0),
   ...timestamps(),
 }, (t) => [index('returns_order_idx').on(t.orderId), check('returns_status_chk', oneOf(t.status, ['REQUESTED', 'OPEN', 'CLOSED', 'DECLINED', 'CANCELED']))]);
 
@@ -108,4 +114,9 @@ export const discountExtensions = pgTable('discount_extensions', {
   subtype: text('subtype').notNull().default('BASIC'),
   combinesWith: jsonb('combines_with').$type<{ product: boolean; order: boolean; shipping: boolean }>().notNull().default({ product: false, order: false, shipping: false }),
   bxgy: jsonb('bxgy').$type<BxgyConfig | null>(),
-}, (t) => [check('discount_ext_subtype_chk', oneOf(t.subtype, ['BASIC', 'FREE_SHIPPING', 'BXGY']))]);
+  /** Who may use the discount: everyone, customers of the listed segments, or the listed customers. */
+  eligibility: text('eligibility').notNull().default('ALL'),
+  segmentIds: integer('segment_ids').array().notNull().default(sql`'{}'::integer[]`),
+  customerIds: integer('customer_ids').array().notNull().default(sql`'{}'::integer[]`),
+  tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
+}, (t) => [check('discount_ext_subtype_chk', oneOf(t.subtype, ['BASIC', 'FREE_SHIPPING', 'BXGY'])), check('discount_ext_eligibility_chk', oneOf(t.eligibility, ['ALL', 'SEGMENTS', 'CUSTOMERS']))]);

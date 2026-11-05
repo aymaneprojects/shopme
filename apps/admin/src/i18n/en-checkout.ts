@@ -1,0 +1,42 @@
+// Checkout settings, notification switches and staff recipients, return rules, discount eligibility and tags, activity feed, search and account menu.
+export const enCheckout = {
+  'settings.checkout': 'Checkout',
+  'checkout.contact': 'Customer contact method', 'checkout.contactDesc': 'What customers use to identify themselves at checkout.',
+  'checkout.contact.email': 'Email', 'checkout.contact.emailOrPhone': 'Email or mobile phone number', 'checkout.contact.emailOrPhoneHelp': 'A customer who gives only a phone number can still place an order.',
+  'checkout.accounts': 'Customer accounts', 'checkout.accountsDesc': 'Whether customers must sign in to check out.',
+  'checkout.accounts.guest': 'Accounts are optional', 'checkout.accounts.guestHelp': 'Customers can check out as guests or sign in to their account.',
+  'checkout.accounts.required': 'Accounts are required', 'checkout.accounts.requiredHelp': 'Customers are sent to the sign-in page before they can check out.',
+  'checkout.info': 'Customer information', 'checkout.infoDesc': 'The fields of the address form. Hidden fields are not asked for; required fields must be filled in.',
+  'checkout.info.name': 'Full name', 'checkout.info.nameFull': 'Require first and last name', 'checkout.info.nameLast': 'Only require last name',
+  'checkout.info.company': 'Company name', 'checkout.info.address2': 'Address line 2 (apartment, suite)', 'checkout.info.phone': 'Shipping address phone number',
+  'checkout.rule.hidden': 'Don’t include', 'checkout.rule.optional': 'Optional', 'checkout.rule.required': 'Required',
+  'checkout.marketing': 'Marketing options', 'checkout.marketingDesc': 'The email marketing sign-up checkbox below the contact field.',
+  'checkout.marketing.label': 'Email marketing checkbox', 'checkout.marketing.hidden': 'Don’t show', 'checkout.marketing.unchecked': 'Show, not selected', 'checkout.marketing.checked': 'Show, selected by default',
+  'checkout.tipping': 'Tipping', 'checkout.tippingDesc': 'Let customers add a tip to their order.', 'checkout.tipping.enable': 'Offer tips at checkout',
+  'checkout.tipping.presets': 'Tip presets (%)', 'checkout.tipping.presetsHelp': 'Up to 5 whole percentages separated by commas. Customers can also enter an amount.',
+  'checkout.notes': 'Order notes', 'checkout.notesDesc': 'A text box for special instructions.', 'checkout.notes.enable': 'Ask for order notes at checkout',
+
+  'notif.enabled': 'Send this notification', 'notif.recipients': 'New order recipients',
+  'notif.recipientsDesc': 'These addresses get the “New order” email whenever an order is placed.', 'notif.recipientsDefault': '(store contact email)',
+  'notif.recipientsAdd': 'Add a recipient', 'notif.recipientsAddBtn': 'Add',
+
+  'returns.title': 'Return rules', 'returns.desc': 'Applied when a return is created, and listed on your refund policy page.',
+  'returns.window': 'Return window (days)', 'returns.windowHelp': 'Leave empty for no limit. Counted from fulfillment.',
+  'returns.restocking': 'Restocking fee (%)', 'returns.restockingHelp': 'Share of the returned items’ value the store keeps.',
+  'returns.shipping': 'Return shipping', 'returns.shipping.free': 'Free for the customer', 'returns.shipping.fixed': 'Customer pays a flat fee', 'returns.shipping.customer': 'Customer pays the shipping',
+  'returns.fee': 'Flat return fee ({currency})', 'returns.finalSale': 'Final sale items', 'returns.finalSaleHelp': 'Products and collections that cannot be returned.',
+  'returns.addProducts': 'Add products', 'returns.addCollections': 'Add collections',
+
+  'discount.eligibility': 'Customer eligibility', 'discount.eligibilityLabel': 'Available for', 'discount.eligibility.all': 'All customers', 'discount.eligibility.segments': 'Specific customer segments',
+  'discount.eligibility.customers': 'Specific customers', 'discount.eligibility.noSegments': 'No customer segments yet. Create one in Customers, Segments.',
+  'discount.eligibility.addCustomers': 'Add customers', 'discount.eligibility.add': 'Add', 'discount.eligibility.help': 'Checked at checkout from the email address the customer enters.',
+  'discount.err.segments': 'Select at least one customer segment.', 'discount.err.customers': 'Select at least one customer.',
+  'discount.tags': 'Tags', 'discount.tagsLabel': 'Discount tags', 'discount.tagsPlaceholder': 'Add a tag', 'discount.tagsHelp': 'Tags help you organize and filter discounts. Customers do not see them.',
+  'discounts.eligibility': 'Eligibility', 'discounts.eligibility.customers': '{n} customers', 'discounts.tags': 'Tags', 'discounts.filterTag': 'Filter by tag',
+
+  'activity.title': 'Notifications', 'activity.open': 'Notifications', 'activity.openUnread': 'Notifications, {n} unread', 'activity.markAll': 'Mark all as read', 'activity.empty': 'Nothing new.', 'activity.unread': 'Unread',
+  'activity.order': 'New order {name}', 'activity.lowStock': 'Low stock: {title}', 'activity.lowStockBody': '{n} left', 'activity.webhook': 'Webhook delivery failed: {topic}',
+  'activity.backupOk': 'Backup completed', 'activity.backupFailed': 'Backup failed',
+  'shell.help': 'Help center', 'shell.expand': 'Expand the sidebar', 'shell.collapse': 'Collapse the sidebar',
+  'cmd.placeholder': 'Search', 'cmd.filters': 'Search in', 'cmd.searchIn': 'Search in {shop}', 'cmd.recent': 'Recent searches', 'cmd.open': 'Open',
+} as const;

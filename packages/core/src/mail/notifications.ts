@@ -147,6 +147,8 @@ export function htmlToText(h: string): string {
 export interface TemplateView {
   key: NotificationKey; name: string; description: string; audience: 'customer' | 'staff'; variables: string[];
   subject: string; body: string; defaultSubject: string; defaultBody: string; customized: boolean; updatedAt: Date | null;
+  /** False when the merchant switched the notification off. */
+  enabled: boolean; toggleable: boolean;
 }
 
 export const defaultTemplate = (shop: Shop, key: NotificationKey): Lang => DEFS[key][langOf(shop)];
@@ -159,7 +161,7 @@ export async function listNotificationTemplates(db: Executor, shop: Shop): Promi
   const rows = await db.select().from(notificationTemplates).where(eq(notificationTemplates.shopId, shop.id));
   return NOTIFICATION_KEYS.map((key) => {
     const d = DEFS[key]; const def = d[langOf(shop)]; const o = rows.find((r) => r.key === key);
-    return { key, name: d.name, description: d.description, audience: d.audience, variables: d.variables, subject: o?.subject ?? def.subject, body: o?.body ?? def.body, defaultSubject: def.subject, defaultBody: def.body, customized: !!o, updatedAt: o?.updatedAt ?? null };
+    return { key, name: d.name, description: d.description, audience: d.audience, variables: d.variables, subject: o?.subject ?? def.subject, body: o?.body ?? def.body, defaultSubject: def.subject, defaultBody: def.body, customized: !!o, updatedAt: o?.updatedAt ?? null, enabled: notificationEnabled(shop, key), toggleable: isToggleable(key) };
   });
 }
 
@@ -211,10 +213,61 @@ export function senderOf(shop: Shop): string | undefined {
   return senderEmail ? (senderName ? `"${senderName}" <${senderEmail}>` : senderEmail) : undefined;
 }
 
-export async function sendNotification(db: Executor, mailer: Mailer, shop: Shop, appUrl: string, key: NotificationKey, to: string, vars: Record<string, unknown>): Promise<void> {
+// ---- per-notification switches and staff recipients -----------------------------------------------------------------------
+
+/** Notifications the merchant can switch off. The others (password reset, invitations, sign-in alerts, invoices...) are transactional and always sent. */
+export const TOGGLEABLE_NOTIFICATIONS: readonly NotificationKey[] = [
+  'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund', 'abandoned_checkout', 'gift_card_issued',
+];
+export const isToggleable = (key: NotificationKey) => TOGGLEABLE_NOTIFICATIONS.includes(key);
+
+const disabledOf = (shop: Pick<Shop, 'settings'>): string[] => {
+  const v = (shop.settings as Record<string, unknown>).notificationsDisabled;
+  return Array.isArray(v) ? v.filter((k): k is string => typeof k === 'string') : [];
+};
+export const notificationEnabled = (shop: Pick<Shop, 'settings'>, key: NotificationKey) => !isToggleable(key) || !disabledOf(shop).includes(key);
+
+export async function setNotificationEnabled(db: Executor, shop: Shop, key: NotificationKey, enabled: boolean): Promise<{ error: string } | { enabled: boolean }> {
+  if (!isToggleable(key)) return { error: 'This notification is always sent' };
+  const off = new Set(disabledOf(shop));
+  if (enabled) off.delete(key); else off.add(key);
+  await db.update(shops).set({ settings: { ...shop.settings, notificationsDisabled: [...off] }, updatedAt: new Date() }).where(eq(shops.id, shop.id));
+  return { enabled };
+}
+
+const EMAIL = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/;
+
+/** Who receives "New order": the saved recipients, or the store contact email while none are saved. */
+export function staffOrderRecipientsOf(shop: Pick<Shop, 'settings' | 'email'>): { emails: string[]; custom: boolean } {
+  const v = (shop.settings as Record<string, unknown>).staffOrderRecipients;
+  const list = Array.isArray(v) ? v.filter((e): e is string => typeof e === 'string' && EMAIL.test(e)) : [];
+  return list.length ? { emails: list, custom: true } : { emails: shop.email ? [shop.email] : [], custom: false };
+}
+
+export async function updateStaffOrderRecipients(db: Executor, shop: Shop, emails: string[]): Promise<{ error: string } | { emails: string[]; custom: boolean }> {
+  const clean = [...new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean))];
+  const bad = clean.find((e) => !EMAIL.test(e) || e.length > 254);
+  if (bad) return { error: `${bad} is not a valid email address` };
+  if (clean.length > 20) return { error: 'You can add up to 20 recipients' };
+  const settings = { ...shop.settings, staffOrderRecipients: clean };
+  await db.update(shops).set({ settings, updatedAt: new Date() }).where(eq(shops.id, shop.id));
+  return staffOrderRecipientsOf({ ...shop, settings });
+}
+
+/** Send one email. A switched-off notification is skipped (returns false) unless `force` (test emails, explicit staff actions). */
+export async function sendNotification(db: Executor, mailer: Mailer, shop: Shop, appUrl: string, key: NotificationKey, to: string, vars: Record<string, unknown>, opts: { force?: boolean } = {}): Promise<boolean> {
+  if (!opts.force && !notificationEnabled(shop, key)) return false;
   const r = await renderNotification(db, shop, appUrl, key, vars);
   const mail: Mail = { to, subject: r.subject, html: r.html, text: r.text, from: senderOf(shop), replyTo: DEFS[key].audience === 'customer' ? shop.email : undefined };
   await mailer.send(mail);
+  return true;
+}
+
+/** "New order" email to every staff recipient. Returns how many were sent. */
+export async function sendStaffNewOrder(db: Executor, mailer: Mailer, shop: Shop, appUrl: string, vars: Record<string, unknown>): Promise<number> {
+  let n = 0;
+  for (const to of staffOrderRecipientsOf(shop).emails) if (await sendNotification(db, mailer, shop, appUrl, 'staff_new_order', to, vars)) n++;
+  return n;
 }
 
 // ---- Liquid variables -------------------------------------------------------------------------------------------------------

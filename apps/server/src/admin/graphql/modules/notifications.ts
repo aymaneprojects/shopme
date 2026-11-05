@@ -21,6 +21,8 @@ const Template = builder.objectRef<TemplateView>('ShopmeNotificationTemplate').i
     defaultSubject: t.exposeString('defaultSubject'),
     defaultBody: t.field({ type: 'HTML', resolve: (v) => v.defaultBody }),
     customized: t.exposeBoolean('customized'),
+    enabled: t.exposeBoolean('enabled', { description: 'False when the merchant switched the notification off.' }),
+    toggleable: t.exposeBoolean('toggleable'),
     updatedAt: t.field({ type: 'DateTime', nullable: true, resolve: (v) => v.updatedAt }),
   }),
 });
@@ -95,7 +97,7 @@ builder.mutationFields((t) => ({
       const { shop } = await templateOf(ctx, a.key);
       const to = (a.to ?? shop.email ?? '').trim();
       if (!/^[^@\s]+@[^@\s]+$/.test(to)) return { preview: null, userErrors: [{ field: ['to'], message: 'Enter a valid email address.' }] };
-      await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.app.config.appUrl, a.key, to, sampleVars(shop, ctx.app.config.appUrl));
+      await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.app.config.appUrl, a.key, to, sampleVars(shop, ctx.app.config.appUrl), { force: true });
       return { preview: await renderNotification(ctx.db, shop, ctx.app.config.appUrl, a.key, sampleVars(shop, ctx.app.config.appUrl)), userErrors: [] };
     },
   }),

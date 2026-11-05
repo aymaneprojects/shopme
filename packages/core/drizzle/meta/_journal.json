@@ -57,6 +57,13 @@
       "when": 1793841069204,
       "tag": "0007_wave7b_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793880665611,
+      "tag": "0008_wave8c_checkout_settings",
+      "breakpoints": true
     }
   ]
 }

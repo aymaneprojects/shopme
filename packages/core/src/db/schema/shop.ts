@@ -40,6 +40,8 @@ export const staffUsers = pgTable('staff_users', {
   inviteTokenHash: text('invite_token_hash'),
   inviteExpiresAt: ts('invite_expires_at'),
   lastLoginAt: ts('last_login_at'),
+  /** Activity feed (bell): entries newer than this are unread. */
+  activityReadAt: ts('activity_read_at'),
   ...timestamps(),
 }, (t) => [uniqueIndex('staff_users_shop_email_uq').on(t.shopId, t.email), check('staff_users_role_chk', oneOf(t.role, STAFF_ROLES))]);
 
