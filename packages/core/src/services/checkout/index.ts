@@ -14,6 +14,8 @@ import { toPresentment } from '../markets/context';
 import { allocateGiftCards, getGiftCardByCode, giftCardRejection, normalizeGiftCardCode, type GiftCardRejection } from '../gift-cards';
 import { subscribeEmail } from '../privacy/marketing';
 import { planStoreCredit, setUseStoreCredit, storeCreditEnabled, NO_STORE_CREDIT, type StoreCreditTender } from '../store-credit';
+import { taxExtrasFor } from '../settings/tax-presets';
+import { configOf } from '../settings/config';
 import { checkoutSettingsOf, isPhone, requiredAddressKeys, stripHiddenAddressFields, tipFor, type CheckoutSettings } from './settings';
 
 export * from './settings';
@@ -238,7 +240,7 @@ export async function loadCheckout(db: Executor, shop: Shop, token: string, now 
   if (row.email) { const [c] = await db.select({ t: s.customers.taxExempt }).from(s.customers).where(and(eq(s.customers.shopId, shop.id), eq(s.customers.email, lc(row.email)))).limit(1); taxExempt = !!c?.t; }
 
   const taxesIncluded = await taxesIncludedFor(db, shop, cart.marketId);
-  const input: PricingInput = { lines: plines, discounts: applied, shipping: chosen, taxRates, taxesIncluded, taxExempt, country: address?.countryCode ?? null, province: address?.provinceCode ?? null };
+  const input: PricingInput = { lines: plines, discounts: applied, shipping: chosen, taxRates, taxesIncluded, taxExempt, ...taxExtrasFor(shop, address?.countryCode ?? null), country: address?.countryCode ?? null, province: address?.provinceCode ?? null };
   const pricing = priceCheckout(input);
   const meta = await metaOf(db, row.id);
   const gift = await giftCardsFor(db, shop.id, meta, cart, pricing, now);
@@ -373,6 +375,8 @@ export interface SubmitInput {
   paymentMethod: string;
   /** Methods currently offered (ids). */
   allowedMethods: string[];
+  /** Kind of each offered method (`manual`, `online`, `test`, `redirect`); a method without an entry is `online` for `stripe`, else `manual`. */
+  methodKinds?: Record<string, string>;
   acceptsMarketing?: boolean;
   note?: string | null;
   /** Shipping rate the buyer saw selected; must still be offered. */
@@ -421,7 +425,9 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
   }
   const cart = (await loadCartView(db, shop.id, row.id)) as CartView;
   const byId = new Map(cart.lines.map((l) => [l.lineId, l]));
-  const online = !free && input.paymentMethod === 'stripe';
+  const kind = input.methodKinds?.[input.paymentMethod] ?? (input.paymentMethod === 'stripe' ? 'online' : 'manual');
+  const online = !free && kind === 'online';
+  const testPay = !free && kind === 'test';
   const giftCards = checkout.giftCards.filter((g) => g.applied > 0).map((g) => ({ giftCardId: g.id, amount: g.applied }));
   const credit = checkout.storeCredit.applied > 0 && checkout.storeCredit.accountId ? { accountId: checkout.storeCredit.accountId, amount: checkout.storeCredit.applied, shopAmount: checkout.storeCredit.appliedShop } : null;
   const gateway = free ? (giftCards.length ? 'gift_card' : credit ? 'store_credit' : 'free') : input.paymentMethod;
@@ -439,7 +445,7 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
     }),
     pricing: checkout.pricing, giftCards, storeCredit: credit,
     shippingAddress: checkout.requiresShipping ? checkout.address : null, billingAddress: checkout.address,
-    payment: { gateway, status: free ? 'PAID' : 'PENDING', paymentId },
+    payment: { gateway, status: free ? 'PAID' : testPay ? (configOf(shop, 'PAYMENTS').captureMethod === 'manual' ? 'AUTHORIZED' : 'PAID') : 'PENDING', paymentId, ...(testPay ? { test: true } : {}) },
     cartToken: token, note: settings.orderNotes ? (input.note ?? row.note) : row.note,
   });
   if (!res.ok) {
@@ -456,5 +462,5 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
     const sub = await subscribeEmail(db, shop.id, { email: row.email, tags: [], doubleOptIn: true });
     if (sub.ok && sub.value.confirmToken) marketingConfirmation = { customerId: sub.value.customer.id, email: row.email, token: sub.value.confirmToken };
   }
-  return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.amountDue, currency: cart.currency, paid: free, needsOnlinePayment: online, paymentId, email: row.email ?? '', checkout, marketingConfirmation };
+  return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.amountDue, currency: cart.currency, paid: free || (testPay && configOf(shop, 'PAYMENTS').captureMethod !== 'manual'), needsOnlinePayment: online, paymentId, email: row.email ?? '', checkout, marketingConfirmation };
 }

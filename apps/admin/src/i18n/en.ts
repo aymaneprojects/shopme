@@ -1,3 +1,4 @@
+import { enBtnSettings } from './en-btn-settings';
 import { enCheckout } from './en-checkout';
 import { enDiscountCodes } from './en-discount-codes';
 import { enPrivacy } from './en-privacy';
@@ -139,6 +140,7 @@ export const en = {
   ...enDiscountCodes,
   ...enMarkets,
   ...enPrivacy,
+  ...enBtnSettings,
 } as const;
 
 export type Key = keyof typeof en;

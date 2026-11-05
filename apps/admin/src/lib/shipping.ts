@@ -5,6 +5,8 @@ export interface ApiCondition { id: string; field: 'TOTAL_WEIGHT' | 'TOTAL_PRICE
 export interface ApiMethod {
   id: string; name: string; description: string | null; active: boolean; shopmeFreeOverAmount: { amount: string } | null;
   rateProvider: { __typename: string; price?: { amount: string } }; methodConditions: ApiCondition[];
+  shopmeTransitMinDays: number | null; shopmeTransitMaxDays: number | null; shopmeCollectionIds: string[]; shopmeOriginLocationIds: string[];
+  shopmeRateType: 'FIXED' | 'CARRIER'; shopmeCarrierProvider: string | null; shopmeCarrierParams: Record<string, unknown>;
 }
 export interface ApiCountry { id: string; code: { countryCode: string | null; restOfWorld: boolean }; name: string; provinces: { code: string }[] }
 export interface ApiZone { zone: { id: string; name: string; countries: ApiCountry[] }; methodDefinitions: { nodes: ApiMethod[] } }
@@ -20,8 +22,18 @@ export const fromGrams = (g: number, unit: string) => Math.round((g / (GRAMS_PER
 export const PICKUP_TIMES = ['ONE_HOUR', 'TWO_HOURS', 'FOUR_HOURS', 'TWENTY_FOUR_HOURS', 'TWO_TO_FOUR_DAYS', 'FIVE_OR_MORE_DAYS'] as const;
 
 /** One rate of an option as the dialog edits it. Numbers stay strings until saved. */
-export interface RateCard { id: string | null; price: string; cond: 'none' | 'weight' | 'price'; min: string; max: string; freeOn: boolean; freeOver: string; conditionIds: string[] }
-export const blankCard = (): RateCard => ({ id: null, price: '', cond: 'none', min: '', max: '', freeOn: false, freeOver: '', conditionIds: [] });
+export interface RateCard {
+  id: string | null; price: string; cond: 'none' | 'weight' | 'price'; min: string; max: string; freeOn: boolean; freeOver: string; conditionIds: string[];
+  /** Transit time in days as `min-max` (empty: not shown to the buyer). */
+  transit: string;
+  /** Collection ids the rate is limited to, and the locations it ships from (empty: no limit). */
+  collections: string[]; origins: string[];
+  rateType: 'FIXED' | 'CARRIER'; provider: string; params: Record<string, string>;
+}
+export const blankCard = (): RateCard => ({ id: null, price: '', cond: 'none', min: '', max: '', freeOn: false, freeOver: '', conditionIds: [], transit: '', collections: [], origins: [], rateType: 'FIXED', provider: '', params: {} });
+
+/** Transit presets of the rate editor (`min-max` days). */
+export const TRANSIT_PRESETS = ['0-1', '1-2', '2-3', '3-5', '5-7', '7-14', '14-21', '21-30'];
 
 export function cardOf(m: ApiMethod, weightUnit: string): RateCard {
   const w = m.methodConditions.filter((c) => c.field === 'TOTAL_WEIGHT');
@@ -32,11 +44,15 @@ export function cardOf(m: ApiMethod, weightUnit: string): RateCard {
     id: m.id, price: m.rateProvider.price?.amount ?? '0', cond: w.length ? 'weight' : p.length ? 'price' : 'none',
     min: val(conds.find((c) => c.operator === 'GREATER_THAN_OR_EQUAL_TO')), max: val(conds.find((c) => c.operator === 'LESS_THAN_OR_EQUAL_TO')),
     freeOn: !!m.shopmeFreeOverAmount, freeOver: m.shopmeFreeOverAmount?.amount ?? '', conditionIds: m.methodConditions.map((c) => c.id),
+    transit: m.shopmeTransitMinDays != null || m.shopmeTransitMaxDays != null ? `${m.shopmeTransitMinDays ?? m.shopmeTransitMaxDays}-${m.shopmeTransitMaxDays ?? m.shopmeTransitMinDays}` : '',
+    collections: m.shopmeCollectionIds, origins: m.shopmeOriginLocationIds, rateType: m.shopmeRateType, provider: m.shopmeCarrierProvider ?? '',
+    params: Object.fromEntries(Object.entries(m.shopmeCarrierParams ?? {}).map(([k, v]) => [k, String(v ?? '')])),
   };
 }
 
 /** Validation message key for a card, or null when it can be saved. */
-export function cardProblem(c: RateCard): 'price' | 'range' | 'free' | null {
+export function cardProblem(c: RateCard): 'price' | 'range' | 'free' | 'carrier' | null {
+  if (c.rateType === 'CARRIER' && !c.provider) return 'carrier';
   const price = parseDecimal(c.price);
   if (price === null || price < 0) return 'price';
   if (c.cond !== 'none') {
@@ -62,6 +78,9 @@ export function methodInput(o: { name: string; description: string; active: bool
     ...(c.cond === 'weight' && { weightConditionsToCreate: ops.map((x) => ({ operator: x.operator, criteria: { value: x.v, unit: weightUnit } })) }),
     ...(c.cond === 'price' && { priceConditionsToCreate: ops.map((x) => ({ operator: x.operator, criteria: amount(x.v) })) }),
     ...(c.freeOn ? { shopmeFreeOverAmount: amount(parseDecimal(c.freeOver) ?? 0) } : { shopmeClearFreeOver: true }),
+    ...(c.transit ? { shopmeTransitMinDays: Number(c.transit.split('-')[0]), shopmeTransitMaxDays: Number(c.transit.split('-')[1]) } : { shopmeClearTransit: true }),
+    shopmeCollectionIds: c.collections, shopmeOriginLocationIds: c.origins, shopmeRateType: c.rateType,
+    ...(c.rateType === 'CARRIER' ? { shopmeCarrierProvider: c.provider, shopmeCarrierParams: c.params } : { shopmeCarrierProvider: null, shopmeCarrierParams: {} }),
   };
 }
 

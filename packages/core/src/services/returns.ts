@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
-import { orderLines, returnLines, returns, shops } from '../db/schema';
+import { collectionProducts, orderLines, returnLines, returns, shops } from '../db/schema';
+import { configOf } from './settings/config';
 import type { Db, Executor } from '../db/client';
 import { errR, okR, txResult, type Result } from './catalog/common';
 import { addEvent } from './events';
@@ -43,14 +44,28 @@ export async function createReturn(db: Db, shopId: number, orderId: number, line
   if (!lines.length) return errR(['returnLineItems'], 'Select at least one item to return', 'BLANK');
   // Shop return rules (Settings > Policies): window and final sale items are validated, fees become the return's defaults.
   const [shopRow] = await db.select({ settings: shops.settings }).from(shops).where(eq(shops.id, shopId));
-  const rules = returnRulesOf({ settings: shopRow?.settings ?? {} });
+  const defaults = returnRulesOf({ settings: shopRow?.settings ?? {} });
+  let rules = defaults;
+  const lineRows = await db.select({ id: orderLines.id, productId: orderLines.productId, title: orderLines.title }).from(orderLines).where(and(eq(orderLines.orderId, orderId), inArray(orderLines.id, lines.map((l) => l.orderLineId))));
+  // Settings > Policies > return rule sets: items of a rule set's collections follow that set instead of the default rules.
+  const sets = configOf({ settings: shopRow?.settings ?? {} }, 'RETURNS').ruleSets;
+  const memberships = sets.length && lineRows.length
+    ? await db.select({ p: collectionProducts.productId, c: collectionProducts.collectionId }).from(collectionProducts).where(and(eq(collectionProducts.shopId, shopId), inArray(collectionProducts.productId, lineRows.flatMap((r) => (r.productId ? [r.productId] : []))), inArray(collectionProducts.collectionId, sets.flatMap((x) => x.collectionIds))))
+    : [];
+  const ruleOf = (productId: number | null) => {
+    const set = productId ? sets.find((x) => x.collectionIds.some((c) => memberships.some((m) => m.p === productId && m.c === c))) : undefined;
+    return set ? { ...defaults, windowDays: set.windowDays, shippingCost: set.shippingCost, shippingFee: set.shippingFee, restockingFeePercent: set.restockingFeePercent } : defaults;
+  };
+  const perLine = lineRows.map((r) => ruleOf(r.productId));
+  const distinct = [...new Map(perLine.map((r) => [JSON.stringify([r.windowDays, r.shippingCost, r.shippingFee, r.restockingFeePercent]), r])).values()];
+  if (distinct.length === 1) rules = distinct[0]!;
   if (!o.ignoreRules) {
-    if (rules.windowDays) {
+    for (const [i, r] of perLine.entries()) {
+      if (r.windowDays === null) continue;
       const since = await returnWindowStart(db, shopId, orderId, order.createdAt);
-      if (((o.now ?? new Date()).getTime() - since.getTime()) / 86_400_000 > rules.windowDays) return errR(['returnLineItems'], `The ${rules.windowDays}-day return window for this order has passed`, 'INVALID');
+      if (((o.now ?? new Date()).getTime() - since.getTime()) / 86_400_000 > r.windowDays) return errR(['returnLineItems'], r.windowDays === 0 ? `${lineRows[i]!.title} cannot be returned` : `The ${r.windowDays}-day return window for this order has passed`, 'INVALID');
     }
-    const lineRows = await db.select({ id: orderLines.id, productId: orderLines.productId, title: orderLines.title }).from(orderLines).where(and(eq(orderLines.orderId, orderId), inArray(orderLines.id, lines.map((l) => l.orderLineId))));
-    const finals = await finalSaleProductIds(db, shopId, rules, lineRows.flatMap((r) => (r.productId ? [r.productId] : [])));
+    const finals = await finalSaleProductIds(db, shopId, defaults, lineRows.flatMap((r) => (r.productId ? [r.productId] : [])));
     for (const [i, l] of lines.entries()) {
       const row = lineRows.find((r) => r.id === l.orderLineId);
       if (row?.productId && finals.has(row.productId)) return errR(['returnLineItems', String(i), 'fulfillmentLineItemId'], `${row.title} is a final sale item and cannot be returned`, 'INVALID');

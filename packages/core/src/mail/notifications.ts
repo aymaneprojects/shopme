@@ -7,10 +7,11 @@ import { notificationTemplates, shops } from '../db/schema';
 import type { OrderSummary } from '../services/orders/create';
 import type { Shop } from '../services/shops';
 import type { Mail, Mailer } from '../mail';
+import { configOf } from '../services/settings/config';
 
 export const NOTIFICATION_KEYS = [
   'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund',
-  'customer_account_welcome', 'customer_account_invite', 'password_reset', 'draft_order_invoice', 'contact_form', 'staff_invite', 'staff_login_alert', 'gift_card_issued', 'abandoned_checkout', 'store_credit_account_credit',
+  'customer_account_welcome', 'customer_account_invite', 'password_reset', 'draft_order_invoice', 'contact_form', 'staff_invite', 'staff_login_alert', 'gift_card_issued', 'pickup_ready', 'pickup_picked_up', 'local_delivery_out', 'local_delivery_delivered', 'local_delivery_missed', 'fulfillment_request', 'abandoned_checkout', 'store_credit_account_credit',
 ] as const;
 export type NotificationKey = (typeof NOTIFICATION_KEYS)[number];
 export const isNotificationKey = (k: string): k is NotificationKey => (NOTIFICATION_KEYS as readonly string[]).includes(k);
@@ -114,6 +115,36 @@ const DEFS: Record<NotificationKey, Def> = {
     variables: ['shop.name', 'gift_card.balance', 'gift_card.initial_value', 'gift_card.code', 'gift_card.last_characters', 'gift_card.url', 'gift_card.message', 'gift_card.recipient_name', 'gift_card.sender_email', 'gift_card.expires_on'],
     en: { subject: 'Your {{ shop.name }} gift card', body: `<p style="margin-top:0">{% if gift_card.recipient_name %}Hi {{ gift_card.recipient_name }}, {% endif %}you received a gift card for <strong>{{ gift_card.initial_value }}</strong>{% if gift_card.sender_email %} from {{ gift_card.sender_email }}{% endif %}.</p>{% if gift_card.message %}<blockquote style="margin:16px 0;padding:8px 16px;border-left:3px solid #cbd5e1">{{ gift_card.message }}</blockquote>{% endif %}<p style="font-size:20px;letter-spacing:2px;font-weight:bold">{{ gift_card.code }}</p>{% if gift_card.expires_on %}<p>Valid until {{ gift_card.expires_on }}.</p>{% endif %}${button('gift_card.url', 'View your gift card')}${questionsEn}` },
     fr: { subject: 'Votre carte cadeau {{ shop.name }}', body: `<p style="margin-top:0">{% if gift_card.recipient_name %}Bonjour {{ gift_card.recipient_name }}, {% endif %}vous avez reçu une carte cadeau de <strong>{{ gift_card.initial_value }}</strong>{% if gift_card.sender_email %} de la part de {{ gift_card.sender_email }}{% endif %}.</p>{% if gift_card.message %}<blockquote style="margin:16px 0;padding:8px 16px;border-left:3px solid #cbd5e1">{{ gift_card.message }}</blockquote>{% endif %}<p style="font-size:20px;letter-spacing:2px;font-weight:bold">{{ gift_card.code }}</p>{% if gift_card.expires_on %}<p>Valable jusqu'au {{ gift_card.expires_on }}.</p>{% endif %}${button('gift_card.url', 'Voir ma carte cadeau')}${questionsFr}` },
+  },
+  pickup_ready: {
+    name: 'Ready for pickup', description: 'Sent to the customer when a pickup order is ready to be collected.', audience: 'customer', variables: [...ORDER_VARS, 'location.name', 'location.address', 'location.instructions'],
+    en: { subject: 'Your order {{ order.name }} is ready for pickup', body: `<p style="margin-top:0">Your order {{ order.name }} is ready. Collect it at <strong>{{ location.name }}</strong>{% if location.address %} ({{ location.address }}){% endif %}.</p>{% if location.instructions %}<p>{{ location.instructions }}</p>{% endif %}${lineTable('order.line_items')}${questionsEn}` },
+    fr: { subject: 'Votre commande {{ order.name }} est prête à être retirée', body: `<p style="margin-top:0">Votre commande {{ order.name }} est prête. Retirez-la chez <strong>{{ location.name }}</strong>{% if location.address %} ({{ location.address }}){% endif %}.</p>{% if location.instructions %}<p>{{ location.instructions }}</p>{% endif %}${lineTable('order.line_items')}${questionsFr}` },
+  },
+  pickup_picked_up: {
+    name: 'Picked up', description: 'Sent to the customer when a pickup order was collected.', audience: 'customer', variables: [...ORDER_VARS, 'location.name', 'location.address'],
+    en: { subject: 'Order {{ order.name }} was picked up', body: `<p style="margin-top:0">Thank you! Your order {{ order.name }} was collected at {{ location.name }}.</p>${lineTable('order.line_items')}${questionsEn}` },
+    fr: { subject: 'La commande {{ order.name }} a été retirée', body: `<p style="margin-top:0">Merci ! Votre commande {{ order.name }} a été retirée chez {{ location.name }}.</p>${lineTable('order.line_items')}${questionsFr}` },
+  },
+  local_delivery_out: {
+    name: 'Out for local delivery', description: 'Sent to the customer when a local delivery order is on its way.', audience: 'customer', variables: [...ORDER_VARS, 'location.name'],
+    en: { subject: 'Your order {{ order.name }} is out for delivery', body: `<p style="margin-top:0">Your order {{ order.name }} is on its way and will be delivered to you shortly.</p>${lineTable('order.line_items')}${questionsEn}` },
+    fr: { subject: 'Votre commande {{ order.name }} est en cours de livraison', body: `<p style="margin-top:0">Votre commande {{ order.name }} est en route et vous sera livrée sous peu.</p>${lineTable('order.line_items')}${questionsFr}` },
+  },
+  local_delivery_delivered: {
+    name: 'Delivered locally', description: 'Sent to the customer when a local delivery order was delivered.', audience: 'customer', variables: [...ORDER_VARS, 'location.name'],
+    en: { subject: 'Your order {{ order.name }} was delivered', body: `<p style="margin-top:0">Your order {{ order.name }} was delivered. We hope you enjoy it!</p>${questionsEn}` },
+    fr: { subject: 'Votre commande {{ order.name }} a été livrée', body: `<p style="margin-top:0">Votre commande {{ order.name }} a été livrée. Bonne réception !</p>${questionsFr}` },
+  },
+  local_delivery_missed: {
+    name: 'Missed local delivery', description: 'Sent to the customer when nobody was there to receive a local delivery.', audience: 'customer', variables: [...ORDER_VARS, 'location.name'],
+    en: { subject: 'We missed you: order {{ order.name }}', body: `<p style="margin-top:0">We tried to deliver your order {{ order.name }} but could not hand it over. Reply to this email to arrange a new delivery.</p>${questionsEn}` },
+    fr: { subject: 'Livraison manquée : commande {{ order.name }}', body: `<p style="margin-top:0">Nous avons tenté de livrer votre commande {{ order.name }} sans succès. Répondez à cet e-mail pour convenir d'une nouvelle livraison.</p>${questionsFr}` },
+  },
+  fulfillment_request: {
+    name: 'Fulfillment request', description: 'Sent to a fulfillment service when an order is placed (Settings > Shipping > Fulfillment services).', audience: 'staff', variables: [...ORDER_VARS, 'service.name'],
+    en: { subject: '[{{ shop.name }}] Please fulfil order {{ order.name }}', body: `<p style="margin-top:0">Hello {{ service.name }}, please prepare and ship order {{ order.name }}.</p>${orderBlock(EN_BLOCK)}` },
+    fr: { subject: '[{{ shop.name }}] Merci de préparer la commande {{ order.name }}', body: `<p style="margin-top:0">Bonjour {{ service.name }}, merci de préparer et d'expédier la commande {{ order.name }}.</p>${orderBlock(FR_BLOCK)}` },
   },
   store_credit_account_credit: {
     name: 'Store credit issued', description: 'Sent to a customer when store credit is added to their account with "notify customer".', audience: 'customer',
@@ -224,7 +255,7 @@ export function senderOf(shop: Shop): string | undefined {
 
 /** Notifications the merchant can switch off. The others (password reset, invitations, sign-in alerts, invoices...) are transactional and always sent. */
 export const TOGGLEABLE_NOTIFICATIONS: readonly NotificationKey[] = [
-  'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund', 'abandoned_checkout', 'gift_card_issued', 'store_credit_account_credit',
+  'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund', 'abandoned_checkout', 'gift_card_issued', 'store_credit_account_credit', 'pickup_ready', 'pickup_picked_up', 'local_delivery_out', 'local_delivery_delivered', 'local_delivery_missed', 'fulfillment_request',
 ];
 export const isToggleable = (key: NotificationKey) => TOGGLEABLE_NOTIFICATIONS.includes(key);
 
@@ -293,6 +324,12 @@ function bankInstructions(shop: Shop): string | null {
   return typeof v?.instructions === 'string' && v.instructions ? v.instructions : null;
 }
 
+/** Display name of a merchant-defined payment method (`manual:<id>`, `redirect:<id>`). */
+function customMethodName(shop: Shop, gateway: string): string | null {
+  const c = configOf(shop, 'PAYMENTS');
+  return c.customMethods.find((m) => `manual:${m.id}` === gateway)?.name ?? c.redirectGateways.find((g) => `redirect:${g.id}` === gateway)?.name ?? (gateway === 'test' ? 'Test gateway' : null);
+}
+
 export function orderVars(o: OrderSummary, shop: Shop): Record<string, unknown> {
   const L = GATEWAYS[langOf(shop)]!;
   const om = orderMoney(o.order);
@@ -309,7 +346,7 @@ export function orderVars(o: OrderSummary, shop: Shop): Record<string, unknown> 
       tax: om.tax ? money(om.tax) : null, tax_label: langOf(shop) === 'fr' ? (o.order.taxesIncluded ? 'Dont taxes' : 'Taxes') : (o.order.taxesIncluded ? 'Included taxes' : 'Taxes'),
       line_items: o.lines.map((l) => ({ title: [l.title, l.variantTitle].filter(Boolean).join(' - '), quantity: l.quantity, total: money(lineMoney(o.order, l).discountedTotal) })),
       shipping_address: address.length ? address : null,
-      payment_method: L[gateway] ?? gateway, payment_status: paid ? L.paid : L.pending, paid,
+      payment_method: L[gateway] ?? customMethodName(shop, gateway) ?? gateway, payment_status: paid ? L.paid : L.pending, paid,
       bank_instructions: !paid && gateway === 'bank_transfer' ? bankInstructions(shop) : null,
       cancel_reason: o.order.cancelReason ? o.order.cancelReason.toLowerCase() : null,
     },
@@ -337,6 +374,7 @@ export function sampleVars(shop: Shop, appUrl: string): Record<string, unknown> 
     invite: { url: `${base}/admin/invite/sample-token`, email: 'new.staff@example.com', role: 'staff', inviter: 'The owner' },
     gift_card: { balance: money(5000), initial_value: money(5000), code: 'ABCD-EFGH-JKLM-NPQR', last_characters: 'npqr', url: `${base}/gift_cards/sample-token`, message: 'Happy birthday!', recipient_name: 'Ada', sender_email: 'friend@example.com', expires_on: null },
     store_credit: { amount: money(2000), balance: money(3500), expires_on: null },
+    location: { name: 'Main store', address: '1 Rue de Rivoli, 75001 Paris', instructions: 'Ask at the counter.' }, service: { name: 'Fulfillment partner' },
     checkout: { customer_first_name: 'Ada', line_items: items, subtotal: money(5500), recovery_url: `${base}/checkouts/sample-token/recover` },
   };
 }

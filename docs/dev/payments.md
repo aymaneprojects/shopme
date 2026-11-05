@@ -37,3 +37,24 @@ thank-you page. `POST /webhooks/stripe` (raw body, signature verified) handles `
 and `payment_intent.payment_failed` (failed transaction + timeline entry). Point the Stripe webhook at `<APP_URL>/webhooks/stripe`.
 
 Manual methods create the order as PENDING; the confirmation and staff emails are queued immediately. Orders totalling 0 are PAID.
+
+## Capture, test gateway, custom methods and redirect gateways
+
+Settings blocks live in `shops.settings.config.<key>` and are read and written through `shopmeConfig(key)` / `shopmeConfigUpdate(key, value)`
+(keys: GENERAL, ORDERS, PAYMENTS, SHIPPING, TAXES, NOTIFICATIONS, CHECKOUT, GIFT_CARDS, RETURNS, DOCUMENTS; each block is validated as a whole).
+
+- `PAYMENTS.captureMethod = manual`: the Stripe PaymentIntent is created with `capture_method=manual`; `payment_intent.amount_capturable_updated`
+  turns the order AUTHORIZED (an `AUTHORIZATION` transaction) and `orderCapture` collects it at Stripe before recording the capture. The test
+  gateway follows the same rule (AUTHORIZED instead of PAID).
+- `PAYMENTS.testGateway`: method id `test`, nothing is charged, orders and transactions are flagged `test`.
+- `PAYMENTS.customMethods`: ids `manual:<id>` with a name and instructions (order stays PENDING, instructions shown on the thank-you page).
+- `PAYMENTS.redirectGateways`: ids `redirect:<id>`. After the order is placed (PENDING) the buyer is redirected to `redirectUrl`, a template with
+  `{order} {reference} {amount} {currency} {email} {return_url}`. The provider confirms with `POST /webhooks/payments/<id>` and the JSON body
+  `{"reference": "<order name>", "status": "paid" | "failed"}`, signed as hex HMAC-SHA256 of the raw body in `X-ShopMe-Signature` with the gateway secret.
+- `PAYMENTS.customizations`: rules that hide, rename or move a method to the top for a country list and an order-total range.
+- PayPal and Mollie are not built in: both need provider-specific signed callbacks. A redirect gateway in front of their payment links works when
+  the provider (or a small relay) can sign the confirmation.
+
+Carrier-calculated shipping rates ask a provider registered in `packages/core/src/services/shipping/carriers.ts`. `demo_flat` computes
+`base + perKg * started kilograms`; `http` POSTs `{service, grams, subtotal, destination}` to a carrier account of `SHIPPING.carrierAccounts`
+(bearer secret) and reads `{"price": <minor units>}` (`null`: no offer). The rate price is the fallback when the carrier does not answer.

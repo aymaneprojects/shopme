@@ -1,5 +1,8 @@
 /** Payment method ids shown at checkout. */
-export type PaymentMethodId = 'bank_transfer' | 'cod' | 'stripe';
+export type PaymentMethodId = string;
+/** `manual`: order stays pending until the merchant confirms payment. `online`: Stripe, paid from a verified webhook. `test`: sandbox gateway, nothing is charged.
+ *  `redirect`: the buyer is sent to the merchant's payment page and the provider confirms through the signed payment webhook. */
+export type PaymentKind = 'manual' | 'online' | 'test' | 'redirect';
 
 /**
  * A way to pay. `manual` methods place the order as PENDING (the merchant confirms payment later);
@@ -7,7 +10,9 @@ export type PaymentMethodId = 'bank_transfer' | 'cod' | 'stripe';
  */
 export interface PaymentProvider {
   id: PaymentMethodId;
-  kind: 'manual' | 'online';
+  kind: PaymentKind;
+  /** Merchant-chosen display name (custom manual methods and redirect gateways); built-in methods use the translated label. */
+  name?: string;
   /** Merchant-provided text shown to the buyer (bank details). */
   instructions?: string;
 }

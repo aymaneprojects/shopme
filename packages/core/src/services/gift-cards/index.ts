@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { customers, giftCardTransactions, giftCards, orderLines, orders } from '../../db/schema';
+import { customers, giftCardTransactions, giftCards, orderLines, orders, shops } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { buildSearch, compare, dateCompare, idTerm } from '../catalog/search';
 import { errR, okR, txResult, type Result } from '../catalog/common';
@@ -8,6 +8,8 @@ import { addEvent } from '../events';
 import { moneyOf, shopUrl } from '../../mail/notifications';
 import { getOrder } from '../orders/orders';
 import type { Shop } from '../shops';
+import { configOf } from '../settings/config';
+import { createFulfillment } from '../orders/fulfillments';
 
 export type GiftCard = typeof giftCards.$inferSelect;
 export type GiftCardTransaction = typeof giftCardTransactions.$inferSelect;
@@ -139,9 +141,16 @@ export async function createGiftCard(db: Db, shopId: number, currency: string, i
   if (i.customerId && !(await customerExists(db, shopId, i.customerId))) return errR(['customerId'], 'Customer could not be found', 'CUSTOMER_NOT_FOUND');
   if (i.recipientCustomerId && !(await customerExists(db, shopId, i.recipientCustomerId))) return errR(['recipientAttributes', 'id'], 'Recipient could not be found', 'RECIPIENT_NOT_FOUND');
   if ((await db.select({ id: giftCards.id }).from(giftCards).where(and(eq(giftCards.shopId, shopId), eq(giftCards.code, code)))).length) return errR(['code'], 'Code has already been taken', 'TAKEN');
+  // Settings > Payments > gift cards: cards issued without an explicit expiry get the store's default validity.
+  let expiresOn = i.expiresOn;
+  if (expiresOn === undefined) {
+    const [shop] = await db.select({ settings: shops.settings }).from(shops).where(eq(shops.id, shopId)).limit(1);
+    const months = shop ? configOf(shop, 'GIFT_CARDS').defaultExpirationMonths : null;
+    if (months) { expiresOn = new Date(); expiresOn.setUTCMonth(expiresOn.getUTCMonth() + months); }
+  }
   return txResult(db, async (tx) => {
     const [row] = await tx.insert(giftCards).values({
-      shopId, code, token: generateGiftCardToken(), currency, initialValue: i.initialValue, balance: i.initialValue, customerId: i.customerId ?? null, expiresOn: i.expiresOn ?? null,
+      shopId, code, token: generateGiftCardToken(), currency, initialValue: i.initialValue, balance: i.initialValue, customerId: i.customerId ?? null, expiresOn: expiresOn ?? null,
       note: i.note?.trim() || null, templateSuffix: i.templateSuffix || null, recipientCustomerId: i.recipientCustomerId ?? null, recipientName: i.recipientName?.trim() || null,
       message: i.message?.slice(0, 200) || null, sendNotificationAt: i.sendNotificationAt ?? null, orderId: i.orderId ?? null, orderLineId: i.orderLineId ?? null,
     }).returning();
@@ -295,4 +304,18 @@ export function giftCardMailVars(shop: Shop, appUrl: string, c: GiftCard, from: 
       url: `${shopUrl(shop, appUrl)}/gift_cards/${c.token}`, message: c.message, recipient_name: c.recipientName, sender_email: from, expires_on: c.expiresOn ? c.expiresOn.toISOString().slice(0, 10) : null,
     },
   };
+}
+
+/** Settings > General > order processing: gift card items are fulfilled once their cards were issued (nothing ships). */
+export async function autoFulfillGiftCardLines(db: Db, shopId: number, orderId: number): Promise<boolean> {
+  const [shop] = await db.select({ settings: shops.settings }).from(shops).where(eq(shops.id, shopId)).limit(1);
+  if (!shop || !configOf(shop, 'ORDERS').autoFulfillGiftCards) return false;
+  const lines = await db.select().from(orderLines).where(and(eq(orderLines.orderId, orderId), eq(orderLines.isGiftCard, true)));
+  const open = lines.filter((l) => l.currentQuantity - l.fulfilledQuantity > 0);
+  if (!open.length) return false;
+  const issued = await db.select({ lineId: giftCards.orderLineId }).from(giftCards).where(and(eq(giftCards.shopId, shopId), inArray(giftCards.orderLineId, open.map((l) => l.id))));
+  const ready = open.filter((l) => issued.some((c) => c.lineId === l.id));
+  if (!ready.length) return false;
+  const r = await createFulfillment(db, shopId, orderId, { lines: ready.map((l) => ({ orderLineId: l.id, quantity: l.currentQuantity - l.fulfilledQuantity })), notifyCustomer: false });
+  return r.ok;
 }

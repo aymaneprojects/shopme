@@ -1,9 +1,10 @@
 import { eq, and, asc, gt, sql } from 'drizzle-orm';
-import { fulfillmentLines, fulfillments, inventoryAdjustments, inventoryItems, inventoryLevels, orderLines, orders } from '../../db/schema';
+import { fulfillmentLines, fulfillments, inventoryAdjustments, inventoryItems, inventoryLevels, orderLines, orders, shops } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { errR, okR, txResult, type Result } from '../catalog/common';
 import { defaultLocationId, getLocation } from '../catalog/inventory';
 import { addEvent } from '../events';
+import { configOf } from '../settings/config';
 import { getOrder, getOrderDetail, type Fulfillment, type Order } from './orders';
 
 /**
@@ -30,6 +31,16 @@ async function shipCommittedStock(tx: Executor, shopId: number, variantId: numbe
     ]);
     left -= n;
   }
+}
+
+/** Settings > General > order processing: a paid, fully fulfilled order is archived (closed) automatically. */
+async function autoArchive(tx: Executor, shopId: number, order: Order): Promise<Order> {
+  if (order.closedAt || order.financialStatus !== 'PAID' || order.fulfillmentStatus !== 'FULFILLED') return order;
+  const [shop] = await tx.select({ settings: shops.settings }).from(shops).where(eq(shops.id, shopId)).limit(1);
+  if (!shop || !configOf(shop, 'ORDERS').autoArchive) return order;
+  const [closed] = await tx.update(orders).set({ closedAt: new Date() }).where(eq(orders.id, order.id)).returning();
+  await addEvent(tx, shopId, { subjectType: 'order', subjectId: order.id, verb: 'order.closed', message: 'Order was archived automatically' });
+  return closed ?? order;
 }
 
 export interface TrackingInput { company?: string | null; numbers?: string[]; urls?: string[] }
@@ -73,7 +84,7 @@ export async function createFulfillment(
     const all = d.lines.every((l) => remaining(l) <= 0);
     const [updated] = await tx.update(orders).set({ fulfillmentStatus: all ? 'FULFILLED' : 'PARTIALLY_FULFILLED', updatedAt: new Date() }).where(eq(orders.id, orderId)).returning();
     await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.fulfilled', message: `Fulfilled ${picks.reduce((s, p) => s + p.quantity, 0)} item(s) (${f!.name})`, authorStaffUserId: o.staffId, data: { fulfillmentId: f!.id, name: f!.name, quantity: picks.reduce((s, p) => s + p.quantity, 0), notify: !!o.notifyCustomer } });
-    return okR({ order: updated!, fulfillment: { ...f!, lines } });
+    return okR({ order: all ? await autoArchive(tx, shopId, updated!) : updated!, fulfillment: { ...f!, lines } });
   });
 }
 

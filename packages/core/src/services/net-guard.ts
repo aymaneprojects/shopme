@@ -102,3 +102,24 @@ export function postGuarded(url: URL, o: GuardedPost): Promise<number> {
     req.end(o.body);
   });
 }
+
+/** Like {@link postGuarded} but resolves with the status and (at most 64 KB of) the response body. Used for carrier rate lookups and SMS gateways. */
+export function postGuardedJson(url: URL, o: GuardedPost): Promise<{ status: number; body: string }> {
+  if (isIP(url.hostname.replace(/^\[|\]$/g, '')) && !o.allowPrivate && isPrivateAddress(url.hostname.replace(/^\[|\]$/g, ''))) {
+    return Promise.reject(new BlockedAddressError(url.hostname));
+  }
+  return new Promise((resolve, reject) => {
+    const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
+    const req = send(url, {
+      method: 'POST', headers: { ...o.headers, 'content-length': Buffer.byteLength(o.body) }, lookup: guardedLookup(o.allowPrivate),
+    }, (res: IncomingMessage) => {
+      const chunks: Buffer[] = []; let size = 0;
+      res.on('data', (c: Buffer) => { size += c.length; if (size <= 65_536) chunks.push(c); });
+      res.on('end', () => { clearTimeout(timer); resolve({ status: res.statusCode ?? 0, body: Buffer.concat(chunks).toString('utf8') }); });
+      res.on('error', (e) => { clearTimeout(timer); reject(e); });
+    });
+    const timer = setTimeout(() => req.destroy(new Error('Request timed out')), o.timeoutMs);
+    req.on('error', (e) => { clearTimeout(timer); reject(e); });
+    req.end(o.body);
+  });
+}

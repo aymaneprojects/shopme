@@ -14,6 +14,7 @@ import { gidToNum, parseDecimal } from '../../format';
 import { useI18n } from '../../i18n';
 import { LENGTH_ABBR, PICKUP_TIMES, WEIGHT_ABBR } from '../../lib/shipping';
 import { useShop } from '../../session';
+import { LocalDeliveryFollowUp, PickupFromOthers, ShippingExtras } from './ShippingExtras';
 
 const errText = (e: unknown) => (e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e instanceof Error ? e.message : String(e));
 
@@ -129,6 +130,8 @@ export function ShippingSettings() {
         </RowCard>
       </Section>
 
+      <ShippingExtras />
+
       <Modal open={creating !== null} onClose={() => setCreating(null)} title={t('delivery.createProfile')} closeLabel={t('common.close')}
         footer={<><Button onClick={() => setCreating(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!creating?.trim()} loading={create.isPending} onClick={() => create.mutate(creating!)}>{t('delivery.create')}</Button></>}>
         <div className="flex flex-col gap-3">
@@ -189,6 +192,7 @@ export function PickupSettings() {
       <div className="flex flex-col gap-4">
         <Section title={t('delivery.yourLocations')}>
           <Banner tone="info">{t('delivery.pickupIntro')}</Banner>
+          <PickupFromOthers />
           {q.isLoading && <Skeleton className="h-24" />}
           {q.isError && <Banner>{(q.error as Error).message}</Banner>}
           <RowCard>
@@ -255,6 +259,7 @@ export function LocalDeliverySettings() {
       <SubHeader back="/settings/shipping" parent={t('delivery.title')} title={t('delivery.localDelivery')} />
       <div className="flex flex-col gap-4">
         <p className="text-[13px] text-muted">{t('delivery.localDeliveryIntro')}</p>
+        <LocalDeliveryFollowUp />
         {q.isLoading && <Skeleton className="h-24" />}
         {q.isError && <Banner>{(q.error as Error).message}</Banner>}
         <RowCard>

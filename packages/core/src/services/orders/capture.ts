@@ -9,7 +9,9 @@ import { getOrder, getOrderDetail, paidAmounts, type OrderTransaction } from './
  * `orderCapture`: collect (part of) the money authorised by an AUTHORIZATION transaction. Several captures are allowed until the
  * authorised amount is used up or `finalCapture` closes it. Amounts are minor units. The order turns PAID once it is fully received.
  */
-export async function captureTransaction(db: Db, shopId: number, i: { orderId: number; parentTransactionId: number; amount: number; currency?: string | null; finalCapture?: boolean | null; staffId?: number | null }): Promise<Result<OrderTransaction>> {
+export async function captureTransaction(db: Db, shopId: number, i: { orderId: number; parentTransactionId: number; amount: number; currency?: string | null; finalCapture?: boolean | null; staffId?: number | null;
+  /** Called once the capture is valid and before it is recorded: collects the money at the payment provider (throw to refuse). */
+  collect?: (parent: OrderTransaction, amount: number) => Promise<void> }): Promise<Result<OrderTransaction>> {
   const order = await getOrder(db, shopId, i.orderId);
   if (!order) return errR(['input', 'id'], 'Order does not exist', 'NOT_FOUND');
   return txResult(db, async (tx) => {
@@ -24,6 +26,9 @@ export async function captureTransaction(db: Db, shopId: number, i: { orderId: n
     const remaining = parent.amount - children.filter((t) => t.kind === 'CAPTURE').reduce((n, t) => n + t.amount, 0);
     if (!(i.amount > 0)) return errR(['input', 'amount'], 'Amount must be greater than 0', 'GREATER_THAN');
     if (i.amount > remaining) return errR(['input', 'amount'], 'Amount is greater than the remaining authorized amount', 'INVALID');
+    if (i.collect) {
+      try { await i.collect(parent, i.amount); } catch (e) { return errR(['input', 'parentTransactionId'], `The payment provider refused the capture: ${(e as Error).message}`, 'INVALID'); }
+    }
     const now = new Date();
     const closes = !!i.finalCapture || i.amount === remaining;
     const [capture] = await tx.insert(transactions).values({

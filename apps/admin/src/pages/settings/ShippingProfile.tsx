@@ -7,6 +7,7 @@ import { UserErrors, gql, mutate } from '../../api';
 import { SubHeader } from '../../components/SettingsKit';
 import { SaveBar } from '../../components/SaveBar';
 import { RateDialog } from '../../components/RateDialog';
+import { RateOptions } from '../../components/RateOptions';
 import { ProductPicker, type PickedProduct } from '../../components/Pickers';
 import { useFormat } from '../../components/shared';
 import { Thumb } from '../Products';
@@ -92,6 +93,11 @@ export function ShippingProfilePage() {
     });
     return parts.length ? parts.join(' · ') : t('delivery.allOrders');
   };
+  const extraText = (m: ApiMethod) => [
+    m.shopmeRateType === 'CARRIER' ? t('bs.rateCarrier') : null,
+    m.shopmeTransitMinDays != null || m.shopmeTransitMaxDays != null ? t('bs.transitDays', { a: m.shopmeTransitMinDays ?? m.shopmeTransitMaxDays ?? 0, b: m.shopmeTransitMaxDays ?? m.shopmeTransitMinDays ?? 0 }) : null,
+    m.shopmeCollectionIds.length ? t('bs.collectionsCount', { n: m.shopmeCollectionIds.length }) : null,
+  ].filter(Boolean).join(' · ');
   const priceText = (m: ApiMethod) => {
     const price = Number(m.rateProvider.price?.amount ?? 0);
     const base = price === 0 ? t('shipping.free') : money(m.rateProvider.price!.amount);
@@ -207,7 +213,7 @@ export function ShippingProfilePage() {
                     <div className="min-w-0 flex-1 text-[13px]">
                       <p className="font-medium">{o.name}{o.methods.some((m) => !m.active) && <span className="ml-2"><Badge>{t('delivery.inactive')}</Badge></span>}</p>
                       {o.methods[0]!.description && <p className="text-muted">{o.methods[0]!.description}</p>}
-                      {o.methods.map((m) => <p key={m.id} className="flex justify-between gap-3 text-muted"><span>{conditionText(m)}</span><span className="text-text">{priceText(m)}</span></p>)}
+                      {o.methods.map((m) => <p key={m.id} className="flex justify-between gap-3 text-muted"><span>{conditionText(m)}{extraText(m) ? ` · ${extraText(m)}` : ''}</span><span className="text-text">{priceText(m)}</span></p>)}
                     </div>
                     <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
                       { key: 'edit', icon: <Pencil />, label: t('delivery.editRate'), onSelect: () => openOption(g, z, o.methods) },
@@ -266,7 +272,7 @@ export function ShippingProfilePage() {
                     </div>
                     <div className="flex flex-col gap-3 rounded-lg bg-canvas p-3 shadow-card">
                       <div className="grid gap-3 sm:grid-cols-2">
-                        <Input label={`${t('shipping.price')} (${shop.currency})`} inputMode="decimal" placeholder="0.00" value={c.price} onChange={(e) => set({ price: e.target.value })} error={problem === 'price' && c.price !== '' ? t('delivery.errPrice') : undefined} />
+                        <Input label={`${c.rateType === 'CARRIER' ? t('bs.fallbackPrice') : t('shipping.price')} (${shop.currency})`} inputMode="decimal" placeholder="0.00" value={c.price} onChange={(e) => set({ price: e.target.value })} error={problem === 'price' && c.price !== '' ? t('delivery.errPrice') : undefined} />
                         <Select label={t('shipping.condition')} value={c.cond} onChange={(e) => set({ cond: e.target.value as RateCard['cond'], min: '', max: '' })}>
                           <option value="none">{t('delivery.condNone')}</option><option value="weight">{t('delivery.condWeight')}</option><option value="price">{t('delivery.condPrice')}</option>
                         </Select>
@@ -279,6 +285,7 @@ export function ShippingProfilePage() {
                       )}
                       <Switch placement="end" checked={c.freeOn} onChange={(v) => set({ freeOn: v })} label={t('delivery.offerFree')} />
                       {c.freeOn && <Input label={`${t('delivery.freeMinimum')} (${shop.currency})`} inputMode="decimal" value={c.freeOver} onChange={(e) => set({ freeOver: e.target.value })} error={problem === 'free' ? t('delivery.errPrice') : undefined} />}
+                      <RateOptions card={c} set={set} locations={p.profileLocationGroups.find((g) => g.locationGroup.id === option.groupId)?.locationGroup.locations.nodes ?? []} />
                     </div>
                   </section>
                 );

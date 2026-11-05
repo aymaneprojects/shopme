@@ -10,6 +10,7 @@ import { NOTIFICATION_TOGGLE, STAFF_ORDER_RECIPIENTS, STAFF_ORDER_RECIPIENTS_UPD
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 import { ShopPanel, useShopSettings } from './Settings';
+import { FulfillmentRequestRow, SmsGatewayCard, SmsPane } from './NotificationSms';
 
 interface Template { key: string; name: string; description: string; audience: 'customer' | 'staff'; subject: string; body: string; customized: boolean; enabled: boolean; toggleable: boolean }
 const useTemplates = () => useQuery({ queryKey: ['notification-templates'], queryFn: () => gql<{ shopmeNotificationTemplates: Template[] }>(NOTIFICATION_TEMPLATES) });
@@ -62,16 +63,21 @@ export function NotificationsSettings() {
         <LinkRow to="/settings/notifications/customer" icon={Bell} title={t('notif.customerTitle')} description={t('notif.customerDesc')} />
         <LinkRow to="/settings/notifications/staff" icon={Users} title={t('notif.staffTitle')} description={t('notif.staffDesc')} />
       </RowCard>
+      <FulfillmentRequestRow />
       <RowCard>
         <LinkRow to="/settings/webhooks" icon={Webhook} title={t('settings.webhooks')} description={t('notif.webhooksDesc')} />
       </RowCard>
       <Sender />
+      <SmsGatewayCard />
     </div>
   );
 }
 
 const GROUPS: Array<{ id: string; title: Key; keys: string[] }> = [
   { id: 'orders', title: 'notif.group.orders', keys: ['order_confirmation', 'draft_order_invoice', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund'] },
+  { id: 'pickup', title: 'bs.group.pickup', keys: ['pickup_ready', 'pickup_picked_up'] },
+  { id: 'local', title: 'bs.group.local', keys: ['local_delivery_out', 'local_delivery_delivered', 'local_delivery_missed'] },
+  { id: 'giftcards', title: 'bs.group.giftCards', keys: ['gift_card_issued', 'store_credit_account_credit'] },
   { id: 'accounts', title: 'notif.group.accounts', keys: ['customer_account_welcome', 'customer_account_invite', 'password_reset'] },
 ];
 
@@ -189,6 +195,7 @@ function TemplateForm({ tpl }: { tpl: Template }) {
   const [confirm, setConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
   const [test, setTest] = useState<string | null>(null);
+  const [channel, setChannel] = useState<'email' | 'sms'>('email');
   const dirty = form.subject !== tpl.subject || form.body !== tpl.body;
   const preview = useQuery({ queryKey: ['notification-preview', tpl.key, tpl.subject, tpl.body], retry: false, queryFn: () => gql<{ shopmeNotificationPreview: { preview: { subject: string; html: string } | null } }>(NOTIFICATION_PREVIEW, { key: tpl.key }) });
   const refresh = () => { void qc.invalidateQueries({ queryKey: ['notification-templates'] }); void qc.invalidateQueries({ queryKey: ['notification-preview'] }); };
@@ -218,7 +225,12 @@ function TemplateForm({ tpl }: { tpl: Template }) {
         </>}
       />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
-      {!editing ? (
+      {tpl.audience === 'customer' && (
+        <div role="tablist" aria-label={t('bs.channel')} className="mb-3 inline-flex gap-1 rounded-full bg-hover p-0.5">
+          {(['email', 'sms'] as const).map((c) => <button key={c} type="button" role="tab" aria-selected={channel === c} onClick={() => setChannel(c)} className={`rounded-full px-3 py-1 text-[13px] font-medium ${channel === c ? 'bg-canvas shadow-card' : 'text-muted'}`}>{t(c === 'email' ? 'bs.channelEmail' : 'bs.channelSms')}</button>)}
+        </div>
+      )}
+      {channel === 'sms' && tpl.audience === 'customer' ? <SmsPane notificationKey={tpl.key} /> : !editing ? (
         <Card title={t('notif.preview')}>
           {preview.isLoading && <Skeleton className="h-64" />}
           {preview.error && <Banner>{preview.error.message}</Banner>}

@@ -1,5 +1,5 @@
-import { and, eq, gt } from 'drizzle-orm';
-import { PERMISSION_AREAS, sessions, shops, staffUsers } from '../db/schema';
+import { and, eq, gt, sql } from 'drizzle-orm';
+import { PERMISSION_AREAS, sessions, shops, staffRoles, staffUsers } from '../db/schema';
 import type { Db, Executor } from '../db/client';
 import { errR, okR, type Result } from './catalog/common';
 import { hashPassword, MIN_PASSWORD_LENGTH, type StaffUser } from './auth';
@@ -36,8 +36,8 @@ export function scopesFor(u: Pick<StaffUser, 'role' | 'permissions'>): string[] 
 
 // ---- reading ----------------------------------------------------------------------------------------------------------------
 
-const cols = { id: staffUsers.id, email: staffUsers.email, firstName: staffUsers.firstName, lastName: staffUsers.lastName, role: staffUsers.role, active: staffUsers.active, permissions: staffUsers.permissions, invitePending: staffUsers.inviteTokenHash, lastLoginAt: staffUsers.lastLoginAt };
-type Row = Pick<StaffUser, 'id' | 'email' | 'firstName' | 'lastName' | 'role' | 'active' | 'permissions' | 'lastLoginAt'> & { invitePending: string | null };
+const cols = { twoFactor: sql<boolean>`exists (select 1 from staff_two_factor tf where tf.staff_user_id = staff_users.id and tf.enabled)`, roleId: staffUsers.roleId, roleName: sql<string | null>`(select sr.name from staff_roles sr where sr.id = staff_users.role_id)`, id: staffUsers.id, email: staffUsers.email, firstName: staffUsers.firstName, lastName: staffUsers.lastName, role: staffUsers.role, active: staffUsers.active, permissions: staffUsers.permissions, invitePending: staffUsers.inviteTokenHash, lastLoginAt: staffUsers.lastLoginAt };
+type Row = Pick<StaffUser, 'id' | 'email' | 'firstName' | 'lastName' | 'role' | 'active' | 'permissions' | 'lastLoginAt'> & { invitePending: string | null; twoFactor?: boolean; roleId?: number | null; roleName?: string | null };
 export type StaffMemberRow = Omit<Row, 'invitePending' | 'permissions'> & { invitePending: boolean; permissions: PermissionArea[] };
 const shape = (r: Row): StaffMemberRow => ({ ...r, invitePending: !!r.invitePending, permissions: permissionsOf(r) });
 
@@ -55,7 +55,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Not a valid argon2 hash: nobody can log in until the invitation is accepted. */
 const NO_PASSWORD = '!invited';
 
-export interface StaffInviteInput { email: string; role: string; permissions?: string[] | null; firstName?: string | null; lastName?: string | null }
+export interface StaffInviteInput { email: string; role: string; /** Custom role: its permissions are copied to the member. */ roleId?: number | null; permissions?: string[] | null; firstName?: string | null; lastName?: string | null }
 
 /** Create (or re-send) an invitation. Returns the member and the plaintext accept token (shown once, mailed by the caller). */
 export async function inviteStaff(db: Db, shopId: number, input: StaffInviteInput): Promise<Result<{ staff: StaffMemberRow; token: string }>> {
@@ -65,7 +65,14 @@ export async function inviteStaff(db: Db, shopId: number, input: StaffInviteInpu
   const bad = (input.permissions ?? []).find((p) => !isArea(p));
   if (bad) return errR(['permissions'], `Unknown permission ${bad}`, 'INVALID');
   const token = randomToken(32);
-  const fields = { role: input.role, permissions: normalizePermissions(input.permissions ?? []), inviteTokenHash: sha256(token), inviteExpiresAt: new Date(Date.now() + INVITE_TTL_MS), ...(input.firstName != null && { firstName: input.firstName }), ...(input.lastName != null && { lastName: input.lastName }) };
+  let roleId: number | null = null;
+  let permissions = input.permissions ?? [];
+  if (input.roleId) {
+    const [r] = await db.select().from(staffRoles).where(and(eq(staffRoles.shopId, shopId), eq(staffRoles.id, input.roleId))).limit(1);
+    if (!r) return errR(['roleId'], 'Role does not exist', 'NOT_FOUND');
+    roleId = r.id; permissions = r.permissions;
+  }
+  const fields = { role: input.role, roleId, permissions: normalizePermissions(permissions), inviteTokenHash: sha256(token), inviteExpiresAt: new Date(Date.now() + INVITE_TTL_MS), ...(input.firstName != null && { firstName: input.firstName }), ...(input.lastName != null && { lastName: input.lastName }) };
   const [existing] = await db.select().from(staffUsers).where(and(eq(staffUsers.shopId, shopId), eq(staffUsers.email, email))).limit(1);
   let id: number;
   if (existing) {
@@ -99,7 +106,7 @@ export async function acceptInvite(db: Db, token: string, input: { password: str
 
 // ---- updates ----------------------------------------------------------------------------------------------------------------
 
-export interface StaffUpdateInput { role?: string | null; permissions?: string[] | null; firstName?: string | null; lastName?: string | null; active?: boolean | null }
+export interface StaffUpdateInput { role?: string | null; /** Custom role id (0 clears it). */ roleId?: number | null; permissions?: string[] | null; firstName?: string | null; lastName?: string | null; active?: boolean | null }
 
 async function target(db: Executor, shopId: number, id: number, actorId: number | null | undefined): Promise<Result<StaffUser>> {
   const [u] = await db.select().from(staffUsers).where(and(eq(staffUsers.shopId, shopId), eq(staffUsers.id, id))).limit(1);
@@ -112,7 +119,7 @@ async function target(db: Executor, shopId: number, id: number, actorId: number 
 export async function updateStaff(db: Db, shopId: number, id: number, input: StaffUpdateInput, actorId?: number | null): Promise<Result<StaffMemberRow>> {
   const [cur] = await db.select().from(staffUsers).where(and(eq(staffUsers.shopId, shopId), eq(staffUsers.id, id))).limit(1);
   if (!cur) return errR(['id'], 'Staff member does not exist', 'NOT_FOUND');
-  const touchesAccess = input.role != null || input.permissions != null || input.active != null;
+  const touchesAccess = input.role != null || input.permissions != null || input.active != null || input.roleId != null;
   if (touchesAccess) {
     const t = await target(db, shopId, id, actorId);
     if (!t.ok) return t;
@@ -120,8 +127,18 @@ export async function updateStaff(db: Db, shopId: number, id: number, input: Sta
   if (input.role != null && !(INVITABLE_ROLES as readonly string[]).includes(input.role)) return errR(['role'], 'Role must be admin or staff', 'INVALID');
   const bad = (input.permissions ?? []).find((p) => !isArea(p));
   if (bad) return errR(['permissions'], `Unknown permission ${bad}`, 'INVALID');
+  let roleSet: { roleId: number | null; permissions?: PermissionArea[] } | null = null;
+  if (input.roleId != null) {
+    if (input.roleId === 0) roleSet = { roleId: null };
+    else {
+      const [r] = await db.select().from(staffRoles).where(and(eq(staffRoles.shopId, shopId), eq(staffRoles.id, input.roleId))).limit(1);
+      if (!r) return errR(['roleId'], 'Role does not exist', 'NOT_FOUND');
+      roleSet = { roleId: r.id, permissions: normalizePermissions(r.permissions) };
+    }
+  }
   await db.update(staffUsers).set({
-    ...(input.role != null && { role: input.role }), ...(input.permissions != null && { permissions: normalizePermissions(input.permissions) }),
+    ...(input.role != null && { role: input.role }), ...(input.role === 'admin' && { roleId: null }), ...(input.permissions != null && { permissions: normalizePermissions(input.permissions), roleId: null }),
+    ...(roleSet && { roleId: roleSet.roleId, ...(roleSet.permissions && { permissions: roleSet.permissions, role: 'staff' }) }),
     ...(input.firstName !== undefined && { firstName: input.firstName }), ...(input.lastName !== undefined && { lastName: input.lastName }),
     ...(input.active != null && { active: input.active }), updatedAt: new Date(),
   }).where(eq(staffUsers.id, id));

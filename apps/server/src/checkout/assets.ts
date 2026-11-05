@@ -81,6 +81,7 @@ function apply(r){
   if(r.summary!==undefined){$('#summary-lines').innerHTML=r.summary}
   if(r.total!==undefined){var t=document.querySelectorAll('[data-total]');for(var i=0;i<t.length;i++)t[i].textContent=r.total}
   if(r.payments!==undefined){document.getElementById('payments').hidden=r.free;document.getElementById('free-note').hidden=!r.free}
+  if(r.methods){var opts=document.querySelectorAll('#payments input[name=paymentMethod]');opts.forEach(function(i){var on=r.methods.indexOf(i.value)>=0;var row=i.closest('label');var panel=document.querySelector('[data-panel="'+i.value+'"]');if(row)row.hidden=!on;if(panel&&!on)panel.hidden=true;if(!on&&i.checked)i.checked=false});var chosen=document.querySelector('#payments input[name=paymentMethod]:checked');if(!chosen){var first=Array.prototype.find.call(opts,function(i){return r.methods.indexOf(i.value)>=0});if(first){first.checked=true;first.dispatchEvent(new Event('change',{bubbles:true}))}}}
   if(elements&&r.amount!==undefined&&r.amount>0)elements.update({amount:r.amount});
 }
 function refresh(extra){

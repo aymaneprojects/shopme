@@ -10,11 +10,13 @@ export interface Condition { field: ConditionField; operator: ConditionOperator;
 
 export interface MethodDef {
   id: number; name: string; price: number; position: number; freeOverAmount: number | null; conditions: Condition[];
+  /** Estimated transit time in days. */
+  transit?: { min: number; max: number } | null;
 }
 export interface ZoneCountryDef { countryCode: string | null; restOfWorld: boolean; provinceCodes: string[] }
 export interface ZoneDef { id: number; countries: ZoneCountryDef[]; methods: MethodDef[] }
 
-export interface QuotedRate { id: number; name: string; price: number; position: number }
+export interface QuotedRate { id: number; name: string; price: number; position: number; transit?: { min: number; max: number } | null }
 
 /** What a profile's lines add up to. */
 export interface CartTotals { subtotal: number; grams: number }
@@ -53,13 +55,19 @@ export function matchMethods(methods: MethodDef[], totals: CartTotals): QuotedRa
   const byName = new Map<string, QuotedRate>();
   for (const m of [...methods].sort((a, b) => a.position - b.position || a.id - b.id)) {
     if (!conditionsMatch(m.conditions, totals)) continue;
-    const q: QuotedRate = { id: m.id, name: m.name, price: rateCost(m, totals), position: m.position };
+    const q: QuotedRate = { id: m.id, name: m.name, price: rateCost(m, totals), position: m.position, ...(m.transit ? { transit: m.transit } : {}) };
     const key = m.name.trim().toLowerCase();
     const cur = byName.get(key);
     if (!cur || q.price > cur.price) byName.set(key, q);
   }
   return [...byName.values()].sort((a, b) => a.price - b.price || a.position - b.position || a.id - b.id);
 }
+
+/** Parcels of several profiles arrive together: the slowest estimate wins. */
+const transitOf = (parts: QuotedRate[]): { transit?: { min: number; max: number } } => {
+  const t = parts.map((p) => p.transit).filter((x): x is { min: number; max: number } => !!x);
+  return t.length ? { transit: { min: Math.max(...t.map((x) => x.min)), max: Math.max(...t.map((x) => x.max)) } } : {};
+};
 
 /**
  * Combine the options of several profiles into what the buyer sees. A profile with no option means the cart cannot ship.
@@ -74,11 +82,11 @@ export function combineProfiles(perProfile: QuotedRate[][]): QuotedRate[] {
   if (shared.length) {
     return shared.map((o) => {
       const parts = perProfile.map((p) => p.find((x) => key(x.name) === key(o.name))!);
-      return { id: Math.min(...parts.map((x) => x.id)), name: o.name, price: parts.reduce((a, x) => a + x.price, 0), position: Math.min(...parts.map((x) => x.position)) };
+      return { id: Math.min(...parts.map((x) => x.id)), name: o.name, price: parts.reduce((a, x) => a + x.price, 0), position: Math.min(...parts.map((x) => x.position)), ...transitOf(parts) };
     }).sort((a, b) => a.price - b.price || a.position - b.position || a.id - b.id);
   }
   const parts = perProfile.map((p) => p[0]!);
-  return [{ id: Math.min(...parts.map((x) => x.id)), name: parts.map((x) => x.name).join(' + '), price: parts.reduce((a, x) => a + x.price, 0), position: Math.min(...parts.map((x) => x.position)) }];
+  return [{ id: Math.min(...parts.map((x) => x.id)), name: parts.map((x) => x.name).join(' + '), price: parts.reduce((a, x) => a + x.price, 0), position: Math.min(...parts.map((x) => x.position)), ...transitOf(parts) }];
 }
 
 // --- special option ids ----------------------------------------------------------------------------------------------

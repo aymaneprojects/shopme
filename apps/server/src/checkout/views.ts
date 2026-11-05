@@ -1,5 +1,5 @@
 import type { PaymentProvider } from '@shopme/payments';
-import { lineMoney, moneyFormatsFor, orderMoney, type CheckoutAddressInput, type CheckoutView, type DiscountRejection, type GiftCardRejection, type OrderSummary, type Shop } from '@shopme/core';
+import { configOf, lineMoney, moneyFormatsFor, orderMoney, type CheckoutAddressInput, type CheckoutView, type DiscountRejection, type GiftCardRejection, type OrderSummary, type Shop } from '@shopme/core';
 import { renderMoneyFormat } from '@shopme/shopify-compat';
 import { countryOptions, PROVINCES } from './geo';
 import { translator, type T } from './i18n';
@@ -18,10 +18,23 @@ export function pageCtx(shop: Shop, currency = shop.currency): PageCtx {
 /** The same page context formatting money in the currency of a checkout or order (the buyer's presentment currency). */
 export const inCurrency = (c: PageCtx, currency: string): PageCtx => (currency === c.shop.currency ? c : { ...c, money: pageCtx(c.shop, currency).money });
 
+/** Checkout branding of Settings > Checkout: accent and background colours, logo, button shape, header and footer text. */
+function brandingOf(c: PageCtx) {
+  const b = configOf(c.shop, 'CHECKOUT').branding;
+  const radius = b.buttonShape === 'pill' ? '999px' : b.buttonShape === 'square' ? '2px' : '8px';
+  const css = [
+    b.accentColor ? `--primary:${b.accentColor};--primary-dark:${b.accentColor};` : '', b.backgroundColor ? `--bg:${b.backgroundColor};` : '',
+  ].join('');
+  const style = `<style>:root{${css}}.btn{border-radius:${radius}}</style>`;
+  const logo = /^https?:\/\//.test(b.logoUrl) || b.logoUrl.startsWith('/') ? `<img src="${attr(b.logoUrl)}" alt="${attr(c.shop.name)}" style="max-height:40px;vertical-align:middle">` : '';
+  return { style, logo, headerText: b.headerText, footerText: b.footerText };
+}
+
 function layout(c: PageCtx, title: string, body: string, opts: { script?: boolean } = {}): string {
+  const brand = brandingOf(c);
   return `<!doctype html><html lang="${c.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex"><title>${esc(title)} - ${esc(c.shop.name)}</title><link rel="stylesheet" href="/checkout-assets/checkout.css">${c.head ?? ''}</head>
-<body><a class="skip" href="#main">${esc(c.t('title'))}</a><header class="co-header"><a href="/">${esc(c.shop.name)}</a></header>${body}${opts.script ? '<script src="/checkout-assets/checkout.js" defer></script>' : ''}</body></html>`;
+<meta name="robots" content="noindex"><title>${esc(title)} - ${esc(c.shop.name)}</title><link rel="stylesheet" href="/checkout-assets/checkout.css">${brand.style}${c.head ?? ''}</head>
+<body><a class="skip" href="#main">${esc(c.t('title'))}</a><header class="co-header"><a href="/">${brand.logo || esc(c.shop.name)}</a>${brand.headerText ? `<span class="note" style="margin-left:12px">${esc(brand.headerText)}</span>` : ''}</header>${body}${brand.footerText ? `<footer class="note" style="text-align:center;padding:16px">${esc(brand.footerText)}</footer>` : ''}${opts.script ? '<script src="/checkout-assets/checkout.js" defer></script>' : ''}</body></html>`;
 }
 
 export function notFoundPage(c: PageCtx): string {
@@ -30,12 +43,21 @@ export function notFoundPage(c: PageCtx): string {
 
 // --- fragments (also returned as JSON by the live refresh) -----------------------------------------------------------
 
+/** "Estimated delivery Nov 12 - Nov 15": today plus the transit days, in the shop language. */
+function eta(c: { t: PageCtx['t']; shop: { locale: string } }, transit: { min: number; max: number } | null | undefined): string | null {
+  if (!transit) return null;
+  const fmt = new Intl.DateTimeFormat(c.shop.locale, { month: 'short', day: 'numeric' });
+  const at = (days: number) => fmt.format(new Date(Date.now() + days * 86_400_000));
+  const range = transit.min === transit.max ? at(transit.min) : `${at(transit.min)} - ${at(transit.max)}`;
+  return c.t('estDelivery', { range });
+}
+
 export function shippingFragment(c0: PageCtx, v: CheckoutView): string {
   const c = inCurrency(c0, v.currency);
   if (!v.address?.countryCode) return `<p class="note">${esc(c.t('shippingEnter'))}</p>`;
   if (!v.shippingOptions.length) return `<p class="note">${esc(c.t('shippingNone'))}</p>`;
   return `<div class="options" role="radiogroup">${v.shippingOptions.map((o) =>
-    `<label class="option"><input type="radio" name="shippingRateId" value="${o.id}"${o.id === v.shippingRateId ? ' checked' : ''}><span class="grow">${esc(o.name)}${o.detail ? `<small class="note" style="display:block">${esc(o.detail)}</small>` : ''}</span><span class="price">${o.price ? esc(c.money(o.price)) : esc(c.t('free'))}</span></label>`).join('')}</div>`;
+    `<label class="option"><input type="radio" name="shippingRateId" value="${o.id}"${o.id === v.shippingRateId ? ' checked' : ''}><span class="grow">${esc(o.name)}${[o.detail, eta(c, o.transit)].filter(Boolean).map((d) => `<small class="note" style="display:block">${esc(d!)}</small>`).join('')}</span><span class="price">${o.price ? esc(c.money(o.price)) : esc(c.t('free'))}</span></label>`).join('')}</div>`;
 }
 
 export function summaryFragment(c0: PageCtx, v: CheckoutView): string {
@@ -72,9 +94,14 @@ export function discountMessage(t: T, reason: DiscountRejection | GiftCardReject
 
 // --- checkout page ------------------------------------------------------------------------------------------------------
 
+/** Settings > Checkout > address autocomplete: when off, address fields tell the browser not to autofill them. */
+const autofill = (c: PageCtx, hint: string) => (hint === 'email' || configOf(c.shop, 'CHECKOUT').addressAutocomplete ? hint : 'off');
+
 function field(c: PageCtx, name: keyof ReturnType<typeof translator>['s'] & string, key: string, value: string | null | undefined, o: { autocomplete?: string; required?: boolean; type?: string; half?: boolean } = {}): string {
-  return `<label class="field"><span>${esc(c.t(name as 'email'))}</span><input name="${key}" type="${o.type ?? 'text'}" value="${attr(value)}"${o.autocomplete ? ` autocomplete="${o.autocomplete}"` : ''}${o.required ? ' required' : ''}></label>`;
+  return `<label class="field"><span>${esc(c.t(name as 'email'))}</span><input name="${key}" type="${o.type ?? 'text'}" value="${attr(value)}"${o.autocomplete ? ` autocomplete="${autofill(c, o.autocomplete)}"` : ''}${o.required ? ' required' : ''}></label>`;
 }
+
+export const BRAND_NAMES: Record<string, string> = { visa: 'Visa', mastercard: 'Mastercard', amex: 'American Express', discover: 'Discover', diners: 'Diners Club', jcb: 'JCB', unionpay: 'UnionPay', cartes_bancaires: 'Cartes Bancaires' };
 
 export interface PageData {
   view: CheckoutView;
@@ -104,11 +131,16 @@ export function checkoutPage(c0: PageCtx, d: PageData): string {
     : `<span>${esc(t('province'))}</span><input name="province" autocomplete="address-level1" value="${attr(a.province)}">`;
   const free = v.amountDue === 0;
   const chosen = d.chosenMethod && d.methods.some((m) => m.id === d.chosenMethod) ? d.chosenMethod : d.methods[0]?.id;
+  const brands = configOf(c.shop, 'PAYMENTS').cardBrands;
   const payOptions = d.methods.map((m) => {
-    const hint = m.id === 'bank_transfer' ? t('bank_transfer_hint') : m.id === 'cod' ? t('cod_hint') : t('stripe_hint');
+    const builtIn = m.id === 'bank_transfer' || m.id === 'cod' || m.id === 'stripe';
+    const hint = m.id === 'bank_transfer' ? t('bank_transfer_hint') : m.id === 'cod' ? t('cod_hint') : m.id === 'stripe' ? t('stripe_hint')
+      : m.kind === 'test' ? t('test_hint') : m.kind === 'redirect' ? t('redirect_hint') : m.instructions ?? '';
     const panel = m.id === 'stripe' ? '<div id="stripe-element" style="margin-top:12px"></div>' : '';
-    return `<label class="option"><input type="radio" name="paymentMethod" value="${m.id}"${m.id === chosen ? ' checked' : ''}><span class="grow">${esc(t(m.id))}</span></label>`
-      + `<div class="panel" data-panel="${m.id}"${m.id === chosen ? '' : ' hidden'}>${esc(hint)}${panel}</div>`;
+    const badges = m.id === 'stripe' && brands.length ? `<p class="note" style="margin:8px 0 0">${esc(t('weAccept'))} ${brands.map((b) => `<span class="tag">${esc(BRAND_NAMES[b] ?? b)}</span>`).join(' ')}</p>` : '';
+    const label = m.name ?? (builtIn ? t(m.id as 'cod') : t('test'));
+    return `<label class="option"><input type="radio" name="paymentMethod" value="${attr(m.id)}"${m.id === chosen ? ' checked' : ''}><span class="grow">${esc(label)}</span></label>`
+      + `<div class="panel" data-panel="${attr(m.id)}"${m.id === chosen ? '' : ' hidden'}><span style="white-space:pre-wrap">${esc(hint)}</span>${badges}${panel}</div>`;
   }).join('');
   const config = {
     refreshUrl: `/checkouts/${v.token}/refresh`, completeUrl: `/checkouts/${v.token}/complete`,
@@ -184,7 +216,11 @@ export function checkoutPage(c0: PageCtx, d: PageData): string {
 export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: string): string {
   const { t } = c;
   const gateway = o.transactions[0]?.gateway ?? 'free';
-  const paid = o.order.financialStatus === 'PAID';
+  const paid = o.order.financialStatus === 'PAID' || o.order.financialStatus === 'AUTHORIZED';
+  const pay = configOf(c.shop, 'PAYMENTS');
+  const custom = gateway.startsWith('manual:') ? pay.customMethods.find((m) => `manual:${m.id}` === gateway) : undefined;
+  const redirect = gateway.startsWith('redirect:') ? pay.redirectGateways.find((g) => `redirect:${g.id}` === gateway) : undefined;
+  const methodLabel = custom?.name ?? redirect?.name ?? (gateway === 'test' ? t('test') : t(gateway as 'cod'));
   const a = o.shippingAddress;
   const addr = a ? [[a.firstName, a.lastName].filter(Boolean).join(' '), a.company, a.address1, a.address2, [a.zip, a.city].filter(Boolean).join(' '), a.province, a.country ?? a.countryCode].filter(Boolean) : [];
   const om = orderMoney(o.order);
@@ -211,7 +247,7 @@ export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: stri
 <h1>${esc(t('thankYou', { name: a?.firstName ?? '' }).replace(/\s+([,!])/, '$1'))}</h1>
 <p><span class="badge${paid ? ' ok' : ''}">${esc(t(paid ? 'paid' : 'pending'))}</span> ${esc(t(paid ? 'confirmed' : 'confirmedPending'))}. ${esc(t('emailSent', { email: o2.email ?? '' }))}</p>
 <section class="card"><h2>${esc(t('orderSummary'))}</h2><ul class="lines">${lines}</ul>${totals}</section>
-<section class="card"><h2>${esc(t('paymentMethod'))}</h2><p>${esc(t(gateway as 'cod'))}</p>${notes}</section>
+<section class="card"><h2>${esc(t('paymentMethod'))}</h2><p>${esc(methodLabel)}</p>${notes}${custom?.instructions && !paid ? `<pre style="white-space:pre-wrap;font:inherit">${esc(custom.instructions)}</pre>` : ''}</section>
 ${addr.length ? `<section class="card"><h2>${esc(t('shipTo'))}</h2><p>${addr.map(esc).join('<br>')}</p></section>` : ''}
 <p><a href="/">${esc(t('backToShop'))}</a></p></main>`;
   return layout(c, t('confirmed'), body);

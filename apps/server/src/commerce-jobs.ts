@@ -1,5 +1,5 @@
 import {
-  dueGiftCardNotifications, getShop, giftCardAddressees, giftCardMailVars, issueGiftCardsForOrder, markGiftCardNotified, onEvent, recoverAbandonedCheckouts, schema, sendNotification,
+  autoFulfillGiftCardLines, dueGiftCardNotifications, getShop, giftCardAddressees, giftCardMailVars, issueGiftCardsForOrder, markGiftCardNotified, onEvent, recoverAbandonedCheckouts, schema, sendNotification,
   type Shop,
 } from '@shopme/core';
 import type { AppContext } from './context';
@@ -25,6 +25,7 @@ export function registerCommerceJobs(ctx: AppContext): () => void {
     const shop = await getShop(db, shopId);
     if (!shop) return;
     await issueGiftCardsForOrder(db, shopId, orderId);
+    await autoFulfillGiftCardLines(db, shopId, orderId);
     await sendGiftCardEmails(shop);
   });
   queue.every('gift-card-notifications', 60_000, async () => {

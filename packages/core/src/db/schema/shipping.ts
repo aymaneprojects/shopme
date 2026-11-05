@@ -1,4 +1,4 @@
-import { bigint, boolean, check, index, integer, numeric, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { bigint, boolean, check, index, integer, jsonb, numeric, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { money, oneOf, pk, ref, shopIdCol, timestamps, ts } from './_helpers';
 import { shops } from './shop';
@@ -65,6 +65,16 @@ export const deliveryMethodDefinitions = pgTable('delivery_method_definitions', 
   price: money('price').notNull().default(0),
   /** The price becomes 0 once the qualifying subtotal reaches this amount. */
   freeOverAmount: money('free_over_amount'),
+  /** Estimated transit time in days (shown to the buyer as a delivery date range). */
+  transitMinDays: integer('transit_min_days'), transitMaxDays: integer('transit_max_days'),
+  /** The rate is offered only when every item belongs to one of these collections (empty = all products). */
+  collectionIds: bigint('collection_ids', { mode: 'number' }).array().notNull().default(sql`'{}'::bigint[]`),
+  /** The rate is offered only when it ships from one of these locations (empty = any location of the group). */
+  originLocationIds: bigint('origin_location_ids', { mode: 'number' }).array().notNull().default(sql`'{}'::bigint[]`),
+  /** `FIXED` uses `price`; `CARRIER` asks the carrier provider for the price at checkout. */
+  rateType: text('rate_type').notNull().default('FIXED'),
+  carrierProvider: text('carrier_provider'),
+  carrierParams: jsonb('carrier_params').$type<Record<string, unknown>>().notNull().default({}),
 }, (t) => [index('delivery_method_definitions_zone_idx').on(t.zoneId)]);
 export const deliveryConditions = pgTable('delivery_conditions', {
   id: pk(), shopId: shopFk(),

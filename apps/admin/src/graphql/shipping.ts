@@ -9,6 +9,7 @@ export const DELIVERY_PROFILES = /* GraphQL */ `
 `;
 
 const METHOD = `id name description active shopmeFreeOverAmount { amount }
+  shopmeTransitMinDays shopmeTransitMaxDays shopmeCollectionIds shopmeOriginLocationIds shopmeRateType shopmeCarrierProvider shopmeCarrierParams
   rateProvider { __typename ... on DeliveryRateDefinition { price { amount } } }
   methodConditions { id field operator conditionCriteria { __typename ... on MoneyV2 { amount } ... on Weight { unit value } } }`;
 

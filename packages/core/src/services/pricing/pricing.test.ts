@@ -189,3 +189,23 @@ describe('discount combinations', () => {
     expect(r.total).toBe(900);
   });
 });
+
+describe('digital goods VAT and import duties', () => {
+  const dg = line(1, 1000, 1, { requiresShipping: false });
+  const physical = line(2, 1000, 1);
+  const de: PricingTaxRate = { name: 'VAT', countryCode: 'DE', provinceCode: null, rate: 19, appliesToShipping: false, priority: 0 };
+  it('taxes digital items with the fallback rates only when the store has no rate for the destination', () => {
+    const none = priceCheckout(base({ lines: [dg, physical], country: 'DE', digitalVatRates: [de] }));
+    expect(none.lines.map((l) => l.tax)).toEqual([190, 0]);
+    const own = priceCheckout(base({ lines: [dg, physical], country: 'DE', taxRates: [{ ...de, rate: 7 }], digitalVatRates: [de] }));
+    expect(own.lines.map((l) => l.tax)).toEqual([70, 70]);
+  });
+  it('adds duties on shipped items on top, also when prices include tax', () => {
+    const duty: PricingTaxRate = { name: 'Import duties', countryCode: 'DE', provinceCode: null, rate: 10, appliesToShipping: false, priority: 100, duty: true };
+    const r = priceCheckout(base({ lines: [dg, physical], country: 'DE', dutyRates: [duty] }));
+    expect(r.lines.map((l) => l.tax)).toEqual([0, 100]);
+    expect(r.total).toBe(2100);
+    const inclusive = priceCheckout(base({ lines: [dg, physical], country: 'DE', taxesIncluded: true, taxRates: [de], dutyRates: [duty] }));
+    expect(inclusive.total).toBe(2000 + 100);
+  });
+});

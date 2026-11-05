@@ -1,6 +1,7 @@
 import { Badge, Banner, Button, Checkbox, ConfirmDialog, EmptyState, Input, Modal, Select, Skeleton, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Boxes, Braces } from 'lucide-react';
+import { Boxes, Braces, Info } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { LinkRow, RowCard, Section, SubHeader } from '../../components/SettingsKit';
@@ -108,6 +109,22 @@ export function MetafieldDefinitionsPage() {
   );
 }
 
+/** Small "i" button that opens a short explanation under it; closes on outside click or Escape. */
+function InfoPopover({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex" onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); }}>
+      <button type="button" aria-label={label} aria-expanded={open} onClick={() => setOpen(!open)} className="rounded-full p-0.5 text-muted hover:bg-hover"><Info className="size-4" /></button>
+      {open && (
+        <>
+          <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-30 cursor-default" onClick={() => setOpen(false)} />
+          <span role="dialog" aria-label={label} className="absolute left-0 top-7 z-40 w-72 rounded-lg bg-canvas p-3 text-[13px] font-normal text-text shadow-lg ring-1 ring-line">{children}</span>
+        </>
+      )}
+    </span>
+  );
+}
+
 /** Entry page: one row per resource type with the number of definitions it already has. */
 export function MetafieldsSettings() {
   const { t } = useI18n();
@@ -115,7 +132,7 @@ export function MetafieldsSettings() {
   const counts = useQueries({ queries: OWNER_TYPES.map((o) => ({ queryKey: ['metafield-definitions', o.id], queryFn: () => gql<{ metafieldDefinitions: { nodes: MetafieldDefinitionRow[] } }>(METAFIELD_DEFINITIONS, { ownerType: o.id }) })) });
   return (
     <>
-      <Section title={t('mf.defsTitle')} description={t('mf.defsDesc')}>
+      <Section title={<span className="inline-flex items-center gap-1.5">{t('mf.defsTitle')}<InfoPopover label={t('bs.mfInfoLabel')}>{t('bs.mfInfo')}</InfoPopover></span>} description={t('mf.defsDesc')}>
         <RowCard>
           {OWNER_TYPES.map((o, i) => <LinkRow key={o.id} to={`/settings/metafields/${o.id}`} icon={Braces} title={t(o.label)} trailing={counts[i]!.data ? counts[i]!.data!.metafieldDefinitions.nodes.length : '…'} />)}
         </RowCard>

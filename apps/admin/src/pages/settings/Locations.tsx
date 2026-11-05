@@ -1,6 +1,6 @@
-import { Badge, Banner, Button, Checkbox, ConfirmDialog, EmptyState, Input, Modal, Select, Skeleton, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Checkbox, ConfirmDialog, Dropdown, EmptyState, Input, Modal, Select, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, ChevronsUpDown, MapPin, Plus, Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronsUpDown, Columns3, MapPin, Plus, Search } from 'lucide-react';
 import { Section, SettingsActions } from '../../components/SettingsKit';
 import { useState } from 'react';
 import { UserErrors, gql, mutate } from '../../api';
@@ -67,6 +67,9 @@ export function LocationsSettings() {
   };
   const set = (p: Partial<Form>) => setEditing((e) => (e ? { ...e, form: { ...e.form, ...p } } : e));
 
+  const [cols, setCols] = useState<string[]>(() => { try { const v = JSON.parse(localStorage.getItem('shopme.locations.columns') ?? 'null'); return Array.isArray(v) ? v : ['address', 'status']; } catch { return ['address', 'status']; } });
+  const toggleCol = (c: string) => setCols((cur) => { const next = cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]; try { localStorage.setItem('shopme.locations.columns', JSON.stringify(next)); } catch { /* storage unavailable */ } return next; });
+  const has = (c: string) => cols.includes(c);
   const [filter, setFilter] = useState('');
   const [scope, setScope] = useState<'all' | 'active' | 'inactive'>('all');
   const shown = all.filter((l) => (scope === 'all' || (scope === 'active') === l.isActive) && `${l.name} ${summary(l.address)}`.toLowerCase().includes(filter.trim().toLowerCase()));
@@ -87,8 +90,9 @@ export function LocationsSettings() {
                 </select>
                 <Search className="size-4 shrink-0 text-muted" aria-hidden />
                 <input type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('loc.search')} aria-label={t('loc.search')} className="h-7 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" />
+                <Dropdown align="right" variant="plain" size="sm" icon label={t('bs.columns')} trigger={<Columns3 className="size-4" />} items={(['address', 'phone', 'online', 'status'] as const).map((c) => ({ key: c, label: `${has(c) ? '✓ ' : '    '}${t(`bs.col.${c}` as never)}`, onSelect: () => toggleCol(c) }))} />
               </div>
-              <div className="flex items-center gap-3 border-b border-line bg-surface px-4 py-1.5 text-[13px] text-muted"><span className="flex-1">{t('loc.col.location')}</span><span>{t('field.status')}</span><span className="w-[4.5rem]" /></div>
+              <div className="flex items-center gap-3 border-b border-line bg-surface px-4 py-1.5 text-[13px] text-muted"><span className="flex-1">{t('loc.col.location')}</span>{has('phone') && <span className="w-32">{t('bs.col.phone')}</span>}{has('online') && <span className="w-28">{t('bs.col.online')}</span>}{has('status') && <span>{t('field.status')}</span>}<span className="w-[4.5rem]" /></div>
               <ul className="divide-y divide-line">
                 {shown.map((l) => {
                   const pos = active.findIndex((x) => x.id === l.id);
@@ -97,9 +101,11 @@ export function LocationsSettings() {
                       <button type="button" onClick={() => openEdit(l)} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left">
                         <span className="min-w-0 flex-1">
                           <span className="flex flex-wrap items-center gap-2"><span className="font-medium">{l.name}</span>{l.isPrimary && <Badge tone="info">{t('loc.primary')}</Badge>}{l.isActive && !l.fulfillsOnlineOrders && <Badge tone="warning">{t('loc.noOnline')}</Badge>}</span>
-                          <span className="block truncate text-muted">{summary(l.address) || t('loc.noAddress')}</span>
+                          {has('address') && <span className="block truncate text-muted">{summary(l.address) || t('loc.noAddress')}</span>}
                         </span>
-                        <Badge tone={l.isActive ? 'success' : 'neutral'}>{t(l.isActive ? 'loc.status.active' : 'loc.inactive')}</Badge>
+                        {has('phone') && <span className="w-32 truncate text-muted">{l.address.phone ?? '—'}</span>}
+                        {has('online') && <span className="w-28 text-muted">{t(l.fulfillsOnlineOrders ? 'bs.yes' : 'bs.no')}</span>}
+                        {has('status') && <Badge tone={l.isActive ? 'success' : 'neutral'}>{t(l.isActive ? 'loc.status.active' : 'loc.inactive')}</Badge>}
                       </button>
                       {l.isActive && (
                         <span className="flex items-center gap-1">

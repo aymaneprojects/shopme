@@ -28,7 +28,7 @@ const ErrorCode = builder.enumType('TranslationErrorCode', {
 });
 
 const ShopLocale = builder.objectRef<ShopLocaleRow>('ShopLocale').implement({
-  fields: (t) => ({ locale: t.exposeString('locale'), name: t.exposeString('name'), primary: t.exposeBoolean('primary'), published: t.exposeBoolean('published') }),
+  fields: (t) => ({ locale: t.exposeString('locale'), name: t.exposeString('name'), primary: t.exposeBoolean('primary'), published: t.exposeBoolean('published'), shopmeDomain: t.string({ nullable: true, description: 'ShopMe: host serving this language.', resolve: (r) => r.domain }) }),
 });
 
 const Translation = builder.objectRef<TranslationRow>('Translation').implement({

@@ -1,3 +1,4 @@
+import { frBtnSettings } from './fr-btn-settings';
 import { frCheckout } from './fr-checkout';
 import { frPrivacy } from './fr-privacy';
 import { frCatalog } from './fr-catalog';
@@ -141,4 +142,5 @@ export const fr: Record<Key, string> = {
   ...frDiscountCodes,
   ...frMarkets,
   ...frPrivacy,
+  ...frBtnSettings,
 };

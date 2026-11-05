@@ -7,6 +7,7 @@ import { Section } from '../../components/SettingsKit';
 import { SaveBar } from '../../components/SaveBar';
 import { CHECKOUT_SETTINGS, CHECKOUT_SETTINGS_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
+import { CheckoutExtras } from './CheckoutBranding';
 
 type Rule = 'hidden' | 'optional' | 'required';
 interface CheckoutForm {
@@ -33,7 +34,7 @@ export function CheckoutSettings() {
   const q = useQuery({ queryKey: ['checkout-settings'], queryFn: () => gql<{ shopmeCheckoutSettings: CheckoutForm }>(CHECKOUT_SETTINGS) });
   if (q.isLoading) return <Skeleton className="h-96" />;
   if (q.error) return <Banner>{q.error.message}</Banner>;
-  return <CheckoutSettingsForm key={q.dataUpdatedAt} initial={q.data!.shopmeCheckoutSettings} />;
+  return <div className="flex flex-col gap-6"><CheckoutSettingsForm key={q.dataUpdatedAt} initial={q.data!.shopmeCheckoutSettings} /><CheckoutExtras /></div>;
 }
 
 function CheckoutSettingsForm({ initial }: { initial: CheckoutForm }) {
