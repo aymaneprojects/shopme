@@ -98,3 +98,8 @@ docker compose up -d --build
 
 Database migrations are applied automatically at startup. Take a backup first. To roll back, restore the backup and
 check out the previous version.
+
+An upgrade may bring a newer version of the default theme, Aurora. Your live theme is not changed: Online Store > Themes
+shows "Update available" on it, and "Update theme" creates a new unpublished copy at the new version with your settings,
+templates, header and footer, edited texts and uploaded files. Files you changed in the code editor are listed so you can
+make those changes again; publish the copy when you are ready.

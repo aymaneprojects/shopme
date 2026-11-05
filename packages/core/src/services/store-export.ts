@@ -8,6 +8,7 @@ import * as schema from '../db/schema';
 import type { Db, Executor } from '../db/client';
 import { shops } from '../db/schema';
 import { assertSafeKey, type Storage } from './storage';
+import { detectThemeOrigins } from './theme-update';
 
 export const EXPORT_FORMAT = 'shopme-export';
 export const EXPORT_FORMAT_VERSION = 1;
@@ -166,6 +167,8 @@ export async function importStore(db: Db, storage: Storage, shopId: number, file
     }
   });
   for (const k of uploads) await storage.put(k, Buffer.from(entries[`uploads/${k}`]!));
+  // An export made before themes recorded the bundled theme they came from: recognise Aurora so updates are offered.
+  await detectThemeOrigins(db, shopId);
   opts.progress?.(total, total);
   return { ok: true, value: { tables: counts, files: uploads.length, manifest } };
 }

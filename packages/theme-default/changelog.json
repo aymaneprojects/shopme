@@ -1,0 +1,51 @@
+{
+  "about": "What changed in each version of Aurora, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.2.0",
+      "date": "2026-11-05",
+      "notes": {
+        "en": [
+          "Customer account pages can be customized in the theme editor: heading, introduction text, the links and fields to show, alignment, width and color scheme for login, create account, account, order, addresses, activate account and reset password.",
+          "Account page: orders per page and where the account details sit. Order page: SKU column, addresses and shipments. Addresses page: addresses per row.",
+          "Images follow the focal point chosen in the admin when they are cropped: product cards and product page, featured product, collection tiles and links, image gallery, multicolumn and popup.",
+          "Section and section group names (header, footer, announcement bar, overlays and the customer pages) are translated in the theme editor.",
+          "The Add section picker groups sections by category, and the hero and video sections take an uploaded video or a link.",
+          "The popup only shows in the editor preview when it is turned on, and the theme's documentation and support links point to ShopMe."
+        ],
+        "fr": [
+          "Les pages du compte client se personnalisent dans l’éditeur de thème : titre, texte d’introduction, liens et champs à afficher, alignement, largeur et palette de couleurs pour la connexion, la création de compte, le compte, la commande, les adresses, l’activation du compte et la réinitialisation du mot de passe.",
+          "Page du compte : nombre de commandes par page et position des informations du compte. Page de commande : colonne SKU, adresses et expéditions. Page des adresses : nombre d’adresses par ligne.",
+          "Les images respectent le point focal choisi dans l’administration lorsqu’elles sont recadrées : cartes produit et page produit, produit à la une, vignettes et liens de collections, galerie d’images, multicolonne et fenêtre contextuelle.",
+          "Les noms des sections et des groupes de sections (en-tête, pied de page, barre d’annonces, superpositions et pages client) sont traduits dans l’éditeur de thème.",
+          "Le sélecteur « Ajouter une section » classe les sections par catégorie, et les sections bannière héros et vidéo acceptent une vidéo importée ou un lien.",
+          "La fenêtre contextuelle ne s’affiche dans l’aperçu de l’éditeur que si elle est activée, et les liens de documentation et d’assistance du thème mènent à ShopMe."
+        ]
+      }
+    },
+    {
+      "version": "1.1.0",
+      "date": "2026-11-05",
+      "notes": {
+        "en": [
+          "New sections: slideshow, scrolling banner, big logo, split showcase, collection links, featured product, multicolumn, image gallery, video, testimonials, collapsible content, blog posts, contact form, newsletter, custom Liquid, divider and popup.",
+          "Named color schemes, fonts per role served by the store, text presets and new setting groups for buttons, badges, cart, drawers, inputs and more.",
+          "Blocks gain layout, typography, color and spacing controls."
+        ],
+        "fr": [
+          "Nouvelles sections : diaporama, bandeau défilant, grand logo, vitrine en deux volets, liens de collections, produit à la une, multicolonne, galerie d’images, vidéo, témoignages, contenu repliable, articles de blog, formulaire de contact, newsletter, Liquid personnalisé, séparateur et fenêtre contextuelle.",
+          "Palettes de couleurs nommées, polices par rôle servies par la boutique, styles de texte et nouveaux groupes de réglages pour les boutons, badges, panier, tiroirs, champs et plus encore.",
+          "Les blocs gagnent des réglages de disposition, de typographie, de couleur et d’espacement."
+        ]
+      }
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-11-04",
+      "notes": {
+        "en": ["First version of Aurora."],
+        "fr": ["Première version d’Aurora."]
+      }
+    }
+  ]
+}

@@ -383,3 +383,41 @@ These are ShopMe conventions on top of the Online Store 2.0 format. A theme that
 - **Code editor**: `themeFilesUpsert` refuses Liquid files with a syntax error and JSON files that do not parse (a tag the engine
   does not know is only a warning in `themeFilesLint`); the previous text of each saved or deleted file is kept (30 versions per file)
   and read with `themeFileVersions`.
+
+## 14. Updates of the bundled theme (Aurora)
+
+A shop's themes live in the database: when a store is set up, Aurora's files (`packages/theme-default`) are copied into
+its live theme. A newer Aurora that comes with a ShopMe upgrade (Docker image, desktop app or `git pull`) therefore does
+not change existing themes by itself; it is offered as an update, the way a theme store would.
+
+- **Origin.** `themes.origin_theme` (`aurora`), `themes.origin_version` (the `theme_version` of `theme_info` in
+  `config/settings_schema.json` when the theme was installed) and `themes.origin_checksums` (the MD5 of every file as
+  installed, which tells the merchant's edits apart) are recorded at install and kept by `themeDuplicate`. Migration
+  `0025_theme_origin` marks the themes that existed before as Aurora when their settings schema names Aurora (with their
+  installed version, without checksums); importing an older `.shopme` export does the same.
+- **Status.** `OnlineStoreTheme.shopmeBundledTheme { name installedVersion bundledVersion updateAvailable releaseNotes(locale) }`.
+  `releaseNotes` reads `packages/theme-default/changelog.json` (versions newest first, notes in `en` and `fr`) for the versions
+  after the installed one. Online Store > Themes shows the installed version, an "Update available" badge and an
+  "Update theme" button with this "What's new".
+- **Update.** `shopmeThemeUpdateToBundled(id)` never changes the theme it is given. It creates a new **unpublished** theme
+  named `Aurora <version>` from the bundled files (with the French seed texts for a French shop, as at install), then carries
+  over the merchant's customizations, file by file, comparing each file with what was installed:
+
+  | File | Unchanged since install | Changed by the merchant |
+  |---|---|---|
+  | `config/settings_data.json` | new version | the merchant's values for the settings the new schema still has; new settings get the new values; the others are listed in `removedSettings` |
+  | `templates/*.json`, `sections/*.json` (groups) | new version | the merchant's file, without the sections and blocks whose type no longer exists (listed in `removedReferences`) |
+  | `locales/*.json` (not `.schema.json`) | new version | the new file with the strings the merchant changed laid over it (compared with the installed text kept in the file's history, else with the new version) |
+  | Any other file of the theme (Liquid, CSS, JS, schema locales, assets) | new version (or left out if the new version dropped it) | new version; listed in `skippedFiles` as `EDITED` (or `REMOVED_IN_NEW_VERSION`) so the edit can be made again from the original theme |
+  | Files the theme never shipped (uploaded assets, added snippets, sections or templates) | | carried over as they are |
+
+  Translations of the theme's strings into other languages (Settings > Languages) are copied to the new theme. The payload
+  lists `carriedOverFiles`, `skippedFiles { filename reason }`, `removedReferences { filename kind id type }` and
+  `removedSettings`, with `userErrors` codes `NOT_FOUND`, `NOT_BUNDLED_THEME`, `UP_TO_DATE` and `BUNDLE_UNAVAILABLE`.
+  Publishing the new theme stays a separate action (`themePublish`).
+- **Themes installed before checksums were recorded** are compared with `packages/theme-default/checksums.json`, the MD5 of
+  every file Aurora has shipped (regenerate it with `node scripts/theme-checksums.mjs`): a file whose checksum is listed was
+  not edited.
+- **Releasing a new Aurora version**: bump `theme_version` in `config/settings_schema.json` and add an entry (English and
+  French) at the top of `changelog.json`. A section or block type that is removed is dropped from merchants' templates on
+  update, so prefer keeping old types working.
