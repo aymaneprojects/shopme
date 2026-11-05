@@ -161,3 +161,10 @@ export async function countProductCatalogs(db: Executor, shopId: number, product
   const m = await getProductCatalogs(db, shopId, productIds);
   return new Map([...m].map(([k, v]) => [k, v.length]));
 }
+
+/** Products of a catalog, newest additions first. */
+export async function listCatalogProducts(db: Executor, shopId: number, catalogId: number, limit = 250): Promise<(typeof products.$inferSelect)[]> {
+  const rows = await db.select({ p: products }).from(catalogProducts).innerJoin(products, eq(products.id, catalogProducts.productId))
+    .where(and(eq(catalogProducts.shopId, shopId), eq(catalogProducts.catalogId, catalogId))).orderBy(sql`${catalogProducts.createdAt} desc`, asc(products.id)).limit(limit);
+  return rows.map((r) => r.p);
+}

@@ -63,3 +63,9 @@ export const TAXONOMY_ROOT_CATEGORIES = /* GraphQL */ `
 export const COLLECTIONS_PICKER_OPTIONS = /* GraphQL */ `
   query CollectionsPickerOptions { collections(first: 250) { nodes { id title } } }
 `;
+
+export const CATALOG_PRODUCTS = /* GraphQL */ `
+  query CatalogProducts($id: ID!) {
+    catalog(id: $id) { id ... on MarketCatalog { shopmeProducts { id title status featuredMedia { id ... on MediaImage { image { url } } } } } }
+  }
+`;

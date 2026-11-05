@@ -1,21 +1,24 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, Input, Pagination, Select, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
+import { ProductPicker } from '../../components/Pickers';
+import type { PickedProduct } from '../../components/Pickers';
 import { SaveBar, guard } from '../../components/SaveBar';
 import { searchCls, useFormat } from '../../components/shared';
 import { gidToNum, numToGid, parseDecimal } from '../../format';
 import {
-  CATALOG_CREATE, CATALOG_DELETE, CATALOG_DETAIL, CATALOG_UPDATE, PRICE_LIST_CREATE, PRICE_LIST_FIXED_ADD, PRICE_LIST_FIXED_DELETE, PRICE_LIST_PRICES, PRICE_LIST_UPDATE,
+  CATALOG_CREATE, CATALOG_DELETE, CATALOG_DETAIL, CATALOG_PRODUCTS, CATALOG_PRODUCTS_UPDATE, CATALOG_UPDATE, PRICE_LIST_CREATE, PRICE_LIST_FIXED_ADD, PRICE_LIST_FIXED_DELETE, PRICE_LIST_PRICES, PRICE_LIST_UPDATE,
 } from '../../graphql';
 import { useI18n } from '../../i18n';
 import { useDebounced } from '../../lib/hooks';
 import type { Connection } from '../../lib/hooks';
 import { errText } from './shared';
 import type { CatalogRow } from './Catalogs';
+import { Thumb } from '../Products';
 
 interface MarketOption { id: string; name: string; primary: boolean; currencySettings: { baseCurrency: { currencyCode: string } } | null; catalogs: { nodes: Array<{ id: string }> } }
 interface Detail { catalog: CatalogRow | null; markets: { nodes: MarketOption[] }; shop: { id: string; currencyCode: string } }
@@ -121,6 +124,8 @@ function Editor({ data, isNew }: { data: Detail; isNew: boolean }) {
           </fieldset>
         </Card>
 
+        {c && <CatalogProducts catalogId={c.id} />}
+
         <FixedPrices priceListId={pl?.id ?? null} currency={currency} />
       </div>
       <ConfirmDialog open={confirmDelete} title={t('catalogs.deleteTitle', { name: c?.title ?? '' })} message={t('catalogs.deleteBody')} confirmLabel={t('catalogs.delete')} cancelLabel={t('common.cancel')} closeLabel={t('common.close')} danger loading={remove.isPending}
@@ -213,6 +218,38 @@ function FixedPrices({ priceListId, currency }: { priceListId: string | null; cu
             onPrevious={() => setCursor({ before: pi?.startCursor ?? undefined })} onNext={() => setCursor({ after: pi?.endCursor ?? undefined })} />
         </>
       )}
+    </Card>
+  );
+}
+
+
+/** Products that belong to the catalog: listed, added with the product picker and removed one by one. */
+function CatalogProducts({ catalogId }: { catalogId: string }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [picking, setPicking] = useState(false);
+  const q = useQuery({ queryKey: ['catalog-products', catalogId], queryFn: () => gql<{ catalog: { shopmeProducts?: PickedProduct[] } | null }>(CATALOG_PRODUCTS, { id: catalogId }) });
+  const rows = q.data?.catalog?.shopmeProducts ?? [];
+  const change = useMutation({
+    mutationFn: (v: { ids: string[]; mode: 'include' | 'exclude' }) => mutate(CATALOG_PRODUCTS_UPDATE, { productIds: v.ids, ...(v.mode === 'include' ? { include: [catalogId] } : { exclude: [catalogId] }) }, 'shopmeCatalogProductsUpdate'),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['catalog-products', catalogId] }); void qc.invalidateQueries({ queryKey: ['products'] }); },
+    onError: (e) => toast(errText(e), 'critical'),
+  });
+  return (
+    <Card title={t('bp.catalogs.products', { n: rows.length })} actions={<Button size="sm" onClick={() => setPicking(true)}>{t('collection.addProducts')}</Button>}>
+      {rows.length === 0 ? <p className="text-[13px] text-muted">{t('bp.catalogs.productsEmpty')}</p> : (
+        <ul className="divide-y divide-line">
+          {rows.map((p) => (
+            <li key={p.id} className="flex items-center gap-3 py-2">
+              <Thumb url={p.featuredMedia?.image?.url} className="size-8" />
+              <span className="flex-1 text-[13px]">{p.title}</span>
+              <button type="button" aria-label={`${t('common.remove')} ${p.title}`} className="rounded p-1 text-muted hover:bg-surface" onClick={() => change.mutate({ ids: [p.id], mode: 'exclude' })}><Trash2 className="size-4" /></button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <ProductPicker open={picking} onClose={() => setPicking(false)} excludeIds={rows.map((p) => p.id)} onConfirm={(ps) => { if (ps.length) change.mutate({ ids: ps.map((p) => p.id), mode: 'include' }); }} />
     </Card>
   );
 }

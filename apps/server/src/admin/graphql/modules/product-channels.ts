@@ -2,12 +2,13 @@
  * ShopMe extensions around the product page and list: catalog membership, inventory history, per country HS codes, shipping package.
  * Custom fields are prefixed `shopme` so they never clash with the Shopify-compatible names.
  */
-import { getProduct, getProductCatalogs, listCountryHsCodes, listItemAdjustments, listLocations, updateCatalogProducts, type CatalogRef } from '@shopme/core';
+import { getProduct, getProductCatalogs, listCatalogProducts, listCountryHsCodes, listItemAdjustments, listLocations, updateCatalogProducts, type CatalogRef } from '@shopme/core';
 import { parseId, toGid } from '@shopme/shopify-compat';
 import { builder } from '../builder';
 import { requireScope } from '../context';
 import { InventoryItem_, Product_, shopOf } from '../types/catalog';
 import { definePayload } from '../types/errors';
+import { MarketCatalog } from './markets';
 import { Shop } from './shop';
 
 const CatalogRef_ = builder.objectRef<CatalogRef>('ShopmeProductCatalog').implement({
@@ -17,6 +18,10 @@ const CatalogRef_ = builder.objectRef<CatalogRef>('ShopmeProductCatalog').implem
 builder.objectFields(Product_, (t) => ({
   shopmeCatalogs: t.field({ type: [CatalogRef_], resolve: async (p, _a, ctx) => (await getProductCatalogs(ctx.db, ctx.shopId, [p.id])).get(p.id) ?? [] }),
   shopmeCatalogsCount: t.int({ resolve: async (p, _a, ctx) => ((await getProductCatalogs(ctx.db, ctx.shopId, [p.id])).get(p.id) ?? []).length }),
+}));
+
+builder.objectFields(MarketCatalog, (t) => ({
+  shopmeProducts: t.field({ type: [Product_], resolve: (c, _a, ctx) => listCatalogProducts(ctx.db, ctx.shopId, c.id) }),
 }));
 
 const CountryHs = builder.objectRef<{ countryCode: string; harmonizedSystemCode: string }>('CountryHarmonizedSystemCode').implement({

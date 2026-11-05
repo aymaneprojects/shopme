@@ -176,7 +176,7 @@ const Catalog = builder.interfaceRef<CatalogView>('Catalog').implement({
   }),
   resolveType: () => 'MarketCatalog',
 });
-const MarketCatalog = builder.objectRef<CatalogView>('MarketCatalog');
+export const MarketCatalog = builder.objectRef<CatalogView>('MarketCatalog');
 const MarketCatalogConnection = defineConnection('MarketCatalog', MarketCatalog);
 const CatalogConnection = defineConnection('Catalog', Catalog as unknown as ObjectRef<any, CatalogView>);
 

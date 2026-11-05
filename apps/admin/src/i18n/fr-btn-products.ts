@@ -9,6 +9,7 @@ export const frBtnProducts: Record<keyof typeof enBtnProducts, string> = {
   'bp.channels.countShort': '{n} canaux', 'bp.channels.countShort.one': '{n} canal',
   'bp.channels.help': 'Choisissez où cet élément est vendu. Indiquez une date pour le publier plus tard.', 'bp.channels.publishOn': 'Publier le',
   'bp.catalogs.title': 'Catalogues', 'bp.catalogs.manage': 'Gérer les catalogues', 'bp.catalogs.none': 'Aucun catalogue', 'bp.catalogs.empty': 'Il n’y a pas encore de catalogue. Créez-en un dans Marchés.',
+  'bp.catalogs.products': 'Produits ({n})', 'bp.catalogs.productsEmpty': 'Aucun produit dans ce catalogue pour le moment.',
   'bp.col.catalogs': 'Catalogues', 'bp.col.salesChannels': 'Canaux de vente',
   'bp.row.preview': 'Aperçu sur la boutique en ligne',
   'bp.filter.channel': 'Canal de vente', 'bp.filter.catalog': 'Catalogue', 'bp.filter.noCatalog': 'Dans aucun catalogue',

@@ -10,6 +10,7 @@ export const enBtnProducts = {
   'bp.channels.help': 'Choose where this is sold. Pick a date to publish it later.', 'bp.channels.publishOn': 'Publish on',
   // Catalogs
   'bp.catalogs.title': 'Catalogs', 'bp.catalogs.manage': 'Manage catalogs', 'bp.catalogs.none': 'No catalog', 'bp.catalogs.empty': 'There is no catalog yet. Create one in Markets.',
+  'bp.catalogs.products': 'Products ({n})', 'bp.catalogs.productsEmpty': 'No product in this catalog yet.',
   'bp.col.catalogs': 'Catalogs', 'bp.col.salesChannels': 'Sales channels',
   // Products list
   'bp.row.preview': 'Preview on the online store',

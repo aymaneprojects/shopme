@@ -258,7 +258,6 @@ export function InventoryFields({ v, patch, locations }: { v: VariantDraft; patc
                 <span className="w-20 text-right tabular-nums text-muted">{total('committed', l.id)}</span>
                 <input type="number" min={0} aria-label={`${state === 'available' ? t('inventory.available') : t('bp.stock.onHand')} — ${l.name}`} className="field-control w-24 text-right"
                   value={(state === 'available' ? v.quantities[l.id] : v.onHand[l.id]) ?? '0'} onChange={(e) => edit(l, e.target.value)} />
-                {v.inventoryItemId && <span className="w-0" aria-hidden />}
               </span>
             </div>
           ))}
