@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { isValidEmail, renderContactMessage, subscribeNewsletter, type Mail } from '@shopme/core';
+import { isValidEmail, privacySettingsOf, renderContactMessage, renderSubscriptionConfirmation, subscribeEmail, type Mail } from '@shopme/core';
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../context';
 import { FailureLimiter } from '../plugins/rate-limit';
@@ -57,8 +57,10 @@ export function registerFormRoutes(app: FastifyInstance, ctx: AppContext, conten
     const email = str(fields.email);
     if (type === 'customer') {
       const tags = str(fields.tags).split(',').map((t) => t.trim()).filter(Boolean);
-      const r = await subscribeNewsletter(db, shop.id, { email, tags });
+      const r = await subscribeEmail(db, shop.id, { email, tags: tags.length ? tags : undefined, doubleOptIn: privacySettingsOf(shop).doubleOptIn });
       if (!r.ok) return fail(fieldErrors(r.errors));
+      // Double opt-in: the subscription stays pending until the link in this email is opened.
+      if (r.value.confirmToken) ctx.queue.enqueue<Mail>('mail.send', renderSubscriptionConfirmation(shop, email.toLowerCase(), `${ctx.config.appUrl}/account/subscribe/confirm/${r.value.customer.id}/${r.value.confirmToken}`));
       setFlash(reply, { type, success: true }, secure);
       return reply.redirect(`${back}${back.includes('?') ? '&' : '?'}customer_posted=true#contact_form`, 303);
     }

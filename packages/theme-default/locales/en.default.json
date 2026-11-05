@@ -126,7 +126,15 @@
       "title": "Log in",
       "forgot": "Forgot your password?",
       "submit": "Sign in",
-      "no_account": "New customer?"
+      "no_account": "New customer?",
+      "code_title": "Sign in with an email code",
+      "code_text": "We will email you a 6-digit code. No password needed.",
+      "code_send": "Email me a code",
+      "code_sent": "If the address is valid, a code is on its way. It stays valid for 10 minutes.",
+      "code_label": "6-digit code",
+      "code_submit": "Sign in with the code",
+      "code_resend": "Send a new code",
+      "or": "or"
     },
     "register_page": {
       "title": "Create account",
@@ -162,7 +170,9 @@
       "date": "Date",
       "payment_status": "Payment",
       "fulfillment_status": "Fulfillment",
-      "total": "Total"
+      "total": "Total",
+      "store_credit": "Store credit",
+      "store_credit_balance": "Balance: {{ amount }}"
     },
     "order_page": {
       "title": "Order {{ name }}",
@@ -182,7 +192,21 @@
       "shipping_address": "Shipping address",
       "shipments": "Shipments",
       "tracking": "Tracking",
-      "back": "Back to account"
+      "back": "Back to account",
+      "actions": "Order actions",
+      "reorder": "Buy again",
+      "cancel": "Cancel order",
+      "cancel_until": "You can cancel this order until {{ date }}.",
+      "cancel_confirm": "Cancel this order? Items go back in stock and any payment is refunded.",
+      "return_title": "Request a return",
+      "return_text": "Choose the items you want to return. We review each request.",
+      "return_submit": "Request return",
+      "return_note": "Note (optional)",
+      "return_max": "of {{ max }}",
+      "notice_cancel_ok": "Your order was cancelled.",
+      "notice_cancel_failed": "This order can no longer be cancelled.",
+      "notice_return_ok": "Your return request was sent. We will get back to you.",
+      "notice_return_failed": "The return request could not be created."
     },
     "addresses": {
       "title": "Addresses",
@@ -248,5 +272,26 @@
     "disabled": "This gift card has been deactivated.",
     "shop_now": "Start shopping",
     "how_to": "Enter the code in the Gift card field at checkout. The balance is used up to the amount of your order."
+  },
+  "privacy": {
+    "banner": {
+      "title": "Cookie consent",
+      "accept": "Accept all",
+      "reject": "Decline",
+      "manage": "Manage preferences",
+      "save": "Save preferences",
+      "preferences_title": "Cookie preferences",
+      "analytics": "Analytics",
+      "analytics_help": "Helps us understand how the store is used.",
+      "marketing": "Marketing",
+      "marketing_help": "Lets us and our partners show relevant offers.",
+      "preferences": "Preferences",
+      "preferences_help": "Remembers your choices such as language or region.",
+      "privacy_policy": "Privacy policy"
+    },
+    "footer": {
+      "cookie_preferences": "Cookie preferences",
+      "opt_out": "Do not sell or share my personal information"
+    }
   }
 }

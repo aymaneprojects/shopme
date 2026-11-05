@@ -8,6 +8,7 @@ import { addressColumns, getOrderDetail, type AddressInput, type Order, type Ord
 import { MIN_PASSWORD_LENGTH } from '../auth';
 import { randomToken, sha256 } from '../crypto';
 import type { Customer, CustomerAddress } from '../customers/customers';
+import { emailConsentColumns, subscribedColumns } from '../privacy/marketing-columns';
 
 /** Storefront accounts: registration, sign-in sessions, password reset / activation tokens, address book, order history, newsletter. */
 
@@ -45,7 +46,7 @@ export async function registerCustomer(db: Db, shopId: number, input: RegisterIn
   if (existing) return okR({ customer: existing, activationToken: await createCustomerToken(db, shopId, existing.id, 'activate') });
   return txResult(db, async (tx) => {
     const [row] = await tx.insert(customers).values({
-      shopId, email, firstName: input.firstName?.trim() || null, lastName: input.lastName?.trim() || null, acceptsMarketing: !!input.acceptsMarketing,
+      shopId, email, firstName: input.firstName?.trim() || null, lastName: input.lastName?.trim() || null, ...subscribedColumns(!!input.acceptsMarketing),
       state: 'ENABLED', passwordHash: await hash(input.password!), verifiedEmail: false,
     }).returning();
     await addEvent(tx, shopId, { subjectType: 'customer', subjectId: row!.id, verb: 'customers/create', message: 'Customer registered an account' });
@@ -81,14 +82,14 @@ export const destroyCustomerSessions = (db: Executor, customerId: number) => db.
 // --- tokens: password reset and activation -----------------------------------------------------------------------------
 
 /** New one-time token (earlier unused tokens of the same kind stop working). Returns the plaintext once. */
-export async function createCustomerToken(db: Executor, shopId: number, customerId: number, kind: 'reset' | 'activate'): Promise<string> {
+export async function createCustomerToken(db: Executor, shopId: number, customerId: number, kind: 'reset' | 'activate' | 'subscribe'): Promise<string> {
   const token = randomToken(24);
   await db.update(customerTokens).set({ usedAt: new Date() }).where(and(eq(customerTokens.customerId, customerId), eq(customerTokens.kind, kind), isNull(customerTokens.usedAt)));
   await db.insert(customerTokens).values({ shopId, customerId, kind, tokenHash: sha256(token), expiresAt: new Date(Date.now() + (kind === 'reset' ? RESET_TOKEN_TTL_MS : ACTIVATE_TOKEN_TTL_MS)) });
   return token;
 }
 
-async function validToken(db: Executor, shopId: number, customerId: number, kind: 'reset' | 'activate', token: string) {
+async function validToken(db: Executor, shopId: number, customerId: number, kind: 'reset' | 'activate' | 'subscribe', token: string) {
   const [t] = await db.select().from(customerTokens).where(and(
     eq(customerTokens.shopId, shopId), eq(customerTokens.customerId, customerId), eq(customerTokens.kind, kind), eq(customerTokens.tokenHash, sha256(token)),
     isNull(customerTokens.usedAt), gt(customerTokens.expiresAt, new Date()),
@@ -96,7 +97,7 @@ async function validToken(db: Executor, shopId: number, customerId: number, kind
   return t ?? null;
 }
 
-export const isCustomerTokenValid = async (db: Executor, shopId: number, customerId: number, kind: 'reset' | 'activate', token: string) => !!(await validToken(db, shopId, customerId, kind, token));
+export const isCustomerTokenValid = async (db: Executor, shopId: number, customerId: number, kind: 'reset' | 'activate' | 'subscribe', token: string) => !!(await validToken(db, shopId, customerId, kind, token));
 
 /** Start a password reset. Null when the email has no account (callers answer the same either way). */
 export async function requestPasswordReset(db: Executor, shopId: number, email: string): Promise<{ customer: Customer; token: string } | null> {
@@ -136,7 +137,7 @@ export async function inviteCustomer(db: Db, shopId: number, customerId: number)
 export async function updateOwnProfile(db: Db, shopId: number, customerId: number, input: { firstName?: string | null; lastName?: string | null; acceptsMarketing?: boolean }): Promise<Customer> {
   const [row] = await db.update(customers).set({
     ...(input.firstName !== undefined && { firstName: input.firstName?.trim() || null }), ...(input.lastName !== undefined && { lastName: input.lastName?.trim() || null }),
-    ...(input.acceptsMarketing !== undefined && { acceptsMarketing: input.acceptsMarketing }), updatedAt: new Date(),
+    ...(input.acceptsMarketing !== undefined && subscribedColumns(input.acceptsMarketing, undefined)), updatedAt: new Date(),
   }).where(and(eq(customers.shopId, shopId), eq(customers.id, customerId))).returning();
   return row!;
 }
@@ -224,10 +225,10 @@ export async function subscribeNewsletter(db: Db, shopId: number, input: { email
   const tags = normalizeTags(input.tags?.length ? input.tags : ['newsletter']);
   const cur = await byEmail(db, shopId, email);
   if (cur) {
-    const [row] = await db.update(customers).set({ acceptsMarketing: true, tags: normalizeTags([...cur.tags, ...tags]), updatedAt: new Date() }).where(eq(customers.id, cur.id)).returning();
+    const [row] = await db.update(customers).set({ ...(cur.emailMarketingState === 'SUBSCRIBED' ? {} : emailConsentColumns('SUBSCRIBED', 'SINGLE_OPT_IN')), tags: normalizeTags([...cur.tags, ...tags]), updatedAt: new Date() }).where(eq(customers.id, cur.id)).returning();
     return okR(row!);
   }
-  const [row] = await db.insert(customers).values({ shopId, email, firstName: input.firstName?.trim() || null, lastName: input.lastName?.trim() || null, acceptsMarketing: true, tags }).returning();
+  const [row] = await db.insert(customers).values({ shopId, email, firstName: input.firstName?.trim() || null, lastName: input.lastName?.trim() || null, ...emailConsentColumns('SUBSCRIBED', 'SINGLE_OPT_IN'), tags }).returning();
   await addEvent(db, shopId, { subjectType: 'customer', subjectId: row!.id, verb: 'customers/create', message: 'Customer subscribed to the newsletter' });
   return okR(row!);
 }

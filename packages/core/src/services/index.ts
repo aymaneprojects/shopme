@@ -49,3 +49,5 @@ export * from './bulk-operations';
 export * from './draft-orders-ext';
 export * from './webhook-topics';
 export * from './markets';
+export * from './privacy';
+export * from './store-credit';

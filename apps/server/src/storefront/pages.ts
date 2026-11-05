@@ -12,7 +12,7 @@ import { flashGlobals, takeFlash } from './flash';
 import { collectionAtom } from './seo';
 import type { ProductObject } from './data/types';
 import { buildCollection, buildGlobals, buildSearch, makeEnv, makeResolvers, pageInput, primaryShop, trPage, trProduct, type Env, type Query } from './env';
-import { CONSENT_COOKIE, cookieBannerHtml, injectCookieBanner } from './cookie-banner';
+import { injectHead, pageDescriptor, privacyHead } from './privacy';
 import { buyerContext, injectShopifyGlobals } from './market';
 import { localizeHtml } from './locale';
 import type { ThemeStore } from './theme-store';
@@ -93,7 +93,9 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     }
     const { html: page, errors } = await loaded.renderer.renderPage(input);
     for (const e of errors) req.log.warn({ liquid: e }, 'liquid error');
-    const html = localizeHtml(injectShopifyGlobals(injectCookieBanner(page, cookieBannerHtml(env.shop, req.cookies?.[CONSENT_COOKIE])), env.market, env.locale), env.prefix);
+    // Consent runtime, customer events and sandboxed pixels (not in the theme editor preview).
+    const withPrivacy = editor ? page : injectHead(page, privacyHead(env.shop, env.privacy, pageDescriptor(spec.pageType, spec.extra, env.shop.currency), env.customer, env.locale));
+    const html = localizeHtml(injectShopifyGlobals(withPrivacy, env.market, env.locale), env.prefix);
     return reply.code(spec.status ?? 200).header('cache-control', 'no-cache').type('text/html; charset=utf-8').send(html);
   }
 

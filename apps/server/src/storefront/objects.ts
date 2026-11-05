@@ -1,4 +1,4 @@
-import { currencyName, type BuyerCountry, type CartDiscounts, type CartView, type MarketContext, type Shop } from '@shopme/core';
+import { currencyName, customerAccountsSettingsOf, type BuyerCountry, type CartDiscounts, type CartView, type MarketContext, type Shop } from '@shopme/core';
 import { ajaxLine, cartLevelApplications, discountApplication } from './cart-format';
 import { policiesOf } from './data/content';
 
@@ -16,21 +16,25 @@ export function shopObject(shop: Shop, origin: string, counts: { products: numbe
     id: shop.id, name: shop.name, email: shop.email, description: String(settings.description ?? ''), currency: shop.currency, money_format: shop.moneyFormat,
     money_with_currency_format: shop.moneyWithCurrencyFormat, taxes_included: shop.taxesIncluded, url: origin, secure_url: origin, domain: new URL(origin).host, permanent_domain: new URL(origin).host,
     address: { country: shop.country, country_code: shop.country, ...(settings.address as object | undefined) }, locale: shop.locale, timezone: shop.timezone, weight_unit: ({ KILOGRAMS: 'kg', GRAMS: 'g', POUNDS: 'lb', OUNCES: 'oz' } as Record<string, string>)[shop.weightUnit] ?? 'kg',
-    enabled_currencies: currencies.map((c) => currencyObject(c, shop.locale)), customer_accounts_enabled: true, customer_accounts_optional: true,
+    enabled_currencies: currencies.map((c) => currencyObject(c, shop.locale)), customer_accounts_enabled: customerAccountsSettingsOf(shop).mode !== 'DISABLED', customer_accounts_optional: customerAccountsSettingsOf(shop).mode === 'OPTIONAL',
     password_message: String(settings.passwordMessage ?? ''), policies, refund_policy: policy('refund-policy'), privacy_policy: policy('privacy-policy'), shipping_policy: policy('shipping-policy'), terms_of_service: policy('terms-of-service'),
+    terms_of_sale: policy('terms-of-sale'), legal_notice: policy('legal-notice'), subscription_policy: policy('subscription-policy'),
     features: {}, metafields: {}, products_count: counts.products, collections_count: counts.collections, brand: { logo: null, slogan: null, short_description: null, colors: {} },
   };
 }
 
 /** Theme routes; with a locale prefix (`/fr`) every URL carries it, as in Shopify's localized storefronts. */
-export const routesObject = (prefix = '') => {
+export const routesObject = (prefix = '', shop?: Pick<Shop, 'settings'>) => {
+  const acc = shop ? customerAccountsSettingsOf(shop) : null;
+  // Sign-in links are present only while accounts exist and the merchant shows the links; the pages themselves keep working.
+  const links = !acc || (acc.mode !== 'DISABLED' && acc.loginLinksVisible);
   const r = {
-    root_url: '/', account_url: '/account', account_login_url: '/account/login', account_logout_url: '/account/logout', account_register_url: '/account/register', account_addresses_url: '/account/addresses',
+    root_url: '/', account_url: acc?.url ?? '/account', account_login_url: links ? '/account/login' : '', account_logout_url: '/account/logout', account_register_url: links ? '/account/register' : '', account_addresses_url: '/account/addresses',
     collections_url: '/collections', all_products_collection_url: '/collections/all', search_url: '/search', predictive_search_url: '/search/suggest', cart_url: '/cart', cart_add_url: '/cart/add',
-    cart_change_url: '/cart/change', cart_clear_url: '/cart/clear', cart_update_url: '/cart/update', product_recommendations_url: '/recommendations/products', storefront_login_url: '/account/login',
+    cart_change_url: '/cart/change', cart_clear_url: '/cart/clear', cart_update_url: '/cart/update', product_recommendations_url: '/recommendations/products', storefront_login_url: links ? '/account/login' : '',
     localization_url: '/localization',
   };
-  return prefix ? Object.fromEntries(Object.entries(r).map(([k, v]) => [k, k === 'root_url' ? prefix : k === 'localization_url' ? v : prefix + v])) : r;
+  return prefix ? Object.fromEntries(Object.entries(r).map(([k, v]) => [k, k === 'root_url' ? prefix : k === 'localization_url' || !v || /^https?:/.test(v) ? v : prefix + v])) : r;
 };
 
 export interface LanguageView { locale: string; name: string; primary: boolean; prefix: string }

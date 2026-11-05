@@ -7,7 +7,7 @@ import { translator, type T } from './i18n';
 export const esc = (v: unknown): string => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const attr = (v: unknown) => esc(v);
 
-export interface PageCtx { shop: Shop; t: T; lang: string; money: (n: number) => string }
+export interface PageCtx { shop: Shop; t: T; lang: string; money: (n: number) => string; /** Markup for the `<head>`: consent runtime and customer events configuration. */ head?: string }
 
 export function pageCtx(shop: Shop, currency = shop.currency): PageCtx {
   const { t, lang } = translator(shop.locale);
@@ -20,7 +20,7 @@ export const inCurrency = (c: PageCtx, currency: string): PageCtx => (currency =
 
 function layout(c: PageCtx, title: string, body: string, opts: { script?: boolean } = {}): string {
   return `<!doctype html><html lang="${c.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex"><title>${esc(title)} - ${esc(c.shop.name)}</title><link rel="stylesheet" href="/checkout-assets/checkout.css"></head>
+<meta name="robots" content="noindex"><title>${esc(title)} - ${esc(c.shop.name)}</title><link rel="stylesheet" href="/checkout-assets/checkout.css">${c.head ?? ''}</head>
 <body><a class="skip" href="#main">${esc(c.t('title'))}</a><header class="co-header"><a href="/">${esc(c.shop.name)}</a></header>${body}${opts.script ? '<script src="/checkout-assets/checkout.js" defer></script>' : ''}</body></html>`;
 }
 
@@ -50,14 +50,16 @@ export function summaryFragment(c0: PageCtx, v: CheckoutView): string {
   const tags = v.appliedDiscounts.filter((d) => d.code).map((d) => `<span class="tag">${esc(d.code)}<button type="button" data-discount-remove="${attr(d.code)}" aria-label="${esc(c.t('remove'))} ${attr(d.code)}">&times;</button></span>`).join('');
   const shippingValue = !v.requiresShipping ? '' : p.shipping ? (p.totalShipping ? esc(c.money(p.totalShipping)) : esc(c.t('free'))) : esc(c.t('shippingTbd'));
   const giftTags = v.giftCards.map((g) => `<span class="tag">${esc(c.t('giftCard'))} &bull;&bull;${esc(g.lastCharacters)}<button type="button" data-gift-remove="${attr(g.code)}" aria-label="${esc(c.t('remove'))} ${attr(g.lastCharacters)}">&times;</button></span>`).join('');
+  const credit = v.storeCredit.applied;
   return `<ul class="lines">${lines}</ul>${tags || giftTags ? `<div>${tags}${giftTags}</div>` : ''}<dl class="totals">`
     + `<div><dt>${esc(c.t('subtotal'))}</dt><dd>${esc(c.money(p.subtotal))}</dd></div>`
     + (p.totalDiscounts ? `<div><dt>${esc(c.t('discount'))}</dt><dd>-${esc(c.money(p.totalDiscounts))}</dd></div>` : '')
     + (v.requiresShipping ? `<div><dt>${esc(c.t('shipping'))}</dt><dd>${shippingValue}</dd></div>` : '')
     + (p.totalTax && !v.taxesIncluded ? `<div><dt>${esc(c.t('taxes'))}</dt><dd>${esc(c.money(p.totalTax))}</dd></div>` : '')
     + (v.tip ? `<div><dt>${esc(c.t('tipLine'))}</dt><dd>${esc(c.money(v.tip))}</dd></div>` : '')
-    + (v.giftCardTotal
+    + (v.giftCardTotal || credit
       ? `<div><dt>${esc(c.t('total'))}</dt><dd>${esc(c.money(p.total + v.tip))}</dd></div>` + v.giftCards.filter((g) => g.applied).map((g) => `<div><dt>${esc(c.t('giftCard'))} &bull;&bull;${esc(g.lastCharacters)}</dt><dd>-${esc(c.money(g.applied))}</dd></div>`).join('')
+        + (credit ? `<div><dt>${esc(c.t('storeCredit'))}</dt><dd>-${esc(c.money(credit))}</dd></div>` : '')
         + `<div class="grand"><dt>${esc(c.t('amountDue'))}</dt><dd>${esc(c.money(v.amountDue))}</dd></div>`
       : `<div class="grand"><dt>${esc(c.t('total'))}</dt><dd>${esc(c.money(p.total + v.tip))}</dd></div>`)
     + (p.totalTax && v.taxesIncluded ? `<div><dt><small>${esc(c.t('includedTaxes'))}</small></dt><dd><small>${esc(c.money(p.totalTax))}</small></dd></div>` : '')
@@ -84,6 +86,9 @@ export interface PageData {
   values?: Record<string, string>;
   marketing?: boolean;
   chosenMethod?: string;
+  /** Sign-in link of the checkout (accounts on, links shown, buyer not signed in) and the signed-in buyer's email. */
+  signInUrl?: string | null;
+  signedInEmail?: string | null;
 }
 
 export function checkoutPage(c0: PageCtx, d: PageData): string {
@@ -138,6 +143,11 @@ export function checkoutPage(c0: PageCtx, d: PageData): string {
   const noteBox = st.orderNotes ? `<label class="field" style="margin-top:16px"><span>${esc(t('orderNote'))}</span><textarea name="note" rows="3" maxlength="5000">${esc(val('note') || v.note)}</textarea></label>` : '';
   const discountErr = v.rejectedCodes.map((r) => `${r.code}: ${discountMessage(t, r.reason)}`).join(' ');
 
+  const sc = v.storeCredit;
+  const creditBox = sc.enabled && sc.available > 0
+    ? `<label class="check" id="store-credit-box"><input type="hidden" name="storeCreditField" value="1"><input type="checkbox" name="useStoreCredit" value="1"${sc.use ? ' checked' : ''}> <span>${esc(t('useStoreCredit'))} <small>(${esc(t('storeCreditBalance', { amount: c.money(sc.available) }))})</small></span></label>`
+    : '';
+  const accountLine = d.signedInEmail ? `<p class="note">${esc(t('signedInAs', { email: d.signedInEmail }))}</p>` : d.signInUrl ? `<p class="note">${esc(t('haveAccount'))} <a href="${attr(d.signInUrl)}">${esc(t('signIn'))}</a></p>` : '';
   const body = `<div class="co">
 <aside class="co-summary" id="summary" aria-label="${esc(t('orderSummary'))}">
  <button type="button" class="co-toggle" id="summary-toggle" aria-expanded="true" aria-controls="summary-body"><span data-label>${esc(t('hideSummary'))}</span><strong data-total>${esc(c.money(v.amountDue))}</strong></button>
@@ -153,12 +163,13 @@ export function checkoutPage(c0: PageCtx, d: PageData): string {
 <div class="errors" id="errors" role="alert" aria-live="assertive">${d.errors.map((e) => `<p>${esc(e)}</p>`).join('')}</div>
 <form id="checkout-form" method="post" action="/checkouts/${v.token}/complete" novalidate>
  <h2 style="margin-top:0">${esc(t('contact'))}</h2>
- ${contactField}
+ ${accountLine}${contactField}
  ${st.marketing === 'hidden' ? '' : `<label class="check"><input type="checkbox" name="acceptsMarketing" value="1"${d.marketing ? ' checked' : ''}> ${esc(t('marketing'))}</label>`}
  <h2>${esc(t(v.requiresShipping ? 'delivery' : 'billingAddress'))}</h2>${addressForm}
  ${v.requiresShipping ? `<h2>${esc(t('shippingMethod'))}</h2><div id="shipping-methods" aria-live="polite">${shippingFragment(c, v)}</div>` : ''}
  ${tipBox}${noteBox}
  <h2>${esc(t('payment'))}</h2>
+ ${creditBox}
  <p class="note" id="free-note"${free ? '' : ' hidden'}>${esc(t('noPayment'))}</p>
  <div id="payments"${free ? ' hidden' : ''}>${d.methods.length ? `<div class="options" role="radiogroup">${payOptions}</div>` : `<p class="note">${esc(t('noMethods'))}</p>`}</div>
  <button class="btn" id="submit" type="submit"${d.methods.length || free ? '' : ' disabled'}>${esc(t(d.stripe ? 'payNow' : 'placeOrder'))}</button>
@@ -181,13 +192,15 @@ export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: stri
   const lines = o.lines.map((l) => `<li class="line"><div class="thumb">${l.imageUrl ? `<img src="${attr(l.imageUrl)}" alt="" width="64" height="64">` : ''}<span class="qty">${l.quantity}</span></div><div class="grow">${esc(l.title)}${l.variantTitle ? `<small>${esc(l.variantTitle)}</small>` : ''}</div><div>${esc(money(lineMoney(o.order, l).discountedTotal))}</div></li>`).join('');
   const o2 = o.order;
   const giftPaid = o.transactions.filter((x) => x.gateway === 'gift_card' && x.status === 'SUCCESS' && x.kind === 'SALE').reduce((n, x) => n + x.amount, 0);
+  const creditPaid = o.transactions.filter((x) => x.gateway === 'store_credit' && x.status === 'SUCCESS' && x.kind === 'SALE').reduce((n, x) => n + (om.currency === x.presentmentCurrency && x.presentmentAmount != null ? x.presentmentAmount : x.amount), 0);
   const totals = `<dl class="totals"><div><dt>${esc(t('subtotal'))}</dt><dd>${esc(money(om.subtotal))}</dd></div>`
     + (om.discounts ? `<div><dt>${esc(t('discount'))}</dt><dd>-${esc(money(om.discounts))}</dd></div>` : '')
     + (o.shippingLines.length ? `<div><dt>${esc(o.shippingLines[0]!.title)}</dt><dd>${om.shipping ? esc(money(om.shipping)) : esc(t('free'))}</dd></div>` : '')
     + (om.tax ? `<div><dt>${esc(t(o2.taxesIncluded ? 'includedTaxes' : 'taxes'))}</dt><dd>${esc(money(om.tax))}</dd></div>` : '')
     + (om.tip ? `<div><dt>${esc(t('tipLine'))}</dt><dd>${esc(money(om.tip))}</dd></div>` : '')
     + `<div class="grand"><dt>${esc(t('total'))}</dt><dd>${esc(money(om.total))}</dd></div>`
-    + (giftPaid ? `<div><dt>${esc(t('giftCard'))}</dt><dd>-${esc(money(giftPaid))}</dd></div>` : '') + `</dl>`;
+    + (giftPaid ? `<div><dt>${esc(t('giftCard'))}</dt><dd>-${esc(money(giftPaid))}</dd></div>` : '')
+    + (creditPaid ? `<div><dt>${esc(t('storeCredit'))}</dt><dd>-${esc(money(creditPaid))}</dd></div>` : '') + `</dl>`;
   const online = gateway === 'stripe';
   const notes = [
     online && !paid ? `<p>${esc(t('paymentProcessing'))}</p>` : '',

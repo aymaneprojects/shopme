@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { customerAddresses, customers, orders } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
+import { subscribedColumns } from '../privacy/marketing-columns';
 import { buildSearch, compare, dateCompare, idTerm, likeCi } from '../catalog/search';
 import { errR, normalizeTags, okR, txResult, type Result } from '../catalog/common';
 import { addComment, addEvent } from '../events';
@@ -122,7 +123,7 @@ export async function createCustomer(db: Db, shopId: number, input: CustomerInpu
     const [row] = await tx.insert(customers).values({
       shopId, email: input.email?.trim().toLowerCase() || null, firstName: input.firstName?.trim() || null, lastName: input.lastName?.trim() || null,
       phone: input.phone?.trim() || null, locale: input.locale ?? 'en', note: input.note ?? null, tags: normalizeTags(input.tags ?? []),
-      taxExempt: !!input.taxExempt, acceptsMarketing: !!input.acceptsMarketing, state: 'DISABLED',
+      taxExempt: !!input.taxExempt, ...subscribedColumns(!!input.acceptsMarketing), state: 'DISABLED',
     }).returning();
     if (input.addresses?.length) await replaceAddresses(tx, shopId, row!.id, input.addresses);
     await addEvent(tx, shopId, { subjectType: 'customer', subjectId: row!.id, verb: 'customers/create', message: 'Customer was created', authorStaffUserId: staffId });
@@ -141,7 +142,7 @@ export async function updateCustomer(db: Db, shopId: number, id: number, input: 
       ...(input.firstName !== undefined && { firstName: input.firstName?.trim() || null }), ...(input.lastName !== undefined && { lastName: input.lastName?.trim() || null }),
       ...(input.phone !== undefined && { phone: input.phone?.trim() || null }), ...(input.locale && { locale: input.locale }), ...(input.note !== undefined && { note: input.note }),
       ...(input.tags && { tags: normalizeTags(input.tags) }), ...(input.taxExempt != null && { taxExempt: input.taxExempt }),
-      ...(input.acceptsMarketing != null && { acceptsMarketing: input.acceptsMarketing }), updatedAt: new Date(),
+      ...(input.acceptsMarketing != null && subscribedColumns(input.acceptsMarketing, cur?.emailMarketingState)), updatedAt: new Date(),
     }).where(eq(customers.id, id));
     if (input.addresses) await replaceAddresses(tx, shopId, id, input.addresses);
     await addEvent(tx, shopId, { subjectType: 'customer', subjectId: id, verb: 'customers/update', message: 'Customer was updated', authorStaffUserId: staffId });

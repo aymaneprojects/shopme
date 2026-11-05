@@ -3,12 +3,14 @@ import type { UserError } from '@shopme/shopify-compat';
 /** Messages the server itself puts into `form.errors` (the theme translates its own labels with locale files). English and French. */
 const MESSAGES = {
   en: {
+    code_invalid: 'This code is not correct. Check it and try again.', code_expired: 'This code has expired or was used too many times. Ask for a new one.', email_invalid: 'Enter a valid email address.',
     login_failed: 'Incorrect email or password.', rate_limited: 'Too many attempts. Please try again later.', token_invalid: 'This link is invalid or has expired.', form_invalid: 'Please check the form and try again.',
     BLANK: "{field} can't be blank", INVALID: '{field} is invalid', TAKEN: 'This email address is already associated with an account. If this account is yours, you can reset your password.',
     TOO_SHORT: 'Password is too short (minimum is 8 characters)', TOO_LONG: '{field} is too long', CONFIRMATION: "Password confirmation doesn't match", INVALID_TOKEN: 'This link is invalid or has expired.', NOT_FOUND: 'Not found',
     email: 'Email', password: 'Password', password_confirmation: 'Password confirmation', address1: 'Address', city: 'City', country: 'Country', body: 'Message',
   },
   fr: {
+    code_invalid: "Ce code n'est pas correct. Vérifiez-le et réessayez.", code_expired: 'Ce code a expiré ou a été essayé trop de fois. Demandez-en un nouveau.', email_invalid: 'Saisissez une adresse e-mail valide.',
     login_failed: 'E-mail ou mot de passe incorrect.', rate_limited: 'Trop de tentatives. Veuillez réessayer plus tard.', token_invalid: "Ce lien n'est pas valide ou a expiré.", form_invalid: 'Veuillez vérifier le formulaire et réessayer.',
     BLANK: '{field} ne peut pas être vide', INVALID: '{field} est invalide', TAKEN: 'Cette adresse e-mail est déjà associée à un compte. Si ce compte est le vôtre, vous pouvez réinitialiser votre mot de passe.',
     TOO_SHORT: 'Le mot de passe est trop court (8 caractères minimum)', TOO_LONG: '{field} est trop long', CONFIRMATION: 'La confirmation ne correspond pas au mot de passe', INVALID_TOKEN: "Ce lien n'est pas valide ou a expiré.", NOT_FOUND: 'Introuvable',

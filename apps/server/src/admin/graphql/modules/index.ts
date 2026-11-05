@@ -53,3 +53,6 @@ import './inventory-transfers';
 import './purchase-orders';
 import './bulk-operations';
 import './markets';
+import './store-credit';
+import './customer-privacy';
+import './pixels';

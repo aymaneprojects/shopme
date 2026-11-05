@@ -1,6 +1,6 @@
 /** Customer fields (lastOrder, statistics, marketing consent...) and the address-book mutations; Shop fields live next to them. */
 import {
-  addressBookAdd, addressBookDelete, addressBookSetDefault, addressBookUpdate, customerStats, lastOrderOf, shopAddressOf, type CustomerAddress,
+  type Customer, addressBookAdd, addressBookDelete, addressBookSetDefault, addressBookUpdate, customerStats, lastOrderOf, shopAddressOf, type CustomerAddress,
 } from '@shopme/core';
 import { parseId, toGid } from '@shopme/shopify-compat';
 import { builder } from '../builder';
@@ -15,20 +15,20 @@ import { Shop } from './shop';
 /* ------------------------------ Customer ------------------------------ */
 
 const MarketingState = 'CustomerEmailAddressMarketingState' as never;
-const EmailConsent = builder.objectRef<{ subscribed: boolean }>('CustomerEmailMarketingConsentState').implement({
+const EmailConsent = builder.objectRef<Customer>('CustomerEmailMarketingConsentState').implement({
   fields: (t) => ({
-    marketingState: t.field({ type: MarketingState, resolve: (c) => (c.subscribed ? 'SUBSCRIBED' : 'NOT_SUBSCRIBED') as never }),
-    marketingOptInLevel: t.string({ nullable: true, resolve: (c) => (c.subscribed ? 'SINGLE_OPT_IN' : null) }),
-    consentUpdatedAt: t.field({ type: 'DateTime', nullable: true, resolve: () => null }),
+    marketingState: t.field({ type: 'CustomerEmailMarketingState' as never, resolve: (c) => c.emailMarketingState as never }),
+    marketingOptInLevel: t.field({ type: 'CustomerMarketingOptInLevel' as never, nullable: true, resolve: (c) => c.emailMarketingOptInLevel as never }),
+    consentUpdatedAt: t.field({ type: 'DateTime', nullable: true, resolve: (c) => c.emailMarketingUpdatedAt }),
   }),
 });
 const SmsMarketingState = builder.enumType('CustomerSmsMarketingState', { values: ['NOT_SUBSCRIBED', 'PENDING', 'REDACTED', 'SUBSCRIBED', 'UNSUBSCRIBED'] as const });
-const SmsConsent = builder.objectRef<{ subscribed: boolean }>('CustomerSmsMarketingConsentState').implement({
+const SmsConsent = builder.objectRef<Customer>('CustomerSmsMarketingConsentState').implement({
   fields: (t) => ({
-    marketingState: t.field({ type: SmsMarketingState, resolve: (c) => (c.subscribed ? 'SUBSCRIBED' : 'NOT_SUBSCRIBED') }),
-    marketingOptInLevel: t.string({ nullable: true, resolve: () => null }),
-    consentUpdatedAt: t.field({ type: 'DateTime', nullable: true, resolve: () => null }),
-    consentCollectedFrom: t.string({ nullable: true, resolve: () => null }),
+    marketingState: t.field({ type: SmsMarketingState, resolve: (c) => (c.smsMarketingState === 'INVALID' ? 'NOT_SUBSCRIBED' : c.smsMarketingState) as 'SUBSCRIBED' }),
+    marketingOptInLevel: t.field({ type: 'CustomerMarketingOptInLevel' as never, nullable: true, resolve: (c) => c.smsMarketingOptInLevel as never }),
+    consentUpdatedAt: t.field({ type: 'DateTime', nullable: true, resolve: (c) => c.smsMarketingUpdatedAt }),
+    consentCollectedFrom: t.string({ nullable: true, resolve: (c) => c.smsMarketingCollectedFrom }),
   }),
 });
 const SpendTier = builder.enumType('CustomerPredictedSpendTier', { values: ['HIGH', 'MEDIUM', 'LOW'] as const });
@@ -40,8 +40,8 @@ const CustomerStatistics = builder.objectRef<Record<string, never>>('CustomerSta
 builder.objectFields(Customer_, (t) => ({
   lastOrder: t.field({ type: Order_, nullable: true, resolve: async (c, _a, ctx) => { requireScope(ctx, 'read_orders'); return lastOrderOf(ctx.db, ctx.shopId, c.id); } }),
   statistics: t.field({ type: CustomerStatistics, resolve: () => ({}) }),
-  emailMarketingConsent: t.field({ type: EmailConsent, nullable: true, resolve: (c) => (c.email ? { subscribed: c.acceptsMarketing } : null) }),
-  smsMarketingConsent: t.field({ type: SmsConsent, nullable: true, resolve: (c) => (c.phone ? { subscribed: false } : null) }),
+  emailMarketingConsent: t.field({ type: EmailConsent, nullable: true, resolve: (c) => (c.email ? c : null) }),
+  smsMarketingConsent: t.field({ type: SmsConsent, nullable: true, resolve: (c) => (c.phone ? c : null) }),
   canDelete: t.boolean({ resolve: async (c, _a, ctx) => (await customerStats(ctx.db, ctx.shopId, c.id)).numberOfOrders === 0 }),
   lifetimeDuration: t.string({
     resolve: (c) => {

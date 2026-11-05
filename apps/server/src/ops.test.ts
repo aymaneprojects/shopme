@@ -36,7 +36,7 @@ describe('policies and cookie banner', () => {
     expect(r.data.shopPolicyUpdate.shopPolicy).toMatchObject({ type: 'REFUND_POLICY', title: 'Refund policy', body: '<p>Refunds within 30 days</p>' });
     expect(r.data.shopPolicyUpdate.shopPolicy.url).toMatch(/\/policies\/refund-policy$/);
     const list = await gql('{ shop { shopPolicies { type body } } }');
-    expect(list.data.shop.shopPolicies.map((p: { type: string }) => p.type)).toEqual(['REFUND_POLICY', 'PRIVACY_POLICY', 'TERMS_OF_SERVICE', 'SHIPPING_POLICY', 'CONTACT_INFORMATION']);
+    expect(list.data.shop.shopPolicies.map((p: { type: string }) => p.type)).toEqual(['REFUND_POLICY', 'PRIVACY_POLICY', 'TERMS_OF_SERVICE', 'SHIPPING_POLICY', 'CONTACT_INFORMATION', 'TERMS_OF_SALE', 'LEGAL_NOTICE', 'SUBSCRIPTION_POLICY']);
     const page = await t.app.inject('/policies/refund-policy');
     expect(page.statusCode).toBe(200);
     expect(page.body).toContain('Refunds within 30 days');

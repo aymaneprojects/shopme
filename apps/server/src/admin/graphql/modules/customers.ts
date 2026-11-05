@@ -1,10 +1,10 @@
 import {
-  addCustomerComment, listEvents, changeCustomerTags, countCustomers, createCustomer, customerStats, deleteCustomer, getCustomer, getDefaultAddress, listCustomerAddresses, listCustomers, listOrders, countOrders, updateCustomer,
-  type CustomerInput as ServiceInput,
+  addCustomerComment, updateEmailMarketingConsent, listEvents, changeCustomerTags, countCustomers, createCustomer, customerStats, deleteCustomer, getCustomer, getDefaultAddress, listCustomerAddresses, listCustomers, listOrders, countOrders, updateCustomer,
+  type Customer, type CustomerInput as ServiceInput,
 } from '@shopme/core';
 import { parseId, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
-import { requireScope } from '../context';
+import { requireScope, type GraphQLContext } from '../context';
 import { ConnectionArgs, paginate } from '../types/connection';
 import { definePayload } from '../types/errors';
 import { Count, MoneyV2, moneyV2 } from '../types/money';
@@ -13,18 +13,19 @@ import { shopOf } from '../types/catalog';
 import { CommentEvent, Customer_, CustomerConnection, EventConnection, EventSortKeys, type EventRow, MailingAddress, MailingAddressConnection, MailingAddressInput, OrderConnection, registerTaggable } from '../types/sales';
 import { paginateArray } from '../types/connection';
 import { Shop } from './shop';
+import { HasStoreCreditAccounts } from '../types/store-credit';
 
 const CustomerState = builder.enumType('CustomerState', { values: ['DECLINED', 'DISABLED', 'ENABLED', 'INVITED'] as const });
 const MarketingState = builder.enumType('CustomerEmailAddressMarketingState', { values: ['INVALID', 'NOT_SUBSCRIBED', 'PENDING', 'SUBSCRIBED', 'UNSUBSCRIBED'] as const });
 const CustomerSortKeys = builder.enumType('CustomerSortKeys', { values: ['CREATED_AT', 'ID', 'LOCATION', 'NAME', 'RELEVANCE', 'UPDATED_AT'] as const });
 const OrderSortKeysRef = 'OrderSortKeys' as never;
 
-const CustomerEmailAddress = builder.objectRef<{ emailAddress: string; subscribed: boolean }>('CustomerEmailAddress').implement({
+const CustomerEmailAddress = builder.objectRef<{ emailAddress: string; state: string; updatedAt: Date | null }>('CustomerEmailAddress').implement({
   fields: (t) => ({
     emailAddress: t.exposeString('emailAddress'),
-    marketingState: t.field({ type: MarketingState, resolve: (e) => (e.subscribed ? 'SUBSCRIBED' : 'NOT_SUBSCRIBED') as 'SUBSCRIBED' }),
+    marketingState: t.field({ type: MarketingState, resolve: (e) => (e.state === 'REDACTED' ? 'NOT_SUBSCRIBED' : e.state) as 'SUBSCRIBED' }),
     validFormat: t.boolean({ resolve: () => true }),
-    marketingUpdatedAt: t.field({ type: 'DateTime', nullable: true, resolve: () => null }),
+    marketingUpdatedAt: t.field({ type: 'DateTime', nullable: true, resolve: (e) => e.updatedAt }),
   }),
 });
 const CustomerPhoneNumber = builder.objectRef<{ phoneNumber: string }>('CustomerPhoneNumber').implement({ fields: (t) => ({ phoneNumber: t.exposeString('phoneNumber') }) });
@@ -32,7 +33,7 @@ const CustomerPhoneNumber = builder.objectRef<{ phoneNumber: string }>('Customer
 const displayName = (c: { firstName: string | null; lastName: string | null; email: string | null }) => [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || '';
 
 Customer_.implement({
-  interfaces: [Node],
+  interfaces: [Node, HasStoreCreditAccounts],
   fields: (t) => ({
     legacyResourceId: t.field({ type: 'UnsignedInt64', resolve: legacyId }),
     firstName: t.exposeString('firstName', { nullable: true }),
@@ -48,7 +49,7 @@ Customer_.implement({
     taxExempt: t.exposeBoolean('taxExempt'),
     createdAt: t.field({ type: 'DateTime', resolve: (c) => c.createdAt }),
     updatedAt: t.field({ type: 'DateTime', resolve: (c) => c.updatedAt }),
-    defaultEmailAddress: t.field({ type: CustomerEmailAddress, nullable: true, resolve: (c) => (c.email ? { emailAddress: c.email, subscribed: c.acceptsMarketing } : null) }),
+    defaultEmailAddress: t.field({ type: CustomerEmailAddress, nullable: true, resolve: (c) => (c.email ? { emailAddress: c.email, state: c.emailMarketingState, updatedAt: c.emailMarketingUpdatedAt } : null) }),
     defaultPhoneNumber: t.field({ type: CustomerPhoneNumber, nullable: true, resolve: (c) => (c.phone ? { phoneNumber: c.phone } : null) }),
     numberOfOrders: t.field({ type: 'UnsignedInt64', resolve: async (c, _a, ctx) => String((await customerStats(ctx.db, ctx.shopId, c.id)).numberOfOrders) }),
     amountSpent: t.field({
@@ -136,6 +137,13 @@ const toService = (i: typeof CustomerInput.$inferInput): ServiceInput => ({
   acceptsMarketing: i.emailMarketingConsent ? i.emailMarketingConsent.marketingState === 'SUBSCRIBED' : undefined,
   addresses: i.addresses?.map((a) => ({ ...a, countryCode: a.countryCode ?? undefined })),
 });
+/** The explicit consent state of the input (PENDING, UNSUBSCRIBED, ...) wins over the subscribed/not-subscribed flag; an unchanged state is left alone. */
+async function applyConsent(ctx: GraphQLContext, customer: Customer, input: typeof CustomerInput.$inferInput): Promise<Customer> {
+  const c = input.emailMarketingConsent;
+  if (!c || c.marketingState === customer.emailMarketingState || !customer.email) return customer;
+  const r = await updateEmailMarketingConsent(ctx.db, ctx.shopId, customer.id, { marketingState: c.marketingState, marketingOptInLevel: c.marketingOptInLevel, consentUpdatedAt: c.consentUpdatedAt });
+  return r.ok ? r.value : customer;
+}
 const prefixed = (errors: UserError[]): UserError[] => errors.map((e) => ({ ...e, field: ['input', ...(e.field ?? [])] }));
 
 const CommentPayload = definePayload<{ event: EventRow | null }>('CustomerTimelineCommentCreatePayload', (t) => ({ event: t.field({ type: CommentEvent, nullable: true, resolve: (p) => p.event }) }));
@@ -157,7 +165,7 @@ builder.mutationFields((t) => ({
     resolve: async (_r, { input }, ctx) => {
       requireScope(ctx, 'write_customers');
       const r = await createCustomer(ctx.db, ctx.shopId, toService(input), ctx.auth.kind === 'session' ? ctx.auth.user.id : null);
-      return r.ok ? { customer: r.value, userErrors: [] } : { customer: null, userErrors: prefixed(r.errors) };
+      return r.ok ? { customer: await applyConsent(ctx, r.value, input), userErrors: [] } : { customer: null, userErrors: prefixed(r.errors) };
     },
   }),
   customerUpdate: t.field({
@@ -167,7 +175,7 @@ builder.mutationFields((t) => ({
       const id = input.id ? parseId(String(input.id), 'Customer') : null;
       if (!id) return { customer: null, userErrors: [{ field: ['input', 'id'], message: 'Customer does not exist' }] };
       const r = await updateCustomer(ctx.db, ctx.shopId, id, toService(input), ctx.auth.kind === 'session' ? ctx.auth.user.id : null);
-      return r.ok ? { customer: r.value, userErrors: [] } : { customer: null, userErrors: prefixed(r.errors) };
+      return r.ok ? { customer: await applyConsent(ctx, r.value, input), userErrors: [] } : { customer: null, userErrors: prefixed(r.errors) };
     },
   }),
   customerDelete: t.field({

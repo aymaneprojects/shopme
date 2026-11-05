@@ -3,6 +3,8 @@ import type { Db, Executor } from '../../db/client';
 import * as s from '../../db/schema';
 import { addEvent } from '../events';
 import { nextOrderNumber } from '../sequences';
+import { subscribedColumns } from '../privacy/marketing-columns';
+import { payWithStoreCredit } from '../store-credit/tender';
 import type { PricingLine, PricingResult } from '../pricing';
 import { unconvertMinor } from '../markets/money';
 
@@ -38,6 +40,8 @@ export interface CreateOrderInput {
   payment: { gateway: string; status: 'PAID' | 'PENDING'; paymentId?: string | null; test?: boolean };
   /** Gift cards that pay part (or all) of the total: balances are debited atomically with the order. */
   giftCards?: { giftCardId: number; amount: number }[];
+  /** Store credit that pays part (or all) of the total, after gift cards: debited atomically with the order (see store-credit/tender). */
+  storeCredit?: { accountId: number; amount: number; /** Debit in shop money when `amount` is in the presentment currency. */ shopAmount?: number } | null;
   /** Checkout (cart) token: stored on the order and used to complete the cart exactly once. */
   cartToken?: string | null;
   note?: string | null;
@@ -49,7 +53,7 @@ export interface CreateOrderInput {
 export type CreateOrderResult =
   | { ok: true; orderId: number; orderNumber: number; name: string }
   | { ok: false; error: 'out_of_stock'; variantIds: number[] }
-  | { ok: false; error: 'discount_unavailable' | 'already_completed' | 'gift_card_unavailable' };
+  | { ok: false; error: 'discount_unavailable' | 'already_completed' | 'gift_card_unavailable' | 'store_credit_unavailable' };
 
 class Abort extends Error { constructor(readonly result: Extract<CreateOrderResult, { ok: false }>) { super(result.error); } }
 
@@ -134,11 +138,11 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
       let createdCustomer = false;
       if (!customer) {
         createdCustomer = true;
-        [customer] = await tx.insert(s.customers).values({ shopId, email, firstName: ship?.firstName ?? null, lastName: ship?.lastName ?? null, phone: input.phone ?? ship?.phone ?? null, acceptsMarketing: !!input.acceptsMarketing }).returning();
+        [customer] = await tx.insert(s.customers).values({ shopId, email, firstName: ship?.firstName ?? null, lastName: ship?.lastName ?? null, phone: input.phone ?? ship?.phone ?? null, ...subscribedColumns(!!input.acceptsMarketing) }).returning();
       }
       await tx.update(s.customers).set({
         numberOfOrders: sql`${s.customers.numberOfOrders} + 1`, amountSpent: sql`${s.customers.amountSpent} + ${shopTotal}`,
-        ...(input.acceptsMarketing ? { acceptsMarketing: true } : {}),
+        ...(input.acceptsMarketing && !createdCustomer ? subscribedColumns(true, customer!.emailMarketingState) : {}),
       }).where(eq(s.customers.id, customer!.id));
       if (ship && !customer!.defaultAddressId) {
         const [addr] = await tx.insert(s.customerAddresses).values({ shopId, customerId: customer!.id, ...ship }).returning({ id: s.customerAddresses.id });
@@ -196,10 +200,13 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
         })));
       }
       const giftTotal = (input.giftCards ?? []).reduce((n, g) => n + g.amount, 0);
-      if (pricing.total + tip - giftTotal > 0) {
+      const creditTotal = input.storeCredit?.amount ?? 0;
+      // Store credit is kept in shop money: a presentment order debits (and records) the shop amount next to the presentment amount.
+      const creditShop = !creditTotal ? 0 : pm ? input.storeCredit?.shopAmount ?? shopOf(creditTotal) : creditTotal;
+      if (pricing.total + tip - giftTotal - creditTotal > 0) {
         await tx.insert(s.transactions).values({
-          shopId, orderId, kind: 'SALE', status: paid ? 'SUCCESS' : 'PENDING', gateway: input.payment.gateway, amount: pm ? shopTotal - shopGift(giftTotal) : pricing.total + tip - giftTotal, currency: input.currency,
-          ...(pm ? { presentmentAmount: pricing.total + tip - giftTotal, presentmentCurrency: pm.currency } : {}),
+          shopId, orderId, kind: 'SALE', status: paid ? 'SUCCESS' : 'PENDING', gateway: input.payment.gateway, amount: pm ? shopTotal - shopGift(giftTotal) - creditShop : pricing.total + tip - giftTotal - creditTotal, currency: input.currency,
+          ...(pm ? { presentmentAmount: pricing.total + tip - giftTotal - creditTotal, presentmentCurrency: pm.currency } : {}),
           test: !!input.payment.test, paymentId: input.payment.paymentId ?? null, processedAt: paid ? new Date() : null,
         });
       }
@@ -209,6 +216,10 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
         if (!debited.length) throw new Abort({ ok: false, error: 'gift_card_unavailable' });
         await tx.insert(s.giftCardTransactions).values({ shopId, giftCardId: g.giftCardId, amount: -g.amount, orderId, note: `Order ${order!.name}` });
         await tx.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'SUCCESS', gateway: 'gift_card', giftCardId: g.giftCardId, amount: g.amount, currency: input.currency, test: !!input.payment.test, processedAt: new Date() });
+      }
+      if (input.storeCredit && creditTotal > 0) {
+        if (!(await payWithStoreCredit(tx as unknown as Db, shopId, { accountId: input.storeCredit.accountId, amount: creditShop, orderId }))) throw new Abort({ ok: false, error: 'store_credit_unavailable' });
+        await tx.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'SUCCESS', gateway: 'store_credit', amount: creditShop, currency: input.currency, ...(pm ? { presentmentAmount: creditTotal, presentmentCurrency: pm.currency } : {}), test: !!input.payment.test, processedAt: new Date() });
       }
       await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.created', message: `Order ${order!.name} placed online (${input.payment.gateway})`, data: { gateway: input.payment.gateway } });
       if (createdCustomer) await addEvent(tx, shopId, { subjectType: 'customer', subjectId: customer!.id, verb: 'customers/create', message: 'Customer was created at checkout' });

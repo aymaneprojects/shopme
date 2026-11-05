@@ -120,6 +120,13 @@
       "when": 1793888633753,
       "tag": "0016_markets_multicurrency",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793889199636,
+      "tag": "0017_privacy_accounts_store_credit",
+      "breakpoints": true
     }
   ]
 }

@@ -23,9 +23,10 @@ import * as shipping from './shipping';
 import * as transfers from './transfers';
 import * as metaobjects from './metaobjects';
 import * as markets from './markets';
+import * as privacy from './privacy';
 
 /** Every operation string, keyed by export name. Used by `pnpm validate:graphql`. */
-export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...content, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog, ...views, ...wave8c, ...timeline, ...shipping, ...transfers, ...metaobjects, ...discountCodes, ...markets };
+export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...content, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog, ...views, ...wave8c, ...timeline, ...shipping, ...transfers, ...metaobjects, ...discountCodes, ...markets, ...privacy };
 
 export * from './common';
 export * from './catalog';
@@ -52,3 +53,4 @@ export * from './transfers';
 export * from './wave8c';
 export * from './shipping';
 export * from './metaobjects';
+export * from './privacy';

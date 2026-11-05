@@ -10,7 +10,7 @@ import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
 import { ConnectionArgs, defineConnection, paginate, paginateArray, type PageArgs } from '../types/connection';
 import { DisplayableError, UserError as UserErrorRef, definePayload } from '../types/errors';
-import { Count, CurrencyCode, MoneyBag, MoneyV2, moneyBag, moneyV2, type MoneyBagShape } from '../types/money';
+import { Count, CurrencyCode, MoneyBag, MoneyInput, MoneyV2, moneyBag, moneyV2, type MoneyBagShape } from '../types/money';
 import { Node, legacyId, registerNode } from '../types/node';
 import { Job, Product_, ProductVariant } from '../types/catalog';
 import {
@@ -519,10 +519,13 @@ const RefundLineItemInput = builder.inputType('RefundLineItemInput', {
 const OrderTransactionInput = builder.inputType('OrderTransactionInput', {
   fields: (t) => ({ amount: t.field({ type: 'Money', required: true }), gateway: t.string({ required: true }), kind: t.field({ type: TxKind, required: true }), orderId: t.id({ required: true }), parentId: t.id() }),
 });
+const StoreCreditRefundInput = builder.inputType('StoreCreditRefundInput', { fields: (t) => ({ amount: t.field({ type: MoneyInput, required: true }), expiresAt: t.field({ type: 'DateTime' }) }) });
+const RefundMethodInput = builder.inputType('RefundMethodInput', { fields: (t) => ({ storeCreditRefund: t.field({ type: StoreCreditRefundInput }) }) });
 const RefundInput = builder.inputType('RefundInput', {
   fields: (t) => ({
     currency: t.field({ type: CurrencyCode }), orderId: t.id({ required: true }), note: t.string(), notify: t.boolean(), shipping: t.field({ type: ShippingRefundInput }), processedAt: t.field({ type: 'DateTime' }),
     refundLineItems: t.field({ type: [RefundLineItemInput] }), transactions: t.field({ type: [OrderTransactionInput] }), allowOverRefunding: t.boolean({ defaultValue: false }),
+    refundMethods: t.field({ type: [RefundMethodInput], description: 'Where part of the refund goes besides the original payment methods (store credit).' }),
   }),
 });
 const RefundPayload = definePayload<{ order: OrderRow | null; refund: RefundShape | null }>('RefundCreatePayload', (t) => ({
@@ -637,7 +640,11 @@ builder.mutationFields((t) => ({
       if (!orderId || !order) return { order: null, refund: null, userErrors: [{ field: ['input', 'orderId'], message: 'Order does not exist' }] };
       const lines = (input.refundLineItems ?? []).map((l) => ({ orderLineId: parseId(String(l.lineItemId), 'LineItem'), quantity: l.quantity, restockType: l.restockType, locationId: l.locationId ? parseId(String(l.locationId), 'Location') : null }));
       if (lines.some((l) => l.orderLineId == null)) return { order: null, refund: null, userErrors: [{ field: ['input', 'refundLineItems'], message: 'Invalid line item id' }] };
+      const credit = input.refundMethods?.find((m) => m.storeCreditRefund)?.storeCreditRefund;
+      let creditAmount = 0;
+      if (credit) { try { creditAmount = parseMoney(credit.amount.amount, order.currency); } catch { return { order: null, refund: null, userErrors: [{ field: ['input', 'refundMethods'], message: 'Store credit amount is invalid' }] }; } }
       const r = await refundOrder(ctx.db, ctx.shopId, orderId, {
+        storeCredit: credit ? { amount: creditAmount, expiresAt: credit.expiresAt ?? null } : null,
         note: input.note, lines: lines.map((l) => ({ ...l, orderLineId: l.orderLineId! })), allowOverRefunding: !!input.allowOverRefunding, processedAt: input.processedAt, staffId: staffId(ctx), notifyCustomer: !!input.notify,
         shipping: input.shipping ? { full: input.shipping.fullRefund, amount: input.shipping.amount != null ? parseMoney(input.shipping.amount, order.currency) : null } : null,
         transactions: input.transactions?.map((x) => ({ amount: parseMoney(x.amount, order.currency), gateway: x.gateway, parentId: x.parentId ? parseId(String(x.parentId), 'OrderTransaction') : null })),

@@ -1,4 +1,4 @@
-import { Banner, Button, Card, Checkbox, Input, Skeleton, useToast } from '@shopme/ui';
+import { Banner, Button, Card, Checkbox, Input, Select, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Inbox } from 'lucide-react';
 import { useState } from 'react';
@@ -16,7 +16,7 @@ import { Thumb } from '../Products';
 import type { OrderLine } from './OrderDialogs';
 
 interface RefundOrder {
-  id: string; name: string; cancelledAt: string | null;
+  id: string; name: string; cancelledAt: string | null; customer: { id: string } | null;
   lineItems: { nodes: OrderLine[] };
   totalShippingPriceSet: MoneySet; totalRefundedSet: MoneySet;
   transactions: Array<{ kind: string; status: string; gateway: string; formattedGateway: string | null; amountSet: MoneySet }>;
@@ -45,6 +45,9 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
   const [restock, setRestock] = useState(true);
   const [notify, setNotify] = useState(true);
   const [reason, setReason] = useState('');
+  const [dest, setDest] = useState<'original' | 'credit'>('original');
+  const [creditAmt, setCreditAmt] = useState('');
+  const [creditExpiry, setCreditExpiry] = useState('');
   const lines = o.lineItems.nodes.filter((l) => l.refundableQuantity > 0);
   const cur = o.totalShippingPriceSet.shopMoney.currencyCode;
   const paidCents = o.transactions.filter((x) => x.status === 'SUCCESS' && (x.kind === 'SALE' || x.kind === 'CAPTURE')).reduce((s, x) => s + toCents(x.amountSet.shopMoney.amount), 0);
@@ -62,6 +65,7 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
   const giftLeft = Math.max(0, giftPaid - sum((x) => x.kind === 'REFUND' && x.gateway === 'gift_card'));
   const toCash = Math.min(r.totalCents, cashLeft);
   const toGift = giftPaid > 0 ? Math.min(giftLeft, r.totalCents - toCash) : 0;
+  const creditCents = dest === 'credit' ? Math.min(r.totalCents, Math.max(0, Math.round((parseDecimal(creditAmt) ?? r.totalCents / 100) * 100))) : 0;
   const back = `/orders/${routeId}`;
   const lineTotal = (id: string) => calcRefund({ lines: [rl.find((x) => x.id === id)!], quantities: { [id]: qty[id] ?? 0 }, shippingRefundCents: 0, shippingCents: 0, refundableCents: Number.MAX_SAFE_INTEGER }).itemsCents;
 
@@ -71,6 +75,7 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
         orderId: o.id, note: reason.trim() || null, notify,
         refundLineItems: picked.map((l) => ({ lineItemId: l.id, quantity: qty[l.id], restockType: restock ? 'RETURN' : 'NO_RESTOCK' })),
         ...(r.shippingCents > 0 && { shipping: { amount: fromCents(r.shippingCents) } }),
+        ...(creditCents > 0 && { refundMethods: [{ storeCreditRefund: { amount: { amount: fromCents(creditCents), currencyCode: cur }, ...(creditExpiry && { expiresAt: new Date(`${creditExpiry}T23:59:59`).toISOString() }) } }] }),
       },
     }, 'refundCreate'),
     onSuccess: async () => { toast(t('order.refunded')); await qc.invalidateQueries({ queryKey: ['order'] }); await qc.invalidateQueries({ queryKey: ['orders'] }); nav(back); },
@@ -134,8 +139,21 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
             </div>
           </SideSection>
           <SideSection title={t('order.refundAmountTitle')}>
-            <p className="text-muted">{t('order.refundMethod')}{gateway && giftPaid === 0 ? `: ${gateway}` : ''}</p>
+            <p className="text-muted">{t('order.refundMethod')}{gateway && giftPaid === 0 && dest === 'original' ? `: ${gateway}` : ''}</p>
             <p className="mt-1 text-lg font-semibold">{money(r.totalCents)}</p>
+            {o.customer && (
+              <div className="mt-2 flex flex-col gap-2">
+                <Select label={t('refund.destination')} value={dest} onChange={(e) => setDest(e.target.value as 'original' | 'credit')}>
+                  <option value="original">{t('refund.original')}</option><option value="credit">{t('refund.storeCredit')}</option>
+                </Select>
+                {dest === 'credit' && (
+                  <>
+                    <Input label={t('refund.creditAmount')} inputMode="decimal" placeholder={fromCents(r.totalCents)} value={creditAmt} onChange={(e) => setCreditAmt(e.target.value)} help={t('refund.creditRest', { amount: money(r.totalCents - creditCents) })} />
+                    <Input type="date" label={t('refund.creditExpiry')} min={new Date().toISOString().slice(0, 10)} value={creditExpiry} onChange={(e) => setCreditExpiry(e.target.value)} help={t('credit.expiryHelp')} />
+                  </>
+                )}
+              </div>
+            )}
             {giftPaid > 0 && r.totalCents > 0 && (
               <>
                 <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1">

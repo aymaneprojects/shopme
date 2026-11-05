@@ -1,6 +1,6 @@
 # Store credit
 
-Status: draft for implementation. API version studied: 2026-10. Names are listed for interoperability; behavior text is ours.
+Status: MVP implemented (see docs/dev/privacy-and-credit.md); "Later" items and the open questions below remain. API version studied: 2026-10. Names are listed for interoperability; behavior text is ours.
 Admin screens were observed on our own development store (section 3.1).
 
 ## 1. Purpose

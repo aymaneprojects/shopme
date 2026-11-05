@@ -4,6 +4,7 @@ import { registerCommerceJobs } from './commerce-jobs';
 import { registerOpsJobs } from './ops';
 import { registerBulkJobs } from './bulk/runner';
 import { schema } from './admin/graphql/schema';
+import { registerPrivacyJobs } from './privacy-jobs';
 
 /**
  * Register background jobs on the in-process queue (ctx.queue). Feature agents add their handlers here,
@@ -37,5 +38,6 @@ export function registerJobs(ctx: AppContext): () => void {
   });
   const stopOps = registerOpsJobs(ctx);
   const stopCommerce = registerCommerceJobs(ctx);
-  return () => { stopOps(); stopCommerce(); };
+  const stopPrivacy = registerPrivacyJobs(ctx);
+  return () => { stopOps(); stopCommerce(); stopPrivacy(); };
 }

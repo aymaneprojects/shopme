@@ -111,7 +111,8 @@ describe('analytics reports', () => {
 });
 
 describe('visit tracking and conversion', () => {
-  const visit = (headers: Record<string, string> = {}, cookies: Record<string, string> = {}) => t.app.inject({ method: 'GET', url: '/', headers: { 'user-agent': UA, ...headers }, cookies });
+  // The test shop is in France (consent required); these visitors browse from a region where it is not.
+  const visit = (headers: Record<string, string> = {}, cookies: Record<string, string> = {}) => t.app.inject({ method: 'GET', url: '/', headers: { 'user-agent': UA, 'cf-ipcountry': 'US', 'cf-region-code': 'NY', ...headers }, cookies });
   const views = async () => (await t.dbHandle.db.select({ n: count() }).from(s.visits))[0]!.n;
 
   it('counts sessions server-side with an anonymous cookie, and honours consent and DNT', async () => {

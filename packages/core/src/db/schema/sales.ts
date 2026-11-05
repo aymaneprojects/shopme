@@ -20,6 +20,17 @@ export const customers = pgTable('customers', {
   amountSpent: money('amount_spent').notNull().default(0),
   passwordHash: text('password_hash'), // storefront account
   lastLoginAt: ts('last_login_at'),
+  /** Privacy: the data-sale opt-out flag and the last cookie consent the customer gave (restored on sign-in). */
+  dataSaleOptOut: boolean('data_sale_opt_out').notNull().default(false),
+  consent: jsonb('consent').$type<Record<string, unknown> | null>(),
+  /** Marketing consent per channel. `acceptsMarketing` stays in step (true while the email state is SUBSCRIBED). */
+  emailMarketingState: text('email_marketing_state').notNull().default('NOT_SUBSCRIBED'),
+  emailMarketingOptInLevel: text('email_marketing_opt_in_level').notNull().default('UNKNOWN'),
+  emailMarketingUpdatedAt: ts('email_marketing_updated_at'),
+  smsMarketingState: text('sms_marketing_state').notNull().default('NOT_SUBSCRIBED'),
+  smsMarketingOptInLevel: text('sms_marketing_opt_in_level').notNull().default('UNKNOWN'),
+  smsMarketingUpdatedAt: ts('sms_marketing_updated_at'),
+  smsMarketingCollectedFrom: text('sms_marketing_collected_from'),
   ...timestamps(),
 }, (t) => [uniqueIndex('customers_shop_email_uq').on(t.shopId, t.email), index('customers_shop_created_idx').on(t.shopId, t.createdAt)]);
 

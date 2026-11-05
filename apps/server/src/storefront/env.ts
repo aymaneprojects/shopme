@@ -1,5 +1,6 @@
+import { privacyEnvFor, privacyLiquid, type PrivacyEnv } from './privacy';
 import { lazyList, type PageInput, type ResourceResolvers } from '@shopme/liquid-compat';
-import { enabledPresentmentCurrencies, getPrimaryShop, getCartByToken, listBuyerCountries, loadTranslator, moneyFormatsFor, NO_TRANSLATOR, searchArticles, searchPages, priceCartDiscounts, resolveCustomerSession, type CartView, type Customer, type Db, type MarketContext, type Shop, type Translator } from '@shopme/core';
+import { accountUrlOf, customerAccountsSettingsOf, enabledPresentmentCurrencies, getPrimaryShop, getCartByToken, listBuyerCountries, loadTranslator, moneyFormatsFor, NO_TRANSLATOR, searchArticles, searchPages, priceCartDiscounts, resolveCustomerSession, type CartView, type Customer, type Db, type MarketContext, type Shop, type Translator } from '@shopme/core';
 import type { FastifyRequest } from 'fastify';
 import type { AppContext } from '../context';
 import { buyerContext, syncCartToBuyer } from './market';
@@ -37,6 +38,8 @@ export interface Env {
   /** The buyer's market: presentment currency, rate and price list. */
   market: MarketContext;
   customer: Customer | null;
+  /** Consent, region and pixels of this visitor. */
+  privacy: PrivacyEnv;
   /** Storefront language of this request (`shop.locale` unless the URL carries a published locale prefix). */
   locale: string;
   /** URL prefix of that language (`''` for the primary one, else `/fr`). */
@@ -52,7 +55,8 @@ export async function makeEnv(ctx: AppContext, req: FastifyRequest, shop: Shop, 
   const cart = found ? await syncCartToBuyer(ctx, req, shop, found) : null;
   const locale = ctx.locales.localeOf(req.raw) ?? shop.locale;
   const tr = locale === shop.locale ? NO_TRANSLATOR : await loadTranslator(ctx.db, shop.id, locale);
-  return { ctx, db: ctx.db, shop, origin: ctx.config.appUrl, path: path ?? req.url.split('?')[0]!, query: req.query as Query, cart, market, customer: await customerOf(ctx, req, shop), locale, prefix: locale === shop.locale ? '' : ctx.locales.prefixOf(locale), tr };
+  const customer = await customerOf(ctx, req, shop);
+  return { ctx, db: ctx.db, shop, origin: ctx.config.appUrl, path: path ?? req.url.split('?')[0]!, query: req.query as Query, cart, market, customer, privacy: await privacyEnvFor(ctx, req, shop, customer), locale, prefix: locale === shop.locale ? '' : ctx.locales.prefixOf(locale), tr };
 }
 
 export async function primaryShop(ctx: AppContext): Promise<Shop | null> { return getPrimaryShop(ctx.db); }
@@ -207,7 +211,7 @@ export async function buildGlobals(env: Env, themeId: number, pageType: string):
   const request = requestObject(shop, origin, env.path, pageType, env.locale, env.prefix);
   const languages = env.ctx.locales.locales.map((l) => ({ locale: l.locale, name: l.name, primary: l.primary, prefix: env.ctx.locales.prefixOf(l.locale) }));
   return {
-    shop: { ...shopObject(shop, origin, { products: 0, collections: cols.length }, currencies), metafields: shopMf.get(shop.id) ?? {}, metaobjects }, metaobjects, request, routes: routesObject(env.prefix), localization: localizationObject(shop, env.locale, languages, origin, env.path, env.market, countries), cart: liquidCart(env.cart, shop, pricing, env.market.currency),
+    shop: { ...shopObject(shop, origin, { products: 0, collections: cols.length }, currencies), metafields: shopMf.get(shop.id) ?? {}, metaobjects }, metaobjects, request, routes: routesObject(env.prefix, shop), privacy: privacyLiquid(shop, env.privacy), customer_accounts: customerAccountsObject(shop), localization: localizationObject(shop, env.locale, languages, origin, env.path, env.market, countries), cart: liquidCart(env.cart, shop, pricing, env.market.currency),
     linklists, pages: lazyMap(pages.map((p) => p.handle), async (h) => pages.find((p) => p.handle === h) ?? null), collections,
     all_products: lazyMap(true, async (h) => trProduct(env, await getProductByHandle(db, shop.id, h, { pricing: env.market })), {}), customer, blogs: lazyMap(blogRows.map((b) => b.handle), async (h) => { const b = blogRows.find((x) => x.handle === h); return b ? buildBlog(db, shop.id, b) : null; }),
     articles: lazyMap(true, async (key) => { const [bh, ah] = key.split(/[/.]/); const b = bh ? await getBlog(db, shop.id, bh) : null; const a = b && ah ? await getPublishedArticle(db, shop.id, b, ah) : null; return a ?? null; }, {}),
@@ -239,3 +243,13 @@ export const pageInput = (env: Env, template: string, suffix: string | null | un
   request: { path: env.path, query: env.query },
   money: (() => { const f = moneyFormatsFor({ ...env.shop }, env.market.currency); return { format: f.format, withCurrency: f.withCurrency, currency: env.market.currency }; })(),
 });
+
+/** Liquid `customer_accounts`: how accounts are set up (mode, sign-in methods, what customers may do with orders). */
+export function customerAccountsObject(shop: Shop) {
+  const c = customerAccountsSettingsOf(shop);
+  return {
+    mode: c.mode.toLowerCase(), enabled: c.mode !== 'DISABLED', required: c.mode === 'REQUIRED', login_links_visible: c.loginLinksVisible && c.mode !== 'DISABLED', password_login: c.signIn.password, email_code_login: c.signIn.emailCode,
+    store_credit: c.storeCredit, url: accountUrlOf(shop),
+    order_actions: { reorder: c.orderActions.reorder, returns: c.orderActions.returns, cancellations: c.orderActions.cancellations, cancellation_window_hours: c.orderActions.cancellationWindowHours },
+  };
+}

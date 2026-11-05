@@ -4,6 +4,7 @@ import type { Executor } from '../db/client';
 import { errR, okR, type Result } from './catalog/common';
 import { getOrderDetail, listOrders } from './orders/orders';
 import type { Shop } from './shops';
+import { privacySettingsOf, updatePrivacySettings } from './privacy/settings';
 
 /** Shopify's ShopPolicyType values ShopMe supports -> storefront handle (`/policies/<handle>`) and default title. */
 export const POLICY_TYPES = {
@@ -12,6 +13,9 @@ export const POLICY_TYPES = {
   TERMS_OF_SERVICE: { handle: 'terms-of-service', title: 'Terms of service' },
   SHIPPING_POLICY: { handle: 'shipping-policy', title: 'Shipping policy' },
   CONTACT_INFORMATION: { handle: 'contact-information', title: 'Contact information' },
+  TERMS_OF_SALE: { handle: 'terms-of-sale', title: 'Terms of sale' },
+  LEGAL_NOTICE: { handle: 'legal-notice', title: 'Legal notice' },
+  SUBSCRIPTION_POLICY: { handle: 'subscription-policy', title: 'Subscription policy' },
 } as const;
 export type PolicyType = keyof typeof POLICY_TYPES;
 export const POLICY_TYPE_KEYS = Object.keys(POLICY_TYPES) as PolicyType[];
@@ -42,14 +46,15 @@ export async function updatePolicy(db: Executor, shop: Shop, type: string, body:
 }
 
 export interface CookieBanner { enabled: boolean; message: string }
+/** Legacy view of the cookie banner setting: "enabled" means the banner is always shown (`privacy.cookieBanner.mode = ALWAYS`). */
 export const cookieBannerOf = (shop: Shop): CookieBanner => {
-  const c = (shop.settings.cookieBanner ?? {}) as Partial<CookieBanner>;
-  return { enabled: !!c.enabled, message: c.message ?? 'We use cookies to improve your experience.' };
+  const p = privacySettingsOf(shop);
+  return { enabled: p.cookieBanner.mode === 'ALWAYS', message: p.cookieBanner.message };
 };
 export async function updateCookieBanner(db: Executor, shop: Shop, i: Partial<CookieBanner>): Promise<CookieBanner> {
-  const next = { ...cookieBannerOf(shop), ...(i.enabled != null && { enabled: i.enabled }), ...(i.message != null && { message: i.message.slice(0, 1000) }) };
-  await db.update(shops).set({ settings: { ...shop.settings, cookieBanner: next }, updatedAt: new Date() }).where(eq(shops.id, shop.id));
-  return next;
+  const cur = privacySettingsOf(shop);
+  const r = await updatePrivacySettings(db, shop, { cookieBanner: { ...(i.enabled != null && { mode: i.enabled ? 'ALWAYS' as const : cur.cookieBanner.mode === 'ALWAYS' ? 'AUTO' as const : cur.cookieBanner.mode }), ...(i.message != null && { message: i.message.slice(0, 1000) }) } });
+  return r.ok ? { enabled: r.value.cookieBanner.mode === 'ALWAYS', message: r.value.cookieBanner.message } : cookieBannerOf(shop);
 }
 
 /** GDPR "right of access": everything stored about one customer (profile, addresses, orders with lines and payments, timeline). Null when unknown. */
