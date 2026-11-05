@@ -58,6 +58,12 @@ const customerSearch = (q: string | null | undefined) => buildSearch(q, {
   },
 });
 
+/** Whether one customer matches a saved customer search (a segment query). An empty query matches everyone. */
+export async function customerMatchesQuery(db: Executor, shopId: number, customerId: number, query: string): Promise<boolean> {
+  const rows = await db.select({ id: customers.id }).from(customers).where(and(eq(customers.shopId, shopId), eq(customers.id, customerId), customerSearch(query))).limit(1);
+  return rows.length > 0;
+}
+
 export type CustomerSortKey = 'CREATED_AT' | 'ID' | 'LOCATION' | 'NAME' | 'RELEVANCE' | 'UPDATED_AT';
 
 export function listCustomers(db: Executor, shopId: number, o: { query?: string | null; sortKey?: CustomerSortKey; reverse?: boolean; offset: number; limit: number }): Promise<Customer[]> {

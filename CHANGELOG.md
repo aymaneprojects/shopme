@@ -25,6 +25,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Theme editor: section and block settings panel with back/close and a "..." menu, section menu in the tree (copy, paste, duplicate, rename, hide, add before/after, remove) and keyboard shortcuts.
 - Theme editor: one undo/redo history shared by sections and theme settings, and theme settings grouped with search.
 - Theme editor: "Add section" picker with categories, search and a live preview on hover; desktop, tablet, mobile and full-screen preview modes.
+- Settings, Checkout: contact method (email, or email or phone), optional or required customer accounts, name, company, address line 2 and phone rules, marketing opt-in checkbox (hidden, shown, pre-checked), tipping with presets, and order notes. The storefront checkout shows and validates exactly these fields on the server.
+- Notifications can be switched on or off one by one (order confirmation, shipping, refund, cancellation, abandoned checkout, gift card), and the "New order" email goes to a list of staff recipients.
+- Return rules (Settings, Policies): return window, return shipping cost (free, flat fee, customer pays), restocking fee and final sale products or collections. They are enforced when a return is created, copied onto it, and listed on the refund policy page.
+- Discounts can be limited to customer segments or specific customers (enforced at checkout from the buyer's email), show an Eligibility column in the list, and carry tags with a tag filter.
+- Admin shell: collapsible sidebar (remembered per browser), a notifications bell with an activity feed (new orders, low stock, failed webhook deliveries, backup results) and "Mark all as read", search with type filters and recent searches, and an account menu at the bottom of the sidebar.
 - The demo store now ships real product, collection, home page, blog and About page photos (CC0, see `packages/core/assets/demo/README.md`).
 - Illustrated empty states in the admin (products, orders, customers, discounts, collections, analytics).
 - `pnpm screenshots` regenerates the README screenshots from a fresh demo store.

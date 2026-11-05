@@ -8,11 +8,15 @@ import { createOrder, type CheckoutAddressInput, type CreateOrderResult } from '
 import {
   matchShippingRates, priceCheckout, resolveCombinations, type DiscountApplication, type PricingDiscount, type PricingInput, type PricingLine, type PricingResult, type PricingShippingRate, type PricingTaxRate,
 } from '../pricing';
+import { discountEligibleFor } from '../discounts/eligibility';
 import { allocateGiftCards, getGiftCardByCode, giftCardRejection, normalizeGiftCardCode, type GiftCardRejection } from '../gift-cards';
+import { checkoutSettingsOf, isPhone, requiredAddressKeys, stripHiddenAddressFields, tipFor, type CheckoutSettings } from './settings';
+
+export * from './settings';
 
 /** A checkout is the cart row plus the buyer's details (email, address, chosen shipping rate, discount codes). */
 
-export type DiscountRejection = 'not_found' | 'disabled' | 'not_started' | 'expired' | 'usage_limit' | 'minimum_subtotal' | 'minimum_quantity' | 'already_used' | 'not_applicable' | 'not_combinable';
+export type DiscountRejection = 'not_found' | 'disabled' | 'not_started' | 'expired' | 'usage_limit' | 'minimum_subtotal' | 'minimum_quantity' | 'already_used' | 'not_applicable' | 'not_combinable' | 'not_eligible';
 
 export interface CheckoutView {
   token: string;
@@ -20,6 +24,13 @@ export interface CheckoutView {
   taxesIncluded: boolean;
   email: string | null;
   address: CheckoutAddressInput | null;
+  /** Cart note (shown as the order note when the shop turns "Order notes" on). */
+  note: string | null;
+  /** Checkout settings in force (fields to show and validate). */
+  settings: CheckoutSettings;
+  /** Tip added by the buyer (minor units) and the choice behind it. */
+  tip: number;
+  tipChoice: { percent: number | null; amount: number };
   lines: CartLineView[];
   requiresShipping: boolean;
   shippingOptions: PricingShippingRate[];
@@ -77,6 +88,7 @@ export async function evaluateDiscounts(
     if (d.startsAt && d.startsAt > now) { reject('not_started'); continue; }
     if (d.endsAt && d.endsAt < now) { reject('expired'); continue; }
     if (d.usageLimit !== null && d.usageCount >= d.usageLimit) { reject('usage_limit'); continue; }
+    if (!(await discountEligibleFor(db, shopId, ext, email))) { reject('not_eligible'); continue; }
     const scope = (sc: { productIds?: number[]; collectionIds?: number[] }) => (l: PricingLine) => !!sc.productIds?.includes(l.productId) || l.collectionIds.some((c) => !!sc.collectionIds?.includes(c));
     const eligible = pd.target === 'SHIPPING' || pd.target === 'ORDER' ? ctx.lines : ctx.lines.filter(scope(pd.bxgy?.buyAppliesTo ?? d.appliesTo));
     if (!eligible.length) { reject('not_applicable'); continue; }
@@ -219,12 +231,16 @@ export async function loadCheckout(db: Executor, shop: Shop, token: string, now 
 
   const input: PricingInput = { lines: plines, discounts: applied, shipping: chosen, taxRates, taxesIncluded: shop.taxesIncluded, taxExempt, country: address?.countryCode ?? null, province: address?.provinceCode ?? null };
   const pricing = priceCheckout(input);
-  const gift = await giftCardsFor(db, shop.id, row.id, cart, pricing, now);
+  const meta = await metaOf(db, row.id);
+  const gift = await giftCardsFor(db, shop.id, meta, cart, pricing, now);
+  const settings = checkoutSettingsOf(shop);
+  const tipChoice = { percent: meta?.tipPercent ?? null, amount: meta?.tipAmount ?? 0 };
+  const tip = settings.tipping.enabled ? tipFor(Math.max(0, pricing.subtotal - pricing.totalDiscounts), tipChoice) : 0;
   return {
-    token, currency: cart.currency, taxesIncluded: shop.taxesIncluded, email: row.email, address, lines: cart.lines, requiresShipping,
+    token, currency: cart.currency, taxesIncluded: shop.taxesIncluded, email: row.email, address, note: row.note, settings, tip, tipChoice, lines: cart.lines, requiresShipping,
     shippingOptions: options, shippingRateId: chosen?.id ?? null,
     appliedDiscounts: applied.map((d) => ({ code: d.code, title: d.title })), rejectedCodes: rejected,
-    giftCards: gift.cards, giftCardTotal: gift.total, amountDue: pricing.total - gift.total, stockIssues: await stockIssuesFor(db, shop.id, cart.lines), pricing, completed: !!row.completedAt,
+    giftCards: gift.cards, giftCardTotal: gift.total, amountDue: pricing.total - gift.total + tip, stockIssues: await stockIssuesFor(db, shop.id, cart.lines), pricing, completed: !!row.completedAt,
   };
 }
 
@@ -238,8 +254,8 @@ async function metaOf(db: Executor, cartId: number) {
 }
 
 /** Cards on the checkout that are still usable, and what each pays. Gift cards cannot pay for gift card products. */
-async function giftCardsFor(db: Executor, shopId: number, cartId: number, cart: CartView, pricing: PricingResult, now: Date) {
-  const codes = (await metaOf(db, cartId))?.giftCardCodes ?? [];
+async function giftCardsFor(db: Executor, shopId: number, meta: Awaited<ReturnType<typeof metaOf>>, cart: CartView, pricing: PricingResult, now: Date) {
+  const codes = meta?.giftCardCodes ?? [];
   if (!codes.length) return { cards: [] as CheckoutView['giftCards'], total: 0, allocations: [] as { giftCardId: number; amount: number }[] };
   const rows = (await db.select().from(s.giftCards).where(and(eq(s.giftCards.shopId, shopId), inArray(s.giftCards.code, codes)))).filter((c) => !giftCardRejection(c, cart.currency, now));
   rows.sort((a, b) => codes.indexOf(a.code) - codes.indexOf(b.code));
@@ -262,6 +278,9 @@ export interface CheckoutPatch {
   removeDiscountCode?: string;
   addGiftCardCode?: string;
   removeGiftCardCode?: string;
+  /** Tip choice: a preset percentage, or a custom amount (minor units). Either clears the other. */
+  tipPercent?: number | null;
+  tipAmount?: number;
 }
 
 const ADDRESS_KEYS = ['firstName', 'lastName', 'company', 'address1', 'address2', 'city', 'province', 'provinceCode', 'zip', 'country', 'countryCode', 'phone'] as const;
@@ -287,7 +306,10 @@ export async function updateCheckout(db: Db, shop: Shop, token: string, patch: C
     if (patch.email && !isEmail(patch.email)) return { ok: false, error: 'invalid_email' };
     set.email = patch.email ? lc(patch.email) : null;
   }
-  if (patch.address !== undefined) { set.shippingAddress = patch.address; set.billingAddress = patch.address; }
+  if (patch.address !== undefined) {
+    const a = stripHiddenAddressFields(patch.address, checkoutSettingsOf(shop));
+    set.shippingAddress = a; set.billingAddress = a;
+  }
   if (patch.shippingRateId !== undefined) set.shippingRateId = patch.shippingRateId;
   if (patch.removeDiscountCode) set.discountCodes = row.discountCodes.filter((c) => norm(c) !== norm(patch.removeDiscountCode!));
   if (patch.addDiscountCode?.trim()) {
@@ -311,6 +333,12 @@ export async function updateCheckout(db: Db, shop: Shop, token: string, patch: C
     }
     await db.insert(s.checkoutMeta).values({ cartId: row.id, shopId: shop.id, giftCardCodes: next }).onConflictDoUpdate({ target: s.checkoutMeta.cartId, set: { giftCardCodes: next } });
   }
+  if (patch.tipPercent !== undefined || patch.tipAmount !== undefined) {
+    const settings = checkoutSettingsOf(shop);
+    const percent = patch.tipPercent != null && settings.tipping.presets.includes(patch.tipPercent) ? patch.tipPercent : null;
+    const amount = percent ? 0 : Math.max(0, Math.min(Math.trunc(patch.tipAmount ?? 0), 100_000_000));
+    await db.insert(s.checkoutMeta).values({ cartId: row.id, shopId: shop.id, tipPercent: percent, tipAmount: amount }).onConflictDoUpdate({ target: s.checkoutMeta.cartId, set: { tipPercent: percent, tipAmount: amount } });
+  }
   if (Object.keys(set).length) await db.update(s.carts).set(set).where(eq(s.carts.id, row.id));
   return { ok: true };
 }
@@ -320,7 +348,7 @@ export async function updateCheckout(db: Db, shop: Shop, token: string, patch: C
 // ---------------------------------------------------------------------------------------------------------------------
 
 export type CheckoutError =
-  | { code: 'not_found' | 'completed' | 'empty' | 'email' | 'shipping_method' | 'payment_method' | 'discount' | 'gift_card' }
+  | { code: 'not_found' | 'completed' | 'empty' | 'email' | 'contact' | 'shipping_method' | 'payment_method' | 'discount' | 'gift_card' }
   | { code: 'address'; fields: string[] }
   | { code: 'stock'; issues: CheckoutView['stockIssues'] };
 
@@ -340,7 +368,6 @@ export type SubmitResult =
   | { ok: true; orderId: number; orderNumber: number; name: string; total: number; currency: string; paid: boolean; needsOnlinePayment: boolean; paymentId: string | null; email: string; checkout: CheckoutView }
   | { ok: false; errors: CheckoutError[] };
 
-const REQUIRED_ADDRESS = ['firstName', 'lastName', 'address1', 'city', 'zip', 'countryCode'] as const;
 
 /** Validate everything again (stock, discounts, shipping, address) and create the order. */
 export async function submitCheckout(db: Db, shop: Shop, token: string, input: SubmitInput): Promise<SubmitResult> {
@@ -350,8 +377,10 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
   const view = (await loadCheckout(db, shop, token))!;
   const errors: CheckoutError[] = [];
   if (!view.lines.length) return { ok: false, errors: [{ code: 'empty' }] };
-  if (!row.email || !isEmail(row.email)) errors.push({ code: 'email' });
-  const missing = REQUIRED_ADDRESS.filter((k) => !view.address?.[k]);
+  const settings = view.settings;
+  const phoneContact = settings.contactMethod === 'email_or_phone' && !row.email && !!view.address?.phone && isPhone(view.address.phone);
+  if (!phoneContact && (!row.email || !isEmail(row.email))) errors.push({ code: settings.contactMethod === 'email_or_phone' ? 'contact' : 'email' });
+  const missing = requiredAddressKeys(settings).filter((k) => !(view.address as Record<string, string | null | undefined> | null)?.[k]);
   if (missing.length) errors.push({ code: 'address', fields: missing });
   if (view.requiresShipping && !missing.length) {
     const wanted = input.shippingRateId ?? view.shippingRateId;
@@ -376,7 +405,7 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
   const gateway = free ? (giftCards.length ? 'gift_card' : 'free') : input.paymentMethod;
   const paymentId = online && input.startOnlinePayment ? await input.startOnlinePayment(checkout) : null;
   const res: CreateOrderResult = await createOrder(db, shop.id, {
-    email: row.email!, phone: checkout.address?.phone ?? null, acceptsMarketing: input.acceptsMarketing, currency: cart.currency, taxesIncluded: shop.taxesIncluded,
+    email: row.email, phone: checkout.address?.phone ?? null, acceptsMarketing: settings.marketing !== 'hidden' && input.acceptsMarketing, tip: checkout.tip, currency: cart.currency, taxesIncluded: shop.taxesIncluded,
     lines: checkout.pricing.lines.map((p) => {
       const l = byId.get(p.id)!;
       return {
@@ -388,7 +417,7 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
     pricing: checkout.pricing, giftCards,
     shippingAddress: checkout.requiresShipping ? checkout.address : null, billingAddress: checkout.address,
     payment: { gateway, status: free ? 'PAID' : 'PENDING', paymentId },
-    cartToken: token, note: input.note ?? row.note,
+    cartToken: token, note: settings.orderNotes ? (input.note ?? row.note) : row.note,
   });
   if (!res.ok) {
     if (res.error === 'out_of_stock') return { ok: false, errors: [{ code: 'stock', issues: (await loadCheckout(db, shop, token))!.stockIssues }] };
@@ -397,5 +426,5 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
     return { ok: false, errors: [{ code: 'completed' }] };
   }
   if (row.draftOrderId) await completeDraftFromCheckout(db, shop.id, row.draftOrderId, res.orderId);
-  return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.amountDue, currency: cart.currency, paid: free, needsOnlinePayment: online, paymentId, email: row.email!, checkout };
+  return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.amountDue, currency: cart.currency, paid: free, needsOnlinePayment: online, paymentId, email: row.email ?? '', checkout };
 }

@@ -81,6 +81,8 @@ export const orders = pgTable('orders', {
   totalTax: money('total_tax').notNull().default(0),
   totalDiscounts: money('total_discounts').notNull().default(0),
   total: money('total').notNull().default(0),
+  /** Tip left by the buyer at checkout; included in `total`. */
+  totalTip: money('total_tip').notNull().default(0),
   totalRefunded: money('total_refunded').notNull().default(0),
   ...timestamps(),
 }, (t) => [

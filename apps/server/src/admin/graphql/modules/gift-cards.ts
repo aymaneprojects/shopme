@@ -192,7 +192,7 @@ async function sendCard(ctx: GraphQLContext, rawId: string, recipient: boolean) 
   if (recipient && !card.recipientCustomerId) return { giftCard: await load(ctx, card), userErrors: fail(['id'], 'This gift card has no recipient', 'RECIPIENT_NOT_FOUND') };
   if (!recipient && !card.customerId && !card.orderId) return { giftCard: await load(ctx, card), userErrors: fail(['id'], 'This gift card has no customer', 'CUSTOMER_NOT_FOUND') };
   if (!to) return { giftCard: await load(ctx, card), userErrors: fail(['id'], 'No email address to send the gift card to') };
-  await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.app.config.appUrl, 'gift_card_issued', to, giftCardMailVars(shop, ctx.app.config.appUrl, card, from));
+  await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.app.config.appUrl, 'gift_card_issued', to, giftCardMailVars(shop, ctx.app.config.appUrl, card, from), { force: true });
   await markGiftCardNotified(ctx.db, card.id);
   return { giftCard: await load(ctx, card), userErrors: [] };
 }

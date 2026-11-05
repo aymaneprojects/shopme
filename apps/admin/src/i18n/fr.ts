@@ -1,3 +1,4 @@
+import { frCheckout } from './fr-checkout';
 import { frCatalog } from './fr-catalog';
 import { frContent } from './fr-content';
 import { frPublishing } from './fr-publishing';
@@ -23,7 +24,7 @@ export const fr: Record<Key, string> = {
   'nav.home': 'Accueil', 'nav.orders': 'Commandes', 'nav.products': 'Produits', 'nav.collections': 'Collections', 'nav.inventory': 'Stock',
   'nav.customers': 'Clients', 'nav.discounts': 'Réductions', 'nav.onlineStore': 'Boutique en ligne', 'nav.settings': 'Paramètres',
   'nav.menu': 'Ouvrir le menu', 'nav.notFound': 'Page introuvable',
-  'shell.search': 'Rechercher', 'shell.searchPlaceholder': 'Rechercher', 'shell.account': 'Menu du compte', 'cmd.placeholder': 'Rechercher pages, produits, commandes, clients…', 'cmd.pages': 'Pages', 'cmd.products': 'Produits', 'cmd.orders': 'Commandes', 'cmd.customers': 'Clients', 'cmd.empty': 'Aucun résultat', 'cmd.hint': 'Saisissez pour rechercher', 'cmd.dismiss': 'Fermer', 'cmd.settings': 'Paramètres', 'theme.light': 'Thème clair', 'theme.dark': 'Thème sombre', 'theme.system': 'Suivre le système', 'shell.logout': 'Se déconnecter',
+  'shell.search': 'Rechercher', 'shell.searchPlaceholder': 'Rechercher', 'shell.account': 'Menu du compte', 'cmd.pages': 'Pages', 'cmd.products': 'Produits', 'cmd.orders': 'Commandes', 'cmd.customers': 'Clients', 'cmd.empty': 'Aucun résultat', 'cmd.hint': 'Saisissez pour rechercher', 'cmd.dismiss': 'Fermer', 'cmd.settings': 'Paramètres', 'theme.light': 'Thème clair', 'theme.dark': 'Thème sombre', 'theme.system': 'Suivre le système', 'shell.logout': 'Se déconnecter',
 
   'login.title': 'Connexion', 'login.subtitle': 'Connectez-vous pour gérer votre boutique.', 'login.submit': 'Se connecter', 'login.invalid': 'E-mail ou mot de passe incorrect.',
   'setup.title': 'Configurez votre boutique', 'setup.subtitle': 'Créez le compte propriétaire et les informations de base de la boutique.', 'setup.shopName': 'Nom de la boutique',
@@ -111,4 +112,5 @@ export const fr: Record<Key, string> = {
   ...frContent,
   ...frPublishing,
   ...frViews,
+  ...frCheckout,
 };

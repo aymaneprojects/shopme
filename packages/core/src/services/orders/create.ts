@@ -20,7 +20,8 @@ export interface OrderLineInput extends PricingLine {
 }
 
 export interface CreateOrderInput {
-  email: string;
+  /** Null for a buyer who identified with a phone number only. */
+  email: string | null;
   phone?: string | null;
   acceptsMarketing?: boolean;
   currency: string;
@@ -37,6 +38,8 @@ export interface CreateOrderInput {
   cartToken?: string | null;
   note?: string | null;
   sourceName?: string;
+  /** Tip added by the buyer (minor units), on top of `pricing.total`. */
+  tip?: number;
 }
 
 export type CreateOrderResult =
@@ -95,8 +98,9 @@ export async function commitStock(tx: Executor, shopId: number, variantId: numbe
  * Returns a failure (nothing written) when stock ran out meanwhile, a discount hit its usage limit, or the cart was already completed.
  */
 export async function createOrder(db: Db, shopId: number, input: CreateOrderInput): Promise<CreateOrderResult> {
-  const email = normEmail(input.email);
+  const email = input.email ? normEmail(input.email) : null;
   const { pricing } = input;
+  const tip = Math.max(0, input.tip ?? 0);
   try {
     return await db.transaction(async (tx) => {
       if (input.cartToken) {
@@ -114,12 +118,14 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
 
       // Customer by email.
       const ship = input.shippingAddress ?? input.billingAddress;
-      let [customer] = await tx.select().from(s.customers).where(and(eq(s.customers.shopId, shopId), eq(s.customers.email, email))).limit(1);
+      const phone = input.phone ?? ship?.phone ?? null;
+      let [customer] = email ? await tx.select().from(s.customers).where(and(eq(s.customers.shopId, shopId), eq(s.customers.email, email))).limit(1)
+        : phone ? await tx.select().from(s.customers).where(and(eq(s.customers.shopId, shopId), eq(s.customers.phone, phone))).limit(1) : [];
       if (!customer) {
         [customer] = await tx.insert(s.customers).values({ shopId, email, firstName: ship?.firstName ?? null, lastName: ship?.lastName ?? null, phone: input.phone ?? ship?.phone ?? null, acceptsMarketing: !!input.acceptsMarketing }).returning();
       }
       await tx.update(s.customers).set({
-        numberOfOrders: sql`${s.customers.numberOfOrders} + 1`, amountSpent: sql`${s.customers.amountSpent} + ${pricing.total}`,
+        numberOfOrders: sql`${s.customers.numberOfOrders} + 1`, amountSpent: sql`${s.customers.amountSpent} + ${pricing.total + tip}`,
         ...(input.acceptsMarketing ? { acceptsMarketing: true } : {}),
       }).where(eq(s.customers.id, customer!.id));
       if (ship && !customer!.defaultAddressId) {
@@ -133,7 +139,7 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
         shopId, orderNumber, name: `#${orderNumber}`, customerId: customer!.id, email, phone: input.phone ?? ship?.phone ?? null,
         currency: input.currency, presentmentCurrency: input.currency, taxesIncluded: input.taxesIncluded, test: !!input.payment.test,
         financialStatus: paid ? 'PAID' : 'PENDING', fulfillmentStatus: 'UNFULFILLED', note: input.note ?? null, sourceName: input.sourceName ?? 'web', cartToken: input.cartToken ?? null,
-        subtotal: pricing.subtotal, totalShipping: pricing.totalShipping, totalTax: pricing.totalTax, totalDiscounts: pricing.totalDiscounts, total: pricing.total,
+        subtotal: pricing.subtotal, totalShipping: pricing.totalShipping, totalTax: pricing.totalTax, totalDiscounts: pricing.totalDiscounts, total: pricing.total + tip, totalTip: tip,
       }).returning();
       const orderId = order!.id;
 
@@ -176,9 +182,9 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
         })));
       }
       const giftTotal = (input.giftCards ?? []).reduce((n, g) => n + g.amount, 0);
-      if (pricing.total - giftTotal > 0) {
+      if (pricing.total + tip - giftTotal > 0) {
         await tx.insert(s.transactions).values({
-          shopId, orderId, kind: 'SALE', status: paid ? 'SUCCESS' : 'PENDING', gateway: input.payment.gateway, amount: pricing.total - giftTotal, currency: input.currency,
+          shopId, orderId, kind: 'SALE', status: paid ? 'SUCCESS' : 'PENDING', gateway: input.payment.gateway, amount: pricing.total + tip - giftTotal, currency: input.currency,
           test: !!input.payment.test, paymentId: input.payment.paymentId ?? null, processedAt: paid ? new Date() : null,
         });
       }

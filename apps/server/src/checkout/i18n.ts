@@ -19,10 +19,13 @@ const EN = {
   err_completed: 'This checkout was already completed.', err_empty: 'Your cart is empty.', err_generic: 'Something went wrong. Please try again.', err_payment: 'The payment could not be started. Please try again.',
   d_not_found: 'This discount code does not exist.', d_disabled: 'This discount code is not active.', d_not_started: 'This discount code is not valid yet.', d_expired: 'This discount code has expired.',
   d_usage_limit: 'This discount code has reached its usage limit.', d_minimum_subtotal: 'Your order does not reach the minimum amount for this code.', d_minimum_quantity: 'Your order does not reach the minimum quantity for this code.',
-  d_already_used: 'You have already used this discount code.', d_not_applicable: 'This discount code does not apply to the items in your cart.', d_invalid_email: 'Enter a valid email address.',
+  d_not_eligible: 'This discount code is not available for your account.', d_already_used: 'You have already used this discount code.', d_not_applicable: 'This discount code does not apply to the items in your cart.', d_invalid_email: 'Enter a valid email address.',
   thankYou: 'Thank you, {name}!', orderNumber: 'Order {name}', confirmed: 'Your order is confirmed', confirmedPending: 'We received your order', emailSent: 'A confirmation email is on its way to {email}.',
   paymentProcessing: 'Your payment is being processed. You will receive a confirmation as soon as it completes.', bankDetails: 'Bank transfer instructions', bankDetailsMissing: 'The store will send you the bank details by email.',
   codNote: 'You will pay in cash on delivery.', shipTo: 'Shipping address', paymentMethod: 'Payment method', paid: 'Paid', pending: 'Awaiting payment', backToShop: 'Continue shopping', notFound: 'Checkout not found', notFoundText: 'This checkout link is not valid.',
+  companyField: 'Company', address2Field: 'Apartment, suite, etc.', phoneField: 'Phone', contactOrPhone: 'Email or mobile phone number',
+  err_contact: 'Enter a valid email address or mobile phone number.', err_login: 'Sign in to your customer account to check out.', signInToCheckout: 'Sign in to check out',
+  tipTitle: 'Add a tip', tipNone: 'No tip', tipCustom: 'Custom amount', tipLine: 'Tip', orderNote: 'Order notes (optional)',
   fields: { firstName: 'First name', lastName: 'Last name', address1: 'Address', city: 'City', zip: 'Postal code', countryCode: 'Country' },
 };
 type Dict = typeof EN;
@@ -47,10 +50,13 @@ const FR: Dict = {
   err_completed: 'Cette commande a déjà été validée.', err_empty: 'Votre panier est vide.', err_generic: 'Une erreur est survenue. Veuillez réessayer.', err_payment: "Le paiement n'a pas pu être démarré. Veuillez réessayer.",
   d_not_found: "Ce code de réduction n'existe pas.", d_disabled: "Ce code de réduction n'est pas actif.", d_not_started: "Ce code de réduction n'est pas encore valable.", d_expired: 'Ce code de réduction a expiré.',
   d_usage_limit: "Ce code de réduction a atteint sa limite d'utilisation.", d_minimum_subtotal: "Votre commande n'atteint pas le montant minimum pour ce code.", d_minimum_quantity: "Votre commande n'atteint pas la quantité minimum pour ce code.",
-  d_already_used: 'Vous avez déjà utilisé ce code de réduction.', d_not_applicable: "Ce code ne s'applique pas aux articles de votre panier.", d_invalid_email: 'Saisissez une adresse e-mail valide.',
+  d_not_eligible: "Ce code de réduction n'est pas disponible pour votre compte.", d_already_used: 'Vous avez déjà utilisé ce code de réduction.', d_not_applicable: "Ce code ne s'applique pas aux articles de votre panier.", d_invalid_email: 'Saisissez une adresse e-mail valide.',
   thankYou: 'Merci, {name} !', orderNumber: 'Commande {name}', confirmed: 'Votre commande est confirmée', confirmedPending: 'Nous avons bien reçu votre commande', emailSent: 'Un e-mail de confirmation vous est envoyé à {email}.',
   paymentProcessing: 'Votre paiement est en cours de traitement. Vous recevrez une confirmation dès qu’il sera terminé.', bankDetails: 'Instructions de virement', bankDetailsMissing: 'La boutique vous enverra les coordonnées bancaires par e-mail.',
   codNote: 'Vous paierez en espèces à la livraison.', shipTo: 'Adresse de livraison', paymentMethod: 'Moyen de paiement', paid: 'Payé', pending: 'En attente de paiement', backToShop: 'Continuer mes achats', notFound: 'Paiement introuvable', notFoundText: "Ce lien de paiement n'est pas valide.",
+  companyField: 'Société', address2Field: 'Appartement, bâtiment, etc.', phoneField: 'Téléphone', contactOrPhone: 'E-mail ou numéro de mobile',
+  err_contact: 'Saisissez une adresse e-mail ou un numéro de mobile valide.', err_login: 'Connectez-vous à votre compte client pour commander.', signInToCheckout: 'Connectez-vous pour commander',
+  tipTitle: 'Ajouter un pourboire', tipNone: 'Aucun pourboire', tipCustom: 'Montant libre', tipLine: 'Pourboire', orderNote: 'Notes de commande (facultatif)',
   fields: { firstName: 'Prénom', lastName: 'Nom', address1: 'Adresse', city: 'Ville', zip: 'Code postal', countryCode: 'Pays' },
 };
 

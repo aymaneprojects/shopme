@@ -42,3 +42,4 @@ import './locales';
 import './gift-cards';
 import './abandoned';
 import './order-edit';
+import './checkout-settings';

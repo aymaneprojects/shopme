@@ -6,7 +6,7 @@ import { requireScope } from '../context';
 import { definePayload } from '../types/errors';
 import { Count } from '../types/money';
 
-const Segment = builder.objectRef<SegmentRow>('ShopmeCustomerSegment');
+export const Segment = builder.objectRef<SegmentRow>('ShopmeCustomerSegment');
 Segment.implement({
   fields: (t) => ({
     id: t.id({ resolve: (s) => toGid('ShopmeCustomerSegment', s.id) }),

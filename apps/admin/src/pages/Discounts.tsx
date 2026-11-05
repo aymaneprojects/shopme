@@ -21,7 +21,7 @@ import emptyDiscounts from '../assets/empty/empty-discounts.webp';
 
 export interface DiscountRow {
   id: string;
-  discount: { __typename: string; title: string; status: string; startsAt: string; endsAt: string | null; usageLimit?: number | null; asyncUsageCount: number; summary: string; combinesWith?: { productDiscounts: boolean; orderDiscounts: boolean; shippingDiscounts: boolean }; codes?: { nodes: Array<{ code: string }> } };
+  discount: { __typename: string; title: string; status: string; startsAt: string; endsAt: string | null; usageLimit?: number | null; asyncUsageCount: number; summary: string; tags?: string[]; context?: { __typename: string; customers?: Array<{ id: string }>; segments?: Array<{ id: string; name: string }> }; combinesWith?: { productDiscounts: boolean; orderDiscounts: boolean; shippingDiscounts: boolean }; codes?: { nodes: Array<{ code: string }> } };
 }
 const PAGE_SIZE = 25;
 const TABS = ['all', 'active', 'scheduled', 'expired'] as const;
@@ -43,7 +43,9 @@ export function DiscountsPage() {
   const [confirm, setConfirm] = useState<string[] | null>(null);
   const cols = useColumnVisibility('discounts');
   const [exporting, setExporting] = useState(false);
-  const terms = [term.trim(), tab !== 'all' && `status:${tab}`].filter(Boolean).join(' ');
+  const [tagFilter, setTagFilter] = useState(L.get('tag'));
+  const tagTerm = useDebounced(tagFilter).trim();
+  const terms = [term.trim(), tab !== 'all' && `status:${tab}`, tagTerm && `tag:${/\s/.test(tagTerm) ? `"${tagTerm.replace(/"/g, '')}"` : tagTerm}`].filter(Boolean).join(' ');
 
   const list = useQuery({
     queryKey: ['discounts', terms, L.get('after'), L.get('before')],
@@ -88,6 +90,11 @@ export function DiscountsPage() {
     { key: 'status', header: t('field.status'), cell: (d) => <Badge tone={tone[d.discount.status as keyof typeof tone] ?? 'neutral'}>{t(`discounts.status.${d.discount.status}` as Key)}</Badge> },
     { key: 'method', header: t('discounts.method'), cell: (d) => t(d.discount.__typename.startsWith('DiscountAutomatic') ? 'discounts.method.automatic' : 'discounts.method.code') },
     { key: 'type', header: t('discounts.typeCol'), cell: (d) => t(typeKey(d) as Key) },
+    { key: 'eligibility', header: t('discounts.eligibility'), cell: (d) => {
+      const c = d.discount.context;
+      return c?.segments ? c.segments.map((s) => s.name).join(', ') : c?.customers ? t('discounts.eligibility.customers', { n: c.customers.length }) : t('discount.eligibility.all');
+    } },
+    { key: 'tags', header: t('discounts.tags'), cell: (d) => <span className="flex flex-wrap gap-1">{(d.discount.tags ?? []).map((x) => <Badge key={x}>{x}</Badge>)}</span> },
     { key: 'combines', header: t('discounts.combines'), cell: (d) => (
       <span className="flex gap-1.5">{([['productDiscounts', Tag, 'discount.combine.product'], ['orderDiscounts', ShoppingBag, 'discount.combine.order'], ['shippingDiscounts', Truck, 'discount.combine.shipping']] as const).map(([k, Icon, label]) => (
         <Icon key={k} role="img" aria-label={`${t(label)}: ${d.discount.combinesWith?.[k] ? t('discounts.combines.yes') : t('discounts.combines.no')}`} className={`size-4 ${d.discount.combinesWith?.[k] ? 'text-fg' : 'text-muted opacity-40'}`} />
@@ -107,6 +114,7 @@ export function DiscountsPage() {
             <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('discounts.search')} aria-label={t('discounts.search')} className={searchCls} />
           </div>
+          <input type="search" value={tagFilter} onChange={(e) => { setTagFilter(e.target.value); L.patch({ tag: e.target.value }); }} placeholder={t('discounts.filterTag')} aria-label={t('discounts.filterTag')} className="field-control max-w-44" />
           <ColumnPicker locked={['code']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
         </div>
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}

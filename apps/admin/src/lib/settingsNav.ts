@@ -1,4 +1,4 @@
-import { ArchiveRestore, Bell, Braces, CreditCard, Download, Globe, Languages, MapPin, Receipt, ScrollText, Settings, ShieldCheck, Truck, Users, Webhook } from 'lucide-react';
+import { ArchiveRestore, Bell, ShoppingBag, Braces, CreditCard, Download, Globe, Languages, MapPin, Receipt, ScrollText, Settings, ShieldCheck, Truck, Users, Webhook } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { Key } from '../i18n';
 import type { Permission } from './permissions';
@@ -10,6 +10,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'general', key: 'settings.general', icon: Settings },
   { id: 'users', key: 'settings.users', icon: Users, perm: 'staff' },
   { id: 'payments', key: 'settings.payments', icon: CreditCard },
+  { id: 'checkout', key: 'settings.checkout', icon: ShoppingBag },
   { id: 'shipping', key: 'settings.shipping', icon: Truck },
   { id: 'taxes', key: 'settings.taxes', icon: Receipt },
   { id: 'locations', key: 'settings.locations', icon: MapPin },

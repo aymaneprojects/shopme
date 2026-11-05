@@ -1,6 +1,6 @@
-import { Dropdown, Skeleton, cx } from '@shopme/ui';
-import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText } from 'lucide-react';
-import { Suspense, useEffect, useState } from 'react';
+import { Skeleton, cx } from '@shopme/ui';
+import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, PanelLeft } from 'lucide-react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { LANGS, useI18n } from '../i18n';
@@ -10,6 +10,7 @@ import type { Theme } from '../lib/theme';
 import { NAV_PERMISSION, useStaffAccess } from '../lib/permissions';
 import { SETTINGS_SECTIONS } from '../lib/settingsNav';
 import { useSession, useShop } from '../session';
+import { ActivityBell } from './ActivityBell';
 import { CommandPalette } from './CommandPalette';
 
 interface NavItem { id: string; labelKey: Key; to: string; icon: ComponentType<{ className?: string }>; end?: boolean; children?: NavItem[] }
@@ -44,24 +45,28 @@ export function Logo({ className }: { className?: string }) {
   );
 }
 
-const itemCls = (isActive: boolean, child: boolean) => cx(
+const COLLAPSE_KEY = 'shopme.sidebar.collapsed';
+const readCollapsed = () => { try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; } };
+
+const itemCls = (isActive: boolean, child: boolean, collapsed = false) => cx(
   'flex h-7 items-center gap-2 rounded-lg px-2 text-[13px] transition-colors',
+  collapsed && 'justify-center',
   child && 'ml-7 text-frame-muted',
   isActive ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover',
 );
 
-function NavLinks({ onNavigate }: { onNavigate: () => void }) {
+function NavLinks({ onNavigate, collapsed }: { onNavigate: () => void; collapsed: boolean }) {
   const { t } = useI18n();
   const can = useStaffAccess();
   const { pathname } = useLocation();
   const link = (item: NavItem, child = false) => (
-    <NavLink key={item.id} to={item.to} end={item.end || !!item.children} onClick={onNavigate} className={({ isActive }) => itemCls(isActive, child)}>
+    <NavLink key={item.id} to={item.to} end={item.end || !!item.children} onClick={onNavigate} title={collapsed ? t(item.labelKey) : undefined} aria-label={collapsed ? t(item.labelKey) : undefined} className={({ isActive }) => itemCls(isActive, child, collapsed)}>
       {!child && <item.icon className="size-4 shrink-0" />}
-      {t(item.labelKey)}
+      {!collapsed && t(item.labelKey)}
     </NavLink>
   );
   const group = (i: NavItem) => {
-    const open = !!i.children && (pathname.startsWith(i.to) || i.children.some((c) => pathname.startsWith(c.to)));
+    const open = !collapsed && !!i.children && (pathname.startsWith(i.to) || i.children.some((c) => pathname.startsWith(c.to)));
     return (
       <div key={i.id} className={cx('contents', i.id === 'settings' && '[&>a]:mt-auto')}>
         {link(i)}
@@ -73,17 +78,17 @@ function NavLinks({ onNavigate }: { onNavigate: () => void }) {
 }
 
 /** Settings mode: the sidebar swaps to the list of settings sections, with a way back to the main menu. */
-function SettingsNavLinks({ onNavigate }: { onNavigate: () => void }) {
+function SettingsNavLinks({ onNavigate, collapsed }: { onNavigate: () => void; collapsed: boolean }) {
   const { t } = useI18n();
   const can = useStaffAccess();
   return (
     <nav aria-label={t('nav.settings')} className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
-      <NavLink to="/" onClick={onNavigate} className="mb-2 flex h-8 items-center gap-2 rounded-lg px-2 text-[13px] font-semibold text-white hover:bg-frame-hover">
-        <ArrowLeft className="size-4 shrink-0" />{t('nav.settings')}
+      <NavLink to="/" onClick={onNavigate} title={collapsed ? t('nav.settings') : undefined} aria-label={collapsed ? t('nav.settings') : undefined} className={cx('mb-2 flex h-8 items-center gap-2 rounded-lg px-2 text-[13px] font-semibold text-white hover:bg-frame-hover', collapsed && 'justify-center')}>
+        <ArrowLeft className="size-4 shrink-0" />{!collapsed && t('nav.settings')}
       </NavLink>
       {SETTINGS_SECTIONS.filter((s) => can(s.perm)).map((s) => (
-        <NavLink key={s.id} to={`/settings/${s.id}`} onClick={onNavigate} className={({ isActive }) => cx('flex min-h-7 items-center gap-2 rounded-lg px-2 py-1 text-[13px] leading-4 transition-colors', isActive ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover')}>
-          <s.icon className="size-4 shrink-0" />{t(s.key)}
+        <NavLink key={s.id} to={`/settings/${s.id}`} onClick={onNavigate} title={collapsed ? t(s.key) : undefined} aria-label={collapsed ? t(s.key) : undefined} className={({ isActive }) => cx('flex min-h-7 items-center gap-2 rounded-lg px-2 py-1 text-[13px] leading-4 transition-colors', collapsed && 'justify-center', isActive ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover')}>
+          <s.icon className="size-4 shrink-0" />{!collapsed && t(s.key)}
         </NavLink>
       ))}
     </nav>
@@ -111,16 +116,56 @@ function RouteProgress() {
   return key ? <div className="route-progress" aria-hidden><span key={key} style={{ animationDuration: '550ms' }} /></div> : null;
 }
 
-export function Shell() {
+/** Account menu at the bottom of the sidebar: the store, the signed-in user, language and theme, help and sign out. */
+function AccountMenu({ collapsed }: { collapsed: boolean }) {
   const { t, lang, setLang } = useI18n();
   const { logout } = useSession();
   const { shop, user } = useShop();
+  const [open, setOpen] = useState(false);
+  const [theme, setThemeState] = useState<Theme>(getTheme);
+  const box = useRef<HTMLDivElement>(null);
+  const pick = (v: Theme) => { setTheme(v); setThemeState(v); };
+  const themes: Array<[Theme, string, ComponentType<{ className?: string }>]> = [['light', t('theme.light'), Sun], ['dark', t('theme.dark'), Moon], ['system', t('theme.system'), Monitor]];
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); box.current?.querySelector('button')?.focus(); } };
+    document.addEventListener('mousedown', down); document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key); };
+  }, [open]);
+  const initial = (shop.name[0] ?? 'S').toUpperCase();
+  const row = 'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] hover:bg-hover';
+  return (
+    <div ref={box} className="relative mt-2">
+      <button type="button" aria-haspopup="menu" aria-expanded={open} aria-label={t('shell.account')} title={collapsed ? shop.name : undefined} onClick={() => setOpen(!open)}
+        className={cx('flex h-9 w-full items-center gap-2 rounded-lg px-2 text-[13px] text-frame-text hover:bg-frame-hover', collapsed && 'justify-center')}>
+        <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary text-[11px] font-semibold text-white">{initial}</span>
+        {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{shop.name}</span>}
+      </button>
+      {open && (
+        <div role="menu" aria-label={t('shell.account')} className="anim-fade absolute bottom-11 left-0 z-50 w-64 rounded-xl border border-line bg-canvas p-1.5 text-fg shadow-pop">
+          <div role="menuitem" aria-current="true" className={cx(row, 'bg-hover')}>
+            <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary text-[11px] font-semibold text-white">{initial}</span><span className="min-w-0 flex-1 truncate font-medium">{shop.name}</span><Check className="size-4" />
+          </div>
+          <div className="my-1.5 border-t border-line" />
+          <div className="flex items-center gap-2.5 px-2 py-1.5 text-[13px]"><span className="grid size-5 shrink-0 place-items-center rounded-full bg-accent text-[10px] font-semibold text-white">{(user.email[0] ?? 'U').toUpperCase()}</span><span className="min-w-0 flex-1 truncate">{user.email}</span></div>
+          {LANGS.map((l) => <button key={l.id} type="button" role="menuitem" aria-current={lang === l.id} className={row} onClick={() => setLang(l.id)}><Languages className="size-4 text-muted" />{l.label}{lang === l.id && <Check className="ml-auto size-4" />}</button>)}
+          {themes.map(([id, label, Icon]) => <button key={id} type="button" role="menuitem" aria-current={theme === id} className={row} onClick={() => pick(id)}><Icon className="size-4 text-muted" />{label}{theme === id && <Check className="ml-auto size-4" />}</button>)}
+          <a role="menuitem" href="https://github.com/aymaneprojects/shopme#readme" target="_blank" rel="noreferrer" className={row}><CircleHelp className="size-4 text-muted" />{t('shell.help')}</a>
+          <button type="button" role="menuitem" className={row} onClick={() => void logout()}><LogOut className="size-4 text-muted" />{t('shell.logout')}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function Shell() {
+  const { t } = useI18n();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
   const [palette, setPalette] = useState(false);
-  const [theme, setThemeState] = useState<Theme>(getTheme);
-  const pick = (v: Theme) => { setTheme(v); setThemeState(v); };
-  const themes: Array<[Theme, string, ComponentType<{ className?: string }>]> = [['light', t('theme.light'), Sun], ['dark', t('theme.dark'), Moon], ['system', t('theme.system'), Monitor]];
+  const [collapsed, setCollapsedState] = useState(readCollapsed);
+  const setCollapsed = (v: boolean) => { setCollapsedState(v); try { localStorage.setItem(COLLAPSE_KEY, v ? '1' : '0'); } catch { /* storage unavailable */ } };
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette((p) => !p); }
@@ -140,36 +185,26 @@ export function Shell() {
   }
   const mac = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.platform);
   return (
-    <div className="flex h-screen flex-col bg-frame text-frame-text">
+    <div className="flex h-screen flex-col bg-frame text-frame-text" style={collapsed ? ({ '--w-sidebar': '3.5rem' } as React.CSSProperties) : undefined}>
       <RouteProgress />
-      <header className="flex h-12 shrink-0 items-center gap-3 px-3">
+      <header className="flex h-12 shrink-0 items-center gap-2 px-3">
         <button type="button" className="btn btn-plain btn-icon !text-frame-text hover:!bg-frame-hover md:hidden" aria-label={t('nav.menu')} onClick={() => setOpen(true)}><Menu className="size-5" /></button>
-        <div className="flex items-center gap-2 md:w-[calc(var(--w-sidebar)-12px)]">
+        <div className="flex items-center gap-2">
           <Logo className="size-6" />
           <span className="hidden text-[13px] font-semibold text-white sm:inline">ShopMe</span>
         </div>
-        <button type="button" onClick={() => setPalette(true)} aria-label={t('shell.search')} aria-keyshortcuts="Control+K Meta+K"
-          className="flex h-8 w-full max-w-[460px] flex-1 items-center gap-2 rounded-lg bg-white/10 px-2.5 text-[13px] text-frame-muted shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:bg-white/15 md:mx-auto">
-          <Search className="size-4" />
-          <span className="flex-1 text-left">{t('shell.searchPlaceholder')}</span>
-          <kbd className="hidden rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-medium sm:inline">{mac ? '⌘' : 'Ctrl'} K</kbd>
-        </button>
-        <div className="ml-auto">
-          <Dropdown
-            align="right" label={t('shell.account')} variant="plain"
-            trigger={<><span className="grid size-6 place-items-center rounded-md bg-primary text-xs font-semibold text-white">{(shop.name[0] ?? 'S').toUpperCase()}</span><span className="hidden max-w-32 truncate text-[13px] text-frame-text sm:inline">{shop.name}</span></>}
-            items={[
-              { key: 'who', label: <span className="text-muted">{user.email}</span>, onSelect: () => {}, disabled: true },
-              ...LANGS.map((l) => ({ key: l.id, label: <span className="flex items-center gap-2"><Languages className="size-4" />{l.label}{lang === l.id && <Check className="ml-auto size-4" />}</span>, onSelect: () => setLang(l.id) })),
-              ...themes.map(([id, label, Icon]) => ({ key: `theme-${id}`, label: <span className="flex items-center gap-2"><Icon className="size-4" />{label}{theme === id && <Check className="ml-auto size-4" />}</span>, onSelect: () => pick(id) })),
-              { key: 'logout', label: <span className="flex items-center gap-2"><LogOut className="size-4" />{t('shell.logout')}</span>, onSelect: () => void logout() },
-            ]}
-          />
-        </div>
+        <button type="button" className="btn btn-plain btn-icon !hidden !text-frame-text hover:!bg-frame-hover md:!inline-flex" aria-label={collapsed ? t('shell.expand') : t('shell.collapse')} aria-pressed={collapsed} onClick={() => setCollapsed(!collapsed)}><PanelLeft className="size-[18px]" /></button>
+        <div className="ml-auto flex items-center gap-1"><ActivityBell /></div>
       </header>
       <div className="flex min-h-0 flex-1">
         <aside className={cx('fixed inset-y-0 left-0 z-40 flex w-[var(--w-sidebar)] flex-col bg-frame px-2 pb-3 pt-14 transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 md:pt-1', open ? 'translate-x-0' : '-translate-x-full')}>
-          {pathname.startsWith('/settings') ? <SettingsNavLinks onNavigate={() => setOpen(false)} /> : <NavLinks onNavigate={() => setOpen(false)} />}
+          <button type="button" onClick={() => { setOpen(false); setPalette(true); }} aria-label={t('shell.search')} aria-keyshortcuts="Control+K Meta+K" title={collapsed ? t('shell.search') : undefined}
+            className={cx('mb-2 flex h-8 w-full items-center gap-2 rounded-lg bg-white/10 px-2.5 text-[13px] text-frame-muted shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:bg-white/15', collapsed && 'justify-center px-0')}>
+            <Search className="size-4 shrink-0" />
+            {!collapsed && <><span className="flex-1 text-left">{t('shell.searchPlaceholder')}</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-medium">{mac ? '⌘' : 'Ctrl'} K</kbd></>}
+          </button>
+          {pathname.startsWith('/settings') ? <SettingsNavLinks onNavigate={() => setOpen(false)} collapsed={collapsed} /> : <NavLinks onNavigate={() => setOpen(false)} collapsed={collapsed} />}
+          <AccountMenu collapsed={collapsed} />
         </aside>
         {open && <div className="anim-fade fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setOpen(false)} aria-hidden />}
         <div className="mb-1 mr-1 min-w-0 flex-1 overflow-y-auto rounded-xl bg-page text-fg max-md:mx-1 md:ml-0" id="sheet">

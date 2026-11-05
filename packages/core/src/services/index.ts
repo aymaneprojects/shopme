@@ -39,3 +39,5 @@ export * from './gift-cards';
 export * from './abandoned';
 export * from './order-edit';
 export * from './returns';
+export * from './return-rules';
+export * from './activity';
