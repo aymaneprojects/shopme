@@ -32,3 +32,5 @@ export const CountPrecision = builder.enumType('CountPrecision', { values: ['EXA
 export const Count = builder.objectRef<{ count: number; precision: 'EXACT' | 'AT_LEAST' }>('Count').implement({
   fields: (t) => ({ count: t.exposeInt('count'), precision: t.field({ type: CountPrecision, resolve: (c) => c.precision }) }),
 });
+
+export const MoneyInput = builder.inputType('MoneyInput', { fields: (t) => ({ amount: t.field({ type: 'Decimal', required: true }), currencyCode: t.field({ type: CurrencyCode, required: true }) }) });

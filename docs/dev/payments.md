@@ -5,7 +5,7 @@
 `/cart` "Check out" -> `GET|POST /checkout` (cart cookie) -> `303 /checkouts/:token` (the token is the cart token; the cart row
 holds email, address, chosen shipping rate and discount codes) -> live refresh `POST /checkouts/:token/refresh` (JSON, returns
 re-priced HTML fragments) -> `POST /checkouts/:token/complete` -> `/checkouts/:token/thank-you`.
-Abandoned checkouts stay as open `carts` rows (`listAbandonedCheckouts`).
+Abandoned checkouts stay as open `carts` rows (`findAbandonedCheckouts`, see `docs/dev/commerce.md`); gift cards pay as a `gift_card` gateway transaction before the payment method collects the rest.
 
 Services (`packages/core/src/services`): `pricing` (pure: discounts, shipping rate matching, taxes), `checkout` (load, update,
 submit), `orders/create.ts` (`createOrder`, one transaction), `payments-runtime` (methods, mark paid). Payment providers live in

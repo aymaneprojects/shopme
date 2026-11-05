@@ -1,5 +1,6 @@
 import { purgeExpiredSessions } from '@shopme/core';
 import type { AppContext } from './context';
+import { registerCommerceJobs } from './commerce-jobs';
 import { registerOpsJobs } from './ops';
 
 /**
@@ -8,5 +9,7 @@ import { registerOpsJobs } from './ops';
  */
 export function registerJobs(ctx: AppContext): () => void {
   ctx.queue.every('purge-expired-sessions', 60 * 60 * 1000, async () => { await purgeExpiredSessions(ctx.db); });
-  return registerOpsJobs(ctx);
+  const stopOps = registerOpsJobs(ctx);
+  const stopCommerce = registerCommerceJobs(ctx);
+  return () => { stopOps(); stopCommerce(); };
 }

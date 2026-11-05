@@ -9,7 +9,7 @@ import type { Mail, Mailer } from '../mail';
 
 export const NOTIFICATION_KEYS = [
   'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund',
-  'customer_account_welcome', 'customer_account_invite', 'password_reset', 'draft_order_invoice', 'contact_form', 'staff_invite',
+  'customer_account_welcome', 'customer_account_invite', 'password_reset', 'draft_order_invoice', 'contact_form', 'staff_invite', 'gift_card_issued', 'abandoned_checkout',
 ] as const;
 export type NotificationKey = (typeof NOTIFICATION_KEYS)[number];
 export const isNotificationKey = (k: string): k is NotificationKey => (NOTIFICATION_KEYS as readonly string[]).includes(k);
@@ -102,6 +102,18 @@ const DEFS: Record<NotificationKey, Def> = {
     name: 'Staff invitation', description: 'Sent when you invite someone to your admin.', audience: 'staff', variables: ['shop.name', 'invite.url', 'invite.email', 'invite.role', 'invite.inviter'],
     en: { subject: 'You are invited to {{ shop.name }}', body: `<p style="margin-top:0">{% if invite.inviter %}{{ invite.inviter }} invited you{% else %}You are invited{% endif %} to manage {{ shop.name }} as <strong>{{ invite.role }}</strong>.</p>${button('invite.url', 'Accept the invitation')}<p style="color:#64748b;font-size:13px">The link expires in 7 days.</p>` },
     fr: { subject: 'Invitation à rejoindre {{ shop.name }}', body: `<p style="margin-top:0">{% if invite.inviter %}{{ invite.inviter }} vous invite{% else %}Vous êtes invité{% endif %} à gérer {{ shop.name }} avec le rôle <strong>{{ invite.role }}</strong>.</p>${button('invite.url', "Accepter l'invitation")}<p style="color:#64748b;font-size:13px">Le lien expire dans 7 jours.</p>` },
+  },
+  gift_card_issued: {
+    name: 'Gift card', description: 'Sent to the recipient (or the buyer) when a gift card is issued.', audience: 'customer',
+    variables: ['shop.name', 'gift_card.balance', 'gift_card.initial_value', 'gift_card.code', 'gift_card.last_characters', 'gift_card.url', 'gift_card.message', 'gift_card.recipient_name', 'gift_card.sender_email', 'gift_card.expires_on'],
+    en: { subject: 'Your {{ shop.name }} gift card', body: `<p style="margin-top:0">{% if gift_card.recipient_name %}Hi {{ gift_card.recipient_name }}, {% endif %}you received a gift card for <strong>{{ gift_card.initial_value }}</strong>{% if gift_card.sender_email %} from {{ gift_card.sender_email }}{% endif %}.</p>{% if gift_card.message %}<blockquote style="margin:16px 0;padding:8px 16px;border-left:3px solid #cbd5e1">{{ gift_card.message }}</blockquote>{% endif %}<p style="font-size:20px;letter-spacing:2px;font-weight:bold">{{ gift_card.code }}</p>{% if gift_card.expires_on %}<p>Valid until {{ gift_card.expires_on }}.</p>{% endif %}${button('gift_card.url', 'View your gift card')}${questionsEn}` },
+    fr: { subject: 'Votre carte cadeau {{ shop.name }}', body: `<p style="margin-top:0">{% if gift_card.recipient_name %}Bonjour {{ gift_card.recipient_name }}, {% endif %}vous avez reçu une carte cadeau de <strong>{{ gift_card.initial_value }}</strong>{% if gift_card.sender_email %} de la part de {{ gift_card.sender_email }}{% endif %}.</p>{% if gift_card.message %}<blockquote style="margin:16px 0;padding:8px 16px;border-left:3px solid #cbd5e1">{{ gift_card.message }}</blockquote>{% endif %}<p style="font-size:20px;letter-spacing:2px;font-weight:bold">{{ gift_card.code }}</p>{% if gift_card.expires_on %}<p>Valable jusqu'au {{ gift_card.expires_on }}.</p>{% endif %}${button('gift_card.url', 'Voir ma carte cadeau')}${questionsFr}` },
+  },
+  abandoned_checkout: {
+    name: 'Abandoned checkout', description: 'Sent to a customer who left items in their checkout, with a link that restores the cart.', audience: 'customer',
+    variables: ['shop.name', 'checkout.customer_first_name', 'checkout.line_items', 'checkout.subtotal', 'checkout.recovery_url'],
+    en: { subject: 'You left something in your cart', body: `<p style="margin-top:0">Hi{% if checkout.customer_first_name %} {{ checkout.customer_first_name }}{% endif %}, you left items in your cart at {{ shop.name }}. They are waiting for you.</p>${lineTable('checkout.line_items')}<p style="text-align:right"><strong>{{ checkout.subtotal }}</strong></p>${button('checkout.recovery_url', 'Return to your checkout')}${questionsEn}` },
+    fr: { subject: 'Vous avez oublié quelque chose dans votre panier', body: `<p style="margin-top:0">Bonjour{% if checkout.customer_first_name %} {{ checkout.customer_first_name }}{% endif %}, vous avez laissé des articles dans votre panier chez {{ shop.name }}. Ils vous attendent.</p>${lineTable('checkout.line_items')}<p style="text-align:right"><strong>{{ checkout.subtotal }}</strong></p>${button('checkout.recovery_url', 'Reprendre ma commande')}${questionsFr}` },
   },
 };
 
@@ -203,8 +215,8 @@ export async function sendNotification(db: Executor, mailer: Mailer, shop: Shop,
 // ---- Liquid variables -------------------------------------------------------------------------------------------------------
 
 const GATEWAYS: Record<string, Record<string, string>> = {
-  en: { bank_transfer: 'Bank transfer', cod: 'Cash on delivery', stripe: 'Card', free: 'No payment due', manual: 'Manual', paid: 'Paid', pending: 'Awaiting payment' },
-  fr: { bank_transfer: 'Virement bancaire', cod: 'Paiement à la livraison', stripe: 'Carte bancaire', free: 'Aucun paiement dû', manual: 'Manuel', paid: 'Payé', pending: 'En attente de paiement' },
+  en: { bank_transfer: 'Bank transfer', cod: 'Cash on delivery', stripe: 'Card', free: 'No payment due', manual: 'Manual', paid: 'Paid', pending: 'Awaiting payment', gift_card: 'Gift card' },
+  fr: { bank_transfer: 'Virement bancaire', cod: 'Paiement à la livraison', stripe: 'Carte bancaire', free: 'Aucun paiement dû', manual: 'Manuel', paid: 'Payé', pending: 'En attente de paiement', gift_card: 'Carte cadeau' },
 };
 
 export const moneyOf = (shop: Shop, minor: number, currency = shop.currency) => renderMoneyFormat(shop.moneyFormat, minor, currency);
@@ -256,5 +268,7 @@ export function sampleVars(shop: Shop, appUrl: string): Record<string, unknown> 
     draft: { name: '#D1', subtotal: money(5500), total: money(6490), line_items: items }, invoice_url: `${base}/draft_orders/sample-token/pay`, custom_message: null,
     contact: { name: 'Ada Lovelace', email: 'ada@example.com', phone: '+33 1 23 45 67 89', message: 'Hello, do you ship to Canada?' },
     invite: { url: `${base}/admin/invite/sample-token`, email: 'new.staff@example.com', role: 'staff', inviter: 'The owner' },
+    gift_card: { balance: money(5000), initial_value: money(5000), code: 'ABCD-EFGH-JKLM-NPQR', last_characters: 'npqr', url: `${base}/gift_cards/sample-token`, message: 'Happy birthday!', recipient_name: 'Ada', sender_email: 'friend@example.com', expires_on: null },
+    checkout: { customer_first_name: 'Ada', line_items: items, subtotal: money(5500), recovery_url: `${base}/checkouts/sample-token/recover` },
   };
 }

@@ -88,7 +88,7 @@ function refresh(extra){
   timer=setTimeout(function(){
     var body=data();if(extra)for(var k in extra)body[k]=extra[k];body.refresh='1';
     fetch(cfg.refreshUrl,{method:'POST',headers:{'content-type':'application/json',accept:'application/json'},body:JSON.stringify(body)})
-      .then(function(r){return r.json()}).then(function(r){apply(r);var dm=$('#discount-msg');if(dm)dm.textContent=r.discountError||'';if(extra&&extra.addDiscountCode&&!r.discountError){var i=$('#discount-input');if(i)i.value=''}}).catch(function(){});
+      .then(function(r){return r.json()}).then(function(r){apply(r);var dm=$('#discount-msg');if(dm)dm.textContent=r.discountError||'';var gm=$('#gift-msg');if(gm)gm.textContent=r.giftError||'';if(extra&&extra.addGiftCardCode&&!r.giftError){var gi=$('#gift-input');if(gi)gi.value=''}if(extra&&extra.addDiscountCode&&!r.discountError){var i=$('#discount-input');if(i)i.value=''}}).catch(function(){});
   },extra?0:250);
 }
 form.addEventListener('change',function(e){var n=e.target.name;if(n==='countryCode')setProvinces();if(n!=='paymentMethod'&&n!=='acceptsMarketing'&&n!=='firstName'&&n!=='lastName'&&n!=='phone'&&n!=='company'&&n!=='address2')refresh();if(n==='paymentMethod')togglePanels()});
@@ -108,8 +108,11 @@ if(sum&&tg){if(window.matchMedia('(max-width:899px)').matches){sum.classList.add
   tg.addEventListener('click',function(){var c=sum.classList.toggle('is-closed');tg.setAttribute('aria-expanded',String(!c));tg.querySelector('[data-label]').textContent=c?cfg.labels.show:cfg.labels.hide})}
 document.addEventListener('click',function(e){
   var a=e.target.closest('[data-discount-add]');if(a){e.preventDefault();var i=$('#discount-input');if(i&&i.value.trim())refresh({addDiscountCode:i.value.trim()});return}
+  var ga=e.target.closest('[data-gift-add]');if(ga){e.preventDefault();var gi=$('#gift-input');if(gi&&gi.value.trim())refresh({addGiftCardCode:gi.value.trim()});return}
+  var gr=e.target.closest('[data-gift-remove]');if(gr){e.preventDefault();refresh({removeGiftCardCode:gr.getAttribute('data-gift-remove')});return}
   var r=e.target.closest('[data-discount-remove]');if(r){e.preventDefault();refresh({removeDiscountCode:r.getAttribute('data-discount-remove')});}
 });
+var gin=document.getElementById('gift-input');if(gin)gin.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();if(gin.value.trim())refresh({addGiftCardCode:gin.value.trim()})}});
 var di=document.getElementById('discount-input');if(di)di.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();if(di.value.trim())refresh({addDiscountCode:di.value.trim()})}});
 if(cfg.stripe){
   var s=document.createElement('script');s.src='https://js.stripe.com/v3/';s.async=true;

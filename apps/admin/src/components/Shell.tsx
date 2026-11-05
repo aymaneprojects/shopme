@@ -1,5 +1,5 @@
 import { Dropdown, cx } from '@shopme/ui';
-import { Boxes, Home, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2 } from 'lucide-react';
+import { Boxes, Gift, Home, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ShoppingBasket } from 'lucide-react';
 import { useState } from 'react';
 import type { ComponentType } from 'react';
 import { NavLink, Outlet } from 'react-router';
@@ -13,12 +13,13 @@ interface NavItem { id: string; labelKey: Key; to: string; icon: ComponentType<{
 // Data-driven so later items can be gated by a feature flag instead of removed.
 export const NAV: NavItem[] = [
   { id: 'home', labelKey: 'nav.home', to: '/', icon: Home, end: true },
-  { id: 'orders', labelKey: 'nav.orders', to: '/orders', icon: ShoppingCart, children: [{ id: 'drafts', labelKey: 'nav.drafts', to: '/orders/drafts', icon: FilePlus2 }] },
+  { id: 'orders', labelKey: 'nav.orders', to: '/orders', icon: ShoppingCart, children: [{ id: 'drafts', labelKey: 'nav.drafts', to: '/orders/drafts', icon: FilePlus2 }, { id: 'abandoned', labelKey: 'nav.abandoned', to: '/orders/abandoned', icon: ShoppingBasket }] },
   {
     id: 'products', labelKey: 'nav.products', to: '/products', icon: Tag,
     children: [
       { id: 'collections', labelKey: 'nav.collections', to: '/collections', icon: FolderTree },
       { id: 'inventory', labelKey: 'nav.inventory', to: '/inventory', icon: Warehouse },
+      { id: 'gift-cards', labelKey: 'nav.giftCards', to: '/gift-cards', icon: Gift },
     ],
   },
   { id: 'customers', labelKey: 'nav.customers', to: '/customers', icon: Users },

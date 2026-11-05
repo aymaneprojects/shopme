@@ -64,3 +64,44 @@ describe('discount input mapping', () => {
     expect(generateCode()).toMatch(/^[A-Z2-9]{10}$/);
   });
 });
+
+describe('automatic and buy-X-get-Y discounts', () => {
+  const bxgy = () => {
+    const f = blankDiscount('bxgy', 'automatic');
+    f.title = 'Buy 2 get 1'; f.startsAt = '2026-06-01T10:00';
+    f.bxgy = { ...f.bxgy, buyQty: '2', buyProducts: [{ id: 'gid://shopify/Product/1', title: 'A' }], getQty: '1', getProducts: [{ id: 'gid://shopify/Product/2', title: 'B' }] };
+    return f;
+  };
+
+  it('automatic discounts need a title instead of a code and carry no code fields', () => {
+    const f = { ...blankDiscount('order', 'automatic'), value: '10' };
+    expect(validateDiscount(f).title).toBe('discount.err.titleRequired');
+    expect(validateDiscount(f).code).toBeUndefined();
+    const input = toDiscountInput({ ...f, title: 'Summer sale', startsAt: '2026-06-01T10:00' }) as Record<string, unknown>;
+    expect(input).toMatchObject({ title: 'Summer sale' });
+    expect(Object.keys(input)).not.toContain('code');
+    expect(Object.keys(input)).not.toContain('usageLimit');
+  });
+
+  it('validates the buy and get sides', () => {
+    expect(validateDiscount(bxgy())).toEqual({});
+    const bad = { ...blankDiscount('bxgy'), code: 'BXGY' };
+    expect(validateDiscount(bad)).toMatchObject({ buyTargets: 'discount.err.targets', getTargets: 'discount.err.targets' });
+    expect(validateDiscount({ ...bxgy(), bxgy: { ...bxgy().bxgy, buyQty: '0' } }).buyQty).toBe('discount.err.quantity');
+    expect(validateDiscount({ ...bxgy(), bxgy: { ...bxgy().bxgy, getEffect: 'percentage', getPercent: '120' } }).getPercent).toBe('discount.err.percentMax');
+  });
+
+  it('maps to the BXGY inputs and back (free = 100%)', () => {
+    const input = toDiscountInput({ ...bxgy(), bxgy: { ...bxgy().bxgy, hasUsesLimit: true, usesLimit: '3' } }) as Record<string, any>;
+    expect(input.customerBuys).toEqual({ value: { quantity: '2' }, items: { products: { productsToAdd: ['gid://shopify/Product/1'] } } });
+    expect(input.customerGets.value.discountOnQuantity).toEqual({ quantity: '1', effect: { percentage: 1 } });
+    expect(input.usesPerOrderLimit).toBe('3'); // UnsignedInt64 on automatic discounts
+    const back = fromDiscountNode({
+      __typename: 'DiscountAutomaticBxgy', title: 'Half price', startsAt: '2026-06-01T10:00:00Z', endsAt: null, combinesWith: { productDiscounts: true, orderDiscounts: false, shippingDiscounts: false },
+      usesPerOrderAuto: null, customerBuys: { value: { quantity: '2' }, items: { __typename: 'DiscountCollections', collections: { nodes: [{ id: 'c1', title: 'Coffee' }] } } },
+      customerGets: { value: { __typename: 'DiscountOnQuantity', quantity: { quantity: '1' }, effect: { __typename: 'DiscountPercentage', percentage: 0.5 } }, items: { __typename: 'DiscountProducts', products: { nodes: [{ id: 'p1', title: 'Mug' }] } } },
+    });
+    expect(back).toMatchObject({ kind: 'bxgy', method: 'automatic', title: 'Half price', combines: { productDiscounts: true } });
+    expect(back.bxgy).toMatchObject({ buyQty: '2', buyAppliesTo: 'collections', getAppliesTo: 'products', getEffect: 'percentage', getPercent: '50', getQty: '1' });
+  });
+});

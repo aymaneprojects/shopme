@@ -409,10 +409,10 @@ Size: S under 2 days, M about a week, L more than a week or a new subsystem. Hin
 
 | # | Gap | Hint | Size |
 |---|---|---|---|
-| P1-1 | Gift cards (issue, balance, redeem at checkout, `/gift_cards/:id`, email) | New table, checkout payment method, `giftCard*` API, `gift_card` Liquid object | L |
-| P1-2 | Abandoned checkouts list and recovery email | Persist checkout sessions with email; `abandonedCheckouts` query; scheduled job to send | M |
-| P1-3 | Order editing, returns and exchanges | `orderEdit*`, `return*` mutations, admin dialogs, restock rules | L |
-| P1-4 | Automatic discounts, buy-X-get-Y, order-level and bulk codes | Extend discount model and pricing service; admin type chooser (screen 20) | M |
+| P1-1 | Gift cards (issue, balance, redeem at checkout, `/gift_cards/:id`, email) | New table, checkout payment method, `giftCard*` API, `gift_card` Liquid object | L (done in wave 7a, see `docs/dev/commerce.md`) |
+| P1-2 | Abandoned checkouts list and recovery email | Persist checkout sessions with email; `abandonedCheckouts` query; scheduled job to send | M (done in wave 7a, see `docs/dev/commerce.md`) |
+| P1-3 | Order editing, returns and exchanges | `orderEdit*`, `return*` mutations, admin dialogs, restock rules | L (done in wave 7a, see `docs/dev/commerce.md`) |
+| P1-4 | Automatic discounts, buy-X-get-Y, order-level and bulk codes | Extend discount model and pricing service; admin type chooser (screen 20) | M (done in wave 7a, see `docs/dev/commerce.md`) |
 | P1-5 | Sitemap index with child sitemaps, richer robots, atom feeds (`/collections/:h.atom`), `/search.json`, `/meta.json`, `x-robots-tag` on redirects | Pure route work in `pages.ts`; mirror reference robots rules | S |
 | P1-6 | Storefront metafields in Liquid and metafield definitions UI | Resolve `metafields` lazily per resource; add definition tables and admin editor | M |
 | P1-7 | Search upgrade: type filter, articles/pages, prefix option, ranking, typo tolerance | Postgres `tsvector` + trigram; extend `buildSearch` and `suggest` | M |

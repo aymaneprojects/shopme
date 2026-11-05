@@ -35,6 +35,7 @@ function errorMessages(c: PageCtx, errors: CheckoutError[]): string[] {
       case 'payment_method': return t('err_payment_method');
       case 'stock': return t('err_stock', { items: e.issues.map((i) => `${i.title} (${i.available})`).join(', ') });
       case 'discount': return t('err_discount');
+      case 'gift_card': return t('err_gift_card');
       case 'completed': return t('err_completed');
       case 'empty': return t('err_empty');
       default: return t('err_generic');
@@ -148,7 +149,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       const first = await updateCheckout(db, shop, token, {
         ...(email === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { email: email || null } : {}),
         address: addressFrom(b), shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : undefined,
-        removeDiscountCode: str(b.removeDiscountCode) || undefined,
+        removeDiscountCode: str(b.removeDiscountCode) || undefined, removeGiftCardCode: str(b.removeGiftCardCode) || undefined,
       });
       if (!first.ok) return reply.code(first.error === 'not_found' ? 404 : 409).send({});
       let discountError = '';
@@ -156,10 +157,15 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
         const r = await updateCheckout(db, shop, token, { addDiscountCode: str(b.addDiscountCode) });
         if (!r.ok) discountError = discountMessage(c.t, r.error as 'not_found');
       }
+      let giftError = '';
+      if (str(b.addGiftCardCode).trim()) {
+        const r = await updateCheckout(db, shop, token, { addGiftCardCode: str(b.addGiftCardCode) });
+        if (!r.ok) giftError = discountMessage(c.t, r.error as 'not_found');
+      }
       const view = (await loadCheckout(db, shop, token))!;
       return reply.header('cache-control', 'no-store').send({
-        shipping: view.requiresShipping ? shippingFragment(c, view) : undefined, summary: summaryFragment(c, view), total: c.money(view.pricing.total),
-        amount: view.pricing.total, free: view.pricing.total === 0, payments: true, discountError,
+        shipping: view.requiresShipping ? shippingFragment(c, view) : undefined, summary: summaryFragment(c, view), total: c.money(view.amountDue),
+        amount: view.amountDue, free: view.amountDue === 0, payments: true, discountError, giftError,
       });
     });
 
@@ -173,6 +179,30 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
         const view = await loadCheckout(db, shop, token);
         if (view) return html(reply, checkoutPage(pageCtx(shop), await pageData(shop, view, { errors: [discountMessage(pageCtx(shop).t, r.error as 'not_found')] })), 422);
       }
+      return reply.redirect(`/checkouts/${token}`, 303);
+    });
+
+    /** No-JS gift card form. */
+    scope.post('/checkouts/:token/gift-card', async (req, reply) => {
+      const shop = await primaryShop(ctx);
+      if (!shop) return reply.code(503).send('');
+      const { token } = req.params as { token: string };
+      const r = await updateCheckout(db, shop, token, { addGiftCardCode: str((req.body as Body)?.giftCardCode) });
+      if (!r.ok && r.error !== 'not_found' && r.error !== 'completed') {
+        const view = await loadCheckout(db, shop, token);
+        if (view) return html(reply, checkoutPage(pageCtx(shop), await pageData(shop, view, { errors: [discountMessage(pageCtx(shop).t, r.error as 'not_found')] })), 422);
+      }
+      return reply.redirect(`/checkouts/${token}`, 303);
+    });
+
+    /** Link of the abandoned checkout email: puts the cart back in the buyer's browser and opens the checkout. */
+    scope.get('/checkouts/:token/recover', async (req, reply) => {
+      const shop = await primaryShop(ctx);
+      if (!shop) return reply.code(503).send('Store is not set up');
+      const { token } = req.params as { token: string };
+      const view = await loadCheckout(db, shop, token);
+      if (!view || view.completed || !view.lines.length) return reply.redirect(view?.completed ? `/checkouts/${token}/thank-you` : '/cart', 303);
+      reply.setCookie(CART_COOKIE, token, { path: '/', sameSite: 'lax', httpOnly: false, maxAge: 90 * 24 * 3600, secure: config.appUrl.startsWith('https://') });
       return reply.redirect(`/checkouts/${token}`, 303);
     });
 
@@ -203,7 +233,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
         shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : null,
         startOnlinePayment: async (view) => {
           if (!stripe) throw new Error('Stripe is not configured');
-          const pi = await stripe.createPaymentIntent({ amount: view.pricing.total, currency: view.currency, reference: token, email: view.email, description: `${shop.name} checkout`, idempotencyKey: randomUUID() });
+          const pi = await stripe.createPaymentIntent({ amount: view.amountDue, currency: view.currency, reference: token, email: view.email, description: `${shop.name} checkout`, idempotencyKey: randomUUID() });
           clientSecret = pi.clientSecret;
           return pi.id;
         },

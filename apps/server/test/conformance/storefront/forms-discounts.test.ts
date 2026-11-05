@@ -148,16 +148,21 @@ describe('cart-level discounts', () => {
     const db = t.dbHandle.db;
     const [variant] = await db.select().from(s.productVariants).where(eq(s.productVariants.sku, 'HEB-250'));
     const [d] = await db.insert(s.discounts).values({ shopId, title: 'Beans 30 percent off', kind: 'AUTOMATIC', valueType: 'PERCENTAGE', value: 3000, target: 'PRODUCTS', appliesTo: { productIds: [variant!.productId] } }).returning();
+    // Discounts of different classes only stack when both allow it (default: they do not).
+    const combine = { product: true, order: true, shipping: false };
+    for (const id of [d!.id, ...(await db.select({ id: s.discountCodes.discountId }).from(s.discountCodes).where(eq(s.discountCodes.code, 'WELCOME10'))).map((x) => x.id)]) {
+      await db.insert(s.discountExtensions).values({ discountId: id, shopId, combinesWith: combine }).onConflictDoUpdate({ target: s.discountExtensions.discountId, set: { combinesWith: combine } });
+    }
     const c = await cartJs();
     const line = c.items[0];
-    // 10% order code first (260), then 30% of the remaining 2340 on the product (702)
-    expect(line).toMatchObject({ total_discount: 702, final_line_price: 1898, line_price: 1898, original_line_price: 2600, original_price: 1300, discounted_price: 949, final_price: 949, line_level_total_discount: 702 });
-    expect(line.discounts).toEqual([{ amount: 702, title: 'Beans 30 percent off' }]);
+    // product discounts apply before order discounts: 30% on the product (780), then the 10% order code on the remaining 1820 (182)
+    expect(line).toMatchObject({ total_discount: 780, final_line_price: 1820, line_price: 1820, original_line_price: 2600, original_price: 1300, discounted_price: 910, final_price: 910, line_level_total_discount: 780 });
+    expect(line.discounts).toEqual([{ amount: 780, title: 'Beans 30 percent off' }]);
     expect(line.line_level_discount_allocations).toHaveLength(1);
     expect(line.line_level_discount_allocations[0]).toMatchObject({
-      amount: 702, discount_application: { type: 'automatic', title: 'Beans 30 percent off', value: '30.0', value_type: 'percentage', allocation_method: 'each', target_selection: 'entitled', target_type: 'line_item', total_allocated_amount: 702 },
+      amount: 780, discount_application: { type: 'automatic', title: 'Beans 30 percent off', value: '30.0', value_type: 'percentage', allocation_method: 'each', target_selection: 'entitled', target_type: 'line_item', total_allocated_amount: 780 },
     });
-    expect(c).toMatchObject({ original_total_price: 2600, items_subtotal_price: 1898, total_discount: 962, total_price: 1638 });
+    expect(c).toMatchObject({ original_total_price: 2600, items_subtotal_price: 1820, total_discount: 962, total_price: 1638 });
     expect(c.cart_level_discount_applications).toHaveLength(1);
 
     // a code that does not apply is flagged, and an expired automatic discount disappears

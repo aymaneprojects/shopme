@@ -1,0 +1,50 @@
+import type { enCommerce } from './en-commerce';
+
+export const frCommerce: Record<keyof typeof enCommerce, string> = {
+  'nav.giftCards': 'Cartes cadeaux', 'nav.abandoned': 'Paniers abandonnés',
+
+  'giftCards.issue': 'Émettre une carte cadeau', 'giftCards.issueAction': 'Émettre', 'giftCards.code': 'Code', 'giftCards.codeHelp': '8 à 20 lettres et chiffres. Laissez vide pour en générer un.',
+  'giftCards.balance': 'Solde', 'giftCards.issuedOn': 'Émise le', 'giftCards.search': 'Rechercher par 4 derniers caractères, note ou client',
+  'giftCards.emptyTitle': 'Aucune carte cadeau', 'giftCards.emptyBody': 'Émettez une carte à la main, ou vendez des produits carte cadeau : une carte est créée dès que la commande est payée.', 'giftCards.notFound': 'Carte cadeau introuvable.',
+  'giftCards.tab.all': 'Toutes', 'giftCards.tab.enabled': 'Actives', 'giftCards.tab.disabled': 'Désactivées', 'giftCards.tab.expired': 'Expirées',
+  'giftCards.state.enabled': 'Active', 'giftCards.state.disabled': 'Désactivée', 'giftCards.state.expired': 'Expirée',
+  'giftCards.details': 'Détails', 'giftCards.initialValue': 'Valeur initiale', 'giftCards.expiresOn': 'Expire le', 'giftCards.expiresHelp': "Laissez vide si la carte n'expire jamais.",
+  'giftCards.note': 'Note', 'giftCards.noteHelp': "Visible uniquement par l'équipe.", 'giftCards.issuedTitle': 'Carte cadeau émise', 'giftCards.issuedBody': 'Copiez le code maintenant : seuls les quatre derniers caractères seront affichés ensuite.',
+  'giftCards.saved': 'Carte cadeau enregistrée', 'giftCards.deactivated': 'Carte cadeau désactivée', 'giftCards.sent': 'E-mail de la carte cadeau envoyé', 'giftCards.adjusted': 'Solde mis à jour',
+  'giftCards.adjust': 'Ajuster le solde', 'giftCards.adjustType': 'Ajustement', 'giftCards.adjustConfirm': 'Mettre à jour le solde', 'giftCards.amount': 'Montant', 'giftCards.reason': 'Motif (facultatif)',
+  'giftCards.send': 'Envoyer la carte par e-mail', 'giftCards.deactivate': 'Désactiver', 'giftCards.deactivateTitle': 'Désactiver cette carte cadeau ?', 'giftCards.deactivateBody': 'Elle ne pourra plus être utilisée et ne peut pas être réactivée.',
+  'giftCards.ofInitial': 'sur {amount} émis', 'giftCards.transactions': 'Transactions', 'giftCards.credit': 'Crédit', 'giftCards.debit': 'Débit', 'giftCards.noTransactions': 'Aucune transaction.',
+  'giftCards.origin': 'Origine', 'giftCards.fromOrder': 'Achetée dans la commande {name}', 'giftCards.manual': 'Émise manuellement', 'giftCards.recipient': 'Destinataire',
+
+  'abandoned.settings': 'E-mails de relance', 'abandoned.settingsSaved': 'Réglages enregistrés', 'abandoned.autoSend': 'Envoyer les relances automatiquement', 'abandoned.delay': 'Envoyer après', 'abandoned.hours': '{n} heure(s)',
+  'abandoned.settingsHelp': "Un panier est abandonné lorsqu'il a un e-mail, des articles, et reste inactif pendant ce délai. Chaque panier reçoit un seul e-mail automatique ; vous pouvez aussi en envoyer un à la main.",
+  'abandoned.checkout': 'Panier', 'abandoned.date': 'Dernière activité', 'abandoned.items': 'Articles', 'abandoned.recovery': 'E-mail de relance', 'abandoned.emailSent': 'Envoyé', 'abandoned.notSent': 'Non envoyé',
+  'abandoned.search': 'Rechercher par e-mail', 'abandoned.emptyTitle': 'Aucun panier abandonné', 'abandoned.emptyBody': "Les paniers laissés avec une adresse e-mail apparaissent ici après le délai d'inactivité configuré.",
+  'abandoned.notFound': 'Panier introuvable.', 'abandoned.sent': 'E-mail de relance envoyé', 'abandoned.copied': 'Lien copié', 'abandoned.resend': 'Renvoyer', 'abandoned.sendEmail': 'Envoyer un e-mail de relance',
+  'abandoned.lastActivity': 'Dernière activité {date}', 'abandoned.recoveryLink': 'Lien de récupération', 'abandoned.copy': 'Copier le lien', 'abandoned.lastEmail': 'Envoyé le {date}',
+
+  'order.edit': 'Modifier',
+  'orderEdit.title': 'Modifier {name}', 'orderEdit.review': 'Vérifier les modifications', 'orderEdit.addProduct': 'Ajouter un produit', 'orderEdit.discounted': 'Remisé', 'orderEdit.fulfilledLocked': '{n} expédié(s) (ne peuvent pas être retirés)',
+  'orderEdit.discountLabel': 'Remise de modification', 'orderEdit.discount': 'Remise', 'orderEdit.restock': 'Remettre les articles retirés en stock', 'orderEdit.summary': 'Récapitulatif', 'orderEdit.newTotal': 'Nouveau total',
+  'orderEdit.refundOwed': 'Remboursement dû', 'orderEdit.paymentDue': 'Paiement dû', 'orderEdit.help': "Rien ne change sur la commande tant que vous ne la mettez pas à jour. Les paiements et remboursements sont enregistrés ensuite.",
+  'orderEdit.percent': 'Pourcentage de remise sur cette ligne', 'orderEdit.confirmTitle': 'Mettre à jour la commande', 'orderEdit.update': 'Mettre à jour la commande', 'orderEdit.updated': 'Commande mise à jour',
+  'orderEdit.confirmRefund': 'Le nouveau total est inférieur au montant payé : {amount} est dû au client. Remboursez-le depuis la page de la commande.',
+  'orderEdit.confirmDue': 'Le nouveau total est supérieur : {amount} reste à payer. Encaissez-le, puis marquez la commande comme payée.', 'orderEdit.confirmNone': 'Le total ne change pas.',
+
+  'returns.title': 'Retours', 'returns.createTitle': 'Retourner des articles', 'returns.create': 'Créer le retour', 'returns.created': 'Retour créé', 'returns.updated': 'Retour mis à jour',
+  'returns.nothing': 'Aucun article expédié ne peut être retourné.', 'returns.reasonLabel': 'Motif', 'returns.restock': 'Remettre les articles retournés en stock à la clôture du retour',
+  'returns.help': 'Un retour suit les articles qui reviennent. Clôturez-le à leur réception, puis remboursez le client depuis la page de la commande.',
+  'returns.approve': 'Approuver', 'returns.close': 'Clôturer le retour', 'returns.restocked': 'remis en stock', 'returns.willRestock': 'sera remis en stock',
+  'returns.status.REQUESTED': 'Demandé', 'returns.status.OPEN': 'Ouvert', 'returns.status.CLOSED': 'Clôturé', 'returns.status.DECLINED': 'Refusé', 'returns.status.CANCELED': 'Annulé',
+  'returns.reason.UNKNOWN': 'Sans motif', 'returns.reason.SIZE_TOO_SMALL': 'Taille trop petite', 'returns.reason.SIZE_TOO_LARGE': 'Taille trop grande', 'returns.reason.UNWANTED': 'Non désiré', 'returns.reason.NOT_AS_DESCRIBED': 'Non conforme à la description',
+  'returns.reason.WRONG_ITEM': 'Mauvais article', 'returns.reason.DEFECTIVE': 'Défectueux', 'returns.reason.STYLE': 'Style', 'returns.reason.COLOR': 'Couleur', 'returns.reason.OTHER': 'Autre',
+
+  'discounts.method': 'Méthode', 'discounts.method.code': 'Code de réduction', 'discounts.method.automatic': 'Automatique', 'discounts.type.bxgy': 'Achetez X, obtenez Y',
+  'discounts.kind.bxgy': 'Achetez X, obtenez Y', 'discounts.kind.bxgy.help': "Les clients qui achètent certains articles en obtiennent d'autres gratuitement ou à prix réduit.",
+  'discount.title': 'Titre', 'discount.titleHelp': 'Affiché aux clients dans le panier et au paiement.', 'discount.err.titleRequired': 'Saisissez un titre.', 'discount.err.quantity': 'Saisissez un nombre entier d’au moins 1.',
+  'discount.bxgyBuys': 'Le client achète', 'discount.bxgyGets': 'Le client obtient', 'discount.bxgyQuantity': 'Quantité', 'discount.bxgyAnyItems': "N'importe quel article de", 'discount.bxgyEffect': 'À une valeur réduite',
+  'discount.bxgyFree': 'Gratuit', 'discount.bxgyLimit': "Définir un nombre maximum d'utilisations par commande",
+  'discount.combineHelp': "Cette réduction peut être cumulée avec d'autres réductions de ces types. Deux réductions du même type ne se cumulent pas, sauf les réductions sur les produits qui l'autorisent.",
+  'discount.sum.auto': 'Réduction automatique : {title}', 'discount.sum.noTitle': 'Pas encore de titre', 'discount.sum.bxgyFree': 'Achetez {buy}, obtenez {get} gratuit(s)', 'discount.sum.bxgyPercent': 'Achetez {buy}, obtenez {get} à {percent} % de réduction',
+  'discount.sum.usesPerOrder': 'Au maximum {n} fois par commande',
+};

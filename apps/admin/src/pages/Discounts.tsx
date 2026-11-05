@@ -1,14 +1,16 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Modal, Pagination, Tabs, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Package, Percent, Plus, Search, ShoppingBag, Truck } from 'lucide-react';
+import { Gift, Package, Percent, Plus, Search, ShoppingBag, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql, mutate } from '../api';
 import { PageHeader } from '../components/PageHeader';
 import { searchCls, useFormat, useListParams } from '../components/shared';
 import { gidToNum } from '../format';
-import { CODE_DISCOUNT_NODES, DISCOUNT_CODE_ACTIVATE, DISCOUNT_CODE_DEACTIVATE, DISCOUNT_CODE_DELETE } from '../graphql';
+import {
+  DISCOUNT_AUTOMATIC_ACTIVATE, DISCOUNT_AUTOMATIC_DEACTIVATE, DISCOUNT_AUTOMATIC_DELETE, DISCOUNT_CODE_ACTIVATE, DISCOUNT_CODE_DEACTIVATE, DISCOUNT_CODE_DELETE, DISCOUNT_NODES,
+} from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useDebounced } from '../lib/hooks';
@@ -16,7 +18,7 @@ import type { Connection } from '../lib/hooks';
 
 export interface DiscountRow {
   id: string;
-  codeDiscount: { __typename: string; title: string; status: string; startsAt: string; endsAt: string | null; usageLimit: number | null; asyncUsageCount: number; summary: string; codes: { nodes: Array<{ code: string }> } };
+  discount: { __typename: string; title: string; status: string; startsAt: string; endsAt: string | null; usageLimit?: number | null; asyncUsageCount: number; summary: string; codes?: { nodes: Array<{ code: string }> } };
 }
 const PAGE_SIZE = 25;
 const TABS = ['all', 'active', 'scheduled', 'expired'] as const;
@@ -40,27 +42,32 @@ export function DiscountsPage() {
 
   const list = useQuery({
     queryKey: ['discounts', terms, L.get('after'), L.get('before')],
-    queryFn: () => gql<{ codeDiscountNodes: Connection<DiscountRow> }>(CODE_DISCOUNT_NODES, { query: terms || null, ...L.page(PAGE_SIZE) }),
+    queryFn: () => gql<{ discountNodes: Connection<DiscountRow> }>(DISCOUNT_NODES, { query: terms || null, ...L.page(PAGE_SIZE) }),
     placeholderData: (p) => p,
   });
   const bulk = useMutation({
     mutationFn: async ({ ids, action }: { ids: string[]; action: 'activate' | 'deactivate' | 'delete' }) => {
-      await Promise.all(ids.map((id) => action === 'activate' ? mutate(DISCOUNT_CODE_ACTIVATE, { id }, 'discountCodeActivate')
-        : action === 'deactivate' ? mutate(DISCOUNT_CODE_DEACTIVATE, { id }, 'discountCodeDeactivate') : mutate(DISCOUNT_CODE_DELETE, { id }, 'discountCodeDelete')));
+      await Promise.all(ids.map((id) => {
+        const auto = id.includes('DiscountAutomaticNode');
+        return action === 'activate' ? (auto ? mutate(DISCOUNT_AUTOMATIC_ACTIVATE, { id }, 'discountAutomaticActivate') : mutate(DISCOUNT_CODE_ACTIVATE, { id }, 'discountCodeActivate'))
+          : action === 'deactivate' ? (auto ? mutate(DISCOUNT_AUTOMATIC_DEACTIVATE, { id }, 'discountAutomaticDeactivate') : mutate(DISCOUNT_CODE_DEACTIVATE, { id }, 'discountCodeDeactivate'))
+            : (auto ? mutate(DISCOUNT_AUTOMATIC_DELETE, { id }, 'discountAutomaticDelete') : mutate(DISCOUNT_CODE_DELETE, { id }, 'discountCodeDelete'));
+      }));
     },
     onSuccess: (_d, v) => { toast(t('discounts.bulkDone', { n: v.ids.length })); setSelected([]); void qc.invalidateQueries({ queryKey: ['discounts'] }); },
     onError: (e) => toast(e.message, 'critical'),
   });
 
-  const rows = list.data?.codeDiscountNodes.nodes ?? [];
-  const pi = list.data?.codeDiscountNodes.pageInfo;
-  const typeKey = (d: DiscountRow) => (d.codeDiscount.__typename === 'DiscountCodeFreeShipping' ? 'discounts.type.shipping' : 'discounts.type.amount');
+  const rows = list.data?.discountNodes.nodes ?? [];
+  const pi = list.data?.discountNodes.pageInfo;
+  const typeKey = (d: DiscountRow) => (/FreeShipping$/.test(d.discount.__typename) ? 'discounts.type.shipping' : /Bxgy$/.test(d.discount.__typename) ? 'discounts.type.bxgy' : 'discounts.type.amount');
   const columns: Array<Column<DiscountRow>> = [
-    { key: 'code', header: t('discounts.code'), cell: (d) => <div><p className="font-medium">{d.codeDiscount.codes.nodes[0]?.code ?? d.codeDiscount.title}</p><p className="text-xs text-muted">{d.codeDiscount.summary}</p></div> },
-    { key: 'status', header: t('field.status'), cell: (d) => <Badge tone={tone[d.codeDiscount.status as keyof typeof tone] ?? 'neutral'}>{t(`discounts.status.${d.codeDiscount.status}` as Key)}</Badge> },
+    { key: 'code', header: t('discounts.code'), cell: (d) => <div><p className="font-medium">{d.discount.codes?.nodes[0]?.code ?? d.discount.title}</p><p className="text-xs text-muted">{d.discount.summary}</p></div> },
+    { key: 'status', header: t('field.status'), cell: (d) => <Badge tone={tone[d.discount.status as keyof typeof tone] ?? 'neutral'}>{t(`discounts.status.${d.discount.status}` as Key)}</Badge> },
+    { key: 'method', header: t('discounts.method'), cell: (d) => t(d.discount.__typename.startsWith('DiscountAutomatic') ? 'discounts.method.automatic' : 'discounts.method.code') },
     { key: 'type', header: t('discounts.typeCol'), cell: (d) => t(typeKey(d) as Key) },
-    { key: 'used', header: t('discounts.used'), cell: (d) => (d.codeDiscount.usageLimit ? `${d.codeDiscount.asyncUsageCount} / ${d.codeDiscount.usageLimit}` : d.codeDiscount.asyncUsageCount) },
-    { key: 'dates', header: t('discounts.dates'), cell: (d) => <span className="text-muted">{fmt.date(d.codeDiscount.startsAt)}{d.codeDiscount.endsAt ? ` → ${fmt.date(d.codeDiscount.endsAt)}` : ''}</span> },
+    { key: 'used', header: t('discounts.used'), cell: (d) => (d.discount.usageLimit ? `${d.discount.asyncUsageCount} / ${d.discount.usageLimit}` : d.discount.asyncUsageCount) },
+    { key: 'dates', header: t('discounts.dates'), cell: (d) => <span className="text-muted">{fmt.date(d.discount.startsAt)}{d.discount.endsAt ? ` → ${fmt.date(d.discount.endsAt)}` : ''}</span> },
   ];
   const create = <Button variant="primary" onClick={() => setChooser(true)}><Plus className="size-4" />{t('discounts.create')}</Button>;
 
@@ -94,7 +101,7 @@ export function DiscountsPage() {
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} danger title={t('discounts.deleteTitle', { n: confirm?.length ?? 0 })} message={t('discounts.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { if (confirm) bulk.mutate({ ids: confirm, action: 'delete' }); setConfirm(null); }} />
       <Modal open={chooser} onClose={() => setChooser(false)} title={t('discounts.chooseType')} closeLabel={t('common.close')}>
         <ul className="flex flex-col gap-2">
-          {([['product', Package], ['order', ShoppingBag], ['shipping', Truck]] as const).map(([k, Icon]) => (
+          {([['product', Package], ['bxgy', Gift], ['order', ShoppingBag], ['shipping', Truck]] as const).map(([k, Icon]) => (
             <li key={k}>
               <button type="button" onClick={() => nav(`/discounts/new?type=${k}`)} className="flex w-full items-start gap-3 rounded-md border border-line p-3 text-left hover:bg-surface">
                 <Icon className="mt-0.5 size-5 text-primary" />

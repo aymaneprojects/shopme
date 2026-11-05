@@ -2,7 +2,7 @@ import { Badge, Banner, Button, Card, Dropdown, Skeleton, TagInput, Textarea, us
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MoreHorizontal, Truck } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../api';
 import { AddressBlock, FinancialBadge, FulfillmentBadge, useFormat } from '../components/shared';
 import type { Money, MoneySet } from '../components/shared';
@@ -12,6 +12,7 @@ import { ORDER, ORDER_CLOSE, ORDER_MARK_AS_PAID, ORDER_OPEN, ORDER_TIMELINE_COMM
 import { useT } from '../i18n';
 import { toCents } from '../lib/refund';
 import { CancelDialog, FulfillDialog, RefundDialog } from './orders/OrderDialogs';
+import { ReturnDialog, ReturnsCard } from './orders/Returns';
 import type { OrderLine } from './orders/OrderDialogs';
 import { Thumb } from './Products';
 
@@ -47,7 +48,8 @@ function OrderView({ order: o }: { order: OrderData }) {
   const fmt = useFormat();
   const toast = useToast();
   const qc = useQueryClient();
-  const [dialog, setDialog] = useState<'fulfill' | 'refund' | 'cancel' | null>(null);
+  const nav = useNavigate();
+  const [dialog, setDialog] = useState<'fulfill' | 'refund' | 'cancel' | 'return' | null>(null);
   const [note, setNote] = useState(o.note ?? '');
   const [comment, setComment] = useState('');
   const refresh = () => qc.invalidateQueries({ queryKey: ['order'] }).then(() => qc.invalidateQueries({ queryKey: ['orders'] }));
@@ -91,8 +93,10 @@ function OrderView({ order: o }: { order: OrderData }) {
     <>
       <PageHeader back="/orders" title={<span className="flex flex-wrap items-center gap-2">{o.name}<FinancialBadge status={o.displayFinancialStatus} /><FulfillmentBadge status={o.displayFulfillmentStatus} />{o.cancelledAt && <Badge tone="critical">{t('order.cancelledBadge')}</Badge>}{isClosed && !o.cancelledAt && <Badge>{t('order.archived')}</Badge>}</span>}
         actions={<>
+          <Button disabled={!!o.cancelledAt} onClick={() => nav(`/orders/${gidToNum(o.id)}/edit`)}>{t('order.edit')}</Button>
           <Button disabled={!canRefund} onClick={() => setDialog('refund')}>{t('order.refund')}</Button>
           <Dropdown align="right" label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
+            { key: 'return', label: t('returns.createTitle'), disabled: !!o.cancelledAt || !lines.some((l) => l.quantity > l.unfulfilledQuantity), onSelect: () => setDialog('return') },
             { key: 'close', label: isClosed ? t('order.reopen') : t('order.archive'), onSelect: () => act.mutate(isClosed ? 'open' : 'close') },
             { key: 'cancel', label: t('order.cancel'), danger: true, disabled: !!o.cancelledAt, onSelect: () => setDialog('cancel') },
           ]} />
@@ -116,6 +120,8 @@ function OrderView({ order: o }: { order: OrderData }) {
             </Card>
           ))}
           {unfulfilled.length === 0 && o.fulfillments.length === 0 && <Card title={t('order.items')}><LineList lines={lines} qty={(l) => l.quantity} /></Card>}
+
+          <ReturnsCard orderId={o.id} />
 
           <Card title={<span className="flex items-center gap-2"><FinancialBadge status={o.displayFinancialStatus} />{t('order.payment')}</span>}
             actions={<span className="flex gap-2">{canMarkPaid && <Button size="sm" variant="primary" loading={act.isPending} onClick={() => act.mutate('paid')}>{t('order.markPaid')}</Button>}{canRefund && <Button size="sm" onClick={() => setDialog('refund')}>{t('order.refund')}</Button>}</span>}>
@@ -164,6 +170,7 @@ function OrderView({ order: o }: { order: OrderData }) {
       </div>
       {dialog === 'fulfill' && <FulfillDialog open onClose={() => setDialog(null)} orderId={o.id} lines={unfulfilled} onDone={() => void refresh()} />}
       {dialog === 'refund' && <RefundDialog open onClose={() => setDialog(null)} orderId={o.id} lines={lines} shipping={o.totalShippingPriceSet} refundableCents={refundableCents} onDone={() => void refresh()} />}
+      {dialog === 'return' && <ReturnDialog open onClose={() => setDialog(null)} orderId={o.id} onDone={() => void refresh()} />}
       {dialog === 'cancel' && <CancelDialog open onClose={() => setDialog(null)} orderId={o.id} onDone={() => void refresh()} />}
     </>
   );

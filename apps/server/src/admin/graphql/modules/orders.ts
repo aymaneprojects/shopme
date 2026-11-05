@@ -38,7 +38,7 @@ const TargetType = builder.enumType('DiscountApplicationTargetType', { values: [
 /* ------------------------------ shapes and helpers ------------------------------ */
 
 const details = new WeakMap<OrderRow, Promise<OrderDetail>>();
-const detailOf = (ctx: GraphQLContext, o: OrderRow) => {
+export const detailOf = (ctx: GraphQLContext, o: OrderRow) => {
   let p = details.get(o);
   if (!p) { p = getOrderDetail(ctx.db, ctx.shopId, o.id); details.set(o, p); }
   return p;
@@ -50,7 +50,7 @@ const bag = (o: OrderRow, minor: number): MoneyBagShape =>
 const asList = <T>(nodes: T[], a: PageArgs) => paginateArray(a, a.reverse ? [...nodes].reverse() : nodes);
 const fraction = (r: number) => (r > 1 ? r / 100 : r);
 
-interface LineShape extends OrderLine { order: OrderRow }
+export interface LineShape extends OrderLine { order: OrderRow }
 interface TaxLineShape { title: string; rate: number; price: number; order: OrderRow }
 interface ShippingLineShape { id: number; title: string; code: string | null; price: number; order: OrderRow }
 interface DiscountShape { id: number; code: string | null; title: string | null; valueType: string; value: number; targetType: string; index: number; order: OrderRow }
@@ -78,7 +78,7 @@ const taxLinesOf = (rows: OrderDetail['taxLines'], order: OrderRow): TaxLineShap
 
 /* ------------------------------ line items ------------------------------ */
 
-const LineItem = builder.objectRef<LineShape>('LineItem');
+export const LineItem = builder.objectRef<LineShape>('LineItem');
 LineItem.implement({
   interfaces: [Node],
   fields: (t) => ({
@@ -143,7 +143,7 @@ const ShippingLine = builder.objectRef<ShippingLineShape>('ShippingLine').implem
 const ShippingLineConnection = defineConnection('ShippingLine', ShippingLine);
 
 const PricingPercentageValue = builder.objectRef<{ percentage: number }>('PricingPercentageValue').implement({ fields: (t) => ({ percentage: t.exposeFloat('percentage') }) });
-const PricingValue = builder.unionType('PricingValue', {
+export const PricingValue = builder.unionType('PricingValue', {
   types: [MoneyV2, PricingPercentageValue],
   resolveType: (v) => ('percentage' in (v as object) ? PricingPercentageValue : MoneyV2),
 });
