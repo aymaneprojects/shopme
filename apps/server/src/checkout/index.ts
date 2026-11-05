@@ -1,12 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
-  availablePaymentMethods, cleanAddress, findOrderIdByPayment, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
+  availablePaymentMethods, cleanAddress, findOrderIdByPayment, getDefaultAddress, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
   orderVars, sendNotification, shippableCountries, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutError, type CheckoutView, type Shop,
 } from '@shopme/core';
 import { createStripeGateway, readSetting, type StripeGateway } from '@shopme/payments';
 import type { AppContext } from '../context';
-import { CART_COOKIE, primaryShop } from '../storefront/env';
+import { CART_COOKIE, customerOf, primaryShop } from '../storefront/env';
 import { CSS, JS } from './assets';
 import { countryName, PROVINCES } from './geo';
 import { checkoutPage, discountMessage, notFoundPage, pageCtx, shippingFragment, summaryFragment, thankYouPage, type PageCtx } from './views';
@@ -121,11 +121,18 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       const shop = await primaryShop(ctx);
       if (!shop) return reply.code(503).send('Store is not set up');
       const { token } = req.params as { token: string };
-      const view = await loadCheckout(db, shop, token);
+      let view = await loadCheckout(db, shop, token);
       const c = pageCtx(shop);
       if (!view) return html(reply, notFoundPage(c), 404);
       if (view.completed) return reply.redirect(`/checkouts/${token}/thank-you`, 303);
       if (!view.lines.length) return reply.redirect('/cart', 303);
+      // Signed-in customers start with their email and default address (the order then belongs to their account by email).
+      const customer = !view.email && !view.address ? await customerOf(ctx, req, shop) : null;
+      if (customer?.email) {
+        const a = await getDefaultAddress(db, shop.id, customer);
+        await updateCheckout(db, shop, token, { email: customer.email, ...(a ? { address: addressFrom({ ...a, countryCode: a.countryCode ?? '', provinceCode: a.provinceCode ?? '' }) } : {}) });
+        view = (await loadCheckout(db, shop, token)) ?? view;
+      }
       return html(reply, checkoutPage(c, await pageData(shop, view)));
     });
 

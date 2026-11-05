@@ -1,0 +1,47 @@
+<div class="page-width section-pad customer">
+  <div class="section-head">
+    <h1 class="page-title">{{ 'customer.addresses.title' | t }}</h1>
+    <a class="link-arrow" href="{{ routes.account_url }}">{{ 'customer.addresses.back' | t }}</a>
+  </div>
+
+  <details class="customer__details"{% if form.errors %} open{% endif %}>
+    <summary class="button button--outline">{{ 'customer.addresses.add' | t }}</summary>
+    {%- form 'customer_address', customer.new_address, class: 'customer__form', id: 'address-new' -%}
+      {%- if form.errors -%}
+        <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+      {%- endif -%}
+      {% render 'address-fields', address: customer.new_address, uid: 'new' %}
+      <div class="customer__actions"><button class="button" type="submit">{{ 'customer.addresses.save' | t }}</button></div>
+    {%- endform -%}
+  </details>
+
+  {%- if customer.addresses_count == 0 -%}
+    <p class="empty">{{ 'customer.addresses.none' | t }}</p>
+  {%- else -%}
+    <ul class="grid grid--3 customer__addresses" role="list">
+      {%- for address in customer.addresses -%}
+        <li class="customer__address">
+          {%- if address.id == customer.default_address.id -%}<p class="badge">{{ 'customer.addresses.default' | t }}</p>{%- endif -%}
+          <p>{{ address.name | escape }}<br>
+            {%- if address.company != blank %}{{ address.company | escape }}<br>{% endif -%}
+            {{ address.street | escape }}<br>{{ address.zip | escape }} {{ address.city | escape }}<br>{{ address.country | escape }}</p>
+          <details class="customer__details">
+            <summary class="button button--outline button--small">{{ 'customer.addresses.edit' | t }}</summary>
+            {%- form 'customer_address', address, class: 'customer__form', id: 'address-edit' -%}
+              {% render 'address-fields', address: address, uid: address.id %}
+              <div class="customer__actions"><button class="button" type="submit">{{ 'customer.addresses.save' | t }}</button></div>
+            {%- endform -%}
+          </details>
+          <form method="post" action="/account/addresses/{{ address.id }}" data-confirm="{{ 'customer.addresses.confirm_delete' | t }}">
+            <input type="hidden" name="_method" value="delete">
+            <button class="link-button" type="submit">{{ 'customer.addresses.delete' | t }}</button>
+          </form>
+        </li>
+      {%- endfor -%}
+    </ul>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{ "name": "Addresses", "tag": "section", "settings": [] }
+{% endschema %}

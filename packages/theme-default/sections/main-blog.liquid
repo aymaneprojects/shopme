@@ -1,0 +1,53 @@
+{%- assign date_format = 'general.date_format' | t -%}
+<div class="page-width section-pad blog">
+  <div class="section-head">
+    <h1 class="page-title">{{ blog.title | escape }}</h1>
+    <a class="link-arrow" href="{{ blog.url }}.atom">{{ 'blog.feed' | t }}</a>
+  </div>
+
+  {%- if blog.all_tags.size > 0 -%}
+    <nav class="blog__tags" aria-label="{{ 'blog.tags' | t }}">
+      <a class="chip{% if current_tags.size == 0 %} is-active{% endif %}" href="{{ blog.url }}">{{ 'blog.all' | t }}</a>
+      {%- for tag in blog.all_tags -%}
+        <a class="chip{% if current_tags contains tag %} is-active{% endif %}" href="{{ blog.url }}/tagged/{{ tag | handle }}">{{ tag | escape }}</a>
+      {%- endfor -%}
+    </nav>
+  {%- endif -%}
+
+  {%- paginate blog.articles by section.settings.articles_per_page -%}
+    {%- if blog.articles_count == 0 -%}
+      <p class="empty">{{ 'blog.no_articles' | t }}</p>
+    {%- else -%}
+      <ul class="grid grid--3" role="list">
+        {%- for article in blog.articles -%}
+          <li>
+            <article class="card blog__card">
+              {%- if section.settings.show_image and article.image -%}
+                <a class="card__media" href="{{ article.url }}" tabindex="-1" aria-hidden="true">{{ article.image | image_url: width: 600 | image_tag: alt: article.image.alt, loading: 'lazy' }}</a>
+              {%- endif -%}
+              <div class="card__body">
+                <h2 class="card__title"><a href="{{ article.url }}">{{ article.title | escape }}</a></h2>
+                <p class="card__vendor">{{ article.published_at | date: date_format }}{% if section.settings.show_author and article.author != blank %} &middot; {{ 'blog.by' | t: author: article.author }}{% endif %}</p>
+                <p>{{ article.excerpt_or_content | strip_html | truncatewords: 30 }}</p>
+                <a class="link-arrow" href="{{ article.url }}">{{ 'blog.read_more' | t }}</a>
+              </div>
+            </article>
+          </li>
+        {%- endfor -%}
+      </ul>
+      {% render 'pagination', paginate: paginate %}
+    {%- endif -%}
+  {%- endpaginate -%}
+</div>
+
+{% schema %}
+{
+  "name": "Blog posts",
+  "tag": "section",
+  "settings": [
+    { "type": "range", "id": "articles_per_page", "label": "Articles per page", "min": 3, "max": 24, "step": 3, "default": 9 },
+    { "type": "checkbox", "id": "show_image", "label": "Show image", "default": true },
+    { "type": "checkbox", "id": "show_author", "label": "Show author", "default": true }
+  ]
+}
+{% endschema %}

@@ -5,6 +5,7 @@ import {
 } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { slugify, uniqueHandle } from '../handle';
+import { redirectPathChange } from '../content/redirects';
 import { getShop } from '../shops';
 import { emit, errR, normalizeTags, okR, txResult, type Result } from './common';
 import { buildSearch, compare, dateCompare, idTerm, likeCi } from './search';
@@ -585,6 +586,7 @@ export async function updateProduct(db: Db, shopId: number, id: number, input: P
     const publishedAt = status !== 'ACTIVE' ? null : cur.publishedAt ?? new Date();
     const [row] = await tx.update(products).set({ handle, status, publishedAt, ...(input.title && { title: input.title.trim() }), ...productFields(input), updatedAt: new Date() })
       .where(and(eq(products.shopId, shopId), eq(products.id, id))).returning();
+    if (handle !== cur.handle) await redirectPathChange(tx, shopId, `/products/${cur.handle}`, `/products/${handle}`);
     if (input.metafields?.length) {
       const mf = await setMetafieldsTx(tx, shopId, input.metafields.map((m) => ({ ...m, ownerType: 'PRODUCT', ownerId: id })));
       if (!mf.ok) return mf;

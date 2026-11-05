@@ -1,0 +1,59 @@
+{%- assign date_format = 'general.date_format' | t -%}
+<div class="page-width section-pad customer">
+  <div class="section-head">
+    <h1 class="page-title">{{ 'customer.account_page.title' | t }}</h1>
+    <a class="link-arrow" href="{{ routes.account_logout_url }}">{{ 'customer.logout' | t }}</a>
+  </div>
+
+  <div class="customer__layout">
+    <section aria-labelledby="orders-title">
+      <h2 id="orders-title">{{ 'customer.account_page.order_history' | t }}</h2>
+      {%- if customer.orders_count == 0 -%}
+        <p class="empty">{{ 'customer.account_page.no_orders' | t }}</p>
+      {%- else -%}
+        {%- paginate customer.orders by 10 -%}
+          <table class="customer__table">
+            <thead>
+              <tr>
+                <th scope="col">{{ 'customer.account_page.order' | t }}</th>
+                <th scope="col">{{ 'customer.account_page.date' | t }}</th>
+                <th scope="col">{{ 'customer.account_page.payment_status' | t }}</th>
+                <th scope="col">{{ 'customer.account_page.fulfillment_status' | t }}</th>
+                <th scope="col" class="customer__num">{{ 'customer.account_page.total' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {%- for order in customer.orders -%}
+                <tr>
+                  <th scope="row"><a href="{{ order.customer_url }}">{{ order.name }}</a></th>
+                  <td>{{ order.created_at | date: date_format }}</td>
+                  <td>{{ order.financial_status_label }}</td>
+                  <td>{{ order.fulfillment_status_label }}</td>
+                  <td class="customer__num">{{ order.total_price | money }}</td>
+                </tr>
+              {%- endfor -%}
+            </tbody>
+          </table>
+          {% render 'pagination', paginate: paginate %}
+        {%- endpaginate -%}
+      {%- endif -%}
+    </section>
+
+    <aside aria-labelledby="details-title">
+      <h2 id="details-title">{{ 'customer.account_page.details' | t }}</h2>
+      <p><strong>{{ customer.name | escape }}</strong><br>{{ customer.email | escape }}</p>
+      {%- if customer.default_address -%}
+        <h3>{{ 'customer.account_page.default_address' | t }}</h3>
+        <p>{{ customer.default_address.name | escape }}<br>
+          {{ customer.default_address.street | escape }}<br>
+          {{ customer.default_address.zip | escape }} {{ customer.default_address.city | escape }}<br>
+          {{ customer.default_address.country | escape }}</p>
+      {%- endif -%}
+      <a class="button button--outline button--small" href="{{ routes.account_addresses_url }}">{{ 'customer.account_page.view_addresses' | t: count: customer.addresses_count }}</a>
+    </aside>
+  </div>
+</div>
+
+{% schema %}
+{ "name": "Account", "tag": "section", "settings": [] }
+{% endschema %}

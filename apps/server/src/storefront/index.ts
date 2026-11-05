@@ -1,6 +1,10 @@
 import multipart from '@fastify/multipart';
 import type { FastifyInstance } from 'fastify';
+import { registerAccountRoutes } from './accounts';
+import { registerBlogRoutes } from './blogs';
 import { registerCartRoutes } from './cart-routes';
+import { registerFormRoutes } from './forms';
+import { registerSeoRoutes } from './seo';
 import { primaryShop } from './env';
 import { createContent } from './pages';
 import { ThemeStore } from './theme-store';
@@ -22,6 +26,10 @@ export async function registerStorefront(app: FastifyInstance): Promise<void> {
     });
     await scope.register(multipart, { attachFieldsToBody: 'keyValues', limits: { fileSize: 1024 * 1024, files: 0 } });
     registerCartRoutes(scope, ctx, content.renderSections);
+    registerAccountRoutes(scope, ctx, content);
+    registerBlogRoutes(scope, ctx, content);
+    registerFormRoutes(scope, ctx, content);
+    registerSeoRoutes(scope, ctx, content);
     content.register(scope);
   });
 

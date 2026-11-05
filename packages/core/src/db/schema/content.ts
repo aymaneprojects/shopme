@@ -13,7 +13,9 @@ export const pages = pgTable('pages', {
 
 export const blogs = pgTable('blogs', {
   id: pk(), shopId: shopFk(),
-  handle: text('handle').notNull(), title: text('title').notNull(), templateSuffix: text('template_suffix'), ...timestamps(),
+  handle: text('handle').notNull(), title: text('title').notNull(), templateSuffix: text('template_suffix'),
+  commentPolicy: text('comment_policy').notNull().default('CLOSED'), // CLOSED | AUTO_PUBLISHED | MODERATED
+  ...timestamps(),
 }, (t) => [uniqueIndex('blogs_shop_handle_uq').on(t.shopId, t.handle)]);
 
 export const articles = pgTable('articles', {

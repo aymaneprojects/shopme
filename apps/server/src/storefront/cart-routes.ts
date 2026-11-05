@@ -1,8 +1,8 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { addItems, cartBadRequest, changeLine, clearCart, createCart, getCartByToken, newCartToken, updateCart, type CartError, type CartView, type Shop } from '@shopme/core';
+import { addItems, cartBadRequest, changeLine, clearCart, createCart, getCartByToken, newCartToken, priceCartDiscounts, updateCart, type CartError, type CartView, type Shop } from '@shopme/core';
 import type { AppContext } from '../context';
 import { ajaxCart, ajaxLine, changeEntry } from './cart-format';
-import { CART_COOKIE, primaryShop } from './env';
+import { CART_COOKIE, customerOf, primaryShop } from './env';
 import type { SectionRenderer } from './pages';
 
 const JS = 'text/javascript; charset=utf-8';
@@ -67,6 +67,9 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
     return { ...body, sections: await renderSections(req, shop, url, names, cart) };
   }
 
+  /** The Ajax cart with discounts applied (codes on the cart plus automatic discounts). */
+  const priced = async (req: FastifyRequest, shop: Shop, cart: CartView) => ajaxCart(cart, await priceCartDiscounts(db, shop.id, cart, (await customerOf(ctx, req, shop))?.email ?? null));
+
   const send = (reply: FastifyReply, body: unknown) => reply.header('cache-control', 'no-cache, no-store').type(JS).send(JSON.stringify(body));
 
   /** Common wrapper: resolve shop, cart (created if needed), run the mutation, answer in the Ajax format or redirect. */
@@ -88,7 +91,7 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
     if (!shop) return reply.code(503).send({ error: 'Store is not set up' });
     const raw = req.cookies[CART_COOKIE];
     const cart = (raw ? await getCartByToken(db, shop.id, raw.split('?')[0]!.split('%3F')[0]!) : null) ?? { id: 0, token: newCartToken(), note: null, attributes: {}, currency: shop.currency, discountCodes: [], lines: [] } satisfies CartView;
-    return reply.type(req.url.split('?')[0]!.endsWith('.json') ? 'application/json; charset=utf-8' : JS).send(JSON.stringify(ajaxCart(cart)));
+    return reply.type(req.url.split('?')[0]!.endsWith('.json') ? 'application/json; charset=utf-8' : JS).send(JSON.stringify(await priced(req, shop, cart)));
   };
   app.get('/cart.js', getCart);
   app.get('/cart.json', getCart);
@@ -118,7 +121,7 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
     const r = await changeLine(db, shop.id, cart.id, params);
     if (r.error) return fail(reply, r.error);
     const cur = r.cart.currency;
-    const body = { ...ajaxCart(r.cart), items_added: r.deltas.filter((d) => d.delta > 0).map((d) => changeEntry(d, cur)), items_removed: r.deltas.filter((d) => d.delta < 0).map((d) => changeEntry(d, cur)) };
+    const body = { ...(await priced(req, shop, r.cart)), items_added: r.deltas.filter((d) => d.delta > 0).map((d) => changeEntry(d, cur)), items_removed: r.deltas.filter((d) => d.delta < 0).map((d) => changeEntry(d, cur)) };
     return send(reply, await withSections(req, shop, r.cart, body, params));
   }, { redirect: '/cart' });
   app.post('/cart/change.js', change);
@@ -129,21 +132,36 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
   const update = mutation(async ({ req, reply, shop, cart, params }) => {
     const r = await updateCart(db, shop.id, cart.id, params);
     if (r.error) return fail(reply, r.error);
-    const body = { ...ajaxCart(r.cart), items_changelog: { added: r.added.map((a) => ({ variant_id: a.variantId, quantity: a.quantity })) } };
+    const body = { ...(await priced(req, shop, r.cart)), items_changelog: { added: r.added.map((a) => ({ variant_id: a.variantId, quantity: a.quantity })) } };
     return send(reply, await withSections(req, shop, r.cart, body, params));
   }, { redirect: '/cart' });
   app.post('/cart/update.js', update);
   app.post('/cart/update', update);
 
   // --- clear
-  const clear = mutation(async ({ reply, shop, cart }) => {
+  const clear = mutation(async ({ req, reply, shop, cart }) => {
     const c = await clearCart(db, shop.id, cart.id);
-    return send(reply, ajaxCart(c));
+    return send(reply, await priced(req, shop, c));
   }, { redirect: '/cart' });
   app.post('/cart/clear.js', clear);
   app.get('/cart/clear.js', clear);
   app.post('/cart/clear', clear);
   app.get('/cart/clear', clear);
+
+  // --- /discount/<code>: remembers the code (cookie + the current cart) and redirects; `?redirect=/path` picks the landing page
+  app.get('/discount/:code', async (req, reply) => {
+    const shop = await primaryShop(ctx);
+    if (!shop) return reply.callNotFound();
+    const code = decodeURIComponent((req.params as { code: string }).code).trim().slice(0, 255);
+    const target = String((req.query as Record<string, unknown>).redirect ?? '/');
+    const safe = target.startsWith('/') && !target.startsWith('//') ? target : '/';
+    if (code) {
+      reply.setCookie('discount_code', code, { path: '/', sameSite: 'lax', httpOnly: false, secure: ctx.config.appUrl.startsWith('https://') });
+      const cart = await cartFor(req, reply, shop);
+      if (!cart.discountCodes.some((c) => c.toUpperCase() === code.toUpperCase())) await updateCart(db, shop.id, cart.id, { discount: [...cart.discountCodes, code].join(',') });
+    }
+    return reply.header('x-robots-tag', 'noindex, nofollow').redirect(safe, 302);
+  });
 
   // --- permalink: /cart/<variant>:<qty>[,<variant>:<qty>] adds the lines and continues to checkout
   app.get('/cart/:permalink', async (req, reply) => {

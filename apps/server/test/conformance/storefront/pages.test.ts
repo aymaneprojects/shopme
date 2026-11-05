@@ -83,7 +83,12 @@ describe('routes', () => {
     expect(r.headers['content-type']).toContain('text/css');
     expect(r.headers['cache-control']).toContain('immutable');
     expect((await get('/robots.txt')).body).toContain('Sitemap:');
-    expect((await get('/sitemap.xml')).body).toContain('/products/house-espresso-blend');
+    const index = (await get('/sitemap.xml')).body;
+    expect(index).toContain('<sitemapindex');
+    expect(index).toContain('/sitemap_products_1.xml');
+    expect((await get('/sitemap_products_1.xml')).body).toContain('/products/house-espresso-blend');
+    expect((await get('/sitemap_blogs_1.xml')).body).toContain('/blogs/news/welcome');
+    expect((await get('/sitemap_nope_1.xml')).statusCode).toBe(400);
   });
 
   it('cart page lists items and the checkout link', async () => {

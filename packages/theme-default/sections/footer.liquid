@@ -7,6 +7,24 @@
         <p class="site-footer__text">{{ shop.description | escape }}</p>
       {%- endif -%}
     </div>
+    {%- if section.settings.show_newsletter -%}
+      <div class="site-footer__newsletter">
+        <p class="site-footer__name">{{ 'newsletter.title' | t }}</p>
+        {%- form 'customer', id: 'newsletter-form', class: 'newsletter' -%}
+          {%- if form.posted_successfully? -%}
+            <p class="form-success" role="status">{{ 'newsletter.success' | t }}</p>
+          {%- else -%}
+            {%- if form.errors -%}<div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>{%- endif -%}
+            <input type="hidden" name="contact[tags]" value="newsletter">
+            <label class="visually-hidden" for="newsletter-email">{{ 'newsletter.label' | t }}</label>
+            <div class="newsletter__row">
+              <input id="newsletter-email" class="search-form__input" type="email" name="contact[email]" value="{{ form.email | escape }}" placeholder="{{ 'newsletter.label' | t }}" autocomplete="email" required>
+              <button class="button" type="submit">{{ 'newsletter.submit' | t }}</button>
+            </div>
+          {%- endif -%}
+        {%- endform -%}
+      </div>
+    {%- endif -%}
     {%- if menu != blank and menu.links.size > 0 -%}
       <nav aria-label="{{ 'footer.menu' | t }}">
         <ul class="site-footer__links">
@@ -31,7 +49,8 @@
   "class": "footer-section",
   "settings": [
     { "type": "link_list", "id": "menu", "label": "Menu", "default": "footer" },
-    { "type": "checkbox", "id": "show_description", "label": "Show store description", "default": true }
+    { "type": "checkbox", "id": "show_description", "label": "Show store description", "default": true },
+    { "type": "checkbox", "id": "show_newsletter", "label": "Show newsletter sign-up", "default": true }
   ]
 }
 {% endschema %}

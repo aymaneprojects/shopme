@@ -4,7 +4,7 @@
   "sections": {
     "footer": {
       "type": "footer",
-      "settings": { "menu": "footer", "show_description": true }
+      "settings": { "menu": "footer", "show_description": true, "show_newsletter": true }
     }
   },
   "order": ["footer"]

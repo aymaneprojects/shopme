@@ -1,4 +1,17 @@
 /* Aurora: small vanilla JS (no dependencies). Talks to the Ajax cart API and the Section Rendering API. */
+/* Customer pages: preselect the country of address forms, confirm address deletion. */
+(function () {
+  'use strict';
+  document.querySelectorAll('select[data-default]').forEach(function (select) {
+    var wanted = select.getAttribute('data-default');
+    if (wanted) select.value = wanted;
+  });
+  document.addEventListener('submit', function (e) {
+    var message = e.target && e.target.getAttribute && e.target.getAttribute('data-confirm');
+    if (message && !window.confirm(message)) e.preventDefault();
+  });
+}());
+
 (function () {
   'use strict';
   var A = window.aurora || {};

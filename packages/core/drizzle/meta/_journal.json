@@ -15,6 +15,13 @@
       "when": 1793836128165,
       "tag": "0001_wave6b_ops",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793837734324,
+      "tag": "0002_wave6a_accounts",
+      "breakpoints": true
     }
   ]
 }

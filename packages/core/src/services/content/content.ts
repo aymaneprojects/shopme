@@ -7,6 +7,7 @@ import { errR, okR, txResult, type Result } from '../catalog/common';
 import { slugify, uniqueHandle } from '../handle';
 import { THEME_DIRS } from '../theme-install';
 import { addEvent } from '../events';
+import { redirectPathChange } from './redirects';
 
 /* ------------------------------ pages ------------------------------ */
 
@@ -63,6 +64,7 @@ export async function updatePage(db: Db, shopId: number, id: number, i: PageInpu
   const handle = i.handle?.trim() ? slugify(i.handle) : undefined;
   if (handle && handle !== cur.handle && (await db.select({ id: pages.id }).from(pages).where(and(eq(pages.shopId, shopId), eq(pages.handle, handle))))[0]) return errR(['handle'], 'Handle has already been taken', 'TAKEN');
   const pub = publishedAt(i, cur.publishedAt);
+  if (handle && handle !== cur.handle) await redirectPathChange(db, shopId, `/pages/${cur.handle}`, `/pages/${handle}`);
   const [row] = await db.update(pages).set({
     ...(i.title && { title: i.title.trim() }), ...(handle && { handle }), ...(i.body != null && { bodyHtml: i.body }),
     ...(i.templateSuffix !== undefined && { templateSuffix: i.templateSuffix || null }), ...(pub !== undefined && { publishedAt: pub }), updatedAt: new Date(),
