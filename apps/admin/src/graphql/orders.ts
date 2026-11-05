@@ -24,10 +24,10 @@ export const ORDERS_COUNT = /* GraphQL */ `
 export const ORDER = /* GraphQL */ `
   query Order($id: ID!) {
     order(id: $id) {
-      id name createdAt email note tags cancelledAt closedAt displayFinancialStatus displayFulfillmentStatus statusPageUrl
+      id name createdAt email note tags cancelledAt closedAt sourceName displayFinancialStatus displayFulfillmentStatus statusPageUrl
       lineItems(first: 100) {
         nodes {
-          id title variantTitle sku quantity refundableQuantity unfulfilledQuantity
+          id title variantTitle sku quantity refundableQuantity unfulfilledQuantity requiresShipping
           originalUnitPriceSet { ${MONEY} }
           discountedTotalSet { ${MONEY} }
           variant { id image { url } }

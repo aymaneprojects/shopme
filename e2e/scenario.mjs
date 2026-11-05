@@ -759,10 +759,10 @@ export async function runScenario({ baseUrl, root }) {
       await a.getByRole('button', { name: /Create discount/ }).click();
       await vis(a.getByRole('button', { name: /Buy X get Y/ }));
       await a.goto(`${baseUrl}/admin/orders/1/edit`);
-      await vis(a.getByRole('heading', { name: /Edit #1001/ }));
+      await vis(a.getByRole('heading', { name: /Edit order/ }));
       await vis(a.getByLabel(/^Quantity/));
       await shot('22-order-edit', a);
-      await a.getByRole('button', { name: 'Cancel' }).click();
+      await a.getByRole('button', { name: 'Back' }).click();
       await a.waitForURL(/\/admin\/orders\/1$/, { timeout: T });
     });
 

@@ -1,10 +1,10 @@
 import { Badge, Banner, Button, Card, Checkbox, Input, Modal, Skeleton, useToast } from '@shopme/ui';
 import { useMutation } from '@tanstack/react-query';
-import { Percent, Plus, X } from 'lucide-react';
+import { Inbox, Percent, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { UserErrors, mutate } from '../../api';
-import { PageHeader } from '../../components/PageHeader';
+import { IconHeading, PageTitle, SideSection, TopBar, TwoColumn } from '../../components/OrderChrome';
 import { useFormat } from '../../components/shared';
 import type { MoneySet } from '../../components/shared';
 import { numToGid, parseDecimal } from '../../format';
@@ -80,61 +80,71 @@ export function OrderEditPage() {
 
   return (
     <>
-      <PageHeader back={`/orders/${id}`} title={t('orderEdit.title', { name: orderName })} actions={<Button onClick={() => void cancel()}>{t('common.cancel')}</Button>} />
-      {error && <div className="mb-4"><Banner>{error}</Banner></div>}
-      <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
-        <div className="flex flex-col gap-4">
-          <Card title={t('order.items')} actions={<Button size="sm" onClick={() => setAdding(true)}><Plus className="size-3.5" />{t('orderEdit.addProduct')}</Button>}>
-            <ul className="divide-y divide-line">
-              {lines.map((l) => {
-                const locked = l.quantity - l.editableQuantity;
-                return (
-                  <li key={l.id} className="flex flex-wrap items-center gap-3 py-2 text-[13px]">
-                    <Thumb url={l.image?.url} />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{l.title}</p>
-                      <p className="text-xs text-muted">{[l.variantTitle, l.sku].filter(Boolean).join(' · ')}</p>
-                      {l.hasStagedLineItemDiscount && <Badge tone="info">{t('orderEdit.discounted')}</Badge>}
-                      {locked > 0 && <p className="text-xs text-muted">{t('orderEdit.fulfilledLocked', { n: locked })}</p>}
-                    </div>
-                    <span className="text-accent">{fmt.money(l.originalUnitPriceSet)}</span>
-                    <input type="number" aria-label={`${t('order.quantity')} ${l.title}`} min={locked} value={l.quantity} disabled={busy}
-                      onChange={(e) => setQty.mutate({ line: l.id, quantity: Math.max(locked, Math.floor(Number(e.target.value) || 0)) })} className="field-control w-16" />
-                    <span className="w-20 text-right">{fmt.money(l.editableSubtotalSet)}</span>
-                    <Button size="sm" variant="plain" icon aria-label={`${t('orderEdit.discount')} ${l.title}`} onClick={() => setDiscountFor(l)}><Percent className="size-4" /></Button>
-                    <Button size="sm" variant="plain" icon aria-label={`${t('common.remove')} ${l.title}`} disabled={busy || l.quantity <= locked} onClick={() => setQty.mutate({ line: l.id, quantity: locked })}><X className="size-4" /></Button>
-                  </li>
-                );
-              })}
-            </ul>
+      <TopBar back={`/orders/${id}`} onBack={() => void cancel()} icon={<Inbox />} crumbs={[{ label: t('nav.orders'), to: '/orders' }, { label: orderName }]} />
+      <TwoColumn
+        main={<>
+          <PageTitle>{t('qa.editOrderTitle')}</PageTitle>
+          {error && <Banner>{error}</Banner>}
+          <section>
+            <IconHeading icon={<Inbox />} tone="attention" actions={<Button size="sm" onClick={() => setAdding(true)}><Plus className="size-3.5" />{t('draft.productBtn')}</Button>}>{t('order.items')}</IconHeading>
+            <Card className="!p-0">
+              <ul className="divide-y divide-line px-4">
+                {lines.map((l) => {
+                  const locked = l.quantity - l.editableQuantity;
+                  return (
+                    <li key={l.id} className="flex flex-wrap items-center gap-3 py-3 text-[13px]">
+                      <Thumb url={l.image?.url} className="size-9" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium">{l.title}</p>
+                        {(l.variantTitle || l.sku) && <p className="mt-0.5 flex flex-wrap gap-1 text-xs text-muted">{[l.variantTitle, l.sku].filter(Boolean).map((x) => <span key={x} className="rounded-md bg-surface px-1.5">{x}</span>)}</p>}
+                        {l.hasStagedLineItemDiscount && <Badge tone="info">{t('orderEdit.discounted')}</Badge>}
+                        {locked > 0 && <p className="text-xs text-muted">{t('orderEdit.fulfilledLocked', { n: locked })}</p>}
+                      </div>
+                      <span className="text-accent">{fmt.money(l.originalUnitPriceSet)}</span>
+                      <input type="number" aria-label={`${t('order.quantity')} ${l.title}`} min={locked} value={l.quantity} disabled={busy}
+                        onChange={(e) => setQty.mutate({ line: l.id, quantity: Math.max(locked, Math.floor(Number(e.target.value) || 0)) })} className="field-control w-16" />
+                      <span className="w-20 text-right">{fmt.money(l.editableSubtotalSet)}</span>
+                      <Button size="sm" variant="plain" icon aria-label={`${t('orderEdit.discount')} ${l.title}`} onClick={() => setDiscountFor(l)}><Percent className="size-4" /></Button>
+                      <Button size="sm" variant="plain" icon className="btn-neutral" aria-label={`${t('common.remove')} ${l.title}`} disabled={busy || l.quantity <= locked} onClick={() => setQty.mutate({ line: l.id, quantity: locked })}><X className="size-4" /></Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Card>
             <div className="mt-3"><Checkbox label={t('orderEdit.restock')} checked={restock} onChange={(e) => setRestock(e.target.checked)} /></div>
-          </Card>
-          <Card title={t('order.payment')}>
-            <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1.5 text-[13px]">
-              <dt>{t('order.subtotal')}</dt><dd className="text-right">{fmt.money(calc.subtotalPriceSet)}</dd>
-              <dt className="font-semibold">{t('orderEdit.newTotal')}</dt><dd className="text-right font-semibold">{fmt.money(calc.totalPriceSet)}</dd>
-              <dt className="border-t border-line pt-2">{t('order.paid')}</dt><dd className="border-t border-line pt-2 text-right">{m(paid)}</dd>
-              {outstanding !== 0 && <><dt className={outstanding < 0 ? 'text-critical' : ''}>{outstanding < 0 ? t('orderEdit.refundOwed') : t('orderEdit.paymentDue')}</dt><dd className="text-right">{m(Math.abs(outstanding))}</dd></>}
-            </dl>
-            <p className="-mx-4 -mb-4 mt-3 rounded-b-lg bg-surface px-4 py-3 text-[13px] text-muted">{t('orderEdit.taxNote')}</p>
-          </Card>
-          <Card title={t('orderEdit.reason')}>
-            <Input aria-label={t('orderEdit.reason')} value={note} onChange={(e) => setNote(e.target.value)} />
-            <p className="mt-2 text-xs text-muted">{t('orderEdit.reasonHelp')}</p>
-          </Card>
-        </div>
-        <div>
-          <Card title={t('orderEdit.summary')}>
-            {changes.length === 0 ? <p className="text-[13px] text-muted">{t('orderEdit.noChanges')}</p> : (
-              <ul className="flex flex-col gap-1 text-[13px]">
+          </section>
+          <section>
+            <h2 className="mb-2 text-sm font-semibold">{t('order.payment')}</h2>
+            <Card className="overflow-hidden !p-0">
+              <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 px-4 py-3.5 text-[13px]">
+                <dt>{t('order.subtotal')}</dt><dd className="text-right text-muted">{fmt.money(calc.subtotalPriceSet)}</dd>
+                <dt className="font-semibold">{t('order.total')}</dt><dd className="text-right font-semibold">{fmt.money(calc.totalPriceSet)}</dd>
+              </dl>
+              <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 border-t border-line px-4 py-3.5 text-[13px]">
+                <dt>{t('order.paid')}</dt><dd className="text-right text-muted">{m(paid)}</dd>
+                {outstanding !== 0 && <><dt className={outstanding < 0 ? 'text-critical' : ''}>{outstanding < 0 ? t('orderEdit.refundOwed') : t('orderEdit.paymentDue')}</dt><dd className="text-right">{m(Math.abs(outstanding))}</dd></>}
+              </dl>
+              <p className="bg-surface px-4 py-3 text-[13px] text-muted">{t('orderEdit.taxNote')}</p>
+            </Card>
+          </section>
+          <section>
+            <h2 className="mb-2 text-sm font-semibold">{t('orderEdit.reason')}</h2>
+            <Card>
+              <Input aria-label={t('orderEdit.reason')} value={note} onChange={(e) => setNote(e.target.value)} />
+              <p className="mt-2 text-xs text-muted">{t('orderEdit.reasonHelp')}</p>
+            </Card>
+          </section>
+        </>}
+        side={
+          <SideSection title={t('orderEdit.summary')}>
+            {changes.length === 0 ? <p className="text-muted">{t('orderEdit.noChanges')}</p> : (
+              <ul className="flex flex-col gap-1">
                 {changes.map((l) => <li key={l.id} className="flex justify-between gap-2"><span className="truncate">{l.title}</span><span className="text-muted">{l.editableQuantityBeforeChanges} → {l.editableQuantity}</span></li>)}
               </ul>
             )}
             <Button variant="primary" className="mt-3 w-full" disabled={busy || changes.length === 0} onClick={() => setConfirm(true)}>{t('orderEdit.update')}</Button>
             <p className="mt-3 text-xs text-muted">{t('orderEdit.help')}</p>
-          </Card>
-        </div>
-      </div>
+          </SideSection>} />
       <VariantDialog open={adding} onClose={() => setAdding(false)} onAdd={(ls) => ls.forEach((l) => l.variantId && addVariant.mutate(l.variantId))} />
       <Modal open={!!discountFor} onClose={() => setDiscountFor(null)} title={t('orderEdit.discount')} closeLabel={t('common.close')}
         footer={<><Button onClick={() => setDiscountFor(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={addDiscount.isPending} disabled={!((parseDecimal(percent) ?? 0) > 0)} onClick={() => addDiscount.mutate()}>{t('draft.add')}</Button></>}>

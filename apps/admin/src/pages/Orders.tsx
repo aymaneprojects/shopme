@@ -1,7 +1,7 @@
-import { Banner, Button, Card, Dropdown, EmptyState, IndexTable, Modal, Pagination, TagInput, useToast } from '@shopme/ui';
+import { Banner, Button, Card, Checkbox, Dropdown, EmptyState, IndexTable, Modal, Pagination, TagInput, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Search } from 'lucide-react';
+import { Calendar, Download, MoreHorizontal, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql, mutate } from '../api';
@@ -31,6 +31,35 @@ const TAB_QUERY: Record<Tab, string> = { all: '', unfulfilled: 'fulfillment_stat
 const FINANCIAL = ['PENDING', 'AUTHORIZED', 'PARTIALLY_PAID', 'PAID', 'PARTIALLY_REFUNDED', 'REFUNDED', 'VOIDED'];
 const FULFILLMENT = ['UNFULFILLED', 'PARTIALLY_FULFILLED', 'FULFILLED'];
 const SORTS = ['CREATED_AT', 'ORDER_NUMBER', 'TOTAL_PRICE', 'CUSTOMER_NAME', 'FINANCIAL_STATUS', 'FULFILLMENT_STATUS'];
+
+/** Today's figures above the list: orders, items ordered, sales and fulfilled orders. */
+function TodayStats() {
+  const t = useT();
+  const fmt = useFormat();
+  const day = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+  const today = useQuery({
+    queryKey: ['orders-today', day],
+    queryFn: () => gql<{ orders: Connection<OrderRow> }>(ORDERS, { query: `created_at:>=${day}`, sortKey: 'CREATED_AT', reverse: true, first: 250 }),
+  });
+  const done = useQuery({ queryKey: ['orders-today-fulfilled', day], queryFn: () => gql<{ ordersCount: { count: number } }>(ORDERS_COUNT, { query: `created_at:>=${day} fulfillment_status:fulfilled` }) });
+  const nodes = today.data?.orders.nodes ?? [];
+  const cur = nodes[0]?.totalPriceSet.shopMoney.currencyCode ?? 'USD';
+  const sales = nodes.reduce((n, o) => n + Number(o.totalPriceSet.shopMoney.amount), 0);
+  const stats: Array<[string, string]> = [
+    [t('nav.orders'), String(nodes.length)],
+    [t('qa.statItems'), String(nodes.reduce((n, o) => n + o.lineItems.nodes.reduce((m, l) => m + l.quantity, 0), 0))],
+    [t('qa.statSales'), fmt.money({ amount: String(sales), currencyCode: cur })],
+    [t('qa.statFulfilled'), String(done.data?.ordersCount.count ?? 0)],
+  ];
+  return (
+    <div className="mb-3 flex items-stretch gap-4 overflow-x-auto rounded-lg bg-canvas px-3 py-2 shadow-card" aria-label={t('qa.today')}>
+      <div className="flex shrink-0 items-center gap-1.5 border-r border-line pr-4 text-[13px]"><Calendar className="size-3.5 text-muted" />{t('qa.today')}</div>
+      {stats.map(([label, value]) => (
+        <div key={label} className="min-w-32 flex-1 py-0.5"><p className="w-fit border-b border-dashed border-line text-xs font-semibold leading-5">{label}</p><p className="mt-0.5 text-[13px]">{value}</p></div>
+      ))}
+    </div>
+  );
+}
 
 export function OrdersPage() {
   const t = useT();
@@ -105,6 +134,7 @@ export function OrdersPage() {
           ...(hasFilters && count.data ? [{ key: 'filtered', label: t('orders.exportFiltered', { n: count.data.ordersCount.count }), onSelect: () => startDownload(exportHref('orders', { query: terms })) }] : []),
           { key: 'all', label: t('orders.exportAll'), onSelect: () => startDownload(exportHref('orders')) },
         ]} /><Button variant="primary" onClick={() => nav('/orders/drafts/new')}>{t('draft.create')}</Button></>} />
+      <TodayStats />
       <Card className="!p-0">
         <div className="px-3 pt-1"><ViewTabs resource="ORDER" query={terms} tabs={TABS.map((id) => ({ id, label: t(`orders.tab.${id}` as Key) }))} value={tab} onTab={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v, view: '' }); }} /></div>
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
@@ -122,7 +152,24 @@ export function OrdersPage() {
           </select>
         </div>
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
-        <IndexTable
+        {selected.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-line bg-surface px-3 py-1.5" role="group" aria-label={t('common.selected', { n: selected.length })}>
+            <Checkbox aria-label={t('common.selectAll')} checked={rows.length > 0 && selected.length === rows.length} onChange={() => setSelected(selected.length === rows.length ? [] : rows.map((r) => r.id))} />
+            <span className="text-[13px] font-medium">{t('common.selected', { n: selected.length })}</span>
+            <Button size="sm" onClick={() => setLabels(selected)}>{t('orders.createLabels')}</Button>
+            <Dropdown size="sm" chevron label={t('qa.markAs')} trigger={t('qa.markAs')} items={[
+              { key: 'paid', label: t('order.markPaid'), onSelect: () => bulk.mutate({ ids: selected, action: 'paid' }) },
+              { key: 'fulfilled', label: t('order.markFulfilled'), onSelect: () => bulk.mutate({ ids: selected, action: 'fulfilled' }) },
+            ]} />
+            <Button size="sm" onClick={() => { setNewTags([]); setTagging({ ids: selected, mode: 'add' }); }}>{t('orders.addTags')}</Button>
+            <Dropdown size="sm" icon label={t('qa.moreBulk')} trigger={<MoreHorizontal className="size-4" />} items={[
+              { key: 'untag', label: t('products.removeTags'), onSelect: () => { setNewTags([]); setTagging({ ids: selected, mode: 'remove' }); } },
+              { key: 'export', label: t('orders.exportSelected'), onSelect: () => startDownload(exportHref('orders', { ids: selected.map(gidToNum).join(',') })) },
+              { key: 'close', label: t('orders.archive'), onSelect: () => bulk.mutate({ ids: selected, action: 'close' }) },
+            ]} />
+          </div>
+        )}
+        <div className="[&_[role=toolbar]]:hidden"><IndexTable
           rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading}
           selected={selected} onSelectedChange={setSelected} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           sort={sort} onSortChange={(s) => L.patch({ sort: s.key, dir: s.reverse ? '' : 'asc' })}
@@ -139,14 +186,15 @@ export function OrdersPage() {
           empty={list.isError ? null : hasFilters
             ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} action={<Button onClick={() => { setSearch(''); L.clear(); }}>{t('products.clearFilters')}</Button>} />
             : <EmptyState image={emptyOrders} title={t('orders.emptyTitle')} description={t('orders.emptyBody')} />}
-        />
+        /></div>
         <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage}
           previousLabel={t('common.previous')} nextLabel={t('common.next')}
           onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
       </Card>
       <Modal open={!!labels} onClose={() => setLabels(null)} title={t('orders.labelsTitle')} closeLabel={t('common.close')}
-        footer={<><Button onClick={() => setLabels(null)}>{t('common.close')}</Button><Button variant="primary" onClick={() => { const id = labels?.[0]; setLabels(null); if (id) nav(`/orders/${gidToNum(id)}`); }}>{t('orders.addTrackingManually')}</Button></>}>
+        footer={<Button onClick={() => setLabels(null)}>{t('common.close')}</Button>}>
         <p className="text-[13px]">{t('orders.labelsBody')}</p>
+        <p className="mt-3 text-[13px]">{rows.filter((r) => labels?.includes(r.id)).map((r, i) => <span key={r.id}>{i > 0 && ', '}<a className="underline" href={`/admin/orders/${gidToNum(r.id)}`} onClick={(e) => { e.preventDefault(); nav(`/orders/${gidToNum(r.id)}`); }}>{r.name}</a></span>)}</p>
       </Modal>
       <Modal open={!!tagging} onClose={() => setTagging(null)} title={tagging?.mode === 'remove' ? t('products.removeTags') : t('orders.addTags')} closeLabel={t('common.close')}
         footer={<><Button onClick={() => setTagging(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!newTags.length} onClick={() => { if (tagging) bulk.mutate({ ids: tagging.ids, action: tagging.mode === 'add' ? 'tag' : 'untag', tags: newTags }); setTagging(null); }}>{t('common.apply')}</Button></>}>

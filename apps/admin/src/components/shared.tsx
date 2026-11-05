@@ -53,6 +53,8 @@ export const searchCls = 'field-control w-full pl-8';
 
 export function AddressBlock({ a }: { a: { firstName?: string | null; lastName?: string | null; company?: string | null; address1?: string | null; address2?: string | null; city?: string | null; province?: string | null; zip?: string | null; country?: string | null; phone?: string | null } | null }) {
   if (!a) return <p className="text-[13px] text-muted">—</p>;
-  const lines = [[a.firstName, a.lastName].filter(Boolean).join(' '), a.company, a.address1, a.address2, [a.zip, a.city].filter(Boolean).join(' '), a.province, a.country, a.phone].filter(Boolean);
+  // Countries with provinces/states write "City ST 12345"; the others "12345 City".
+  const cityLine = a.province ? [a.city, a.province, a.zip].filter(Boolean).join(' ') : [a.zip, a.city].filter(Boolean).join(' ');
+  const lines = [[a.firstName, a.lastName].filter(Boolean).join(' '), a.company, a.address1, a.address2, cityLine, a.country, a.phone].filter(Boolean);
   return <address className="text-[13px] not-italic leading-relaxed">{lines.map((l, i) => <div key={i}>{l}</div>)}</address>;
 }
