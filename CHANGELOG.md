@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - `pnpm seed` now fills the default main and footer menus, which the setup step creates empty.
 - Aurora: the newsletter form in the footer no longer overflows the screen on phones.
+- Aurora: the footer stays at the bottom of the window on short pages (login, cart, 404).
+- New stores start with Home and Catalog links in the main menu and a Search link in the footer menu, instead of empty menus.
 
 ## [0.1.0] - 2026-11-05
 

@@ -198,13 +198,17 @@ export async function seedDemo(db: Db, storage: Storage, opts: { adminPassword?:
     ]);
   }
 
-  // setupStore already creates the two default menus: fill them when they are still empty.
+  // setupStore creates the two default menus with a few starter links (home, catalog, search).
+  // Replace them with the demo menus while they still hold only those starter links.
+  const STARTER_LINKS = new Set(['FRONTPAGE', 'CATALOG', 'SEARCH']);
   const emptyMenu = async (handle: string, title: string) => {
     await db.insert(s.menus).values({ shopId, handle, title }).onConflictDoNothing();
     const [m] = await db.select().from(s.menus).where(and(eq(s.menus.shopId, shopId), eq(s.menus.handle, handle))).limit(1);
     if (!m) return null;
-    const [any] = await db.select({ id: s.menuItems.id }).from(s.menuItems).where(eq(s.menuItems.menuId, m.id)).limit(1);
-    return any ? null : m;
+    const items = await db.select({ linkType: s.menuItems.linkType }).from(s.menuItems).where(eq(s.menuItems.menuId, m.id));
+    if (items.some((i) => !STARTER_LINKS.has(i.linkType))) return null;
+    if (items.length) await db.delete(s.menuItems).where(eq(s.menuItems.menuId, m.id));
+    return m;
   };
   const menu = await emptyMenu('main-menu', 'Main menu');
   if (menu) {

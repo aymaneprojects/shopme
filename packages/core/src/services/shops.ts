@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import { defaultMoneyFormats } from '@shopme/shopify-compat';
-import { locations, menus, shops, themes } from '../db/schema';
+import { locations, menuItems, menus, shops, themes } from '../db/schema';
 import type { Db, Executor } from '../db/client';
 import { createStaffUser, MIN_PASSWORD_LENGTH } from './auth';
 import { addEvent } from './events';
@@ -57,9 +57,15 @@ export async function setupStore(db: Db, input: SetupInput) {
     await tx.insert(themes).values({ shopId: shop!.id, name: 'Default', role: 'MAIN' });
     // Default menus (the theme header and footer read these handles); they cannot be deleted later.
     const fr = input.locale.toLowerCase().startsWith('fr');
-    await tx.insert(menus).values([
+    const [mainMenu, footerMenu] = await tx.insert(menus).values([
       { shopId: shop!.id, handle: 'main-menu', title: fr ? 'Menu principal' : 'Main menu' },
       { shopId: shop!.id, handle: 'footer', title: fr ? 'Menu de pied de page' : 'Footer menu' },
+    ]).returning();
+    // Starter links so a new store has a usable header and footer; the merchant edits them in Navigation.
+    await tx.insert(menuItems).values([
+      { shopId: shop!.id, menuId: mainMenu!.id, position: 0, title: fr ? 'Accueil' : 'Home', linkType: 'FRONTPAGE', url: '/' },
+      { shopId: shop!.id, menuId: mainMenu!.id, position: 1, title: fr ? 'Catalogue' : 'Catalog', linkType: 'CATALOG', url: '/collections/all' },
+      { shopId: shop!.id, menuId: footerMenu!.id, position: 0, title: fr ? 'Recherche' : 'Search', linkType: 'SEARCH', url: '/search' },
     ]);
     await addEvent(tx, shop!.id, { subjectType: 'shop', subjectId: shop!.id, verb: 'shop.created', message: 'Store created', authorStaffUserId: owner.id });
     return { shop: shop!, owner };
