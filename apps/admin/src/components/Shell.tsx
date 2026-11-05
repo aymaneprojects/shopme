@@ -1,5 +1,5 @@
 import { Dropdown, Skeleton, cx, useToast } from '@shopme/ui';
-import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Building2, Activity, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
+import { BarChart3, Check, Gift, Repeat, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Building2, Activity, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -23,7 +23,7 @@ interface NavItem { id: string; labelKey: Key; to: string; icon: ComponentType<{
 // Data-driven so later items can be gated by a feature flag instead of removed.
 export const NAV: NavItem[] = [
   { id: 'home', labelKey: 'nav.home', to: '/', icon: Home, end: true },
-  { id: 'orders', labelKey: 'nav.orders', to: '/orders', icon: ShoppingCart, children: [{ id: 'drafts', labelKey: 'nav.drafts', to: '/orders/drafts', icon: FilePlus2 }, { id: 'abandoned', labelKey: 'nav.abandoned', to: '/orders/abandoned', icon: ShoppingBasket }, { id: 'shipping-labels', labelKey: 'nav.shippingLabels', to: '/orders/shipping-labels', icon: Truck }] },
+  { id: 'orders', labelKey: 'nav.orders', to: '/orders', icon: ShoppingCart, children: [{ id: 'drafts', labelKey: 'nav.drafts', to: '/orders/drafts', icon: FilePlus2 }, { id: 'abandoned', labelKey: 'nav.abandoned', to: '/orders/abandoned', icon: ShoppingBasket }, { id: 'shipping-labels', labelKey: 'nav.shippingLabels', to: '/orders/shipping-labels', icon: Truck }, { id: 'subscriptions', labelKey: 'nav.subscriptions', to: '/orders/subscriptions', icon: Repeat }] },
   {
     id: 'products', labelKey: 'nav.products', to: '/products', icon: Tag,
     children: [
@@ -100,7 +100,7 @@ function ShellLearnMore({ pathname }: { pathname: string }) {
 }
 
 /** Index pages span the whole sheet; detail and edit pages keep the narrower centred column. */
-const WIDE_ROUTE = /^\/(products|collections|inventory|orders|orders\/drafts|orders\/abandoned|orders\/shipping-labels|marketing|customers|customers\/segments|discounts|gift-cards|markets|transfers|purchase-orders|content\/metaobjects|content\/entries)\/?$/;
+const WIDE_ROUTE = /^\/(products|collections|inventory|orders|orders\/drafts|orders\/abandoned|orders\/shipping-labels|orders\/subscriptions|marketing|customers|customers\/segments|discounts|gift-cards|markets|transfers|purchase-orders|content\/metaobjects|content\/entries)\/?$/;
 const COLLAPSE_KEY = 'shopme.sidebar.collapsed';
 const readCollapsed = () => { try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; } };
 

@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
-  availablePaymentMethods, configOf, findOrderIdByName, markOrderAuthorized, cleanAddress, findOrderIdByPayment, getDefaultAddress, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
+  attachContractPaymentMethod, contractsForOrder, availablePaymentMethods, configOf, findOrderIdByName, markOrderAuthorized, cleanAddress, findOrderIdByPayment, getDefaultAddress, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
   accountsModeOf, sendFulfillmentRequests, sendSms, checkoutSettingsOf, customerAccountsSettingsOf, orderVars, renderSubscriptionConfirmation, privacySettingsOf, type Customer, type Mail, recordOrderEmail, sendNotification, sendStaffNewOrder, shippableCountries, splitContact, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutSettings, type CheckoutError, type CheckoutView, type Shop,
 } from '@shopme/core';
 import { createStripeGateway, fillRedirectUrl, readSetting, verifyPaymentWebhook, type StripeGateway } from '@shopme/payments';
 import { parseMoney } from '@shopme/shopify-compat';
 import type { AppContext } from '../context';
+import type { SubscriptionNotifyJob } from '../subscriptions';
 import { CART_COOKIE, customerOf, primaryShop } from '../storefront/env';
 import { pageDescriptor, privacyEnvFor, privacyHead } from '../storefront/privacy';
 import { CSS, JS } from './assets';
@@ -96,6 +97,15 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
     ctx.queue.enqueue('order.staff-email', { shopId, orderId });
     ctx.queue.enqueue('order.fulfillment-request', { shopId, orderId });
   };
+  /** "Subscription confirmed" for the contracts an order started (sent with the order confirmation, once the order is placed or paid). */
+  const enqueueSubscriptionEmails = async (shopId: number, orderId: number) => {
+    for (const c of await contractsForOrder(db, shopId, orderId)) if (c.originOrderId === orderId) ctx.queue.enqueue<SubscriptionNotifyJob>('subscription.notify', { shopId, contractId: c.id, key: 'subscription_confirmation' });
+  };
+  /** The card saved for later at checkout goes on the order's subscription contracts (off-session renewals). */
+  const rememberCard = async (shopId: number, orderId: number, pi: Record<string, any>) => {
+    const id = (v: unknown) => (typeof v === 'string' ? v : v && typeof v === 'object' && typeof (v as { id?: unknown }).id === 'string' ? (v as { id: string }).id : null);
+    await attachContractPaymentMethod(db, shopId, orderId, { customer: id(pi.customer), paymentMethod: id(pi.payment_method) });
+  };
 
   const cartToken = (req: FastifyRequest) => (req.cookies[CART_COOKIE] ?? '').split('?')[0]!.split('%3F')[0]!;
   const bankInstructions = (shop: Shop) => {
@@ -150,8 +160,9 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       if (shop && (event.type === 'payment_intent.succeeded' || event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.amount_capturable_updated') && typeof pi.id === 'string') {
         const orderId = await findOrderIdByPayment(db, shop.id, pi.id);
         if (orderId) {
-          if (event.type === 'payment_intent.amount_capturable_updated') { if (await markOrderAuthorized(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id })) enqueueEmails(shop.id, orderId); }
-          else if (event.type === 'payment_intent.succeeded') { if (await markOrderPaid(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id })) enqueueEmails(shop.id, orderId); }
+          if (event.type !== 'payment_intent.payment_failed') await rememberCard(shop.id, orderId, pi);
+          if (event.type === 'payment_intent.amount_capturable_updated') { if (await markOrderAuthorized(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id })) { enqueueEmails(shop.id, orderId); await enqueueSubscriptionEmails(shop.id, orderId); } }
+          else if (event.type === 'payment_intent.succeeded') { if (await markOrderPaid(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id })) { enqueueEmails(shop.id, orderId); await enqueueSubscriptionEmails(shop.id, orderId); } }
           else await recordPaymentFailure(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id, message: pi.last_payment_error?.message });
         } else ctx.log.warn({ paymentIntent: pi.id }, 'stripe webhook for an unknown payment');
       }
@@ -325,7 +336,10 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
         shippingRateId: Number.isFinite(rate) && rate !== 0 ? rate : null,
         startOnlinePayment: async (view) => {
           if (!stripe) throw new Error('Stripe is not configured');
-          const pi = await stripe.createPaymentIntent({ amount: view.amountDue, currency: view.currency, reference: token, email: view.email, description: `${shop.name} checkout`, idempotencyKey: randomUUID(), captureMethod });
+          // Subscriptions: the card is saved on a Stripe customer for the renewals (Stripe keeps the card; we keep its ids).
+          const subscribing = view.lines.some((l) => l.sellingPlan);
+          const customer = subscribing ? await stripe.createCustomer({ email: view.email, name: [view.address?.firstName, view.address?.lastName].filter(Boolean).join(' ') || null, reference: token, idempotencyKey: `customer-${token}` }) : undefined;
+          const pi = await stripe.createPaymentIntent({ amount: view.amountDue, currency: view.currency, reference: token, email: view.email, description: `${shop.name} checkout`, idempotencyKey: randomUUID(), captureMethod, ...(customer && { setupFutureUsage: 'off_session' as const, customer }) });
           clientSecret = pi.clientSecret;
           return pi.id;
         },
@@ -335,7 +349,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
         if (res.errors.some((e) => e.code === 'completed')) return reply.redirect(`/checkouts/${token}/thank-you`, 303);
         return fail(errorMessages(c, res.errors));
       }
-      if (!res.needsOnlinePayment && kinds[str(b.paymentMethod)] !== 'redirect') enqueueEmails(shop.id, res.orderId);
+      if (!res.needsOnlinePayment && kinds[str(b.paymentMethod)] !== 'redirect') { enqueueEmails(shop.id, res.orderId); await enqueueSubscriptionEmails(shop.id, res.orderId); }
       // Double opt-in: the marketing checkbox only started a pending subscription; the buyer confirms it from this email.
       if (res.marketingConfirmation) ctx.queue.enqueue<Mail>('mail.send', renderSubscriptionConfirmation(shop, res.marketingConfirmation.email, `${config.appUrl}/account/subscribe/confirm/${res.marketingConfirmation.customerId}/${res.marketingConfirmation.token}`));
       const returnUrl = `${config.appUrl.replace(/\/$/, '')}/checkouts/${token}/thank-you`;

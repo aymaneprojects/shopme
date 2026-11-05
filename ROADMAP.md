@@ -42,6 +42,7 @@ v0.1.0 code; partially done items are split so the open part stays visible.
 - [ ] Multi-currency
 - [x] Multi-language storefront (`/fr` URLs, translations; the admin is EN/FR)
 - [x] Gift cards
+- [x] Subscriptions and purchase options (selling plans, contracts, automatic renewals, customer self-service)
 - [x] Refunds
 - [x] Returns
 - [ ] Exchanges

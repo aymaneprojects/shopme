@@ -78,6 +78,7 @@ const GROUPS: Array<{ id: string; title: Key; keys: string[] }> = [
   { id: 'pickup', title: 'bs.group.pickup', keys: ['pickup_ready', 'pickup_picked_up'] },
   { id: 'local', title: 'bs.group.local', keys: ['local_delivery_out', 'local_delivery_delivered', 'local_delivery_missed'] },
   { id: 'giftcards', title: 'bs.group.giftCards', keys: ['gift_card_issued', 'store_credit_account_credit'] },
+  { id: 'subscriptions', title: 'sub.notif.group', keys: ['subscription_confirmation', 'subscription_upcoming_renewal', 'subscription_payment_failed', 'subscription_cancelled'] },
   { id: 'accounts', title: 'notif.group.accounts', keys: ['customer_account_welcome', 'customer_account_invite', 'password_reset'] },
 ];
 

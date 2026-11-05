@@ -23,6 +23,31 @@
 .customer__order-actions form { display: grid; gap: 10px; justify-items: start; }
 .customer__return-line { display: flex; align-items: center; gap: 10px; }
 .customer__return-line input[type='number'] { width: 5rem; }
+/* Purchase options (one-time or subscription) on the product form, the plan on cart lines, subscriptions on the account page. */
+.purchase-options { display: grid; gap: 8px; margin: 0 0 20px; padding: 0; border: 0; min-width: 0; }
+.purchase-option { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--color-border); border-radius: var(--radius); cursor: pointer; background: var(--color-background); }
+.purchase-option:has(.purchase-option__input:checked) { border-color: var(--color-primary); box-shadow: inset 0 0 0 1px var(--color-primary); }
+.purchase-option__input { margin: 3px 0 0; accent-color: var(--color-primary); flex-shrink: 0; }
+.purchase-option__body { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; flex: 1; min-width: 0; }
+.purchase-option__title { font-weight: 600; display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.purchase-option__save { display: inline-block; padding: 2px 8px; border-radius: 999px; background: var(--color-primary); color: var(--color-on-primary); font-size: .78rem; font-weight: 600; }
+.purchase-option__price { color: var(--color-muted); white-space: nowrap; }
+.purchase-option__plans { display: grid; gap: 6px; margin: -2px 0 4px; padding: 12px 14px; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); }
+.purchase-option__plans[hidden] { display: none; }
+.purchase-option__label { font-size: .9rem; font-weight: 600; }
+.purchase-option__select { min-height: 42px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-background); color: var(--color-text); font: inherit; max-width: 100%; }
+.purchase-option__note { margin: 0; font-size: .85rem; color: var(--color-muted); }
+.cart__plan { margin: 4px 0 0; font-size: .9rem; font-weight: 600; color: var(--color-primary); }
+.customer__subtitle { margin-top: 40px; }
+.subscriptions { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.subscription { padding: 16px; border: 1px solid var(--color-border); border-radius: var(--radius); }
+.subscription__head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.subscription__status { padding: 2px 10px; border-radius: 999px; background: var(--color-surface); font-size: .85rem; }
+.subscription--active .subscription__status { background: var(--color-primary); color: var(--color-on-primary); }
+.subscription__frequency, .subscription__plan, .subscription__next { color: var(--color-muted); }
+.subscription__lines { margin: 10px 0; padding-left: 18px; }
+.subscription__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.subscription__actions form { margin: 0; }
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; background: var(--color-background); color: var(--color-text); font-family: var(--font-body); font-size: var(--font-size-base); line-height: 1.55; }

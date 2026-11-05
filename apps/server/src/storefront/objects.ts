@@ -75,7 +75,7 @@ export function liquidCart(cart: CartView | null, shop: Shop, d: CartDiscounts |
     const image = l.image ? { src: l.image.url, url: l.image.url, alt: l.image.alt ?? l.product.title, width: l.image.width, height: l.image.height, aspect_ratio: l.image.width && l.image.height ? l.image.width / l.image.height : 1 } : null;
     const product = { id: l.productId, title: l.product.title, handle: l.product.handle, url: `/products/${l.product.handle}`, vendor: l.product.vendor, type: l.product.productType, featured_image: image, has_only_default_variant: l.hasOnlyDefaultVariant, gift_card: l.product.isGiftCard };
     const variant = { id: l.variantId, title: l.variantTitle, sku: l.sku, price: l.price, url: a.url, available: true, options: a.variant_options, image, featured_image: image, product_id: l.productId };
-    return { ...a, image, featured_image: image, index: i + 1, index0: i, product, variant, url_to_remove: `/cart/change?line=${i + 1}&quantity=0`, selling_plan_allocation: null, unit_price_measurement: null, quantity_rule: { min: 1, max: null, increment: 1 }, 'discounts?': a.discounts.length > 0, message: '' };
+    return { ...a, image, featured_image: image, index: i + 1, index0: i, product, variant, url_to_remove: `/cart/change?line=${i + 1}&quantity=0`, unit_price_measurement: null, quantity_rule: { min: 1, max: null, increment: 1 }, 'discounts?': a.discounts.length > 0, message: '' };
   });
   const subtotal = lines.reduce((n, i) => n + i.final_line_price, 0);
   const original = lines.reduce((n, i) => n + i.original_line_price, 0);

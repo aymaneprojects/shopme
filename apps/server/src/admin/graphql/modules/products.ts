@@ -198,7 +198,7 @@ export const ProductVariantsBulkInput = builder.inputType('ProductVariantsBulkIn
 export const productInputFields = (t: any) => ({
   descriptionHtml: t.string(), handle: t.string(), seo: t.field({ type: SEOInput }), productType: t.string(), tags: t.stringList(), templateSuffix: t.string(),
   giftCardTemplateSuffix: t.string(), title: t.string(), vendor: t.string(), category: t.id(), collectionsToJoin: t.idList(), metafields: t.field({ type: [MetafieldInput] }),
-  status: t.field({ type: ProductStatus }),
+  status: t.field({ type: ProductStatus }), requiresSellingPlan: t.boolean(),
 });
 const ProductCreateInput = builder.inputType('ProductCreateInput', {
   fields: (t) => ({ ...productInputFields(t), giftCard: t.boolean(), productOptions: t.field({ type: [OptionCreateInput] }) }),

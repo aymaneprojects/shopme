@@ -70,6 +70,11 @@ export function eventText(e: TimelineEvent, t: T, lang: string, order?: { name: 
     case 'customers/create': return t('timeline.ev.customer.created');
     case 'customers/update': return t('timeline.ev.customer.updated');
     case 'customer.order_placed': return t('timeline.ev.customer.order_placed', { name: s('name') });
+    case 'customer.subscription_created': return t('sub.tl.created', { sub: `#${s('contractId')}`, order: s('name') });
+    case 'customer.subscription_paused': case 'customer.subscription_activated': case 'customer.subscription_cancelled': {
+      const what = e.action.slice('customer.subscription_'.length) as 'paused' | 'activated' | 'cancelled';
+      return t(`sub.tl.${what}` as Key, { sub: `#${s('contractId')}` }) + (s('actor') === 'customer' ? ` ${t('sub.ev.byCustomer')}` : '');
+    }
     default: return e.message;
   }
 }

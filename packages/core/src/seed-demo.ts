@@ -10,6 +10,7 @@ import { randomToken } from './services/crypto';
 import type { Storage } from './services/storage';
 import { ensureMainTheme } from './services/theme-install';
 import { createShippingZone, listShippingZones } from './services/settings/shipping-tax';
+import { createSellingPlanGroup } from './services/subscriptions/plans';
 
 interface DemoVariant { image?: number; options: string[]; sku: string; price: number; compareAt?: number; stock: number }
 interface DemoProduct { title: string; vendor: string; type: string; tags: string[]; html: string; color: string; images: string[]; options: { name: string; values: string[] }[]; variants: DemoVariant[] }
@@ -238,6 +239,18 @@ export async function seedDemo(db: Db, storage: Storage, opts: { adminPassword?:
     await db.insert(s.taxRates).values({ shopId, name: 'VAT', countryCode: 'FR', rate: 20, appliesToShipping: true });
     const [d] = await db.insert(s.discounts).values({ shopId, title: 'Welcome 10%', kind: 'CODE', valueType: 'PERCENTAGE', value: 1000, target: 'ORDER' }).returning();
     await db.insert(s.discountCodes).values({ shopId, discountId: d!.id, code: 'WELCOME10' });
+  }
+
+  // Purchase options: the house coffee also sells as a subscription, delivered every 2 or 4 weeks with 10% off.
+  const coffee = productIds['highland-morning-coffee-beans'];
+  const [hasPlans] = await db.select({ id: s.sellingPlanGroups.id }).from(s.sellingPlanGroups).where(eq(s.sellingPlanGroups.shopId, shopId)).limit(1);
+  if (coffee && !hasPlans) {
+    const save10 = [{ adjustmentType: 'PERCENTAGE' as const, adjustmentValue: 10, afterCycle: 0 }];
+    const plan = (weeks: number) => ({
+      name: `Delivery every ${weeks} weeks, save 10%`, options: [`${weeks} weeks`],
+      billingPolicy: { interval: 'WEEK' as const, intervalCount: weeks, minCycles: null, maxCycles: null }, deliveryPolicy: { interval: 'WEEK' as const, intervalCount: weeks }, pricingPolicies: save10,
+    });
+    await createSellingPlanGroup(db, shopId, { name: 'Subscribe and save', merchantCode: 'coffee-subscription', options: ['Delivery every'], plansToCreate: [plan(2), plan(4)] }, { productIds: [coffee] });
   }
   return { shop, adminEmail, adminPassword };
 }

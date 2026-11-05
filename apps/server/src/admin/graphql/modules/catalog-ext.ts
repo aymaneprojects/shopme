@@ -184,7 +184,6 @@ builder.objectFields(Product_, (t) => ({
   totalVariants: t.int({ deprecationReason: 'Use `variantsCount` instead.', resolve: (p, _a, ctx) => countVariants(ctx.db, ctx.shopId, p.id) }),
   onlineStorePreviewUrl: t.field({ type: 'URL', nullable: true, resolve: (p, _a, ctx) => `${ctx.app.config.appUrl}/products/${p.handle}${p.status === 'ACTIVE' ? '' : '?preview=1'}` }),
   category: t.field({ type: CategoryRef, nullable: true, resolve: (p) => getCategory(p.category) }),
-  requiresSellingPlan: t.boolean({ resolve: () => false }),
   hasVariantsThatRequiresComponents: t.boolean({ resolve: () => false }),
   giftCardTemplateSuffix: t.string({ nullable: true, resolve: () => null }),
 }));

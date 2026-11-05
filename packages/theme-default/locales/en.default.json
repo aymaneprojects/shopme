@@ -46,6 +46,15 @@
       "recipient_email": "Recipient email (optional)",
       "recipient_name": "Recipient name (optional)",
       "message": "Message (optional)"
+    },
+    "purchase_options": {
+      "title": "Purchase options",
+      "one_time": "One-time purchase",
+      "delivery": "Delivery frequency",
+      "per_delivery": "{{ price }} per delivery",
+      "save_percent": "Save {{ percent }}%",
+      "subscription_note": "Skip, pause or cancel at any time from your account.",
+      "required": "This product is only sold as a subscription."
     }
   },
   "collection": {
@@ -76,7 +85,8 @@
     "checkout": "Check out",
     "update": "Update cart",
     "decrease": "Decrease quantity of {{ title }}",
-    "increase": "Increase quantity of {{ title }}"
+    "increase": "Increase quantity of {{ title }}",
+    "recurring": "Subscription: {{ price }} per delivery"
   },
   "search": {
     "title": "Search",
@@ -227,6 +237,40 @@
       "confirm_delete": "Delete this address?",
       "none": "No saved addresses.",
       "back": "Back to account"
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "next_order": "Next order on {{ date }}: {{ total }}",
+      "skip": "Skip next order",
+      "pause": "Pause",
+      "resume": "Resume",
+      "cancel": "Cancel",
+      "cancel_confirm": "Cancel this subscription? You will not be charged again.",
+      "statuses": {
+        "active": "Active",
+        "paused": "Paused",
+        "cancelled": "Cancelled",
+        "expired": "Ended",
+        "failed": "Payment problem"
+      },
+      "frequency": {
+        "day": {
+          "one": "Every day",
+          "other": "Every {{ count }} days"
+        },
+        "week": {
+          "one": "Every week",
+          "other": "Every {{ count }} weeks"
+        },
+        "month": {
+          "one": "Every month",
+          "other": "Every {{ count }} months"
+        },
+        "year": {
+          "one": "Every year",
+          "other": "Every {{ count }} years"
+        }
+      }
     }
   },
   "blog": {

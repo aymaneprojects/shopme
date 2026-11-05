@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { cartTokenWithKey, type CartDiscounts, type CartLineView, type CartView, type DiscountApplication, type LineDelta } from '@shopme/core';
+import { cartTokenWithKey, liquidPriceAdjustments, type CartDiscounts, type CartLineView, type CartSellingPlan, type CartView, type DiscountApplication, type LineDelta } from '@shopme/core';
 import { currencyExponent, formatMoney } from '@shopme/shopify-compat';
 
 const plainText = (html: string) => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200);
@@ -8,6 +8,26 @@ const decimal = (cents: number, cur: string) => cents / 10 ** currencyExponent(c
 function imageObject(line: CartLineView) {
   const i = line.image;
   return i ? { url: i.url, alt: i.alt ?? '', width: i.width, height: i.height, aspect_ratio: i.width && i.height ? i.width / i.height : 1 } : null;
+}
+
+/** `selling_plan` object (Ajax and Liquid): the plan's options and price adjustments. */
+export function sellingPlanObject(p: Pick<CartSellingPlan, 'id' | 'name' | 'description' | 'options' | 'groupId' | 'groupOptions' | 'billingPolicy' | 'deliveryPolicy' | 'pricingPolicies'>, selected = false) {
+  return {
+    id: p.id, name: p.name, description: p.description ?? '', group_id: String(p.groupId),
+    options: p.options.map((value, i) => ({ name: p.groupOptions[i] ?? p.groupOptions[0] ?? '', position: i + 1, value })),
+    recurring_deliveries: true, fixed_selling_plan: false, selected, checkout_charge: { value_type: 'percentage', value: 100 },
+    price_adjustments: liquidPriceAdjustments(p.pricingPolicies),
+  };
+}
+
+/** `selling_plan_allocation` of a cart line (amounts in the cart currency, minor units). */
+export function lineAllocation(line: CartLineView) {
+  const p = line.sellingPlan;
+  if (!p) return null;
+  return {
+    price: p.price, compare_at_price: p.compareAtPrice, per_delivery_price: p.perDeliveryPrice, price_adjustments: p.priceAdjustments, unit_price: null,
+    selling_plan: sellingPlanObject(p, true), selling_plan_group_id: String(p.groupId),
+  };
 }
 
 const uuidOf = (seed: string) => { const h = createHash('md5').update(seed).digest('hex'); return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`; };
@@ -51,6 +71,7 @@ export function ajaxLine(line: CartLineView, currency: string, d: CartDiscounts 
     untranslated_product_title: line.product.title, product_description: plainText(line.product.descriptionHtml), untranslated_variant_title: line.hasOnlyDefaultVariant ? null : line.variantTitle,
     variant_options: line.options.length ? line.options.map((o) => o.value) : [line.variantTitle], options_with_values: line.options,
     line_level_discount_allocations: allocations, line_level_total_discount: off,
+    selling_plan_allocation: lineAllocation(line),
   };
 }
 

@@ -21,6 +21,7 @@ import { countryName } from '../lib/countries';
 import { useI18n, useT } from '../i18n';
 import type { Key } from '../i18n';
 import { Timeline } from '../components/Timeline';
+import { CustomerSubscriptionsCard } from '../components/SubscriptionCards';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
 import { StoreCreditCard, StoreCreditDialog } from '../components/StoreCredit';
 import { useDebounced } from '../lib/hooks';
@@ -286,6 +287,7 @@ function CustomerView({ c }: { c: CustomerData }) {
               )}
             </Card>
           </section>
+          <CustomerSubscriptionsCard customerId={c.id} />
           <Timeline kind="customer" id={c.id} />
           <MetafieldsEditor ownerId={c.id} ownerType="CUSTOMER" />
         </div>

@@ -56,6 +56,8 @@ export const products = pgTable('products', {
   isGiftCard: boolean('is_gift_card').notNull().default(false),
   /** Taxonomy category id (see services/catalog/taxonomy). */
   category: text('category'),
+  /** Only sold with a purchase option (subscription): the one-time option is hidden and `/cart/add` needs a selling plan. */
+  requiresSellingPlan: boolean('requires_selling_plan').notNull().default(false),
   ...timestamps(),
 }, (t) => [
   uniqueIndex('products_shop_handle_uq').on(t.shopId, t.handle),

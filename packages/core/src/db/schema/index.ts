@@ -20,3 +20,4 @@ export * from './orders-ops';
 export * from './channels';
 export * from './b2b';
 export * from './analytics';
+export * from './subscriptions';

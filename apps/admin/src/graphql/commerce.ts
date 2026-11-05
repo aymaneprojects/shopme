@@ -173,7 +173,7 @@ export const RETURN_CLOSE = /* GraphQL */ `
 /* ------------------------------ discounts: all types, code and automatic ------------------------------ */
 
 const DISC_ELIGIBILITY = `tags context { __typename ... on DiscountCustomers { customers { id displayName } } ... on DiscountCustomerSegments { segments { id name } } }`;
-const DISC_COMMON = `title status startsAt endsAt summary asyncUsageCount shopmePublicationIds combinesWith { productDiscounts orderDiscounts shippingDiscounts } ${DISC_ELIGIBILITY}`;
+const DISC_COMMON = `title status startsAt endsAt summary asyncUsageCount recurringCycleLimit shopmePublicationIds combinesWith { productDiscounts orderDiscounts shippingDiscounts } ${DISC_ELIGIBILITY}`;
 const DISC_MIN = `minimumRequirement { __typename ... on DiscountMinimumSubtotal { greaterThanOrEqualToSubtotal { amount } } ... on DiscountMinimumQuantity { greaterThanOrEqualToQuantity } }`;
 const DISC_ITEMS = `
   items {
@@ -193,6 +193,7 @@ const DISC_BXGY = (alias: string) => `
 `;
 const DISC_GETS = `
   customerGets {
+    appliesOnOneTimePurchase appliesOnSubscription
     value { __typename ... on DiscountPercentage { percentage } ... on DiscountAmount { amount { amount } appliesOnEachItem } }
     ${DISC_ITEMS}
   }
@@ -227,10 +228,10 @@ export const DISCOUNT_NODE = /* GraphQL */ `
         __typename
         ... on DiscountCodeBasic { ${DISC_COMMON} usageLimit appliesOncePerCustomer codes(first: 1) { nodes { code } } ${DISC_GETS} ${DISC_MIN} }
         ... on DiscountCodeBxgy { ${DISC_COMMON} usageLimit appliesOncePerCustomer codes(first: 1) { nodes { code } } ${DISC_BXGY('usesPerOrderCode')} }
-        ... on DiscountCodeFreeShipping { ${DISC_COMMON} usageLimit appliesOncePerCustomer codes(first: 1) { nodes { code } } maximumShippingPrice { amount } ${DISC_MIN} }
+        ... on DiscountCodeFreeShipping { ${DISC_COMMON} usageLimit appliesOncePerCustomer appliesOnOneTimePurchase appliesOnSubscription codes(first: 1) { nodes { code } } maximumShippingPrice { amount } ${DISC_MIN} }
         ... on DiscountAutomaticBasic { ${DISC_COMMON} ${DISC_GETS} ${DISC_MIN} }
         ... on DiscountAutomaticBxgy { ${DISC_COMMON} ${DISC_BXGY('usesPerOrderAuto')} }
-        ... on DiscountAutomaticFreeShipping { ${DISC_COMMON} maximumShippingPrice { amount } ${DISC_MIN} }
+        ... on DiscountAutomaticFreeShipping { ${DISC_COMMON} appliesOnOneTimePurchase appliesOnSubscription maximumShippingPrice { amount } ${DISC_MIN} }
       }
     }
   }

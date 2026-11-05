@@ -82,8 +82,8 @@ const ItemsUnion = builder.unionType('DiscountItems', {
 const effectOf = (d: Shape) => (d.valueType === 'PERCENTAGE' ? { percentage: d.value / 10000 } : { amount: moneyV2(d.value, d.currency), appliesOnEachItem: d.target === 'PRODUCTS' });
 const CustomerGets = builder.objectRef<Shape>('DiscountCustomerGets').implement({
   fields: (t) => ({
-    appliesOnOneTimePurchase: t.boolean({ resolve: () => true }),
-    appliesOnSubscription: t.boolean({ resolve: () => false }),
+    appliesOnOneTimePurchase: t.boolean({ resolve: (d) => d.ext.appliesOnOneTimePurchase }),
+    appliesOnSubscription: t.boolean({ resolve: (d) => d.ext.appliesOnSubscription }),
     value: t.field({ type: ValueUnion, resolve: (d) => (d.ext.bxgy ? { quantity: { quantity: d.ext.bxgy.getQuantity }, effect: effectOf(d) } : effectOf(d)) }),
     items: t.field({
       type: ItemsUnion,
@@ -153,7 +153,7 @@ const shared = (t: FB) => ({
   createdAt: t.field({ type: 'DateTime', resolve: (d) => d.createdAt }),
   updatedAt: t.field({ type: 'DateTime', resolve: (d) => d.updatedAt }),
   asyncUsageCount: t.exposeInt('usageCount'),
-  recurringCycleLimit: t.int({ nullable: true, resolve: () => null }),
+  recurringCycleLimit: t.int({ nullable: true, resolve: (d) => (d.ext.appliesOnSubscription ? d.ext.recurringCycleLimit ?? 0 : null) }),
   hasTimelineComment: t.boolean({ resolve: () => false }),
   tags: t.stringList({ resolve: (d) => d.ext.tags }),
   shopmePublicationIds: t.idList({ resolve: (d) => d.publicationIds.map((id) => toGid('Publication', id)) }),
@@ -187,7 +187,7 @@ const DiscountCodeBasic = builder.objectRef<Shape>('DiscountCodeBasic').implemen
 const DiscountCodeFreeShipping = builder.objectRef<Shape>('DiscountCodeFreeShipping').implement({
   fields: (t) => ({
     ...common(t),
-    appliesOnOneTimePurchase: t.boolean({ resolve: () => true }), appliesOnSubscription: t.boolean({ resolve: () => false }),
+    appliesOnOneTimePurchase: t.boolean({ resolve: (d) => d.ext.appliesOnOneTimePurchase }), appliesOnSubscription: t.boolean({ resolve: (d) => d.ext.appliesOnSubscription }),
     destinationSelection: t.field({ type: DestinationUnion, resolve: () => ({ allCountries: true }) }),
     maximumShippingPrice: t.field({ type: MoneyV2, nullable: true, resolve: () => null }),
   }),
@@ -203,7 +203,7 @@ const DiscountAutomaticBxgy = builder.objectRef<Shape>('DiscountAutomaticBxgy').
 });
 const DiscountAutomaticFreeShipping = builder.objectRef<Shape>('DiscountAutomaticFreeShipping').implement({
   fields: (t) => ({
-    ...shared(t), appliesOnOneTimePurchase: t.boolean({ resolve: () => true }), appliesOnSubscription: t.boolean({ resolve: () => false }),
+    ...shared(t), appliesOnOneTimePurchase: t.boolean({ resolve: (d) => d.ext.appliesOnOneTimePurchase }), appliesOnSubscription: t.boolean({ resolve: (d) => d.ext.appliesOnSubscription }),
     destinationSelection: t.field({ type: DestinationUnion, resolve: () => ({ allCountries: true }) }), maximumShippingPrice: t.field({ type: MoneyV2, nullable: true, resolve: () => null }),
   }),
 });
@@ -393,6 +393,12 @@ async function convert(ctx: Ctx, root: string, i: AnyIn, kind: Kind, cur: CodeDi
   };
     const tagsIn = (i as { tags?: string[] | null }).tags;
   if (tagsIn) out.tags = tagsIn;
+  // Purchase type: one-time purchases, subscriptions or both (on customerGets for basic and BXGY discounts, at the top for free shipping).
+  const purchase = (i as { customerGets?: { appliesOnOneTimePurchase?: boolean | null; appliesOnSubscription?: boolean | null } | null }).customerGets ?? (i as { appliesOnOneTimePurchase?: boolean | null; appliesOnSubscription?: boolean | null });
+  if (purchase.appliesOnOneTimePurchase != null) out.appliesOnOneTimePurchase = purchase.appliesOnOneTimePurchase;
+  if (purchase.appliesOnSubscription != null) out.appliesOnSubscription = purchase.appliesOnSubscription;
+  const cycles = (i as { recurringCycleLimit?: number | null }).recurringCycleLimit;
+  if (cycles !== undefined) out.recurringCycleLimit = cycles;
   const pubsIn = (i as { shopmePublicationIds?: (string | number)[] | null }).shopmePublicationIds;
   if (pubsIn) {
     const parsed = ids(pubsIn, 'Publication');

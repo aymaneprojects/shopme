@@ -246,3 +246,34 @@ describe('tags', () => {
     expect(rep.parseFailures).toHaveLength(1);
   });
 });
+
+describe('purchase options objects', () => {
+  const plan = (id: number, name: string, weeks: number, selected = false) => ({
+    id, name, description: '', group_id: '7', selected, recurring_deliveries: true, options: [{ name: 'Delivery every', position: 1, value: `${weeks} weeks` }],
+    price_adjustments: [{ position: 1, order_count: null, value_type: 'percentage', value: 10 }],
+  });
+  const allocation = (p: ReturnType<typeof plan>) => ({ price: 1305, compare_at_price: 1450, per_delivery_price: 1305, price_adjustments: [{ position: 1, price: 1305 }], selling_plan: p, selling_plan_group_id: '7' });
+  const two = plan(1, 'Every 2 weeks', 2);
+  const four = plan(2, 'Every 4 weeks', 4, true);
+  const variant = { id: 11, price: 1450, selling_plan_allocations: [allocation(two), allocation(four)], selected_selling_plan_allocation: allocation(four) };
+  const product = {
+    requires_selling_plan: false, selected_selling_plan: four, selected_or_first_available_variant: variant,
+    selling_plan_groups: [{ id: '7', name: 'Subscribe and save', app_id: null, selling_plan_selected: true, options: [{ name: 'Delivery every', position: 1, values: ['2 weeks', '4 weeks'], selected_value: '4 weeks' }], selling_plans: [two, four] }],
+  };
+
+  it('iterates groups, plans, allocations and price adjustments', async () => {
+    const src = `{%- for group in product.selling_plan_groups -%}{{ group.name }} ({{ group.options.first.values | join: '/' }}):{% for p in group.selling_plans %} {{ p.name }}{% if p.selected %}*{% endif %}{% endfor %}{%- endfor %}
+{% for a in product.selected_or_first_available_variant.selling_plan_allocations -%}[{{ a.selling_plan.id }} {{ a.per_delivery_price | money }} was {{ a.compare_at_price | money }} -{{ a.selling_plan.price_adjustments.first.value }}%]{%- endfor %}
+{{ product.selected_selling_plan.name }} {{ product.selected_or_first_available_variant.selected_selling_plan_allocation.price | money }}`;
+    expect(await liquid(src, { product })).toBe(`Subscribe and save (2 weeks/4 weeks): Every 2 weeks Every 4 weeks*
+[1 $13.05 was $14.50 -10%][2 $13.05 was $14.50 -10%]
+Every 4 weeks $13.05`);
+  });
+
+  it('reads the selling plan allocation of a cart line and pluralises frequencies', async () => {
+    const cart = { items: [{ title: 'Coffee', selling_plan_allocation: allocation(two) }, { title: 'Tea', selling_plan_allocation: null }] };
+    const files = { 'locales/en.default.json': JSON.stringify({ every: { week: { one: 'Every week', other: 'Every {{ count }} weeks' } } }) };
+    const src = `{% for item in cart.items %}{{ item.title }}{% if item.selling_plan_allocation %}: {{ item.selling_plan_allocation.selling_plan.name }} {{ item.selling_plan_allocation.price | money }}{% endif %};{% endfor %}{{ 'every.week' | t: count: 1 }}|{{ 'every.week' | t: count: 2 }}`;
+    expect(await liquid(src, { cart }, files)).toBe('Coffee: Every 2 weeks $13.05;Tea;Every week|Every 2 weeks');
+  });
+});

@@ -36,6 +36,11 @@
                       <p class="cart__option">{{ option.name | escape }}: {{ option.value | escape }}</p>
                     {%- endfor -%}
                   {%- endunless -%}
+                  {%- if item.selling_plan_allocation -%}
+                    {%- assign per_delivery = item.selling_plan_allocation.per_delivery_price | money -%}
+                    <p class="cart__plan">{{ item.selling_plan_allocation.selling_plan.name | escape }}</p>
+                    <p class="cart__option">{{ 'cart.recurring' | t: price: per_delivery }}</p>
+                  {%- endif -%}
                   <p class="cart__unit">
                     {%- if item.original_price != item.final_price -%}<s class="cart__was">{{ item.original_price | money }}</s> {% endif -%}
                     {{ item.final_price | money }}

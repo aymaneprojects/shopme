@@ -24,8 +24,11 @@ export interface DiscountForm {
   eligibility: 'all' | 'segments' | 'customers'; segments: Ref[]; customers: Ref[]; tags: string[];
   /** Sales channels (publication GIDs) the discount works on; empty = every channel. */
   channelIds: string[];
+  /** Purchase type and, for subscriptions, which payments it applies to: the first, the first N (`recurringCycles`, first included) or all. */
+  purchaseType: PurchaseType; recurring: 'first' | 'limited' | 'all'; recurringCycles: string;
 }
-export type DiscountErrors = Partial<Record<'code' | 'title' | 'value' | 'targets' | 'maxShipping' | 'minValue' | 'usageLimit' | 'endsAt' | 'eligibility' | 'buyQty' | 'buyTargets' | 'getQty' | 'getTargets' | 'getPercent' | 'usesLimit', Key>>;
+export type PurchaseType = 'one_time' | 'subscription' | 'both';
+export type DiscountErrors = Partial<Record<'code' | 'title' | 'value' | 'targets' | 'maxShipping' | 'minValue' | 'usageLimit' | 'endsAt' | 'eligibility' | 'buyQty' | 'buyTargets' | 'getQty' | 'getTargets' | 'getPercent' | 'usesLimit' | 'recurringCycles', Key>>;
 
 /** Local `datetime-local` value (YYYY-MM-DDTHH:mm). */
 export const nowLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
@@ -39,7 +42,15 @@ export const blankDiscount = (kind: DiscountKind, method: DiscountMethod = 'code
   hasMaxShipping: false, maxShipping: '', minType: 'none', minValue: '', limitTotal: false, usageLimit: '', oncePerCustomer: false,
   startsAt: nowLocal(), hasEnd: false, endsAt: '', combines: { productDiscounts: false, orderDiscounts: false, shippingDiscounts: false },
   eligibility: 'all', segments: [], customers: [], tags: [], channelIds: [],
+  purchaseType: 'one_time', recurring: 'all', recurringCycles: '2',
 });
+
+/** Purchase type and subscription payment limit fields of the API input (not used by buy X get Y). */
+export function purchaseInput(f: Pick<DiscountForm, 'purchaseType' | 'recurring' | 'recurringCycles'>) {
+  const purchase = { appliesOnOneTimePurchase: f.purchaseType !== 'subscription', appliesOnSubscription: f.purchaseType !== 'one_time' };
+  const recurringCycleLimit = f.purchaseType === 'one_time' ? 0 : f.recurring === 'first' ? 1 : f.recurring === 'limited' ? Number(f.recurringCycles) : 0;
+  return { purchase, recurringCycleLimit };
+}
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 /** Random uppercase code without ambiguous characters. */
@@ -80,6 +91,10 @@ export function validateDiscount(f: DiscountForm): DiscountErrors {
   if (f.limitTotal && f.method === 'code') {
     const n = parseDecimal(f.usageLimit);
     if (n === null || n < 1 || !Number.isInteger(n)) e.usageLimit = 'discount.err.usageLimit';
+  }
+  if (f.kind !== 'bxgy' && f.purchaseType !== 'one_time' && f.recurring === 'limited') {
+    const n = parseDecimal(f.recurringCycles);
+    if (n === null || n < 2 || !Number.isInteger(n)) e.recurringCycles = 'sub.disc.errCycles';
   }
   if (f.eligibility === 'segments' && !f.segments.length) e.eligibility = 'discount.err.segments';
   if (f.eligibility === 'customers' && !f.customers.length) e.eligibility = 'discount.err.customers';
@@ -124,8 +139,9 @@ export function toDiscountInput(f: DiscountForm, prev?: { collections: string[];
       customerGets: { value: { discountOnQuantity: { quantity: String(Number(b.getQty)), effect: { percentage: b.getEffect === 'free' ? 1 : (parseDecimal(b.getPercent) ?? 0) / 100 } } }, items: items(b.getAppliesTo, b.getCollections, b.getProducts) },
     };
   }
+  const { purchase, recurringCycleLimit } = purchaseInput(f);
   if (f.kind === 'shipping') {
-    return { ...common, destination: { all: true }, ...(f.hasMaxShipping && { maximumShippingPrice: money(f.maxShipping) }) };
+    return { ...common, ...purchase, recurringCycleLimit, destination: { all: true }, ...(f.hasMaxShipping && { maximumShippingPrice: money(f.maxShipping) }) };
   }
   const value = f.valueType === 'percentage'
     ? { percentage: (parseDecimal(f.value) ?? 0) / 100 }
@@ -135,7 +151,7 @@ export function toDiscountInput(f: DiscountForm, prev?: { collections: string[];
   const items = f.appliesTo === 'all' ? { all: true }
     : f.appliesTo === 'collections' ? { collections: diff(ids(f.collections), prev?.collections) }
       : (() => { const d = diff(ids(f.products), prev?.products); return { products: { productsToAdd: d.add, productsToRemove: d.remove } }; })();
-  return { ...common, customerGets: { value, items } };
+  return { ...common, recurringCycleLimit, customerGets: { value, items, ...purchase } };
 }
 
 interface ItemsShape { __typename: string; collections?: { nodes: Ref[] }; products?: { nodes: Ref[] } }
@@ -149,8 +165,10 @@ interface NodeShape {
   shopmePublicationIds?: string[];
   context?: { __typename: string; customers?: Array<{ id: string; displayName: string }>; segments?: Array<{ id: string; name: string }> };
   maximumShippingPrice?: { amount: string } | null;
+  recurringCycleLimit?: number | null; appliesOnOneTimePurchase?: boolean; appliesOnSubscription?: boolean;
   minimumRequirement?: { __typename: string; greaterThanOrEqualToSubtotal?: { amount: string }; greaterThanOrEqualToQuantity?: string | number } | null;
   customerGets?: {
+    appliesOnOneTimePurchase?: boolean; appliesOnSubscription?: boolean;
     value: { __typename: string; percentage?: number; amount?: { amount: string }; appliesOnEachItem?: boolean; quantity?: { quantity: string | number }; effect?: { __typename: string; percentage?: number; amount?: { amount: string } } };
     items: ItemsShape;
   };
@@ -183,6 +201,11 @@ export function fromDiscountNode(d: NodeShape): DiscountForm {
     Object.assign(b, { buyAppliesTo: buys.as, buyCollections: buys.cols, buyProducts: buys.prods, getAppliesTo: gets.as, getCollections: gets.cols, getProducts: gets.prods });
     return f;
   }
+  const oneTime = d.customerGets?.appliesOnOneTimePurchase ?? d.appliesOnOneTimePurchase ?? true;
+  const subscription = d.customerGets?.appliesOnSubscription ?? d.appliesOnSubscription ?? false;
+  f.purchaseType = subscription ? (oneTime ? 'both' : 'subscription') : 'one_time';
+  const limit = d.recurringCycleLimit ?? 0;
+  if (subscription) { f.recurring = limit === 1 ? 'first' : limit > 1 ? 'limited' : 'all'; if (limit > 1) f.recurringCycles = String(limit); }
   const m = d.minimumRequirement;
   if (m?.greaterThanOrEqualToSubtotal) { f.minType = 'subtotal'; f.minValue = m.greaterThanOrEqualToSubtotal.amount; }
   else if (m?.greaterThanOrEqualToQuantity != null) { f.minType = 'quantity'; f.minValue = String(m.greaterThanOrEqualToQuantity); }
@@ -213,6 +236,10 @@ export function summarizeDiscount(f: DiscountForm, t: (k: Key, v?: Record<string
     const amount = f.valueType === 'percentage' ? `${v}%` : fmt(v);
     const scope = f.appliesTo === 'all' ? t('discount.sum.order') : f.appliesTo === 'collections' ? t('discount.sum.collections', { n: f.collections.length }) : t('discount.sum.products', { n: f.products.length });
     out.push(t('discount.sum.value', { amount, scope }));
+  }
+  if (f.kind !== 'bxgy') {
+    out.push(t(`sub.disc.sum.${f.purchaseType === 'one_time' ? 'oneTime' : f.purchaseType}` as Key));
+    if (f.purchaseType !== 'one_time') out.push(f.recurring === 'first' ? t('sub.disc.sum.first') : f.recurring === 'limited' ? t('sub.disc.sum.limited', { n: f.recurringCycles || '?' }) : t('sub.disc.sum.all'));
   }
   const m = parseDecimal(f.minValue);
   if (f.kind !== 'bxgy') out.push(f.minType === 'subtotal' && m ? t('discount.sum.minSubtotal', { amount: fmt(m) }) : f.minType === 'quantity' && m ? t('discount.sum.minQty', { n: m }) : t('discount.sum.noMin'));

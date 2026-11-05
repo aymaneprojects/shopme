@@ -60,7 +60,7 @@ export function sampleCustomer(shop: Shop): CustomerObject {
     id: 0, email: 'sample@example.com', first_name: t.first, last_name: t.last, name: `${t.first} ${t.last}`, phone: '', accepts_marketing: false, tags: [], tax_exempt: false, has_account: true,
     orders, orders_count: orders.length, total_spent: orders.reduce((s, o) => s + o.total_price, 0), last_order: orders[0]!, addresses, addresses_count: addresses.length, default_address: addresses[0]!,
     new_address: { ...sampleAddress(shop, 0, ''), address1: '', street: '', city: '', zip: '', summary: '' },
-    created_at: daysAgo(90), metafields: {}, email_marketing_state: 'not_subscribed', sms_marketing_state: 'not_subscribed', whatsapp_marketing_state: 'not_subscribed', data_sale_opt_out: false,
+    created_at: daysAgo(90), metafields: {}, subscription_contracts: [], email_marketing_state: 'not_subscribed', sms_marketing_state: 'not_subscribed', whatsapp_marketing_state: 'not_subscribed', data_sale_opt_out: false,
     store_credit_account: customerAccountsSettingsOf(shop).storeCredit ? { balance: 1500, currency: shop.currency } : null,
   };
 }

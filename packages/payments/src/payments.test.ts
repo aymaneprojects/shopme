@@ -61,3 +61,33 @@ describe('redirect gateways', () => {
     expect(calls[1]).toEqual(['pi', { amount_to_capture: 100 }]);
   });
 });
+
+describe('stripe subscriptions', () => {
+  const cfg = { secretKey: 'sk', publishableKey: 'pk', webhookSecret: 'wh' };
+  const noHooks = { constructEvent: () => { throw new Error('x'); } };
+  it('saves the payment method for later and charges it off-session', async () => {
+    const calls: Array<[string, Record<string, unknown>, Record<string, unknown> | undefined]> = [];
+    const client = {
+      paymentIntents: { create: async (p: Record<string, unknown>, o?: Record<string, unknown>) => { calls.push(['pi', p, o]); return { id: p.off_session ? 'pi_renew' : 'pi_first', client_secret: 's', status: 'succeeded' }; } },
+      customers: { create: async (p: Record<string, unknown>, o?: Record<string, unknown>) => { calls.push(['cus', p, o]); return { id: 'cus_1' }; } },
+      refunds: { create: async (p: Record<string, unknown>, o?: Record<string, unknown>) => { calls.push(['re', p, o]); return {}; } },
+      webhooks: noHooks,
+    };
+    const gw = createStripeGateway(cfg, client)!;
+    expect(await gw.createCustomer({ email: 'a@b.c', reference: 'tok', idempotencyKey: 'k1' })).toBe('cus_1');
+    await gw.createPaymentIntent({ amount: 900, currency: 'EUR', reference: 'tok', idempotencyKey: 'k2', setupFutureUsage: 'off_session', customer: 'cus_1' });
+    expect(calls[1]![1]).toMatchObject({ setup_future_usage: 'off_session', customer: 'cus_1' });
+    expect(await gw.chargeOffSession({ amount: 900, currency: 'EUR', customer: 'cus_1', paymentMethod: 'pm_1', idempotencyKey: 'k3', reference: 'subscription:1' })).toEqual({ ok: true, id: 'pi_renew' });
+    expect(calls[2]![1]).toMatchObject({ off_session: true, confirm: true, customer: 'cus_1', payment_method: 'pm_1', currency: 'eur' });
+    expect(calls[2]![2]).toEqual({ idempotencyKey: 'k3' });
+    await gw.refund('pi_renew', 900, 'k4');
+    expect(calls[3]![1]).toEqual({ payment_intent: 'pi_renew', amount: 900 });
+  });
+  it('reports a declined or unconfirmed off-session charge as data', async () => {
+    const declined = Object.assign(new Error('Your card was declined.'), { code: 'card_declined', decline_code: 'insufficient_funds', raw: { payment_intent: { id: 'pi_x' } } });
+    const gw = createStripeGateway(cfg, { paymentIntents: { create: async () => { throw declined; } }, webhooks: noHooks })!;
+    expect(await gw.chargeOffSession({ amount: 900, currency: 'EUR', customer: 'cus_1', paymentMethod: 'pm_1', idempotencyKey: 'k', reference: 'r' })).toEqual({ ok: false, code: 'insufficient_funds', message: 'Your card was declined.', id: 'pi_x' });
+    const action = createStripeGateway(cfg, { paymentIntents: { create: async () => ({ id: 'pi_y', client_secret: 's', status: 'requires_action' }) }, webhooks: noHooks })!;
+    expect(await action.chargeOffSession({ amount: 1, currency: 'EUR', customer: 'c', paymentMethod: 'p', idempotencyKey: 'k', reference: 'r' })).toMatchObject({ ok: false, code: 'authentication_required', id: 'pi_y' });
+  });
+});

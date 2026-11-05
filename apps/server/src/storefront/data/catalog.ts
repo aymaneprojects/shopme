@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm';
-import { isIdentity, priceVariants, productListedOnStorefront, productReachableOnStorefront, schema as s, searchProducts, type Db, type MarketContext } from '@shopme/core';
+import { isIdentity, priceVariants, productListedOnStorefront, productReachableOnStorefront, schema as s, searchProducts, toPresentment, type Db, type MarketContext } from '@shopme/core';
 import { loadMetafields } from './metafields';
+import { loadSellingPlans, type SellingPlanData } from './selling-plans';
 import type { Image, ProductObject, VariantObject } from './types';
 
 type ProductRow = typeof s.products.$inferSelect;
@@ -33,7 +34,7 @@ export async function variantStock(db: Db, shopId: number, productIds: number[])
 }
 
 /** Build Liquid product objects (with variants, options, images) for the given ids, in the given order. */
-export async function loadProducts(db: Db, shopId: number, ids: number[], opts: { selectedVariantId?: number; /** Buyer market: prices come out in its currency. */ pricing?: MarketContext } = {}): Promise<ProductObject[]> {
+export async function loadProducts(db: Db, shopId: number, ids: number[], opts: { selectedVariantId?: number; /** Buyer market: prices come out in its currency. */ pricing?: MarketContext; /** `?selling_plan=`: the purchase option shown as selected. */ selectedSellingPlanId?: number } = {}): Promise<ProductObject[]> {
   if (!ids.length) return [];
   const prods = await db.select().from(s.products).where(and(eq(s.products.shopId, shopId), inArray(s.products.id, ids)));
   const [variantRows, optionRows, valueRows, vov, mediaRows, items, stock, productMf] = await Promise.all([
@@ -50,6 +51,7 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
   const priced = opts.pricing && !isIdentity(opts.pricing) ? await priceVariants(db, shopId, opts.pricing, variantRows.map((v) => ({ id: v.id, price: v.price, compareAt: v.compareAtPrice }))) : null;
   const variants = priced ? variantRows.map((v) => { const p = priced.get(v.id); return p ? { ...v, price: p.price, compareAtPrice: p.compareAt } : v; }) : variantRows;
   const variantMf = await loadMetafields(db, shopId, 'PRODUCTVARIANT', variants.map((v) => v.id));
+  const plans: SellingPlanData = await loadSellingPlans(db, shopId, ids, opts.pricing && !isIdentity(opts.pricing) ? (n) => toPresentment(opts.pricing!, n) : undefined);
   const grams: Record<string, number> = { GRAMS: 1, KILOGRAMS: 1000, POUNDS: 453.59237, OUNCES: 28.349523125 };
   const byId = new Map(prods.map((p) => [p.id, p]));
   const out: ProductObject[] = [];
@@ -79,7 +81,7 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
         available: st?.available ?? true, inventory_quantity: st?.quantity ?? 0, inventory_management: item?.tracked ? 'shopify' : null, inventory_policy: v.inventoryPolicy.toLowerCase(),
         requires_shipping: item?.requiresShipping ?? true, taxable: v.taxable, weight: Math.round((item?.weight ?? 0) * (grams[item?.unit ?? 'GRAMS'] ?? 1)), weight_unit: 'g',
         featured_image: img, featured_media: img, image: img, url: `/products/${p.handle}?variant=${v.id}`, position: i + 1, product_id: id,
-        quantity_rule: { min: 1, max: null, increment: 1 }, quantity_price_breaks: [], selling_plan_allocations: [], requires_selling_plan: false,
+        quantity_rule: { min: 1, max: null, increment: 1 }, quantity_price_breaks: [], ...plans.variantFields(p, v.id, v.price, opts.selectedSellingPlanId),
         unit_price_measurement: unit, unit_price: unit ? Math.round((v.price / unit.quantity_value) * unit.reference_value) : null, metafields: variantMf.get(v.id) ?? {}, created_at: iso(v.createdAt), updated_at: iso(v.updatedAt),
       } satisfies VariantObject;
     });
@@ -98,7 +100,7 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
       options: options.map((o) => o.name),
       options_with_values: options.map((o, i) => ({ name: o.name, position: o.position, values: valueRows.filter((v) => v.v.optionId === o.id && (!usedValueIds || usedValueIds.has(v.v.id))).map((v) => v.v.name), selected_value: selected?.options[i] ?? (selected ? null : (firstAvailable ?? vObjs[0])?.options[i] ?? null) })),
       has_only_default_variant: onlyDefault, selected_variant: selected, first_available_variant: firstAvailable, selected_or_first_available_variant: selected ?? firstAvailable ?? vObjs[0] ?? null,
-      template_suffix: p.templateSuffix ?? '', gift_card: p.isGiftCard, 'gift_card?': p.isGiftCard, requires_selling_plan: false, selling_plan_groups: [], metafields: productMf.get(id) ?? {},
+      template_suffix: p.templateSuffix ?? '', gift_card: p.isGiftCard, 'gift_card?': p.isGiftCard, ...plans.productFields(p, vObjs, selected ?? firstAvailable ?? vObjs[0] ?? null, opts.selectedSellingPlanId), metafields: productMf.get(id) ?? {},
       published_at: iso(p.publishedAt), created_at: iso(p.createdAt), updated_at: iso(p.updatedAt), seo: { title: p.seoTitle, description: p.seoDescription },
     });
   }
@@ -106,7 +108,7 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
 }
 
 /** `includeInactive` lets signed-in staff preview drafts and archived products. */
-export async function getProductByHandle(db: Db, shopId: number, handle: string, opts: { selectedVariantId?: number; includeInactive?: boolean; pricing?: MarketContext } = {}): Promise<ProductObject | null> {
+export async function getProductByHandle(db: Db, shopId: number, handle: string, opts: { selectedVariantId?: number; includeInactive?: boolean; pricing?: MarketContext; selectedSellingPlanId?: number } = {}): Promise<ProductObject | null> {
   const [p] = await db.select({ id: s.products.id }).from(s.products).where(and(eq(s.products.shopId, shopId), eq(s.products.handle, handle), opts.includeInactive ? undefined : productReachableOnStorefront)).limit(1);
   return p ? (await loadProducts(db, shopId, [p.id], opts))[0] ?? null : null;
 }

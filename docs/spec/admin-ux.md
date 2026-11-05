@@ -286,7 +286,10 @@ Data: `InventoryItem { requiresShipping measurement.weight countryCodeOfOrigin h
 
 ### 4.7 Purchase options (selling plans)
 
-An empty "add purchase option" area (subscriptions). **Later** (selling plans are out of scope in the API spec).
+Section below the variants card: a dashed area with a "+ Purchase option" menu (create a subscription plan, add an
+existing plan). A plan has a name and delivery frequencies (every N days, weeks, months or years) with an optional
+percentage or amount off; plans already on the product are listed with Edit and Remove, plus "Only sell this product as a
+subscription". Everything is saved with the product. Subscriptions themselves are under Orders > Subscriptions.
 
 ### 4.8 Variant metafields and product metafields
 
@@ -599,7 +602,8 @@ Cards (MVP unless marked):
    the cart (title field replaces code).
 2. **Value** (for amount-off types): value type selector (percentage / fixed amount) + number input; "Applies to"
    selector: specific collections / specific products / (order discount: whole order); product/collection picker with
-   search and browse; purchase type: one-time purchase / subscription / both (subscription: Later).
+   search and browse; purchase type: one-time purchase / subscription / both; for subscriptions, the recurring payments
+   it applies to (first payment, first N payments, all payments).
    - Free shipping: country scope (all countries / selected countries), exclude shipping rates over an amount
      (checkbox + amount).
 3. **Eligibility** (customer eligibility): all customers / specific customer segments / specific customers. MVP: all

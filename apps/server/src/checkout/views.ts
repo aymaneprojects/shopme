@@ -1,5 +1,5 @@
 import type { PaymentProvider } from '@shopme/payments';
-import { configOf, lineMoney, moneyFormatsFor, orderMoney, type CheckoutAddressInput, type CheckoutView, type DiscountRejection, type GiftCardRejection, type OrderSummary, type Shop } from '@shopme/core';
+import { configOf, frequencyLabel, lineMoney, moneyFormatsFor, orderMoney, policyForCycle, sortedPolicies, type CartSellingPlan, type CheckoutAddressInput, type CheckoutView, type DiscountRejection, type GiftCardRejection, type OrderSummary, type Shop } from '@shopme/core';
 import { renderMoneyFormat } from '@shopme/shopify-compat';
 import { countryOptions, PROVINCES } from './geo';
 import { translator, type T } from './i18n';
@@ -60,20 +60,30 @@ export function shippingFragment(c0: PageCtx, v: CheckoutView): string {
     `<label class="option"><input type="radio" name="shippingRateId" value="${o.id}"${o.id === v.shippingRateId ? ' checked' : ''}><span class="grow">${esc(o.name)}${[o.detail, eta(c, o.transit)].filter(Boolean).map((d) => `<small class="note" style="display:block">${esc(d!)}</small>`).join('')}</span><span class="price">${o.price ? esc(c.money(o.price)) : esc(c.t('free'))}</span></label>`).join('')}</div>`;
 }
 
+/** Unit price of the next billings of a subscription line (the plan's price from cycle 2, in the checkout currency). */
+const recurringUnit = (sp: CartSellingPlan): number => {
+  const sorted = sortedPolicies(sp.pricingPolicies);
+  const at = policyForCycle(sorted, 2);
+  return at ? sp.priceAdjustments[sorted.indexOf(at)]?.price ?? sp.price : sp.compareAtPrice;
+};
+
 export function summaryFragment(c0: PageCtx, v: CheckoutView): string {
   const c = inCurrency(c0, v.currency);
   const p = v.pricing;
   const lines = v.lines.map((l) => {
     const pl = p.lines.find((x) => x.id === l.lineId)!;
     const title = [l.product.title, l.hasOnlyDefaultVariant ? '' : l.variantTitle].filter(Boolean);
+    const sp = l.sellingPlan;
+    const plan = sp ? `<small class="plan">${esc(sp.name)}</small><small class="recurring">${esc(c.t('recurring', { price: c.money(recurringUnit(sp) * l.quantity), frequency: frequencyLabel(c.lang, sp.billingPolicy) }))}</small>` : '';
     return `<li class="line"><div class="thumb">${l.image ? `<img src="${attr(l.image.url)}" alt="" width="64" height="64">` : ''}<span class="qty" aria-label="${esc(c.t('qty'))}">${l.quantity}</span></div>`
-      + `<div class="grow">${esc(title[0])}${title[1] ? `<small>${esc(title[1])}</small>` : ''}</div><div>${esc(c.money(pl.total))}</div></li>`;
+      + `<div class="grow">${esc(title[0])}${title[1] ? `<small>${esc(title[1])}</small>` : ''}${plan}</div><div>${esc(c.money(pl.total))}</div></li>`;
   }).join('');
+  const subscribing = v.lines.some((l) => l.sellingPlan);
   const tags = v.appliedDiscounts.filter((d) => d.code).map((d) => `<span class="tag">${esc(d.code)}<button type="button" data-discount-remove="${attr(d.code)}" aria-label="${esc(c.t('remove'))} ${attr(d.code)}">&times;</button></span>`).join('');
   const shippingValue = !v.requiresShipping ? '' : p.shipping ? (p.totalShipping ? esc(c.money(p.totalShipping)) : esc(c.t('free'))) : esc(c.t('shippingTbd'));
   const giftTags = v.giftCards.map((g) => `<span class="tag">${esc(c.t('giftCard'))} &bull;&bull;${esc(g.lastCharacters)}<button type="button" data-gift-remove="${attr(g.code)}" aria-label="${esc(c.t('remove'))} ${attr(g.lastCharacters)}">&times;</button></span>`).join('');
   const credit = v.storeCredit.applied;
-  return `<ul class="lines">${lines}</ul>${tags || giftTags ? `<div>${tags}${giftTags}</div>` : ''}<dl class="totals">`
+  return `<ul class="lines">${lines}</ul>${subscribing ? `<p class="note subscription-note">${esc(c.t('subscriptionNote'))}</p>` : ''}${tags || giftTags ? `<div>${tags}${giftTags}</div>` : ''}<dl class="totals">`
     + `<div><dt>${esc(c.t('subtotal'))}</dt><dd>${esc(c.money(p.subtotal))}</dd></div>`
     + (p.totalDiscounts ? `<div><dt>${esc(c.t('discount'))}</dt><dd>-${esc(c.money(p.totalDiscounts))}</dd></div>` : '')
     + (v.requiresShipping ? `<div><dt>${esc(c.t('shipping'))}</dt><dd>${shippingValue}</dd></div>` : '')
@@ -225,7 +235,7 @@ export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: stri
   const addr = a ? [[a.firstName, a.lastName].filter(Boolean).join(' '), a.company, a.address1, a.address2, [a.zip, a.city].filter(Boolean).join(' '), a.province, a.country ?? a.countryCode].filter(Boolean) : [];
   const om = orderMoney(o.order);
   const money = inCurrency(c, om.currency).money;
-  const lines = o.lines.map((l) => `<li class="line"><div class="thumb">${l.imageUrl ? `<img src="${attr(l.imageUrl)}" alt="" width="64" height="64">` : ''}<span class="qty">${l.quantity}</span></div><div class="grow">${esc(l.title)}${l.variantTitle ? `<small>${esc(l.variantTitle)}</small>` : ''}</div><div>${esc(money(lineMoney(o.order, l).discountedTotal))}</div></li>`).join('');
+  const lines = o.lines.map((l) => `<li class="line"><div class="thumb">${l.imageUrl ? `<img src="${attr(l.imageUrl)}" alt="" width="64" height="64">` : ''}<span class="qty">${l.quantity}</span></div><div class="grow">${esc(l.title)}${l.variantTitle ? `<small>${esc(l.variantTitle)}</small>` : ''}${l.sellingPlanName ? `<small class="plan">${esc(l.sellingPlanName)}</small>` : ''}</div><div>${esc(money(lineMoney(o.order, l).discountedTotal))}</div></li>`).join('');
   const o2 = o.order;
   const giftPaid = o.transactions.filter((x) => x.gateway === 'gift_card' && x.status === 'SUCCESS' && x.kind === 'SALE').reduce((n, x) => n + x.amount, 0);
   const creditPaid = o.transactions.filter((x) => x.gateway === 'store_credit' && x.status === 'SUCCESS' && x.kind === 'SALE').reduce((n, x) => n + (om.currency === x.presentmentCurrency && x.presentmentAmount != null ? x.presentmentAmount : x.amount), 0);
@@ -246,7 +256,7 @@ export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: stri
   const body = `<main id="main" class="ty"><p style="margin:0;color:var(--muted)">${esc(t('orderNumber', { name: o2.name }))}</p>
 <h1>${esc(t('thankYou', { name: a?.firstName ?? '' }).replace(/\s+([,!])/, '$1'))}</h1>
 <p><span class="badge${paid ? ' ok' : ''}">${esc(t(paid ? 'paid' : 'pending'))}</span> ${esc(t(paid ? 'confirmed' : 'confirmedPending'))}. ${esc(t('emailSent', { email: o2.email ?? '' }))}</p>
-<section class="card"><h2>${esc(t('orderSummary'))}</h2><ul class="lines">${lines}</ul>${totals}</section>
+<section class="card"><h2>${esc(t('orderSummary'))}</h2><ul class="lines">${lines}</ul>${o.lines.some((l) => l.subscriptionContractId) ? `<p class="note subscription-note">${esc(t('subscriptionStarted'))}</p>` : ''}${totals}</section>
 <section class="card"><h2>${esc(t('paymentMethod'))}</h2><p>${esc(methodLabel)}</p>${notes}${custom?.instructions && !paid ? `<pre style="white-space:pre-wrap;font:inherit">${esc(custom.instructions)}</pre>` : ''}</section>
 ${addr.length ? `<section class="card"><h2>${esc(t('shipTo'))}</h2><p>${addr.map(esc).join('<br>')}</p></section>` : ''}
 <p><a href="/">${esc(t('backToShop'))}</a></p></main>`;

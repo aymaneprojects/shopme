@@ -45,7 +45,7 @@ export const ORDER = /* GraphQL */ `
       shippingLines(first: 10) { nodes { title originalPriceSet { ${MONEY} } } }
       discountApplications(first: 10) { nodes { __typename ... on DiscountCodeApplication { code } } }
       transactions { id kind status gateway formattedGateway createdAt amountSet { ${MONEY} } }
-      fulfillments { id name status createdAt shopmeNotifyCustomer trackingInfo { company number url } fulfillmentLineItems(first: 50) { nodes { quantity lineItem { title variantTitle } } } }
+      fulfillments { id name status createdAt shopmeNotifyCustomer trackingInfo { company number url } fulfillmentLineItems(first: 50) { nodes { quantity lineItem { title variantTitle sellingPlan { name } } } } }
       shopmeFulfillmentHold { reason reasonNotes heldAt }
       refunds { id createdAt note totalRefundedSet { ${MONEY} } }
       customer { id displayName defaultEmailAddress { emailAddress } numberOfOrders }

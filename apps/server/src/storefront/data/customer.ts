@@ -1,7 +1,7 @@
 import { loadMetafields } from './metafields';
 import { inArray } from 'drizzle-orm';
 import { lazyList } from '@shopme/liquid-compat';
-import { customerStoreCreditBalance, storeCreditEnabled, countCustomerOrders, lineMoney, orderMoney, presentmentShare, listAddressBook, listCustomerOrders, schema as s, type Customer, type CustomerAddress, type Db, type Order, type OrderDetail, type Shop } from '@shopme/core';
+import { contractLinePrice, listContractLines, listSubscriptionContracts, customerStoreCreditBalance, storeCreditEnabled, countCustomerOrders, lineMoney, orderMoney, presentmentShare, listAddressBook, listCustomerOrders, schema as s, type Customer, type CustomerAddress, type Db, type Order, type OrderDetail, type Shop } from '@shopme/core';
 import { countryName } from '../../checkout/geo';
 
 /** Liquid `customer`, `customer.orders`, `order` and address objects. Money is integer minor units. */
@@ -63,6 +63,7 @@ export function orderObject(o: Order, shop: Shop, d?: OrderDetail, handles: Map<
         url: l.productId && handles.has(l.productId) ? `/products/${handles.get(l.productId)}` : null, product_id: l.productId, variant_id: l.variantId, properties: l.properties, requires_shipping: l.requiresShipping,
         image: l.imageUrl ? { src: l.imageUrl, url: l.imageUrl, alt: l.title, width: null, height: null } : null,
         fulfillment: null, 'fulfillment_status': l.fulfilledQuantity >= l.quantity ? 'fulfilled' : l.fulfilledQuantity > 0 ? 'partial' : 'unfulfilled', gift_card: l.isGiftCard, line_level_discount_allocations: [],
+        selling_plan_allocation: l.sellingPlanName ? { price: lm.unitPrice, selling_plan: { id: l.sellingPlanId, name: l.sellingPlanName } } : null,
       };
     }),
     shipping_address: addr(d?.shippingAddress ?? null), billing_address: addr(d?.billingAddress ?? null), shipping_methods: (d?.shippingLines ?? []).map((l, _i, all) => ({ title: l.title, price: all.length === 1 ? om.shipping : presentmentShare(o, l.price) })),
@@ -89,15 +90,50 @@ export interface CustomerObject {
   email_marketing_state: string; sms_marketing_state: string; whatsapp_marketing_state: string; data_sale_opt_out: boolean;
   /** Store credit balance (minor units) in the shop currency; nil when the feature is off, there is no account or the balance is zero. */
   store_credit_account: { balance: number; currency: string } | null;
+  /** ShopMe: the customer's subscriptions (newest first), with the actions they can take from the account page. */
+  subscription_contracts: SubscriptionObject[];
+}
+
+export interface SubscriptionObject {
+  id: number; name: string; status: string; currency: string; created_at: string; next_billing_date: string | null;
+  billing_interval: string; billing_interval_count: number; delivery_interval: string; delivery_interval_count: number;
+  lines: { title: string; variant_title: string | null; quantity: number; price: number; line_price: number; selling_plan_name: string | null; image: string | null }[];
+  subtotal: number; delivery_price: number; total: number;
+  can_pause: boolean; can_resume: boolean; can_cancel: boolean; can_skip: boolean;
+  pause_url: string; resume_url: string; cancel_url: string; skip_url: string;
+}
+
+/** Liquid `customer.subscription_contracts`. Amounts are the next billing's, in the shop currency. */
+export async function subscriptionObjects(db: Db, shop: Shop, customerId: number): Promise<SubscriptionObject[]> {
+  const contracts = await listSubscriptionContracts(db, shop.id, { customerId, reverse: true, offset: 0, limit: 50 });
+  const lines = await listContractLines(db, shop.id, contracts.map((c) => c.id));
+  return contracts.map((c) => {
+    const cycle = c.cyclesCompleted + 1;
+    const own = lines.filter((l) => l.contractId === c.id).map((l) => {
+      const price = contractLinePrice(l.basePrice, l.pricingPolicies, l.deliveriesPerBilling, cycle);
+      return { title: l.title, variant_title: l.variantTitle, quantity: l.quantity, price, line_price: price * l.quantity, selling_plan_name: l.sellingPlanName, image: l.imageUrl };
+    });
+    const subtotal = own.reduce((n, l) => n + l.line_price, 0);
+    const ended = c.status === 'CANCELLED' || c.status === 'EXPIRED';
+    const base = `/account/subscriptions/${c.id}`;
+    return {
+      id: c.id, name: `#${c.id}`, status: c.status.toLowerCase(), currency: c.currency, created_at: c.createdAt.toISOString(), next_billing_date: ended ? null : c.nextBillingDate.toISOString(),
+      billing_interval: c.billingPolicy.interval.toLowerCase(), billing_interval_count: c.billingPolicy.intervalCount, delivery_interval: c.deliveryPolicy.interval.toLowerCase(), delivery_interval_count: c.deliveryPolicy.intervalCount,
+      lines: own, subtotal, delivery_price: c.deliveryPrice, total: subtotal + c.deliveryPrice,
+      can_pause: c.status === 'ACTIVE', can_resume: c.status === 'PAUSED', can_cancel: !ended && (c.billingPolicy.minCycles == null || c.cyclesCompleted >= c.billingPolicy.minCycles), can_skip: c.status === 'ACTIVE',
+      pause_url: `${base}/pause`, resume_url: `${base}/resume`, cancel_url: `${base}/cancel`, skip_url: `${base}/skip`,
+    };
+  });
 }
 
 const ORDER_PREVIEW = 20;
 
 /** The signed-in customer as Liquid sees it. `orders` carry list-level data only (no lines); the order page loads the full detail. */
 export async function buildCustomer(db: Db, shop: Shop, c: Customer): Promise<CustomerObject> {
-  const [addrRows, total, mf, credit] = await Promise.all([
+  const [addrRows, total, mf, credit, subscriptions] = await Promise.all([
     listAddressBook(db, shop.id, c.id), countCustomerOrders(db, shop.id, c.id), loadMetafields(db, shop.id, 'CUSTOMER', [c.id]),
     storeCreditEnabled(shop) ? customerStoreCreditBalance(db, shop.id, c.id, shop.currency) : Promise.resolve(0),
+    subscriptionObjects(db, shop, c.id),
   ]);
   const addresses = addrRows.map((a) => addressObject(a, shop, `/account/addresses/${a.id}`));
   const load = async (offset: number, limit: number) => (await listCustomerOrders(db, shop.id, c.id, { offset, limit })).map((o) => orderObject(o, shop));
@@ -111,5 +147,6 @@ export async function buildCustomer(db: Db, shop: Shop, c: Customer): Promise<Cu
     created_at: c.createdAt.toISOString(), metafields: mf.get(c.id) ?? {},
     email_marketing_state: c.emailMarketingState.toLowerCase(), sms_marketing_state: c.smsMarketingState.toLowerCase(), whatsapp_marketing_state: c.whatsappMarketingState.toLowerCase(), data_sale_opt_out: c.dataSaleOptOut,
     store_credit_account: credit > 0 ? { balance: credit, currency: shop.currency } : null,
+    subscription_contracts: subscriptions,
   };
 }

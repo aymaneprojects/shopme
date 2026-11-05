@@ -12,6 +12,12 @@ import type { LengthUnit, OptionDef, VariantDraft, WeightUnit } from './variants
 import { channelChanges, channelStates } from '../components/Channels';
 import type { CatalogRef as ProductCatalog, ChannelState, Publication } from '../components/Channels';
 import type { ExtraMedia } from '../components/MediaExtras';
+import { purchaseOptionsFromApi, savePurchaseOptions, type ApiSellingPlanGroup, type PurchaseOptionsForm } from './selling-plans';
+import type { Key } from '../i18n';
+
+/** Texts the purchase options need when they are saved (plan names are written in the admin language). */
+export interface PlanText { t: (k: Key, v?: Record<string, string | number>) => string; money: (n: number) => string }
+const NO_PURCHASE_OPTIONS: PurchaseOptionsForm = { groups: [], requiresSellingPlan: false };
 
 export interface LocationRef { id: string; name: string }
 export interface CollectionRef { id: string; title: string }
@@ -34,6 +40,8 @@ export interface ProductForm {
   catalogs: ProductCatalog[];
   /** Metafield values typed on the page, `namespace.key` -> raw field value (saved with the product). */
   metafieldEdits: Record<string, { namespace: string; key: string; type: string; value: string }>;
+  /** Subscription plans offered with the product and the "only sell as a subscription" switch. */
+  purchaseOptions: PurchaseOptionsForm;
 }
 
 /** Shape of the `product(id:)` query (see graphql/products.ts). */
@@ -48,6 +56,7 @@ export interface ApiProduct {
   variants: { nodes: ApiVariant[] };
   resourcePublicationsV2?: { nodes: Array<{ isPublished: boolean; publishDate: string | null; publication: { id: string; name: string } }> };
   shopmeCatalogs?: ProductCatalog[];
+  requiresSellingPlan?: boolean; sellingPlanGroups?: { nodes: ApiSellingPlanGroup[] };
 }
 export interface ApiVariant {
   id: string; title: string; sku: string | null; barcode: string | null; price: string; compareAtPrice: string | null; taxable: boolean; inventoryPolicy: 'DENY' | 'CONTINUE'; shopmeHiddenFromOnlineStore?: boolean;
@@ -66,7 +75,7 @@ export const isPersistedMedia = (i: GalleryItem) => i.key.startsWith('gid://');
 
 export function emptyForm(locations: LocationRef[], pubs: Publication[] = []): ProductForm {
   return {
-    channels: channelStates(pubs, null), catalogs: [], metafieldEdits: {}, extraMedia: [],
+    channels: channelStates(pubs, null), catalogs: [], metafieldEdits: {}, extraMedia: [], purchaseOptions: NO_PURCHASE_OPTIONS,
     title: '', descriptionHtml: '', status: 'ACTIVE', vendor: '', productType: '', tags: [], templateSuffix: '', handle: '', category: '', seoTitle: '', seoDescription: '', isGiftCard: false,
     options: [], variants: [blankVariant({ quantities: Object.fromEntries(locations.map((l) => [l.id, '0'])), onHand: Object.fromEntries(locations.map((l) => [l.id, '0'])) })], media: [], collections: [],
   };
@@ -111,6 +120,7 @@ export function formFromProduct(p: ApiProduct, locations: LocationRef[], pubs: P
   return {
     title: p.title, descriptionHtml: p.descriptionHtml, status: p.status,
     channels: channelStates(pubs, p.resourcePublicationsV2?.nodes ?? []), catalogs: p.shopmeCatalogs ?? [], metafieldEdits: {},
+    purchaseOptions: purchaseOptionsFromApi(p.sellingPlanGroups?.nodes ?? [], !!p.requiresSellingPlan),
     extraMedia: p.media.nodes.filter((m) => m.mediaContentType === 'VIDEO' || m.mediaContentType === 'MODEL_3D').map((m): ExtraMedia => ({ key: m.id, url: '', name: m.alt ?? '', type: m.mediaContentType as ExtraMedia['type'], persisted: true })),
     vendor: p.vendor, productType: p.productType, tags: p.tags, templateSuffix: p.templateSuffix ?? '', handle: p.handle, category: p.category?.id ?? '',
     seoTitle: p.seo.title ?? '', seoDescription: p.seo.description ?? '', isGiftCard: !!p.isGiftCard, options, variants,
@@ -204,7 +214,7 @@ async function syncVariants(productId: string, form: ProductForm, original: Vari
 function productInput(f: ProductForm) {
   return {
     title: f.title.trim(), descriptionHtml: f.descriptionHtml, status: f.status, vendor: f.vendor.trim(), productType: f.productType.trim(),
-    tags: f.tags, templateSuffix: f.templateSuffix.trim() || null, category: f.category || null,
+    tags: f.tags, templateSuffix: f.templateSuffix.trim() || null, category: f.category || null, requiresSellingPlan: f.purchaseOptions.requiresSellingPlan && f.purchaseOptions.groups.length > 0,
     seo: { title: f.seoTitle.trim() || null, description: f.seoDescription.trim() || null },
     ...(f.handle.trim() && { handle: f.handle.trim() }),
   };
@@ -231,7 +241,7 @@ const newMedia = (f: ProductForm) => [
 ];
 
 /** Create a product with its options, variants and stock. Returns the new product GID. */
-export async function createProduct(f: ProductForm, locations: LocationRef[]): Promise<string> {
+export async function createProduct(f: ProductForm, locations: LocationRef[], text?: PlanText): Promise<string> {
   const options = cleanOptions(f.options);
   const res = await mutate<{ product: { id: string; variants: { nodes: Array<{ id: string; inventoryItem: { id: string } }> } } }>(PRODUCT_CREATE, {
     product: {
@@ -246,10 +256,11 @@ export async function createProduct(f: ProductForm, locations: LocationRef[]): P
   await syncVariants(res.product.id, { ...f, variants }, first ? [blankVariant({ id: first.id, quantities: {} })] : [], locations);
   // A new product is published on the Online Store by the server; the form decides the rest.
   await syncPublishing(res.product.id, f, { channels: f.channels.map((c) => ({ ...c, published: c.online, publishDate: '' })), catalogs: [] });
+  if (text) await savePurchaseOptions(res.product.id, NO_PURCHASE_OPTIONS, f.purchaseOptions, text.t, text.money);
   return res.product.id;
 }
 
-export async function updateProduct(id: string, f: ProductForm, initial: ProductForm, locations: LocationRef[]) {
+export async function updateProduct(id: string, f: ProductForm, initial: ProductForm, locations: LocationRef[], text?: PlanText) {
   const before = new Set(initial.collections.map((c) => c.id));
   const now = new Set(f.collections.map((c) => c.id));
   await mutate(PRODUCT_UPDATE, {
@@ -266,6 +277,8 @@ export async function updateProduct(id: string, f: ProductForm, initial: Product
   await syncVariants(id, f, initial.variants, locations);
 
   await syncPublishing(id, f, initial);
+
+  if (text) await savePurchaseOptions(id, initial.purchaseOptions, f.purchaseOptions, text.t, text.money);
 
   const persisted = f.media.filter(isPersistedMedia);
   const originalOrder = initial.media.map((m) => m.key);

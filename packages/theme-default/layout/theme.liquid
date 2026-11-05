@@ -49,7 +49,7 @@
         reveal: {{ settings.anim_reveal | default: false | json }},
         search: { predictive: {{ settings.search_predictive | default: true | json }} },
         routes: { cart: {{ routes.cart_url | json }}, cartAdd: '/cart/add.js', cartChange: '/cart/change.js', cartJson: '/cart.js' },
-        strings: { added: {{ 'products.added_to_cart' | t | json }}, error: {{ 'general.error' | t | json }}, soldOut: {{ 'products.sold_out' | t | json }}, addToCart: {{ 'products.add_to_cart' | t | json }} }
+        strings: { added: {{ 'products.added_to_cart' | t | json }}, error: {{ 'general.error' | t | json }}, soldOut: {{ 'products.sold_out' | t | json }}, addToCart: {{ 'products.add_to_cart' | t | json }}, perDelivery: {{ 'products.purchase_options.per_delivery' | t: price: '[price]' | json }}, savePercent: {{ 'products.purchase_options.save_percent' | t: percent: '[percent]' | json }} }
       };
     </script>
   </body>
