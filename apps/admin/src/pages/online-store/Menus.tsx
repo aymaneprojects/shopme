@@ -38,7 +38,7 @@ export function MenusPage() {
     <div className="flex flex-col gap-4">
       <StoreActions>
         <Link to="/online-store/redirects" className="btn btn-secondary">{t('store.redirects')}</Link>
-        <Button variant="primary" onClick={() => nav('/online-store/navigation/new')}><Plus className="size-4" />{t('menus.create')}</Button>
+        <Button variant="primary" onClick={() => nav('/online-store/navigation/new')}>{t('menus.create')}</Button>
       </StoreActions>
       <Card className="!p-0">
         <div className="border-b border-line p-3"><div className="relative max-w-md"><Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" /><input type="search" className="field-control w-full pl-8" placeholder={t('menus.searchMenus')} aria-label={t('menus.searchMenus')} value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>

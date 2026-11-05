@@ -1,7 +1,7 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, ImageUploader, Input, Modal, Select, Skeleton, Switch, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Pencil, Plus, Search } from 'lucide-react';
+import { FileText, Pencil, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { RichText } from '../../components/RichText';
@@ -35,7 +35,7 @@ export function BlogPostsPage() {
     { key: 'status', header: t('pages.visibility'), cell: (a) => <Badge tone={a.isPublished ? 'success' : 'neutral'}>{t(a.isPublished ? 'pages.visible' : 'pages.hidden')}</Badge> },
     { key: 'updated', header: t('pages.updated'), cell: (a) => fmt.dateTime(a.updatedAt) },
   ];
-  const add = <Button variant="primary" onClick={() => nav('/online-store/blog-posts/new')}><Plus className="size-4" />{t('blogs.addPost')}</Button>;
+  const add = <Button variant="primary" onClick={() => nav('/online-store/blog-posts/new')}>{t('blogs.addPost')}</Button>;
   return (
     <div className="flex flex-col gap-4">
       <StoreActions><Link to="/online-store/blogs" className="btn btn-secondary"><Pencil className="size-4" />{t('blogs.manage')}</Link>{add}</StoreActions>
@@ -159,7 +159,7 @@ export function BlogsPage() {
   });
   const remove = useMutation({ mutationFn: (id: string) => mutate(BLOG_DELETE, { id }, 'blogDelete'), onSuccess: () => done(t('blogs.blogDeleted')), onError: (e) => { setDel(null); toast(e.message, 'critical'); } });
   const blogs = q.data?.blogs.nodes ?? [];
-  const add = <Button variant="primary" onClick={() => setEdit({ id: null, title: '', handle: '' })}><Plus className="size-4" />{t('blogs.addBlog')}</Button>;
+  const add = <Button variant="primary" onClick={() => setEdit({ id: null, title: '', handle: '' })}>{t('blogs.addBlog')}</Button>;
   return (
     <Card title={t('store.blogs')} actions={add}>
       {q.isLoading && <Skeleton className="h-24" />}

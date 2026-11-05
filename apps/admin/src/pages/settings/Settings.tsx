@@ -25,7 +25,7 @@ export function SettingsLayout() {
       <div className={cx('mx-auto w-full', wide ? 'max-w-[900px]' : 'max-w-[680px]')}>
         {section && (
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-xl font-semibold leading-8">{t(section.key)}</h1>
+            <h1 className="text-xl font-semibold leading-8">{section.id === 'users' ? t('users.title') : t(section.key)}</h1>
             <div ref={setSlot} className="flex items-center gap-2" />
           </div>
         )}

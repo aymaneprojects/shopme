@@ -46,7 +46,7 @@ export function UsersSettings() {
     <>
       <SettingsActions>
         <Button onClick={exportCsv} disabled={members.length === 0}>{t('common.export')}</Button>
-        <Button variant="primary" onClick={() => { setError(null); setEdit({ id: null, email: '', role: 'staff', permissions: ['products', 'orders'] }); }}>{t('users.invite')}</Button>
+        <Button variant="primary" onClick={() => { setError(null); setEdit({ id: null, email: '', role: 'staff', permissions: ['products', 'orders'] }); }}>{t('users.addButton')}</Button>
       </SettingsActions>
       {q.isLoading && <Skeleton className="h-24" />}
       {q.error && <Banner>{q.error.message}</Banner>}

@@ -1,7 +1,7 @@
 import { Banner, Button, ConfirmDialog, EmptyState, Input, Modal, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowRightLeft, Plus } from 'lucide-react';
+import { ArrowRightLeft } from 'lucide-react';
 import { useState } from 'react';
 import { UserErrors, mutate } from '../../api';
 import { PagedTable } from '../../components/PagedTable';
@@ -32,7 +32,7 @@ export function RedirectsPage() {
     { key: 'target', header: t('redirects.to'), cell: (r) => <code className="text-[13px]">{r.target}</code> },
     { key: 'actions', header: '', className: 'w-24 text-right', cell: (r) => <Button size="sm" variant="danger" onClick={(e) => { e.stopPropagation(); setDel(r); }}>{t('common.delete')}</Button> },
   ];
-  const add = <Button variant="primary" onClick={() => setEdit({ id: null, path: '', target: '' })}><Plus className="size-4" />{t('redirects.add')}</Button>;
+  const add = <Button variant="primary" onClick={() => setEdit({ id: null, path: '', target: '' })}>{t('redirects.add')}</Button>;
   const valid = !!edit?.path.trim().startsWith('/') && !!edit.target.trim();
   return (
     <>
