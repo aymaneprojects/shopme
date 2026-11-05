@@ -20,7 +20,7 @@ const ERROR_CODES = [
   'INVALID_QUANTITY', 'DUPLICATE_ITEM', 'INVENTORY_STATE_NOT_ACTIVE', 'TAG_EXCEEDS_MAX_LENGTH', 'INVALID_TAG', 'INVALID_METAFIELDS', 'INVALID_TRANSFER_STATUS', 'TRANSFER_NOT_FOUND',
   'TRANSFER_LOCATION_IMMUTABLE', 'ALL_QUANTITY_SHIPPED', 'CANT_REMOVE_ALL_ITEMS_FROM_READY_TO_SHIP_TRANSFER', 'ITEM_PRESENT_ON_DRAFT_SHIPMENT_WITH_ZERO_QUANTITY', 'INVALID_ITEM', 'SHIPMENT_EXISTS',
   'INVALID_STATE', 'BARCODE_DUPLICATE', 'BARCODE_TOO_LONG', 'EMPTY_SHIPMENT_INPUT', 'INVALID_SHIPMENT_INPUT', 'INVALID_URL', 'SHIPMENT_NOT_FOUND', 'INVALID_SHIPMENT_STATUS', 'ACTIVATION_FAILED',
-  'INTERNAL_ERROR', 'INVALID',
+  'INTERNAL_ERROR', 'INVALID', 'PURCHASE_ORDER_NOT_FOUND',
 ] as const;
 
 /** `<Name>UserError implements DisplayableError { code field message }` with its `<Name>UserErrorCode` enum. */
@@ -152,6 +152,8 @@ Transfer_.implement({
     }),
     /** ShopMe extension: the purchase order this transfer receives, when any. */
     shopmePurchaseOrderId: t.id({ nullable: true, resolve: (x) => (x.purchaseOrderId ? toGid('InventoryPurchaseOrder', x.purchaseOrderId) : null) }),
+    /** ShopMe extension: the purchase order linked to this transfer for reference, when any. */
+    shopmeLinkedPurchaseOrderId: t.id({ nullable: true, resolve: (x) => (x.linkedPurchaseOrderId ? toGid('InventoryPurchaseOrder', x.linkedPurchaseOrderId) : null) }),
   }),
 });
 const TransferConnection = defineConnection('InventoryTransfer', Transfer_);
@@ -203,16 +205,18 @@ const TransferCreateInput = builder.inputType('InventoryTransferCreateInput', {
   fields: (t) => ({
     originLocationId: t.id(), destinationLocationId: t.id(), lineItems: t.field({ type: [LineInput], required: true, defaultValue: [] }), dateCreated: t.field({ type: 'DateTime' }),
     note: t.string(), tags: t.stringList(), referenceName: t.string(),
+    shopmeLinkedPurchaseOrderId: t.id({ description: 'ShopMe extension: a purchase order to link to the transfer for reference.' }),
   }),
 });
 const TransferCreateReadyInput = builder.inputType('InventoryTransferCreateAsReadyToShipInput', {
   fields: (t) => ({
     originLocationId: t.id(), destinationLocationId: t.id(), lineItems: t.field({ type: [LineInput], required: true, defaultValue: [] }), dateCreated: t.field({ type: 'DateTime' }),
     note: t.string(), tags: t.stringList(), referenceName: t.string(),
+    shopmeLinkedPurchaseOrderId: t.id({ description: 'ShopMe extension: a purchase order to link to the transfer for reference.' }),
   }),
 });
 const TransferEditInput = builder.inputType('InventoryTransferEditInput', {
-  fields: (t) => ({ originId: t.id(), destinationId: t.id(), dateCreated: t.field({ type: 'Date' }), note: t.string(), tags: t.stringList(), referenceName: t.string() }),
+  fields: (t) => ({ originId: t.id(), destinationId: t.id(), dateCreated: t.field({ type: 'Date' }), note: t.string(), tags: t.stringList(), referenceName: t.string(), shopmeLinkedPurchaseOrderId: t.id({ description: 'ShopMe extension: the purchase order linked for reference; null unlinks it.' }) }),
 });
 const SetItemsInput = builder.inputType('InventoryTransferSetItemsInput', { fields: (t) => ({ id: t.id({ required: true }), lineItems: t.field({ type: [LineInput], required: true }) }) });
 const RemoveItemsInput = builder.inputType('InventoryTransferRemoveItemsInput', { fields: (t) => ({ id: t.id({ required: true }), transferLineItemIds: t.idList() }) });
@@ -272,6 +276,8 @@ const ShipDeletePayload = payload<{ id: number | null }>('InventoryShipmentDelet
 
 const bad = (field: string[], type: string): UserError[] => [{ field, message: `Invalid id: ${type}`, code: 'INVALID' }];
 const num = (v: string | null | undefined, type: string) => (v ? parseId(String(v), type) : null);
+/** A purchase order id from the API: null clears the link, an id that does not parse is kept as -1 so the service reports it as missing. */
+const linkedPo = (v: string | number | null | undefined) => (v ? parseId(String(v), 'InventoryPurchaseOrder') ?? -1 : null);
 const lines = (rows: { inventoryItemId: string | number; quantity: number }[]) => rows.map((l) => ({ inventoryItemId: parseId(String(l.inventoryItemId), 'InventoryItem') ?? 0, quantity: l.quantity }));
 
 function tracking(i: { trackingNumber?: string | null; company?: string | null; trackingUrl?: string | null; arrivesAt?: Date | null } | null | undefined) {
@@ -291,6 +297,7 @@ builder.mutationFields((t) => ({
       const r = await createTransfer(ctx.db, ctx.shopId, {
         originLocationId: num(input.originLocationId, 'Location'), destinationLocationId: num(input.destinationLocationId, 'Location'), lineItems: lines(input.lineItems),
         dateCreated: input.dateCreated ? new Date(input.dateCreated) : null, note: input.note, tags: input.tags, referenceName: input.referenceName,
+        linkedPurchaseOrderId: linkedPo(input.shopmeLinkedPurchaseOrderId),
       });
       return r.ok ? { inventoryTransfer: r.value, userErrors: [] } : failT(r);
     },
@@ -302,6 +309,7 @@ builder.mutationFields((t) => ({
       const r = await createTransfer(ctx.db, ctx.shopId, {
         originLocationId: num(input.originLocationId, 'Location'), destinationLocationId: num(input.destinationLocationId, 'Location'), lineItems: lines(input.lineItems),
         dateCreated: input.dateCreated ? new Date(input.dateCreated) : null, note: input.note, tags: input.tags, referenceName: input.referenceName,
+        linkedPurchaseOrderId: linkedPo(input.shopmeLinkedPurchaseOrderId),
       }, { readyToShip: true });
       return r.ok ? { inventoryTransfer: r.value, userErrors: [] } : failT(r);
     },
@@ -316,6 +324,7 @@ builder.mutationFields((t) => ({
       const r = await editTransfer(ctx.db, ctx.shopId, id, {
         originId: i.originId === undefined ? undefined : num(i.originId, 'Location'), destinationId: i.destinationId === undefined ? undefined : num(i.destinationId, 'Location'),
         dateCreated: i.dateCreated ? new Date(i.dateCreated) : undefined, note: i.note, tags: i.tags, referenceName: i.referenceName,
+        linkedPurchaseOrderId: i.shopmeLinkedPurchaseOrderId === undefined ? undefined : linkedPo(i.shopmeLinkedPurchaseOrderId),
       });
       return r.ok ? { inventoryTransfer: r.value, userErrors: [] } : failT(r);
     },

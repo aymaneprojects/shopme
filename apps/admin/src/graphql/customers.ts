@@ -29,7 +29,7 @@ export const CUSTOMER = /* GraphQL */ `
       amountSpent { amount currencyCode }
       addressesV2(first: 10) { nodes { id firstName lastName company address1 address2 city province zip country countryCodeV2 phone } }
       orders(first: 5) {
-        nodes { id name createdAt displayFinancialStatus displayFulfillmentStatus totalPriceSet { shopMoney { amount currencyCode } } }
+        nodes { id name createdAt sourceName displayFinancialStatus displayFulfillmentStatus totalPriceSet { shopMoney { amount currencyCode } } }
       }
     }
   }

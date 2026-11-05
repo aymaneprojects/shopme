@@ -172,7 +172,7 @@ export function InventoryPage() {
     <>
       <PageHeader icon={<Warehouse className="size-4" />}
         title={<span className="flex items-center gap-2">{t('nav.inventory')}
-          <select aria-label={t('inventory.location')} value={locParam === 'all' ? 'all' : location} onChange={(e) => { setLocation(e.target.value); }} className="chip-select !min-h-7 h-7 cursor-pointer pl-2.5 pr-7 font-medium">
+          <select aria-label={t('inventory.location')} value={locParam === 'all' ? 'all' : location} onChange={(e) => { setLocation(e.target.value); }} className="chip-select !min-h-7 h-7 cursor-pointer pl-2.5 pr-7 font-medium [field-sizing:content]">
             <option value="all">{t('inventory.allLocations')}</option>
             {locs.data?.locations.nodes.filter((l) => l.isActive !== false).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select></span>}

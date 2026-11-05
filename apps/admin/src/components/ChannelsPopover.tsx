@@ -37,7 +37,7 @@ export function ChannelsPopover({ id, count, kind = 'product' }: { id: string; c
   const { t } = useI18n();
   return (
     <span onClick={(e) => e.stopPropagation()} className="inline-block">
-      <Popover label={t('bp.channels.title')} align="right" triggerVariant="plain" triggerClassName="btn-neutral !h-7 !px-2 tabular-nums" trigger={t('bp.channels.countShort', { n: count, $count: count })}>
+      <Popover label={`${t('bp.channels.title')} · ${t('bp.channels.countShort', { n: count, $count: count })}`} align="right" triggerVariant="plain" triggerClassName="btn-neutral !h-7 !px-2 tabular-nums" trigger={count}>
         {() => <Rows id={id} kind={kind} />}
       </Popover>
     </span>

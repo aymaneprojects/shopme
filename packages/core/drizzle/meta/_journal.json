@@ -169,6 +169,13 @@
       "when": 1793901116785,
       "tag": "0023_focal_whatsapp_variants",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793914593107,
+      "tag": "0024_transfer_linked_purchase_order",
+      "breakpoints": true
     }
   ]
 }

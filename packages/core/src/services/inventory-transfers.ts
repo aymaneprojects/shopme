@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import {
-  inventoryAdjustments, inventoryItems, inventoryLevels, inventoryShipmentLines, inventoryShipments, inventoryTransferLines, inventoryTransfers, locations, productVariants, products,
+  inventoryAdjustments, inventoryItems, inventoryLevels, inventoryShipmentLines, inventoryShipments, inventoryTransferLines, inventoryTransfers, locations, productVariants, products, purchaseOrders,
   type LocationSnapshotData,
 } from '../db/schema';
 import type { Db, Executor, Tx } from '../db/client';
@@ -264,6 +264,15 @@ async function refreshShipmentStatus(tx: Executor, shipmentId: number, dateRecei
 export interface TransferCreateInput {
   originLocationId?: number | null; destinationLocationId?: number | null; lineItems?: LineInput[]; dateCreated?: Date | null;
   note?: string | null; tags?: string[] | null; referenceName?: string | null;
+  /** Purchase order to link for reference (null or absent: none). */
+  linkedPurchaseOrderId?: number | null;
+}
+
+/** The purchase order a transfer can be linked to must exist in the shop. */
+async function checkLinkedPurchaseOrder(tx: Executor, shopId: number, id: number | null | undefined, field: string[]) {
+  if (!id) return okR(null);
+  const [po] = await tx.select({ id: purchaseOrders.id }).from(purchaseOrders).where(and(eq(purchaseOrders.shopId, shopId), eq(purchaseOrders.id, id))).limit(1);
+  return po ? okR(po.id) : errR(field, 'The purchase order does not exist.', 'PURCHASE_ORDER_NOT_FOUND');
 }
 
 async function nextTransferName(tx: Executor, shopId: number) {
@@ -284,10 +293,12 @@ export async function createTransfer(db: Db, shopId: number, input: TransferCrea
     if (!checked.ok) return checked;
     const tags = checkTags(input.tags, ['input']);
     if (!tags.ok) return tags;
+    const linked = await checkLinkedPurchaseOrder(tx, shopId, input.linkedPurchaseOrderId, ['input', 'shopmeLinkedPurchaseOrderId']);
+    if (!linked.ok) return linked;
     const name = await nextTransferName(tx, shopId);
     const [row] = await tx.insert(inventoryTransfers).values({
       shopId, name, originLocationId: input.originLocationId ?? null, destinationLocationId: input.destinationLocationId ?? null,
-      referenceName: input.referenceName?.trim() || null, note: input.note?.trim() || null, tags: tags.value, ...(input.dateCreated ? { dateCreated: input.dateCreated } : {}),
+      referenceName: input.referenceName?.trim() || null, note: input.note?.trim() || null, tags: tags.value, linkedPurchaseOrderId: linked.value, ...(input.dateCreated ? { dateCreated: input.dateCreated } : {}),
     }).returning();
     if (lines.length) {
       await tx.insert(inventoryTransferLines).values(lines.map((l) => ({ shopId, transferId: row!.id, inventoryItemId: l.inventoryItemId, totalQuantity: l.quantity, title: checked.value.get(l.inventoryItemId)!.title })));
@@ -301,7 +312,7 @@ export async function createTransfer(db: Db, shopId: number, input: TransferCrea
   });
 }
 
-export interface TransferEditInput { originId?: number | null; destinationId?: number | null; dateCreated?: Date | null; note?: string | null; tags?: string[] | null; referenceName?: string | null }
+export interface TransferEditInput { originId?: number | null; destinationId?: number | null; dateCreated?: Date | null; note?: string | null; tags?: string[] | null; referenceName?: string | null; /** null unlinks; absent keeps the current link. */ linkedPurchaseOrderId?: number | null }
 
 export async function editTransfer(db: Db, shopId: number, id: number, input: TransferEditInput): Promise<Result<TransferView>> {
   return txResult(db, async (tx) => {
@@ -318,7 +329,10 @@ export async function editTransfer(db: Db, shopId: number, id: number, input: Tr
     }
     const tags = input.tags !== undefined ? checkTags(input.tags, ['input']) : okR(t.tags);
     if (!tags.ok) return tags;
+    const linked = input.linkedPurchaseOrderId !== undefined ? await checkLinkedPurchaseOrder(tx, shopId, input.linkedPurchaseOrderId, ['input', 'shopmeLinkedPurchaseOrderId']) : okR(t.linkedPurchaseOrderId);
+    if (!linked.ok) return linked;
     await tx.update(inventoryTransfers).set({
+      linkedPurchaseOrderId: linked.value,
       originLocationId: origin ?? null, destinationLocationId: dest ?? null, tags: tags.value,
       ...(input.note !== undefined && { note: input.note?.trim() || null }), ...(input.referenceName !== undefined && { referenceName: input.referenceName?.trim() || null }),
       ...(input.dateCreated ? { dateCreated: input.dateCreated } : {}),

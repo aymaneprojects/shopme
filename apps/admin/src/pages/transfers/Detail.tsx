@@ -24,7 +24,7 @@ export interface Shipment {
 interface Line { id: string; title: string | null; totalQuantity: number; shippableQuantity: number; shippedQuantity: number; pickedForShipmentQuantity: number; processableQuantity: number; inventoryItem: { id: string; sku: string | null } | null }
 interface Snap { name: string; location: { id: string } | null; address: { formatted: string[] } }
 export interface TransferDetail {
-  id: string; name: string; status: string; dateCreated: string | null; referenceName: string | null; note: string | null; tags: string[]; totalQuantity: number; receivedQuantity: number;
+  id: string; name: string; status: string; dateCreated: string | null; referenceName: string | null; note: string | null; tags: string[]; totalQuantity: number; receivedQuantity: number; shopmeLinkedPurchaseOrderId?: string | null;
   shopmePurchaseOrderId: string | null; origin: Snap | null; destination: Snap | null; lineItems: { nodes: Line[] }; shipments: { nodes: Shipment[] };
 }
 
@@ -39,7 +39,7 @@ export function TransferDetailPage() {
   if (!tr) return <Banner>{t('transfers.notFound')}</Banner>;
   if (tr.status === 'DRAFT') {
     const draft: TransferDraft = {
-      id: tr.id, origin: tr.origin?.location?.id ?? '', destination: tr.destination?.location?.id ?? '', date: dayValue(tr.dateCreated), reference: tr.referenceName ?? '', note: tr.note ?? '', tags: tr.tags,
+      id: tr.id, origin: tr.origin?.location?.id ?? '', destination: tr.destination?.location?.id ?? '', date: dayValue(tr.dateCreated), reference: tr.referenceName ?? '', note: tr.note ?? '', tags: tr.tags, purchaseOrder: tr.shopmeLinkedPurchaseOrderId ?? '',
       lines: tr.lineItems.nodes.map((l) => ({ itemId: l.inventoryItem?.id ?? '', lineId: l.id, title: l.title ?? '', sku: l.inventoryItem?.sku ?? null, image: null, quantity: String(l.totalQuantity), available: null })),
     };
     return <TransferForm key={q.dataUpdatedAt} initial={draft} />;
@@ -116,6 +116,7 @@ function TransferView({ tr }: { tr: TransferDetail }) {
               <div><dt className="text-xs text-muted">{t('transfers.reference')}</dt><dd>{tr.referenceName ?? '—'}</dd></div>
               {tr.note && <div><dt className="text-xs text-muted">{t('transfers.note')}</dt><dd className="whitespace-pre-wrap">{tr.note}</dd></div>}
               {tr.tags.length > 0 && <div><dt className="text-xs text-muted">{t('field.tags')}</dt><dd>{tr.tags.join(', ')}</dd></div>}
+              {tr.shopmeLinkedPurchaseOrderId && <div><dt className="text-xs text-muted">{t('transfers.purchaseOrder')}</dt><dd><Link className="text-accent hover:underline" to={`/purchase-orders/${gidToNum(tr.shopmeLinkedPurchaseOrderId)}`}>{t('transfers.viewPurchaseOrder')}</Link></dd></div>}
               {tr.shopmePurchaseOrderId && <div><dt className="text-xs text-muted">{t('transfers.purchaseOrder')}</dt><dd><Link className="text-accent hover:underline" to={`/purchase-orders/${gidToNum(tr.shopmePurchaseOrderId)}`}>{t('transfers.viewPurchaseOrder')}</Link></dd></div>}
             </dl>
           </Card>

@@ -1,0 +1,2 @@
+ALTER TABLE "inventory_transfers" ADD COLUMN "linked_purchase_order_id" bigint;--> statement-breakpoint
+ALTER TABLE "inventory_transfers" ADD CONSTRAINT "inventory_transfers_linked_purchase_order_id_purchase_orders_id_fk" FOREIGN KEY ("linked_purchase_order_id") REFERENCES "public"."purchase_orders"("id") ON DELETE set null ON UPDATE no action;

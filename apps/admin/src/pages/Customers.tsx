@@ -150,7 +150,7 @@ interface CustomerData {
   id: string; displayName: string; firstName: string | null; lastName: string | null; locale: string; taxExempt: boolean; note: string | null; tags: string[]; createdAt: string; numberOfOrders: number;
   defaultEmailAddress: { emailAddress: string; marketingState: string } | null; defaultPhoneNumber: { phoneNumber: string } | null; amountSpent: Money;
   addressesV2: { nodes: Array<NonNullable<Parameters<typeof AddressBlock>[0]['a']> & { id: string }> };
-  orders: { nodes: Array<{ id: string; name: string; createdAt: string; displayFinancialStatus: string; displayFulfillmentStatus: string; totalPriceSet: MoneySet }> };
+  orders: { nodes: Array<{ id: string; name: string; createdAt: string; sourceName?: string | null; displayFinancialStatus: string; displayFulfillmentStatus: string; totalPriceSet: MoneySet }> };
 }
 
 export function CustomerDetailPage() {
@@ -217,6 +217,7 @@ function CustomerView({ c }: { c: CustomerData }) {
   const neighbours = { prev: at > 0 ? ids.data!.customers.nodes[at - 1]!.id : null, next: at >= 0 ? ids.data!.customers.nodes[at + 1]?.id ?? null : null };
 
   const lastOrder = c.orders.nodes[0];
+  const channelLabel = (s?: string | null) => (({ web: t('qa.channel.web'), draft: t('qa.channel.draft'), draft_order: t('qa.channel.draft'), shopify_draft_order: t('qa.channel.draft'), manual: t('qa.channel.manual'), pos: t('qa.channel.pos') }) as Record<string, string>)[s ?? 'web'] ?? s ?? '';
   const langName = (() => { try { return new Intl.DisplayNames([lang], { type: 'language' }).of(c.locale || 'en') ?? c.locale; } catch { return c.locale; } })();
   const Section = ({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) => (
     <section className="flex flex-col gap-1.5 py-3 text-[13px] first:pt-0">
@@ -268,7 +269,7 @@ function CustomerView({ c }: { c: CustomerData }) {
                     <FinancialBadge status={lastOrder.displayFinancialStatus} /><FulfillmentBadge status={lastOrder.displayFulfillmentStatus} />
                     <span className="ml-auto text-sm font-semibold">{fmt.money(lastOrder.totalPriceSet)}</span>
                   </div>
-                  <span className="text-muted">{fmt.dateTime(lastOrder.createdAt)}</span>
+                  <span className="text-muted">{t('qa.fromChannel', { date: fmt.dateTime(lastOrder.createdAt), channel: channelLabel(lastOrder.sourceName) })}</span>
                   {x?.lastOrder?.lineItems.nodes.length ? (
                     <ul className="mt-1 flex flex-col gap-1.5 border-t border-line pt-2">
                       {x.lastOrder.lineItems.nodes.map((l) => (

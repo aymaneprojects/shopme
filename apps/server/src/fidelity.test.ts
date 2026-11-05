@@ -80,3 +80,24 @@ describe('shipping label eligibility', () => {
     expect(r.nodes).toEqual([{ id: digital, requiresShipping: false }, { id: parcel, requiresShipping: true }]);
   });
 });
+
+describe('transfer linked to a purchase order', () => {
+  it('links, keeps, unlinks, and refuses an unknown purchase order', async () => {
+    const locs = (await g(`{ locations(first: 5) { nodes { id } } items: inventoryItems(first: 1) { nodes { id } } }`));
+    const sup = await g(`mutation { shopmeSupplierCreate(input: { name: "Link Supply" }) { supplier { id } userErrors { message } } }`);
+    const po = await g(`mutation($i: ShopmePurchaseOrderInput!) { shopmePurchaseOrderCreate(input: $i) { shopmePurchaseOrder { id } userErrors { message } } }`, {
+      i: { supplierId: sup.shopmeSupplierCreate.supplier.id, destinationLocationId: locs.locations.nodes[0].id, lineItems: [{ inventoryItemId: locs.items.nodes[0].id, quantity: 1, unitCost: '1.00' }] },
+    });
+    const poId = po.shopmePurchaseOrderCreate.shopmePurchaseOrder.id;
+    const created = await g(`mutation($i: InventoryTransferCreateInput!) { inventoryTransferCreate(input: $i) { inventoryTransfer { id shopmeLinkedPurchaseOrderId shopmePurchaseOrderId } userErrors { message } } }`, {
+      i: { destinationLocationId: locs.locations.nodes[0].id, shopmeLinkedPurchaseOrderId: poId },
+    });
+    expect(created.inventoryTransferCreate.userErrors).toEqual([]);
+    const tr = created.inventoryTransferCreate.inventoryTransfer;
+    expect(tr).toMatchObject({ shopmeLinkedPurchaseOrderId: poId, shopmePurchaseOrderId: null });
+    const edit = (input: Record<string, unknown>) => g(`mutation($id: ID!, $i: InventoryTransferEditInput!) { inventoryTransferEdit(id: $id, input: $i) { inventoryTransfer { shopmeLinkedPurchaseOrderId } userErrors { field code } } }`, { id: tr.id, i: input });
+    expect((await edit({ note: 'kept' })).inventoryTransferEdit.inventoryTransfer.shopmeLinkedPurchaseOrderId).toBe(poId);
+    expect((await edit({ shopmeLinkedPurchaseOrderId: 'gid://shopify/InventoryPurchaseOrder/999999' })).inventoryTransferEdit.userErrors).toEqual([{ field: ['input', 'shopmeLinkedPurchaseOrderId'], code: 'PURCHASE_ORDER_NOT_FOUND' }]);
+    expect((await edit({ shopmeLinkedPurchaseOrderId: null })).inventoryTransferEdit.inventoryTransfer.shopmeLinkedPurchaseOrderId).toBeNull();
+  });
+});

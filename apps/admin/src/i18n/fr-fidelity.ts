@@ -31,7 +31,7 @@ export const frFidelity: Record<keyof typeof enFidelity, string> = {
   'fid.ship.customFulfillment': 'Traitement personnalisé des commandes', 'fid.ship.customFulfillmentDesc': 'Ajoutez un e-mail pour informer toute personne qui traite des commandes pour vous', 'fid.ship.addService': 'Service de traitement des commandes',
   'fid.rate.fixed': 'Fixe', 'fid.rate.done': 'Terminé', 'fid.rate.searchCollections': 'Rechercher des collections',
   'fid.priv.selfHosted': 'Votre propre serveur (auto-hébergé)',
-  'fid.po.terms': 'Conditions',
+  'fid.po.terms': 'Conditions', 'fid.transfers.linkPo': 'Lier un bon de commande', 'fid.transfers.noPo': 'Aucun bon de commande',
   'fid.mo.pickType': 'Sélectionner le type de champ',
   // éditeur de thème
   'fid.editor.preview': 'Aperçu', 'fid.editor.support': 'Obtenir de l’assistance', 'fid.editor.by': 'Développé par {author}',

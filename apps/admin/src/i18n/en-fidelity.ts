@@ -29,7 +29,7 @@ export const enFidelity = {
   'fid.ship.customFulfillment': 'Custom order fulfillment', 'fid.ship.customFulfillmentDesc': 'Add an email to notify anyone who fulfills orders for you', 'fid.ship.addService': 'Fulfillment service',
   'fid.rate.fixed': 'Fixed', 'fid.rate.done': 'Save', 'fid.rate.searchCollections': 'Search collections',
   'fid.priv.selfHosted': 'Your own server (self-hosted)',
-  'fid.po.terms': 'Terms',
+  'fid.po.terms': 'Terms', 'fid.transfers.linkPo': 'Link a purchase order', 'fid.transfers.noPo': 'No purchase order',
   'fid.mo.pickType': 'Select field type',
   // theme editor
   'fid.editor.preview': 'Preview', 'fid.editor.support': 'Get support', 'fid.editor.by': 'By {author}',
