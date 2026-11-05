@@ -247,7 +247,9 @@
   },
   "localization": {
     "language": "Langue",
-    "update": "Changer de langue"
+    "update": "Changer de langue",
+    "country": "Pays ou région",
+    "update_country": "Changer de pays"
   },
   "gift_card": {
     "title": "Votre carte cadeau {{ shop }}",

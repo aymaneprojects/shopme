@@ -10,7 +10,7 @@ import type { AppContext } from '../context';
 import { CART_COOKIE, customerOf, primaryShop } from '../storefront/env';
 import { CSS, JS } from './assets';
 import { countryName, PROVINCES } from './geo';
-import { checkoutPage, discountMessage, notFoundPage, pageCtx, shippingFragment, summaryFragment, thankYouPage, type PageCtx } from './views';
+import { checkoutPage, discountMessage, inCurrency, notFoundPage, pageCtx, shippingFragment, summaryFragment, thankYouPage, type PageCtx } from './views';
 
 /** Mutable on purpose: tests replace `stripe` with a gateway backed by a fake client. */
 export interface CheckoutPayments { stripe: StripeGateway | null }
@@ -38,11 +38,11 @@ function addressWithRules(b: Body, settings: CheckoutSettings, contactPhone: str
 }
 
 /** Tip choice of the form: `tip` is a preset percentage, `custom` (with `tipCustom` as an amount) or empty for no tip. Undefined when tipping is off or the form has no tip field. */
-function tipPatch(b: Body, shop: Shop, settings: CheckoutSettings): { tipPercent: number | null; tipAmount: number } | undefined {
+async function tipPatch(b: Body, currencyOf: () => Promise<string>, settings: CheckoutSettings): Promise<{ tipPercent: number | null; tipAmount: number } | undefined> {
   if (!settings.tipping.enabled || b.tip === undefined) return undefined;
   const choice = str(b.tip);
   if (choice === 'custom') {
-    try { return { tipPercent: null, tipAmount: parseMoney(str(b.tipCustom).replace(',', '.').trim() || '0', shop.currency) }; } catch { return { tipPercent: null, tipAmount: 0 }; }
+    try { return { tipPercent: null, tipAmount: parseMoney(str(b.tipCustom).replace(',', '.').trim() || '0', await currencyOf()) }; } catch { return { tipPercent: null, tipAmount: 0 }; }
   }
   const pct = Number(choice);
   return Number.isInteger(pct) && settings.tipping.presets.includes(pct) ? { tipPercent: pct, tipAmount: 0 } : { tipPercent: null, tipAmount: 0 };
@@ -97,6 +97,9 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
   const html = (reply: FastifyReply, body: string, status = 200) => reply.code(status).header('cache-control', 'no-store').type('text/html; charset=utf-8').send(body);
 
   /** Settings > Checkout "require sign-in": the buyer must hold a customer session. */
+  /** Presentment currency of the checkout (its cart's currency). */
+  const cartCurrency = (shop: Shop, token: string) => async (): Promise<string> => (await getCartByToken(db, shop.id, token))?.currency ?? shop.currency;
+
   const loginRequired = async (req: FastifyRequest, shop: Shop) => checkoutSettingsOf(shop).accountMode === 'required' && !(await customerOf(ctx, req, shop));
 
   async function pageData(shop: Shop, view: CheckoutView, extra: { errors?: string[]; values?: Body; chosenMethod?: string; marketing?: boolean } = {}) {
@@ -182,7 +185,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       const rate = Number(b.shippingRateId);
       const first = await updateCheckout(db, shop, token, {
         ...(email === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { email: email || null } : {}),
-        address: addressWithRules(b, settings, contact.phone), shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : undefined, ...tipPatch(b, shop, settings),
+        address: addressWithRules(b, settings, contact.phone), shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : undefined, ...(await tipPatch(b, cartCurrency(shop, token), settings)),
         removeDiscountCode: str(b.removeDiscountCode) || undefined, removeGiftCardCode: str(b.removeGiftCardCode) || undefined,
       });
       if (!first.ok) return reply.code(first.error === 'not_found' ? 404 : 409).send({});
@@ -198,7 +201,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       }
       const view = (await loadCheckout(db, shop, token))!;
       return reply.header('cache-control', 'no-store').send({
-        shipping: view.requiresShipping ? shippingFragment(c, view) : undefined, summary: summaryFragment(c, view), total: c.money(view.amountDue),
+        shipping: view.requiresShipping ? shippingFragment(c, view) : undefined, summary: summaryFragment(c, view), total: inCurrency(c, view.currency).money(view.amountDue),
         amount: view.amountDue, free: view.amountDue === 0, payments: true, discountError, giftError,
       });
     });
@@ -259,7 +262,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       };
 
       const rate = Number(b.shippingRateId);
-      const saved = await updateCheckout(db, shop, token, { email: contact.email, address: addressWithRules(b, settings, contact.phone), shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : undefined, ...tipPatch(b, shop, settings) });
+      const saved = await updateCheckout(db, shop, token, { email: contact.email, address: addressWithRules(b, settings, contact.phone), shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : undefined, ...(await tipPatch(b, cartCurrency(shop, token), settings)) });
       if (!saved.ok) return saved.error === 'completed' ? reply.redirect(`/checkouts/${token}/thank-you`, 303) : fail([saved.error === 'invalid_email' ? c.t(settings.contactMethod === 'email_or_phone' ? 'err_contact' : 'err_email') : c.t('err_generic')]);
 
       let clientSecret = '';

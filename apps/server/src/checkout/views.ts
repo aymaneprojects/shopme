@@ -1,5 +1,5 @@
 import type { PaymentProvider } from '@shopme/payments';
-import type { CheckoutAddressInput, CheckoutView, DiscountRejection, GiftCardRejection, OrderSummary, Shop } from '@shopme/core';
+import { lineMoney, moneyFormatsFor, orderMoney, type CheckoutAddressInput, type CheckoutView, type DiscountRejection, type GiftCardRejection, type OrderSummary, type Shop } from '@shopme/core';
 import { renderMoneyFormat } from '@shopme/shopify-compat';
 import { countryOptions, PROVINCES } from './geo';
 import { translator, type T } from './i18n';
@@ -9,10 +9,14 @@ const attr = (v: unknown) => esc(v);
 
 export interface PageCtx { shop: Shop; t: T; lang: string; money: (n: number) => string }
 
-export function pageCtx(shop: Shop): PageCtx {
+export function pageCtx(shop: Shop, currency = shop.currency): PageCtx {
   const { t, lang } = translator(shop.locale);
-  return { shop, t, lang, money: (n) => renderMoneyFormat(shop.moneyFormat, n, shop.currency) };
+  const f = moneyFormatsFor(shop, currency);
+  return { shop, t, lang, money: (n) => renderMoneyFormat(f.format, n, currency) };
 }
+
+/** The same page context formatting money in the currency of a checkout or order (the buyer's presentment currency). */
+export const inCurrency = (c: PageCtx, currency: string): PageCtx => (currency === c.shop.currency ? c : { ...c, money: pageCtx(c.shop, currency).money });
 
 function layout(c: PageCtx, title: string, body: string, opts: { script?: boolean } = {}): string {
   return `<!doctype html><html lang="${c.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -26,14 +30,16 @@ export function notFoundPage(c: PageCtx): string {
 
 // --- fragments (also returned as JSON by the live refresh) -----------------------------------------------------------
 
-export function shippingFragment(c: PageCtx, v: CheckoutView): string {
+export function shippingFragment(c0: PageCtx, v: CheckoutView): string {
+  const c = inCurrency(c0, v.currency);
   if (!v.address?.countryCode) return `<p class="note">${esc(c.t('shippingEnter'))}</p>`;
   if (!v.shippingOptions.length) return `<p class="note">${esc(c.t('shippingNone'))}</p>`;
   return `<div class="options" role="radiogroup">${v.shippingOptions.map((o) =>
     `<label class="option"><input type="radio" name="shippingRateId" value="${o.id}"${o.id === v.shippingRateId ? ' checked' : ''}><span class="grow">${esc(o.name)}</span><span class="price">${o.price ? esc(c.money(o.price)) : esc(c.t('free'))}</span></label>`).join('')}</div>`;
 }
 
-export function summaryFragment(c: PageCtx, v: CheckoutView): string {
+export function summaryFragment(c0: PageCtx, v: CheckoutView): string {
+  const c = inCurrency(c0, v.currency);
   const p = v.pricing;
   const lines = v.lines.map((l) => {
     const pl = p.lines.find((x) => x.id === l.lineId)!;
@@ -80,7 +86,8 @@ export interface PageData {
   chosenMethod?: string;
 }
 
-export function checkoutPage(c: PageCtx, d: PageData): string {
+export function checkoutPage(c0: PageCtx, d: PageData): string {
+  const c = inCurrency(c0, d.view.currency);
   const { t } = c;
   const v = d.view;
   const a: CheckoutAddressInput = v.address ?? {};
@@ -169,16 +176,17 @@ export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: stri
   const paid = o.order.financialStatus === 'PAID';
   const a = o.shippingAddress;
   const addr = a ? [[a.firstName, a.lastName].filter(Boolean).join(' '), a.company, a.address1, a.address2, [a.zip, a.city].filter(Boolean).join(' '), a.province, a.country ?? a.countryCode].filter(Boolean) : [];
-  const money = (n: number) => renderMoneyFormat(c.shop.moneyFormat, n, o.order.currency);
-  const lines = o.lines.map((l) => `<li class="line"><div class="thumb">${l.imageUrl ? `<img src="${attr(l.imageUrl)}" alt="" width="64" height="64">` : ''}<span class="qty">${l.quantity}</span></div><div class="grow">${esc(l.title)}${l.variantTitle ? `<small>${esc(l.variantTitle)}</small>` : ''}</div><div>${esc(money(l.discountedTotal))}</div></li>`).join('');
+  const om = orderMoney(o.order);
+  const money = inCurrency(c, om.currency).money;
+  const lines = o.lines.map((l) => `<li class="line"><div class="thumb">${l.imageUrl ? `<img src="${attr(l.imageUrl)}" alt="" width="64" height="64">` : ''}<span class="qty">${l.quantity}</span></div><div class="grow">${esc(l.title)}${l.variantTitle ? `<small>${esc(l.variantTitle)}</small>` : ''}</div><div>${esc(money(lineMoney(o.order, l).discountedTotal))}</div></li>`).join('');
   const o2 = o.order;
   const giftPaid = o.transactions.filter((x) => x.gateway === 'gift_card' && x.status === 'SUCCESS' && x.kind === 'SALE').reduce((n, x) => n + x.amount, 0);
-  const totals = `<dl class="totals"><div><dt>${esc(t('subtotal'))}</dt><dd>${esc(money(o2.subtotal))}</dd></div>`
-    + (o2.totalDiscounts ? `<div><dt>${esc(t('discount'))}</dt><dd>-${esc(money(o2.totalDiscounts))}</dd></div>` : '')
-    + (o.shippingLines.length ? `<div><dt>${esc(o.shippingLines[0]!.title)}</dt><dd>${o2.totalShipping ? esc(money(o2.totalShipping)) : esc(t('free'))}</dd></div>` : '')
-    + (o2.totalTax ? `<div><dt>${esc(t(o2.taxesIncluded ? 'includedTaxes' : 'taxes'))}</dt><dd>${esc(money(o2.totalTax))}</dd></div>` : '')
-    + (o2.totalTip ? `<div><dt>${esc(t('tipLine'))}</dt><dd>${esc(money(o2.totalTip))}</dd></div>` : '')
-    + `<div class="grand"><dt>${esc(t('total'))}</dt><dd>${esc(money(o2.total))}</dd></div>`
+  const totals = `<dl class="totals"><div><dt>${esc(t('subtotal'))}</dt><dd>${esc(money(om.subtotal))}</dd></div>`
+    + (om.discounts ? `<div><dt>${esc(t('discount'))}</dt><dd>-${esc(money(om.discounts))}</dd></div>` : '')
+    + (o.shippingLines.length ? `<div><dt>${esc(o.shippingLines[0]!.title)}</dt><dd>${om.shipping ? esc(money(om.shipping)) : esc(t('free'))}</dd></div>` : '')
+    + (om.tax ? `<div><dt>${esc(t(o2.taxesIncluded ? 'includedTaxes' : 'taxes'))}</dt><dd>${esc(money(om.tax))}</dd></div>` : '')
+    + (om.tip ? `<div><dt>${esc(t('tipLine'))}</dt><dd>${esc(money(om.tip))}</dd></div>` : '')
+    + `<div class="grand"><dt>${esc(t('total'))}</dt><dd>${esc(money(om.total))}</dd></div>`
     + (giftPaid ? `<div><dt>${esc(t('giftCard'))}</dt><dd>-${esc(money(giftPaid))}</dd></div>` : '') + `</dl>`;
   const online = gateway === 'stripe';
   const notes = [

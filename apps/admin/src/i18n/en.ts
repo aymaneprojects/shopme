@@ -12,6 +12,7 @@ import { enUx } from './en-ux';
 import { enViews } from './en-views';
 import { enEditor } from './en-editor';
 import { enTimeline } from './en-timeline';
+import { enMarkets } from './en-markets';
 export const en = {
   'common.back': 'Back', 'common.cancel': 'Cancel', 'common.close': 'Close', 'common.delete': 'Delete', 'common.loading': 'Loading…',
   'common.moreActions': 'More actions', 'common.next': 'Next', 'common.previous': 'Previous', 'common.remove': 'Remove',
@@ -113,6 +114,7 @@ export const en = {
   ...enPublishing,
   ...enViews,
   ...enCheckout,
+  ...enMarkets,
 } as const;
 
 export type Key = keyof typeof en;

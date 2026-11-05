@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm';
-import { schema as s, searchProducts, type Db } from '@shopme/core';
+import { isIdentity, priceVariants, schema as s, searchProducts, type Db, type MarketContext } from '@shopme/core';
 import { loadMetafields } from './metafields';
 import type { Image, ProductObject, VariantObject } from './types';
 
@@ -32,10 +32,10 @@ export async function variantStock(db: Db, shopId: number, productIds: number[])
 }
 
 /** Build Liquid product objects (with variants, options, images) for the given ids, in the given order. */
-export async function loadProducts(db: Db, shopId: number, ids: number[], opts: { selectedVariantId?: number } = {}): Promise<ProductObject[]> {
+export async function loadProducts(db: Db, shopId: number, ids: number[], opts: { selectedVariantId?: number; /** Buyer market: prices come out in its currency. */ pricing?: MarketContext } = {}): Promise<ProductObject[]> {
   if (!ids.length) return [];
   const prods = await db.select().from(s.products).where(and(eq(s.products.shopId, shopId), inArray(s.products.id, ids)));
-  const [variants, optionRows, valueRows, vov, mediaRows, items, stock, productMf] = await Promise.all([
+  const [variantRows, optionRows, valueRows, vov, mediaRows, items, stock, productMf] = await Promise.all([
     db.select().from(s.productVariants).where(inArray(s.productVariants.productId, ids)).orderBy(asc(s.productVariants.position), asc(s.productVariants.id)),
     db.select().from(s.productOptions).where(inArray(s.productOptions.productId, ids)).orderBy(asc(s.productOptions.position)),
     db.select({ v: s.productOptionValues, productId: s.productOptions.productId }).from(s.productOptionValues).innerJoin(s.productOptions, eq(s.productOptions.id, s.productOptionValues.optionId)).where(inArray(s.productOptions.productId, ids)).orderBy(asc(s.productOptionValues.position)),
@@ -46,6 +46,8 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
     variantStock(db, shopId, ids),
     loadMetafields(db, shopId, 'PRODUCT', ids),
   ]);
+  const priced = opts.pricing && !isIdentity(opts.pricing) ? await priceVariants(db, shopId, opts.pricing, variantRows.map((v) => ({ id: v.id, price: v.price, compareAt: v.compareAtPrice }))) : null;
+  const variants = priced ? variantRows.map((v) => { const p = priced.get(v.id); return p ? { ...v, price: p.price, compareAtPrice: p.compareAt } : v; }) : variantRows;
   const variantMf = await loadMetafields(db, shopId, 'PRODUCTVARIANT', variants.map((v) => v.id));
   const grams: Record<string, number> = { GRAMS: 1, KILOGRAMS: 1000, POUNDS: 453.59237, OUNCES: 28.349523125 };
   const byId = new Map(prods.map((p) => [p.id, p]));
@@ -100,7 +102,7 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
 }
 
 /** `includeInactive` lets signed-in staff preview drafts and archived products. */
-export async function getProductByHandle(db: Db, shopId: number, handle: string, opts: { selectedVariantId?: number; includeInactive?: boolean } = {}): Promise<ProductObject | null> {
+export async function getProductByHandle(db: Db, shopId: number, handle: string, opts: { selectedVariantId?: number; includeInactive?: boolean; pricing?: MarketContext } = {}): Promise<ProductObject | null> {
   const [p] = await db.select({ id: s.products.id }).from(s.products).where(and(eq(s.products.shopId, shopId), eq(s.products.handle, handle), opts.includeInactive ? undefined : eq(s.products.status, 'ACTIVE'))).limit(1);
   return p ? (await loadProducts(db, shopId, [p.id], opts))[0] ?? null : null;
 }

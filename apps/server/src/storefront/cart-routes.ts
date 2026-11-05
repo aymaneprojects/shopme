@@ -3,6 +3,7 @@ import { addItems, cartBadRequest, changeLine, clearCart, createCart, getCartByT
 import type { AppContext } from '../context';
 import { ajaxCart, ajaxLine, changeEntry } from './cart-format';
 import { CART_COOKIE, customerOf, primaryShop } from './env';
+import { buyerContext, cartCountryOf, syncCartToBuyer } from './market';
 import type { SectionRenderer } from './pages';
 
 const JS = 'text/javascript; charset=utf-8';
@@ -50,8 +51,10 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
   async function cartFor(req: FastifyRequest, reply: FastifyReply, shop: Shop): Promise<CartView> {
     const raw = req.cookies[CART_COOKIE];
     const existing = raw ? await getCartByToken(db, shop.id, raw.split('?')[0]!.split('%3F')[0]!) : null;
-    if (existing) return existing;
-    const cart = await createCart(db, shop.id, shop.currency);
+    if (existing) return syncCartToBuyer(ctx, req, shop, existing);
+    const m = await buyerContext(ctx, req, shop);
+    const country = cartCountryOf(req, m);
+    const cart = await createCart(db, shop.id, country ? m.currency : shop.currency, country ? m : null);
     setCookie(reply, cart);
     return cart;
   }
@@ -90,7 +93,9 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
     const shop = await primaryShop(ctx);
     if (!shop) return reply.code(503).send({ error: 'Store is not set up' });
     const raw = req.cookies[CART_COOKIE];
-    const cart = (raw ? await getCartByToken(db, shop.id, raw.split('?')[0]!.split('%3F')[0]!) : null) ?? { id: 0, token: newCartToken(), note: null, attributes: {}, currency: shop.currency, discountCodes: [], lines: [] } satisfies CartView;
+    const found = raw ? await getCartByToken(db, shop.id, raw.split('?')[0]!.split('%3F')[0]!) : null;
+    const m = await buyerContext(ctx, req, shop);
+    const cart = found ? await syncCartToBuyer(ctx, req, shop, found) : { id: 0, token: newCartToken(), note: null, attributes: {}, currency: m.currency, countryCode: null, marketId: m.marketId, shopCurrency: shop.currency, rate: m.rate, discountCodes: [], lines: [] } satisfies CartView;
     return reply.type(req.url.split('?')[0]!.endsWith('.json') ? 'application/json; charset=utf-8' : JS).send(JSON.stringify(await priced(req, shop, cart)));
   };
   app.get('/cart.js', getCart);

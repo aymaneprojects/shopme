@@ -12,7 +12,7 @@ import { builder } from '../builder';
 import type { GraphQLContext } from '../context';
 import { PageInfo, defineConnection, type Connection } from './connection';
 import { DisplayableError } from './errors';
-import { ERROR_CODES } from './error-codes';
+import { CODE_FALLBACKS, ERROR_CODES } from './error-codes';
 
 export const Product_ = builder.objectRef<Product>('Product');
 export const ProductVariant = builder.objectRef<Variant>('ProductVariant');
@@ -99,7 +99,7 @@ export function typedError(name: ErrorName) {
     ref = builder.objectRef<UserErrorShape>(typeName);
     ref.implement({
       interfaces: [DisplayableError],
-      fields: (t) => ({ code: t.field({ type: Code, nullable: true, resolve: (e) => (e.code && values.includes(e.code) ? e.code : null) as never }) }),
+      fields: (t) => ({ code: t.field({ type: Code, nullable: true, resolve: (e) => (e.code && values.includes(e.code) ? e.code : e.code && CODE_FALLBACKS[e.code] && values.includes(CODE_FALLBACKS[e.code]!) ? CODE_FALLBACKS[e.code] : null) as never }) }),
     });
     errorTypes.set(typeName, ref);
   }

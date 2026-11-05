@@ -1,5 +1,5 @@
 import { Skeleton, cx } from '@shopme/ui';
-import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, PanelLeft } from 'lucide-react';
+import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, PanelLeft, Globe, BookOpen } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import type { ComponentType } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
@@ -29,6 +29,7 @@ export const NAV: NavItem[] = [
   },
   { id: 'customers', labelKey: 'nav.customers', to: '/customers', icon: Users, children: [{ id: 'segments', labelKey: 'nav.segments', to: '/customers/segments', icon: Users }] },
   { id: 'analytics', labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, children: [{ id: 'reports', labelKey: 'nav.reports', to: '/analytics/reports', icon: FileText }] },
+  { id: 'markets', labelKey: 'nav.markets', to: '/markets', icon: Globe, children: [{ id: 'catalogs', labelKey: 'nav.catalogs', to: '/markets/catalogs', icon: BookOpen }] },
   { id: 'discounts', labelKey: 'nav.discounts', to: '/discounts', icon: Percent },
   { id: 'online-store', labelKey: 'nav.onlineStore', to: '/online-store', icon: Store },
   { id: 'settings', labelKey: 'nav.settings', to: '/settings', icon: Settings },

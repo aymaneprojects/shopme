@@ -5,6 +5,7 @@ import { registerBlogRoutes } from './blogs';
 import { registerCartRoutes } from './cart-routes';
 import { registerFormRoutes } from './forms';
 import { registerLocalizationRoutes } from './locale';
+import { registerCountryParam } from './market';
 import { registerGiftCardRoutes } from './gift-cards';
 import { registerSeoRoutes } from './seo';
 import { registerVisitTracking } from './visits';
@@ -30,6 +31,7 @@ export async function registerStorefront(app: FastifyInstance): Promise<void> {
     });
     await scope.register(multipart, { attachFieldsToBody: 'keyValues', limits: { fileSize: 1024 * 1024, files: 0 } });
     registerVisitTracking(scope, ctx);
+    registerCountryParam(scope, ctx);
     registerLocalizationRoutes(scope, ctx);
     registerCartRoutes(scope, ctx, content.renderSections);
     registerAccountRoutes(scope, ctx, content);

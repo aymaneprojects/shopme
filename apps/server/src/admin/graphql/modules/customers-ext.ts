@@ -109,16 +109,7 @@ builder.mutationFields((t) => ({
 
 /* ------------------------------ Shop ------------------------------ */
 
-interface CurrencySettingShape { currencyCode: string; enabled: boolean }
-const CurrencySetting = builder.objectRef<CurrencySettingShape>('CurrencySetting').implement({
-  fields: (t) => ({
-    currencyCode: t.field({ type: CurrencyCode, resolve: (c) => c.currencyCode }),
-    currencyName: t.string({ resolve: (c) => new Intl.DisplayNames(['en'], { type: 'currency' }).of(c.currencyCode) ?? c.currencyCode }),
-    enabled: t.exposeBoolean('enabled'),
-    rateUpdatedAt: t.field({ type: 'DateTime', nullable: true, resolve: () => null }),
-  }),
-});
-const CurrencySettingConnection = defineConnection('CurrencySetting', CurrencySetting);
+// `CurrencySetting`, `Shop.currencySettings` and `Shop.enabledPresentmentCurrencies` live in markets.ts.
 const ShopPlan = builder.objectRef<Record<string, never>>('ShopPlan').implement({
   fields: (t) => ({
     displayName: t.string({ resolve: () => 'ShopMe' }), partnerDevelopment: t.boolean({ resolve: () => false }), shopifyPlus: t.boolean({ resolve: () => false }),
@@ -142,8 +133,6 @@ const offsetMinutes = (tz: string): number => {
 
 builder.objectFields(Shop, (t) => ({
   shopAddress: t.field({ type: ShopAddress, resolve: (s) => shopAddressOf(s) }),
-  currencySettings: t.field({ type: CurrencySettingConnection, args: ConnectionArgs, resolve: (s, a) => paginateArray(a, [{ currencyCode: s.currency, enabled: true }]) }),
-  enabledPresentmentCurrencies: t.field({ type: [CurrencyCode], resolve: (s) => [s.currency] }),
   plan: t.field({ type: ShopPlan, resolve: () => ({}) }),
   features: t.field({ type: ShopFeatures, resolve: () => ({}) }),
   setupRequired: t.boolean({ resolve: () => false }),

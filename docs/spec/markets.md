@@ -1,6 +1,6 @@
 # Markets and multi-currency
 
-Status: draft for implementation. API version studied: 2026-10. Names of types, fields, enums and mutations are listed for
+Status: MVP implemented (markets with country regions, per-market currency with manual rate and rounding, catalogs and price lists with percentage adjustment and fixed prices, price resolution in Liquid, the Ajax cart, cart, checkout and orders, `contextualPricing`, admin Markets and Catalogs pages). Later items in section 5.3 and 9 are open: web presences, market translations, subdivision regions, per-catalog publications, duties, market-scoped discounts, geolocation, live exchange rates. API version studied: 2026-10. Names of types, fields, enums and mutations are listed for
 interoperability only; all behavior text is our own. Admin screens were observed on our own development store (section 3.1).
 
 ## 1. Purpose

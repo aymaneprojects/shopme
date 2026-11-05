@@ -71,6 +71,7 @@ export async function refundOrder(db: Db, shopId: number, orderId: number, input
         const gateway = t.gateway ?? parent?.gateway ?? sale?.gateway ?? 'manual';
         return {
           shopId, orderId, kind: 'REFUND', status: 'SUCCESS', gateway, amount: t.amount, currency: order.currency, test: order.test,
+          ...(order.presentmentMoney && order.total > 0 ? { presentmentAmount: Math.round((t.amount * order.presentmentMoney.total) / order.total), presentmentCurrency: order.presentmentCurrency } : {}),
           parentId: t.parentId ?? (gateway === 'gift_card' ? null : sale?.id ?? null), giftCardId: gateway === 'gift_card' ? parent?.giftCardId ?? null : null, processedAt: now, createdAt: now,
         };
       })).returning()

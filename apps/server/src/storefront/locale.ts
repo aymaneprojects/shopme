@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { AppContext } from '../context';
-import { normalizeLocale } from '@shopme/core';
-import { primaryShop } from './env';
+import { getCartByToken, isCountryCode, normalizeLocale, resolveMarketContext, setCartContext } from '@shopme/core';
+import { CART_COOKIE, primaryShop } from './env';
+import { setCountryCookie } from './market';
 
 /** Paths that never carry a locale prefix (assets, uploads, admin, checkout, the switch itself). */
 const UNPREFIXED = /^\/(cdn|files|admin|checkouts?|checkout-assets|localization|csp-report)(?=[/?#]|$)/;
@@ -28,6 +29,17 @@ export function registerLocalizationRoutes(scope: FastifyInstance, ctx: AppConte
     const wanted = shop && code ? ctx.locales.locales.find((l) => l.locale === code) : undefined;
     let back = typeof body.return_to === 'string' ? body.return_to : '/';
     if (!back.startsWith('/') || back.startsWith('//') || back.includes('\\')) back = '/';
+    // Country (and so currency): remembered in a cookie, and the open cart is re-priced for it.
+    const country = typeof body.country_code === 'string' ? body.country_code.trim().toUpperCase() : '';
+    if (shop && isCountryCode(country)) {
+      setCountryCookie(ctx, reply, country);
+      const raw = req.cookies[CART_COOKIE];
+      const cart = raw ? await getCartByToken(ctx.db, shop.id, raw.split('?')[0]!.split('%3F')[0]!) : null;
+      if (cart) {
+        const m = await resolveMarketContext(ctx.db, shop, country);
+        await setCartContext(ctx.db, shop.id, cart.id, m, shop.currency);
+      }
+    }
     if (!wanted) return reply.redirect(back, 302);
     // Drop a prefix the page already had, then add the new one.
     const m = /^\/([A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?)(?=[/?#]|$)/.exec(back);

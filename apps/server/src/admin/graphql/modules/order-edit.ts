@@ -2,6 +2,7 @@ import {
   addEditDiscount, addVariantToEdit, approveReturn, beginOrderEdit, calculateOrderEdit, closeReturn, commitOrderEdit, createReturn, discardOrderEdit, getOrder, getOrderEdit, getReturn, getVariant, listReturns,
   returnableQuantities, schema, setEditQuantity, RETURN_REASONS, type CalculatedLine, type CalculatedOrder, type Order as OrderRow, type ReturnLine, type ReturnWithLines,
 } from '@shopme/core';
+import { presentmentShare } from '@shopme/core';
 import { and, eq } from 'drizzle-orm';
 import { parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
@@ -19,7 +20,7 @@ import { LineItem, PricingValue, type LineShape } from './orders';
 
 const staffOf = (ctx: GraphQLContext) => (ctx.auth.kind === 'session' ? ctx.auth.user.id : null);
 const fail = (field: string[], message: string, code?: string): UserError[] => [{ field, message, ...(code ? { code } : {}) }];
-const bag = (o: OrderRow, minor: number): MoneyBagShape => moneyBag(minor, o.currency, { minor: Math.round(minor * o.currencyRate), currency: o.presentmentCurrency });
+const bag = (o: OrderRow, minor: number): MoneyBagShape => moneyBag(minor, o.currency, { minor: presentmentShare(o, minor), currency: o.presentmentMoney ? o.presentmentCurrency : o.currency });
 
 /* ------------------------------ order editing ------------------------------ */
 

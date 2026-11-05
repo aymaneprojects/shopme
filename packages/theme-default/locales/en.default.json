@@ -234,7 +234,9 @@
   },
   "localization": {
     "language": "Language",
-    "update": "Update language"
+    "update": "Update language",
+    "country": "Country or region",
+    "update_country": "Update country"
   },
   "gift_card": {
     "title": "Your {{ shop }} gift card",

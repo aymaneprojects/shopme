@@ -1,7 +1,7 @@
 import { loadMetafields } from './metafields';
 import { inArray } from 'drizzle-orm';
 import { lazyList } from '@shopme/liquid-compat';
-import { countCustomerOrders, listAddressBook, listCustomerOrders, schema as s, type Customer, type CustomerAddress, type Db, type Order, type OrderDetail, type Shop } from '@shopme/core';
+import { countCustomerOrders, lineMoney, orderMoney, presentmentShare, listAddressBook, listCustomerOrders, schema as s, type Customer, type CustomerAddress, type Db, type Order, type OrderDetail, type Shop } from '@shopme/core';
 import { countryName } from '../../checkout/geo';
 
 /** Liquid `customer`, `customer.orders`, `order` and address objects. Money is integer minor units. */
@@ -47,25 +47,27 @@ export function orderObject(o: Order, shop: Shop, d?: OrderDetail, handles: Map<
   const fs = fulfillmentLabel(o);
   const cancel = o.cancelReason ? STATUS_LOWER(o.cancelReason) : null;
   const fin = STATUS_LOWER(o.financialStatus);
+  const om = orderMoney(o);
   return {
-    id: o.id, name: o.name, order_number: o.orderNumber, email: o.email, phone: o.phone, currency: o.currency, created_at: o.processedAt.toISOString(), processed_at: o.processedAt.toISOString(),
+    id: o.id, name: o.name, order_number: o.orderNumber, email: o.email, phone: o.phone, currency: om.currency, created_at: o.processedAt.toISOString(), processed_at: o.processedAt.toISOString(),
     customer_url: `/account/orders/${o.id}`, financial_status: fin, financial_status_label: label(shop, fin), fulfillment_status: fs === 'unfulfilled' ? 'unfulfilled' : fs, fulfillment_status_label: label(shop, fs),
     cancelled: !!o.cancelledAt, cancelled_at: o.cancelledAt?.toISOString() ?? null, cancel_reason: cancel, cancel_reason_label: cancel ? label(shop, cancel) : null,
-    subtotal_price: o.subtotal, total_price: o.total, total_discounts: o.totalDiscounts, shipping_price: o.totalShipping, tax_price: o.totalTax, total_refunded_amount: o.totalRefunded, taxes_included: o.taxesIncluded, note: o.note, tags: o.tags,
+    subtotal_price: om.subtotal, total_price: om.total, total_discounts: om.discounts, shipping_price: om.shipping, tax_price: om.tax, total_refunded_amount: om.refunded, taxes_included: o.taxesIncluded, note: o.note, tags: o.tags,
     line_items: (d?.lines ?? []).map((l) => {
-      const finalLine = l.discountedTotal;
-      const original = l.unitPrice * l.quantity;
+      const lm = lineMoney(o, l);
+      const finalLine = lm.discountedTotal;
+      const original = lm.unitPrice * l.quantity;
       return {
-        id: l.id, title: l.title, product_title: l.title, variant_title: l.variantTitle, quantity: l.quantity, sku: l.sku ?? '', vendor: l.vendor ?? '', price: l.unitPrice, original_price: l.unitPrice,
+        id: l.id, title: l.title, product_title: l.title, variant_title: l.variantTitle, quantity: l.quantity, sku: l.sku ?? '', vendor: l.vendor ?? '', price: lm.unitPrice, original_price: lm.unitPrice,
         final_price: l.quantity ? Math.round(finalLine / l.quantity) : 0, line_price: finalLine, original_line_price: original, final_line_price: finalLine, total_discount: original - finalLine,
         url: l.productId && handles.has(l.productId) ? `/products/${handles.get(l.productId)}` : null, product_id: l.productId, variant_id: l.variantId, properties: l.properties, requires_shipping: l.requiresShipping,
         image: l.imageUrl ? { src: l.imageUrl, url: l.imageUrl, alt: l.title, width: null, height: null } : null,
         fulfillment: null, 'fulfillment_status': l.fulfilledQuantity >= l.quantity ? 'fulfilled' : l.fulfilledQuantity > 0 ? 'partial' : 'unfulfilled', gift_card: l.isGiftCard, line_level_discount_allocations: [],
       };
     }),
-    shipping_address: addr(d?.shippingAddress ?? null), billing_address: addr(d?.billingAddress ?? null), shipping_methods: (d?.shippingLines ?? []).map((l) => ({ title: l.title, price: l.price })),
-    tax_lines: (d?.taxLines ?? []).map((t) => ({ title: t.title, price: t.price, rate: t.rate / 100, rate_percentage: t.rate })),
-    discount_applications: (d?.discounts ?? []).map((a) => ({ title: a.title ?? a.code ?? '', total_allocated_amount: a.allocatedAmount, type: a.code ? 'discount_code' : 'automatic' })),
+    shipping_address: addr(d?.shippingAddress ?? null), billing_address: addr(d?.billingAddress ?? null), shipping_methods: (d?.shippingLines ?? []).map((l, _i, all) => ({ title: l.title, price: all.length === 1 ? om.shipping : presentmentShare(o, l.price) })),
+    tax_lines: (d?.taxLines ?? []).map((t) => ({ title: t.title, price: presentmentShare(o, t.price), rate: t.rate / 100, rate_percentage: t.rate })),
+    discount_applications: (d?.discounts ?? []).map((a) => ({ title: a.title ?? a.code ?? '', total_allocated_amount: presentmentShare(o, a.allocatedAmount), type: a.code ? 'discount_code' : 'automatic' })),
     fulfillments: (d?.fulfillments ?? []).filter((f) => f.status === 'SUCCESS').map((f) => ({
       name: f.name, created_at: f.createdAt.toISOString(), tracking_company: f.trackingCompany ?? '', tracking_number: f.trackingNumbers[0] ?? '', tracking_numbers: f.trackingNumbers, tracking_url: f.trackingUrls[0] ?? '', tracking_urls: f.trackingUrls,
       item_count: f.lines.reduce((n, l) => n + l.quantity, 0),
