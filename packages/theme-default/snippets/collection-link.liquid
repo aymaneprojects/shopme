@@ -1,0 +1,27 @@
+{%- doc -%}
+  Link to a collection, as a spotlight card, a pill or a text link.
+  @param {collection} link_collection - the collection
+  @param {string} [label] - overrides the title
+  @param {image} [image] - overrides the collection image
+  @param {string} [layout] - spotlight | pills | list
+{%- enddoc -%}
+{%- liquid
+  assign title = label | default: link_collection.title
+  assign picture = image | default: link_collection.image
+-%}
+{%- if layout == 'spotlight' -%}
+  <a class="spotlight" href="{{ link_collection.url }}">
+    <span class="spotlight__media">
+      {%- if picture -%}
+        {{ picture | image_url: width: 240 | image_tag: loading: 'lazy', alt: title }}
+      {%- else -%}
+        {{ 'collection-1' | placeholder_svg_tag: 'spotlight__placeholder' }}
+      {%- endif -%}
+    </span>
+    <span class="spotlight__title">{{ title | escape }}</span>
+  </a>
+{%- elsif layout == 'pills' -%}
+  <a class="chip" href="{{ link_collection.url }}">{{ title | escape }}</a>
+{%- else -%}
+  <a class="link-arrow" href="{{ link_collection.url }}">{{ title | escape }}</a>
+{%- endif -%}

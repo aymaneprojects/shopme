@@ -54,6 +54,18 @@ export const themes = pgTable('themes', {
   ...timestamps(),
 });
 
+/** Earlier contents of a text theme file (what the code editor lists as the file's history, newest first). */
+export const themeFileVersions = pgTable('theme_file_versions', {
+  id: pk(), shopId: shopFk(),
+  themeId: ref('theme_id').notNull().references(() => themes.id, { onDelete: 'cascade' }),
+  path: text('path').notNull(),
+  body: text('body').notNull(),
+  checksum: text('checksum').notNull(),
+  sizeBytes: integer('size_bytes').notNull().default(0),
+  staffUserId: ref('staff_user_id'),
+  createdAt: createdAt(),
+}, (t) => [index('theme_file_versions_file_idx').on(t.themeId, t.path, t.createdAt)]);
+
 /** Theme files stored in the database (liquid, json, css, js, svg as text; binaries via storage_key). */
 export const themeFiles = pgTable('theme_files', {
   themeId: ref('theme_id').notNull().references(() => themes.id, { onDelete: 'cascade' }),

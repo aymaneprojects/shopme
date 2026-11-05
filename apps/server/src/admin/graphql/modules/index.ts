@@ -36,6 +36,7 @@ import './content';
 import './blogs';
 import './redirects';
 import './themes';
+import './theme-code';
 import './analytics';
 import './draft-orders';
 import './staff';

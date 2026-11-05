@@ -1,0 +1,51 @@
+{%- doc -%}
+  An image (optionally a different one on mobile) or a video: YouTube, Vimeo or a direct MP4/WebM address.
+  @param {string} [media_type] - image | video
+  @param {image} [image] - the image (also the poster of a video file)
+  @param {image} [mobile_image] - the image shown below 750px
+  @param {boolean} [use_mobile] - whether the mobile image is used
+  @param {string} [video_url] - video address
+  @param {boolean} [controls] - show the player controls
+  @param {boolean} [autoplay] - start muted on load (always on when controls are off)
+  @param {boolean} [eager] - load the image right away
+  @param {string} [sizes] - image sizes attribute
+{%- enddoc -%}
+{%- liquid
+  assign url = video_url | strip
+  assign loading_mode = 'lazy'
+  if eager
+    assign loading_mode = 'eager'
+  endif
+  assign play = autoplay
+  unless controls
+    assign play = true
+  endunless
+-%}
+{%- if media_type == 'video' and url != blank -%}
+  {%- if url contains 'youtube.com' or url contains 'youtu.be' -%}
+    {%- liquid
+      assign vid = url | split: 'v=' | last | split: '&' | first
+      if url contains 'youtu.be/'
+        assign vid = url | split: 'youtu.be/' | last | split: '?' | first
+      elsif url contains '/embed/' or url contains '/shorts/'
+        assign vid = url | split: '/' | last | split: '?' | first
+      endif
+      assign vid = vid | escape
+    -%}
+    <iframe class="media-video" src="https://www.youtube-nocookie.com/embed/{{ vid }}?playsinline=1{% if play %}&autoplay=1&mute=1&loop=1&playlist={{ vid }}{% endif %}{% unless controls %}&controls=0{% endunless %}" title="{{ 'media.video' | t }}" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+  {%- elsif url contains 'vimeo.com' -%}
+    {%- assign vid = url | split: 'vimeo.com/' | last | split: '?' | first | split: '/' | last | escape -%}
+    <iframe class="media-video" src="https://player.vimeo.com/video/{{ vid }}?{% if play %}autoplay=1&muted=1&loop=1&{% endif %}{% unless controls %}background=1{% endunless %}" title="{{ 'media.video' | t }}" loading="lazy" allow="autoplay; picture-in-picture" allowfullscreen></iframe>
+  {%- else -%}
+    <video class="media-video" src="{{ url | escape }}" playsinline{% if play %} autoplay muted loop{% endif %}{% if controls %} controls{% endif %}{% if image %} poster="{{ image | image_url: width: 1600 }}"{% endif %} preload="metadata"></video>
+  {%- endif -%}
+{%- elsif image -%}
+  {%- if use_mobile and mobile_image -%}
+    <picture>
+      <source media="(max-width: 749px)" srcset="{{ mobile_image | image_url: width: 900 }}">
+      {{ image | image_url: width: 2000 | image_tag: loading: loading_mode, widths: '750, 1100, 1500, 2000', sizes: sizes | default: '100vw', alt: image.alt }}
+    </picture>
+  {%- else -%}
+    {{ image | image_url: width: 2000 | image_tag: loading: loading_mode, widths: '750, 1100, 1500, 2000', sizes: sizes | default: '100vw', alt: image.alt }}
+  {%- endif -%}
+{%- endif -%}

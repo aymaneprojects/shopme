@@ -293,5 +293,30 @@
       "cookie_preferences": "Cookie preferences",
       "opt_out": "Do not sell or share my personal information"
     }
+  },
+  "slideshow": {
+    "label": "Slideshow",
+    "previous": "Previous slide",
+    "next": "Next slide",
+    "go_to": "Go to slide {{ number }}",
+    "pause": "Pause slideshow",
+    "play": "Play slideshow"
+  },
+  "carousel": {
+    "previous": "Scroll left",
+    "next": "Scroll right"
+  },
+  "blog_posts": {
+    "empty": "Choose a blog in the section settings to show its latest articles."
+  },
+  "featured_product": {
+    "view_details": "View full details",
+    "empty": "Choose a product in the section settings."
+  },
+  "popup": {
+    "close": "Close"
+  },
+  "media": {
+    "video": "Video"
   }
 }

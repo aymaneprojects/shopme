@@ -1,0 +1,11 @@
+{
+  "name": "Overlays",
+  "type": "overlay",
+  "sections": {
+    "popup": {
+      "type": "popup",
+      "settings": { "enabled": false, "heading": "Welcome", "text": "<p>Take 10% off your first order.</p>", "button_label": "Shop now", "delay": 5, "days": 7 }
+    }
+  },
+  "order": ["popup"]
+}

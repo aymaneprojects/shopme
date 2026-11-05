@@ -4,6 +4,7 @@ import {
 } from '@shopme/core';
 import { parseId, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
+import { blockingProblems } from '../../../theme-lint';
 import { requireScope } from '../context';
 import { ConnectionArgs, defineConnection, paginate, paginateArray } from '../types/connection';
 import { DisplayableError } from '../types/errors';
@@ -308,7 +309,10 @@ builder.mutationFields((t) => ({
       if (!id) return { files: null, userErrors: fail(['themeId'], 'Theme does not exist') };
       const unsupported = a.files.find((f) => f.body.type !== 'TEXT');
       if (unsupported) return { files: null, userErrors: [{ field: ['files'], message: 'Only TEXT bodies are supported', code: 'INVALID', filename: unsupported.filename }] };
-      const r = await upsertThemeFiles(ctx.db, ctx.shopId, id, a.files.map((f) => ({ filename: f.filename, body: f.body.value })));
+      const inputs = a.files.map((f) => ({ filename: f.filename, body: f.body.value }));
+      const bad = blockingProblems(inputs);
+      if (bad.length) return { files: null, userErrors: bad.map((p) => ({ field: ['files'], message: p.message, code: 'INVALID', filename: p.filename })) };
+      const r = await upsertThemeFiles(ctx.db, ctx.shopId, id, inputs, staffId(ctx));
       return r.ok ? { files: r.value, userErrors: [] } : { files: null, userErrors: r.errors };
     },
   }),

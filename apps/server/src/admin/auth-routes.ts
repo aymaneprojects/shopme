@@ -39,7 +39,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
       const { shop, owner } = await setupStore(db, body.data);
       await app.ctx.locales.refresh(db);
       // Install Aurora now so the admin theme editor works before the storefront is ever visited.
-      await ensureDefaultTheme(db, shop.id, app.ctx.paths.themeDefaultDir);
+      await ensureDefaultTheme(db, shop.id, app.ctx.paths.themeDefaultDir, app.ctx.storage);
       const session = await createSession(db, { shopId: shop.id, staffUserId: owner.id, ip: req.ip, userAgent: req.headers['user-agent'] });
       setSessionCookie(app, reply, session.token, session.expiresAt);
       return reply.code(201).send({ user: publicStaff(owner), shop: publicShop(shop) });

@@ -95,7 +95,7 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_themes');
       const id = themeId(a.themeId);
       if (!id) return { files: null, userErrors: nope(['themeId'], 'Theme does not exist') };
-      const r = await deleteThemeFiles(ctx.db, ctx.app.storage, ctx.shopId, id, a.files);
+      const r = await deleteThemeFiles(ctx.db, ctx.app.storage, ctx.shopId, id, a.files, staffId(ctx));
       if (!r.ok) return { files: null, userErrors: r.errors };
       const now = new Date();
       return { files: r.value.map((path) => ({ path, checksum: null, sizeBytes: 0, updatedAt: now }) as unknown as ThemeFile), userErrors: [] };

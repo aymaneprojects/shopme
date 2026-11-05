@@ -19,14 +19,17 @@
           {%- for item in cart.items -%}
             <tr class="cart__item" data-line="{{ forloop.index }}">
               <td class="cart__product">
-                <a class="cart__image" href="{{ item.url }}">
-                  {%- if item.image -%}
-                    {{ item.image | image_url: width: 240 | image_tag: loading: 'lazy', alt: item.product.title }}
-                  {%- else -%}
-                    {{ 'product-1' | placeholder_svg_tag: 'cart__placeholder' }}
-                  {%- endif -%}
-                </a>
+                {%- if settings.cart_show_thumbnails != false -%}
+                  <a class="cart__image" href="{{ item.url }}">
+                    {%- if item.image -%}
+                      {{ item.image | image_url: width: 240 | image_tag: loading: 'lazy', alt: item.product.title }}
+                    {%- else -%}
+                      {{ 'product-1' | placeholder_svg_tag: 'cart__placeholder' }}
+                    {%- endif -%}
+                  </a>
+                {%- endif -%}
                 <div>
+                  {%- if settings.cart_show_vendor and item.vendor != blank -%}<p class="cart__option">{{ item.vendor | escape }}</p>{%- endif -%}
                   <a class="cart__name" href="{{ item.url }}">{{ item.product.title | escape }}</a>
                   {%- unless item.product.has_only_default_variant -%}
                     {%- for option in item.options_with_values -%}
@@ -57,11 +60,15 @@
       </table>
 
       <div class="cart__footer">
-        <label class="cart__note">
-          <span>{{ 'cart.note' | t }}</span>
-          <textarea name="note" rows="3">{{ cart.note }}</textarea>
-        </label>
-        <div class="cart__summary">
+        {%- if settings.cart_show_note != false -%}
+          <label class="cart__note">
+            <span>{{ 'cart.note' | t }}</span>
+            <textarea name="note" rows="3">{{ cart.note }}</textarea>
+          </label>
+        {%- else -%}
+          <div></div>
+        {%- endif -%}
+        <div class="cart__summary{% if settings.cart_sticky_summary %} cart__summary--sticky{% endif %}">
           {%- if cart.cart_level_discount_applications.size > 0 -%}
             <ul class="cart__discounts" role="list">
               {%- for application in cart.cart_level_discount_applications -%}
@@ -73,6 +80,9 @@
           <p class="cart__hint">{{ 'cart.taxes_shipping' | t }}</p>
           <noscript><button type="submit" class="button button--outline" name="update">{{ 'cart.update' | t }}</button></noscript>
           <a class="button button--block" href="/checkout">{{ 'cart.checkout' | t }}</a>
+          {%- if settings.cart_show_continue != false -%}
+            <a class="link-arrow cart__continue" href="{{ routes.all_products_collection_url }}">{{ 'general.continue_shopping' | t }}</a>
+          {%- endif -%}
         </div>
       </div>
     {%- endform -%}

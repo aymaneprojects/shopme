@@ -1,0 +1,133 @@
+<div class="showcase showcase--{{ section.settings.direction }} showcase--{{ section.settings.height }} {% render 'scheme-class', scheme: section.settings.color_scheme %}" style="--hero-overlay: {{ section.settings.overlay | divided_by: 100.0 }};">
+  {%- for block in section.blocks -%}
+    <div class="showcase__panel hero hero--center{% unless block.settings.image %} hero--no-image{% endunless %}" {{ block.shopify_attributes }}>
+      {%- if block.settings.image -%}
+        <div class="hero__media">{%- render 'media', media_type: 'image', image: block.settings.image, sizes: '(min-width: 750px) 50vw, 100vw' -%}</div>
+      {%- endif -%}
+      {%- if block.settings.link != blank -%}{%- render 'section-link', url: block.settings.link, label: block.settings.heading -%}{%- endif -%}
+      <div class="hero__content">
+        {%- if block.settings.heading != blank -%}<h2 class="hero__heading">{{ block.settings.heading | escape }}</h2>{%- endif -%}
+        {%- if block.settings.text != blank -%}<p class="hero__text">{{ block.settings.text | escape }}</p>{%- endif -%}
+        {%- if block.settings.button_label != blank -%}<a class="button button--light" href="{{ block.settings.link | default: routes.all_products_collection_url }}">{{ block.settings.button_label | escape }}</a>{%- endif -%}
+      </div>
+    </div>
+  {%- endfor -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.split_showcase.name",
+  "tag": "section",
+  "max_blocks": 2,
+  "settings": [
+    {
+      "type": "select",
+      "id": "direction",
+      "label": "t:sections.split_showcase.settings.direction",
+      "options": [
+        {
+          "value": "horizontal",
+          "label": "t:sections.split_showcase.options.direction.horizontal"
+        },
+        {
+          "value": "vertical",
+          "label": "t:sections.split_showcase.options.direction.vertical"
+        }
+      ],
+      "default": "horizontal",
+      "variant": "segmented"
+    },
+    {
+      "type": "select",
+      "id": "height",
+      "label": "t:sections.split_showcase.settings.height",
+      "options": [
+        {
+          "value": "small",
+          "label": "t:sections.split_showcase.options.height.small"
+        },
+        {
+          "value": "medium",
+          "label": "t:sections.split_showcase.options.height.medium"
+        },
+        {
+          "value": "large",
+          "label": "t:sections.split_showcase.options.height.large"
+        }
+      ],
+      "default": "medium"
+    },
+    {
+      "type": "range",
+      "id": "overlay",
+      "label": "t:sections.split_showcase.settings.overlay",
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "default": 30
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "blocks": [
+    {
+      "type": "panel",
+      "name": "t:sections.split_showcase.blocks.panel.name",
+      "limit": 2,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:sections.split_showcase.blocks.panel.settings.image"
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "t:sections.split_showcase.blocks.panel.settings.heading",
+          "default": "Panel heading"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.split_showcase.blocks.panel.settings.text"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:sections.split_showcase.blocks.panel.settings.button_label",
+          "default": "Shop now"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:sections.split_showcase.blocks.panel.settings.link"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.split_showcase.presets.split_showcase",
+      "blocks": [
+        {
+          "type": "panel",
+          "settings": {
+            "heading": "For her"
+          }
+        },
+        {
+          "type": "panel",
+          "settings": {
+            "heading": "For him"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

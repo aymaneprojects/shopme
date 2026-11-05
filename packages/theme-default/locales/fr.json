@@ -267,7 +267,25 @@
     "Made with care": "Fait avec soin",
     "Shop by collection": "Acheter par collection",
     "<p>Pair an image with a short story about your products, your craft or your team.</p>": "<p>Associez une image à une courte histoire sur vos produits, votre savoir-faire ou votre équipe.</p>",
-    "<p>Tell your story.</p>": "<p>Racontez votre histoire.</p>"
+    "<p>Tell your story.</p>": "<p>Racontez votre histoire.</p>",
+    "Slide heading": "Titre de la diapositive",
+    "A short sentence about this slide.": "Une courte phrase sur cette diapositive.",
+    "Free shipping on all orders": "Livraison offerte sur toutes les commandes",
+    "Panel heading": "Titre du volet",
+    "Contact us": "Contactez-nous",
+    "<p>We usually answer within one business day.</p>": "<p>Nous répondons généralement sous un jour ouvré.</p>",
+    "Subscribe to our emails": "Abonnez-vous à nos e-mails",
+    "<p>Be the first to know about new collections and offers.</p>": "<p>Soyez le premier informé des nouvelles collections et des offres.</p>",
+    "From the blog": "Du blog",
+    "What our customers say": "Ce que disent nos clients",
+    "Wonderful products and fast delivery. I will order again.": "Produits merveilleux et livraison rapide. Je recommanderai.",
+    "Frequently asked questions": "Questions fréquentes",
+    "Question": "Question",
+    "<p>The answer goes here.</p>": "<p>La réponse se trouve ici.</p>",
+    "Column heading": "Titre de la colonne",
+    "<p>Describe this column.</p>": "<p>Décrivez cette colonne.</p>",
+    "Welcome": "Bienvenue",
+    "<p>Take 10% off your first order.</p>": "<p>Profitez de 10 % de remise sur votre première commande.</p>"
   },
   "localization": {
     "language": "Langue",
@@ -306,5 +324,30 @@
       "cookie_preferences": "Préférences cookies",
       "opt_out": "Ne pas vendre ni partager mes informations personnelles"
     }
+  },
+  "slideshow": {
+    "label": "Diaporama",
+    "previous": "Diapositive précédente",
+    "next": "Diapositive suivante",
+    "go_to": "Aller à la diapositive {{ number }}",
+    "pause": "Mettre le diaporama en pause",
+    "play": "Lancer le diaporama"
+  },
+  "carousel": {
+    "previous": "Défiler vers la gauche",
+    "next": "Défiler vers la droite"
+  },
+  "blog_posts": {
+    "empty": "Choisissez un blog dans les réglages de la section pour afficher ses derniers articles."
+  },
+  "featured_product": {
+    "view_details": "Voir tous les détails",
+    "empty": "Choisissez un produit dans les réglages de la section."
+  },
+  "popup": {
+    "close": "Fermer"
+  },
+  "media": {
+    "video": "Vidéo"
   }
 }

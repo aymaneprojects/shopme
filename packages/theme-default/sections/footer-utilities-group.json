@@ -1,0 +1,11 @@
+{
+  "name": "Footer utilities",
+  "type": "footer-utilities",
+  "sections": {
+    "utilities": {
+      "type": "footer-utilities",
+      "settings": { "show_copyright": true, "show_powered_by": true, "show_language_selector": true, "show_country_selector": true }
+    }
+  },
+  "order": ["utilities"]
+}

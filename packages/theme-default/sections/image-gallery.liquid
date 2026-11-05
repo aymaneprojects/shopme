@@ -1,0 +1,131 @@
+<div class="page-width section-pad {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  {%- if section.settings.heading != blank -%}<div class="section-head"><h2 class="section-title">{{ section.settings.heading | escape }}</h2></div>{%- endif -%}
+  <ul class="gallery gallery--{{ section.settings.columns }} gallery--{{ section.settings.ratio }}" role="list" style="--gallery-gap: {{ section.settings.gap }}px;">
+    {%- for block in section.blocks -%}
+      <li class="gallery__item" {{ block.shopify_attributes }}>
+        {%- capture picture -%}
+          {%- if block.settings.image -%}{{ block.settings.image | image_url: width: 800 | image_tag: loading: 'lazy', widths: '400, 600, 800', sizes: '(min-width: 990px) 25vw, 50vw', alt: block.settings.caption }}{%- else -%}{{ 'lifestyle-1' | placeholder_svg_tag: 'gallery__placeholder' }}{%- endif -%}
+        {%- endcapture -%}
+        {%- if block.settings.link != blank -%}<a href="{{ block.settings.link }}" class="gallery__link">{{ picture }}</a>{%- else -%}{{ picture }}{%- endif -%}
+        {%- if block.settings.caption != blank -%}<p class="gallery__caption">{{ block.settings.caption | escape }}</p>{%- endif -%}
+      </li>
+    {%- endfor -%}
+  </ul>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.image_gallery.name",
+  "tag": "section",
+  "max_blocks": 16,
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.image_gallery.settings.heading"
+    },
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "t:sections.image_gallery.settings.columns",
+      "options": [
+        {
+          "value": "2",
+          "label": "t:sections.image_gallery.options.columns.2"
+        },
+        {
+          "value": "3",
+          "label": "t:sections.image_gallery.options.columns.3"
+        },
+        {
+          "value": "4",
+          "label": "t:sections.image_gallery.options.columns.4"
+        },
+        {
+          "value": "5",
+          "label": "t:sections.image_gallery.options.columns.5"
+        }
+      ],
+      "default": "4"
+    },
+    {
+      "type": "select",
+      "id": "ratio",
+      "label": "t:sections.image_gallery.settings.ratio",
+      "options": [
+        {
+          "value": "square",
+          "label": "t:sections.image_gallery.options.ratio.square"
+        },
+        {
+          "value": "portrait",
+          "label": "t:sections.image_gallery.options.ratio.portrait"
+        },
+        {
+          "value": "landscape",
+          "label": "t:sections.image_gallery.options.ratio.landscape"
+        }
+      ],
+      "default": "square"
+    },
+    {
+      "type": "range",
+      "id": "gap",
+      "label": "t:sections.image_gallery.settings.gap",
+      "min": 0,
+      "max": 40,
+      "step": 4,
+      "unit": "px",
+      "default": 12
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "blocks": [
+    {
+      "type": "image",
+      "name": "t:sections.image_gallery.blocks.image.name",
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:sections.image_gallery.blocks.image.settings.image"
+        },
+        {
+          "type": "text",
+          "id": "caption",
+          "label": "t:sections.image_gallery.blocks.image.settings.caption"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:sections.image_gallery.blocks.image.settings.link"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.image_gallery.presets.image_gallery",
+      "blocks": [
+        {
+          "type": "image"
+        },
+        {
+          "type": "image"
+        },
+        {
+          "type": "image"
+        },
+        {
+          "type": "image"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,94 @@
+<div class="divider-wrap divider-wrap--{{ section.settings.align }} {% render 'scheme-class', scheme: section.settings.color_scheme %}" style="padding-top: {{ section.settings.spacing }}px; padding-bottom: {{ section.settings.spacing }}px;">
+  <hr class="divider" style="border-top: {{ section.settings.thickness }}px {{ section.settings.style }} var(--color-border); width: {{ section.settings.width }}%;">
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.divider.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "style",
+      "label": "t:sections.divider.settings.style",
+      "options": [
+        {
+          "value": "solid",
+          "label": "t:sections.divider.options.style.solid"
+        },
+        {
+          "value": "dashed",
+          "label": "t:sections.divider.options.style.dashed"
+        },
+        {
+          "value": "dotted",
+          "label": "t:sections.divider.options.style.dotted"
+        }
+      ],
+      "default": "solid"
+    },
+    {
+      "type": "range",
+      "id": "thickness",
+      "label": "t:sections.divider.settings.thickness",
+      "min": 1,
+      "max": 8,
+      "step": 1,
+      "unit": "px",
+      "default": 1
+    },
+    {
+      "type": "range",
+      "id": "width",
+      "label": "t:sections.divider.settings.width",
+      "min": 10,
+      "max": 100,
+      "step": 5,
+      "unit": "%",
+      "default": 100
+    },
+    {
+      "type": "select",
+      "id": "align",
+      "label": "t:sections.divider.settings.align",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:sections.divider.options.align.left"
+        },
+        {
+          "value": "center",
+          "label": "t:sections.divider.options.align.center"
+        },
+        {
+          "value": "right",
+          "label": "t:sections.divider.options.align.right"
+        }
+      ],
+      "default": "center",
+      "variant": "segmented"
+    },
+    {
+      "type": "range",
+      "id": "spacing",
+      "label": "t:sections.divider.settings.spacing",
+      "min": 0,
+      "max": 80,
+      "step": 4,
+      "unit": "px",
+      "default": 24
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.divider.presets.divider"
+    }
+  ]
+}
+{% endschema %}

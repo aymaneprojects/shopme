@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
-import { collections, menuItems, menus, pages, products, themeFiles, themes } from '../../db/schema';
+import { collections, menuItems, menus, pages, products, themeFileVersions, themeFiles, themes } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { buildSearch, dateCompare, idTerm, likeCi } from '../catalog/search';
 import { errR, okR, txResult, type Result } from '../catalog/common';
@@ -239,7 +239,7 @@ const parseThemeJson = (body: string) => JSON.parse(body.replace(/\/\*[\s\S]*?\*
 export interface ThemeFileInput { filename: string; body: string }
 
 /** Create or replace text files of a theme. All-or-nothing: the first invalid file rejects the batch. */
-export async function upsertThemeFiles(db: Db, shopId: number, themeId: number, files: ThemeFileInput[]): Promise<Result<ThemeFile[]>> {
+export async function upsertThemeFiles(db: Db, shopId: number, themeId: number, files: ThemeFileInput[], staffId?: number | null): Promise<Result<ThemeFile[]>> {
   if (!(await getTheme(db, shopId, themeId))) return errR(['themeId'], 'Theme does not exist');
   if (!files.length) return errR(['files'], 'At least one file is required');
   for (const [i, f] of files.entries()) {
@@ -255,6 +255,7 @@ export async function upsertThemeFiles(db: Db, shopId: number, themeId: number, 
   return txResult(db, async (tx) => {
     const out: ThemeFile[] = [];
     for (const f of files) {
+      await snapshotThemeFile(tx, shopId, themeId, f.filename, f.body, staffId);
       const values = { contentType: CONTENT_TYPES[f.filename.split('.').pop()!.toLowerCase()]!, body: f.body, storageKey: null, checksum: createHash('md5').update(f.body).digest('hex'), sizeBytes: Buffer.byteLength(f.body), updatedAt: new Date() };
       const [row] = await tx.insert(themeFiles).values({ themeId, shopId, path: f.filename, ...values }).onConflictDoUpdate({ target: [themeFiles.themeId, themeFiles.path], set: values }).returning();
       out.push(row!);
@@ -262,6 +263,43 @@ export async function upsertThemeFiles(db: Db, shopId: number, themeId: number, 
     await tx.update(themes).set({ updatedAt: new Date() }).where(eq(themes.id, themeId));
     return okR(out);
   });
+}
+
+/* ------------------------------ file history ------------------------------ */
+
+export type ThemeFileVersion = Omit<typeof themeFileVersions.$inferSelect, 'body'> & { body?: string };
+export const THEME_FILE_VERSION_LIMIT = 30;
+
+/** Keep the current text of a file as a version before it is replaced (nothing when the text does not change or the file is new). */
+async function snapshotThemeFile(tx: Executor, shopId: number, themeId: number, path: string, nextBody: string | null, staffId?: number | null): Promise<void> {
+  const [cur] = await tx.select({ body: themeFiles.body, checksum: themeFiles.checksum, sizeBytes: themeFiles.sizeBytes }).from(themeFiles).where(and(eq(themeFiles.themeId, themeId), eq(themeFiles.path, path)));
+  if (!cur || cur.body === null || cur.body === nextBody) return;
+  const [last] = await tx.select({ checksum: themeFileVersions.checksum }).from(themeFileVersions).where(and(eq(themeFileVersions.themeId, themeId), eq(themeFileVersions.path, path))).orderBy(desc(themeFileVersions.id)).limit(1);
+  if (last?.checksum === cur.checksum) return;
+  await tx.insert(themeFileVersions).values({ shopId, themeId, path, body: cur.body, checksum: cur.checksum, sizeBytes: cur.sizeBytes, staffUserId: staffId ?? null });
+  const old = await tx.select({ id: themeFileVersions.id }).from(themeFileVersions).where(and(eq(themeFileVersions.themeId, themeId), eq(themeFileVersions.path, path))).orderBy(desc(themeFileVersions.id)).offset(THEME_FILE_VERSION_LIMIT);
+  if (old.length) await tx.delete(themeFileVersions).where(inArray(themeFileVersions.id, old.map((o) => o.id)));
+}
+
+/** Keep the current text of the files about to be deleted, so a deleted file can be brought back from its history. */
+export async function snapshotThemeFiles(db: Executor, shopId: number, themeId: number, paths: string[], staffId?: number | null): Promise<void> {
+  for (const p of paths) await snapshotThemeFile(db, shopId, themeId, p, null, staffId);
+}
+
+/** The saved versions of a file, newest first, without their text. */
+export async function listThemeFileVersions(db: Executor, shopId: number, themeId: number, path: string): Promise<ThemeFileVersion[]> {
+  return db.select({ id: themeFileVersions.id, shopId: themeFileVersions.shopId, themeId: themeFileVersions.themeId, path: themeFileVersions.path, checksum: themeFileVersions.checksum, sizeBytes: themeFileVersions.sizeBytes, staffUserId: themeFileVersions.staffUserId, createdAt: themeFileVersions.createdAt })
+    .from(themeFileVersions).where(and(eq(themeFileVersions.shopId, shopId), eq(themeFileVersions.themeId, themeId), eq(themeFileVersions.path, path))).orderBy(desc(themeFileVersions.id)).limit(THEME_FILE_VERSION_LIMIT);
+}
+
+export async function getThemeFileVersion(db: Executor, shopId: number, id: number): Promise<ThemeFileVersion | null> {
+  return (await db.select().from(themeFileVersions).where(and(eq(themeFileVersions.shopId, shopId), eq(themeFileVersions.id, id))))[0] ?? null;
+}
+
+/** Paths of the files that have a history in this theme (so the editor can bring back deleted files). */
+export async function listThemeFilesWithHistory(db: Executor, shopId: number, themeId: number): Promise<string[]> {
+  const rows = await db.selectDistinct({ path: themeFileVersions.path }).from(themeFileVersions).where(and(eq(themeFileVersions.shopId, shopId), eq(themeFileVersions.themeId, themeId)));
+  return rows.map((r) => r.path).sort();
 }
 
 export async function publishTheme(db: Db, shopId: number, id: number, staffId?: number | null): Promise<Result<Theme>> {

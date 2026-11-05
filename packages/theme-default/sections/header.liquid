@@ -2,7 +2,7 @@
   assign menu = section.settings.menu
   assign logo = settings.logo
 -%}
-<header class="site-header{% if section.settings.sticky %} site-header--sticky{% endif %}" data-header>
+<header class="site-header drawer-side-{{ settings.drawer_side | default: 'left' }}{% if section.settings.sticky %} site-header--sticky{% endif %}" data-header>
   <div class="page-width site-header__inner">
     <button type="button" class="icon-button site-header__menu-toggle" aria-expanded="false" aria-controls="site-nav" data-nav-toggle>
       <span class="visually-hidden">{{ 'accessibility.open_menu' | t }}</span>
@@ -17,7 +17,12 @@
       {%- endif -%}
     </a>
 
+    <div class="drawer-overlay" data-nav-overlay></div>
     <nav class="site-nav" id="site-nav" aria-label="{{ menu.title | default: shop.name | escape }}" data-nav>
+      <button type="button" class="icon-button site-nav__close" data-nav-close>
+        <span class="visually-hidden">{{ 'accessibility.close_menu' | t }}</span>
+        {% render 'icon', name: 'close' %}
+      </button>
       {%- if menu != blank and menu.links.size > 0 -%}
         <ul class="site-nav__list">
           {%- for link in menu.links -%}
@@ -62,7 +67,7 @@
       </a>
     </div>
   </div>
-  <div class="predictive-search" id="predictive-search" data-predictive-search data-url="{{ routes.predictive_search_url }}" hidden>
+  <div class="predictive-search" id="predictive-search" data-predictive-search data-url="{{ routes.predictive_search_url }}" data-limit="{{ settings.search_suggestions_limit | default: 4 }}" data-show-image="{{ settings.search_show_image | default: true }}" data-show-price="{{ settings.search_show_price | default: true }}" hidden>
     <div class="page-width">
       <form class="predictive-search__form" role="search" action="{{ routes.search_url }}" method="get">
         <label class="visually-hidden" for="predictive-search-q">{{ 'accessibility.search' | t }}</label>
