@@ -38,7 +38,7 @@ export const NAV: NavItem[] = [
 export function Logo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <rect width="32" height="32" rx="8" fill="#1E40AF" />
+      <rect width="32" height="32" rx="8" fill="#1A3591" />
       <path d="M9 12h14l-1.2 10H10.2z" fill="none" stroke="#fff" strokeWidth="2" strokeLinejoin="round" />
       <path d="M12.5 12a3.5 3.5 0 0 1 7 0" fill="none" stroke="#fff" strokeWidth="2" />
     </svg>

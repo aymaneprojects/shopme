@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Admin: darker navy palette (surfaces, sidebar and primary buttons).
 - Rich-text editor toolbar: block format (paragraph, headings, quote), bold, italic, underline, text color, alignment, lists, indent, link, image (from Files or upload), YouTube/Vimeo embed, table, clear formatting and a Show HTML toggle, used for products, collections, pages and articles.
 - Rich text is sanitized on the server for products, collections, pages and articles: tables, alignment, safe inline styles and YouTube/Vimeo iframes are kept; scripts, event handlers, other iframes and unsafe URLs are removed.
 - Pages and blog posts: theme template select (alternate templates of the live theme), scheduled publishing with a visibility date and time, and SEO title and description with an editable search engine listing preview (`seo` field on `Page` and `Article`).

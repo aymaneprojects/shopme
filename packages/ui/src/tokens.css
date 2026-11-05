@@ -3,33 +3,33 @@
    of a modern commerce admin and re-expressed under our own names. Colours are our own palette. */
 :root {
   /* Surfaces */
-  --color-page: #0a0f1c;          /* page sheet behind cards */
-  --color-bg: #111a2e;            /* cards, popovers */
-  --color-surface: #162038;       /* hover / inset / raised */
-  --color-field: #0b1325;         /* text inputs */
-  --color-border: #22304f;
+  --color-page: #070b15;          /* page sheet behind cards */
+  --color-bg: #0d1424;            /* cards, popovers */
+  --color-surface: #121a2e;       /* hover / inset / raised */
+  --color-field: #080e1b;         /* text inputs */
+  --color-border: #1c2843;
   --color-text: #e6eaf2;
   --color-text-muted: #9aa5bd;
 
   /* App chrome (sidebar + top bar) */
-  --color-frame: #0d1424;
+  --color-frame: #090e1a;
   --color-frame-text: #e6eaf2;
   --color-frame-muted: #9aa5bd;
   --color-frame-hover: rgb(255 255 255 / 0.06);
   --color-frame-active: rgb(124 156 255 / 0.16);
-  --color-raised: #18233d;
+  --color-raised: #141d33;
   --color-hover: rgb(255 255 255 / 0.06);
   --color-pressed: rgb(255 255 255 / 0.1);
-  --color-ink: #1b2a4e;           /* toast pill */
+  --color-ink: #172342;           /* toast pill */
   --color-ink-text: #f2f5fb;
   --color-bar: #04070d;           /* contextual save bar */
 
   /* Brand: dark navy fills, lighter accent for text/links/focus */
-  --color-primary: #1e3a8a;
-  --color-primary-hover: #24449f;
-  --color-primary-pressed: #1a3277;
-  --color-primary-top: #2c4fb0;
-  --color-primary-subtle: #16244a;
+  --color-primary: #172f72;
+  --color-primary-hover: #1d3888;
+  --color-primary-pressed: #13285f;
+  --color-primary-top: #243f94;
+  --color-primary-subtle: #121d3d;
   --color-primary-contrast: #ffffff;
   --color-accent: #7c9cff;
   --color-focus-ring: rgb(124 156 255 / 0.75);
@@ -80,18 +80,18 @@
   --color-hover: rgb(17 24 39 / 0.05);
   --color-pressed: rgb(17 24 39 / 0.09);
   --color-ink: #1b1d22;
-  --color-primary: #1e40af;
-  --color-primary-hover: #1e3a8a;
-  --color-primary-pressed: #1a3277;
-  --color-primary-top: #3557c8;
+  --color-primary: #1a3591;
+  --color-primary-hover: #172f72;
+  --color-primary-pressed: #13285f;
+  --color-primary-top: #2a48a8;
   --color-primary-subtle: #e3eafc;
-  --color-accent: #1e40af;
+  --color-accent: #1a3591;
   --color-focus-ring: rgb(30 64 175 / 0.6);
   --color-success: #0b6b3a;   --color-success-subtle: #cdf4d3;
   --color-attention: #5e4200; --color-attention-subtle: #ffe9a3;
   --color-warning: #7a4b00;   --color-warning-subtle: #ffd6a4;
   --color-critical: #b42318;  --color-critical-subtle: #fedad9; --color-critical-fill: #b42318;
-  --color-info: #1e40af;      --color-info-subtle: #dbe6ff;
+  --color-info: #1a3591;      --color-info-subtle: #dbe6ff;
   --shadow-card: 0 1px 2px rgb(16 24 40 / 0.07), 0 0 0 1px rgb(16 24 40 / 0.05);
   --shadow-btn: 0 1px 1.5px rgb(16 24 40 / 0.14), 0 0 0 1px rgb(16 24 40 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.8);
   --shadow-pop: 0 10px 28px rgb(16 24 40 / 0.18), 0 0 0 1px rgb(16 24 40 / 0.07);
@@ -111,18 +111,18 @@
     --color-hover: rgb(17 24 39 / 0.05);
     --color-pressed: rgb(17 24 39 / 0.09);
     --color-ink: #1b1d22;
-    --color-primary: #1e40af;
-    --color-primary-hover: #1e3a8a;
-    --color-primary-pressed: #1a3277;
-    --color-primary-top: #3557c8;
+    --color-primary: #1a3591;
+    --color-primary-hover: #172f72;
+    --color-primary-pressed: #13285f;
+    --color-primary-top: #2a48a8;
     --color-primary-subtle: #e3eafc;
-    --color-accent: #1e40af;
+    --color-accent: #1a3591;
     --color-focus-ring: rgb(30 64 175 / 0.6);
     --color-success: #0b6b3a;   --color-success-subtle: #cdf4d3;
     --color-attention: #5e4200; --color-attention-subtle: #ffe9a3;
     --color-warning: #7a4b00;   --color-warning-subtle: #ffd6a4;
     --color-critical: #b42318;  --color-critical-subtle: #fedad9; --color-critical-fill: #b42318;
-    --color-info: #1e40af;      --color-info-subtle: #dbe6ff;
+    --color-info: #1a3591;      --color-info-subtle: #dbe6ff;
     --shadow-card: 0 1px 2px rgb(16 24 40 / 0.07), 0 0 0 1px rgb(16 24 40 / 0.05);
     --shadow-btn: 0 1px 1.5px rgb(16 24 40 / 0.14), 0 0 0 1px rgb(16 24 40 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.8);
     --shadow-pop: 0 10px 28px rgb(16 24 40 / 0.18), 0 0 0 1px rgb(16 24 40 / 0.07);
