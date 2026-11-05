@@ -1,6 +1,6 @@
 import {
   getShop, isNotificationKey, liquidError, listNotificationTemplates, notificationSettingsOf, renderNotification, resetNotificationTemplate, sampleVars, saveNotificationTemplate,
-  updateNotificationSettings, type Rendered, type TemplateView,
+  sendNotification, updateNotificationSettings, type Rendered, type TemplateView,
 } from '@shopme/core';
 import type { UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
@@ -84,6 +84,19 @@ builder.mutationFields((t) => ({
       const subject = a.subject ?? view.subject; const body = a.body ?? view.body;
       for (const src of [subject, body]) { const err = liquidError(src); if (err) return { preview: null, userErrors: [{ field: null, message: `Liquid syntax error: ${err}` }] }; }
       return { preview: await renderNotification(ctx.db, shop, ctx.app.config.appUrl, a.key, sampleVars(shop, ctx.app.config.appUrl), { subject, body }), userErrors: [] };
+    },
+  }),
+  shopmeNotificationSendTest: t.field({
+    type: PreviewPayload, description: 'Email the current (saved) template, rendered with sample data, to an address (default: the shop contact email).',
+    args: { key: t.arg.string({ required: true }), to: t.arg.string() },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_shop');
+      if (!isNotificationKey(a.key)) return { preview: null, userErrors: unknownKey };
+      const { shop } = await templateOf(ctx, a.key);
+      const to = (a.to ?? shop.email ?? '').trim();
+      if (!/^[^@\s]+@[^@\s]+$/.test(to)) return { preview: null, userErrors: [{ field: ['to'], message: 'Enter a valid email address.' }] };
+      await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.app.config.appUrl, a.key, to, sampleVars(shop, ctx.app.config.appUrl));
+      return { preview: await renderNotification(ctx.db, shop, ctx.app.config.appUrl, a.key, sampleVars(shop, ctx.app.config.appUrl)), userErrors: [] };
     },
   }),
   shopmeNotificationSettingsUpdate: t.field({

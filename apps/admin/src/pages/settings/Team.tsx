@@ -1,6 +1,6 @@
-import { Badge, Banner, Button, Card, Checkbox, ConfirmDialog, Input, Modal, Select, Skeleton, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Checkbox, ConfirmDialog, Input, Modal, Select, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { SettingsActions } from '../../components/SettingsKit';
 import { useState } from 'react';
 import { UserErrors, gql, mutate } from '../../api';
 import { STAFF_DEACTIVATE, STAFF_DELETE, STAFF_INVITE, STAFF_MEMBERS, STAFF_UPDATE } from '../../graphql';
@@ -34,29 +34,41 @@ export function UsersSettings() {
   });
   const members = q.data?.staffMembers.nodes ?? [];
   const role = (m: Member): Role => (m.isShopOwner ? 'owner' : m.role ?? 'staff');
-  const add = <Button variant="primary" onClick={() => { setError(null); setEdit({ id: null, email: '', role: 'staff', permissions: ['products', 'orders'] }); }}><Plus className="size-4" />{t('users.invite')}</Button>;
+  const draftOf = (m: Member): Draft => ({ id: m.id, email: m.email, role: role(m) === 'admin' ? 'admin' : 'staff', permissions: m.permissions ?? [] });
+  const editing = members.find((m) => m.id === edit?.id);
+  const exportCsv = () => {
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const rows = [['email', 'first_name', 'last_name', 'role', 'status'], ...members.map((m) => [m.email, m.firstName ?? '', m.lastName ?? '', role(m), m.active ? 'active' : 'inactive'])];
+    const url = URL.createObjectURL(new Blob([rows.map((r) => r.map(esc).join(',')).join('\n')], { type: 'text/csv' }));
+    const a = document.createElement('a'); a.href = url; a.download = 'users.csv'; a.click(); URL.revokeObjectURL(url);
+  };
   return (
-    <Card title={t('settings.users')} actions={add}>
-      <p className="mb-3 text-[13px] text-muted">{t('users.intro')}</p>
+    <>
+      <SettingsActions>
+        <Button onClick={exportCsv} disabled={members.length === 0}>{t('common.export')}</Button>
+        <Button variant="primary" onClick={() => { setError(null); setEdit({ id: null, email: '', role: 'staff', permissions: ['products', 'orders'] }); }}>{t('users.invite')}</Button>
+      </SettingsActions>
       {q.isLoading && <Skeleton className="h-24" />}
       {q.error && <Banner>{q.error.message}</Banner>}
-      <ul className="divide-y divide-line">
-        {members.map((m) => (
-          <li key={m.id} className="flex flex-wrap items-center gap-3 py-2 text-[13px]">
-            <span className="min-w-0 flex-1"><span className="block font-medium">{[m.firstName, m.lastName].filter(Boolean).join(' ') || m.email}</span><span className="text-xs text-muted">{m.email}</span></span>
-            <Badge tone={role(m) === 'staff' ? 'neutral' : 'info'}>{t(`users.role.${role(m)}` as Key)}</Badge>
-            {!m.active && <Badge tone="warning">{t('users.inactive')}</Badge>}
-            {role(m) === 'staff' && <span className="text-xs text-muted">{t('users.areas', { n: m.permissions?.length ?? 0 })}</span>}
-            {!m.isShopOwner && <>
-              <Button size="sm" onClick={() => { setError(null); setEdit({ id: m.id, email: m.email, role: role(m) === 'admin' ? 'admin' : 'staff', permissions: m.permissions ?? [] }); }}>{t('common.edit')}</Button>
-              {m.active && <Button size="sm" onClick={() => setConfirm({ kind: 'deactivate', m })}>{t('users.deactivate')}</Button>}
-              <Button size="sm" variant="danger" onClick={() => setConfirm({ kind: 'delete', m })}>{t('common.delete')}</Button>
-            </>}
-          </li>
-        ))}
-      </ul>
+      <div className="overflow-hidden rounded-lg bg-canvas shadow-card">
+        <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,1fr)] gap-3 border-b border-line bg-surface px-4 py-2 text-[13px] text-muted"><span>{t('users.col.user')}</span><span>{t('field.status')}</span><span>{t('users.roleLabel')}</span></div>
+        <ul className="divide-y divide-line">
+          {members.map((m) => {
+            const body = (
+              <>
+                <span className="min-w-0"><span className="block truncate font-medium">{[m.firstName, m.lastName].filter(Boolean).join(' ') || m.email}</span><span className="block truncate text-xs text-muted">{m.email}</span></span>
+                <span><Badge tone={m.active ? 'success' : 'warning'}>{t(m.active ? 'users.active' : 'users.inactive')}</Badge></span>
+                <span className="flex min-w-0 items-center gap-2"><Badge tone={role(m) === 'staff' ? 'neutral' : 'info'}>{t(`users.role.${role(m)}` as Key)}</Badge>{role(m) === 'staff' && <span className="truncate text-xs text-muted">{t('users.areas', { n: m.permissions?.length ?? 0 })}</span>}</span>
+              </>
+            );
+            const cls = 'grid w-full grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)_minmax(0,1fr)] items-center gap-3 px-4 py-3 text-left text-[13px]';
+            return <li key={m.id}>{m.isShopOwner ? <div className={cls}>{body}</div> : <button type="button" className={`${cls} hover:bg-hover`} onClick={() => { setError(null); setEdit(draftOf(m)); }}>{body}</button>}</li>;
+          })}
+        </ul>
+      </div>
+      <p className="mt-3 text-center text-[13px] text-muted">{t('users.intro')}</p>
       <Modal open={!!edit} onClose={() => setEdit(null)} closeLabel={t('common.close')} title={t(edit?.id ? 'users.edit' : 'users.invite')}
-        footer={<><Button onClick={() => setEdit(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={save.isPending} disabled={!edit?.email.includes('@')} onClick={() => save.mutate()}>{t(edit?.id ? 'save.save' : 'users.sendInvite')}</Button></>}>
+        footer={<>{editing && <span className="mr-auto flex gap-2"><Button variant="danger" onClick={() => { setConfirm({ kind: 'delete', m: editing }); }}>{t('common.delete')}</Button>{editing.active && <Button onClick={() => { setConfirm({ kind: 'deactivate', m: editing }); }}>{t('users.deactivate')}</Button>}</span>}<Button onClick={() => setEdit(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={save.isPending} disabled={!edit?.email.includes('@')} onClick={() => save.mutate()}>{t(edit?.id ? 'save.save' : 'users.sendInvite')}</Button></>}>
         <div className="flex flex-col gap-3">
           {error && <Banner>{error}</Banner>}
           <Input label={t('field.email')} type="email" value={edit?.email ?? ''} disabled={!!edit?.id} onChange={(e) => setEdit((s) => s && { ...s, email: e.target.value })} />
@@ -72,6 +84,6 @@ export function UsersSettings() {
       </Modal>
       <ConfirmDialog open={!!confirm} danger onClose={() => setConfirm(null)} title={t(confirm?.kind === 'delete' ? 'users.deleteTitle' : 'users.deactivateTitle')} message={t(confirm?.kind === 'delete' ? 'users.deleteBody' : 'users.deactivateBody', { email: confirm?.m.email ?? '' })}
         confirmLabel={t(confirm?.kind === 'delete' ? 'common.delete' : 'users.deactivate')} cancelLabel={t('common.cancel')} onConfirm={() => confirm && act.mutate({ kind: confirm.kind, id: confirm.m.id })} />
-    </Card>
+    </>
   );
 }

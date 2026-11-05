@@ -1,41 +1,37 @@
-import { Banner, Card, Checkbox, Input, Select, Skeleton, Switch, Textarea, useToast, cx } from '@shopme/ui';
+import { Badge, Banner, Button, Card, Input, Modal, Select, Skeleton, Switch, Textarea, useToast, cx } from '@shopme/ui';
+import { Globe } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Navigate, NavLink, Outlet } from 'react-router';
+import { Navigate, Outlet, useLocation } from 'react-router';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { UserErrors, gql, mutate } from '../../api';
-import { PageHeader } from '../../components/PageHeader';
+import { Section, SettingsActions, SettingsSlot } from '../../components/SettingsKit';
 import { SaveBar } from '../../components/SaveBar';
 import { SHOP, SHOP_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 import { CURRENCIES, TIMEZONES } from '../../lib/countries';
-import { useStaffAccess } from '../../lib/permissions';
-import type { Permission } from '../../lib/permissions';
+import { SETTINGS_SECTIONS } from '../../lib/settingsNav';
 
-const SECTIONS: Array<{ id: string; key: Key; perm?: Permission }> = [
-  { id: 'general', key: 'settings.general' }, { id: 'payments', key: 'settings.payments' }, { id: 'shipping', key: 'settings.shipping' },
-  { id: 'taxes', key: 'settings.taxes' }, { id: 'locations', key: 'settings.locations' }, { id: 'metafields', key: 'settings.metafields' }, { id: 'domains', key: 'settings.domains' }, { id: 'languages', key: 'settings.languages' },
-  { id: 'users', key: 'settings.users', perm: 'staff' }, { id: 'notifications', key: 'settings.notifications' }, { id: 'policies', key: 'settings.policies' },
-  { id: 'webhooks', key: 'settings.webhooks' }, { id: 'shopify-import', key: 'settings.shopifyImport' },
-  { id: 'security', key: 'settings.security' }, { id: 'backup', key: 'settings.backup', perm: 'settings' },
-];
-
+/** Settings pages sit in a narrow centered column under a large title; sub-pages draw their own header. */
 export function SettingsLayout() {
   const { t } = useI18n();
-  const can = useStaffAccess();
+  const { pathname } = useLocation();
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const section = SETTINGS_SECTIONS.find((s) => pathname === `/settings/${s.id}`);
+  const wide = /^\/settings\/(notifications\/(?!customer$|staff$)[^/]+|languages\/translate)$/.test(pathname);
   return (
-    <>
-      <PageHeader title={t('nav.settings')} />
-      <div className="grid gap-4 md:grid-cols-[13rem_1fr]">
-        <nav aria-label={t('nav.settings')} className="flex gap-1 overflow-x-auto md:flex-col">
-          {SECTIONS.filter((s) => can(s.perm)).map((s) => (
-            <NavLink key={s.id} to={`/settings/${s.id}`} className={({ isActive }) => cx('flex h-7 items-center whitespace-nowrap rounded-lg px-2.5 text-[13px]', isActive ? 'bg-primary-subtle font-semibold text-accent' : 'hover:bg-hover')}>{t(s.key)}</NavLink>
-          ))}
-        </nav>
-        <div className="min-w-0"><Outlet /></div>
+    <SettingsSlot.Provider value={slot}>
+      <div className={cx('mx-auto w-full', wide ? 'max-w-[900px]' : 'max-w-[680px]')}>
+        {section && (
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <h1 className="text-xl font-semibold leading-8">{t(section.key)}</h1>
+            <div ref={setSlot} className="flex items-center gap-2" />
+          </div>
+        )}
+        <Outlet />
       </div>
-    </>
+    </SettingsSlot.Provider>
   );
 }
 export const SettingsIndex = () => <Navigate to="/settings/general" replace />;
@@ -59,7 +55,7 @@ const toForm = (s: ShopData): ShopForm => ({
 export const useShopSettings = () => useQuery({ queryKey: ['shop-settings'], queryFn: () => gql<{ shop: ShopData }>(SHOP) });
 
 /** Loads the shop, edits a subset of its fields with a save bar, and saves via `shopUpdate`. */
-function ShopPanel({ fields, children }: { fields: Array<keyof ShopForm>; children: (f: ShopForm, set: (p: Partial<ShopForm>) => void, shop: ShopData) => ReactNode }) {
+export function ShopPanel({ fields, children }: { fields: Array<keyof ShopForm>; children: (f: ShopForm, set: (p: Partial<ShopForm>) => void, shop: ShopData) => ReactNode }) {
   const q = useShopSettings();
   if (q.isLoading) return <Skeleton className="h-64" />;
   if (q.error) return <Banner>{q.error.message}</Banner>;
@@ -94,14 +90,14 @@ export function GeneralSettings() {
     <ShopPanel fields={['name', 'email', 'description', 'currencyCode', 'ianaTimezone', 'weightUnit', 'moneyFormat', 'moneyWithCurrencyFormat', 'storefrontPasswordEnabled', 'storefrontPassword']}>
       {(f, set) => (
         <>
-          <Card title={t('settings.storeDetails')}>
+          <Section title={t('settings.storeDetails')} description={t('settings.storeDetailsDesc')}><Card>
             <div className="grid gap-3 sm:grid-cols-2">
               <Input label={t('setup.shopName')} value={f.name} onChange={(e) => set({ name: e.target.value })} />
               <Input label={t('settings.contactEmail')} type="email" value={f.email} onChange={(e) => set({ email: e.target.value })} />
               <Textarea className="sm:col-span-2" label={t('field.description')} value={f.description} onChange={(e) => set({ description: e.target.value })} />
             </div>
-          </Card>
-          <Card title={t('settings.standards')}>
+          </Card></Section>
+          <Section title={t('settings.standards')} description={t('settings.standardsDesc')}><Card>
             <div className="grid gap-3 sm:grid-cols-2">
               <Select label={t('setup.currency')} value={f.currencyCode} onChange={(e) => set({ currencyCode: e.target.value })}>
                 {[...new Set([f.currencyCode, ...CURRENCIES])].map((c) => <option key={c}>{c}</option>)}
@@ -116,14 +112,14 @@ export function GeneralSettings() {
               <Input label={t('settings.moneyFormat')} help={t('settings.moneyFormatHelp')} value={f.moneyFormat} onChange={(e) => set({ moneyFormat: e.target.value })} />
               <Input label={t('settings.moneyWithCurrencyFormat')} value={f.moneyWithCurrencyFormat} onChange={(e) => set({ moneyWithCurrencyFormat: e.target.value })} />
             </div>
-          </Card>
-          <Card title={t('settings.password')}>
+          </Card></Section>
+          <Section title={t('settings.password')}><Card>
             <div className="flex flex-col gap-3">
               <p className="text-[13px] text-muted">{t('settings.passwordHelp')}</p>
               <Switch checked={f.storefrontPasswordEnabled} onChange={(v) => set({ storefrontPasswordEnabled: v })} label={t('settings.passwordEnable')} />
               {f.storefrontPasswordEnabled && <Input className="max-w-sm" label={t('field.password')} value={f.storefrontPassword} onChange={(e) => set({ storefrontPassword: e.target.value })} />}
             </div>
-          </Card>
+          </Card></Section>
         </>
       )}
     </ShopPanel>
@@ -132,26 +128,50 @@ export function GeneralSettings() {
 
 export function DomainsSettings() {
   const { t } = useI18n();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const q = useShopSettings();
+  const [connect, setConnect] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const save = useMutation({
+    mutationFn: (primaryDomain: string) => mutate(SHOP_UPDATE, { input: { primaryDomain } }, 'shopmeShopUpdate'),
+    onSuccess: () => { toast(t('settings.saved')); setConnect(null); setError(null); void qc.invalidateQueries({ queryKey: ['shop-settings'] }); },
+    onError: (e) => setError(e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message),
+  });
+  if (q.isLoading) return <Skeleton className="h-32" />;
+  if (q.error) return <Banner>{q.error.message}</Banner>;
+  const shop = q.data!.shop;
+  const custom = shop.primaryDomain && shop.primaryDomain.host !== shop.myshopifyDomain ? shop.primaryDomain.host : '';
+  const rows = [...(custom ? [{ host: custom, primary: true, custom: true }] : []), { host: shop.myshopifyDomain, primary: !custom, custom: false }];
   return (
-    <ShopPanel fields={['primaryDomain']}>
-      {(f, set, shop) => (
-        <>
-          <Card title={t('settings.domains')}>
-            <div className="flex flex-col gap-3">
-              <p className="text-[13px] text-muted">{t('settings.defaultDomain')}: <span className="font-medium text-fg">{shop.myshopifyDomain}</span></p>
-              <Input className="max-w-sm" label={t('settings.primaryDomain')} placeholder="shop.example.com" value={f.primaryDomain} onChange={(e) => set({ primaryDomain: e.target.value.trim().toLowerCase() })} />
-            </div>
-          </Card>
-          <Card title={t('settings.dnsTitle')}>
-            <ol className="list-decimal space-y-1 pl-5 text-[13px]">
-              <li>{t('settings.dns1')}</li>
-              <li>{t('settings.dns2', { host: shop.myshopifyDomain })}</li>
-              <li>{t('settings.dns3')}</li>
-            </ol>
-          </Card>
-        </>
-      )}
-    </ShopPanel>
+    <>
+      <SettingsActions><Button variant="primary" onClick={() => { setError(null); setConnect(custom); }}>{t('settings.connectDomain')}</Button></SettingsActions>
+      <div className="overflow-hidden rounded-lg bg-canvas shadow-card">
+        <div className="grid grid-cols-[1fr_8rem_auto] gap-3 border-b border-line bg-surface px-4 py-2 text-[13px] text-muted"><span>{t('settings.domain')}</span><span>{t('field.status')}</span><span className="w-20" /></div>
+        <ul className="divide-y divide-line">
+          {rows.map((r) => (
+            <li key={r.host} className="grid grid-cols-[1fr_8rem_auto] items-center gap-3 px-4 py-3 text-[13px]">
+              <span className="flex min-w-0 items-center gap-2"><Globe className="size-4 shrink-0 text-muted" /><span className="truncate font-medium">{r.host}</span>{r.primary && <Badge>{t('settings.primaryBadge')}</Badge>}</span>
+              <span><Badge tone="success">{t('settings.connected')}</Badge></span>
+              <span className="flex w-20 justify-end gap-1">{r.custom && <><Button size="sm" onClick={() => { setError(null); setConnect(r.host); }}>{t('common.edit')}</Button><Button size="sm" variant="danger" loading={save.isPending} onClick={() => save.mutate('')}>{t('settings.disconnect')}</Button></>}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <p className="mt-3 text-center text-[13px] text-muted">{t('settings.domainsHelp')}</p>
+      <Modal open={connect !== null} onClose={() => setConnect(null)} closeLabel={t('common.close')} title={t('settings.connectDomain')}
+        footer={<><Button onClick={() => setConnect(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={save.isPending} disabled={!connect?.includes('.')} onClick={() => save.mutate(connect!)}>{t('settings.connect')}</Button></>}>
+        <div className="flex flex-col gap-3">
+          {error && <Banner>{error}</Banner>}
+          <Input label={t('settings.primaryDomain')} placeholder="shop.example.com" value={connect ?? ''} onChange={(e) => setConnect(e.target.value.trim().toLowerCase())} />
+          <ol className="list-decimal space-y-1 pl-5 text-[13px] text-muted">
+            <li>{t('settings.dns1')}</li>
+            <li>{t('settings.dns2', { host: shop.myshopifyDomain })}</li>
+            <li>{t('settings.dns3')}</li>
+          </ol>
+        </div>
+      </Modal>
+    </>
   );
 }
 
@@ -160,12 +180,12 @@ export function TaxToggles() {
   return (
     <ShopPanel fields={['taxesIncluded', 'taxShipping']}>
       {(f, set) => (
-        <Card title={t('settings.taxOptions')}>
+        <Section title={t('settings.taxOptions')}><Card>
           <div className="flex flex-col gap-3">
-            <Checkbox label={t('settings.taxesIncluded')} checked={f.taxesIncluded} onChange={(e) => set({ taxesIncluded: e.target.checked })} />
-            <Checkbox label={t('settings.taxShipping')} checked={f.taxShipping} onChange={(e) => set({ taxShipping: e.target.checked })} />
+            <Switch label={t('settings.taxesIncluded')} checked={f.taxesIncluded} onChange={(v) => set({ taxesIncluded: v })} />
+            <Switch label={t('settings.taxShipping')} checked={f.taxShipping} onChange={(v) => set({ taxShipping: v })} />
           </div>
-        </Card>
+        </Card></Section>
       )}
     </ShopPanel>
   );

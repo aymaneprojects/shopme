@@ -1,5 +1,5 @@
 import { Dropdown, Skeleton, cx } from '@shopme/ui';
-import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2 } from 'lucide-react';
+import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText } from 'lucide-react';
 import { Suspense, useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
@@ -8,6 +8,7 @@ import type { Key } from '../i18n';
 import { getTheme, setTheme } from '../lib/theme';
 import type { Theme } from '../lib/theme';
 import { NAV_PERMISSION, useStaffAccess } from '../lib/permissions';
+import { SETTINGS_SECTIONS } from '../lib/settingsNav';
 import { useSession, useShop } from '../session';
 import { CommandPalette } from './CommandPalette';
 
@@ -26,7 +27,7 @@ export const NAV: NavItem[] = [
     ],
   },
   { id: 'customers', labelKey: 'nav.customers', to: '/customers', icon: Users },
-  { id: 'analytics', labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3 },
+  { id: 'analytics', labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, children: [{ id: 'reports', labelKey: 'nav.reports', to: '/analytics/reports', icon: FileText }] },
   { id: 'discounts', labelKey: 'nav.discounts', to: '/discounts', icon: Percent },
   { id: 'online-store', labelKey: 'nav.onlineStore', to: '/online-store', icon: Store },
   { id: 'settings', labelKey: 'nav.settings', to: '/settings', icon: Settings },
@@ -69,6 +70,24 @@ function NavLinks({ onNavigate }: { onNavigate: () => void }) {
     );
   };
   return <nav aria-label="Main" className="flex min-h-0 flex-1 flex-col gap-0.5">{NAV.filter((i) => can(NAV_PERMISSION[i.id])).map(group)}</nav>;
+}
+
+/** Settings mode: the sidebar swaps to the list of settings sections, with a way back to the main menu. */
+function SettingsNavLinks({ onNavigate }: { onNavigate: () => void }) {
+  const { t } = useI18n();
+  const can = useStaffAccess();
+  return (
+    <nav aria-label={t('nav.settings')} className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
+      <NavLink to="/" onClick={onNavigate} className="mb-2 flex h-8 items-center gap-2 rounded-lg px-2 text-[13px] font-semibold text-white hover:bg-frame-hover">
+        <ArrowLeft className="size-4 shrink-0" />{t('nav.settings')}
+      </NavLink>
+      {SETTINGS_SECTIONS.filter((s) => can(s.perm)).map((s) => (
+        <NavLink key={s.id} to={`/settings/${s.id}`} onClick={onNavigate} className={({ isActive }) => cx('flex min-h-7 items-center gap-2 rounded-lg px-2 py-1 text-[13px] leading-4 transition-colors', isActive ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover')}>
+          <s.icon className="size-4 shrink-0" />{t(s.key)}
+        </NavLink>
+      ))}
+    </nav>
+  );
 }
 
 export function PageFallback() {
@@ -150,7 +169,7 @@ export function Shell() {
       </header>
       <div className="flex min-h-0 flex-1">
         <aside className={cx('fixed inset-y-0 left-0 z-40 flex w-[var(--w-sidebar)] flex-col bg-frame px-2 pb-3 pt-14 transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 md:pt-1', open ? 'translate-x-0' : '-translate-x-full')}>
-          <NavLinks onNavigate={() => setOpen(false)} />
+          {pathname.startsWith('/settings') ? <SettingsNavLinks onNavigate={() => setOpen(false)} /> : <NavLinks onNavigate={() => setOpen(false)} />}
         </aside>
         {open && <div className="anim-fade fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setOpen(false)} aria-hidden />}
         <div className="mb-1 mr-1 min-w-0 flex-1 overflow-y-auto rounded-xl bg-page text-fg max-md:mx-1 md:ml-0" id="sheet">

@@ -288,6 +288,15 @@ describe('notification templates and order hooks', () => {
     expect((await gql(`mutation { shopmeNotificationTemplateReset(key: "nope") { userErrors { message } } }`)).data.shopmeNotificationTemplateReset.userErrors).toHaveLength(1);
   });
 
+  it('sends a test email of a template to a chosen address', async () => {
+    sent = [];
+    const ok = await gql(`mutation { shopmeNotificationSendTest(key: "order_confirmation", to: "me@example.com") { preview { subject } userErrors { message } } }`);
+    expect(ok.data.shopmeNotificationSendTest.userErrors).toEqual([]);
+    expect(sent.some((m) => m.to === 'me@example.com')).toBe(true);
+    expect((await gql(`mutation { shopmeNotificationSendTest(key: "order_confirmation", to: "nope") { userErrors { message } } }`)).data.shopmeNotificationSendTest.userErrors).toHaveLength(1);
+    expect((await gql(`mutation { shopmeNotificationSendTest(key: "zzz") { userErrors { message } } }`)).data.shopmeNotificationSendTest.userErrors).toHaveLength(1);
+  });
+
   it('sender settings apply to outgoing emails; hooks send shipping, refund and cancellation emails', async () => {
     const set = await gql(`mutation { shopmeNotificationSettingsUpdate(senderName: "Test Shop", senderEmail: "orders@example.com") { settings { senderName senderEmail } userErrors { message } } }`);
     expect(set.data.shopmeNotificationSettingsUpdate.settings).toEqual({ senderName: 'Test Shop', senderEmail: 'orders@example.com' });

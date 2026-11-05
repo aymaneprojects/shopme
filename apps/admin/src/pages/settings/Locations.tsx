@@ -1,6 +1,7 @@
-import { Badge, Banner, Button, Card, Checkbox, ConfirmDialog, EmptyState, Input, Modal, Select, Skeleton, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Checkbox, ConfirmDialog, EmptyState, Input, Modal, Select, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, MapPin } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronsUpDown, MapPin, Plus, Search } from 'lucide-react';
+import { Section, SettingsActions } from '../../components/SettingsKit';
 import { useState } from 'react';
 import { UserErrors, gql, mutate } from '../../api';
 import { LOCATIONS_ADMIN, LOCATIONS_REORDER, LOCATION_ACTIVATE, LOCATION_ADD, LOCATION_DEACTIVATE, LOCATION_EDIT } from '../../graphql';
@@ -66,47 +67,69 @@ export function LocationsSettings() {
   };
   const set = (p: Partial<Form>) => setEditing((e) => (e ? { ...e, form: { ...e.form, ...p } } : e));
 
+  const [filter, setFilter] = useState('');
+  const [scope, setScope] = useState<'all' | 'active' | 'inactive'>('all');
+  const shown = all.filter((l) => (scope === 'all' || (scope === 'active') === l.isActive) && `${l.name} ${summary(l.address)}`.toLowerCase().includes(filter.trim().toLowerCase()));
+  const defaultLoc = active.find((l) => l.isPrimary) ?? active[0];
+  const openEdit = (l: Loc) => { setError(null); setEditing({ loc: l, form: formOf(l) }); };
   return (
-    <Card title={t('settings.locations')} actions={<Button variant="primary" onClick={() => { setError(null); setEditing({ loc: null, form: blank(country) }); }}>{t('loc.add')}</Button>}>
-      <div className="flex flex-col gap-3">
-        <p className="text-[13px] text-muted">{t('loc.intro')}</p>
-        {q.error && <Banner>{q.error.message}</Banner>}
-        {q.isLoading && <Skeleton className="h-24" />}
-        {q.data && all.length === 0 && <EmptyState icon={<MapPin className="size-10" />} title={t('loc.emptyTitle')} description={t('loc.emptyBody')} />}
-        <ul className="divide-y divide-line">
-          {all.map((l) => {
-            const pos = active.findIndex((x) => x.id === l.id);
-            return (
-              <li key={l.id} className="flex flex-wrap items-center gap-3 py-3 text-[13px]">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{l.name}</span>
-                    {l.isPrimary && <Badge tone="info">{t('loc.primary')}</Badge>}
-                    {!l.isActive && <Badge>{t('loc.inactive')}</Badge>}
-                    {l.isActive && !l.fulfillsOnlineOrders && <Badge tone="warning">{t('loc.noOnline')}</Badge>}
-                  </div>
-                  <p className="truncate text-muted">{summary(l.address) || t('loc.noAddress')}</p>
-                  {l.isActive && <p className="text-xs text-muted">{t('loc.priority', { n: pos + 1 })}</p>}
-                </div>
-                {l.isActive && (
-                  <div className="flex items-center gap-1">
-                    <Button size="sm" aria-label={`${t('loc.moveUp')} ${l.name}`} disabled={pos <= 0 || reorder.isPending} onClick={() => move(l.id, -1)}><ArrowUp className="size-4" /></Button>
-                    <Button size="sm" aria-label={`${t('loc.moveDown')} ${l.name}`} disabled={pos < 0 || pos >= active.length - 1 || reorder.isPending} onClick={() => move(l.id, 1)}><ArrowDown className="size-4" /></Button>
-                  </div>
-                )}
-                <Button size="sm" onClick={() => { setError(null); setEditing({ loc: l, form: formOf(l) }); }}>{t('common.edit')}</Button>
-                {l.isActive
-                  ? <Button size="sm" variant="danger" disabled={active.length <= 1} onClick={() => setDeactivate({ loc: l, destination: '' })}>{t('loc.deactivate')}</Button>
-                  : <Button size="sm" loading={activate.isPending && activate.variables === l.id} onClick={() => activate.mutate(l.id)}>{t('loc.activate')}</Button>}
-              </li>
-            );
-          })}
-        </ul>
-        <p className="text-xs text-muted">{t('loc.allocationHelp')}</p>
+    <>
+      <SettingsActions><Button variant="primary" onClick={() => { setError(null); setEditing({ loc: null, form: blank(country) }); }}><Plus className="size-4" />{t('loc.add')}</Button></SettingsActions>
+      <div className="flex flex-col gap-6">
+        <Section title={t('loc.all')} description={t('loc.activeCount', { n: active.length })}>
+          {q.error && <Banner>{q.error.message}</Banner>}
+          {q.isLoading && <Skeleton className="h-24" />}
+          {q.data && all.length === 0 && <EmptyState icon={<MapPin className="size-10" />} title={t('loc.emptyTitle')} description={t('loc.emptyBody')} />}
+          {all.length > 0 && (
+            <div className="overflow-hidden rounded-lg bg-canvas shadow-card">
+              <div className="flex items-center gap-2 border-b border-line px-3 py-2">
+                <select aria-label={t('loc.filterStatus')} value={scope} onChange={(e) => setScope(e.target.value as typeof scope)} className="h-7 rounded-md bg-transparent text-[13px] font-medium">
+                  <option value="all">{t('loc.scope.all')}</option><option value="active">{t('loc.status.active')}</option><option value="inactive">{t('loc.inactive')}</option>
+                </select>
+                <Search className="size-4 shrink-0 text-muted" aria-hidden />
+                <input type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('loc.search')} aria-label={t('loc.search')} className="h-7 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" />
+              </div>
+              <ul className="divide-y divide-line">
+                {shown.map((l) => {
+                  const pos = active.findIndex((x) => x.id === l.id);
+                  return (
+                    <li key={l.id} className="flex items-center gap-2 pr-3 text-[13px] hover:bg-hover">
+                      <button type="button" onClick={() => openEdit(l)} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left">
+                        <span className="min-w-0 flex-1">
+                          <span className="flex flex-wrap items-center gap-2"><span className="font-medium">{l.name}</span>{l.isPrimary && <Badge tone="info">{t('loc.primary')}</Badge>}{l.isActive && !l.fulfillsOnlineOrders && <Badge tone="warning">{t('loc.noOnline')}</Badge>}</span>
+                          <span className="block truncate text-muted">{summary(l.address) || t('loc.noAddress')}</span>
+                        </span>
+                        <Badge tone={l.isActive ? 'success' : 'neutral'}>{t(l.isActive ? 'loc.status.active' : 'loc.inactive')}</Badge>
+                      </button>
+                      {l.isActive && (
+                        <span className="flex items-center gap-1">
+                          <Button size="sm" aria-label={`${t('loc.moveUp')} ${l.name}`} disabled={pos <= 0 || reorder.isPending} onClick={() => move(l.id, -1)}><ArrowUp className="size-4" /></Button>
+                          <Button size="sm" aria-label={`${t('loc.moveDown')} ${l.name}`} disabled={pos < 0 || pos >= active.length - 1 || reorder.isPending} onClick={() => move(l.id, 1)}><ArrowDown className="size-4" /></Button>
+                        </span>
+                      )}
+                      {!l.isActive && <Button size="sm" loading={activate.isPending && activate.variables === l.id} onClick={() => activate.mutate(l.id)}>{t('loc.activate')}</Button>}
+                    </li>
+                  );
+                })}
+                {shown.length === 0 && <li className="px-4 py-6 text-center text-[13px] text-muted">{t('loc.noMatch')}</li>}
+              </ul>
+            </div>
+          )}
+          <p className="text-xs text-muted">{t('loc.allocationHelp')}</p>
+        </Section>
+        {defaultLoc && (
+          <Section title={t('loc.defaultTitle')} description={t('loc.defaultDesc')}>
+            <button type="button" onClick={() => openEdit(defaultLoc)} className="flex w-full items-center gap-3 rounded-lg bg-canvas px-4 py-3 text-left text-[13px] shadow-card hover:bg-hover">
+              <MapPin className="size-4 shrink-0 text-muted" />
+              <span className="min-w-0 flex-1"><span className="block font-medium">{defaultLoc.name}</span><span className="block truncate text-muted">{summary(defaultLoc.address) || t('loc.noAddress')}</span></span>
+              <ChevronsUpDown className="size-4 text-muted" aria-hidden />
+            </button>
+          </Section>
+        )}
       </div>
 
       <Modal open={!!editing} onClose={() => setEditing(null)} closeLabel={t('common.close')} title={editing?.loc ? t('loc.edit') : t('loc.add')}
-        footer={<><Button onClick={() => setEditing(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={save.isPending} disabled={!editing?.form.name.trim()} onClick={() => save.mutate()}>{t('save.save')}</Button></>}>
+        footer={<>{editing?.loc?.isActive && <span className="mr-auto"><Button variant="danger" disabled={active.length <= 1} onClick={() => { const l = editing.loc!; setEditing(null); setDeactivate({ loc: l, destination: '' }); }}>{t('loc.deactivate')}</Button></span>}<Button onClick={() => setEditing(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={save.isPending} disabled={!editing?.form.name.trim()} onClick={() => save.mutate()}>{t('save.save')}</Button></>}>
         {editing && (
           <div className="grid gap-3 sm:grid-cols-2">
             {error && <div className="sm:col-span-2"><Banner>{error}</Banner></div>}
@@ -138,6 +161,6 @@ export function LocationsSettings() {
             )}
           </div>
         )} />
-    </Card>
+    </>
   );
 }
