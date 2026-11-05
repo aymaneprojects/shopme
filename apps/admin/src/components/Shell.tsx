@@ -1,5 +1,5 @@
-import { Skeleton, cx } from '@shopme/ui';
-import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Globe, BookOpen } from 'lucide-react';
+import { Dropdown, Skeleton, cx, useToast } from '@shopme/ui';
+import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Globe, BookOpen } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import { NavLink, Outlet, useLocation } from 'react-router';
 import { LANGS, useI18n } from '../i18n';
 import type { Key } from '../i18n';
 import { getTheme, setTheme } from '../lib/theme';
+import { useStoreInfo } from '../lib/storeInfo';
 import type { Theme } from '../lib/theme';
 import { NAV_PERMISSION, useStaffAccess } from '../lib/permissions';
 import { SETTINGS_SECTIONS } from '../lib/settingsNav';
@@ -111,20 +112,49 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate: () => void; collapsed
   );
 }
 
-/** Settings mode: the sidebar swaps to the list of settings sections, with a way back to the main menu. */
+/** Settings mode: the sidebar swaps to the settings sections, with a way back, a search field and the store header. */
 function SettingsNavLinks({ onNavigate, collapsed }: { onNavigate: () => void; collapsed: boolean }) {
   const { t } = useI18n();
   const can = useStaffAccess();
+  const { shop } = useShop();
+  const store = useStoreInfo();
+  const toast = useToast();
+  const [term, setTerm] = useState('');
+  const needle = term.trim().toLocaleLowerCase();
+  const sections = SETTINGS_SECTIONS.filter((s) => can(s.perm)).filter((s) => !needle || t(s.key).toLocaleLowerCase().includes(needle));
+  const host = store.host || (typeof location === 'undefined' ? '' : location.host);
+  const initial = (shop.name[0] ?? 'S').toUpperCase();
+  const copy = () => { void navigator.clipboard?.writeText(store.url || location.origin).then(() => toast(t('settings.nav.copied'))).catch(() => undefined); };
   return (
     <nav aria-label={t('nav.settings')} className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
       <NavLink to="/" onClick={onNavigate} title={collapsed ? t('nav.settings') : undefined} aria-label={collapsed ? t('nav.settings') : undefined} className={cx('mb-2 flex h-8 items-center gap-2 rounded-lg px-2 text-[13px] font-semibold text-white hover:bg-frame-hover', collapsed && 'justify-center')}>
         <ArrowLeft className="size-4 shrink-0" />{!collapsed && t('nav.settings')}
       </NavLink>
-      {SETTINGS_SECTIONS.filter((s) => can(s.perm)).map((s) => (
+      {!collapsed && (
+        <>
+          <label className="relative mb-2 block">
+            <span className="sr-only">{t('settings.nav.search')}</span>
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-frame-muted" aria-hidden />
+            <input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder={t('settings.nav.search')} autoComplete="off"
+              className="h-8 w-full rounded-lg border-0 bg-white/10 pl-8 pr-2 text-[13px] text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] outline-none placeholder:text-frame-muted focus:bg-white/15 focus-visible:shadow-[0_0_0_2px_var(--color-focus-ring)]" />
+          </label>
+          <div className="mb-1 flex items-center gap-2 rounded-lg bg-white/10 py-1.5 pl-2 pr-1 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]">
+            <span className="grid size-6 shrink-0 place-items-center rounded-md bg-primary-top text-xs font-semibold text-white" aria-hidden>{initial}</span>
+            <span className="min-w-0 flex-1 leading-4"><span className="block truncate text-[13px] font-semibold text-white">{shop.name}</span><span className="block truncate text-[11px] text-frame-muted">{host}</span></span>
+            <Dropdown align="right" icon variant="plain" label={t('settings.nav.storeMenu')} menuClassName="!text-fg" className="!size-6 !min-h-0 shrink-0 !text-frame-text hover:!bg-frame-hover" trigger={<MoreHorizontal className="size-4" />}
+              items={[
+                { key: 'view', label: t('settings.nav.viewStore'), icon: <ExternalLink className="size-4" />, onSelect: () => { window.open(store.url || '/', '_blank', 'noopener'); } },
+                { key: 'copy', label: t('settings.nav.copyUrl'), icon: <Copy className="size-4" />, onSelect: copy },
+              ]} />
+          </div>
+        </>
+      )}
+      {sections.map((s) => (
         <NavLink key={s.id} to={`/settings/${s.id}`} onClick={onNavigate} title={collapsed ? t(s.key) : undefined} aria-label={collapsed ? t(s.key) : undefined} className={({ isActive }) => cx('flex min-h-7 items-center gap-2 rounded-lg px-2 py-1 text-[13px] leading-4 transition-colors', collapsed && 'justify-center', isActive ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover')}>
           <s.icon className="size-4 shrink-0" />{!collapsed && t(s.key)}
         </NavLink>
       ))}
+      {sections.length === 0 && <p className="px-2 py-2 text-[13px] text-frame-muted">{t('settings.nav.empty')}</p>}
     </nav>
   );
 }
@@ -151,7 +181,7 @@ function RouteProgress() {
 }
 
 /** Account menu at the bottom of the sidebar: the store, the signed-in user, language and theme, help and sign out. */
-function AccountMenu({ collapsed }: { collapsed: boolean }) {
+function AccountMenu({ collapsed, userBlock }: { collapsed: boolean; userBlock?: boolean }) {
   const { t, lang, setLang } = useI18n();
   const { logout } = useSession();
   const { shop, user } = useShop();
@@ -172,9 +202,12 @@ function AccountMenu({ collapsed }: { collapsed: boolean }) {
   return (
     <div ref={box} className="relative mt-2 flex items-center gap-1">
       <button type="button" aria-haspopup="menu" aria-expanded={open} aria-label={t('shell.account')} title={collapsed ? shop.name : undefined} onClick={() => setOpen(!open)}
-        className={cx('flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-[13px] text-frame-text hover:bg-frame-hover', collapsed && 'justify-center')}>
-        <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary text-[11px] font-semibold text-white">{initial}</span>
-        {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{shop.name}</span>}
+        className={cx('flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-[13px] text-frame-text hover:bg-frame-hover', userBlock && !collapsed ? 'h-10' : 'h-9', collapsed && 'justify-center')}>
+        {userBlock && !collapsed
+          ? <><span className="grid size-6 shrink-0 place-items-center rounded-md bg-primary-top text-[10px] font-semibold text-white">{(((user.firstName?.[0] ?? '') + (user.lastName?.[0] ?? '')) || (user.email[0] ?? 'U')).toUpperCase()}</span>
+            <span className="min-w-0 flex-1 text-left leading-4"><span className="block truncate font-semibold text-white">{[user.firstName, user.lastName].filter(Boolean).join(' ') || user.email}</span><span className="block truncate text-[11px] text-frame-muted">{user.email}</span></span></>
+          : <><span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary text-[11px] font-semibold text-white">{initial}</span>
+            {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{shop.name}</span>}</>}
       </button>
       {!collapsed && <ActivityBell />}
       {open && (
@@ -205,8 +238,10 @@ export function Shell() {
     const h = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette((p) => !p); }
     };
+    const openIt = () => setPalette(true);
     window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
+    window.addEventListener('shopme:open-palette', openIt);
+    return () => { window.removeEventListener('keydown', h); window.removeEventListener('shopme:open-palette', openIt); };
   }, []);
   // The theme editor takes the whole window (no sidebar), like a full-screen workspace.
   if (/^\/online-store\/themes\/[^/]+\/editor/.test(pathname)) {
@@ -218,9 +253,10 @@ export function Shell() {
       </div>
     );
   }
+  const inSettings = pathname.startsWith('/settings');
   const mac = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.platform);
   return (
-    <div className="flex h-screen flex-col bg-frame text-frame-text" style={collapsed ? ({ '--w-sidebar': '3.5rem' } as React.CSSProperties) : undefined}>
+    <div className="flex h-screen flex-col bg-frame text-frame-text" style={collapsed ? ({ '--w-sidebar': '3.5rem' } as React.CSSProperties) : inSettings ? ({ '--w-sidebar': '16rem' } as React.CSSProperties) : undefined}>
       <RouteProgress />
       <header className="flex h-12 shrink-0 items-center gap-2 px-3">
         <button type="button" className="btn btn-plain btn-icon !text-frame-text hover:!bg-frame-hover md:hidden" aria-label={t('nav.menu')} onClick={() => setOpen(true)}><Menu className="size-5" /></button>
@@ -232,13 +268,13 @@ export function Shell() {
               </header>
       <div className="flex min-h-0 flex-1">
         <aside className={cx('fixed inset-y-0 left-0 z-40 flex w-[var(--w-sidebar)] flex-col bg-frame px-2 pb-3 pt-14 transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 md:pt-1', open ? 'translate-x-0' : '-translate-x-full')}>
-          <button type="button" onClick={() => { setOpen(false); setPalette(true); }} aria-label={t('shell.search')} aria-keyshortcuts="Control+K Meta+K" title={collapsed ? t('shell.search') : undefined}
+          {!inSettings && <button type="button" onClick={() => { setOpen(false); setPalette(true); }} aria-label={t('shell.search')} aria-keyshortcuts="Control+K Meta+K" title={collapsed ? t('shell.search') : undefined}
             className={cx('mb-2 flex h-8 w-full items-center gap-2 rounded-lg bg-white/10 px-2.5 text-[13px] text-frame-muted shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:bg-white/15', collapsed && 'justify-center px-0')}>
             <Search className="size-4 shrink-0" />
             {!collapsed && <><span className="flex-1 text-left">{t('shell.searchPlaceholder')}</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-medium">{mac ? '⌘' : 'Ctrl'} K</kbd></>}
-          </button>
-          {pathname.startsWith('/settings') ? <SettingsNavLinks onNavigate={() => setOpen(false)} collapsed={collapsed} /> : <NavLinks onNavigate={() => setOpen(false)} collapsed={collapsed} />}
-          <AccountMenu collapsed={collapsed} />
+          </button>}
+          {inSettings ? <SettingsNavLinks onNavigate={() => setOpen(false)} collapsed={collapsed} /> : <NavLinks onNavigate={() => setOpen(false)} collapsed={collapsed} />}
+          <AccountMenu collapsed={collapsed} userBlock={inSettings} />
         </aside>
         {open && <div className="anim-fade fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setOpen(false)} aria-hidden />}
         <div className="mb-1 mr-1 min-w-0 flex-1 overflow-y-auto rounded-xl bg-page text-fg max-md:mx-1 md:ml-0" id="sheet">

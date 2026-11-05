@@ -1,15 +1,16 @@
 import { Badge, Banner, Button, Card, Skeleton } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, CreditCard, ExternalLink, Globe, Package, ScrollText, ShoppingCart } from 'lucide-react';
+import { BarChart3, Check, Lock, Package, Rocket, Search, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { gql } from '../api';
-import { PageHeader } from '../components/PageHeader';
 import { selectCls, useFormat } from '../components/shared';
 import type { Money } from '../components/shared';
-import { ORDERS_COUNT, SHOPME_DASHBOARD } from '../graphql';
+import { ORDERS_COUNT, PAYMENT_SETTINGS, SHOPME_DASHBOARD, SHOP_POLICIES } from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
+import { useStoreInfo } from '../lib/storeInfo';
 import { useShop } from '../session';
 
 interface Dash { totalSales: Money; ordersCount: number; averageOrderValue: Money; salesByDay: Array<{ date: string; sales: { amount: string } }>; topProducts: Array<{ title: string; quantity: number }> }
@@ -36,12 +37,86 @@ export function SalesChart({ data, label, format }: { data: Array<{ date: string
   );
 }
 
+/** Opens the Ctrl/Cmd+K command palette mounted in the shell. */
+export const openPalette = () => window.dispatchEvent(new Event('shopme:open-palette'));
+
+/** Scaled, non-interactive thumbnail of the live storefront home (same origin, sandboxed: no scripts). */
+function StorePreview({ protectedStore }: { protectedStore: boolean }) {
+  const t = useT();
+  return (
+    <div className="relative mx-auto h-[184px] w-[290px] overflow-hidden rounded-xl bg-canvas shadow-card ring-1 ring-line" role="img" aria-label={t('home.preview.label')}>
+      <iframe src="/" title={t('home.preview.label')} sandbox="" tabIndex={-1} aria-hidden loading="lazy" className="pointer-events-none origin-top-left border-0 bg-white"
+        style={{ width: 1280, height: 800, transform: 'scale(0.2266)' }} />
+      <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-lg bg-ink/75 px-2 py-1 text-xs font-semibold text-white">
+        {protectedStore ? <Lock className="size-3" aria-hidden /> : <span className="size-1.5 rounded-full bg-[#4ade80]" aria-hidden />}
+        {t(protectedStore ? 'home.preview.private' : 'home.preview.online')}
+      </span>
+    </div>
+  );
+}
+
+const ART = { card: 'var(--color-bg)', line: 'var(--color-border)', main: 'var(--color-primary)', sub: 'var(--color-primary-subtle)' };
+/** Own illustrations: simple shapes in the admin palette. */
+function PaymentArt() {
+  return (
+    <svg viewBox="0 0 240 120" className="h-full w-full" aria-hidden>
+      <rect x="62" y="26" width="116" height="72" rx="10" fill={ART.card} stroke={ART.line} strokeWidth="1.5" />
+      <rect x="62" y="40" width="116" height="16" fill={ART.main} opacity=".85" />
+      <rect x="76" y="72" width="40" height="6" rx="3" fill={ART.line} /><rect x="76" y="84" width="24" height="6" rx="3" fill={ART.line} />
+      <circle cx="152" cy="80" r="10" fill={ART.sub} stroke={ART.main} strokeWidth="1.5" /><path d="m147.5 80 3 3 5-6" fill="none" stroke={ART.main} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function DomainArt() {
+  return (
+    <svg viewBox="0 0 240 120" className="h-full w-full" aria-hidden>
+      <rect x="34" y="40" width="172" height="40" rx="20" fill={ART.card} stroke={ART.line} strokeWidth="1.5" />
+      <circle cx="56" cy="60" r="8" fill={ART.sub} stroke={ART.main} strokeWidth="1.5" /><path d="M48 60h16M56 52c-4 5-4 11 0 16M56 52c4 5 4 11 0 16" fill="none" stroke={ART.main} strokeWidth="1.2" />
+      <rect x="72" y="56" width="86" height="8" rx="4" fill={ART.line} />
+      <text x="166" y="64" fontSize="13" fontWeight="600" fill={ART.main} fontFamily="inherit">.com</text>
+      <path d="m184 74 12 26 4-10 10-4z" fill={ART.main} stroke={ART.card} strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function PolicyArt() {
+  return (
+    <svg viewBox="0 0 240 120" className="h-full w-full" aria-hidden>
+      <rect x="82" y="18" width="84" height="88" rx="8" fill={ART.card} stroke={ART.line} strokeWidth="1.5" transform="rotate(-6 124 62)" />
+      <rect x="74" y="14" width="84" height="88" rx="8" fill={ART.card} stroke={ART.line} strokeWidth="1.5" />
+      <rect x="86" y="50" width="48" height="5" rx="2.5" fill={ART.line} /><rect x="86" y="62" width="60" height="5" rx="2.5" fill={ART.line} /><rect x="86" y="74" width="36" height="5" rx="2.5" fill={ART.line} />
+      <path d="M116 22l14 5v10c0 9-6 15-14 18-8-3-14-9-14-18V27z" fill={ART.main} /><path d="m110 38 4 4 7-8" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function StepCard({ to, art, title, body, done }: { to: string; art: ReactNode; title: string; body: string; done: boolean }) {
+  const t = useT();
+  return (
+    <Link to={to} className="group flex flex-col gap-3 rounded-2xl border border-line bg-canvas p-2 shadow-card transition-colors hover:bg-surface">
+      <div className={`grid h-[110px] place-items-center overflow-hidden rounded-xl bg-surface ${done ? 'opacity-60' : ''}`}>{art}</div>
+      <div className="flex flex-col gap-1 px-2 pb-2">
+        <span className="flex items-center gap-2 text-[13px] font-semibold">{title}{done && <Badge tone="success"><Check className="size-3" aria-hidden />{t('home.card.done')}</Badge>}</span>
+        <span className="text-[13px] leading-5 text-muted">{body}</span>
+      </div>
+    </Link>
+  );
+}
+
 export function HomePage() {
   const t = useT();
   const fmt = useFormat();
   const { shop, user } = useShop();
   const nav = useNavigate();
+  const store = useStoreInfo();
   const toProcess = useQuery({ queryKey: ['orders-count', 'to-process'], queryFn: () => gql<{ ordersCount: { count: number } }>(ORDERS_COUNT, { query: 'fulfillment_status:unfulfilled status:open' }) });
+  const pay = useQuery({ queryKey: ['home-payments'], retry: false, queryFn: () => gql<{ shopmePaymentSettings: { bankTransfer: { enabled: boolean }; cod: { enabled: boolean }; stripe: { enabled: boolean; stripeConfigured: boolean } } }>(PAYMENT_SETTINGS) });
+  const pol = useQuery({ queryKey: ['home-policies'], retry: false, queryFn: () => gql<{ shop: { shopPolicies: Array<{ body: string }> } }>(SHOP_POLICIES) });
+  const p = pay.data?.shopmePaymentSettings;
+  const steps = [
+    { to: '/settings/payments', art: <PaymentArt />, title: t('home.setupPayments'), body: t('home.setupPayments.body'), done: !!p && (p.bankTransfer.enabled || p.cod.enabled || (p.stripe.enabled && p.stripe.stripeConfigured)) },
+    { to: '/settings/domains', art: <DomainArt />, title: t('home.setupDomain'), body: t('home.setupDomain.body'), done: store.customDomain },
+    { to: '/settings/policies', art: <PolicyArt />, title: t('home.setupPolicies'), body: t('home.setupPolicies.body'), done: !!pol.data && pol.data.shop.shopPolicies.some((x) => x.body.trim() !== '') },
+  ];
   const [range, setRange] = useState('LAST_7_DAYS');
   const q = useQuery({ queryKey: ['dashboard', range], queryFn: () => gql<{ shopmeDashboard: Dash }>(SHOPME_DASHBOARD, { range }) });
   const d = q.data?.shopmeDashboard;
@@ -49,50 +124,69 @@ export function HomePage() {
   const series = (d?.salesByDay ?? []).map((x) => ({ date: x.date, total: Number(x.sales.amount) }));
   const maxQty = Math.max(1, ...(d?.topProducts ?? []).map((p) => p.quantity));
   const link = 'inline-flex items-center gap-2 field-control font-medium hover:bg-surface';
+  const prot = store.passwordProtected;
+  const launch = 'btn btn-primary mt-2 w-[290px] justify-center !rounded-full';
 
   return (
     <>
-      <PageHeader title={t('home.welcome', { name: user.firstName || shop.name })}
-        actions={<select aria-label={t('home.range')} value={range} onChange={(e) => setRange(e.target.value)} className={selectCls}>{RANGES.map((r) => <option key={r} value={r}>{t(`home.range.${r}` as Key)}</option>)}</select>} />
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <a href="/" target="_blank" rel="noreferrer" className="btn btn-primary"><ExternalLink className="size-4" />{t('store.view')}</a>
-        <Button onClick={() => nav('/orders?tab=unfulfilled')}>{t('home.processOrders')}{toProcess.data && <Badge tone={toProcess.data.ordersCount.count ? 'attention' : 'neutral'}>{toProcess.data.ordersCount.count}</Badge>}</Button>
-      </div>
-      {q.isError && <div className="mb-4"><Banner>{(q.error as Error).message}</Banner></div>}
-      <div className="grid gap-4 sm:grid-cols-3">
-        {kpi(t('home.sales'), fmt.money(d?.totalSales))}
-        {kpi(t('home.orders'), String(d?.ordersCount ?? '—'))}
-        {kpi(t('home.aov'), fmt.money(d?.averageOrderValue))}
-      </div>
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_20rem]">
-        <Card title={t('home.salesByDay')} actions={<Link to="/analytics/SALES_OVER_TIME" className="text-[13px] text-primary underline">{t('analytics.viewReports')}</Link>}>
-          {series.length ? <SalesChart data={series} label={t('home.salesByDay')} format={(n) => fmt.money({ amount: String(n), currencyCode: shop.currency })} /> : <p className="py-8 text-center text-[13px] text-muted">{t('home.noSales')}</p>}
-        </Card>
-        <Card title={t('home.topProducts')}>
-          {(d?.topProducts.length ?? 0) === 0 ? <p className="text-[13px] text-muted">{t('home.noSales')}</p> : (
-            <ul className="flex flex-col gap-2">
-              {d!.topProducts.map((p) => (
-                <li key={p.title} className="text-[13px]"><div className="flex justify-between gap-2"><span className="truncate">{p.title}</span><span className="text-muted">{p.quantity}</span></div>
-                  <div className="mt-1 h-1.5 rounded-full bg-surface"><div className="h-1.5 rounded-full bg-primary" style={{ width: `${(p.quantity / maxQty) * 100}%` }} /></div></li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      </div>
-      <Card className="mt-4" title={t('home.quickLinks')}>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/products/new" className={link}><Package className="size-4" />{t('products.add')}</Link>
-          <Link to="/orders" className={link}><ShoppingCart className="size-4" />{t('home.viewOrders')}</Link>
-          <Link to="/analytics" className={link}><BarChart3 className="size-4" />{t('analytics.viewReports')}</Link>
+      <div className="mx-auto flex max-w-[860px] flex-col items-center">
+        <div className="mb-6 self-start">
+          <span className="inline-flex h-7 items-center gap-2 rounded-full bg-canvas px-3 text-[13px] shadow-card" role="status">
+            <span className={`size-2 rounded-full ${prot ? 'bg-[#e0a100]' : 'bg-[#2ea44f]'}`} aria-hidden />{t(prot ? 'home.status.protected' : 'home.status.online')}
+          </span>
         </div>
-      </Card>
-      <h2 className="mb-2 mt-6 text-[13px] font-semibold">{t('home.nextSteps')}</h2>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {([['/settings/payments', CreditCard, 'home.setupPayments'], ['/settings/domains', Globe, 'home.setupDomain'], ['/settings/policies', ScrollText, 'home.setupPolicies']] as const).map(([to, Icon, key]) => (
-          <Link key={to} to={to} className="flex flex-col gap-1 rounded-lg border border-line bg-canvas p-4 hover:bg-surface">
-            <Icon className="size-5 text-accent" aria-hidden /><span className="text-[13px] font-semibold">{t(key)}</span><span className="text-xs text-muted">{t(`${key}.body` as Key)}</span>
-          </Link>
-        ))}
+        <StorePreview protectedStore={prot} />
+        {prot
+          ? <Link to="/online-store/preferences" className={launch}><Rocket className="size-4" />{t('home.launch')}</Link>
+          : <a href={store.url || '/'} target="_blank" rel="noreferrer" className={launch}><Rocket className="size-4" />{t('home.viewStore')}</a>}
+        <h1 className="mt-8 text-center text-[26px] font-medium leading-9">
+          <span className="underline decoration-dotted decoration-1 underline-offset-4">{shop.name}</span><br />{t(prot ? 'home.headline.protected' : 'home.headline.online')}<br />{t('home.question')}
+        </h1>
+        <button type="button" onClick={openPalette} aria-label={t('home.searchLabel')} aria-keyshortcuts="Control+K Meta+K"
+          className="mt-6 flex h-[88px] w-full max-w-[560px] flex-col justify-between rounded-3xl bg-canvas px-4 py-3 text-left shadow-card ring-1 ring-line hover:ring-primary">
+          <span className="text-sm text-muted">{t('home.search')}</span>
+          <span className="flex items-center justify-between text-muted"><Search className="size-4" aria-hidden /><kbd className="rounded bg-surface px-1.5 py-0.5 text-[11px] font-medium">Ctrl K</kbd></span>
+        </button>
+        <Button className="mt-5 !rounded-full" onClick={() => nav('/orders?tab=unfulfilled')}>{t('home.processOrders')}{toProcess.data && <Badge tone={toProcess.data.ordersCount.count ? 'attention' : 'neutral'}>{toProcess.data.ordersCount.count}</Badge>}</Button>
+      </div>
+      {steps.some((s) => !s.done) && (
+        <div className="mx-auto mt-12 grid max-w-[860px] gap-4 sm:grid-cols-3" aria-label={t('home.nextSteps')}>
+          {steps.map((s) => <StepCard key={s.to} {...s} />)}
+        </div>
+      )}
+      <div className="mt-12">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <h2 className="min-w-0 flex-1 truncate text-lg font-semibold">{t('home.welcome', { name: user.firstName || shop.name })}</h2>
+          <select aria-label={t('home.range')} value={range} onChange={(e) => setRange(e.target.value)} className={selectCls}>{RANGES.map((r) => <option key={r} value={r}>{t(`home.range.${r}` as Key)}</option>)}</select>
+        </div>
+        {q.isError && <div className="mb-4"><Banner>{(q.error as Error).message}</Banner></div>}
+        <div className="grid gap-4 sm:grid-cols-3">
+          {kpi(t('home.sales'), fmt.money(d?.totalSales))}
+          {kpi(t('home.orders'), String(d?.ordersCount ?? '—'))}
+          {kpi(t('home.aov'), fmt.money(d?.averageOrderValue))}
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_20rem]">
+          <Card title={t('home.salesByDay')} actions={<Link to="/analytics/SALES_OVER_TIME" className="text-[13px] text-primary underline">{t('analytics.viewReports')}</Link>}>
+            {series.length ? <SalesChart data={series} label={t('home.salesByDay')} format={(n) => fmt.money({ amount: String(n), currencyCode: shop.currency })} /> : <p className="py-8 text-center text-[13px] text-muted">{t('home.noSales')}</p>}
+          </Card>
+          <Card title={t('home.topProducts')}>
+            {(d?.topProducts.length ?? 0) === 0 ? <p className="text-[13px] text-muted">{t('home.noSales')}</p> : (
+              <ul className="flex flex-col gap-2">
+                {d!.topProducts.map((x) => (
+                  <li key={x.title} className="text-[13px]"><div className="flex justify-between gap-2"><span className="truncate">{x.title}</span><span className="text-muted">{x.quantity}</span></div>
+                    <div className="mt-1 h-1.5 rounded-full bg-surface"><div className="h-1.5 rounded-full bg-primary" style={{ width: `${(x.quantity / maxQty) * 100}%` }} /></div></li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+        <Card className="mt-4" title={t('home.quickLinks')}>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/products/new" className={link}><Package className="size-4" />{t('products.add')}</Link>
+            <Link to="/orders" className={link}><ShoppingCart className="size-4" />{t('home.viewOrders')}</Link>
+            <Link to="/analytics" className={link}><BarChart3 className="size-4" />{t('analytics.viewReports')}</Link>
+          </div>
+        </Card>
       </div>
     </>
   );

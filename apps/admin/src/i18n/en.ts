@@ -19,6 +19,7 @@ import { enEditor } from './en-editor';
 import { enTimeline } from './en-timeline';
 import { enQaStore } from './en-qa-store';
 import { enQaSettings } from './en-qa-settings';
+import { enQaHome } from './en-qa-home';
 import { enShipping } from './en-shipping';
 import { enTransfers } from './en-transfers';
 import { enMetaobjects } from './en-metaobjects';
@@ -131,6 +132,7 @@ export const en = {
   ...enCheckout,
   ...enQaStore,
   ...enQaSettings,
+  ...enQaHome,
   ...enTransfers,
   ...enDiscountCodes,
   ...enMarkets,

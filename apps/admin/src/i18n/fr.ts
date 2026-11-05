@@ -20,6 +20,7 @@ import { frDiscountCodes } from './fr-discount-codes';
 import { frTimeline } from './fr-timeline';
 import { frQaStore } from './fr-qa-store';
 import { frQaSettings } from './fr-qa-settings';
+import { frQaHome } from './fr-qa-home';
 import { frShipping } from './fr-shipping';
 import { frTransfers } from './fr-transfers';
 import { frMetaobjects } from './fr-metaobjects';
@@ -133,6 +134,7 @@ export const fr: Record<Key, string> = {
   ...frCheckout,
   ...frQaStore,
   ...frQaSettings,
+  ...frQaHome,
   ...frTransfers,
   ...frDiscountCodes,
   ...frMarkets,
