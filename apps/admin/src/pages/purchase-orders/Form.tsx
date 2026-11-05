@@ -1,6 +1,6 @@
 import { Banner, Button, Card, ConfirmDialog, Input, Modal, Select, TagInput, Textarea } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronUp, Pencil, X } from 'lucide-react';
+import { ChevronDown, ClipboardList, ChevronUp, Pencil, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql, mutate } from '../../api';
@@ -110,21 +110,21 @@ export function PurchaseOrderForm({ initial }: { initial: PoDraft }) {
   });
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <PageHeader back="/purchase-orders" title={f.id ? t('po.editDraft') : t('po.createTitle')}
-        actions={<div className="flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-2">
+    <div className="mx-auto max-w-[820px]">
+      <PageHeader large back="/purchase-orders" breadcrumb={{ icon: <ClipboardList className="size-4" />, label: t('nav.purchaseOrders'), to: '/purchase-orders' }} title={f.id ? t('po.editDraft') : t('po.createTitle')}
+        actions={(f.id || f.supplierId || f.destination || f.lines.length > 0 || f.reference || f.note || f.tags.length > 0) && <div className="flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-2">
           {f.id && <Button onClick={() => setConfirmDelete(true)}>{t('common.delete')}</Button>}
           <Button loading={save.isPending && save.variables === false} onClick={() => { setError(null); save.mutate(false); }}>{t('po.saveDraft')}</Button>
           <Button variant="primary" disabled={!canOrder} loading={save.isPending && save.variables === true} onClick={() => { setError(null); save.mutate(true); }}>{t('po.markOrdered')}</Button>
         </div>} />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
-      <div className="grid items-start gap-4 lg:grid-cols-[1fr_20rem]">
+      <div className="grid items-start gap-4 lg:grid-cols-[1fr_16.5rem]">
         <Card className="!p-0">
           <div className="p-3">
             <Pipeline
               start={(
                 <label className="relative inline-flex items-center">
-                  <select aria-label={t('po.supplier')} value={f.supplierId} className="field-control h-8 max-w-[16rem] pr-8 text-[13px] font-medium"
+                  <select aria-label={t('po.supplier')} value={f.supplierId} className="chip-select h-8 max-w-[16rem] pl-2.5 pr-7 text-[13px] font-medium"
                     onChange={(e) => { if (e.target.value === '__new') setSupplierOpen(true); else pickSupplier(e.target.value); }}>
                     <option value="">{t('po.selectSupplier')}</option>
                     {(suppliers.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -185,14 +185,16 @@ export function PurchaseOrderForm({ initial }: { initial: PoDraft }) {
               <div className="flex flex-col gap-3">
                 <Input label={t('po.reference')} value={f.reference} maxLength={255} onChange={(e) => set({ reference: e.target.value })} help={`${f.reference.length}/255`} />
                 <Textarea label={t('po.supplierNote')} value={f.note} maxLength={5000} onChange={(e) => set({ note: e.target.value })} help={`${f.note.length}/5000`} />
-                <div className="flex flex-wrap items-end gap-2 border-t border-line pt-3">
-                  <Select label={t('po.paymentTerms')} value={f.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value })}>
-                    {PAYMENT_TERMS.map((p) => <option key={p} value={p}>{t(`po.terms.${p}` as Key)}</option>)}
-                  </Select>
-                  <Select label={t('po.currency')} value={f.currency} onChange={(e) => set({ currency: e.target.value })}>
-                    {[...new Set([shop.currency, ...currencies])].map((c) => <option key={c} value={c}>{c}</option>)}
-                  </Select>
-                  <button type="button" className="btn btn-icon btn-sm mb-0.5" aria-expanded={more} aria-label={t('po.moreFields')} onClick={() => setMore((m) => !m)}>{more ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}</button>
+                <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+                  <label className="inline-flex items-center gap-1.5 rounded-md bg-hover px-2 py-1 text-[13px]"><span className="text-muted">{t('po.paymentTerms')}</span>
+                    <select aria-label={t('po.paymentTerms')} value={f.paymentTerms} onChange={(e) => set({ paymentTerms: e.target.value })} className="cursor-pointer bg-transparent font-medium outline-none">
+                      {PAYMENT_TERMS.map((p) => <option key={p} value={p}>{t(`po.terms.${p}` as Key)}</option>)}
+                    </select></label>
+                  <label className="inline-flex items-center gap-1.5 rounded-md bg-hover px-2 py-1 text-[13px]"><span className="text-muted">{t('po.currency')}</span>
+                    <select aria-label={t('po.currency')} value={f.currency} onChange={(e) => set({ currency: e.target.value })} className="cursor-pointer bg-transparent font-medium outline-none">
+                      {[...new Set([shop.currency, ...currencies])].map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select></label>
+                  <button type="button" className="btn btn-plain btn-icon btn-sm ml-auto" aria-expanded={more} aria-label={t('po.moreFields')} onClick={() => setMore((m) => !m)}>{more ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}</button>
                 </div>
                 {more && (
                   <div className="grid gap-3">

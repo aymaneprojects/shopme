@@ -1,4 +1,4 @@
-import { Banner, Button, Card, Input, Modal, Select, Skeleton, Switch, Tabs, useToast } from '@shopme/ui';
+import { Banner, Button, Input, Modal, Select, Skeleton, Switch, Tabs, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Pencil } from 'lucide-react';
 import { useState } from 'react';
@@ -37,7 +37,8 @@ export function StoreCreditCard({ customerId, onEdit }: { customerId: string; on
   const accounts = q.data?.customer?.storeCreditAccounts.nodes ?? [];
   const latest = accounts.flatMap((a) => a.transactions.nodes).sort((x, y) => y.createdAt.localeCompare(x.createdAt)).slice(0, 3);
   return (
-    <Card title={t('credit.title')} actions={<Button size="sm" icon aria-label={t('credit.adjust')} onClick={onEdit}><Pencil className="size-3.5" /></Button>}>
+    <section className="flex flex-col gap-1.5 py-3 text-[13px]">
+      <div className="flex items-center justify-between gap-2"><h2 className="font-semibold">{t('credit.title')}</h2><Button variant="plain" size="sm" icon aria-label={t('credit.adjust')} onClick={onEdit}><Pencil className="size-3.5" /></Button></div>
       {q.isLoading ? <Skeleton className="h-5 w-24" /> : q.error ? <p className="text-[13px] text-muted">{q.error.message}</p> : accounts.length === 0 ? (
         <p className="text-[13px] text-muted">{t('credit.none')}</p>
       ) : (
@@ -54,7 +55,7 @@ export function StoreCreditCard({ customerId, onEdit }: { customerId: string; on
         </div>
       )}
       {q.data && !q.data.storeCreditConfiguration.storeCreditEnabled && <p className="mt-2 text-[12px] text-muted">{t('credit.offNote')}</p>}
-    </Card>
+    </section>
   );
 }
 

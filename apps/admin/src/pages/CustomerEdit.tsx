@@ -1,6 +1,6 @@
 import { Banner, Button, Card, Checkbox, Input, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
@@ -80,7 +80,7 @@ function CustomerFormView({ id, initial }: { id: string | null; initial: Custome
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setErrors({}); }} />
-      <PageHeader back={id ? `/customers/${gidToNum(id)}` : '/customers'} title={id ? t('customers.edit') : t('customers.addTitle')} />
+      <PageHeader large back={id ? `/customers/${gidToNum(id)}` : '/customers'} breadcrumb={{ icon: <Users className="size-4" />, label: t('nav.customers'), to: '/customers' }} title={id ? t('customers.edit') : t('customers.addTitle')} />
       {(error || errors.name) && <div className="mb-4"><Banner>{error ?? errors.name}</Banner></div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">
@@ -90,7 +90,7 @@ function CustomerFormView({ id, initial }: { id: string | null; initial: Custome
               <Input label={t('field.lastName')} value={form.lastName} onChange={(e) => set({ lastName: e.target.value })} />
             </div>
             {!id && <Select className="mt-3" label={t('customers.language')} help={t('customers.languageHelp')} value={form.locale || lang} onChange={(e) => set({ locale: e.target.value })}><option value="en">English</option><option value="fr">Français</option></Select>}
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 grid gap-3">
               <Input label={t('field.email')} type="email" value={form.email} error={errors.email} onChange={(e) => set({ email: e.target.value })} />
               <Input label={t('customer.phone')} type="tel" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
             </div>

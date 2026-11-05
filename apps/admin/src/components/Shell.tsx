@@ -65,7 +65,7 @@ export function Logo({ className }: { className?: string }) {
 }
 
 /** Index pages span the whole sheet; detail and edit pages keep the narrower centred column. */
-const WIDE_ROUTE = /^\/(products|collections|inventory|orders|orders\/drafts|orders\/abandoned|customers|customers\/segments|discounts|gift-cards)\/?$/;
+const WIDE_ROUTE = /^\/(products|collections|inventory|orders|orders\/drafts|orders\/abandoned|customers|customers\/segments|discounts|gift-cards|markets|transfers|purchase-orders|content\/metaobjects|content\/entries)\/?$/;
 const COLLAPSE_KEY = 'shopme.sidebar.collapsed';
 const readCollapsed = () => { try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; } };
 

@@ -5,6 +5,7 @@ import { Boxes, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../api';
+import { LearnMore } from '../components/LearnMore';
 import { PageHeader } from '../components/PageHeader';
 import { searchCls, selectCls, useFormat, useListParams } from '../components/shared';
 import { gidToNum } from '../format';
@@ -52,7 +53,7 @@ export function MetaobjectsPage() {
   ];
   return (
     <>
-      <PageHeader title={t('mo.title')} actions={<>
+      <PageHeader icon={<Boxes className="size-4" />} title={t('mo.title')} actions={<>
         <Link to="/settings/metafields/metaobjects" className="btn btn-secondary">{t('mo.manage')}</Link>
         <Link to="/settings/metafields/metaobjects/new" className="btn btn-primary">{t('mo.addDefinition')}</Link>
       </>} />
@@ -71,7 +72,7 @@ export function MetaobjectsPage() {
               ))}
             </ul>
           )}
-          {!!s?.totalCount && <Link to="/content/entries" className="mt-2 inline-block text-[13px] font-medium text-accent hover:underline">{t('mo.viewAll', { n: s.totalCount, $count: s.totalCount })}</Link>}
+          {!!s?.totalCount && <Link to="/content/entries" className="mt-2 inline-block text-[13px] font-medium hover:underline">{t('mo.viewAll', { n: s.totalCount, $count: s.totalCount })}</Link>}
         </Card>
       </div>
       <Card className="!p-0">
@@ -86,6 +87,7 @@ export function MetaobjectsPage() {
           empty={term ? <EmptyState icon={<Search className="size-10" />} title={t('mo.noDefinitionFound')} description={t('content.noResultsBody')} />
             : <EmptyState icon={<Boxes className="size-10" />} title={t('mo.emptyTitle')} description={t('mo.emptyBody')} action={<Link to="/settings/metafields/metaobjects/new" className="btn btn-primary">{t('mo.addDefinition')}</Link>} />} />
       </Card>
+      <LearnMore topic={t('qaf.learn.metaobjects')} />
     </>
   );
 }
