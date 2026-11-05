@@ -17,6 +17,21 @@ of the Shopify Admin GraphQL API. They are the written contract between "what ot
 | [ajax-cart-api.md](ajax-cart-api.md) | Cart endpoints used by themes (maintained separately; may not exist yet). |
 | [storefront-routes.md](storefront-routes.md) | Storefront URL routes and renderer contract (maintained separately; may not exist yet). |
 
+### Specs for upcoming features
+
+Implementation-ready specs for features ShopMe does not have yet. Each has admin screens, a data model proposal, the Admin GraphQL surface
+(MVP vs later), Liquid impact, edge cases, a test plan and the open questions that still need captures.
+
+| Spec | What it covers |
+|---|---|
+| [markets.md](markets.md) | Markets, regions, per-market currency, rounding, catalogs and price lists, web presences, buyer country and currency resolution, `localization` object. |
+| [shipping-profiles.md](shipping-profiles.md) | Delivery profiles, zones and rates with weight/price conditions, market shipping options, local pickup, local delivery, packages, carrier-rate and label provider interfaces. |
+| [metaobjects.md](metaobjects.md) | Definitions with typed fields, entries, handles, publishable/translatable/online-store capabilities, references, Liquid access, entry pages. |
+| [store-credit.md](store-credit.md) | Per-customer credit accounts, credit and debit transactions with expiry, checkout tender, refunds to credit. |
+| [inventory-transfers.md](inventory-transfers.md) | Transfers and shipments between locations, receiving, `incoming` and `reserved` quantities. |
+| [purchase-orders.md](purchase-orders.md) | Suppliers and purchase orders, receiving through transfers, cost updates. |
+| [customer-privacy-accounts-events.md](customer-privacy-accounts-events.md) | Customer accounts settings, consent policies and cookie banner, data-sale opt-out, marketing consent, customer events and pixels. |
+
 Suggested reading order for a new contributor: `theme-format.md`, `liquid-compat.md`, `admin-api-mvp.md`, `data-model.md`.
 
 ## Method (clean room)

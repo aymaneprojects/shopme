@@ -504,6 +504,14 @@ Size: S under 2 days, M about a week, L more than a week or a new subsystem. Hin
 
 ---
 
+## Next features
+
+Implementation-ready specs now exist for the largest remaining gaps. P2-1 (markets and multi-currency): [markets.md](markets.md).
+P2-3 (transfers, purchase orders): [inventory-transfers.md](inventory-transfers.md) and [purchase-orders.md](purchase-orders.md).
+P2-4 (metaobjects): [metaobjects.md](metaobjects.md). Also specified: shipping profiles, pickup and local delivery
+([shipping-profiles.md](shipping-profiles.md)), store credit ([store-credit.md](store-credit.md)), and customer account settings, privacy
+and customer events ([customer-privacy-accounts-events.md](customer-privacy-accounts-events.md)).
+
 ## 9. Notes on method and limits
 
 - Root-field and type-field comparisons are by name only; nullability, argument sets (apart from the three list
