@@ -30,7 +30,7 @@ export function registerOpsJobs(ctx: AppContext): () => void {
     const shop = await getShop(db, e.shopId);
     if (!shop || e.subjectId == null || !e.verb) return;
     const mail = await orderEventMail(db, shop, e.verb, e.subjectId, e.data);
-    if (mail) { await sendNotification(db, ctx.mailer, shop, config.appUrl, mail.key, mail.to, mail.vars); await recordOrderEmail(db, e.shopId, e.subjectId, mail.key, mail.to); }
+    if (mail) await sendNotification(db, ctx.mailer, shop, config.appUrl, mail.key, mail.to, mail.vars, { onSent: (m) => recordOrderEmail(db, e.shopId, e.subjectId!, mail.key, mail.to, { subject: m.subject, html: m.html ?? m.text }) });
   });
   queue.register<EventJob>('activity.low-stock', async (e) => { if (e.subjectId != null) await recordLowStockForOrder(db, e.shopId, e.subjectId); });
   queue.every('webhook-sweep', 30_000, async () => {

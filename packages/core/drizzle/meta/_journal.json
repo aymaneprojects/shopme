@@ -127,6 +127,13 @@
       "when": 1793889199636,
       "tag": "0017_privacy_accounts_store_credit",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793894143433,
+      "tag": "0018_orders_buttons",
+      "breakpoints": true
     }
   ]
 }

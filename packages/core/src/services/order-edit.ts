@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import { orderDiscountApplications, orderEdits, orderLines, orderTaxLines, orders, taxRates, type StagedAddition, type StagedDiscount } from '../db/schema';
+import { orderDiscountApplications, orderEdits, orderLines, orderShippingLines, orderTaxLines, orders, taxRates, type StagedAddition, type StagedCustomItem, type StagedDiscount, type StagedOrderDiscount, type StagedShippingFee } from '../db/schema';
 import type { Db, Executor } from '../db/client';
 import { errR, okR, txResult, type Result } from './catalog/common';
 import { addEvent } from './events';
@@ -10,6 +10,8 @@ import { allocate, applicableTaxRates, priceCheckout, roundDiv } from './pricing
 
 export type OrderEdit = typeof orderEdits.$inferSelect;
 export const ADDITION_ID_BASE = 900_000_000;
+/** Ids of staged custom items (not in the catalog) start here. */
+export const CUSTOM_ID_BASE = 950_000_000;
 
 /** One line of the order as it would look after the edit. `orderLineId` is null for variants added by the session. */
 export interface CalculatedLine {
@@ -37,6 +39,10 @@ export interface CalculatedOrder {
   totalDiscounts: number;
   totalTax: number;
   total: number;
+  /** Extra shipping fee staged by the session (minor units). */
+  shippingFee: number;
+  /** Amount taken off by the order-level discount. */
+  orderDiscount: number;
   /** Positive: payment due from the buyer. Negative: refund owed. */
   outstanding: number;
   received: number;
@@ -88,16 +94,20 @@ export async function calculateOrderEdit(db: Executor, shopId: number, edit: Ord
   });
 
   const adds = edit.additions.filter((a) => a.quantity > 0);
-  if (adds.length) {
-    const resolved = await resolveDraftLines(db, shopId, adds.map((a) => ({ variantId: a.variantId, quantity: a.quantity })));
+  const customs = (edit.customItems ?? []).filter((c) => c.quantity > 0);
+  if (adds.length || customs.length) {
+    const resolved = adds.length ? await resolveDraftLines(db, shopId, adds.map((a) => ({ variantId: a.variantId, quantity: a.quantity }))) : okR([]);
     if (resolved.ok) {
       const ship = d.shippingAddress;
       const rates = ship?.countryCode ? await db.select().from(taxRates).where(and(eq(taxRates.shopId, shopId), eq(taxRates.active, true), eq(taxRates.countryCode, ship.countryCode.toUpperCase()))) : [];
-      const pl = resolved.value.map((l, i) => ({ id: adds[i]!.id, unitPrice: l.unitPrice, quantity: l.quantity, taxable: l.taxable, requiresShipping: l.requiresShipping, grams: l.grams * l.quantity, productId: l.productId ?? 0, collectionIds: [] }));
+      const pl = [
+        ...resolved.value.map((l, i) => ({ id: adds[i]!.id, unitPrice: l.unitPrice, quantity: l.quantity, taxable: l.taxable, requiresShipping: l.requiresShipping, grams: l.grams * l.quantity, productId: l.productId ?? 0, collectionIds: [] })),
+        ...customs.map((c) => ({ id: c.id, unitPrice: c.unitPrice, quantity: c.quantity, taxable: c.taxable, requiresShipping: c.requiresShipping, grams: 0, productId: 0, collectionIds: [] })),
+      ];
       const priced = priceCheckout({
         lines: pl, taxesIncluded: order.taxesIncluded, shipping: null, country: ship?.countryCode ?? null, province: ship?.provinceCode ?? null,
         taxRates: applicableTaxRates(rates.map((r) => ({ name: r.name, countryCode: r.countryCode, provinceCode: r.provinceCode, rate: r.rate, appliesToShipping: r.appliesToShipping, priority: r.priority })), ship?.countryCode ?? null, ship?.provinceCode ?? null),
-        discounts: adds.flatMap((a) => { const sd = staged(edit, a.id); return sd ? [{ id: 0, code: null, title: sd.description ?? 'Custom discount', valueType: sd.valueType, value: sd.valueType === 'PERCENTAGE' ? Math.round(sd.value * 100) : sd.value, target: 'PRODUCTS' as const, appliesTo: { lineIds: [a.id] } }] : []; }),
+        discounts: [...adds, ...customs].flatMap((a) => { const sd = staged(edit, a.id); return sd ? [{ id: 0, code: null, title: sd.description ?? 'Custom discount', valueType: sd.valueType, value: sd.valueType === 'PERCENTAGE' ? Math.round(sd.value * 100) : sd.value, target: 'PRODUCTS' as const, appliesTo: { lineIds: [a.id] } }] : []; }),
       });
       resolved.value.forEach((l, i) => {
         const a = adds[i]!; const p = priced.lines.find((x) => x.id === a.id)!;
@@ -107,23 +117,46 @@ export async function calculateOrderEdit(db: Executor, shopId: number, edit: Ord
           base: { quantity: 0, discountedTotal: 0, totalTax: 0, taxable: l.taxable, requiresShipping: l.requiresShipping, grams: l.grams, productId: l.productId, vendor: l.vendor, properties: {} },
         });
       });
+      for (const c of customs) {
+        const p = priced.lines.find((x) => x.id === c.id)!;
+        lines.push({
+          id: c.id, orderLineId: null, variantId: null, title: c.title, variantTitle: null, sku: null, imageUrl: null, unitPrice: c.unitPrice, quantityBefore: 0, quantity: c.quantity, uneditable: 0,
+          discountedTotal: p.total, tax: p.tax, stagedDiscount: staged(edit, c.id), restock: true,
+          base: { quantity: 0, discountedTotal: 0, totalTax: 0, taxable: c.taxable, requiresShipping: c.requiresShipping, grams: 0, productId: null, vendor: null, properties: {} },
+        });
+      }
     }
   }
+
+  // Order-level discount: spread over the lines in proportion to what they cost, taking the matching share of tax with it.
+  const od = edit.orderDiscount ?? null;
+  let orderDiscount = 0;
+  if (od) {
+    const base = sum(lines.map((l) => l.discountedTotal));
+    orderDiscount = Math.min(base, od.valueType === 'PERCENTAGE' ? roundDiv(base * Math.round(od.value * 100), 10_000) : od.value);
+    const shares = allocate(orderDiscount, lines.map((l) => l.discountedTotal));
+    lines.forEach((l, i) => {
+      const after = l.discountedTotal - shares[i]!;
+      l.tax = l.discountedTotal > 0 ? roundDiv(l.tax * after, l.discountedTotal) : 0;
+      l.discountedTotal = after;
+    });
+  }
+  const shippingFee = edit.shippingFee?.price ?? 0;
 
   const lineDiscount = (l: CalculatedLine) => l.unitPrice * l.quantity - l.discountedTotal;
   const subtotal = sum(lines.map((l) => l.unitPrice * l.quantity));
   const oldLineDiscounts = sum(d.lines.map((l) => l.unitPrice * l.quantity - l.discountedTotal));
   const totalDiscounts = Math.max(0, order.totalDiscounts - oldLineDiscounts) + sum(lines.map(lineDiscount));
   const totalTax = sum(lines.map((l) => l.tax)) + sum(d.shippingLines.map((s) => s.tax));
-  const total = sum(lines.map((l) => l.discountedTotal)) + order.totalShipping + (order.taxesIncluded ? 0 : totalTax);
+  const total = sum(lines.map((l) => l.discountedTotal)) + order.totalShipping + shippingFee + (order.taxesIncluded ? 0 : totalTax);
   const { received, refunded } = paidAmounts(d.transactions);
-  return { edit, order, lines, subtotal, totalDiscounts, totalTax, total, received, outstanding: total - (received - refunded) };
+  return { edit, order, lines, subtotal, totalDiscounts, totalTax, total, shippingFee, orderDiscount, received, outstanding: total - (received - refunded) };
 }
 
 const editable = (e: OrderEdit | null): e is OrderEdit => !!e && e.status === 'OPEN';
 const notOpen = () => errR(['id'], 'Order edit session is no longer open', 'INVALID');
 
-async function save(db: Executor, e: OrderEdit, patch: Partial<Pick<OrderEdit, 'additions' | 'quantities' | 'discounts' | 'noRestock'>>) {
+async function save(db: Executor, e: OrderEdit, patch: Partial<Pick<OrderEdit, 'additions' | 'quantities' | 'discounts' | 'noRestock' | 'customItems' | 'orderDiscount' | 'shippingFee'>>) {
   const [row] = await db.update(orderEdits).set({ ...patch, updatedAt: new Date() }).where(eq(orderEdits.id, e.id)).returning();
   return row!;
 }
@@ -147,6 +180,10 @@ export async function setEditQuantity(db: Db, shopId: number, id: number, lineId
   const e = await getOrderEdit(db, shopId, id);
   if (!editable(e)) return notOpen();
   if (!Number.isInteger(quantity) || quantity < 0) return errR(['quantity'], 'Quantity must be 0 or greater', 'INVALID');
+  if (lineId >= CUSTOM_ID_BASE) {
+    if (!e.customItems.some((c) => c.id === lineId)) return errR(['lineItemId'], 'Line item does not exist', 'NOT_FOUND');
+    return okR({ edit: await save(db, e, { customItems: e.customItems.map((c) => (c.id === lineId ? { ...c, quantity } : c)) }), lineId });
+  }
   if (lineId >= ADDITION_ID_BASE) {
     if (!e.additions.some((a) => a.id === lineId)) return errR(['lineItemId'], 'Line item does not exist', 'NOT_FOUND');
     return okR({ edit: await save(db, e, { additions: e.additions.map((a) => (a.id === lineId ? { ...a, quantity } : a)) }), lineId });
@@ -161,10 +198,39 @@ export async function addEditDiscount(db: Db, shopId: number, id: number, lineId
   const e = await getOrderEdit(db, shopId, id);
   if (!editable(e)) return notOpen();
   if (!(d.value > 0) || (d.valueType === 'PERCENTAGE' && d.value > 100)) return errR(['discount'], 'Discount value is invalid', 'INVALID');
-  const exists = lineId >= ADDITION_ID_BASE ? e.additions.some((a) => a.id === lineId) : (await db.select({ id: orderLines.id }).from(orderLines).where(and(eq(orderLines.id, lineId), eq(orderLines.orderId, e.orderId)))).length > 0;
+  const exists = lineId >= CUSTOM_ID_BASE ? e.customItems.some((c) => c.id === lineId) : lineId >= ADDITION_ID_BASE ? e.additions.some((a) => a.id === lineId) : (await db.select({ id: orderLines.id }).from(orderLines).where(and(eq(orderLines.id, lineId), eq(orderLines.orderId, e.orderId)))).length > 0;
   if (!exists) return errR(['lineItemId'], 'Line item does not exist', 'NOT_FOUND');
   const discount: StagedDiscount = { id: Math.max(0, ...e.discounts.map((x) => x.id)) + 1, lineId, valueType: d.valueType, value: d.value, description: d.description?.trim() || null };
   return okR({ edit: await save(db, e, { discounts: [...e.discounts.filter((x) => x.lineId !== lineId), discount] }), discount });
+}
+
+/** Add a line that is not in the catalog (a service, a fee, a one-off item). Returns the staged line id. */
+export async function addCustomItemToEdit(db: Db, shopId: number, id: number, i: { title: string; unitPrice: number; quantity: number; taxable?: boolean; requiresShipping?: boolean }): Promise<Result<{ edit: OrderEdit; lineId: number }>> {
+  const e = await getOrderEdit(db, shopId, id);
+  if (!editable(e)) return notOpen();
+  const title = i.title.trim();
+  if (!title) return errR(['title'], "Title can't be blank", 'BLANK');
+  if (title.length > 255) return errR(['title'], 'Title is too long (maximum is 255 characters)', 'TOO_LONG');
+  if (!Number.isInteger(i.unitPrice) || i.unitPrice < 0) return errR(['price'], 'Price must be 0 or more', 'INVALID');
+  if (!Number.isInteger(i.quantity) || i.quantity < 1 || i.quantity > 100_000) return errR(['quantity'], 'Quantity must be between 1 and 100000', 'INVALID');
+  const item: StagedCustomItem = { id: CUSTOM_ID_BASE + Math.max(0, ...e.customItems.map((c) => c.id - CUSTOM_ID_BASE)) + 1, title, unitPrice: i.unitPrice, quantity: i.quantity, taxable: i.taxable ?? true, requiresShipping: i.requiresShipping ?? false };
+  return okR({ edit: await save(db, e, { customItems: [...e.customItems, item] }), lineId: item.id });
+}
+
+/** Stage (or clear, with `null`) a discount on the whole order. */
+export async function setEditOrderDiscount(db: Db, shopId: number, id: number, d: StagedOrderDiscount | null): Promise<Result<OrderEdit>> {
+  const e = await getOrderEdit(db, shopId, id);
+  if (!editable(e)) return notOpen();
+  if (d && (!(d.value > 0) || (d.valueType === 'PERCENTAGE' && d.value > 100) || (d.valueType === 'FIXED_AMOUNT' && !Number.isInteger(d.value)))) return errR(['discount'], 'Discount value is invalid', 'INVALID');
+  return okR(await save(db, e, { orderDiscount: d ? { ...d, description: d.description?.trim() || null } : null }));
+}
+
+/** Stage (or clear, with `null`) an extra shipping fee charged on top of the shipping already on the order. */
+export async function setEditShippingFee(db: Db, shopId: number, id: number, fee: StagedShippingFee | null): Promise<Result<OrderEdit>> {
+  const e = await getOrderEdit(db, shopId, id);
+  if (!editable(e)) return notOpen();
+  if (fee && (!Number.isInteger(fee.price) || fee.price < 0)) return errR(['price'], 'Shipping fee must be 0 or more', 'INVALID');
+  return okR(await save(db, e, { shippingFee: fee && fee.price > 0 ? { title: fee.title.trim().slice(0, 100) || 'Shipping fee', price: fee.price } : null }));
 }
 
 export interface CommitResult { order: Order; outstanding: number; messages: string[] }
@@ -188,7 +254,7 @@ export async function commitOrderEdit(db: Db, shopId: number, id: number, o: { s
       const delta = l.quantity - l.quantityBefore;
       if (l.orderLineId !== null) {
         const row = detail.lines.find((x) => x.id === l.orderLineId) as OrderLine;
-        if (delta === 0 && !l.stagedDiscount) continue;
+        if (delta === 0 && !l.stagedDiscount && l.discountedTotal === row.discountedTotal && l.tax === row.totalTax) continue;
         const qty = row.quantity + delta;
         await tx.update(orderLines).set({ quantity: qty, currentQuantity: l.quantity, discountedTotal: l.discountedTotal, totalTax: l.tax }).where(eq(orderLines.id, row.id));
         const rows = detail.taxLines.filter((t) => t.orderLineId === row.id);
@@ -216,12 +282,24 @@ export async function commitOrderEdit(db: Db, shopId: number, id: number, o: { s
       }
     }
 
+    if (calc.orderDiscount > 0 && order && calc.edit.orderDiscount) {
+      const od = calc.edit.orderDiscount;
+      await tx.insert(orderDiscountApplications).values({
+        shopId, orderId: order.id, code: null, title: od.description ?? 'Custom discount', valueType: od.valueType, value: od.valueType === 'PERCENTAGE' ? Math.round(od.value * 100) : od.value,
+        allocatedAmount: calc.orderDiscount, targetType: 'LINE_ITEM',
+      });
+      changes.push('order discount');
+    }
+    if (calc.shippingFee > 0 && calc.edit.shippingFee) {
+      await tx.insert(orderShippingLines).values({ shopId, orderId: order.id, title: calc.edit.shippingFee.title, code: 'custom', price: calc.shippingFee, tax: 0 });
+      changes.push('shipping fee');
+    }
     const outstanding = calc.outstanding;
     const status = order.financialStatus;
     const next = calc.received > 0 && outstanding > 0 && ['PAID', 'PARTIALLY_PAID'].includes(status) ? 'PARTIALLY_PAID' : calc.received > 0 && outstanding <= 0 && status === 'PARTIALLY_PAID' ? 'PAID' : status;
     const now = new Date();
     const [updated] = await tx.update(orders).set({
-      subtotal: calc.subtotal, totalDiscounts: calc.totalDiscounts, totalTax: calc.totalTax, total: calc.total, financialStatus: next, updatedAt: now,
+      subtotal: calc.subtotal, totalDiscounts: calc.totalDiscounts, totalTax: calc.totalTax, total: calc.total, totalShipping: order.totalShipping + calc.shippingFee, financialStatus: next, updatedAt: now,
       fulfillmentStatus: order.fulfillmentStatus === 'FULFILLED' && calc.lines.some((l) => l.quantity > l.uneditable) ? 'PARTIALLY_FULFILLED' : order.fulfillmentStatus,
     }).where(eq(orders.id, order.id)).returning();
     await tx.update(orderEdits).set({ status: 'COMMITTED', committedAt: now, updatedAt: now }).where(eq(orderEdits.id, e.id));

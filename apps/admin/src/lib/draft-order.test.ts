@@ -32,3 +32,15 @@ describe('toDraftInput', () => {
     expect(i).not.toHaveProperty('email');
   });
 });
+
+describe('toDraftInput: purchase order number and market', () => {
+  it('sends the PO number and market, and clears them when emptied', () => {
+    expect(toDraftInput({ ...form, poNumber: ' PO-7 ', marketId: 'gid://shopify/Market/2' })).toMatchObject({ poNumber: 'PO-7', shopmeMarketId: 'gid://shopify/Market/2' });
+    expect(toDraftInput({ ...form, poNumber: '', marketId: '' })).toMatchObject({ poNumber: null, shopmeMarketId: null });
+  });
+  it('leaves them out for forms that do not carry them', () => {
+    const i = toDraftInput({ ...form, poNumber: undefined, marketId: undefined });
+    expect(i).not.toHaveProperty('poNumber');
+    expect(i).not.toHaveProperty('shopmeMarketId');
+  });
+});

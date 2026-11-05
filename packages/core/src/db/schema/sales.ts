@@ -101,13 +101,20 @@ export const orders = pgTable('orders', {
   /** Tip left by the buyer at checkout; included in `total`. */
   totalTip: money('total_tip').notNull().default(0),
   totalRefunded: money('total_refunded').notNull().default(0),
+  /** Anonymous storefront visit session of the buyer (conversion summary: first visit, referrer, landing page). */
+  visitSessionId: text('visit_session_id'),
+  /** Date the order should leave the warehouse by. */
+  fulfillBy: ts('fulfill_by'),
+  /** Fulfilment batch (`order_batches`); plain id, cleared in code when the batch is deleted. */
+  batchId: ref('batch_id'),
+  poNumber: text('po_number'),
   ...timestamps(),
 }, (t) => [
   uniqueIndex('orders_shop_number_uq').on(t.shopId, t.orderNumber),
   index('orders_shop_created_idx').on(t.shopId, t.createdAt),
   index('orders_customer_idx').on(t.shopId, t.customerId),
   check('orders_financial_chk', oneOf(t.financialStatus, ['PENDING', 'AUTHORIZED', 'PARTIALLY_PAID', 'PAID', 'PARTIALLY_REFUNDED', 'REFUNDED', 'VOIDED', 'EXPIRED'])),
-  check('orders_fulfillment_chk', oneOf(t.fulfillmentStatus, ['UNFULFILLED', 'PARTIALLY_FULFILLED', 'FULFILLED', 'RESTOCKED', 'ON_HOLD'])),
+  check('orders_fulfillment_chk', oneOf(t.fulfillmentStatus, ['UNFULFILLED', 'PARTIALLY_FULFILLED', 'FULFILLED', 'RESTOCKED', 'ON_HOLD', 'IN_PROGRESS'])),
 ]);
 
 export const orderLines = pgTable('order_lines', {

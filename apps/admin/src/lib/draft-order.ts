@@ -6,8 +6,10 @@ export interface DraftDiscount { valueType: 'FIXED_AMOUNT' | 'PERCENTAGE'; value
 export interface DraftForm {
   lines: DraftLine[]; discount: DraftDiscount | null; shipping: { title: string; price: string } | null;
   customerId: string; email: string; note: string; tags: string[];
+  /** Purchase order number and the market the draft is sold in (gid, '' for none). */
+  poNumber?: string; marketId?: string;
 }
-export const blankDraft: DraftForm = { lines: [], discount: null, shipping: null, customerId: '', email: '', note: '', tags: [] };
+export const blankDraft: DraftForm = { lines: [], discount: null, shipping: null, customerId: '', email: '', note: '', tags: [], poNumber: '', marketId: '' };
 
 export interface Totals { subtotal: number; discount: number; shipping: number; tax: number; total: number; currency?: string }
 export interface TotalsRow { key: 'subtotal' | 'discount' | 'shipping' | 'tax' | 'total'; amount: number; free?: boolean }
@@ -23,6 +25,8 @@ export function toDraftInput(f: DraftForm) {
     ...(!f.customerId && f.email.trim() && { email: f.email.trim() }),
     ...(f.shipping && { shippingLine: { title: f.shipping.title.trim() || 'Shipping', price: num(f.shipping.price).toFixed(2) } }),
     note: f.note, tags: f.tags,
+    ...(f.poNumber !== undefined && { poNumber: f.poNumber.trim() || null }),
+    ...(f.marketId !== undefined && { shopmeMarketId: f.marketId || null }),
   };
 }
 
@@ -36,7 +40,7 @@ export function estimateTotals(f: DraftForm): Totals {
 }
 
 interface MoneySetLike { shopMoney: { amount: string; currencyCode: string } }
-export interface CalculatedDraft { subtotalPriceSet: MoneySetLike; totalDiscountsSet?: MoneySetLike | null; totalShippingPriceSet?: MoneySetLike | null; totalTaxSet?: MoneySetLike | null; totalPriceSet: MoneySetLike }
+export interface CalculatedDraft { shopmePresentmentTotalSet?: MoneySetLike | null; subtotalPriceSet: MoneySetLike; totalDiscountsSet?: MoneySetLike | null; totalShippingPriceSet?: MoneySetLike | null; totalTaxSet?: MoneySetLike | null; totalPriceSet: MoneySetLike }
 export function totalsFromCalculation(c: CalculatedDraft): Totals {
   const n = (m?: MoneySetLike | null) => Number(m?.shopMoney.amount ?? 0);
   return { subtotal: n(c.subtotalPriceSet), discount: n(c.totalDiscountsSet), shipping: n(c.totalShippingPriceSet), tax: n(c.totalTaxSet), total: n(c.totalPriceSet), currency: c.totalPriceSet.shopMoney.currencyCode };

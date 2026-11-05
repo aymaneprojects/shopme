@@ -1,6 +1,6 @@
 import { Banner, Button, Card, Checkbox, Input, Select, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Inbox } from 'lucide-react';
+import { Inbox, MapPin } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../../api';
@@ -14,6 +14,7 @@ import { calcRefund, clampQuantity, fromCents, toCents, unitCents } from '../../
 import type { RefundLine } from '../../lib/refund';
 import { Thumb } from '../Products';
 import type { OrderLine } from './OrderDialogs';
+import { useOrderExtras } from './OrderExtras';
 
 interface RefundOrder {
   id: string; name: string; cancelledAt: string | null; customer: { id: string } | null;
@@ -45,6 +46,8 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
   const [restock, setRestock] = useState(true);
   const [notify, setNotify] = useState(true);
   const [reason, setReason] = useState('');
+  const extras = useOrderExtras(o.id).data;
+  const [typed, setTyped] = useState<string | null>(null); // amount typed by hand; null follows the items picked
   const [dest, setDest] = useState<'original' | 'credit'>('original');
   const [creditAmt, setCreditAmt] = useState('');
   const [creditExpiry, setCreditExpiry] = useState('');
@@ -67,12 +70,18 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
   const toGift = giftPaid > 0 ? Math.min(giftLeft, r.totalCents - toCash) : 0;
   const creditCents = dest === 'credit' ? Math.min(r.totalCents, Math.max(0, Math.round((parseDecimal(creditAmt) ?? r.totalCents / 100) * 100))) : 0;
   const back = `/orders/${routeId}`;
+  // The amount can be set by hand only for a plain refund to the original payment (store credit and gift cards split the money themselves).
+  const editable = dest === 'original' && giftPaid === 0;
+  const manualCents = editable && typed != null && parseDecimal(typed) != null ? Math.round((parseDecimal(typed) ?? 0) * 100) : null;
+  const payCents = manualCents ?? r.totalCents;
+  const overLimit = payCents > refundableCents;
   const lineTotal = (id: string) => calcRefund({ lines: [rl.find((x) => x.id === id)!], quantities: { [id]: qty[id] ?? 0 }, shippingRefundCents: 0, shippingCents: 0, refundableCents: Number.MAX_SAFE_INTEGER }).itemsCents;
 
   const m = useMutation({
     mutationFn: () => mutate(REFUND_CREATE, {
       input: {
         orderId: o.id, note: reason.trim() || null, notify,
+        ...(manualCents != null && manualCents !== r.totalCents && { transactions: [{ orderId: o.id, kind: 'REFUND', gateway: gateway ?? 'manual', amount: fromCents(manualCents) }] }),
         refundLineItems: picked.map((l) => ({ lineItemId: l.id, quantity: qty[l.id], restockType: restock ? 'RETURN' : 'NO_RESTOCK' })),
         ...(r.shippingCents > 0 && { shipping: { amount: fromCents(r.shippingCents) } }),
         ...(creditCents > 0 && { refundMethods: [{ storeCreditRefund: { amount: { amount: fromCents(creditCents), currencyCode: cur }, ...(creditExpiry && { expiresAt: new Date(`${creditExpiry}T23:59:59`).toISOString() }) } }] }),
@@ -90,7 +99,7 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
           <PageTitle>{t('refund.pageTitle')}</PageTitle>
           {o.cancelledAt && <Banner tone="warning">{t('order.cancelledBadge')}</Banner>}
           <section>
-            <IconHeading icon={<Inbox />} tone="attention">{t('order.refundItems')}</IconHeading>
+            <IconHeading icon={<Inbox />} tone="attention" actions={extras?.shopmeLocation && <span className="inline-flex items-center gap-1 rounded-full border border-line bg-canvas px-2 py-0.5 text-xs font-normal" title={t('btn.order.shipsFrom')}><MapPin className="size-3" aria-hidden />{extras.shopmeLocation.name}</span>}>{t('order.refundItems')}</IconHeading>
             <Card className="!p-0">
               {lines.length === 0 ? <p className="p-4 text-[13px] text-muted">{t('order.nothingToRefund')}</p> : (
                 <ul className="divide-y divide-line px-4">
@@ -101,7 +110,7 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
                       <span className="text-accent">{money(unitCents(rl.find((x) => x.id === l.id)!))}</span>
                       <span className="field-control flex w-24 items-center gap-1 !py-0">
                         <input type="number" aria-label={`${t('order.quantity')} ${l.title}`} min={0} max={l.refundableQuantity} value={qty[l.id] ?? 0}
-                          onChange={(e) => setQty({ ...qty, [l.id]: Math.max(0, Math.min(l.refundableQuantity, Math.floor(Number(e.target.value) || 0))) })} className="h-8 w-10 min-w-0 flex-1 border-0 bg-transparent p-0 outline-none" />
+                          onChange={(e) => { setTyped(null); setQty({ ...qty, [l.id]: Math.max(0, Math.min(l.refundableQuantity, Math.floor(Number(e.target.value) || 0))) }); }} className="h-8 w-10 min-w-0 flex-1 border-0 bg-transparent p-0 outline-none" />
                         <span className="text-muted">/ {l.refundableQuantity}</span>
                       </span>
                       <span className="w-20 text-right">{money(lineTotal(l.id))}</span>
@@ -112,7 +121,7 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
               {shippingCents > 0 && (
                 <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3 text-[13px]">
                   <span>{t('order.shipping')} <span className="text-muted">({t('order.refundShippingMax', { max: money(shippingCents) })})</span></span>
-                  <Input aria-label={t('order.shipping')} inputMode="decimal" className="w-28" value={ship} onChange={(e) => setShip(e.target.value)} />
+                  <Input aria-label={t('order.shipping')} inputMode="decimal" className="w-28" value={ship} onChange={(e) => { setTyped(null); setShip(e.target.value); }} />
                 </div>
               )}
             </Card>
@@ -140,7 +149,8 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
           </SideSection>
           <SideSection title={t('order.refundAmountTitle')}>
             <p className="text-muted">{t('order.refundMethod')}{gateway && giftPaid === 0 && dest === 'original' ? `: ${gateway}` : ''}</p>
-            <p className="mt-1 text-lg font-semibold">{money(r.totalCents)}</p>
+            <Input aria-label={t('btn.refund.amount')} inputMode="decimal" className="mt-1" disabled={!editable} value={typed ?? fromCents(r.totalCents)} error={overLimit ? t('order.refundCapped', { max: money(refundableCents) }) : undefined}
+              onChange={(e) => setTyped(e.target.value)} help={editable ? t('btn.refund.amountHelp') : t('btn.refund.amountLocked')} />
             {o.customer && (
               <div className="mt-2 flex flex-col gap-2">
                 <Select label={t('refund.destination')} value={dest} onChange={(e) => setDest(e.target.value as 'original' | 'credit')}>
@@ -164,8 +174,8 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
               </>
             )}
             <p className="text-xs text-muted">{t('order.availableToRefund', { amount: money(refundableCents) })}</p>
-            {r.capped && <p className="mt-1 text-xs text-warning">{t('order.refundCapped', { max: money(refundableCents) })}</p>}
-            <Button variant="primary" className="mt-3 w-full" loading={m.isPending} disabled={r.totalCents <= 0} onClick={() => m.mutate()}>{t('order.refundAmount', { amount: money(r.totalCents) })}</Button>
+            {r.capped && manualCents == null && <p className="mt-1 text-xs text-warning">{t('order.refundCapped', { max: money(refundableCents) })}</p>}
+            <Button variant="primary" className="mt-3 w-full" loading={m.isPending} disabled={payCents <= 0 || overLimit} onClick={() => m.mutate()}>{t('order.refundAmount', { amount: money(payCents) })}</Button>
           </SideSection>
         </>} />
     </>

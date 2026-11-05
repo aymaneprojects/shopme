@@ -14,7 +14,8 @@ export interface Column<T> {
   className?: string;
 }
 
-export interface BulkAction { key: string; label: string; onRun: (ids: string[]) => void; danger?: boolean; /** Leading icon (shown in the overflow menu). */ icon?: ReactNode; /** Divider above the action in the overflow menu. */ separatorBefore?: boolean }
+export interface BulkMenuItem { key: string; label: string; onRun: (ids: string[]) => void; disabled?: boolean; icon?: ReactNode; separatorBefore?: boolean }
+export interface BulkAction { key: string; label: string; /** Turns the action into a button with a menu ("Print", "Mark as"); `onRun` is then unused. */ menu?: BulkMenuItem[]; disabled?: boolean; onRun: (ids: string[]) => void; danger?: boolean; /** Leading icon (shown in the overflow menu). */ icon?: ReactNode; /** Divider above the action in the overflow menu. */ separatorBefore?: boolean }
 
 export interface IndexTableProps<T> {
   rows: T[];
@@ -69,7 +70,9 @@ export function IndexTable<T>({ rows, rowId, columns, loading, selected, onSelec
                       { key: 'page', label: selectPageLabel(ids.length), onSelect: () => onSelectedChange!(ids) },
                       { key: 'none', label: deselectLabel, onSelect: () => onSelectedChange!([]) },
                     ]} />
-                    {inline.map((a) => <Button key={a.key} size="sm" variant="secondary" className={cx('chip', a.danger && 'text-critical')} onClick={() => a.onRun(selected!)}>{a.label}</Button>)}
+                    {inline.map((a) => a.menu
+                      ? <Dropdown key={a.key} variant="secondary" size="sm" className="chip" chevron trigger={a.label} menuClassName="min-w-48" items={a.menu.map((m) => ({ key: m.key, label: m.label, icon: m.icon, disabled: m.disabled, separatorBefore: m.separatorBefore, onSelect: () => m.onRun(selected!) }))} />
+                      : <Button key={a.key} size="sm" variant="secondary" disabled={a.disabled} className={cx('chip', a.danger && 'text-critical')} onClick={() => a.onRun(selected!)}>{a.label}</Button>)}
                     {overflow.length > 0 && (
                       <Dropdown variant="secondary" size="sm" icon className="chip" label={moreLabel} trigger={<MoreHorizontal className="size-4" />} menuClassName="min-w-56"
                         items={overflow.map((a) => ({ key: a.key, label: a.label, icon: a.icon, danger: a.danger, separatorBefore: a.separatorBefore, onSelect: () => a.onRun(selected!) }))} />

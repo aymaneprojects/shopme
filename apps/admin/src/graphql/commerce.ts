@@ -108,10 +108,11 @@ export const ABANDONED_SEND_EMAIL = /* GraphQL */ `
 const CALCULATED = `
   id
   totalPriceSet { ${MONEY} } subtotalPriceSet { ${MONEY} } totalOutstandingSet { ${MONEY} }
+  shopmeShippingFeeSet { ${MONEY} } shopmeOrderDiscountSet { ${MONEY} } shopmeShippingFeeTitle shopmeOrderDiscountDescription
   lineItems(first: 100) {
     nodes {
       id title variantTitle sku quantity editableQuantity editableQuantityBeforeChanges hasStagedLineItemDiscount
-      image { url } originalUnitPriceSet { ${MONEY} } discountedUnitPriceSet { ${MONEY} } editableSubtotalSet { ${MONEY} }
+      variant { id } image { url } originalUnitPriceSet { ${MONEY} } discountedUnitPriceSet { ${MONEY} } editableSubtotalSet { ${MONEY} }
     }
   }
 `;

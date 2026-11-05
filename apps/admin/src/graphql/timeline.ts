@@ -7,7 +7,7 @@ const EVENTS = `
       action message createdAt
       ... on Node { id }
       ... on BasicEvent { arguments authorEmail: author }
-      ... on CommentEvent { rawMessage canDelete author { name } }
+      ... on CommentEvent { rawMessage canDelete attachments author { name } }
     }
   }
 `;

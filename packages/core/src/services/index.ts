@@ -26,6 +26,7 @@ export * from './legal';
 export * from './webhooks';
 export * from './draft-orders';
 export * from './order-notifications';
+export * from './orders-ops';
 export * from './csv';
 export * from './jobs';
 export * from './import-export';

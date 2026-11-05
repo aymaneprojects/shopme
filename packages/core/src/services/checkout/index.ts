@@ -381,6 +381,8 @@ export interface SubmitInput {
   customerId?: number | null;
   /** Double opt-in is on: the marketing checkbox creates a pending subscription (confirmed by email) instead of a subscribed one. */
   doubleOptIn?: boolean;
+  /** Anonymous visit session of the buyer (the visit cookie), kept on the order for the conversion summary. */
+  visitSessionId?: string | null;
   /** Starts an online payment for the final total and returns its provider reference (called after validation, before the order exists). */
   startOnlinePayment?: (checkout: CheckoutView) => Promise<string>;
 }
@@ -440,7 +442,7 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
     pricing: checkout.pricing, giftCards, storeCredit: credit,
     shippingAddress: checkout.requiresShipping ? checkout.address : null, billingAddress: checkout.address,
     payment: { gateway, status: free ? 'PAID' : 'PENDING', paymentId },
-    cartToken: token, note: settings.orderNotes ? (input.note ?? row.note) : row.note,
+    cartToken: token, visitSessionId: input.visitSessionId ?? null, note: settings.orderNotes ? (input.note ?? row.note) : row.note,
   });
   if (!res.ok) {
     if (res.error === 'out_of_stock') return { ok: false, errors: [{ code: 'stock', issues: (await loadCheckout(db, shop, token, new Date(), { customerId: input.customerId }))!.stockIssues }] };

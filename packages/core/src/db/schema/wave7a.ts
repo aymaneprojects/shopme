@@ -59,6 +59,9 @@ export const checkoutMeta = pgTable('checkout_meta', {
 
 /** Ids of staged additions start at 900000000 so they never collide with order line ids (`quantities` keys are `String(id)` of either). */
 export type StagedAddition = { id: number; variantId: number; quantity: number };
+export type StagedCustomItem = { id: number; title: string; unitPrice: number; quantity: number; taxable: boolean; requiresShipping: boolean };
+export type StagedOrderDiscount = { valueType: 'PERCENTAGE' | 'FIXED_AMOUNT'; /** percent (10 = 10%) or minor units */ value: number; description: string | null };
+export type StagedShippingFee = { title: string; price: number };
 export type StagedDiscount = { id: number; lineId: number; valueType: 'PERCENTAGE' | 'FIXED_AMOUNT'; /** percent (10 = 10%) or minor units */ value: number; description: string | null };
 export const orderEdits = pgTable('order_edits', {
   id: pk(), shopId: shopFk(),
@@ -71,6 +74,10 @@ export const orderEdits = pgTable('order_edits', {
   /** Order line id -> do not put removed units back in stock (default: restock). */
   noRestock: jsonb('no_restock').$type<Record<string, boolean>>().notNull().default({}),
   discounts: jsonb('discounts').$type<StagedDiscount[]>().notNull().default([]),
+  /** Custom (non-catalog) lines, an order-level discount and an extra shipping fee staged by the session. */
+  customItems: jsonb('custom_items').$type<StagedCustomItem[]>().notNull().default([]),
+  orderDiscount: jsonb('order_discount').$type<StagedOrderDiscount | null>(),
+  shippingFee: jsonb('shipping_fee').$type<StagedShippingFee | null>(),
   committedAt: ts('committed_at'),
   ...timestamps(),
 }, (t) => [index('order_edits_order_idx').on(t.orderId), check('order_edits_status_chk', oneOf(t.status, ['OPEN', 'COMMITTED', 'DISCARDED']))]);

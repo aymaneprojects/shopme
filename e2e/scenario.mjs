@@ -509,6 +509,62 @@ export async function runScenario({ baseUrl, root }) {
       await shot('17-admin-inventory');
     });
 
+    await step('7g2 orders buttons: stats strip, columns, bulk bar, order extras, labels, marketing, channels', async () => {
+      page = admin;
+      await admin.goto(`${baseUrl}/admin/orders`);
+      await vis(admin.getByRole('row', { name: /#1001/ }));
+      // stats strip with its period menu and the extra figures
+      await vis(admin.getByText('Orders fulfilled', { exact: true }));
+      await vis(admin.getByText('Fulfillment time', { exact: true }));
+      await admin.getByRole('button', { name: 'Period' }).click();
+      await admin.getByRole('menuitem', { name: 'Last 7 days' }).click();
+      // column chooser
+      await admin.getByRole('button', { name: 'Edit columns' }).click();
+      await admin.getByLabel('Delivery status').check();
+      await vis(admin.getByRole('columnheader', { name: 'Delivery status' }));
+      await admin.keyboard.press('Escape');
+      // bulk bar
+      await admin.getByRole('row', { name: /#1001/ }).getByRole('checkbox').check();
+      for (const name of ['Print', 'Create shipping labels', 'Mark as', 'Capture payments', 'Batch', 'Add tags']) await vis(admin.getByRole('toolbar').getByRole('button', { name }));
+      await admin.getByRole('toolbar').getByRole('button', { name: 'Mark as' }).click();
+      await admin.getByRole('menuitem', { name: 'Delivered' }).click();
+      await vis(admin.getByText('1 order updated'));
+      await admin.getByRole('row', { name: /#1001/ }).getByRole('checkbox').check();
+      await admin.getByRole('toolbar').getByRole('button', { name: 'Batch' }).click();
+      await admin.getByRole('menuitem', { name: 'Create batch' }).click();
+      await admin.getByLabel('Batch name').fill('Morning pick');
+      await admin.getByRole('dialog').getByRole('button', { name: 'Create batch' }).click();
+      await vis(admin.getByText('Batch Morning pick created'));
+      await shot('13b-admin-orders-bulk');
+      // order page: conversion summary, risk, fulfilment details
+      await admin.getByRole('row', { name: /#1001/ }).getByText('#1001').click();
+      await admin.waitForURL(/\/admin\/orders\/\d+/);
+      await vis(admin.getByText('Conversion summary', { exact: true }));
+      await vis(admin.getByText('Order risk', { exact: true }));
+      await vis(admin.getByLabel('Fulfill by'));
+      await shot('13c-admin-order-extras');
+      // shipping labels page
+      await admin.goto(`${baseUrl}/admin/orders/shipping-labels`);
+      await vis(admin.getByRole('heading', { name: 'Shipping labels' }));
+      await vis(admin.getByRole('tab', { name: /Awaiting a label/ }));
+      await shot('13d-admin-shipping-labels');
+      // marketing: create a campaign
+      await admin.goto(`${baseUrl}/admin/marketing`);
+      await admin.getByRole('button', { name: 'Create campaign' }).first().click();
+      await admin.getByLabel('Name').fill('Spring email');
+      await admin.getByLabel('Campaign (utm_campaign)').fill('spring');
+      await admin.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(admin.getByRole('row', { name: /Spring email/ }));
+      await shot('13e-admin-marketing');
+      // sales channels
+      await admin.goto(`${baseUrl}/admin/channels`);
+      await vis(admin.getByRole('heading', { name: 'Online store' }));
+      await shot('13f-admin-channels');
+      // learn more under the orders list
+      await admin.goto(`${baseUrl}/admin/orders`);
+      await vis(admin.getByRole('link', { name: /Learn more about orders/ }));
+    });
+
     await step('7h dashboard shows the sale', async () => {
       await admin.goto(`${baseUrl}/admin`);
       await vis(admin.getByText('Welcome').first());

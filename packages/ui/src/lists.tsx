@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { Button, cx } from './basics';
 import { Dropdown, Modal, Popover } from './overlay';
 
-export interface ToolbarFilter { key: string; label: string; options: Array<{ value: string; label: string }>; /** Free-text filter: the menu shows an input instead of options. */ text?: boolean }
+export interface ToolbarFilter { key: string; label: string; options: Array<{ value: string; label: string }>; /** Free-text filter: the menu shows an input instead of options. */ text?: boolean; /** Date filter: the menu shows a date picker (values are `YYYY-MM-DD`). */ date?: boolean }
 
 export interface ListToolbarProps {
   /** Saved views / built-in tabs, shown as a selector at the start of the bar. */
@@ -86,10 +86,13 @@ export function ListToolbar({ views, view, onView, viewsLabel = 'View', leading,
               {current.text && (
                 <li role="presentation" className="p-1.5"><input autoFocus aria-label={current.label} placeholder={current.label} className="field-control w-full" onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim()) { onFilter?.(current.key, e.currentTarget.value.trim()); setPicked(null); setOpen(false); } }} /></li>
               )}
+              {current.date && (
+                <li role="presentation" className="p-1.5"><input type="date" autoFocus aria-label={current.label} className="field-control w-full" onChange={(e) => { if (e.target.value) { onFilter?.(current.key, e.target.value); setPicked(null); setOpen(false); } }} /></li>
+              )}
               {current.options.map((o) => (
                 <li key={o.value} role="option" aria-selected={false}><button type="button" className="w-full rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover" onClick={() => { onFilter?.(current.key, o.value); setPicked(null); setOpen(false); }}>{o.label}</button></li>
               ))}
-              {current.options.length === 0 && !current.text && <li className="px-2.5 py-1.5 text-[13px] text-muted">—</li>}
+              {current.options.length === 0 && !current.text && !current.date && <li className="px-2.5 py-1.5 text-[13px] text-muted">—</li>}
             </>
           ) : free.map((f) => (
             <li key={f.key} role="option" aria-selected={false}><button type="button" className="w-full rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover" onClick={() => setPicked(f.key)}>{f.label}</button></li>

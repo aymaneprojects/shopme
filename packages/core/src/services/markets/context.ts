@@ -36,7 +36,7 @@ export const isIdentity = (c: MarketContext): boolean => c.currency === c.shopCu
 
 const asAdjustment = (pl: typeof s.priceLists.$inferSelect): PriceAdjustment => ({ type: pl.adjustmentType as PriceAdjustment['type'], value: pl.adjustmentValue });
 
-async function currencyRate(db: Executor, shopId: number, shopCurrency: string, currency: string): Promise<number | null> {
+export async function currencyRate(db: Executor, shopId: number, shopCurrency: string, currency: string): Promise<number | null> {
   if (currency === shopCurrency) return 1;
   const [row] = await db.select().from(s.currencySettings).where(and(eq(s.currencySettings.shopId, shopId), eq(s.currencySettings.currencyCode, currency), eq(s.currencySettings.enabled, true))).limit(1);
   return row?.manualRate && row.manualRate > 0 ? row.manualRate : null;
