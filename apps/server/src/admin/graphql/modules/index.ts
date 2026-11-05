@@ -44,3 +44,5 @@ import './abandoned';
 import './order-edit';
 import './checkout-settings';
 import './delivery';
+import './inventory-transfers';
+import './purchase-orders';

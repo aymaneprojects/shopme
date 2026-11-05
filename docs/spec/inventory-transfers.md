@@ -1,6 +1,6 @@
 # Inventory transfers
 
-Status: draft for implementation. API version studied: 2026-10. Names are listed for interoperability; behavior text is ours.
+Status: MVP implemented (transfers, shipments, receiving, admin list/create/detail/receive, Admin API). Open: webhooks, link-a-purchase-order picker on the create page, timeline comments, idempotency keys, bundle handling, barcode receive screen. API version studied: 2026-10. Names are listed for interoperability; behavior text is ours.
 Admin screens were observed on our own development store (section 3.1). Purchase orders, which feed transfers, are in
 [purchase-orders.md](purchase-orders.md).
 
