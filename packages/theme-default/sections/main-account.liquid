@@ -37,6 +37,46 @@
           {% render 'pagination', paginate: paginate %}
         {%- endpaginate -%}
       {%- endif -%}
+
+      {%- if customer.subscription_contracts.size > 0 -%}
+        <h2 id="subscriptions" class="customer__subtitle">{{ 'customer.subscriptions.title' | t }}</h2>
+        <ul class="subscriptions" role="list">
+          {%- for sub in customer.subscription_contracts -%}
+            <li class="subscription subscription--{{ sub.status }}">
+              <div class="subscription__head">
+                <strong>{{ sub.name }}</strong>
+                <span class="subscription__status">{{ 'customer.subscriptions.statuses.' | append: sub.status | t }}</span>
+                <span class="subscription__frequency">{{ 'customer.subscriptions.frequency.' | append: sub.billing_interval | t: count: sub.billing_interval_count }}</span>
+              </div>
+              <ul class="subscription__lines" role="list">
+                {%- for line in sub.lines -%}
+                  <li>{{ line.title | escape }}{% if line.variant_title %} - {{ line.variant_title | escape }}{% endif %} &times; {{ line.quantity }}{% if line.selling_plan_name %} <span class="subscription__plan">({{ line.selling_plan_name | escape }})</span>{% endif %}</li>
+                {%- endfor -%}
+              </ul>
+              {%- if sub.next_billing_date -%}
+                {%- assign next_date = sub.next_billing_date | date: date_format -%}
+                {%- assign next_total = sub.total | money -%}
+                <p class="subscription__next">{{ 'customer.subscriptions.next_order' | t: date: next_date, total: next_total }}</p>
+              {%- endif -%}
+              <div class="subscription__actions">
+                {%- if sub.can_skip -%}
+                  <form method="post" action="{{ sub.skip_url }}"><button type="submit" class="button button--outline button--small">{{ 'customer.subscriptions.skip' | t }}</button></form>
+                {%- endif -%}
+                {%- if sub.can_pause -%}
+                  <form method="post" action="{{ sub.pause_url }}"><button type="submit" class="button button--outline button--small">{{ 'customer.subscriptions.pause' | t }}</button></form>
+                {%- endif -%}
+                {%- if sub.can_resume -%}
+                  <form method="post" action="{{ sub.resume_url }}"><button type="submit" class="button button--small">{{ 'customer.subscriptions.resume' | t }}</button></form>
+                {%- endif -%}
+                {%- if sub.can_cancel -%}
+                  {%- assign cancel_confirm = 'customer.subscriptions.cancel_confirm' | t -%}
+                  <form method="post" action="{{ sub.cancel_url }}" data-confirm="{{ cancel_confirm | escape }}"><button type="submit" class="button button--outline button--small subscription__cancel">{{ 'customer.subscriptions.cancel' | t }}</button></form>
+                {%- endif -%}
+              </div>
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
     </section>
 
     <aside aria-labelledby="details-title">

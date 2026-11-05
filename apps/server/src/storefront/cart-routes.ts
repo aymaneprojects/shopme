@@ -107,10 +107,10 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
     let single = false;
     if ('items' in params) {
       if (!Array.isArray(params.items)) return fail(reply, cartBadRequest('must be a collection of items: items'));
-      items = params.items;
+      items = params.items.map((i: any) => (i && typeof i === 'object' ? { ...i, sellingPlan: i.selling_plan ?? i.sellingPlan } : i));
     } else if (params.id !== undefined) {
       single = true;
-      items = [{ id: params.id, quantity: params.quantity, properties: params.properties }];
+      items = [{ id: params.id, quantity: params.quantity, properties: params.properties, sellingPlan: params.selling_plan }];
     } else return fail(reply, cartBadRequest('Parameter Missing or Invalid', 'Required parameter missing or invalid: items'));
     const r = await addItems(db, shop.id, cart.id, items);
     if (r.error) return fail(reply, r.error);

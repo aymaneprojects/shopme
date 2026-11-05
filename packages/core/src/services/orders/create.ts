@@ -21,6 +21,8 @@ export interface OrderLineInput extends PricingLine {
   variantId: number | null;
   title: string; variantTitle: string | null; sku: string | null; vendor: string | null;
   imageUrl: string | null; isGiftCard: boolean; properties: Record<string, string>;
+  /** Purchase option of the line and the subscription contract it renews (set after checkout for the lines that start one). */
+  sellingPlanId?: number | null; sellingPlanName?: string | null; subscriptionContractId?: number | null;
 }
 
 export interface CreateOrderInput {
@@ -51,6 +53,10 @@ export interface CreateOrderInput {
   sourceName?: string;
   /** Tip added by the buyer (minor units), on top of `pricing.total`. */
   tip?: number;
+  /** Renewal order of a subscription contract: no cart, discounts carried over by the contract are not counted as new uses. */
+  subscriptionContractId?: number | null;
+  /** Timeline message of the created order (default: "Order #1001 placed online (gateway)"). */
+  eventMessage?: string;
 }
 
 export type CreateOrderResult =
@@ -130,7 +136,7 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
         if (!done.length) throw new Abort({ ok: false, error: 'already_completed' });
       }
       for (const a of pricing.discountApplications) {
-        if (a.discountId <= 0) continue; // custom (draft order) discount: no usage counting
+        if (a.discountId <= 0 || input.subscriptionContractId) continue; // custom (draft order) discount or a subscription renewal: no usage counting
         const used = await tx.update(s.discounts).set({ usageCount: sql`${s.discounts.usageCount} + 1` })
           .where(and(eq(s.discounts.id, a.discountId), eq(s.discounts.shopId, shopId), sql`(${s.discounts.usageLimit} is null or ${s.discounts.usageCount} < ${s.discounts.usageLimit})`)).returning({ id: s.discounts.id });
         if (!used.length) throw new Abort({ ok: false, error: 'discount_unavailable' });
@@ -165,7 +171,7 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
         shopId, orderNumber, name: orderNameOf(shopLike, orderNumber), customerId: customer!.id, email, phone: input.phone ?? ship?.phone ?? null,
         currency: input.currency, presentmentCurrency: pm?.currency ?? input.currency, currencyRate: pm?.rate ?? 1, taxesIncluded: input.taxesIncluded, test: !!input.payment.test,
         financialStatus: paid ? 'PAID' : authorized ? 'AUTHORIZED' : 'PENDING', fulfillmentStatus: 'UNFULFILLED', note: input.note ?? null, sourceName: input.sourceName ?? 'web', cartToken: input.cartToken ?? null, visitSessionId: input.visitSessionId?.slice(0, 64) ?? null,
-        subtotal: shopSubtotal, totalShipping: shopShipping, totalTax: shopTax, totalDiscounts: shopDiscounts, total: shopTotal, totalTip: shopTip,
+        subtotal: shopSubtotal, totalShipping: shopShipping, totalTax: shopTax, totalDiscounts: shopDiscounts, total: shopTotal, totalTip: shopTip, subscriptionContractId: input.subscriptionContractId ?? null,
         ...(pm ? { presentmentMoney: { subtotal: pricing.subtotal, shipping: pricing.totalShipping, tax: pricing.totalTax, discounts: pricing.totalDiscounts, tip, total: pricing.total + tip } } : {}),
       }).returning();
       const orderId = order!.id;
@@ -177,6 +183,7 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
           shopId, orderId, position: i, productId: l.productId || null, variantId: l.variantId, title: l.title, variantTitle: l.variantTitle, sku: l.sku, vendor: l.vendor,
           quantity: l.quantity, currentQuantity: l.quantity, requiresShipping: l.requiresShipping, taxable: l.taxable, isGiftCard: l.isGiftCard,
           unitPrice: shopOf(l.unitPrice), discountedTotal: shopOf(p.total), totalTax: shopOf(p.tax), weightGrams: l.grams, imageUrl: l.imageUrl, properties: l.properties,
+          sellingPlanId: l.sellingPlanId ?? null, sellingPlanName: l.sellingPlanName ?? null, subscriptionContractId: l.subscriptionContractId ?? null,
           ...(pm ? { presentmentUnitPrice: l.unitPrice, presentmentDiscountedTotal: p.total, presentmentTotalTax: p.tax } : {}),
         }).returning({ id: s.orderLines.id });
         lineIds.set(l.id, row!.id);
@@ -232,7 +239,7 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
         if (!(await payWithStoreCredit(tx as unknown as Db, shopId, { accountId: input.storeCredit.accountId, amount: creditShop, orderId }))) throw new Abort({ ok: false, error: 'store_credit_unavailable' });
         await tx.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'SUCCESS', gateway: 'store_credit', amount: creditShop, currency: input.currency, ...(pm ? { presentmentAmount: creditTotal, presentmentCurrency: pm.currency } : {}), test: !!input.payment.test, processedAt: new Date() });
       }
-      await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.created', message: `Order ${order!.name} placed online (${input.payment.gateway})`, data: { gateway: input.payment.gateway } });
+      await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.created', message: input.eventMessage ?? `Order ${order!.name} placed online (${input.payment.gateway})`, data: { gateway: input.payment.gateway, ...(input.subscriptionContractId && { subscriptionContractId: input.subscriptionContractId }) } });
       if (createdCustomer) await addEvent(tx, shopId, { subjectType: 'customer', subjectId: customer!.id, verb: 'customers/create', message: 'Customer was created at checkout' });
       await addEvent(tx, shopId, { subjectType: 'customer', subjectId: customer!.id, verb: 'customer.order_placed', message: `Placed order ${order!.name}`, data: { orderId, name: order!.name } });
       if (paid) await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.paid', message: 'Payment received' });

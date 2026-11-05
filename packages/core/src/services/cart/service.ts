@@ -2,8 +2,10 @@ import { createHash, randomBytes } from 'node:crypto';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client';
 import * as s from '../../db/schema';
-import { isIdentity, priceVariants, resolveMarketContext, type MarketContext } from '../markets/context';
+import { isIdentity, priceVariants, resolveMarketContext, toPresentment, type MarketContext } from '../markets/context';
 import { productReachableOnStorefront } from '../catalog/publications';
+import { groupsForVariants } from '../subscriptions/plans';
+import { allocationPrice } from '../subscriptions/pricing';
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Types
@@ -31,8 +33,24 @@ export interface CartLineView {
   taxable: boolean;
   requiresShipping: boolean;
   grams: number;
-  product: { title: string; handle: string; vendor: string; productType: string; descriptionHtml: string; isGiftCard: boolean };
+  product: { title: string; handle: string; vendor: string; productType: string; descriptionHtml: string; isGiftCard: boolean; requiresSellingPlan: boolean };
   image: { url: string; alt: string | null; width: number | null; height: number | null } | null;
+  /** Purchase option stored on the line (null: one-time purchase). */
+  sellingPlanId: number | null;
+  /** The plan and its prices when it is still offered for the variant; `price` above is then the plan price. */
+  sellingPlan: CartSellingPlan | null;
+}
+
+/** A line's purchase option with its prices in the cart currency (`selling_plan_allocation` in Liquid and the Ajax API). */
+export interface CartSellingPlan {
+  id: number; name: string; description: string | null; options: string[];
+  groupId: number; groupName: string; groupOptions: string[]; appId: string | null;
+  billingPolicy: s.PlanBillingPolicy; deliveryPolicy: s.PlanDeliveryPolicy; pricingPolicies: s.PlanPricingPolicy[];
+  /** Charged per billing at checkout, the one-time price of the same deliveries, the price per delivery and per pricing policy. */
+  price: number; compareAtPrice: number; perDeliveryPrice: number; priceAdjustments: { position: number; price: number }[];
+  deliveries: number;
+  /** One-time price per delivery in shop money: renewals price later cycles from it. */
+  shopBasePrice: number;
 }
 
 export interface CartView {
@@ -75,10 +93,10 @@ export const newCartToken = (): string => {
 /** Cart token as shown to clients: `<token>?key=<32 hex>`. */
 export const cartTokenWithKey = (token: string): string => `${token}?key=${hex32(`shopme-cart:${token}`)}`;
 
-/** Line key: `<variant id>:<32 hex>`, a digest of the line customisation (properties), stable across carts. */
-export function lineKey(variantId: number, properties: Record<string, string>): string {
+/** Line key: `<variant id>:<32 hex>`, a digest of the line customisation (properties and purchase option), stable across carts. */
+export function lineKey(variantId: number, properties: Record<string, string>, sellingPlanId?: number | null): string {
   const canon = Object.keys(properties).sort().map((k) => [k, properties[k]]);
-  return `${variantId}:${hex32(`${variantId}|${JSON.stringify(canon)}`)}`;
+  return `${variantId}:${hex32(`${variantId}|${JSON.stringify(canon)}${sellingPlanId ? `|plan:${sellingPlanId}` : ''}`)}`;
 }
 
 function cleanProperties(p: unknown): Record<string, string> {
@@ -93,14 +111,14 @@ function cleanProperties(p: unknown): Record<string, string> {
 // Variant lookup and stock
 // ---------------------------------------------------------------------------------------------------------------------
 
-interface VariantInfo { id: number; productTitle: string; /** Infinity when not tracked or oversell allowed. */ limit: number }
+interface VariantInfo { id: number; productTitle: string; /** Infinity when not tracked or oversell allowed. */ limit: number; requiresSellingPlan: boolean }
 
 /** Sellable variants (active products) by id with their stock limit. */
 async function variantInfos(db: Executor, shopId: number, ids: number[]): Promise<Map<number, VariantInfo>> {
   const out = new Map<number, VariantInfo>();
   if (!ids.length) return out;
   const rows = await db.select({
-    id: s.productVariants.id, policy: s.productVariants.inventoryPolicy, productTitle: s.products.title, itemId: s.inventoryItems.id, tracked: s.inventoryItems.tracked,
+    id: s.productVariants.id, policy: s.productVariants.inventoryPolicy, productTitle: s.products.title, itemId: s.inventoryItems.id, tracked: s.inventoryItems.tracked, requiresSellingPlan: s.products.requiresSellingPlan,
   }).from(s.productVariants)
     .innerJoin(s.products, eq(s.products.id, s.productVariants.productId))
     .leftJoin(s.inventoryItems, eq(s.inventoryItems.variantId, s.productVariants.id))
@@ -114,7 +132,7 @@ async function variantInfos(db: Executor, shopId: number, ids: number[]): Promis
   }
   for (const r of rows) {
     const unlimited = r.policy === 'CONTINUE' || !r.itemId || r.tracked === false;
-    out.set(r.id, { id: r.id, productTitle: r.productTitle, limit: unlimited ? Infinity : Math.max(0, stock.get(r.itemId!) ?? 0) });
+    out.set(r.id, { id: r.id, productTitle: r.productTitle, limit: unlimited ? Infinity : Math.max(0, stock.get(r.itemId!) ?? 0), requiresSellingPlan: r.requiresSellingPlan });
   }
   return out;
 }
@@ -158,17 +176,43 @@ export async function loadCartView(db: Executor, shopId: number, cartId: number)
       const unit = GRAMS[x.i?.weightUnit ?? 'GRAMS'] ?? 1;
       const options = optRows.filter((o) => o.variantId === r.variantId).map((o) => ({ name: o.name, value: o.value }));
       lines.push({
-        lineId: r.id, key: lineKey(r.variantId, r.properties), variantId: r.variantId, productId: x.p.id, quantity: r.quantity, properties: r.properties, position: r.position,
+        lineId: r.id, key: lineKey(r.variantId, r.properties, r.sellingPlanId), variantId: r.variantId, productId: x.p.id, quantity: r.quantity, properties: r.properties, position: r.position,
         variantTitle: x.v.title, options, hasOnlyDefaultVariant: (counts.get(x.p.id) ?? 1) === 1 && options.length === 0, sku: x.v.sku ?? '',
         price: x.v.price, compareAtPrice: x.v.compareAtPrice && x.v.compareAtPrice > x.v.price ? x.v.compareAtPrice : null, shopPrice: x.v.price, taxable: x.v.taxable, requiresShipping: x.i?.requiresShipping ?? true, grams: Math.round((x.i?.weightValue ?? 0) * unit),
-        product: { title: x.p.title, handle: x.p.handle, vendor: x.p.vendor, productType: x.p.productType, descriptionHtml: x.p.descriptionHtml, isGiftCard: x.p.isGiftCard },
+        product: { title: x.p.title, handle: x.p.handle, vendor: x.p.vendor, productType: x.p.productType, descriptionHtml: x.p.descriptionHtml, isGiftCard: x.p.isGiftCard, requiresSellingPlan: x.p.requiresSellingPlan },
         image: img?.url ? { url: img.url, alt: img.alt, width: img.width, height: img.height } : null,
+        sellingPlanId: r.sellingPlanId ?? null, sellingPlan: null,
       });
     }
   }
   const view: CartView = { id: cart.id, token: cart.token, note: cart.note, attributes: cart.attributes, currency: cart.currency, countryCode: cart.countryCode, marketId: cart.marketId, shopCurrency: cart.currency, rate: 1, discountCodes: cart.discountCodes, lines };
   if (cart.countryCode) await applyMarketPricing(db, shopId, cart, view);
+  await applySellingPlans(db, shopId, view);
   return view;
+}
+
+/** Price the lines bought with a purchase option. A plan no longer offered for the variant leaves the line at its one-time price. */
+async function applySellingPlans(db: Executor, shopId: number, view: CartView): Promise<void> {
+  const withPlan = view.lines.filter((l) => l.sellingPlanId);
+  if (!withPlan.length) return;
+  const rows = await db.select({ p: s.sellingPlans, g: s.sellingPlanGroups }).from(s.sellingPlans).innerJoin(s.sellingPlanGroups, eq(s.sellingPlanGroups.id, s.sellingPlans.groupId))
+    .where(and(eq(s.sellingPlans.shopId, shopId), inArray(s.sellingPlans.id, [...new Set(withPlan.map((l) => l.sellingPlanId!))])));
+  const allowed = await groupsForVariants(db, shopId, [...new Set(withPlan.map((l) => l.variantId))]);
+  const convert = (shopMinor: number) => toPresentment(view, shopMinor);
+  for (const l of withPlan) {
+    const x = rows.find((r) => r.p.id === l.sellingPlanId);
+    if (!x || !(allowed.get(l.variantId) ?? []).includes(x.g.id)) continue;
+    const a = allocationPrice(l.price, x.p, convert);
+    const inShop = allocationPrice(l.shopPrice, x.p);
+    l.sellingPlan = {
+      id: x.p.id, name: x.p.name, description: x.p.description, options: x.p.options, groupId: x.g.id, groupName: x.g.name, groupOptions: x.g.options, appId: x.g.appId,
+      billingPolicy: x.p.billingPolicy, deliveryPolicy: x.p.deliveryPolicy, pricingPolicies: x.p.pricingPolicies,
+      price: a.price, compareAtPrice: a.compareAtPrice, perDeliveryPrice: a.perDeliveryPrice, priceAdjustments: a.priceAdjustments, deliveries: a.deliveries, shopBasePrice: l.shopPrice,
+    };
+    l.compareAtPrice = a.compareAtPrice > a.price ? a.compareAtPrice : null;
+    l.price = a.price;
+    l.shopPrice = inShop.price;
+  }
 }
 
 /** Re-price the lines of a cart bound to a country: the buyer's market decides currency, adjustment and fixed prices. Persists a changed currency. */
@@ -219,7 +263,24 @@ const toInt = (v: unknown, fallback: number): number => {
 
 const touch = (db: Executor, cartId: number) => db.update(s.carts).set({ updatedAt: new Date() }).where(eq(s.carts.id, cartId));
 
-export interface AddItemInput { id: unknown; quantity?: unknown; properties?: unknown }
+export interface AddItemInput { id: unknown; quantity?: unknown; properties?: unknown; /** `selling_plan`: purchase option id (empty: one-time purchase). */ sellingPlan?: unknown }
+
+const planIdOf = (v: unknown): number | null | 'invalid' => {
+  if (v === undefined || v === null || v === '' || v === 'null') return null;
+  const tail = String(v).split('/').pop()!;
+  return /^\d+$/.test(tail) && Number(tail) > 0 ? Number(tail) : 'invalid';
+};
+const cannotFindPlan = (): CartError => ({ httpStatus: 422, status: 422, message: 'Cart Error', description: 'Cannot find selling plan' });
+const planRequired = (title: string): CartError => err(422, 422, `The product '${title}' can only be bought with a purchase option (subscription).`);
+
+/** The purchase option is offered for the variant (or none is wanted and none is required). */
+async function checkPlan(db: Executor, shopId: number, info: VariantInfo, planId: number | null | 'invalid'): Promise<CartError | null> {
+  if (planId === 'invalid') return cannotFindPlan();
+  if (planId === null) return info.requiresSellingPlan ? planRequired(info.productTitle) : null;
+  const [plan] = await db.select({ groupId: s.sellingPlans.groupId }).from(s.sellingPlans).where(and(eq(s.sellingPlans.shopId, shopId), eq(s.sellingPlans.id, planId))).limit(1);
+  if (!plan || !((await groupsForVariants(db, shopId, [info.id])).get(info.id) ?? []).includes(plan.groupId)) return cannotFindPlan();
+  return null;
+}
 
 /** `add.js` semantics: enforces stock, adds up to the available amount and reports the shortfall as an error. */
 export async function addItems(db: Db, shopId: number, cartId: number, items: AddItemInput[]): Promise<AddResult> {
@@ -236,7 +297,11 @@ export async function addItems(db: Db, shopId: number, cartId: number, items: Ad
       const info = infos.get(ids[idx]!)!;
       const qty = toInt(item.quantity, 1);
       const props = cleanProperties(item.properties);
-      const key = lineKey(info.id, props);
+      const planId = planIdOf(item.sellingPlan);
+      const planError = await checkPlan(tx, shopId, info, planId);
+      if (planError) { error ??= planError; continue; }
+      const sellingPlanId = planId === 'invalid' ? null : planId;
+      const key = lineKey(info.id, props, sellingPlanId);
       const current = cart.lines.filter((l) => l.variantId === info.id).reduce((n, l) => n + l.quantity, 0);
       if (qty <= 0) {
         if (current >= info.limit) error ??= err(422, 422, 'The maximum quantity of this item is already in your cart.');
@@ -249,7 +314,7 @@ export async function addItems(db: Db, shopId: number, cartId: number, items: Ad
       const existing = cart.lines.find((l) => l.key === key);
       if (existing) await tx.update(s.cartLines).set({ quantity: existing.quantity + add }).where(eq(s.cartLines.id, existing.lineId));
       else {
-        await tx.insert(s.cartLines).values({ shopId, cartId, variantId: info.id, quantity: add, properties: props, position: ++maxPos });
+        await tx.insert(s.cartLines).values({ shopId, cartId, variantId: info.id, quantity: add, properties: props, position: ++maxPos, sellingPlanId });
       }
       touched.push({ variantId: info.id, key });
       cart = (await loadCartView(tx, shopId, cartId))!;
@@ -259,7 +324,7 @@ export async function addItems(db: Db, shopId: number, cartId: number, items: Ad
   });
 }
 
-export interface ChangeInput { line?: unknown; id?: unknown; quantity?: unknown; properties?: unknown }
+export interface ChangeInput { line?: unknown; id?: unknown; quantity?: unknown; properties?: unknown; /** Present (even empty) to change the purchase option: an id, or empty/null for a one-time purchase. */ selling_plan?: unknown }
 
 /** `change.js`: one line (by 1-based `line`, line `key`, or every line of a variant id). Enforces stock. */
 export async function changeLine(db: Db, shopId: number, cartId: number, input: ChangeInput): Promise<ChangeResult> {
@@ -287,11 +352,21 @@ export async function changeLine(db: Db, shopId: number, cartId: number, input: 
         if (info && qty > 0 && others + qty > info.limit && qty > t.quantity) return { cart, deltas: [], error: err(422, 422, `Only ${info.limit} items were added to your cart due to availability.`) };
       }
     }
+    const planChange = Object.prototype.hasOwnProperty.call(input, 'selling_plan');
+    const planId = planChange ? planIdOf(input.selling_plan) : undefined;
+    if (planChange) {
+      const infos = await variantInfos(tx, shopId, [...new Set(targets.map((t) => t.variantId))]);
+      for (const t of targets) {
+        const info = infos.get(t.variantId);
+        const e = info ? await checkPlan(tx, shopId, info, planId!) : cannotFindVariant();
+        if (e && (qty === undefined || qty > 0)) return { cart, deltas: [], error: e };
+      }
+    }
     for (const t of targets) {
       const props = input.properties !== undefined ? cleanProperties(input.properties) : undefined;
       const newQty = qty ?? t.quantity;
       if (newQty === 0) await tx.delete(s.cartLines).where(eq(s.cartLines.id, t.lineId));
-      else await tx.update(s.cartLines).set({ quantity: newQty, ...(props ? { properties: props } : {}) }).where(eq(s.cartLines.id, t.lineId));
+      else await tx.update(s.cartLines).set({ quantity: newQty, ...(props ? { properties: props } : {}), ...(planChange && planId !== 'invalid' ? { sellingPlanId: planId } : {}) }).where(eq(s.cartLines.id, t.lineId));
       if (newQty !== t.quantity) deltas.push({ line: t, delta: newQty - t.quantity });
     }
     await mergeDuplicateLines(tx, cartId);
@@ -306,7 +381,7 @@ async function mergeDuplicateLines(tx: Executor, cartId: number): Promise<void> 
   const rows = await tx.select().from(s.cartLines).where(eq(s.cartLines.cartId, cartId)).orderBy(asc(s.cartLines.position));
   const seen = new Map<string, (typeof rows)[number]>();
   for (const r of rows) {
-    const k = lineKey(r.variantId, r.properties);
+    const k = lineKey(r.variantId, r.properties, r.sellingPlanId);
     const first = seen.get(k);
     if (!first) { seen.set(k, r); continue; }
     await tx.update(s.cartLines).set({ quantity: first.quantity + r.quantity }).where(eq(s.cartLines.id, first.id));

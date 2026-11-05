@@ -58,6 +58,8 @@
           {%- endfor -%}
         {%- endunless -%}
 
+        {% render 'purchase-options', product: product, variant: current, id_prefix: section.id %}
+
         {%- if product.gift_card -%}
           <div class="field">
             <label for="{{ section.id }}-gc-email">{{ 'products.gift_card.recipient_email' | t }}</label>

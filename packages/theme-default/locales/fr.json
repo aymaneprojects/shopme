@@ -46,6 +46,15 @@
       "recipient_email": "E-mail du destinataire (facultatif)",
       "recipient_name": "Nom du destinataire (facultatif)",
       "message": "Message (facultatif)"
+    },
+    "purchase_options": {
+      "title": "Options d'achat",
+      "one_time": "Achat unique",
+      "delivery": "Fréquence de livraison",
+      "per_delivery": "{{ price }} par livraison",
+      "save_percent": "Économisez {{ percent }} %",
+      "subscription_note": "Sautez une livraison, mettez en pause ou résiliez à tout moment depuis votre compte.",
+      "required": "Ce produit est vendu uniquement sur abonnement."
     }
   },
   "collection": {
@@ -76,7 +85,8 @@
     "checkout": "Commander",
     "update": "Mettre à jour",
     "decrease": "Diminuer la quantité de {{ title }}",
-    "increase": "Augmenter la quantité de {{ title }}"
+    "increase": "Augmenter la quantité de {{ title }}",
+    "recurring": "Abonnement : {{ price }} par livraison"
   },
   "search": {
     "title": "Recherche",
@@ -227,6 +237,40 @@
       "confirm_delete": "Supprimer cette adresse ?",
       "none": "Aucune adresse enregistrée.",
       "back": "Retour au compte"
+    },
+    "subscriptions": {
+      "title": "Abonnements",
+      "next_order": "Prochaine commande le {{ date }} : {{ total }}",
+      "skip": "Sauter la prochaine commande",
+      "pause": "Mettre en pause",
+      "resume": "Reprendre",
+      "cancel": "Résilier",
+      "cancel_confirm": "Résilier cet abonnement ? Aucun autre paiement ne sera prélevé.",
+      "statuses": {
+        "active": "Actif",
+        "paused": "En pause",
+        "cancelled": "Résilié",
+        "expired": "Terminé",
+        "failed": "Problème de paiement"
+      },
+      "frequency": {
+        "day": {
+          "one": "Chaque jour",
+          "other": "Tous les {{ count }} jours"
+        },
+        "week": {
+          "one": "Chaque semaine",
+          "other": "Toutes les {{ count }} semaines"
+        },
+        "month": {
+          "one": "Chaque mois",
+          "other": "Tous les {{ count }} mois"
+        },
+        "year": {
+          "one": "Chaque année",
+          "other": "Tous les {{ count }} ans"
+        }
+      }
     }
   },
   "blog": {

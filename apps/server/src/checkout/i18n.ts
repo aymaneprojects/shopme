@@ -28,6 +28,8 @@ const EN = {
   storeCredit: 'Store credit', store_credit: 'Store credit', useStoreCredit: 'Use store credit', storeCreditBalance: 'Balance: {amount}', err_store_credit: 'Your store credit balance changed. Review the amounts and try again.', signIn: 'Sign in', haveAccount: 'Have an account?', signedInAs: 'Signed in as {email}',
   tipTitle: 'Add a tip', tipNone: 'No tip', tipCustom: 'Custom amount', tipLine: 'Tip', orderNote: 'Order notes (optional)',
   estDelivery: 'Estimated delivery {range}', test: 'Test gateway', test_hint: 'Sandbox payment: nothing is charged and the order is marked as a test.', redirect_hint: 'You will be redirected to a secure page to complete your payment.', weAccept: 'We accept',
+  recurring: 'Then {price} {frequency}', subscriptionNote: 'This order starts a subscription. You can skip, pause or cancel it from your account.',
+  subscriptionStarted: 'Your subscription has started. Manage it at any time from your account.',
   fields: { firstName: 'First name', lastName: 'Last name', address1: 'Address', city: 'City', zip: 'Postal code', countryCode: 'Country' },
 };
 type Dict = typeof EN;
@@ -61,6 +63,8 @@ const FR: Dict = {
   storeCredit: 'Crédit en magasin', store_credit: 'Crédit en magasin', useStoreCredit: 'Utiliser mon crédit en magasin', storeCreditBalance: 'Solde : {amount}', err_store_credit: 'Le solde de votre crédit en magasin a changé. Vérifiez les montants et réessayez.', signIn: 'Se connecter', haveAccount: 'Vous avez un compte ?', signedInAs: 'Connecté en tant que {email}',
   tipTitle: 'Ajouter un pourboire', tipNone: 'Aucun pourboire', tipCustom: 'Montant libre', tipLine: 'Pourboire', orderNote: 'Notes de commande (facultatif)',
   estDelivery: 'Livraison estimée {range}', test: 'Passerelle de test', test_hint: 'Paiement de test : rien n’est débité et la commande est marquée comme test.', redirect_hint: 'Vous serez redirigé vers une page sécurisée pour finaliser votre paiement.', weAccept: 'Nous acceptons',
+  recurring: 'Puis {price} {frequency}', subscriptionNote: 'Cette commande démarre un abonnement. Vous pourrez sauter une livraison, le mettre en pause ou le résilier depuis votre compte.',
+  subscriptionStarted: 'Votre abonnement a démarré. Gérez-le à tout moment depuis votre compte.',
   fields: { firstName: 'Prénom', lastName: 'Nom', address1: 'Adresse', city: 'Ville', zip: 'Code postal', countryCode: 'Pays' },
 };
 

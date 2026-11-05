@@ -128,4 +128,8 @@ export const discountExtensions = pgTable('discount_extensions', {
   segmentIds: integer('segment_ids').array().notNull().default(sql`'{}'::integer[]`),
   customerIds: integer('customer_ids').array().notNull().default(sql`'{}'::integer[]`),
   tags: text('tags').array().notNull().default(sql`'{}'::text[]`),
+  /** Purchase type: one-time purchases, subscriptions, or both. `recurringCycleLimit` caps the subscription payments it applies to (null: all). */
+  appliesOnOneTimePurchase: boolean('applies_on_one_time_purchase').notNull().default(true),
+  appliesOnSubscription: boolean('applies_on_subscription').notNull().default(false),
+  recurringCycleLimit: integer('recurring_cycle_limit'),
 }, (t) => [check('discount_ext_subtype_chk', oneOf(t.subtype, ['BASIC', 'FREE_SHIPPING', 'BXGY'])), check('discount_ext_eligibility_chk', oneOf(t.eligibility, ['ALL', 'SEGMENTS', 'CUSTOMERS']))]);

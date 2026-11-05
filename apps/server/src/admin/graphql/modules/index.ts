@@ -63,3 +63,5 @@ import './customer-privacy';
 import './pixels';
 import './orders-ops';
 import './product-channels';
+import './selling-plans';
+import './subscriptions';

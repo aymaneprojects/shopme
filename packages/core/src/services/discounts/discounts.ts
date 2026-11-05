@@ -39,7 +39,7 @@ async function withCodes(db: Executor, rows: Discount[]): Promise<CodeDiscount[]
   const counts = new Map(firsts.map((f) => [f.discountId, f.n]));
   return rows.map((r) => ({
     ...r, codes: codes.filter((c) => c.discountId === r.id), codeCount: counts.get(r.id) ?? 0,
-    ext: exts.find((e) => e.discountId === r.id) ?? { discountId: r.id, shopId: r.shopId, subtype: r.target === 'SHIPPING' ? 'FREE_SHIPPING' : 'BASIC', combinesWith: { product: false, order: false, shipping: false }, bxgy: null, eligibility: 'ALL', segmentIds: [], customerIds: [], tags: [] },
+    ext: exts.find((e) => e.discountId === r.id) ?? { discountId: r.id, shopId: r.shopId, subtype: r.target === 'SHIPPING' ? 'FREE_SHIPPING' : 'BASIC', combinesWith: { product: false, order: false, shipping: false }, bxgy: null, eligibility: 'ALL', segmentIds: [], customerIds: [], tags: [], appliesOnOneTimePurchase: true, appliesOnSubscription: false, recurringCycleLimit: null },
   }));
 }
 
@@ -135,6 +135,10 @@ export interface CodeDiscountInput {
   segmentIds?: number[];
   customerIds?: number[];
   tags?: string[];
+  /** Purchase type (defaults: one-time purchases only) and, for subscriptions, how many payments it applies to (null: all). */
+  appliesOnOneTimePurchase?: boolean | null;
+  appliesOnSubscription?: boolean | null;
+  recurringCycleLimit?: number | null;
 }
 
 /** Field prefix for error paths (e.g. `basicCodeDiscount`). */
@@ -165,6 +169,8 @@ function validate(i: CodeDiscountInput, creating: boolean): Result<null> {
   if (i.minimumSubtotal != null && i.minimumSubtotal < 0) return errR(['minimumRequirement', 'subtotal', 'greaterThanOrEqualToSubtotal'], 'Must be greater than or equal to 0', 'GREATER_THAN_OR_EQUAL_TO');
   if (i.usageLimit != null && i.usageLimit < 1) return errR(['usageLimit'], 'Usage limit must be greater than 0', 'GREATER_THAN');
   if (i.target === 'PRODUCTS' && !i.bxgy && !(i.appliesTo?.productIds?.length || i.appliesTo?.collectionIds?.length)) return errR(['customerGets', 'items'], 'Select at least one product or collection', 'APPLIES_ON_NOTHING');
+  if (i.appliesOnOneTimePurchase === false && i.appliesOnSubscription === false) return errR(['customerGets', 'appliesOnSubscription'], 'The discount must apply to one-time purchases, subscriptions or both', 'APPLIES_ON_NOTHING');
+  if (i.recurringCycleLimit != null && (!Number.isInteger(i.recurringCycleLimit) || i.recurringCycleLimit < 0)) return errR(['recurringCycleLimit'], 'Recurring cycle limit must be 0 or more', 'GREATER_THAN_OR_EQUAL_TO');
   return okR(null);
 }
 
@@ -189,6 +195,10 @@ function extFromInput(i: CodeDiscountInput): Partial<typeof discountExtensions.$
     o.customerIds = i.eligibility === 'CUSTOMERS' ? [...new Set(i.customerIds ?? [])] : [];
   }
   if (i.tags) o.tags = cleanTags(i.tags);
+  if (i.appliesOnOneTimePurchase != null) o.appliesOnOneTimePurchase = i.appliesOnOneTimePurchase;
+  if (i.appliesOnSubscription != null) o.appliesOnSubscription = i.appliesOnSubscription;
+  // 0 means every payment, like an omitted limit.
+  if (i.recurringCycleLimit !== undefined) o.recurringCycleLimit = i.recurringCycleLimit ? i.recurringCycleLimit : null;
   return o;
 }
 

@@ -42,6 +42,8 @@ export interface PricingLine {
   grams: number;
   productId: number;
   collectionIds: number[];
+  /** Bought with a purchase option (subscription); discounts only apply when their purchase type allows it. */
+  subscription?: boolean;
 }
 
 export interface PricingDiscount {
@@ -58,7 +60,13 @@ export interface PricingDiscount {
   combinesWith?: { product: boolean; order: boolean; shipping: boolean };
   /** Buy X get Y: `value`/`valueType` describe the effect on each discounted unit (100% = free). */
   bxgy?: BxgyRule;
+  /** Purchase type: one-time purchases and/or subscription lines (undefined: both). */
+  purchaseType?: { oneTime: boolean; subscription: boolean };
 }
+
+/** Whether the discount's purchase type covers the line (one-time purchase or subscription). */
+export const purchaseTypeAllows = (d: Pick<PricingDiscount, 'purchaseType'>, l: Pick<PricingLine, 'subscription'>): boolean =>
+  !d.purchaseType || (l.subscription ? d.purchaseType.subscription : d.purchaseType.oneTime);
 export type PricingScope = { productIds?: number[]; collectionIds?: number[] };
 export interface BxgyRule { buyQuantity: number; buyAppliesTo: PricingScope; getQuantity: number; getAppliesTo: PricingScope; usesPerOrder: number | null }
 
@@ -110,6 +118,7 @@ export interface PricingResult {
 
 /** Whether a discount's target includes the line. */
 export function discountMatchesLine(d: PricingDiscount, l: PricingLine): boolean {
+  if (!purchaseTypeAllows(d, l)) return false;
   if (d.target === 'ORDER') return true;
   if (d.target === 'SHIPPING') return false;
   if (d.appliesTo.lineIds) return d.appliesTo.lineIds.includes(l.id);
@@ -127,7 +136,7 @@ export function bxgyAmounts(d: PricingDiscount, lines: PricingLine[], remaining:
   const out = lines.map(() => 0);
   const r = d.bxgy;
   if (!r || r.buyQuantity < 1 || r.getQuantity < 1) return out;
-  const units = (pred: (l: PricingLine) => boolean) => lines.flatMap((l, i) => (pred(l) ? Array.from({ length: l.quantity }, () => ({ i, price: l.unitPrice })) : []));
+  const units = (pred: (l: PricingLine) => boolean) => lines.flatMap((l, i) => (pred(l) && purchaseTypeAllows(d, l) ? Array.from({ length: l.quantity }, () => ({ i, price: l.unitPrice })) : []));
   const buy = units((l) => inScope(l, r.buyAppliesTo));
   const overlap = lines.some((l) => inScope(l, r.buyAppliesTo) && inScope(l, r.getAppliesTo));
   const pool = overlap ? units((l) => inScope(l, r.buyAppliesTo) || inScope(l, r.getAppliesTo)) : units((l) => inScope(l, r.getAppliesTo));

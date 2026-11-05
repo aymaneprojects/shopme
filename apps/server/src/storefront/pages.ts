@@ -258,8 +258,9 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     // --- products
     async function productPage(req: FastifyRequest, reply: FastifyReply, shop: Shop, env: Env, handle: string, collectionHandle?: string) {
       const variantQ = Number(first((req.query as Query).variant));
+      const planQ = Number(first((req.query as Query).selling_plan));
       const preview = !!first((req.query as Query).preview) && !!(await authenticate(req));
-      const product = trProduct(env, await getProductByHandle(db, shop.id, handle, { selectedVariantId: Number.isFinite(variantQ) ? variantQ : undefined, includeInactive: preview, pricing: env.market }));
+      const product = trProduct(env, await getProductByHandle(db, shop.id, handle, { selectedVariantId: Number.isFinite(variantQ) ? variantQ : undefined, includeInactive: preview, pricing: env.market, selectedSellingPlanId: Number.isFinite(planQ) && planQ > 0 ? planQ : undefined }));
       if (!product) return notFound(req, reply, shop, env);
       const extra: Record<string, unknown> = { product };
       if (collectionHandle) { const b = await getCollection(db, shop.id, collectionHandle); if (b) extra.collection = await buildCollection(env, b, { withFacets: false }); }

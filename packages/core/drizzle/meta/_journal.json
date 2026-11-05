@@ -162,6 +162,13 @@
       "when": 1793899009889,
       "tag": "0022_customers_companies_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793905860863,
+      "tag": "0023_subscriptions_selling_plans",
+      "breakpoints": true
     }
   ]
 }

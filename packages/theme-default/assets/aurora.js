@@ -96,12 +96,49 @@
       if (!sel.length) return product.variants[0];
       return product.variants.filter(function (v) { return sel.every(function (o, i) { return v.options[i] === o; }); })[0];
     }
+    /* Purchase options: one-time purchase or a selling plan of a group (the plan picked in that group's select). */
+    var plansBox = form.querySelector('[data-purchase-options]');
+    var planInput = form.querySelector('[data-selling-plan-input]');
+    function selectedPlanId() {
+      if (!plansBox) return null;
+      var checked = plansBox.querySelector('[data-purchase-option]:checked');
+      if (!checked || !checked.value) return null;
+      var select = plansBox.querySelector('[data-plan-select][data-group-id="' + checked.value + '"]');
+      return select ? select.value : null;
+    }
+    function allocationFor(v, planId) {
+      return (v && planId && (v.selling_plan_allocations || []).filter(function (a) { return String(a.selling_plan.id) === String(planId); })[0]) || null;
+    }
+    function updatePlans(v) {
+      if (!plansBox || !v) return;
+      var checked = plansBox.querySelector('[data-purchase-option]:checked');
+      plansBox.querySelectorAll('[data-group-plans]').forEach(function (box) { box.hidden = !checked || checked.value !== box.getAttribute('data-group-plans'); });
+      var oneTime = plansBox.querySelector('[data-one-time-price]');
+      if (oneTime) oneTime.textContent = formatMoney(v.price);
+      plansBox.querySelectorAll('[data-plan-select]').forEach(function (select) {
+        var group = select.getAttribute('data-group-id');
+        var a = allocationFor(v, select.value);
+        var priceEl = plansBox.querySelector('[data-group-price="' + group + '"]');
+        var saveEl = plansBox.querySelector('[data-group-save="' + group + '"]');
+        if (priceEl) priceEl.textContent = a ? A.strings.perDelivery.replace('[price]', formatMoney(a.per_delivery_price)) : '';
+        if (saveEl) {
+          var pct = a && a.compare_at_price > a.price ? Math.floor((a.compare_at_price - a.price) * 100 / a.compare_at_price) : 0;
+          saveEl.hidden = !pct;
+          saveEl.textContent = pct ? A.strings.savePercent.replace('[percent]', pct) : '';
+        }
+      });
+      var planId = selectedPlanId();
+      if (planInput) planInput.value = planId || '';
+    }
     function renderPrice(v) {
       if (!priceBox || !v) return;
-      var sale = v.compare_at_price && v.compare_at_price > v.price;
+      var a = allocationFor(v, selectedPlanId());
+      var price = a ? a.price : v.price;
+      var compare = a ? a.compare_at_price : v.compare_at_price;
+      var sale = compare && compare > price;
       priceBox.innerHTML = '<div class="price price--large' + (sale ? ' price--on-sale' : '') + '">' +
-        (sale ? '<s class="price__compare">' + formatMoney(v.compare_at_price) + '</s>' : '') +
-        '<span class="price__current">' + formatMoney(v.price) + '</span></div>';
+        (sale ? '<s class="price__compare">' + formatMoney(compare) + '</s>' : '') +
+        '<span class="price__current">' + formatMoney(price) + '</span></div>';
     }
     function update() {
       var v = currentVariant();
@@ -109,13 +146,17 @@
       idInput.value = v.id;
       button.disabled = !v.available;
       label.textContent = v.available ? A.strings.addToCart : A.strings.soldOut;
+      updatePlans(v);
       renderPrice(v);
       if (v.featured_image && mainImage) { mainImage.removeAttribute('srcset'); mainImage.src = v.featured_image.src; }
       var url = new URL(window.location.href);
       url.searchParams.set('variant', v.id);
+      var plan = selectedPlanId();
+      if (plan) url.searchParams.set('selling_plan', plan); else url.searchParams.delete('selling_plan');
       window.history.replaceState({}, '', url);
     }
-    form.addEventListener('change', function (e) { if (e.target.matches('.option__input')) update(); });
+    form.addEventListener('change', function (e) { if (e.target.matches('.option__input, [data-purchase-option], [data-plan-select]')) update(); });
+    if (plansBox) { updatePlans(currentVariant()); renderPrice(currentVariant()); }
     root.querySelectorAll('[data-thumb]').forEach(function (t) {
       t.addEventListener('click', function () {
         if (mainImage) { mainImage.removeAttribute('srcset'); mainImage.src = t.getAttribute('data-src'); }

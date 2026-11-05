@@ -71,6 +71,8 @@ export const cartLines = pgTable('cart_lines', {
   quantity: integer('quantity').notNull(),
   properties: jsonb('properties').$type<Record<string, string>>().notNull().default({}),
   position: integer('position').notNull().default(0),
+  /** Purchase option chosen for the line (null: one-time purchase). Plain id: a deleted plan turns the line back into a one-time purchase. */
+  sellingPlanId: ref('selling_plan_id'),
   ...timestamps(),
 }, (t) => [index('cart_lines_cart_idx').on(t.cartId)]);
 
@@ -113,6 +115,8 @@ export const orders = pgTable('orders', {
   /** Fulfilment batch (`order_batches`); plain id, cleared in code when the batch is deleted. */
   batchId: ref('batch_id'),
   poNumber: text('po_number'),
+  /** Renewal orders: the subscription contract that billed them (plain id). */
+  subscriptionContractId: ref('subscription_contract_id'),
   ...timestamps(),
 }, (t) => [
   uniqueIndex('orders_shop_number_uq').on(t.shopId, t.orderNumber),
@@ -141,6 +145,9 @@ export const orderLines = pgTable('order_lines', {
   weightGrams: integer('weight_grams'),
   imageUrl: text('image_url'),
   properties: jsonb('properties').$type<Record<string, string>>().notNull().default({}),
+  /** Purchase option of the line (name kept as it was at checkout) and the subscription contract it started or renewed. */
+  sellingPlanId: ref('selling_plan_id'), sellingPlanName: text('selling_plan_name'),
+  subscriptionContractId: ref('subscription_contract_id'),
 }, (t) => [index('order_lines_order_idx').on(t.orderId)]);
 
 export const orderAddresses = pgTable('order_addresses', {

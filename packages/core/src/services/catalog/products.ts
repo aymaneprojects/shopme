@@ -550,6 +550,8 @@ export interface ProductInput {
   title?: string | null; handle?: string | null; descriptionHtml?: string | null; vendor?: string | null; productType?: string | null; tags?: string[] | null;
   status?: string | null; templateSuffix?: string | null; seo?: { title?: string | null; description?: string | null } | null; giftCard?: boolean | null;
   category?: string | null; collectionsToJoin?: number[] | null; collectionsToLeave?: number[] | null; metafields?: MetafieldSetInput[] | null; productOptions?: OptionInput[] | null;
+  /** Only sold with a purchase option (subscription). */
+  requiresSellingPlan?: boolean | null;
 }
 
 function validateProduct(input: ProductInput, creating: boolean): Result<null> {
@@ -565,7 +567,7 @@ const productFields = (input: ProductInput) => ({
   ...(input.descriptionHtml != null && { descriptionHtml: cleanHtml(input.descriptionHtml) }), ...(input.vendor != null && { vendor: input.vendor.trim() }),
   ...(input.productType != null && { productType: input.productType.trim() }), ...(input.tags != null && { tags: normalizeTags(input.tags) }),
   ...(input.templateSuffix !== undefined && { templateSuffix: input.templateSuffix || null }), ...(input.giftCard != null && { isGiftCard: input.giftCard }),
-  ...(input.category !== undefined && { category: input.category || null }),
+  ...(input.category !== undefined && { category: input.category || null }), ...(input.requiresSellingPlan != null && { requiresSellingPlan: input.requiresSellingPlan }),
   ...(input.seo && { seoTitle: input.seo.title ?? null, seoDescription: input.seo.description ?? null }),
 });
 

@@ -6,7 +6,7 @@ import { loadCartView, type CartLineView, type CartView } from '../cart/service'
 import { completeDraftFromCheckout } from '../draft-orders';
 import { createOrder, type CheckoutAddressInput, type CreateOrderResult } from '../orders/create';
 import {
-  priceCheckout, resolveCombinations, type DiscountApplication, type PricingDiscount, type PricingInput, type PricingLine, type PricingResult, type PricingShippingRate, type PricingTaxRate,
+  priceCheckout, purchaseTypeAllows, resolveCombinations, type DiscountApplication, type PricingDiscount, type PricingInput, type PricingLine, type PricingResult, type PricingShippingRate, type PricingTaxRate,
 } from '../pricing';
 import { quoteShipping, recordOrderDelivery } from '../shipping';
 import { discountEligibleFor } from '../discounts/eligibility';
@@ -18,6 +18,8 @@ import { planStoreCredit, setUseStoreCredit, storeCreditEnabled, NO_STORE_CREDIT
 import { taxExtrasFor } from '../settings/tax-presets';
 import { configOf } from '../settings/config';
 import { checkoutSettingsOf, isPhone, requiredAddressKeys, stripHiddenAddressFields, tipFor, type CheckoutSettings } from './settings';
+import { unconvertMinor } from '../markets/money';
+import { createContractsForOrder, type NewContractLine } from '../subscriptions/contracts';
 
 export * from './settings';
 
@@ -98,6 +100,7 @@ export async function evaluateDiscounts(
     const pd: PricingDiscount = {
       id: d.id, code, title: d.title, valueType: d.valueType as PricingDiscount['valueType'], value: d.valueType === 'FIXED_AMOUNT' ? conv(d.value) : d.value, target: d.target as PricingDiscount['target'], appliesTo: d.appliesTo,
       combinesWith: ext?.combinesWith, ...(ext?.bxgy && { bxgy: ext.bxgy }),
+      purchaseType: { oneTime: ext?.appliesOnOneTimePurchase ?? true, subscription: ext?.appliesOnSubscription ?? false },
     };
     if (d.status === 'DISABLED') { reject('disabled'); continue; }
     // The storefront checkout is the Online Store channel: a discount limited to other channels does not apply here.
@@ -106,8 +109,8 @@ export async function evaluateDiscounts(
     if (d.endsAt && d.endsAt < now) { reject('expired'); continue; }
     if (d.usageLimit !== null && d.usageCount >= d.usageLimit) { reject('usage_limit'); continue; }
     if (!(await discountEligibleFor(db, shopId, ext, email))) { reject('not_eligible'); continue; }
-    const scope = (sc: { productIds?: number[]; collectionIds?: number[] }) => (l: PricingLine) => !!sc.productIds?.includes(l.productId) || l.collectionIds.some((c) => !!sc.collectionIds?.includes(c));
-    const eligible = pd.target === 'SHIPPING' || pd.target === 'ORDER' ? ctx.lines : ctx.lines.filter(scope(pd.bxgy?.buyAppliesTo ?? d.appliesTo));
+    const scope = (sc: { productIds?: number[]; collectionIds?: number[] }) => (l: PricingLine) => purchaseTypeAllows(pd, l) && (!!sc.productIds?.includes(l.productId) || l.collectionIds.some((c) => !!sc.collectionIds?.includes(c)));
+    const eligible = pd.target === 'SHIPPING' || pd.target === 'ORDER' ? ctx.lines.filter((l) => purchaseTypeAllows(pd, l)) : ctx.lines.filter(scope(pd.bxgy?.buyAppliesTo ?? d.appliesTo));
     if (!eligible.length) { reject('not_applicable'); continue; }
     if (pd.bxgy) {
       const buys = ctx.lines.filter(scope(pd.bxgy.buyAppliesTo)).reduce((a, l) => a + l.quantity, 0);
@@ -176,6 +179,7 @@ export const converterOf = (cart: Pick<CartView, 'shopCurrency' | 'currency' | '
 
 const toPricingLines = (lines: CartLineView[], collections: Map<number, number[]>): PricingLine[] => lines.map((l) => ({
   id: l.lineId, unitPrice: l.price, quantity: l.quantity, taxable: l.taxable, requiresShipping: l.requiresShipping, grams: l.grams * l.quantity, productId: l.productId, collectionIds: collections.get(l.productId) ?? [],
+  ...(l.sellingPlan && { subscription: true }),
 }));
 
 async function collectionsOf(db: Executor, shopId: number, productIds: number[]): Promise<Map<number, number[]>> {
@@ -396,7 +400,9 @@ export interface SubmitInput {
 }
 
 export type SubmitResult =
-  | { ok: true; orderId: number; orderNumber: number; name: string; total: number; currency: string; paid: boolean; needsOnlinePayment: boolean; paymentId: string | null; email: string; checkout: CheckoutView; marketingConfirmation: { customerId: number; email: string; token: string } | null }
+  | { ok: true; orderId: number; orderNumber: number; name: string; total: number; currency: string; paid: boolean; needsOnlinePayment: boolean; paymentId: string | null; email: string; checkout: CheckoutView; marketingConfirmation: { customerId: number; email: string; token: string } | null;
+    /** Subscription contracts started by the order (one per billing schedule of its subscription lines). */
+    subscriptionContractIds: number[] }
   | { ok: false; errors: CheckoutError[] };
 
 
@@ -409,8 +415,10 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
   const errors: CheckoutError[] = [];
   if (!view.lines.length) return { ok: false, errors: [{ code: 'empty' }] };
   const settings = view.settings;
-  const phoneContact = settings.contactMethod === 'email_or_phone' && !row.email && !!view.address?.phone && isPhone(view.address.phone);
-  if (!phoneContact && (!row.email || !isEmail(row.email))) errors.push({ code: settings.contactMethod === 'email_or_phone' ? 'contact' : 'email' });
+  // A subscription needs an email address: renewals, reminders and payment problems are sent there.
+  const subscribing = view.lines.some((l) => l.sellingPlan);
+  const phoneContact = settings.contactMethod === 'email_or_phone' && !row.email && !!view.address?.phone && isPhone(view.address.phone) && !subscribing;
+  if (!phoneContact && (!row.email || !isEmail(row.email))) errors.push({ code: settings.contactMethod === 'email_or_phone' && !subscribing ? 'contact' : 'email' });
   const missing = requiredAddressKeys(settings).filter((k) => !(view.address as Record<string, string | null | undefined> | null)?.[k]);
   if (missing.length) errors.push({ code: 'address', fields: missing });
   if (view.requiresShipping && !missing.length) {
@@ -447,6 +455,7 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
         id: l.lineId, unitPrice: l.price, quantity: l.quantity, taxable: l.taxable, requiresShipping: l.requiresShipping, grams: l.grams * l.quantity, productId: l.productId, collectionIds: [],
         variantId: l.variantId, title: l.product.title, variantTitle: l.hasOnlyDefaultVariant ? null : l.variantTitle, sku: l.sku || null, vendor: l.product.vendor || null,
         imageUrl: l.image?.url ?? null, isGiftCard: l.product.isGiftCard, properties: l.properties,
+        ...(l.sellingPlan && { subscription: true, sellingPlanId: l.sellingPlan.id, sellingPlanName: l.sellingPlan.name }),
       };
     }),
     pricing: checkout.pricing, giftCards, storeCredit: credit,
@@ -463,10 +472,35 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
   }
   await recordOrderDelivery(db, shop.id, res.orderId, checkout.requiresShipping ? checkout.pricing.shipping?.rate ?? null : null);
   if (row.draftOrderId) await completeDraftFromCheckout(db, shop.id, row.draftOrderId, res.orderId);
+  const subscriptionContractIds = await startSubscriptions(db, shop, res.orderId, cart, checkout, gateway);
   let marketingConfirmation: { customerId: number; email: string; token: string } | null = null;
   if (input.doubleOptIn && input.acceptsMarketing && settings.marketing !== 'hidden' && row.email) {
     const sub = await subscribeEmail(db, shop.id, { email: row.email, tags: [], doubleOptIn: true });
     if (sub.ok && sub.value.confirmToken) marketingConfirmation = { customerId: sub.value.customer.id, email: row.email, token: sub.value.confirmToken };
   }
-  return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.amountDue, currency: cart.currency, paid: free || (testPay && configOf(shop, 'PAYMENTS').captureMethod !== 'manual'), needsOnlinePayment: online, paymentId, email: row.email ?? '', checkout, marketingConfirmation };
+  return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.amountDue, currency: cart.currency, paid: free || (testPay && configOf(shop, 'PAYMENTS').captureMethod !== 'manual'), needsOnlinePayment: online, paymentId, email: row.email ?? '', checkout, marketingConfirmation, subscriptionContractIds };
+}
+
+/** Contracts for the subscription lines of a placed checkout order (amounts in shop money). */
+async function startSubscriptions(db: Db, shop: Shop, orderId: number, cart: CartView, checkout: CheckoutView, gateway: string): Promise<number[]> {
+  const subscribed = cart.lines.filter((l) => l.sellingPlan);
+  if (!subscribed.length) return [];
+  const toShop = (n: number) => (cart.currency !== shop.currency ? unconvertMinor(n, shop.currency, cart.currency, cart.rate) : n);
+  const [order] = await db.select({ customerId: s.orders.customerId }).from(s.orders).where(eq(s.orders.id, orderId)).limit(1);
+  const rows = await db.select({ id: s.orderLines.id, position: s.orderLines.position }).from(s.orderLines).where(eq(s.orderLines.orderId, orderId));
+  // Order lines were written in the order of the priced lines (position = index).
+  const orderLineOf = new Map(checkout.pricing.lines.map((p, i) => [p.id, rows.find((r) => r.position === i)?.id ?? 0]));
+  const lines: NewContractLine[] = subscribed.map((l) => ({
+    orderLineId: orderLineOf.get(l.lineId) ?? 0, productId: l.productId, variantId: l.variantId, title: l.product.title, variantTitle: l.hasOnlyDefaultVariant ? null : l.variantTitle, sku: l.sku || null,
+    imageUrl: l.image?.url ?? null, quantity: l.quantity, requiresShipping: l.requiresShipping, taxable: l.taxable, grams: l.grams,
+    sellingPlanId: l.sellingPlan!.id, sellingPlanName: l.sellingPlan!.name, billingPolicy: l.sellingPlan!.billingPolicy, deliveryPolicy: l.sellingPlan!.deliveryPolicy, pricingPolicies: l.sellingPlan!.pricingPolicies,
+    deliveries: l.sellingPlan!.deliveries, basePrice: l.sellingPlan!.shopBasePrice,
+  }));
+  const rate = checkout.pricing.shipping?.rate;
+  return createContractsForOrder(db, shop.id, {
+    orderId, customerId: order?.customerId ?? null, currency: shop.currency, gateway, address: (checkout.address as Record<string, string | null> | null) ?? null,
+    shipping: checkout.requiresShipping && rate ? { title: rate.name, code: String(rate.id), price: toShop(rate.price) } : null,
+    discountApplications: checkout.pricing.discountApplications.map((a) => ({ ...a, lineAllocations: a.lineAllocations.map((x) => ({ ...x, lineId: orderLineOf.get(x.lineId) ?? 0 })) })),
+    lines,
+  });
 }

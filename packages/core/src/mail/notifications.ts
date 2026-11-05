@@ -9,10 +9,12 @@ import type { OrderSummary } from '../services/orders/create';
 import type { Shop } from '../services/shops';
 import type { Mail, Mailer } from '../mail';
 import { configOf } from '../services/settings/config';
+import { frequencyLabel } from '../services/subscriptions/pricing';
 
 export const NOTIFICATION_KEYS = [
   'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund',
   'customer_account_welcome', 'customer_account_invite', 'password_reset', 'draft_order_invoice', 'contact_form', 'staff_invite', 'staff_login_alert', 'gift_card_issued', 'pickup_ready', 'pickup_picked_up', 'local_delivery_out', 'local_delivery_delivered', 'local_delivery_missed', 'fulfillment_request', 'abandoned_checkout', 'store_credit_account_credit',
+  'subscription_confirmation', 'subscription_upcoming_renewal', 'subscription_payment_failed', 'subscription_cancelled',
 ] as const;
 export type NotificationKey = (typeof NOTIFICATION_KEYS)[number];
 export const isNotificationKey = (k: string): k is NotificationKey => (NOTIFICATION_KEYS as readonly string[]).includes(k);
@@ -39,6 +41,11 @@ const questionsEn = '<p style="color:#64748b;font-size:13px;margin-top:24px">Que
 const questionsFr = '<p style="color:#64748b;font-size:13px;margin-top:24px">Une question ? Répondez à cet e-mail ou écrivez à {{ shop.email }}.</p>';
 const button = (url: string, label: string) => `<p style="margin:24px 0"><a href="{{ ${url} }}" style="background:#1E40AF;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;display:inline-block">${label}</a></p>`;
 const tracking = (en: boolean) => `{% if fulfillment.tracking_number %}<p>${en ? 'Tracking' : 'Suivi'}: {% if fulfillment.tracking_url %}<a href="{{ fulfillment.tracking_url }}">{{ fulfillment.tracking_number }}</a>{% else %}{{ fulfillment.tracking_number }}{% endif %}{% if fulfillment.tracking_company %} ({{ fulfillment.tracking_company }}){% endif %}</p>{% endif %}`;
+
+/** Subscription lines with their purchase option. */
+const subscriptionTable = `<table style="width:100%;border-collapse:collapse">{% for l in subscription.line_items %}<tr><td style="${ROW}">{{ l.title }} <span style="color:#64748b">&times; {{ l.quantity }}</span>{% if l.plan != blank %}<br><span style="color:#64748b;font-size:13px">{{ l.plan }}</span>{% endif %}</td><td style="${ROW};text-align:right">{{ l.total }}</td></tr>{% endfor %}</table>`;
+const SUB_VARS = ['shop.name', 'customer.first_name', 'subscription.name', 'subscription.line_items', 'subscription.frequency', 'subscription.next_billing_date', 'subscription.subtotal', 'subscription.delivery_price', 'subscription.total', 'subscription.manage_url'];
+const hi = (en: boolean) => `${en ? 'Hi' : 'Bonjour'}{% if customer.first_name != blank %} {{ customer.first_name }}{% endif %}`;
 
 const ORDER_VARS = ['shop.name', 'shop.email', 'shop.url', 'order.name', 'order.email', 'order.note', 'order.total', 'order.subtotal', 'order.shipping', 'order.tax', 'order.discount', 'order.line_items', 'order.shipping_address', 'order.payment_method', 'order.payment_status', 'order.bank_instructions'];
 
@@ -153,6 +160,26 @@ const DEFS: Record<NotificationKey, Def> = {
     en: { subject: 'You received {{ store_credit.amount }} of store credit', body: `<p style="margin-top:0">Hi{% if customer.first_name %} {{ customer.first_name }}{% endif %}, <strong>{{ store_credit.amount }}</strong> of store credit was added to your {{ shop.name }} account.</p><p>Your balance is now <strong>{{ store_credit.balance }}</strong>.{% if store_credit.expires_on %} This credit expires on {{ store_credit.expires_on }}.{% endif %}</p>${button('account_url', 'Visit your account')}${questionsEn}` },
     fr: { subject: 'Vous avez reçu {{ store_credit.amount }} de crédit en magasin', body: `<p style="margin-top:0">Bonjour{% if customer.first_name %} {{ customer.first_name }}{% endif %}, <strong>{{ store_credit.amount }}</strong> de crédit en magasin ont été ajoutés à votre compte {{ shop.name }}.</p><p>Votre solde est maintenant de <strong>{{ store_credit.balance }}</strong>.{% if store_credit.expires_on %} Ce crédit expire le {{ store_credit.expires_on }}.{% endif %}</p>${button('account_url', 'Accéder à mon compte')}${questionsFr}` },
   },
+  subscription_confirmation: {
+    name: 'Subscription confirmation', description: 'Sent to the customer when a checkout starts a subscription.', audience: 'customer', variables: SUB_VARS,
+    en: { subject: 'Your subscription {{ subscription.name }} is confirmed', body: `<p style="margin-top:0">Thank you{% if customer.first_name != blank %} {{ customer.first_name }}{% endif %}! Your subscription {{ subscription.name }} with {{ shop.name }} is active.</p>${subscriptionTable}<p>Next payment: <strong>{{ subscription.next_billing_date }}</strong> ({{ subscription.total }}, {{ subscription.frequency }}).</p><p>You can skip an order, pause or cancel at any time from your account.</p>${button('subscription.manage_url', 'Manage your subscription')}${questionsEn}` },
+    fr: { subject: 'Votre abonnement {{ subscription.name }} est confirmé', body: `<p style="margin-top:0">Merci{% if customer.first_name != blank %} {{ customer.first_name }}{% endif %} ! Votre abonnement {{ subscription.name }} chez {{ shop.name }} est actif.</p>${subscriptionTable}<p>Prochain paiement : <strong>{{ subscription.next_billing_date }}</strong> ({{ subscription.total }}, {{ subscription.frequency }}).</p><p>Vous pouvez sauter une commande, mettre en pause ou résilier à tout moment depuis votre compte.</p>${button('subscription.manage_url', 'Gérer mon abonnement')}${questionsFr}` },
+  },
+  subscription_upcoming_renewal: {
+    name: 'Upcoming subscription renewal', description: 'Sent to the customer a few days before a subscription is billed again.', audience: 'customer', variables: SUB_VARS,
+    en: { subject: 'Your next {{ shop.name }} order is coming up', body: `<p style="margin-top:0">${hi(true)}, your subscription {{ subscription.name }} renews on <strong>{{ subscription.next_billing_date }}</strong>. The order will be {{ subscription.total }}:</p>${subscriptionTable}<p>Need to skip this one, pause or cancel? You can do it from your account before that date.</p>${button('subscription.manage_url', 'Manage your subscription')}${questionsEn}` },
+    fr: { subject: 'Votre prochaine commande {{ shop.name }} approche', body: `<p style="margin-top:0">${hi(false)}, votre abonnement {{ subscription.name }} se renouvelle le <strong>{{ subscription.next_billing_date }}</strong>. La commande sera de {{ subscription.total }} :</p>${subscriptionTable}<p>Besoin de sauter celle-ci, de mettre en pause ou de résilier ? Faites-le depuis votre compte avant cette date.</p>${button('subscription.manage_url', 'Gérer mon abonnement')}${questionsFr}` },
+  },
+  subscription_payment_failed: {
+    name: 'Subscription payment failed', description: 'Sent to the customer when a subscription renewal could not be paid.', audience: 'customer', variables: [...SUB_VARS, 'subscription.error', 'subscription.retry'],
+    en: { subject: 'Payment problem with your subscription {{ subscription.name }}', body: `<p style="margin-top:0">${hi(true)}, we could not take the payment for your subscription {{ subscription.name }}{% if subscription.error %} ({{ subscription.error }}){% endif %}.</p>{% if subscription.retry %}<p>We will try again in a day. Please check that your payment method is still valid.</p>{% else %}<p>After several attempts the subscription has been stopped. Contact us to start it again.</p>{% endif %}${subscriptionTable}${button('subscription.manage_url', 'Manage your subscription')}${questionsEn}` },
+    fr: { subject: 'Problème de paiement pour votre abonnement {{ subscription.name }}', body: `<p style="margin-top:0">${hi(false)}, nous n'avons pas pu encaisser le paiement de votre abonnement {{ subscription.name }}{% if subscription.error %} ({{ subscription.error }}){% endif %}.</p>{% if subscription.retry %}<p>Nous réessaierons dans une journée. Vérifiez que votre moyen de paiement est toujours valable.</p>{% else %}<p>Après plusieurs tentatives, l'abonnement a été arrêté. Contactez-nous pour le relancer.</p>{% endif %}${subscriptionTable}${button('subscription.manage_url', 'Gérer mon abonnement')}${questionsFr}` },
+  },
+  subscription_cancelled: {
+    name: 'Subscription cancelled', description: 'Sent to the customer when a subscription is cancelled.', audience: 'customer', variables: SUB_VARS,
+    en: { subject: 'Your subscription {{ subscription.name }} was cancelled', body: `<p style="margin-top:0">${hi(true)}, your subscription {{ subscription.name }} has been cancelled. You will not be charged again.</p>${subscriptionTable}<p>Changed your mind? You can subscribe again from our store at any time.</p>${questionsEn}` },
+    fr: { subject: 'Votre abonnement {{ subscription.name }} a été résilié', body: `<p style="margin-top:0">${hi(false)}, votre abonnement {{ subscription.name }} a été résilié. Aucun autre paiement ne sera prélevé.</p>${subscriptionTable}<p>Vous avez changé d'avis ? Vous pouvez vous réabonner depuis notre boutique à tout moment.</p>${questionsFr}` },
+  },
   abandoned_checkout: {
     name: 'Abandoned checkout', description: 'Sent to a customer who left items in their checkout, with a link that restores the cart.', audience: 'customer',
     variables: ['shop.name', 'checkout.customer_first_name', 'checkout.line_items', 'checkout.subtotal', 'checkout.recovery_url'],
@@ -257,6 +284,7 @@ export function senderOf(shop: Shop): string | undefined {
 /** Notifications the merchant can switch off. The others (password reset, invitations, sign-in alerts, invoices...) are transactional and always sent. */
 export const TOGGLEABLE_NOTIFICATIONS: readonly NotificationKey[] = [
   'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund', 'abandoned_checkout', 'gift_card_issued', 'store_credit_account_credit', 'pickup_ready', 'pickup_picked_up', 'local_delivery_out', 'local_delivery_delivered', 'local_delivery_missed', 'fulfillment_request',
+  'subscription_confirmation', 'subscription_upcoming_renewal', 'subscription_payment_failed', 'subscription_cancelled',
 ];
 export const isToggleable = (key: NotificationKey) => TOGGLEABLE_NOTIFICATIONS.includes(key);
 
@@ -356,7 +384,7 @@ export function orderVars(o: OrderSummary, shop: Shop): Record<string, unknown> 
       subtotal: money(om.subtotal), total: money(om.total), discount: om.discounts ? money(om.discounts) : null,
       shipping: o.shippingLines.length ? money(om.shipping) : null,
       tax: om.tax ? money(om.tax) : null, tax_label: langOf(shop) === 'fr' ? (o.order.taxesIncluded ? 'Dont taxes' : 'Taxes') : (o.order.taxesIncluded ? 'Included taxes' : 'Taxes'),
-      line_items: o.lines.map((l) => ({ title: [l.title, l.variantTitle].filter(Boolean).join(' - '), quantity: l.quantity, total: money(lineMoney(o.order, l).discountedTotal) })),
+      line_items: o.lines.map((l) => ({ title: [l.title, l.variantTitle].filter(Boolean).join(' - ') + (l.sellingPlanName ? ` (${l.sellingPlanName})` : ''), quantity: l.quantity, total: money(lineMoney(o.order, l).discountedTotal) })),
       shipping_address: address.length ? address : null,
       payment_method: L[gateway] ?? customMethodName(shop, gateway) ?? gateway, payment_status: paid ? L.paid : L.pending, paid,
       bank_instructions: !paid && gateway === 'bank_transfer' ? bankInstructions(shop) : null,
@@ -388,5 +416,11 @@ export function sampleVars(shop: Shop, appUrl: string): Record<string, unknown> 
     store_credit: { amount: money(2000), balance: money(3500), expires_on: null },
     location: { name: 'Main store', address: '1 Rue de Rivoli, 75001 Paris', instructions: 'Ask at the counter.' }, service: { name: 'Fulfillment partner' },
     checkout: { customer_first_name: 'Ada', line_items: items, subtotal: money(5500), recovery_url: `${base}/checkouts/sample-token/recover` },
+    subscription: {
+      id: 12, name: '#12', status: 'active', line_items: [{ title: 'Highland Morning Coffee Beans - 250 g', quantity: 1, plan: langOf(shop) === 'fr' ? 'Livraison toutes les 2 semaines' : 'Delivery every 2 weeks', total: money(1080) }],
+      frequency: frequencyLabel(langOf(shop), { interval: 'WEEK', intervalCount: 2 }), delivery_frequency: frequencyLabel(langOf(shop), { interval: 'WEEK', intervalCount: 2 }),
+      next_billing_date: new Intl.DateTimeFormat(langOf(shop) === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(Date.now() + 14 * 86400000)),
+      subtotal: money(1080), delivery_price: money(490), total: money(1570), manage_url: `${base}/account`, error: langOf(shop) === 'fr' ? 'Carte refusée' : 'Card declined', retry: true, order_name: '#1002',
+    },
   };
 }

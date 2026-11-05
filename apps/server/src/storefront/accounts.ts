@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
-  accountsModeOf, addCustomerAddress, addItems, authenticateCustomer, customerAccountsSettingsOf, customerCancelOrder, customerRequestReturn, getOrCreateCart, orderActionsFor, renderLoginCode, requestLoginCode, returnableQuantities, verifyLoginCode, createCustomerSession, deleteCustomerAddress, destroySession, getCustomerOrder, isCustomerTokenValid, registerCustomer, renderAccountActivation, renderPasswordReset,
+  changeContractStatus, getCustomerSubscriptionContract, type ContractAction, accountsModeOf, addCustomerAddress, addItems, authenticateCustomer, customerAccountsSettingsOf, customerCancelOrder, customerRequestReturn, getOrCreateCart, orderActionsFor, renderLoginCode, requestLoginCode, returnableQuantities, verifyLoginCode, createCustomerSession, deleteCustomerAddress, destroySession, getCustomerOrder, isCustomerTokenValid, registerCustomer, renderAccountActivation, renderPasswordReset,
   requestPasswordReset, setPasswordWithToken, updateCustomerAddress, type Customer, type CustomerAddressInput, type Mail, type Shop,
 } from '@shopme/core';
 import type { AppContext } from '../context';
@@ -69,6 +69,20 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
 
   // --- account home
   app.get('/account', signedIn(async (req, reply, shop) => page('account', titleOf(shop, 'Account', 'Compte'))(req, reply, shop)));
+
+  // --- subscriptions: pause, resume, skip the next order or cancel (own contracts only)
+  const SUBSCRIPTION_ACTIONS: Record<string, ContractAction> = { pause: 'pause', resume: 'activate', skip: 'skip', cancel: 'cancel' };
+  post('/account/subscriptions/:id/:action', async (req, reply, shop) => {
+    const customer = await customerOf(ctx, req, shop);
+    if (!customer) return reply.redirect('/account/login?return_url=%2Faccount', 303);
+    const { id, action } = req.params as { id: string; action: string };
+    const what = SUBSCRIPTION_ACTIONS[action];
+    const contract = /^\d+$/.test(id) && what ? await getCustomerSubscriptionContract(db, shop.id, customer.id, Number(id)) : null;
+    if (!contract) return notFound(req, reply, shop);
+    const r = await changeContractStatus(db, shop.id, contract.id, what!, { actor: 'customer' });
+    if (r.ok && what === 'cancel') ctx.queue.enqueue('subscription.notify', { shopId: shop.id, contractId: contract.id, key: 'subscription_cancelled' });
+    return back(reply, '/account#subscriptions', r.ok ? undefined : { type: 'subscription', errors: { form: r.errors[0]?.message ?? '' } });
+  });
 
   // --- login / logout
   app.get('/account/login', withShop(async (req, reply, shop) => {

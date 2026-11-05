@@ -11,7 +11,7 @@ export interface VariantObject {
   available: boolean; inventory_quantity: number; inventory_management: string | null; inventory_policy: string;
   requires_shipping: boolean; taxable: boolean; weight: number; weight_unit: string;
   featured_image: Image | null; featured_media: Image | null; image: Image | null; url: string; position: number; product_id: number;
-  quantity_rule: { min: number; max: number | null; increment: number }; quantity_price_breaks: unknown[]; selling_plan_allocations: unknown[]; requires_selling_plan: boolean;
+  quantity_rule: { min: number; max: number | null; increment: number }; quantity_price_breaks: unknown[]; selling_plan_allocations: unknown[]; requires_selling_plan: boolean; selected_selling_plan_allocation: unknown | null;
   unit_price_measurement: { quantity_value: number; quantity_unit: string; reference_value: number; reference_unit: string } | null; unit_price: number | null; metafields: Record<string, unknown>; created_at: string | null; updated_at: string | null;
 }
 
@@ -23,5 +23,6 @@ export interface ProductObject {
   options: string[]; options_with_values: { name: string; position: number; values: string[]; selected_value: string | null }[];
   has_only_default_variant: boolean; selected_variant: VariantObject | null; first_available_variant: VariantObject | null; selected_or_first_available_variant: VariantObject | null;
   template_suffix: string; gift_card: boolean; 'gift_card?': boolean; requires_selling_plan: boolean; selling_plan_groups: unknown[]; metafields: Record<string, unknown>;
+  selected_selling_plan: unknown | null; selected_or_first_available_selling_plan_allocation: unknown | null;
   published_at: string | null; created_at: string | null; updated_at: string | null; seo: { title: string | null; description: string | null };
 }

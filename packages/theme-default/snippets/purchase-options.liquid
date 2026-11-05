@@ -1,0 +1,75 @@
+{%- doc -%}
+  One-time purchase or subscription choice for the product form. Posts `selling_plan` with the form (empty: one-time purchase).
+  @param {product} product - the product
+  @param {variant} variant - the variant shown
+  @param {string} [id_prefix] - unique prefix for element ids
+{%- enddoc -%}
+{%- if product.selling_plan_groups.size > 0 -%}
+  {%- liquid
+    assign selected_plan_id = product.selected_selling_plan.id
+    if product.requires_selling_plan and selected_plan_id == blank
+      assign selected_plan_id = product.selling_plan_groups.first.selling_plans.first.id
+    endif
+    assign prefix = id_prefix | default: 'po'
+  -%}
+  <fieldset class="purchase-options" data-purchase-options>
+    <legend class="option__name">{{ 'products.purchase_options.title' | t }}</legend>
+    <input type="hidden" name="selling_plan" value="{{ selected_plan_id }}" data-selling-plan-input>
+    {%- unless product.requires_selling_plan -%}
+      <label class="purchase-option" for="{{ prefix }}-one-time">
+        <input type="radio" class="purchase-option__input" id="{{ prefix }}-one-time" name="purchase_option" value="" data-purchase-option{% if selected_plan_id == blank %} checked{% endif %}>
+        <span class="purchase-option__body">
+          <span class="purchase-option__title">{{ 'products.purchase_options.one_time' | t }}</span>
+          <span class="purchase-option__price" data-one-time-price>{{ variant.price | money }}</span>
+        </span>
+      </label>
+    {%- endunless -%}
+    {%- for group in product.selling_plan_groups -%}
+      {%- liquid
+        assign group_selected = false
+        if group.selling_plan_selected
+          assign group_selected = true
+        elsif selected_plan_id != blank and forloop.first and product.selected_selling_plan == blank
+          assign group_selected = true
+        endif
+        assign group_alloc = false
+        for a in variant.selling_plan_allocations
+          if a.selling_plan_group_id == group.id
+            if group_alloc == false or a.selling_plan.id == selected_plan_id
+              assign group_alloc = a
+            endif
+          endif
+        endfor
+      -%}
+      <label class="purchase-option" for="{{ prefix }}-group-{{ group.id }}">
+        <input type="radio" class="purchase-option__input" id="{{ prefix }}-group-{{ group.id }}" name="purchase_option" value="{{ group.id }}" data-purchase-option{% if group_selected %} checked{% endif %}>
+        <span class="purchase-option__body">
+          <span class="purchase-option__title">
+            {{ group.name | escape }}
+            {%- if group_alloc and group_alloc.compare_at_price > group_alloc.price -%}
+              {%- assign save = group_alloc.compare_at_price | minus: group_alloc.price | times: 100 | divided_by: group_alloc.compare_at_price -%}
+              <span class="purchase-option__save" data-group-save="{{ group.id }}">{{ 'products.purchase_options.save_percent' | t: percent: save }}</span>
+            {%- else -%}
+              <span class="purchase-option__save" data-group-save="{{ group.id }}" hidden></span>
+            {%- endif -%}
+          </span>
+          <span class="purchase-option__price" data-group-price="{{ group.id }}">
+            {%- if group_alloc -%}{%- assign per_delivery = group_alloc.per_delivery_price | money -%}{{ 'products.purchase_options.per_delivery' | t: price: per_delivery }}{%- endif -%}
+          </span>
+        </span>
+      </label>
+      <div class="purchase-option__plans" data-group-plans="{{ group.id }}"{% unless group_selected %} hidden{% endunless %}>
+        {%- assign plan_label = group.options.first.name -%}
+        {%- if plan_label == blank -%}{%- assign plan_label = 'products.purchase_options.delivery' | t -%}{%- endif -%}
+        <label class="purchase-option__label" for="{{ prefix }}-plans-{{ group.id }}">{{ plan_label | escape }}</label>
+        <select class="purchase-option__select" id="{{ prefix }}-plans-{{ group.id }}" data-plan-select data-group-id="{{ group.id }}">
+          {%- for plan in group.selling_plans -%}
+            <option value="{{ plan.id }}"{% if plan.id == selected_plan_id %} selected{% endif %}>{{ plan.name | escape }}</option>
+          {%- endfor -%}
+        </select>
+        <p class="purchase-option__note">{{ 'products.purchase_options.subscription_note' | t }}</p>
+      </div>
+    {%- endfor -%}
+    {%- if product.requires_selling_plan -%}<p class="purchase-option__note">{{ 'products.purchase_options.required' | t }}</p>{%- endif -%}
+  </fieldset>
+{%- endif -%}

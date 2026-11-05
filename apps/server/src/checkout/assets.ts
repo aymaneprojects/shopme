@@ -52,7 +52,7 @@ h2{font-size:1.125rem;margin:32px 0 12px}
 .thumb{position:relative;flex:none;width:64px;height:64px;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
 .thumb img{width:100%;height:100%;object-fit:cover;border-radius:calc(var(--radius) - 1px)}
 .thumb .qty{position:absolute;top:-8px;right:-8px;min-width:22px;height:22px;border-radius:99px;background:var(--muted);color:#fff;font-size:.75rem;line-height:22px;text-align:center}
-.line .grow{flex:1}.line small{display:block;color:var(--muted)}
+.line .grow{flex:1}.line small{display:block;color:var(--muted)}.line small.plan{color:var(--primary);font-weight:600}.subscription-note{margin:8px 0 0;font-size:13px;color:var(--muted)}
 .disc{display:flex;gap:8px;margin:16px 0}.disc .field{flex:1;margin:0}
 .msg{margin:-8px 0 12px;font-size:.875rem;color:var(--danger)}
 .totals{margin:0;padding:12px 0 0;border-top:1px solid var(--border)}

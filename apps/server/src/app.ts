@@ -13,6 +13,7 @@ import { registerAdminSpa, registerFilesStatic } from './admin/spa';
 import { registerCheckout } from './checkout';
 import type { AppContext } from './context';
 import { registerJobs } from './jobs';
+import { registerSubscriptionJobs } from './subscriptions';
 import { LocaleCache } from './locale-cache';
 import { registerOpsRoutes } from './ops-routes';
 import { resolvePaths, type ServerPaths } from './paths';
@@ -94,6 +95,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   registerFilesStatic(app);
   registerAdminSpa(app);
   await registerCheckout(app);
+  registerSubscriptionJobs(app);
   await registerWebhooks(app);
   await registerOpsRoutes(app);
   await registerStorefront(app); // last: owns "/" and (later) catch-all storefront routes
