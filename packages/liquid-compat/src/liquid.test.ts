@@ -42,6 +42,16 @@ describe('filters', () => {
     expect(await liquid("{{ image | img_url: '100x' }}", { image })).toBe('/files/a.jpg?width=100');
     expect(await liquid('{{ image | image_tag }}', { image })).toContain('alt="An &lt;alt&gt;"');
   });
+  it('emits the resize params the /files route honors (crop, format, pad_color, scale, srcset)', async () => {
+    const image = { src: '/files/a.jpg', alt: '', width: 800, height: 400, aspect_ratio: 2 };
+    expect(await liquid("{{ image | image_url: width: 300, height: 300, crop: 'center', format: 'webp', pad_color: 'ffffff' }}", { image })).toBe('/files/a.jpg?width=300&height=300&crop=center&format=webp&pad_color=ffffff');
+    const tag = await liquid("{{ image | image_url: width: 400, height: 200, crop: 'top' | image_tag: widths: '100, 200' }}", { image });
+    expect(tag).toContain('srcset="/files/a.jpg?crop=top&amp;width=100&amp;height=50 100w, /files/a.jpg?crop=top&amp;width=200&amp;height=100 200w"');
+    expect(await liquid("{{ image | img_url: '200x200', crop: 'center', scale: 2 }}", { image })).toBe('/files/a.jpg?width=400&height=400&crop=center');
+    expect(await liquid("{{ image | img_url: 'medium' }}", { image })).toBe('/files/a.jpg?width=240&height=240');
+    expect(await liquid("{{ image | img_url: 'master' }}", { image })).toBe('/files/a.jpg');
+    expect(await liquid("{{ image | product_img_url: '64x', format: 'webp' }}", { image })).toBe('/files/a.jpg?width=64&format=webp');
+  });
   it('asset_url, file_url, inline_asset_content, stylesheet_tag, script_tag', async () => {
     expect(await liquid("{{ 'a.css' | asset_url }}")).toBe('/cdn/shop/t/7/assets/a.css?v=abc');
     expect(await liquid("{{ 'a.png' | file_url }}")).toBe('/files/a.png');

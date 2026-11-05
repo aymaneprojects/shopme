@@ -17,6 +17,10 @@ const ARGON2 = serverPkg.dependencies['@node-rs/argon2'];
 const PGLITE = serverPkg.dependencies['@electric-sql/pglite'];
 // Each installer must carry its OS's binary whichever OS builds it (macOS ships x64 and arm64 builds),
 // so all supported targets are fetched explicitly instead of relying on pnpm's host-only optional deps.
+const SHARP = serverPkg.dependencies['sharp'];
+// sharp (image resizing) ships a native binary per OS; the server falls back to original images when it cannot load.
+const SHARP_BINARIES = ['win32-x64', 'darwin-x64', 'darwin-arm64', 'linux-x64'].map((t) => `@img/sharp-${t}@${SHARP}`)
+  .concat(['darwin-x64', 'darwin-arm64', 'linux-x64'].map((t) => `@img/sharp-libvips-${t}@1.3.4`));
 const ARGON2_BINARIES = ['win32-x64-msvc', 'darwin-x64', 'darwin-arm64', 'linux-x64-gnu'].map((t) => `@node-rs/argon2-${t}@${ARGON2}`);
 
 if (!existsSync(path.join(repo, 'apps/admin/dist/index.html'))) {
@@ -34,7 +38,7 @@ await build({
   format: 'esm',
   target: 'node22',
   sourcemap: true,
-  external: ['electron', '@electric-sql/pglite', '@node-rs/argon2', 'pino-pretty'],
+  external: ['electron', '@electric-sql/pglite', '@node-rs/argon2', 'sharp', 'pino-pretty'],
   // Bundled CommonJS dependencies (fastify, pino, ...) use require() and __dirname.
   banner: {
     js: "import { createRequire as __cr } from 'node:module'; import { fileURLToPath as __fu } from 'node:url'; import __p from 'node:path'; const require = __cr(import.meta.url); const __filename = __fu(import.meta.url); const __dirname = __p.dirname(__filename);",
@@ -54,7 +58,7 @@ writeFileSync(
       homepage: pkg.homepage,
       license: pkg.license,
       main: 'main.mjs',
-      dependencies: { '@node-rs/argon2': ARGON2, '@electric-sql/pglite': PGLITE },
+      dependencies: { '@node-rs/argon2': ARGON2, '@electric-sql/pglite': PGLITE, sharp: SHARP },
     },
     null,
     2,
@@ -67,6 +71,13 @@ execFileSync(
   ['install', '--omit=dev', '--force', '--ignore-scripts', '--no-package-lock', '--no-audit', '--no-fund', ...ARGON2_BINARIES],
   { cwd: stage, stdio: 'inherit', shell: process.platform === 'win32' },
 );
+
+// Image resizing is optional: a failed sharp install must not break the build (the app then serves original images).
+try {
+  execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['install', '--force', '--ignore-scripts', '--no-save', '--no-package-lock', '--no-audit', '--no-fund', ...SHARP_BINARIES], { cwd: stage, stdio: 'inherit', shell: process.platform === 'win32' });
+} catch (e) {
+  console.warn('sharp binaries could not be installed; the desktop app will serve original images', e.message);
+}
 
 // Files the server locates through startServer({ paths }) (see src/main.ts).
 const res = path.join(stage, 'resources');

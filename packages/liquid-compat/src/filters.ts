@@ -43,7 +43,7 @@ function imageUrl(v: any, named: Record<string, unknown>): string {
   let h = named.height !== undefined ? Math.round(num(named.height)) : undefined;
   const ratio = typeof v === 'object' && v ? num(v.aspect_ratio) : 0;
   if (w && !h && ratio) h = Math.round(w / ratio);
-  return withParams(src, { width: w, height: h, crop: named.crop, format: named.format });
+  return withParams(src, { width: w, height: h, crop: named.crop, format: named.format, pad_color: named.pad_color });
 }
 
 function translate(this: FilterThis, key: string, ...args: unknown[]): string {
@@ -134,15 +134,21 @@ export function registerFilters(l: Liquid): void {
 
   // --- images and media
   reg('image_url', (v, ...a) => imageUrl(v, splitArgs(a).named));
-  reg('img_url', (v, size?: unknown) => {
+  // Legacy size strings: "300x200", "300x", "x200", "master" (no resize) and the named sizes. `scale: 2` doubles both sides.
+  const NAMED_SIZES: Record<string, number> = { pico: 16, icon: 32, thumb: 50, small: 100, compact: 160, medium: 240, large: 480, grande: 600, original: 1024 };
+  const legacyUrl = (v: unknown, size: unknown, rest: unknown[]) => {
     const src = imageSrc(v);
-    const m = /^(\d*)x(\d*)$/.exec(str(size));
-    return m ? withParams(src, { width: m[1], height: m[2] }) : src;
-  });
-  for (const n of ['product_img_url', 'collection_img_url', 'article_img_url', 'file_img_url']) reg(n, (v, size?: unknown) => {
-    const m = /^(\d*)x(\d*)$/.exec(str(size));
-    return m ? withParams(imageSrc(v), { width: m[1], height: m[2] }) : imageSrc(v);
-  });
+    const { named } = splitArgs(rest);
+    const s = str(size).toLowerCase();
+    const m = /^(\d*)x(\d*)$/.exec(s);
+    const scale = named.scale ? num(named.scale) || 1 : 1;
+    const dim = (x: string | number | undefined) => (x ? Math.round(Number(x) * scale) : undefined);
+    const w = m ? dim(m[1]) : s in NAMED_SIZES ? dim(NAMED_SIZES[s]) : undefined;
+    const h = m ? dim(m[2]) : s in NAMED_SIZES ? dim(NAMED_SIZES[s]) : undefined;
+    return withParams(src, { width: w, height: h, crop: named.crop, format: named.format, pad_color: named.pad_color });
+  };
+  reg('img_url', (v, size?: unknown, ...rest) => legacyUrl(v, size, rest));
+  for (const n of ['product_img_url', 'collection_img_url', 'article_img_url', 'file_img_url']) reg(n, (v, size?: unknown, ...rest) => legacyUrl(v, size, rest));
   const tag = (v: any, a: unknown[]) => {
     const { named } = splitArgs(a);
     const src = imageSrc(v);
@@ -155,7 +161,9 @@ export function registerFilters(l: Liquid): void {
       const [path0 = '', query0 = ''] = src.split('?');
       const keep = query0.split('&').filter((x) => x && !/^(width|height)=/.test(x));
       const base = keep.length ? `${path0}?${keep.join('&')}` : path0;
-      srcset = str(widths).split(',').map((x) => x.trim()).filter(Boolean).map((x) => `${withParams(base, { width: x })} ${x}w`).join(', ');
+      // Cropped/padded variants keep their aspect ratio at every width.
+      const sw = queryNumber(src, 'width'); const sh = queryNumber(src, 'height');
+      srcset = str(widths).split(',').map((x) => x.trim()).filter(Boolean).map((x) => `${withParams(base, { width: x, height: sw && sh && /[?&](crop|pad_color)=/.test(src) ? Math.round((Number(x) * sh) / sw) : undefined })} ${x}w`).join(', ');
     }
     const dataAttrs: Record<string, unknown> = {};
     for (const [k, val] of Object.entries(rest)) dataAttrs[k.replace(/_/g, '-')] = val;

@@ -22,4 +22,5 @@ import './customers';
 import './discounts';
 import './settings';
 import './content';
+import './themes';
 import './analytics';
