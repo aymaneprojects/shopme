@@ -1,15 +1,17 @@
 // Theme settings form generator: turns config/settings_schema.json into typed groups and merges edited values back
 // into config/settings_data.json (docs/spec/theme-format.md).
 
-export type SettingValue = string | number | boolean;
+export type SettingValue = string | number | boolean | string[];
 export interface SettingOption { value: string; label: string }
 export interface SettingDef {
   type: string; id?: string; label?: string; info?: string; default?: SettingValue; content?: string;
   min?: number; max?: number; step?: number; unit?: string; options?: SettingOption[];
+  /** `metaobject` and `metaobject_list` settings: the definition type entries are chosen from, and the list size limit. */
+  metaobject_type?: string; limit?: number;
 }
 export interface SettingGroup { name: string; settings: SettingDef[] }
 
-export const INPUT_TYPES = ['color', 'text', 'textarea', 'checkbox', 'range', 'select', 'radio', 'image_picker', 'font_picker', 'url', 'richtext'] as const;
+export const INPUT_TYPES = ['color', 'text', 'textarea', 'checkbox', 'range', 'select', 'radio', 'image_picker', 'font_picker', 'url', 'richtext', 'metaobject', 'metaobject_list'] as const;
 export const FONT_OPTIONS: SettingOption[] = [
   { value: 'system-ui, sans-serif', label: 'System sans-serif' }, { value: 'Georgia, serif', label: 'Georgia' },
   { value: 'ui-monospace, monospace', label: 'Monospace' }, { value: 'Helvetica, Arial, sans-serif', label: 'Helvetica' },
@@ -39,6 +41,7 @@ export function defaultValue(s: SettingDef): SettingValue {
     case 'range': return s.min ?? 0;
     case 'select': case 'radio': return s.options?.[0]?.value ?? '';
     case 'font_picker': return FONT_OPTIONS[0]!.value;
+    case 'metaobject_list': return [];
     default: return '';
   }
 }
@@ -53,6 +56,7 @@ export function coerceValue(s: SettingDef, raw: unknown): SettingValue {
       if (Number.isNaN(n)) return defaultValue(s);
       return Math.min(s.max ?? n, Math.max(s.min ?? n, n));
     }
+    case 'metaobject_list': return Array.isArray(raw) ? raw.map(String) : typeof raw === 'string' && raw ? [raw] : [];
     case 'select': case 'radio':
       return s.options?.some((o) => o.value === String(raw)) ? String(raw) : defaultValue(s);
     default: return String(raw);

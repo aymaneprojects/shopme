@@ -1,17 +1,17 @@
 import { Badge, Banner, Button, Checkbox, ConfirmDialog, EmptyState, Input, Modal, Select, Skeleton, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Braces } from 'lucide-react';
+import { Boxes, Braces } from 'lucide-react';
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { LinkRow, RowCard, Section, SubHeader } from '../../components/SettingsKit';
 import { UserErrors, gql, mutate } from '../../api';
-import { METAFIELD_DEFINITIONS, METAFIELD_DEFINITION_CREATE, METAFIELD_DEFINITION_DELETE, METAFIELD_DEFINITION_UPDATE } from '../../graphql';
+import { METAOBJECT_DEFINITIONS, METAFIELD_DEFINITIONS, METAFIELD_DEFINITION_CREATE, METAFIELD_DEFINITION_DELETE, METAFIELD_DEFINITION_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
 import { BASE_TYPES, OWNER_TYPES, isList, typeLabelKey } from '../../lib/metafields';
 import type { MetafieldDefinitionRow, MetafieldOwnerType } from '../../lib/metafields';
 
-interface Form { name: string; namespace: string; key: string; description: string; base: string; list: boolean; pin: boolean }
-const blank: Form = { name: '', namespace: 'custom', key: '', description: '', base: 'single_line_text_field', list: false, pin: false };
+interface Form { name: string; namespace: string; key: string; description: string; base: string; list: boolean; pin: boolean; definitionId: string }
+const blank: Form = { name: '', namespace: 'custom', key: '', description: '', base: 'single_line_text_field', list: false, pin: false, definitionId: '' };
 const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
 export function MetafieldDefinitionsPage() {
@@ -22,6 +22,7 @@ export function MetafieldDefinitionsPage() {
   const owner = (OWNER_TYPES.some((o) => o.id === ownerParam) ? ownerParam : 'PRODUCT') as MetafieldOwnerType;
   const q = useQuery({ queryKey: ['metafield-definitions', owner], queryFn: () => gql<{ metafieldDefinitions: { nodes: MetafieldDefinitionRow[] } }>(METAFIELD_DEFINITIONS, { ownerType: owner }) });
   const [editing, setEditing] = useState<{ def: MetafieldDefinitionRow | null; form: Form } | null>(null);
+  const moDefs = useQuery({ queryKey: ['mo-definitions', ''], queryFn: async () => (await gql<{ metaobjectDefinitions: { nodes: Array<{ id: string; name: string }> } }>(METAOBJECT_DEFINITIONS)).metaobjectDefinitions.nodes });
   const [error, setError] = useState<string | null>(null);
   const [remove, setRemove] = useState<{ def: MetafieldDefinitionRow; values: boolean } | null>(null);
   const refresh = () => void qc.invalidateQueries({ queryKey: ['metafield-definitions'] });
@@ -31,7 +32,7 @@ export function MetafieldDefinitionsPage() {
       const { def, form } = editing!;
       return def
         ? mutate(METAFIELD_DEFINITION_UPDATE, { definition: { ownerType: owner, namespace: def.namespace, key: def.key, name: form.name.trim(), description: form.description || null, pin: form.pin } }, 'metafieldDefinitionUpdate')
-        : mutate(METAFIELD_DEFINITION_CREATE, { definition: { ownerType: owner, namespace: form.namespace.trim() || 'custom', key: form.key.trim(), name: form.name.trim(), description: form.description || null, type: form.list ? `list.${form.base}` : form.base, pin: form.pin } }, 'metafieldDefinitionCreate');
+        : mutate(METAFIELD_DEFINITION_CREATE, { definition: { ownerType: owner, namespace: form.namespace.trim() || 'custom', key: form.key.trim(), name: form.name.trim(), description: form.description || null, type: form.list ? `list.${form.base}` : form.base, pin: form.pin, ...(form.base === 'metaobject_reference' && form.definitionId && { validations: [{ name: 'metaobject_definition_id', value: form.definitionId }] }) } }, 'metafieldDefinitionCreate');
     },
     onSuccess: () => { toast(t('mf.defSaved')); setEditing(null); setError(null); refresh(); },
     onError: (e) => setError(e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message),
@@ -46,7 +47,7 @@ export function MetafieldDefinitionsPage() {
   const set = (p: Partial<Form>) => setEditing((e) => (e ? { ...e, form: { ...e.form, ...p } } : e));
   const open = (def: MetafieldDefinitionRow | null) => {
     setError(null);
-    setEditing({ def, form: def ? { name: def.name, namespace: def.namespace, key: def.key, description: def.description ?? '', base: def.type.name.replace(/^list\./, ''), list: isList(def.type.name), pin: !!def.pinnedPosition } : blank });
+    setEditing({ def, form: def ? { name: def.name, namespace: def.namespace, key: def.key, description: def.description ?? '', base: def.type.name.replace(/^list\./, ''), list: isList(def.type.name), pin: !!def.pinnedPosition, definitionId: def.validations?.find((v) => v.name === 'metaobject_definition_id')?.value ?? '' } : blank });
   };
 
   return (
@@ -84,6 +85,11 @@ export function MetafieldDefinitionsPage() {
             <Select label={t('mf.type')} disabled={!!editing.def} help={editing.def ? t('mf.typeLocked') : undefined} value={f.base} onChange={(e) => set({ base: e.target.value })}>
               {BASE_TYPES.map((x) => <option key={x} value={x}>{t(typeLabelKey(x))}</option>)}
             </Select>
+            {f.base === 'metaobject_reference' && (
+              <Select label={t('mo.val.definition')} className="sm:col-span-2" disabled={!!editing.def} value={f.definitionId} onChange={(e) => set({ definitionId: e.target.value })}>
+                <option value="">{t('mo.anyDefinition')}</option>{(moDefs.data ?? []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </Select>
+            )}
             <div className="flex items-end"><Checkbox label={t('mf.listCheckbox')} disabled={!!editing.def} checked={f.list} onChange={(e) => set({ list: e.target.checked })} /></div>
             <Textarea label={t('mf.description')} className="sm:col-span-2" rows={2} value={f.description} onChange={(e) => set({ description: e.target.value })} />
             <div className="sm:col-span-2"><Checkbox label={t('mf.pin')} checked={f.pin} onChange={(e) => set({ pin: e.target.checked })} /></div>
@@ -105,12 +111,20 @@ export function MetafieldDefinitionsPage() {
 /** Entry page: one row per resource type with the number of definitions it already has. */
 export function MetafieldsSettings() {
   const { t } = useI18n();
+  const moCount = useQuery({ queryKey: ['mo-definitions', 'count'], queryFn: async () => (await gql<{ metaobjectDefinitions: { nodes: unknown[] } }>(METAOBJECT_DEFINITIONS)).metaobjectDefinitions.nodes.length });
   const counts = useQueries({ queries: OWNER_TYPES.map((o) => ({ queryKey: ['metafield-definitions', o.id], queryFn: () => gql<{ metafieldDefinitions: { nodes: MetafieldDefinitionRow[] } }>(METAFIELD_DEFINITIONS, { ownerType: o.id }) })) });
   return (
-    <Section title={t('mf.defsTitle')} description={t('mf.defsDesc')}>
-      <RowCard>
-        {OWNER_TYPES.map((o, i) => <LinkRow key={o.id} to={`/settings/metafields/${o.id}`} icon={Braces} title={t(o.label)} trailing={counts[i]!.data ? counts[i]!.data!.metafieldDefinitions.nodes.length : '…'} />)}
-      </RowCard>
-    </Section>
+    <>
+      <Section title={t('mf.defsTitle')} description={t('mf.defsDesc')}>
+        <RowCard>
+          {OWNER_TYPES.map((o, i) => <LinkRow key={o.id} to={`/settings/metafields/${o.id}`} icon={Braces} title={t(o.label)} trailing={counts[i]!.data ? counts[i]!.data!.metafieldDefinitions.nodes.length : '…'} />)}
+        </RowCard>
+      </Section>
+      <Section className="mt-6" title={t('mo.title')} description={t('mo.settingsDesc')}>
+        <RowCard>
+          <LinkRow to="/settings/metafields/metaobjects" icon={Boxes} title={t('mo.definitionsRow')} trailing={moCount.data ?? '…'} />
+        </RowCard>
+      </Section>
+    </>
   );
 }

@@ -9,7 +9,7 @@ export const OWNER_TYPES: Array<{ id: MetafieldOwnerType; label: Key }> = [
 /** Types offered by the definition editor (the server accepts more; these are the ones with a real editor). */
 export const BASE_TYPES = [
   'single_line_text_field', 'multi_line_text_field', 'rich_text_field', 'number_integer', 'number_decimal', 'boolean', 'date', 'date_time', 'url', 'color', 'json',
-  'file_reference', 'product_reference', 'collection_reference', 'variant_reference', 'page_reference',
+  'file_reference', 'product_reference', 'collection_reference', 'variant_reference', 'page_reference', 'metaobject_reference',
 ] as const;
 export type BaseType = (typeof BASE_TYPES)[number];
 
@@ -50,7 +50,7 @@ export function fromField(type: string, field: string): string {
 }
 
 export interface MetafieldValue { id: string; namespace: string; key: string; type: string; value: string }
-export interface MetafieldDefinitionRow { id: string; name: string; namespace: string; key: string; description: string | null; type: { name: string; category: string }; pinnedPosition: number | null; metafieldsCount: number }
+export interface MetafieldDefinitionRow { id: string; name: string; namespace: string; key: string; description: string | null; type: { name: string; category: string }; pinnedPosition: number | null; metafieldsCount: number; validations?: Array<{ name: string; value: string | null }> }
 
 /** `MetafieldsSetInput` entries for fields whose text changed (blank means "leave as is": clearing is not supported by the API). */
 export function changedInputs(ownerId: string, fields: Record<string, { namespace: string; key: string; type: string; value: string }>, original: Record<string, string>) {

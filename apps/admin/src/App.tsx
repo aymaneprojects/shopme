@@ -2,7 +2,7 @@ import { ToastProvider } from '@shopme/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Suspense, lazy } from 'react';
 import type { ComponentType } from 'react';
-import { createBrowserRouter } from 'react-router';
+import { Navigate, createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { PageFallback, Shell } from './components/Shell';
 import { I18nProvider, useT } from './i18n';
@@ -36,6 +36,11 @@ const router = createBrowserRouter(
       { path: '/collections', element: <CollectionsPage /> },
       { path: '/collections/:id', element: <CollectionEditPage /> },
       { path: '/inventory', element: <InventoryPage /> },
+      { path: '/content', element: <Navigate to="/content/metaobjects" replace /> },
+      { path: '/content/metaobjects', element: L(() => import('./pages/Metaobjects'), 'MetaobjectsPage') },
+      { path: '/content/entries', element: L(() => import('./pages/Metaobjects'), 'AllMetaobjectEntriesPage') },
+      { path: '/content/metaobjects/:type', element: L(() => import('./pages/Metaobjects'), 'MetaobjectEntriesPage') },
+      { path: '/content/metaobjects/:type/:id', element: L(() => import('./pages/MetaobjectEntry'), 'MetaobjectEntryPage') },
       { path: '/analytics', element: L(() => import('./pages/Analytics'), 'AnalyticsPage') },
       { path: '/analytics/reports', element: L(() => import('./pages/Analytics'), 'ReportsListPage') },
       { path: '/analytics/reports/:name', element: L(() => import('./pages/Analytics'), 'ReportPage') },
@@ -99,6 +104,8 @@ const router = createBrowserRouter(
           { path: 'webhooks', element: L(() => import('./pages/settings/Webhooks'), 'WebhooksSettings') },
           { path: 'locations', element: L(() => import('./pages/settings/Locations'), 'LocationsSettings') },
           { path: 'metafields', element: L(() => import('./pages/settings/Metafields'), 'MetafieldsSettings') },
+          { path: 'metafields/metaobjects', element: L(() => import('./pages/settings/MetaobjectDefinitions'), 'MetaobjectDefinitionsPage') },
+          { path: 'metafields/metaobjects/:id', element: L(() => import('./pages/settings/MetaobjectDefinitions'), 'MetaobjectDefinitionEditPage') },
           { path: 'metafields/:owner', element: L(() => import('./pages/settings/Metafields'), 'MetafieldDefinitionsPage') },
           { path: 'shopify-import', element: L(() => import('./pages/settings/ShopifyImport'), 'ShopifyImportSettings') },
         ],

@@ -344,9 +344,9 @@ const staffOf = (ctx: GraphQLContext) => ({ staffId: (ctx.auth as { staffId?: nu
 
 /* ---------------------------------------------------------------- summary for the admin landing page */
 
-const Summary = builder.objectRef<{ active: number; draft: number; webPages: number; total: number; recent: Row[] }>('ShopmeMetaobjectsSummary').implement({
+const Summary = builder.objectRef<{ active: number; draft: number; webPages: number; webEntries: number; total: number; recent: Row[] }>('ShopmeMetaobjectsSummary').implement({
   fields: (t) => ({
-    activeCount: t.int({ resolve: (x) => x.active }), draftCount: t.int({ resolve: (x) => x.draft }), webPageCount: t.int({ resolve: (x) => x.webPages }), totalCount: t.int({ resolve: (x) => x.total }),
+    activeCount: t.int({ resolve: (x) => x.active }), draftCount: t.int({ resolve: (x) => x.draft }), webPageCount: t.int({ resolve: (x) => x.webPages }), webPageEntryCount: t.int({ resolve: (x) => x.webEntries }), totalCount: t.int({ resolve: (x) => x.total }),
     recent: t.field({ type: [Metaobject_], resolve: (x) => x.recent }),
   }),
 });
@@ -372,6 +372,13 @@ builder.queryFields((t) => ({
     resolve: (_r, a, ctx) => {
       requireScope(ctx, 'read_metaobjects');
       return paginate(a, { fetch: ({ offset, limit }) => listMetaobjectDefinitions(ctx.db, ctx.shopId, { offset, limit, reverse: !!a.reverse, query: a.query }), total: async () => (await listMetaobjectDefinitions(ctx.db, ctx.shopId, { offset: 0, limit: 1000, query: a.query })).length });
+    },
+  }),
+  shopmeMetaobjects: t.field({
+    type: MetaobjectConnection, args: { ...ConnectionArgs, sortKey: t.arg.string(), query: t.arg.string() },
+    resolve: (_r, a, ctx) => {
+      requireScope(ctx, 'read_metaobjects');
+      return paginate(a, { fetch: ({ offset, limit }) => listMetaobjects(ctx.db, ctx.shopId, { query: a.query, sortKey: a.sortKey ?? 'updated_at', reverse: a.sortKey ? !!a.reverse : !a.reverse, offset, limit }), total: () => countMetaobjects(ctx.db, ctx.shopId, { query: a.query }) });
     },
   }),
   shopmeMetaobjectsSummary: t.field({

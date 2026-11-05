@@ -53,7 +53,7 @@ v0.1.0 code; partially done items are split so the open part stays visible.
 - [x] Theme settings editor (schema-driven, with preview)
 - [x] Visual theme editor beyond settings (section layout editing)
 - [x] Metafields
-- [ ] Metaobjects
+- [x] Metaobjects (definitions, entries, references, Liquid, online store pages; standard definitions, market localizations and app-owned definitions are later)
 - [ ] App platform
 - [ ] CLI: theme dev / push (`packages/cli` is a placeholder)
 - [x] One-click migration from Shopify (importer in `packages/migrate`, also started from the admin)

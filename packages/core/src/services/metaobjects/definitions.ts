@@ -48,19 +48,20 @@ export function listMetaobjectDefinitions(db: Executor, shopId: number, o: { off
 }
 
 /** Entry counts by status over the whole shop (landing page tiles). */
-export async function metaobjectSummary(db: Executor, shopId: number): Promise<{ active: number; draft: number; webPages: number; total: number }> {
+export async function metaobjectSummary(db: Executor, shopId: number): Promise<{ active: number; draft: number; webPages: number; webEntries: number; total: number }> {
   const rows = await db.select({
     status: metaobjects.status, defPublishable: metaobjectDefinitions.capPublishable, online: metaobjectDefinitions.capOnlineStore, n: sql<number>`count(*)::int`,
   }).from(metaobjects).innerJoin(metaobjectDefinitions, eq(metaobjectDefinitions.id, metaobjects.definitionId)).where(eq(metaobjects.shopId, shopId))
     .groupBy(metaobjects.status, metaobjectDefinitions.capPublishable, metaobjectDefinitions.capOnlineStore);
-  let active = 0, draft = 0, webPages = 0, total = 0;
+  let active = 0, draft = 0, webPages = 0, webEntries = 0, total = 0;
   for (const r of rows) {
     total += r.n;
     const isDraft = r.defPublishable && r.status === 'DRAFT';
     if (isDraft) draft += r.n; else active += r.n;
+    if (r.online) webEntries += r.n;
     if (r.online && !isDraft) webPages += r.n;
   }
-  return { active, draft, webPages, total };
+  return { active, draft, webPages, webEntries, total };
 }
 
 function normalizeField(f: FieldDefInput | FieldDefUpdate, base: MetaobjectFieldDef | null): MetaobjectFieldDef {

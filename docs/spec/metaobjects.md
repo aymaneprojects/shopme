@@ -1,6 +1,6 @@
 # Metaobjects
 
-Status: draft for implementation. API version studied: 2026-10. Names are listed for interoperability; behavior text is ours.
+Status: implemented (MVP and MVP+1: renderable and online store capabilities, storefront pages, sitemap, admin filters on fields). Not yet: standard definitions, market localizations, app-owned definitions and access rules, customer-account access, CSV import/export, saved views on the entry list, cached-page invalidation (storefront HTML is not cached). API version studied: 2026-10. Names are listed for interoperability; behavior text is ours.
 Admin screens were observed on our own development store (section 3.1).
 
 ## 1. Purpose

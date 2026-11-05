@@ -4,15 +4,30 @@ import { useEffect, useMemo, useState } from 'react';
 import { UserErrors, gql, mutate } from '../api';
 import { METAFIELDS_SET, METAFIELD_DEFINITIONS, OWNER_METAFIELDS } from '../graphql';
 import { useI18n } from '../i18n';
+import { ValueInput } from './MetaobjectInputs';
+import type { Labels } from './MetaobjectInputs';
 import { BASE_TYPES, changedInputs, fromField, inputKind, toField, typeLabelKey } from '../lib/metafields';
 import type { MetafieldDefinitionRow, MetafieldOwnerType, MetafieldValue } from '../lib/metafields';
 
-interface Field { namespace: string; key: string; type: string; value: string; label: string; description?: string | null; defined: boolean }
+interface Field { namespace: string; key: string; type: string; value: string; label: string; description?: string | null; defined: boolean; validations?: Array<{ name: string; value: string | null }> }
 const idOf = (ns: string, key: string) => `${ns}.${key}`;
 
 /** One editor widget per metafield type. */
 function FieldInput({ f, onChange }: { f: Field; onChange: (value: string) => void }) {
   const { t } = useI18n();
+  const [labels, setLabels] = useState<Labels>({});
+  if (/^(list\.)?metaobject_reference$/.test(f.type)) {
+    // Stored lists are JSON arrays; the editor works on the stored string directly.
+    const stored = f.type.startsWith('list.') ? (() => { try { return JSON.stringify(JSON.parse(f.value)); } catch { return f.value.split('\n').map((x) => x.trim()).filter(Boolean).length ? JSON.stringify(f.value.split('\n').map((x) => x.trim()).filter(Boolean)) : ''; } })() : f.value;
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="text-[13px] font-medium">{f.label}</span>
+        <ValueInput spec={{ key: f.key, name: f.label, description: f.description, required: false, type: f.type, validations: f.validations ?? [] }} value={stored} labels={labels} setLabels={setLabels}
+          onChange={(v) => onChange(f.type.startsWith('list.') ? (v ? (JSON.parse(v) as string[]).join('\n') : '') : v)} />
+        {f.description && <p className="text-xs text-muted">{f.description}</p>}
+      </div>
+    );
+  }
   const kind = inputKind(f.type);
   const label = f.label;
   const help = f.description ?? (kind === 'list' ? t('mf.listHelp') : kind === 'json' ? t('mf.jsonHelp') : f.type === 'rich_text_field' ? t('mf.richHelp') : f.type.endsWith('_reference') ? t('mf.referenceHelp') : undefined);
@@ -51,7 +66,7 @@ export function MetafieldsEditor({ ownerId, ownerType, title }: { ownerId: strin
     const sorted = [...(defs.data?.metafieldDefinitions.nodes ?? [])].sort((a, b) => Number(!!b.pinnedPosition) - Number(!!a.pinnedPosition));
     for (const d of sorted) {
       const id = idOf(d.namespace, d.key);
-      out[id] = { namespace: d.namespace, key: d.key, type: d.type.name, value: toField(d.type.name, current.get(id)?.value ?? ''), label: d.name, description: d.description, defined: true };
+      out[id] = { namespace: d.namespace, key: d.key, type: d.type.name, value: toField(d.type.name, current.get(id)?.value ?? ''), label: d.name, description: d.description, defined: true, validations: d.validations };
     }
     for (const m of stored ?? []) {
       const id = idOf(m.namespace, m.key);

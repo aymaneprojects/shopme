@@ -49,7 +49,8 @@ function entryQuery(def: MetaobjectDefinition | null, q: string | null | undefin
     fields: {
       display_name: (_o, v) => likeCi(metaobjects.displayName, v), handle: (_o, v) => likeCi(metaobjects.handle, v, true), id: (_o, v) => idTerm(metaobjects.id, v),
       updated_at: (o, v) => dateCompare(metaobjects.updatedAt, o, v), created_at: (o, v) => dateCompare(metaobjects.createdAt, o, v),
-      status: (_o, v) => sql`${metaobjects.status} = ${v.toUpperCase()}`, type: (_o, v) => sql`${metaobjects.type} = ${v}`,
+      status: (_o, v) => sql`${metaobjects.status} = ${v.toUpperCase()}`,
+      web_page: (_o, v) => sql`exists (select 1 from ${metaobjectDefinitions} d where d.id = ${metaobjects.definitionId} and d.cap_online_store = ${v !== 'false'})`, type: (_o, v) => sql`${metaobjects.type} = ${v}`,
     },
     text,
   });
