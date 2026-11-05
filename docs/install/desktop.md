@@ -70,6 +70,8 @@ To restore, quit ShopMe and put the copied `data` folder back in place. Back up 
 - For a store that is online 24/7 with your own domain and HTTPS, install ShopMe on a server instead:
   see [Install ShopMe](README.md).
 - The app has no automatic updates yet: download the new version from Releases and install it over the old one. Your data is kept.
+  When the new version includes a newer Aurora theme, Online Store > Themes offers "Update theme": it creates an unpublished copy
+  with your customizations, and your live theme stays as it is until you publish the copy.
 
 ## For maintainers: building and signing
 

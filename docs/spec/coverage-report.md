@@ -11,7 +11,7 @@ a named part of the item is still missing (see the notes). **Not done** means ab
 | # | Gap | Status | Notes |
 |---|---|---|---|
 | P0-1 | Customer accounts | Done | Register, login, logout, reset, order history, address book, `customer` object, `/account/*` |
-| P0-2 | Theme install/upload | Done | Zip upload, create, duplicate, delete, file copy and delete |
+| P0-2 | Theme install/upload | Done | Zip upload, create, duplicate, delete, file copy and delete; updates of the bundled Aurora theme as a new unpublished copy (`shopmeThemeUpdateToBundled`) |
 | P0-3 | Section-level theme editor | Done | Add, remove and move sections and blocks, template switching, undo |
 | P0-4 | CSV import/export | Done | Products, customers, inventory and orders |
 | P0-5 | Shopify migration importer | Done | `packages/migrate` (command line and admin page); discounts, gift cards and theme code are not imported |

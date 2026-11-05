@@ -1,7 +1,27 @@
 // Online store operations: themes (settings editor), pages, navigation menus.
 
 export const THEMES = /* GraphQL */ `
-  query Themes { themes(first: 50) { nodes { id name role } } }
+  query Themes { themes(first: 50) { nodes { id name role shopmeBundledTheme { name installedVersion bundledVersion updateAvailable } } } }
+`;
+
+/** What changed in the bundled theme (Aurora) since the version a theme was installed from. */
+export const THEME_RELEASE_NOTES = /* GraphQL */ `
+  query ThemeReleaseNotes($id: ID!, $locale: String) {
+    theme(id: $id) { id shopmeBundledTheme { name installedVersion bundledVersion releaseNotes(locale: $locale) { version date notes } } }
+  }
+`;
+
+/** New unpublished copy of a theme at the bundled version, with the merchant's customizations carried over. */
+export const THEME_UPDATE_TO_BUNDLED = /* GraphQL */ `
+  mutation ThemeUpdateToBundled($id: ID!) {
+    shopmeThemeUpdateToBundled(id: $id) {
+      theme { id name role }
+      previousVersion version carriedOverFiles removedSettings
+      skippedFiles { filename reason }
+      removedReferences { filename kind id type }
+      userErrors { field message code }
+    }
+  }
 `;
 
 export const THEME_SETTINGS = /* GraphQL */ `

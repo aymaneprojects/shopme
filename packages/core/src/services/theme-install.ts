@@ -99,6 +99,49 @@ export async function installThemeFiles(db: Db, shopId: number, themeId: number,
   return files.length + binaries.length;
 }
 
+/** Theme JSON files may start with a `/* ... *\/` banner; strip comments before parsing. */
+export const parseThemeJson = (body: string): unknown => JSON.parse(body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, ''));
+
+/** A small file of a theme package, parsed with `parse`, read again only when it changes on disk (null when missing or invalid). */
+const packageFiles = new Map<string, { mtime: number; value: unknown }>();
+export function cachedPackageFile<T>(file: string, parse: (text: string) => T): T | null {
+  let mtime: number;
+  try { mtime = statSync(file).mtimeMs; } catch { return null; }
+  const hit = packageFiles.get(file);
+  if (hit && hit.mtime === mtime) return hit.value as T;
+  let value: T | null = null;
+  try { value = parse(readFileSync(file, 'utf8')); } catch { value = null; }
+  packageFiles.set(file, { mtime, value });
+  return value;
+}
+
+export interface BundledTheme { handle: string; name: string; version: string }
+
+/** A stable handle for a theme name (`Aurora` -> `aurora`). */
+export const themeHandle = (name: string) => name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+/** Name and version of the theme in a package directory (`theme_info` of `config/settings_schema.json`). */
+export function readBundledTheme(dir: string): BundledTheme | null {
+  return cachedPackageFile(path.join(dir, 'config', 'settings_schema.json'), (text) => {
+    const groups = parseThemeJson(text);
+    const info = Array.isArray(groups) ? (groups as Record<string, unknown>[]).find((g) => g && g.name === 'theme_info') : undefined;
+    const name = typeof info?.theme_name === 'string' ? info.theme_name : '';
+    const version = typeof info?.theme_version === 'string' ? info.theme_version : '';
+    return name && version ? { handle: themeHandle(name), name, version } : null;
+  });
+}
+
+/** Checksums of a theme's files as stored, by path. */
+export async function themeChecksums(db: Executor, themeId: number): Promise<Record<string, string>> {
+  const rows = await db.select({ path: themeFiles.path, checksum: themeFiles.checksum }).from(themeFiles).where(eq(themeFiles.themeId, themeId));
+  return Object.fromEntries(rows.map((r) => [r.path, r.checksum]));
+}
+
+/** Record that a theme was just installed from the bundled theme: its version, and the checksum of every file as installed (the baseline of the merchant's edits). */
+export async function recordThemeOrigin(db: Executor, themeId: number, bundled: BundledTheme): Promise<void> {
+  await db.update(themes).set({ originTheme: bundled.handle, originVersion: bundled.version, originChecksums: await themeChecksums(db, themeId) }).where(eq(themes.id, themeId));
+}
+
 /** The MAIN theme row of a shop (created if missing). */
 export async function ensureMainTheme(db: Executor, shopId: number): Promise<{ id: number; name: string }> {
   const [t] = await db.select({ id: themes.id, name: themes.name }).from(themes).where(and(eq(themes.shopId, shopId), eq(themes.role, 'MAIN'))).limit(1);
@@ -117,5 +160,7 @@ export async function ensureDefaultTheme(db: Db, shopId: number, dir: string, st
   const fr = shop?.locale.toLowerCase().startsWith('fr') ? frenchSeedDefaults(dir) : {};
   await installThemeFiles(db, shopId, main.id, dir, (files) => localizeSeedTexts(files, fr), storage);
   await db.update(themes).set({ name: 'Aurora' }).where(and(eq(themes.id, main.id), eq(themes.name, 'Default')));
+  const bundled = readBundledTheme(dir);
+  if (bundled) await recordThemeOrigin(db, main.id, bundled);
   return true;
 }

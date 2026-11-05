@@ -77,7 +77,9 @@ exemplaire.
 - Pour une boutique disponible 24 h/24 avec votre propre domaine et HTTPS, installez ShopMe sur un serveur :
   voir [Installer ShopMe](README.fr.md).
 - Pas encore de mise à jour automatique : téléchargez la nouvelle version depuis les Releases et installez-la par-dessus
-  l'ancienne. Vos données sont conservées.
+  l'ancienne. Vos données sont conservées. Si la nouvelle version contient un thème Aurora plus récent, Boutique en ligne >
+  Thèmes propose « Mettre à jour le thème » : une copie non publiée est créée avec vos personnalisations, et votre thème en
+  ligne reste tel quel jusqu'à ce que vous publiiez la copie.
 
 ## Pour les mainteneurs : construire et signer
 

@@ -1,6 +1,6 @@
 import {
-  copyThemeFiles, createThemeFromZip, deleteTheme, deleteThemeFiles, duplicateTheme, fetchSafely, listThemeFiles, MAX_THEME_ZIP_BYTES, renameTheme,
-  type Theme as ThemeRow, type ThemeFile,
+  copyThemeFiles, createThemeFromZip, deleteTheme, deleteThemeFiles, duplicateTheme, fetchSafely, listThemeFiles, MAX_THEME_ZIP_BYTES, readBundledTheme, readThemeReleaseNotes, renameTheme,
+  themeUpdateStatus, updateThemeToBundled, type RemovedReference, type SkippedFile, type Theme as ThemeRow, type ThemeFile, type ThemeReleaseNote, type ThemeUpdateResult, type ThemeUpdateStatus,
 } from '@shopme/core';
 import { parseId, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
@@ -17,6 +17,7 @@ const CreateError = typedUserError('ThemeCreateUserError', ['INVALID', 'NOT_FOUN
 const DeleteError = typedUserError('ThemeDeleteUserError', ['INVALID', 'NOT_FOUND', 'CANNOT_DELETE_MAIN_THEME'] as const);
 const DuplicateError = typedUserError('ThemeDuplicateUserError', ['INVALID', 'NOT_FOUND'] as const);
 const UpdateError = typedUserError('ThemeUpdateUserError', ['INVALID', 'NOT_FOUND', 'BLANK'] as const);
+const BundledUpdateError = typedUserError('ShopmeThemeUpdateToBundledUserError', ['INVALID', 'NOT_FOUND', 'NOT_BUNDLED_THEME', 'UP_TO_DATE', 'BUNDLE_UNAVAILABLE'] as const);
 
 const ThemeCreatePayload = payloadWith<{ theme: ThemeRow | null }>('ThemeCreatePayload', CreateError, (t) => ({ theme: t.field({ type: Theme, nullable: true, resolve: (p) => p.theme }) }));
 const ThemeDeletePayload = payloadWith<{ deletedThemeId: string | null }>('ThemeDeletePayload', DeleteError, (t) => ({ deletedThemeId: t.id({ nullable: true, resolve: (p) => p.deletedThemeId }) }));
@@ -99,6 +100,78 @@ builder.mutationFields((t) => ({
       if (!r.ok) return { files: null, userErrors: r.errors };
       const now = new Date();
       return { files: r.value.map((path) => ({ path, checksum: null, sizeBytes: 0, updatedAt: now }) as unknown as ThemeFile), userErrors: [] };
+    },
+  }),
+}));
+
+/* ------------------------------ updates of the bundled theme (Aurora) ------------------------------ */
+
+const ReleaseNote = builder.objectRef<ThemeReleaseNote>('ShopmeThemeReleaseNote').implement({
+  description: 'What changed in one version of the bundled theme.',
+  fields: (t) => ({
+    version: t.exposeString('version'),
+    date: t.string({ nullable: true, resolve: (n) => n.date }),
+    notes: t.stringList({ resolve: (n) => n.notes }),
+  }),
+});
+
+const BundledTheme = builder.objectRef<ThemeUpdateStatus>('ShopmeBundledTheme').implement({
+  description: 'The bundled theme a theme was installed from, and whether the server ships a newer version of it.',
+  fields: (t) => ({
+    name: t.exposeString('name'),
+    installedVersion: t.string({ nullable: true, resolve: (b) => b.installedVersion }),
+    bundledVersion: t.exposeString('bundledVersion'),
+    updateAvailable: t.exposeBoolean('updateAvailable'),
+    releaseNotes: t.field({
+      type: [ReleaseNote], description: 'Changes in the versions after the installed one, newest first.', args: { locale: t.arg.string({ defaultValue: 'en' }) },
+      resolve: (b, a, ctx) => readThemeReleaseNotes(ctx.app.paths.themeDefaultDir, a.locale ?? 'en', { after: b.installedVersion, upTo: b.bundledVersion }),
+    }),
+  }),
+});
+
+builder.objectFields(Theme, (t) => ({
+  shopmeBundledTheme: t.field({
+    type: BundledTheme, nullable: true, description: 'Set when the theme was installed from the theme bundled with ShopMe (Aurora).',
+    resolve: (th, _a, ctx) => themeUpdateStatus(th, readBundledTheme(ctx.app.paths.themeDefaultDir)),
+  }),
+}));
+
+const SkipReasonEnum = builder.enumType('ShopmeThemeUpdateSkipReason', {
+  values: {
+    EDITED: { description: 'Edited in the code editor: the new version of the file is used and the edit must be made again.' },
+    REMOVED_IN_NEW_VERSION: { description: 'Edited, but the new version no longer has this file.' },
+    UNREADABLE: { description: 'Not valid JSON: the new version of the file is used.' },
+  } as const,
+});
+const SkippedFileRef = builder.objectRef<SkippedFile>('ShopmeThemeUpdateSkippedFile').implement({
+  fields: (t) => ({ filename: t.exposeString('filename'), reason: t.field({ type: SkipReasonEnum, resolve: (f) => f.reason }) }),
+});
+const ReferenceKind = builder.enumType('ShopmeThemeUpdateReferenceKind', { values: ['SECTION', 'BLOCK'] as const });
+const RemovedReferenceRef = builder.objectRef<RemovedReference>('ShopmeThemeUpdateRemovedReference').implement({
+  description: 'A section or block of a template or section group whose type the new version no longer has; it was left out.',
+  fields: (t) => ({ filename: t.exposeString('filename'), kind: t.field({ type: ReferenceKind, resolve: (r) => r.kind }), id: t.exposeString('id'), type: t.exposeString('type') }),
+});
+
+const UpdateToBundledPayload = payloadWith<{ result: ThemeUpdateResult | null }>('ShopmeThemeUpdateToBundledPayload', BundledUpdateError, (t) => ({
+  theme: t.field({ type: Theme, nullable: true, description: 'The new, unpublished copy at the bundled version.', resolve: (p) => p.result?.theme ?? null }),
+  previousVersion: t.string({ nullable: true, resolve: (p) => p.result?.fromVersion ?? null }),
+  version: t.string({ nullable: true, resolve: (p) => p.result?.toVersion ?? null }),
+  carriedOverFiles: t.stringList({ description: 'Files of the merchant kept or merged into the copy: settings, templates, section groups, language edits, own files.', resolve: (p) => p.result?.carriedOver ?? [] }),
+  skippedFiles: t.field({ type: [SkippedFileRef], description: 'Edited theme files that were not carried over.', resolve: (p) => p.result?.skipped ?? [] }),
+  removedReferences: t.field({ type: [RemovedReferenceRef], resolve: (p) => p.result?.removedReferences ?? [] }),
+  removedSettings: t.stringList({ description: 'Theme setting ids the new version no longer has.', resolve: (p) => p.result?.removedSettings ?? [] }),
+}));
+
+builder.mutationFields((t) => ({
+  shopmeThemeUpdateToBundled: t.field({
+    type: UpdateToBundledPayload, args: { id: t.arg.id({ required: true }) },
+    description: "Create a new, unpublished copy of a theme installed from the bundled theme, at the version the server ships, with the merchant's customizations carried over. The original theme is not changed.",
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_themes');
+      const id = themeId(a.id);
+      if (!id) return { result: null, userErrors: nope(['id'], 'Theme does not exist') };
+      const r = await updateThemeToBundled(ctx.db, ctx.app.storage, ctx.shopId, id, ctx.app.paths.themeDefaultDir, { staffId: staffId(ctx) });
+      return r.ok ? { result: r.value, userErrors: [] } : { result: null, userErrors: r.errors };
     },
   }),
 }));

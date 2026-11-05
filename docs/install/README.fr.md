@@ -101,3 +101,9 @@ docker compose up -d --build
 
 Les migrations de base de données s'appliquent automatiquement au démarrage. Faites d'abord une sauvegarde. Pour revenir
 en arrière, restaurez la sauvegarde et revenez à la version précédente.
+
+Une mise à jour peut apporter une nouvelle version du thème par défaut, Aurora. Votre thème en ligne n'est pas modifié :
+Boutique en ligne > Thèmes affiche « Mise à jour disponible » sur celui-ci, et « Mettre à jour le thème » crée une copie non
+publiée à la nouvelle version, avec vos réglages, vos modèles, l'en-tête et le pied de page, vos textes modifiés et vos
+fichiers importés. Les fichiers que vous avez modifiés dans l'éditeur de code sont listés pour que vous puissiez refaire ces
+modifications ; publiez la copie quand vous êtes prêt.

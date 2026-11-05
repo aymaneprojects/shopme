@@ -5,12 +5,13 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
-import { gql, mutate, upload } from '../../api';
+import { gql, mutate, upload, UserErrors } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
 import { gidToNum } from '../../format';
-import { THEMES, THEME_DELETE, THEME_DUPLICATE, THEME_PUBLISH, THEME_UPDATE } from '../../graphql';
+import { THEMES, THEME_DELETE, THEME_DUPLICATE, THEME_PUBLISH, THEME_UPDATE, THEME_UPDATE_TO_BUNDLED } from '../../graphql';
 import { useT } from '../../i18n';
 import type { Key } from '../../i18n';
+import { ThemeUpdateDialog, ThemeUpdateResultDialog, type BundledThemeStatus, type ThemeUpdateResult } from './ThemeUpdate';
 
 const TABS: Array<{ to: string; key: Key; end?: boolean }> = [
   { to: '/online-store', key: 'store.themes', end: true }, { to: '/online-store/blog-posts', key: 'store.blogPosts' }, { to: '/online-store/blogs', key: 'store.blogs' },
@@ -43,12 +44,14 @@ export function OnlineStoreLayout() {
   );
 }
 
-interface Theme { id: string; name: string; role: string }
-type Dialog = { kind: 'rename' | 'duplicate' | 'delete'; theme: Theme } | null;
+interface Theme { id: string; name: string; role: string; shopmeBundledTheme?: BundledThemeStatus | null }
+type Action = 'customize' | 'publish' | 'rename' | 'duplicate' | 'delete' | 'update';
+type Dialog = { kind: 'rename' | 'duplicate' | 'delete' | 'update'; theme: Theme } | null;
 
-function ThemeCard({ theme, live, busy, onAction }: { theme: Theme; live: boolean; busy: boolean; onAction: (a: 'customize' | 'publish' | 'rename' | 'duplicate' | 'delete', th: Theme) => void }) {
+function ThemeCard({ theme, live, busy, onAction }: { theme: Theme; live: boolean; busy: boolean; onAction: (a: Action, th: Theme) => void }) {
   const t = useT();
   const num = gidToNum(theme.id);
+  const bundled = theme.shopmeBundledTheme;
   return (
     <li className={cx('flex flex-col overflow-hidden rounded-lg border bg-canvas', live ? 'border-accent' : 'border-line')}>
       <div className="grid h-28 place-items-center bg-gradient-to-br from-primary-subtle to-surface text-accent"><Palette className="size-9" aria-hidden /></div>
@@ -57,9 +60,16 @@ function ThemeCard({ theme, live, busy, onAction }: { theme: Theme; live: boolea
           <h3 className="min-w-0 flex-1 truncate font-medium">{theme.name}</h3>
           {live ? <Badge tone="success">{t('themes.live')}</Badge> : <Badge>{t(`themes.role.${theme.role}` as Key)}</Badge>}
         </div>
+        {bundled && (
+          <div className="-mt-2 flex flex-wrap items-center gap-2 text-[12px] text-muted">
+            {bundled.installedVersion && <span>{t('themes.update.version', { version: bundled.installedVersion })}</span>}
+            {bundled.updateAvailable && <Badge tone="info">{t('themes.update.available', { version: bundled.bundledVersion })}</Badge>}
+          </div>
+        )}
         <div className="mt-auto flex flex-wrap items-center gap-2">
           <Button size="sm" variant={live ? 'primary' : 'secondary'} onClick={() => onAction('customize', theme)}>{t('themes.customize')}</Button>
           {!live && <Button size="sm" loading={busy} onClick={() => onAction('publish', theme)}>{t('themes.publish')}</Button>}
+          {bundled?.updateAvailable && <Button size="sm" onClick={() => onAction('update', theme)}>{t('themes.update.button')}</Button>}
           <Dropdown align="right" label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
             { key: 'rename', label: t('themes.rename'), onSelect: () => onAction('rename', theme) },
             { key: 'duplicate', label: t('themes.duplicate'), onSelect: () => onAction('duplicate', theme) },
@@ -88,15 +98,25 @@ export function ThemesPage() {
   const duplicate = useMutation({ mutationFn: (v: { id: string; name: string }) => mutate(THEME_DUPLICATE, v, 'themeDuplicate'), onSuccess: () => done('themes.duplicated'), onError: fail });
   const remove = useMutation({ mutationFn: (id: string) => mutate(THEME_DELETE, { id }, 'themeDelete'), onSuccess: () => done('themes.deleted'), onError: fail });
   const send = useMutation({ mutationFn: (f: File) => upload('/themes/upload', f), onSuccess: () => done('themes.uploaded'), onError: fail });
+  const [updated, setUpdated] = useState<ThemeUpdateResult | null>(null);
+  const update = useMutation({
+    mutationFn: (id: string) => mutate<ThemeUpdateResult>(THEME_UPDATE_TO_BUNDLED, { id }, 'shopmeThemeUpdateToBundled'),
+    onSuccess: (r) => { setDialog(null); setUpdated(r); void qc.invalidateQueries({ queryKey: ['themes'] }); },
+    onError: (e: Error) => {
+      const code = e instanceof UserErrors ? (e.errors[0] as { code?: string } | undefined)?.code : undefined;
+      toast(code && ['UP_TO_DATE', 'NOT_BUNDLED_THEME', 'BUNDLE_UNAVAILABLE'].includes(code) ? t(`themes.update.error.${code}` as Key) : e.message, 'critical');
+    },
+  });
 
   if (q.isLoading) return <Skeleton className="h-40" />;
   if (q.error) return <Banner>{q.error.message}</Banner>;
   const themes = q.data?.themes.nodes ?? [];
   const current = themes.find((x) => x.role === 'MAIN') ?? themes[0];
   const others = themes.filter((x) => x !== current);
-  const act = (a: 'customize' | 'publish' | 'rename' | 'duplicate' | 'delete', th: Theme) => {
+  const act = (a: Action, th: Theme) => {
     if (a === 'customize') nav(`/online-store/themes/${gidToNum(th.id)}/editor`);
     else if (a === 'publish') publish.mutate(th.id);
+    else if (a === 'update') setDialog({ kind: 'update', theme: th });
     else { setName(a === 'duplicate' ? t('themes.copyOf', { name: th.name }) : th.name); setDialog({ kind: a, theme: th }); }
   };
   const submit = () => {
@@ -123,6 +143,10 @@ export function ThemesPage() {
         footer={<><Button onClick={() => setDialog(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={rename.isPending || duplicate.isPending} onClick={submit}>{t('save.save')}</Button></>}>
         <Input label={t('themes.name')} value={name} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} />
       </Modal>
+      {dialog?.kind === 'update' && dialog.theme.shopmeBundledTheme && (
+        <ThemeUpdateDialog open themeId={dialog.theme.id} status={dialog.theme.shopmeBundledTheme} busy={update.isPending} onClose={() => setDialog(null)} onConfirm={() => update.mutate(dialog.theme.id)} />
+      )}
+      <ThemeUpdateResultDialog result={updated} onClose={() => setUpdated(null)} onCustomize={(id) => { setUpdated(null); nav(`/online-store/themes/${gidToNum(id)}/editor`); }} />
       <ConfirmDialog open={dialog?.kind === 'delete'} danger onClose={() => setDialog(null)} title={t('themes.deleteTitle', { name: dialog?.theme.name ?? '' })} message={t('themes.deleteBody')}
         confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => dialog && remove.mutate(dialog.theme.id)} />
     </div>

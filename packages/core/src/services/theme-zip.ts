@@ -3,7 +3,7 @@ import path from 'node:path';
 import { and, eq, inArray } from 'drizzle-orm';
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import { themeFiles, themes } from '../db/schema';
-import type { Db } from '../db/client';
+import type { Db, Executor } from '../db/client';
 import { errR, okR, txResult, type Result } from './catalog/common';
 import { getTheme, publishTheme, snapshotThemeFiles, type Theme } from './content/content';
 import { BINARY_ASSET_TYPES, THEME_DIRS } from './theme-install';
@@ -117,12 +117,12 @@ export async function renameTheme(db: Db, shopId: number, id: number, name: stri
   return okR(row!);
 }
 
-/** Copy a theme and all its files into a new UNPUBLISHED theme (binary files share their stored object). */
+/** Copy a theme and all its files into a new UNPUBLISHED theme (binary files share their stored object; the bundled theme it came from carries over). */
 export async function duplicateTheme(db: Db, shopId: number, id: number, name?: string | null): Promise<Result<Theme>> {
   const cur = await getTheme(db, shopId, id);
   if (!cur) return errR(['id'], 'Theme does not exist', 'NOT_FOUND');
   return txResult(db, async (tx) => {
-    const [row] = await tx.insert(themes).values({ shopId, name: (name?.trim() || `Copy of ${cur.name}`).slice(0, 255), role: 'UNPUBLISHED' }).returning();
+    const [row] = await tx.insert(themes).values({ shopId, name: (name?.trim() || `Copy of ${cur.name}`).slice(0, 255), role: 'UNPUBLISHED', originTheme: cur.originTheme, originVersion: cur.originVersion, originChecksums: cur.originChecksums }).returning();
     const rows = await tx.select().from(themeFiles).where(and(eq(themeFiles.shopId, shopId), eq(themeFiles.themeId, id)));
     for (let i = 0; i < rows.length; i += 50) await tx.insert(themeFiles).values(rows.slice(i, i + 50).map((r) => ({ ...r, themeId: row!.id })));
     return okR(row!);
@@ -130,7 +130,7 @@ export async function duplicateTheme(db: Db, shopId: number, id: number, name?: 
 }
 
 /** Storage objects are shared between duplicated themes: delete one only when no file row references it any more. */
-async function releaseObjects(db: Db, storage: Storage, keys: string[]) {
+export async function releaseObjects(db: Executor, storage: Storage, keys: string[]) {
   for (const key of new Set(keys)) {
     const [still] = await db.select({ p: themeFiles.path }).from(themeFiles).where(eq(themeFiles.storageKey, key)).limit(1);
     if (!still) await storage.delete(key).catch(() => {});

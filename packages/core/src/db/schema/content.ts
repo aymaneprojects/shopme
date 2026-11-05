@@ -1,4 +1,4 @@
-import { boolean, index, integer, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { createdAt, pk, ref, shopIdCol, tagsCol, timestamps, ts } from './_helpers';
 import { shops } from './shop';
 import { media } from './catalog';
@@ -51,6 +51,12 @@ export const themes = pgTable('themes', {
   name: text('name').notNull(),
   role: text('role').notNull().default('UNPUBLISHED'), // MAIN | UNPUBLISHED | DEMO | DEVELOPMENT
   processing: boolean('processing').notNull().default(false),
+  /** Bundled theme this theme was installed from (`aurora`); null for uploaded themes. */
+  originTheme: text('origin_theme'),
+  /** `theme_version` of the bundled theme when it was installed (or last updated). */
+  originVersion: text('origin_version'),
+  /** MD5 of each file as installed from the bundled theme, to tell the merchant's edits apart; null for themes installed before it was recorded. */
+  originChecksums: jsonb('origin_checksums').$type<Record<string, string>>(),
   ...timestamps(),
 });
 
