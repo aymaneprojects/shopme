@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, ImagePlus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ImagePlus, Plus, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { cx } from './basics';
 
@@ -17,7 +17,7 @@ export async function uploadFile(file: File, endpoint = '/admin/api/files'): Pro
 }
 
 /** Drop zone / button that uploads the chosen images and reports the stored files. */
-export function ImageUploader({ onUploaded, onError, label, multiple = true, compact }: { onUploaded: (files: UploadedFile[]) => void; onError?: (message: string) => void; label: string; multiple?: boolean; compact?: boolean }) {
+export function ImageUploader({ onUploaded, onError, label, multiple = true, compact, look }: { onUploaded: (files: UploadedFile[]) => void; onError?: (message: string) => void; label: string; multiple?: boolean; compact?: boolean; /** `tile`: filled square with a plus (next to existing images); `band`: wide filled strip with a plus and the label (empty product media). */ look?: 'tile' | 'band' }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
@@ -39,10 +39,11 @@ export function ImageUploader({ onUploaded, onError, label, multiple = true, com
       type="button" disabled={busy} aria-label={compact ? label : undefined} onClick={() => input.current?.click()}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); void handle(e.dataTransfer.files); }}
-      className={cx('flex flex-col items-center justify-center gap-1 rounded-md border border-dashed border-line text-[13px] text-muted hover:bg-surface', compact ? 'size-24' : 'w-full py-8', over && 'bg-primary-subtle', busy && 'opacity-60')}
+      className={cx('flex flex-col items-center justify-center gap-1 text-[13px] text-muted', look ? 'rounded-lg bg-surface hover:bg-hover' : 'rounded-md border border-dashed border-line hover:bg-surface',
+        look === 'band' ? 'h-32 w-full' : compact || look === 'tile' ? 'size-24' : 'w-full py-8', over && 'bg-primary-subtle', busy && 'opacity-60')}
     >
-      <ImagePlus className="size-5" />
-      {!compact && <span>{label}</span>}
+      {look ? <Plus className="size-5" /> : <ImagePlus className="size-5" />}
+      {(!compact && look !== 'tile') && <span>{label}</span>}
       <input ref={input} type="file" accept="image/*" multiple={multiple} hidden aria-label={label} onChange={(e) => void handle(e.target.files)} />
     </button>
   );

@@ -1,20 +1,21 @@
-import { Banner, Button, Card, Checkbox, ConfirmDialog, Dropdown, ImageUploader, Input, MediaGallery, MediaViewer, Modal, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
+import { Banner, Button, Checkbox, ConfirmDialog, Dropdown, ImageUploader, Input, MediaGallery, MediaViewer, Modal, Skeleton, cx, useToast } from '@shopme/ui';
 import type { GalleryItem } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, Copy, Eye, Gift, Plus, Tag, Trash2, X } from 'lucide-react';
+import { Archive, Copy, Eye, Gift, Tag, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
 import { CollectionPicker } from '../components/Pickers';
+import { Chip, INLINE_SELECT, InlineRow, InlineTags, SideHead } from '../components/ProductSide';
+import { SeoListing } from '../components/SeoListing';
 import { RichText } from '../components/RichText';
 import { PageHeader } from '../components/PageHeader';
 import { PrevNext } from '../components/PrevNext';
 import { ViewAs } from '../components/ViewAs';
 import { SaveBar, guard } from '../components/SaveBar';
-import { InventoryFields, OptionsEditor, PricingFields, ShippingFields } from '../components/VariantsEditor';
 import { VariantsManager } from '../components/VariantsManager';
-import { formatMoney, numToGid } from '../format';
+import { numToGid } from '../format';
 import { LOCATIONS, PRODUCT, PRODUCT_DELETE, PRODUCT_DUPLICATE, PRODUCT_FILTER_OPTIONS, TAXONOMY_CATEGORIES } from '../graphql';
 import { useI18n } from '../i18n';
 import { flattenStrings } from '../lib/hooks';
@@ -40,7 +41,6 @@ export function ProductEditPage() {
   return <ProductFormView key={`${id}:${prod.dataUpdatedAt}`} id={isNew ? null : numToGid('Product', id)} initial={initial} locations={locations} previewUrl={prod.data?.product?.onlineStorePreviewUrl ?? null} />;
 }
 
-const stripHtml = (h: string) => h.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { id: string | null; initial: ProductForm; locations: LocationRef[]; previewUrl: string | null }) {
@@ -61,10 +61,6 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
   const set = (p: Partial<ProductForm>) => setForm((f) => ({ ...f, ...p }));
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
   const filters = useQuery({ queryKey: ['product-filter-options'], queryFn: () => gql<Record<'productTypes' | 'productVendors' | 'productTags', { edges: Array<{ node: string }> }>>(PRODUCT_FILTER_OPTIONS), staleTime: 60_000 });
-
-  const single = form.options.length === 0;
-  const first = form.variants[0]!;
-  const patchFirst = (p: Partial<typeof first>) => set({ variants: [{ ...first, ...p }, ...form.variants.slice(1)] });
 
   const save = useMutation({
     mutationFn: async () => {
@@ -99,7 +95,6 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
 
   const serverError = errors.server;
   const gallery = { remove: t('common.remove'), moveLeft: t('media.moveLeft'), moveRight: t('media.moveRight'), featured: t('media.featured'), alt: t('media.alt') };
-  const seoTitle = form.seoTitle || form.title || t('product.untitled');
   const seoUrl = `/products/${form.handle || slug(form.title) || 'handle'}`;
   const publicUrl = id ? (form.status === 'ACTIVE' ? seoUrl : previewUrl) : null;
 
@@ -116,104 +111,95 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
             { key: 'mail', label: t('share.email'), disabled: !publicUrl, onSelect: () => { window.location.href = `mailto:?subject=${encodeURIComponent(form.title)}&body=${encodeURIComponent(new URL(publicUrl!, window.location.origin).href)}`; } },
           ]} />
           <Dropdown align="right" chevron trigger={t('common.moreActions')} items={[
-            { key: 'duplicate', icon: <Copy className="size-4" />, label: t('product.duplicate'), onSelect: () => setDup({ title: t('product.copyOf', { title: form.title }), images: true, status: 'DRAFT' }) },
-            ...(form.status === 'ARCHIVED' ? [] : [{ key: 'archive', icon: <Archive className="size-4" />, label: t('products.setArchived'), onSelect: () => set({ status: 'ARCHIVED' }) }]),
+            { key: 'duplicate', icon: <Copy className="size-4" />, label: t('pv.duplicateProduct'), onSelect: () => setDup({ title: t('product.copyOf', { title: form.title }), images: true, status: 'DRAFT' }) },
+            ...(form.status === 'ARCHIVED' ? [] : [{ key: 'archive', icon: <Archive className="size-4" />, label: t('pv.archiveProduct'), onSelect: () => set({ status: 'ARCHIVED' }) }]),
             ...(form.status === 'ACTIVE' ? [] : [{ key: 'activate', label: t('products.setActive'), onSelect: () => set({ status: 'ACTIVE' }) }]),
-            { key: 'delete', icon: <Trash2 className="size-4" />, label: t('common.delete'), danger: true, separatorBefore: true, onSelect: () => setConfirmDelete(true) },
+            { key: 'delete', icon: <Trash2 className="size-4" />, label: t('pv.deleteProduct'), danger: true, separatorBefore: true, onSelect: () => setConfirmDelete(true) },
           ]} />
           <PrevNext kind="products" gid={id} />
         </>}
       />
       {serverError && <div className="mb-4"><Banner>{typeof serverError === 'string' ? serverError : serverError.errors.map((e) => `${e.field?.join('.') ?? ''} ${e.message}`.trim()).join(' · ')}</Banner></div>}
-      <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
-        <div className="flex flex-col gap-4">
+      <div className="grid gap-x-6 gap-y-4 lg:grid-cols-[1fr_20rem]">
+        <div className="flex min-w-0 flex-col gap-5">
           <div className="flex flex-wrap items-start gap-3" role="group" aria-label={t('product.media')}>
-              <MediaGallery compact onOpen={setViewing} openLabel={t('viewer.open')} items={form.media} onChange={(media) => set({ media })} canRemove={(i) => !isPersistedMedia(i)} labels={gallery} />
-              <ImageUploader compact label={t('media.upload')} onUploaded={(files) => set({ media: [...form.media, ...files.map((f): GalleryItem => ({ key: `new-${f.id}`, url: f.url, alt: f.filename }))] })} onError={(m) => toast(m, 'critical')} />
+            {form.media.length > 0 && <MediaGallery compact onOpen={setViewing} openLabel={t('viewer.open')} items={form.media} onChange={(media) => set({ media })} canRemove={(i) => !isPersistedMedia(i)} labels={gallery} />}
+            <div className={form.media.length ? undefined : 'w-full'}>
+              <ImageUploader look={form.media.length ? 'tile' : 'band'} label={form.media.length ? t('media.upload') : t('pv.uploadBand')} onUploaded={(files) => set({ media: [...form.media, ...files.map((f): GalleryItem => ({ key: `new-${f.id}`, url: f.url, alt: f.filename }))] })} onError={(m) => toast(m, 'critical')} />
+            </div>
           </div>
 
-          <Card>
-            <div className="flex flex-col gap-3">
-              <Input label={t('field.title')} required placeholder={t('product.titlePlaceholder')} value={form.title} error={errors.title} onChange={(e) => set({ title: e.target.value })} />
-              <div className="flex flex-col gap-1">
-                <span className="text-[13px] font-medium">{t('field.description')}</span>
-                <RichText value={form.descriptionHtml} onChange={(descriptionHtml) => set({ descriptionHtml })} />
-              </div>
-            </div>
-          </Card>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="product-title" className="text-[13px] text-muted">{t('field.title')}</label>
+            <input id="product-title" required aria-invalid={!!errors.title} aria-describedby={errors.title ? 'product-title-error' : undefined} placeholder={t('product.titlePlaceholder')} value={form.title} onChange={(e) => set({ title: e.target.value })}
+              className="field-control w-full !min-h-10 !text-xl !font-semibold" />
+            {errors.title && <p id="product-title-error" className="text-xs text-critical">{errors.title}</p>}
+          </div>
 
-          {single && (
-            <>
-              <Card title={t('product.pricing')}>{errors.price && <p className="mb-2 text-xs text-critical">{errors.price}</p>}<PricingFields v={first} patch={patchFirst} currency={shop.currency} /></Card>
-              <Card title={t('product.inventory')}><InventoryFields v={first} patch={patchFirst} locations={locations} /></Card>
-              {!form.isGiftCard && <Card title={t('product.shipping')}><ShippingFields v={first} patch={patchFirst} /></Card>}
-            </>
-          )}
+          <div className="flex flex-col gap-1.5">
+            <span className="sr-only">{t('field.description')}</span>
+            <RichText value={form.descriptionHtml} onChange={(descriptionHtml) => set({ descriptionHtml })} />
+          </div>
 
-          <Card title={t('product.variants')}>
-            <div className="flex flex-col gap-4">
-              <OptionsEditor options={form.options} variants={form.variants} lockedCount={initial.options.length} onChange={(o) => set(o)} />
-              {!single && (
-                <>
-                  <p className="text-[13px] text-muted">{t('variants.count', { n: form.variants.length })}</p>
-                  {errors.price && <p className="text-xs text-critical">{errors.price}</p>}
-                  <VariantsManager options={form.options} variants={form.variants} locations={locations} currency={shop.currency} media={form.media.filter(isPersistedMedia).map((m) => ({ id: m.key, url: m.url }))} onMetafields={id ? setVariantMf : undefined} onChange={(p) => set(p)} />
-                </>
-              )}
-            </div>
-          </Card>
+          {errors.price && <p className="-mb-2 text-xs text-critical">{errors.price}</p>}
+          <VariantsManager options={form.options} variants={form.variants} locations={locations} currency={shop.currency} lockedCount={initial.options.length} giftCard={form.isGiftCard}
+            media={form.media.filter(isPersistedMedia).map((m) => ({ id: m.key, url: m.url }))} onMetafields={id ? setVariantMf : undefined} onChange={(p) => set(p)} />
 
           {id && <MetafieldsEditor ownerId={id} ownerType="PRODUCT" />}
 
-          <Card title={t('product.seo')}>
-            <div className="flex flex-col gap-3">
-              <div className="rounded-md border border-line bg-surface p-3">
-                <p className="truncate text-base text-accent">{seoTitle}</p>
-                <p className="truncate text-xs text-success">{window.location.host}{seoUrl}</p>
-                <p className="line-clamp-2 text-[13px] text-muted">{form.seoDescription || stripHtml(form.descriptionHtml) || t('product.seoEmpty')}</p>
-              </div>
-              <Input label={t('product.seoTitle')} value={form.seoTitle} help={t('product.chars', { n: form.seoTitle.length, max: 70 })} onChange={(e) => set({ seoTitle: e.target.value })} />
-              <Textarea label={t('product.seoDescription')} value={form.seoDescription} help={t('product.chars', { n: form.seoDescription.length, max: 160 })} onChange={(e) => set({ seoDescription: e.target.value })} />
-              <Input label={t('product.handle')} value={form.handle} placeholder={slug(form.title)} onChange={(e) => set({ handle: e.target.value })} />
-            </div>
-          </Card>
+          <SeoListing flat title={form.title || t('product.untitled')} prefix={`${window.location.host}/products/`} handle={form.handle || slug(form.title)} onHandle={(handle) => set({ handle })} description={form.descriptionHtml}
+            seoTitle={form.seoTitle} onSeoTitle={(seoTitle) => set({ seoTitle })} seoDescription={form.seoDescription} onSeoDescription={(seoDescription) => set({ seoDescription })}
+            image={form.media[0]?.url} siteName={shop.name} />
         </div>
 
-        <div className="flex flex-col gap-4">
-          <Card title={t('field.status')}>
-            {form.isGiftCard && <p className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs"><Gift className="size-3.5" />{t('product.giftCardBadge')}</p>}
-            <Select aria-label={t('field.status')} value={form.status} onChange={(e) => set({ status: e.target.value as ProductForm['status'] })}>
-              <option value="ACTIVE">{t('status.ACTIVE')}</option>
-              <option value="DRAFT">{t('status.DRAFT')}</option>
-              <option value="ARCHIVED">{t('status.ARCHIVED')}</option>
-            </Select>
-          </Card>
-          <Card title={t('product.organization')}>
-            <div className="flex flex-col gap-3">
-              <Input label={t('field.vendor')} list="vendors" value={form.vendor} onChange={(e) => set({ vendor: e.target.value })} />
-              <datalist id="vendors">{flattenStrings(filters.data?.productVendors).map((v) => <option key={v} value={v} />)}</datalist>
-              <Input label={t('field.productType')} list="types" value={form.productType} onChange={(e) => set({ productType: e.target.value })} />
-              <datalist id="types">{flattenStrings(filters.data?.productTypes).map((v) => <option key={v} value={v} />)}</datalist>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[13px] font-medium">{t('nav.collections')}</span>
-                <ul className="flex flex-wrap gap-1.5">
-                  {form.collections.map((c) => (
-                    <li key={c.id} className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2 py-0.5 text-xs">
-                      {c.title}<button type="button" aria-label={`${t('common.remove')} ${c.title}`} onClick={() => set({ collections: form.collections.filter((x) => x.id !== c.id) })}><X className="size-3" /></button>
-                    </li>
-                  ))}
-                </ul>
-                <div><Button size="sm" onClick={() => setPickCollections(true)}><Plus className="size-4" />{t('product.addToCollection')}</Button></div>
-              </div>
-              <Select label={t('product.category')} help={t('product.categoryHelp')} value={form.category} onChange={(e) => set({ category: e.target.value })}>
-                <option value="">{t('product.noCategory')}</option>
-                {(cats.data?.taxonomy?.categories.nodes ?? []).map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
-              </Select>
-              <TagInput label={t('field.tags')} value={form.tags} onChange={(tags) => set({ tags })} suggestions={flattenStrings(filters.data?.productTags)} removeLabel={t('common.remove')} />
-              <Input label={t('product.template')} help={t('product.templateHelp')} value={form.templateSuffix} onChange={(e) => set({ templateSuffix: e.target.value })} />
+        <aside className="flex flex-col gap-4 lg:pt-1 [&>section]:border-t [&>section]:border-line [&>section]:pt-4 [&>section:first-child]:border-0 [&>section:first-child]:pt-0">
+          <section className="flex flex-col gap-2">
+            {form.isGiftCard && <p className="inline-flex w-fit items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs"><Gift className="size-3.5" />{t('product.giftCardBadge')}</p>}
+            <div className="flex items-center gap-2 text-[13px]">
+              <span aria-hidden className={cx('size-2 shrink-0 rounded-full', form.status === 'ACTIVE' ? 'bg-success' : form.status === 'DRAFT' ? 'bg-attention' : 'bg-muted')} />
+              <select aria-label={t('field.status')} value={form.status} onChange={(e) => set({ status: e.target.value as ProductForm['status'] })} className="-ml-1 min-w-0 flex-1 rounded-md bg-transparent px-1 py-1 font-medium outline-none hover:bg-hover focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-accent">
+                <option value="ACTIVE">{t('status.ACTIVE')}</option>
+                <option value="DRAFT">{t('status.DRAFT')}</option>
+                <option value="ARCHIVED">{t('status.ARCHIVED')}</option>
+              </select>
             </div>
-          </Card>
-        </div>
+          </section>
+
+          <section className="flex flex-col gap-1">
+            <InlineRow label={t('product.category')} hint={t('product.categoryHelp')}>
+              {(p) => (
+                <select {...p} className={cx(p.className, INLINE_SELECT)} value={form.category} onChange={(e) => set({ category: e.target.value })}>
+                  <option value="">{t('product.noCategory')}</option>
+                  {(cats.data?.taxonomy?.categories.nodes ?? []).map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
+                </select>
+              )}
+            </InlineRow>
+            <InlineRow label={t('field.productType')}>
+              {(p) => <input {...p} list="types" placeholder={t('pv.none')} value={form.productType} onChange={(e) => set({ productType: e.target.value })} />}
+            </InlineRow>
+            <InlineRow label={t('field.vendor')}>
+              {(p) => <input {...p} list="vendors" placeholder={t('pv.none')} value={form.vendor} onChange={(e) => set({ vendor: e.target.value })} />}
+            </InlineRow>
+            <InlineRow label={t('product.template')} hint={t('product.templateHelp')}>
+              {(p) => <input {...p} placeholder={t('pv.defaultTemplate')} value={form.templateSuffix} onChange={(e) => set({ templateSuffix: e.target.value })} />}
+            </InlineRow>
+            <datalist id="vendors">{flattenStrings(filters.data?.productVendors).map((v) => <option key={v} value={v} />)}</datalist>
+            <datalist id="types">{flattenStrings(filters.data?.productTypes).map((v) => <option key={v} value={v} />)}</datalist>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <SideHead title={t('nav.collections')} action={{ label: t('product.addToCollection'), onClick: () => setPickCollections(true) }} />
+            {form.collections.length > 0 && (
+              <ul className="flex flex-wrap gap-1.5">
+                {form.collections.map((c) => <Chip key={c.id} removeLabel={`${t('common.remove')} ${c.title}`} onRemove={() => set({ collections: form.collections.filter((x) => x.id !== c.id) })}>{c.title}</Chip>)}
+              </ul>
+            )}
+          </section>
+
+          <section>
+            <InlineTags label={t('field.tags')} placeholder={t('pv.addTags')} value={form.tags} onChange={(tags) => set({ tags })} suggestions={flattenStrings(filters.data?.productTags)} removeLabel={t('common.remove')} />
+          </section>
+        </aside>
       </div>
       <Modal open={!!variantMf} onClose={() => setVariantMf(null)} closeLabel={t('common.close')} title={t('mf.variantMetafields')} wide>
         {variantMf && <MetafieldsEditor ownerId={variantMf} ownerType="PRODUCTVARIANT" title={form.variants.find((v) => v.id === variantMf)?.optionValues.join(' / ') || t('mf.title')} />}

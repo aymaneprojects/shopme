@@ -213,7 +213,7 @@ export async function runScenario({ baseUrl, root }) {
       await page.getByLabel('Status').selectOption({ label: 'Active' });
       // image upload
       const chooser = page.waitForEvent('filechooser');
-      await page.getByRole('button', { name: /Add images/ }).click();
+      await page.getByRole('button', { name: /Upload images/ }).click();
       await (await chooser).setFiles(pngPath);
       await vis(page.locator('main img').first());
       // options
@@ -231,23 +231,22 @@ export async function runScenario({ baseUrl, root }) {
       await page.keyboard.press('Enter');
       await vis(page.getByText('4 variants'));
       const prices = { 'Vanille / S': ['18.00', 'BOUG-VAN-S'], 'Vanille / L': ['32.00', 'BOUG-VAN-L'], 'Figue / S': ['19.00', 'BOUG-FIG-S'], 'Figue / L': ['34.00', 'BOUG-FIG-L'] };
-      for (const [label, [price, sku]] of Object.entries(prices)) {
-        const row = page.getByRole('row', { name: new RegExp(label) });
-        await row.getByLabel(new RegExp(`^Price ${label}`)).fill(price);
-        await row.getByLabel('Show details').click();
-        const panel = page.locator('tr', { has: page.getByLabel('SKU') }).last();
-        await panel.getByLabel('SKU').fill(sku);
-        await panel.getByLabel(/Available/).fill('10');
-        await row.getByLabel('Show details').click();
+      for (const [label, [price_, sku]] of Object.entries(prices)) {
+        await page.getByRole('group', { name: 'Variants' }).getByRole('button', { name: label, exact: true }).click();
+        const price = page.getByLabel('Price', { exact: true });
+        await price.fill(price_);
+        await page.getByRole('button', { name: 'SKU', exact: true }).click();
+        await page.getByLabel('SKU', { exact: true }).fill(sku);
+        await page.getByLabel(/Available/).fill('10');
       }
       await shot('04-product-editor');
       await page.getByRole('button', { name: 'Save', exact: true }).click();
       await page.waitForURL(/\/admin\/products\/\d+|gid/, { timeout: T });
       productUrl = page.url();
       await page.reload();
-      await vis(page.getByRole('row', { name: /Figue \/ L/ }));
+      await page.getByRole('group', { name: 'Variants' }).getByRole('button', { name: 'Figue / L', exact: true }).click();
       assert.equal(await page.getByLabel('Status').inputValue(), 'ACTIVE');
-      assert.equal(await page.getByRole('row', { name: /Figue \/ L/ }).getByLabel(/^Price/).inputValue(), '34.00');
+      assert.equal(await page.getByLabel('Price', { exact: true }).inputValue(), '34.00');
     });
 
     await step('3b manual collection Bougies', async () => {

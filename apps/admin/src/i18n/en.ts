@@ -14,6 +14,7 @@ import { enSettings } from './en-settings';
 import { enUx } from './en-ux';
 import { enViews } from './en-views';
 import { enQaCatalog } from './en-qa-catalog';
+import { enQaProduct } from './en-qa-product';
 import { enQaFeatures } from './en-qa-features';
 import { enEditor } from './en-editor';
 import { enTimeline } from './en-timeline';
@@ -128,6 +129,7 @@ export const en = {
   ...enPublishing,
   ...enViews,
   ...enQaCatalog,
+  ...enQaProduct,
   ...enQaFeatures,
   ...enCheckout,
   ...enQaStore,

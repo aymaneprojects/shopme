@@ -7,7 +7,7 @@
   --color-bg: #0d1424;            /* cards, popovers */
   --color-surface: #121a2e;       /* hover / inset / raised */
   --color-field: #080e1b;         /* text inputs */
-  --color-border: #1c2843;
+  --color-border: #28365a;
   --color-text: #e6eaf2;
   --color-text-muted: #9aa5bd;
 
@@ -41,9 +41,9 @@
   --color-critical: #fca5a5;  --color-critical-subtle: #4a1618;  --color-critical-fill: #c0262d;
   --color-info: #a5bcff;      --color-info-subtle: #1b2a5c;
 
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.08);
   --shadow-btn: 0 1px 1.5px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.06);
-  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.09);
+  --shadow-pop: 0 12px 32px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.16);
   --shadow-pressed: inset 0 2px 3px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.1);
 
   /* Measured geometry */

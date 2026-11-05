@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
 import { blankVariant, combinations, generateVariants } from '../lib/variants';
 import type { OptionDef, VariantDraft } from '../lib/variants';
-import { OptionsEditor, VariantsTable } from './VariantsEditor';
+import { VariantsManager } from './VariantsManager';
 
 describe('generateVariants', () => {
   it('builds the cartesian product in option order', () => {
@@ -48,15 +48,12 @@ describe('generateVariants', () => {
 
 function Harness() {
   const [state, setState] = useState<{ options: OptionDef[]; variants: VariantDraft[] }>({ options: [], variants: [blankVariant()] });
-  return (
-    <>
-      <OptionsEditor {...state} onChange={setState} />
-      <VariantsTable variants={state.variants} locations={[]} currency="EUR" onChange={(variants) => setState({ ...state, variants })} />
-    </>
-  );
+  return <VariantsManager {...state} locations={[]} currency="EUR" onChange={(p) => setState({ ...state, ...p })} />;
 }
 
-describe('OptionsEditor', () => {
+const listItems = () => within(screen.getByRole('group', { name: 'Variants' })).getAllByRole('listitem');
+
+describe('VariantsManager options', () => {
   it('generates one variant per combination as values are typed', async () => {
     const user = userEvent.setup();
     render(<Harness />);
@@ -68,21 +65,43 @@ describe('OptionsEditor', () => {
     await user.type(names[1]!, 'Size');
     await user.type(screen.getAllByLabelText('Option values')[1]!, 'S{Enter}M{Enter}L{Enter}');
 
-    const rows = screen.getAllByRole('row').slice(1);
+    const rows = listItems();
     expect(rows).toHaveLength(6);
     expect(within(rows[0]!).getByText('Red / S')).toBeInTheDocument();
     expect(within(rows[5]!).getByText('Blue / L')).toBeInTheDocument();
   });
 
-  it('removing an option regenerates the variants', async () => {
+  it('shows the selected variant in the detail panel', async () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole('button', { name: /add options/i }));
     await user.type(screen.getByLabelText('Option name'), 'Size');
     await user.type(screen.getByLabelText('Option values'), 'S{Enter}M{Enter}');
-    expect(screen.getAllByRole('row')).toHaveLength(3);
+    await user.click(within(listItems()[1]!).getByRole('button', { name: 'M' }));
+    expect(within(listItems()[1]!).getByRole('button', { name: 'M' })).toHaveAttribute('aria-current', 'true');
+    await user.clear(screen.getByLabelText('Price'));
+    await user.type(screen.getByLabelText('Price'), '12.50');
+    expect(within(listItems()[1]!).getByText(/12/)).toBeInTheDocument();
+    expect(within(listItems()[0]!).queryByText(/12\.50|12,50/)).toBeNull();
+  });
+
+  it('removing the only option goes back to the single variant sections', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(screen.getByRole('button', { name: /add options/i }));
+    await user.type(screen.getByLabelText('Option name'), 'Size');
+    await user.type(screen.getByLabelText('Option values'), 'S{Enter}M{Enter}');
+    expect(listItems()).toHaveLength(2);
     await user.click(screen.getByRole('button', { name: 'Remove option' }));
-    expect(screen.getAllByRole('row')).toHaveLength(2);
-    expect(screen.getByText('Default')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Variants' })).toBeNull();
+    expect(screen.getByLabelText('Price')).toBeInTheDocument();
+  });
+
+  it('reveals optional fields on demand', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    expect(screen.queryByLabelText('SKU')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'SKU' }));
+    expect(screen.getByLabelText('SKU')).toBeInTheDocument();
   });
 });
