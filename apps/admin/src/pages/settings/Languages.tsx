@@ -1,8 +1,9 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, Select, Skeleton, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, ConfirmDialog, Dropdown, Modal, Select, Skeleton, useToast } from '@shopme/ui';
+import { SettingsActions } from '../../components/SettingsKit';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
 import { SHOP_LOCALES, SHOP_LOCALE_DISABLE, SHOP_LOCALE_ENABLE, SHOP_LOCALE_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
@@ -17,6 +18,7 @@ export function LanguagesSettings() {
   const { t, lang } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const q = useShopLocales();
   const [adding, setAdding] = useState('');
   const [removing, setRemoving] = useState<ShopLocale | null>(null);
@@ -30,40 +32,44 @@ export function LanguagesSettings() {
   const taken = new Set(rows.map((r) => r.locale));
   const options = SUGGESTED.filter((c) => !taken.has(c));
   const others = rows.filter((r) => !r.primary);
+  const [addOpen, setAddOpen] = useState(false);
   return (
-    <div className="flex flex-col gap-4">
-      <Card title={t('lang.title')} actions={others.length ? <Link to="/settings/languages/translate" className="btn btn-secondary btn-sm">{t('lang.translate')}</Link> : undefined}>
-        <p className="mb-3 text-[13px] text-muted">{t('lang.help')}</p>
-        {q.isLoading && <Skeleton className="h-24" />}
-        {q.error && <Banner>{q.error.message}</Banner>}
-        {error && <div className="mb-3"><Banner>{error}</Banner></div>}
+    <>
+      <SettingsActions><Button variant="primary" onClick={() => { setError(null); setAddOpen(true); }}>{t('lang.add')}</Button></SettingsActions>
+      <p className="-mt-3 mb-4 text-[13px] text-muted">{t('lang.help')}</p>
+      {q.isLoading && <Skeleton className="h-24" />}
+      {q.error && <Banner>{q.error.message}</Banner>}
+      {error && <div className="mb-3"><Banner>{error}</Banner></div>}
+      <div className="overflow-hidden rounded-lg bg-canvas shadow-card">
+        <div className="grid grid-cols-[1fr_8rem_2.5rem] gap-3 border-b border-line bg-surface px-4 py-2 text-[13px] text-muted"><span>{t('lang.col.language')}</span><span>{t('field.status')}</span><span /></div>
         <ul className="divide-y divide-line">
           {rows.map((r) => (
-            <li key={r.locale} className="flex flex-wrap items-center gap-2 py-3 text-[13px]">
-              <span className="font-medium">{nameOf(r.locale, lang)}</span><code className="text-xs text-muted">{r.locale}</code>
-              {r.primary ? <Badge tone="info">{t('lang.primary')}</Badge> : <Badge tone={r.published ? 'success' : 'neutral'}>{t(r.published ? 'lang.published' : 'lang.unpublished')}</Badge>}
-              {!r.primary && (
-                <div className="ml-auto flex flex-wrap gap-2">
-                  <Link to={`/settings/languages/translate?locale=${encodeURIComponent(r.locale)}`} className="rounded-md border border-line px-2.5 py-1 text-xs font-medium hover:bg-surface">{t('lang.translate')}</Link>
-                  <Button size="sm" loading={publish.isPending && publish.variables?.locale === r.locale} onClick={() => publish.mutate({ locale: r.locale, published: !r.published })}>{t(r.published ? 'lang.unpublish' : 'lang.publish')}</Button>
-                  <Button size="sm" variant="danger" onClick={() => setRemoving(r)}>{t('lang.remove')}</Button>
-                </div>
-              )}
+            <li key={r.locale} className="grid grid-cols-[1fr_8rem_2.5rem] items-center gap-3 px-4 py-3 text-[13px]">
+              <span><span className="block font-medium">{nameOf(r.locale, lang)}</span><span className="block text-xs text-muted">{r.primary ? t('lang.primary') : r.locale}</span></span>
+              <span><Badge tone={r.published || r.primary ? 'success' : 'neutral'}>{t(r.published || r.primary ? 'lang.published' : 'lang.unpublished')}</Badge></span>
+              <span>
+                {!r.primary && (
+                  <Dropdown align="right" icon label={t('common.moreActions')} variant="plain" trigger={<MoreHorizontal className="size-4" />} items={[
+                    { key: 'translate', label: t('lang.translate'), onSelect: () => navigate(`/settings/languages/translate?locale=${encodeURIComponent(r.locale)}`) },
+                    { key: 'publish', label: t(r.published ? 'lang.unpublish' : 'lang.publish'), onSelect: () => publish.mutate({ locale: r.locale, published: !r.published }) },
+                    { key: 'remove', label: t('lang.remove'), danger: true, onSelect: () => setRemoving(r) },
+                  ]} />
+                )}
+              </span>
             </li>
           ))}
         </ul>
-      </Card>
-      <Card title={t('lang.add')}>
-        <div className="flex flex-wrap items-end gap-3">
-          <Select className="w-64" label={t('lang.choose')} value={adding} onChange={(e) => setAdding(e.target.value)}>
-            <option value="">—</option>
-            {options.map((c) => <option key={c} value={c}>{nameOf(c, lang)} ({c})</option>)}
-          </Select>
-          <Button variant="primary" disabled={!adding} loading={add.isPending} onClick={() => add.mutate(adding)}><Plus className="size-4" />{t('lang.add')}</Button>
-        </div>
-      </Card>
+      </div>
+      {others.length > 0 && <div className="mt-3 flex justify-center"><Link to="/settings/languages/translate" className="btn btn-secondary">{t('lang.translate')}</Link></div>}
+      <Modal open={addOpen} onClose={() => setAddOpen(false)} closeLabel={t('common.close')} title={t('lang.add')}
+        footer={<><Button onClick={() => setAddOpen(false)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!adding} loading={add.isPending} onClick={() => add.mutate(adding, { onSuccess: () => setAddOpen(false) })}>{t('lang.add')}</Button></>}>
+        <Select label={t('lang.choose')} value={adding} onChange={(e) => setAdding(e.target.value)}>
+          <option value="">—</option>
+          {options.map((c) => <option key={c} value={c}>{nameOf(c, lang)} ({c})</option>)}
+        </Select>
+      </Modal>
       <ConfirmDialog open={!!removing} danger onClose={() => setRemoving(null)} title={t('lang.removeTitle', { name: removing ? nameOf(removing.locale, lang) : '' })} message={t('lang.removeBody')}
         confirmLabel={t('lang.remove')} cancelLabel={t('common.cancel')} onConfirm={() => removing && remove.mutate(removing.locale)} />
-    </div>
+    </>
   );
 }

@@ -752,12 +752,12 @@ export async function runScenario({ baseUrl, root }) {
       await page.getByLabel('City').fill('Lille');
       await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
       await vis(page.getByText('Entrepôt Lille'));
-      await vis(page.getByText('Priority 2'));
+      await vis(page.getByText('Active locations: 2'));
     });
 
     const sku = await (await shopperCtx.request.get(`${baseUrl}/products/bougie-parfumee.js`)).json();
     await step('13b custom data: definition, value in the product editor, value in the storefront', async () => {
-      await page.goto(`${baseUrl}/admin/settings/metafields`);
+      await page.goto(`${baseUrl}/admin/settings/metafields/PRODUCT`);
       await page.getByRole('button', { name: 'Add definition' }).click();
       await page.getByLabel('Name', { exact: true }).fill('Matière');
       await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();

@@ -1,36 +1,113 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, Input, Skeleton, useToast } from '@shopme/ui';
+import { Banner, Button, Card, ConfirmDialog, Input, Modal, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
+import { Bell, ChevronDown, Users, Webhook } from 'lucide-react';
 import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
+import { LinkRow, RowCard, Section, SubHeader } from '../../components/SettingsKit';
 import { SaveBar } from '../../components/SaveBar';
-import { NOTIFICATION_PREVIEW, NOTIFICATION_TEMPLATES, NOTIFICATION_TEMPLATE_RESET, NOTIFICATION_TEMPLATE_UPDATE } from '../../graphql';
+import { NOTIFICATION_PREVIEW, NOTIFICATION_SEND_TEST, NOTIFICATION_SETTINGS, NOTIFICATION_SETTINGS_UPDATE, NOTIFICATION_TEMPLATES, NOTIFICATION_TEMPLATE_RESET, NOTIFICATION_TEMPLATE_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
+import type { Key } from '../../i18n';
+import { ShopPanel, useShopSettings } from './Settings';
 
-interface Template { key: string; name: string; subject: string; body: string; customized: boolean }
+interface Template { key: string; name: string; description: string; audience: 'customer' | 'staff'; subject: string; body: string; customized: boolean }
 const useTemplates = () => useQuery({ queryKey: ['notification-templates'], queryFn: () => gql<{ shopmeNotificationTemplates: Template[] }>(NOTIFICATION_TEMPLATES) });
 const errText = (e: unknown) => (e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : (e as Error).message);
 
-export function NotificationsSettings() {
+/** Sender name and address used for outgoing emails. */
+function Sender() {
   const { t } = useI18n();
-  const q = useTemplates();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const q = useQuery({ queryKey: ['notification-settings'], queryFn: () => gql<{ shopmeNotificationSettings: { senderName: string; senderEmail: string } }>(NOTIFICATION_SETTINGS) });
+  const [form, setForm] = useState<{ senderName: string; senderEmail: string } | null>(null);
+  const cur = form ?? q.data?.shopmeNotificationSettings;
+  const dirty = !!form && !!q.data && (form.senderName !== q.data.shopmeNotificationSettings.senderName || form.senderEmail !== q.data.shopmeNotificationSettings.senderEmail);
+  const save = useMutation({
+    mutationFn: () => mutate(NOTIFICATION_SETTINGS_UPDATE, { senderName: cur!.senderName, senderEmail: cur!.senderEmail }, 'shopmeNotificationSettingsUpdate'),
+    onSuccess: () => { toast(t('settings.saved')); setForm(null); void qc.invalidateQueries({ queryKey: ['notification-settings'] }); }, onError: (e) => toast(errText(e), 'critical'),
+  });
   return (
-    <Card title={t('settings.notifications')}>
-      <p className="mb-3 text-[13px] text-muted">{t('notif.intro')}</p>
-      {q.isLoading && <Skeleton className="h-32" />}
-      {q.error && <Banner>{q.error.message}</Banner>}
-      <ul className="divide-y divide-line">
-        {q.data?.shopmeNotificationTemplates.map((n) => (
-          <li key={n.key}><Link to={`/settings/notifications/${encodeURIComponent(n.key)}`} className="flex items-center gap-3 py-2.5 text-[13px] hover:bg-surface">
-            <span className="flex-1"><span className="block font-medium">{n.name}</span><span className="text-xs text-muted">{n.subject}</span></span>
-            {n.customized && <Badge tone="info">{t('notif.customized')}</Badge>}
-          </Link></li>
-        ))}
-      </ul>
-    </Card>
+    <Section title={t('notif.senderTitle')} description={t('notif.senderDesc')}>
+      <Card>
+        {!cur ? <Skeleton className="h-16" /> : (
+          <div className="flex flex-col gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input label={t('notif.senderName')} value={cur.senderName} onChange={(e) => setForm({ ...cur, senderName: e.target.value })} />
+              <Input label={t('notif.senderEmail')} type="email" help={t('notif.senderEmailHelp')} value={cur.senderEmail} onChange={(e) => setForm({ ...cur, senderEmail: e.target.value })} />
+            </div>
+            {dirty && <div className="flex justify-end gap-2"><Button onClick={() => setForm(null)}>{t('save.discard')}</Button><Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('save.save')}</Button></div>}
+          </div>
+        )}
+      </Card>
+    </Section>
   );
 }
+
+export function NotificationsSettings() {
+  const { t } = useI18n();
+  return (
+    <div className="flex flex-col gap-6">
+      <ShopPanel fields={['email']}>
+        {(f, set) => (
+          <Section title={t('notif.contactTitle')} description={t('notif.contactDesc')}>
+            <Card><Input label={t('settings.contactEmail')} type="email" value={f.email} onChange={(e) => set({ email: e.target.value })} /></Card>
+          </Section>
+        )}
+      </ShopPanel>
+      <Sender />
+      <RowCard>
+        <LinkRow to="/settings/notifications/customer" icon={Bell} title={t('notif.customerTitle')} description={t('notif.customerDesc')} />
+        <LinkRow to="/settings/notifications/staff" icon={Users} title={t('notif.staffTitle')} description={t('notif.staffDesc')} />
+      </RowCard>
+      <RowCard>
+        <LinkRow to="/settings/webhooks" icon={Webhook} title={t('settings.webhooks')} description={t('notif.webhooksDesc')} />
+      </RowCard>
+    </div>
+  );
+}
+
+const GROUPS: Array<{ id: string; title: Key; keys: string[] }> = [
+  { id: 'orders', title: 'notif.group.orders', keys: ['order_confirmation', 'draft_order_invoice', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund'] },
+  { id: 'accounts', title: 'notif.group.accounts', keys: ['customer_account_welcome', 'customer_account_invite', 'password_reset'] },
+];
+
+function Group({ title, items }: { title: string; items: Template[] }) {
+  const [open, setOpen] = useState(true);
+  if (items.length === 0) return null;
+  return (
+    <RowCard>
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)} className="flex w-full items-center justify-between px-4 py-3 text-[13px] font-semibold hover:bg-hover">
+        {title}<ChevronDown className={`size-4 text-muted transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      {open && items.map((n) => <LinkRow key={n.key} to={`/settings/notifications/${encodeURIComponent(n.key)}`} title={n.name} description={n.description} trailing={n.customized ? <span className="text-xs">{`•`}</span> : undefined} />)}
+    </RowCard>
+  );
+}
+
+function AudiencePage({ audience }: { audience: 'customer' | 'staff' }) {
+  const { t } = useI18n();
+  const navigate = useNavigate();
+  const q = useTemplates();
+  const all = (q.data?.shopmeNotificationTemplates ?? []).filter((n) => n.audience === audience);
+  const used = new Set(GROUPS.flatMap((g) => g.keys));
+  const groups = audience === 'customer'
+    ? [...GROUPS.map((g) => ({ id: g.id, title: t(g.title), items: all.filter((n) => g.keys.includes(n.key)) })), { id: 'other', title: t('notif.group.other'), items: all.filter((n) => !used.has(n.key)) }]
+    : [{ id: 'staff', title: t('notif.staffTitle'), items: all }];
+  const first = all[0];
+  return (
+    <>
+      <SubHeader back="/settings/notifications" parent={t('settings.notifications')} title={t(audience === 'customer' ? 'notif.customerTitle' : 'notif.staffTitle')}
+        actions={first && <Button onClick={() => navigate(`/settings/notifications/${encodeURIComponent(first.key)}`)}>{t('notif.customizeTemplates')}</Button>} />
+      {q.isLoading && <Skeleton className="h-48" />}
+      {q.error && <Banner>{q.error.message}</Banner>}
+      <div className="flex flex-col gap-3">{groups.map((g) => <Group key={g.id} title={g.title} items={g.items} />)}</div>
+    </>
+  );
+}
+export const CustomerNotificationsPage = () => <AudiencePage audience="customer" />;
+export const StaffNotificationsPage = () => <AudiencePage audience="staff" />;
 
 export function NotificationEditPage() {
   const { key = '' } = useParams();
@@ -47,9 +124,12 @@ function TemplateForm({ tpl }: { tpl: Template }) {
   const { t } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
+  const shop = useShopSettings();
   const [form, setForm] = useState({ subject: tpl.subject, body: tpl.body });
   const [error, setError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [test, setTest] = useState<string | null>(null);
   const dirty = form.subject !== tpl.subject || form.body !== tpl.body;
   const preview = useQuery({ queryKey: ['notification-preview', tpl.key, tpl.subject, tpl.body], retry: false, queryFn: () => gql<{ shopmeNotificationPreview: { preview: { subject: string; html: string } | null } }>(NOTIFICATION_PREVIEW, { key: tpl.key }) });
   const refresh = () => { void qc.invalidateQueries({ queryKey: ['notification-templates'] }); void qc.invalidateQueries({ queryKey: ['notification-preview'] }); };
@@ -61,35 +141,54 @@ function TemplateForm({ tpl }: { tpl: Template }) {
     mutationFn: () => mutate(NOTIFICATION_TEMPLATE_RESET, { key: tpl.key }, 'shopmeNotificationTemplateReset'),
     onSuccess: () => { toast(t('notif.resetDone')); setConfirm(false); refresh(); }, onError: (e) => { setConfirm(false); setError(errText(e)); },
   });
+  const sendTest = useMutation({
+    mutationFn: () => mutate(NOTIFICATION_SEND_TEST, { key: tpl.key, to: test }, 'shopmeNotificationSendTest'),
+    onSuccess: () => { toast(t('notif.testSent', { to: test ?? '' })); setTest(null); }, onError: (e) => toast(errText(e), 'critical'),
+  });
   const p = preview.data?.shopmeNotificationPreview.preview;
+  const frame = (h: string) => <iframe title={t('notif.preview')} sandbox="" srcDoc={p?.html} className={`${h} w-full rounded-md border border-line bg-white`} />;
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm({ subject: tpl.subject, body: tpl.body }); setError(null); }} />
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Link to="/settings/notifications" aria-label={t('common.back')} className="rounded p-1.5 hover:bg-surface"><ArrowLeft className="size-5" /></Link>
-        <h2 className="text-lg font-semibold">{tpl.name}</h2>
-        <Button className="ml-auto" disabled={!tpl.customized} onClick={() => setConfirm(true)}>{t('notif.reset')}</Button>
-      </div>
+      <SubHeader
+        back={`/settings/notifications/${tpl.audience}`} parent={t(tpl.audience === 'customer' ? 'notif.customerTitle' : 'notif.staffTitle')} title={tpl.name}
+        actions={<>
+          {editing && <Button disabled={!tpl.customized} onClick={() => setConfirm(true)}>{t('notif.reset')}</Button>}
+          <Button onClick={() => setTest(shop.data?.shop.email ?? '')}>{t('notif.sendTest')}</Button>
+          <Button variant="primary" onClick={() => setEditing(!editing)}>{editing ? t('notif.showPreview') : t('notif.editCode')}</Button>
+        </>}
+      />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card title={t('notif.template')}>
-          <div className="flex flex-col gap-3">
-            <Input label={t('notif.subject')} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
-            <label className="flex flex-col gap-1 text-[13px] font-medium">{t('notif.body')}
-              <textarea spellCheck={false} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} rows={22} aria-label={t('notif.body')}
-                onKeyDown={(e) => { if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); const el = e.currentTarget; const s = el.selectionStart; setForm({ ...form, body: `${form.body.slice(0, s)}  ${form.body.slice(el.selectionEnd)}` }); requestAnimationFrame(() => el.setSelectionRange(s + 2, s + 2)); } }}
-                className="w-full resize-y rounded-md border border-line bg-surface p-3 font-mono text-[13px] font-normal leading-relaxed" />
-            </label>
-            <p className="text-xs text-muted">{t('notif.help')}</p>
-          </div>
-        </Card>
-        <Card title={t('notif.preview')} actions={dirty && <span className="text-xs text-muted">{t('notif.previewSaved')}</span>}>
+      {!editing ? (
+        <Card title={t('notif.preview')}>
           {preview.isLoading && <Skeleton className="h-64" />}
           {preview.error && <Banner>{preview.error.message}</Banner>}
-          {p && <><p className="mb-2 text-[13px]"><span className="text-muted">{t('notif.subject')}:</span> <strong>{p.subject}</strong></p>
-            <iframe title={t('notif.preview')} sandbox="" srcDoc={p.html} className="h-[28rem] w-full rounded-md border border-line bg-white" /></>}
+          {p && <><p className="mb-2 text-[13px]"><span className="text-muted">{t('notif.subject')}:</span> <strong>{p.subject}</strong></p>{frame('h-[32rem]')}</>}
         </Card>
-      </div>
+      ) : (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <Card title={t('notif.template')}>
+            <div className="flex flex-col gap-3">
+              <Input label={t('notif.subject')} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
+              <label className="flex flex-col gap-1 text-[13px] font-medium">{t('notif.body')}
+                <textarea spellCheck={false} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} rows={22} aria-label={t('notif.body')}
+                  onKeyDown={(e) => { if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); const el = e.currentTarget; const s = el.selectionStart; setForm({ ...form, body: `${form.body.slice(0, s)}  ${form.body.slice(el.selectionEnd)}` }); requestAnimationFrame(() => el.setSelectionRange(s + 2, s + 2)); } }}
+                  className="w-full resize-y rounded-md border border-line bg-surface p-3 font-mono text-[13px] font-normal leading-relaxed" />
+              </label>
+              <p className="text-xs text-muted">{t('notif.help')}</p>
+            </div>
+          </Card>
+          <Card title={t('notif.preview')} actions={dirty && <span className="text-xs text-muted">{t('notif.previewSaved')}</span>}>
+            {preview.isLoading && <Skeleton className="h-64" />}
+            {preview.error && <Banner>{preview.error.message}</Banner>}
+            {p && <><p className="mb-2 text-[13px]"><span className="text-muted">{t('notif.subject')}:</span> <strong>{p.subject}</strong></p>{frame('h-[28rem]')}</>}
+          </Card>
+        </div>
+      )}
+      <Modal open={test !== null} onClose={() => setTest(null)} closeLabel={t('common.close')} title={t('notif.sendTest')}
+        footer={<><Button onClick={() => setTest(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={sendTest.isPending} disabled={!test?.includes('@')} onClick={() => sendTest.mutate()}>{t('notif.sendTest')}</Button></>}>
+        <Input label={t('notif.testTo')} type="email" value={test ?? ''} onChange={(e) => setTest(e.target.value)} help={t('notif.testHelp')} />
+      </Modal>
       <ConfirmDialog open={confirm} danger onClose={() => setConfirm(false)} title={t('notif.resetTitle')} message={t('notif.resetBody')} confirmLabel={t('notif.reset')} cancelLabel={t('common.cancel')} onConfirm={() => reset.mutate()} />
     </>
   );

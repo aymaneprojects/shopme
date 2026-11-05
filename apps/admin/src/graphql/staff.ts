@@ -21,7 +21,7 @@ export const STAFF_DELETE = /* GraphQL */ `
 `;
 
 export const NOTIFICATION_TEMPLATES = /* GraphQL */ `
-  query NotificationTemplates { shopmeNotificationTemplates { key name subject body customized } }
+  query NotificationTemplates { shopmeNotificationTemplates { key name description audience subject body customized } }
 `;
 export const NOTIFICATION_TEMPLATE_UPDATE = /* GraphQL */ `
   mutation NotificationTemplateUpdate($key: String!, $subject: String!, $body: String!) { shopmeNotificationTemplateUpdate(key: $key, subject: $subject, body: $body) { template { key } userErrors { field message } } }
@@ -68,4 +68,14 @@ export const WEBHOOK_DELETE = /* GraphQL */ `
 `;
 export const WEBHOOK_DELIVERIES = /* GraphQL */ `
   query WebhookDeliveries($subscriptionId: ID!) { shopmeWebhookDeliveries(subscriptionId: $subscriptionId) { nodes { id status responseCode createdAt error: lastError } } }
+`;
+
+export const NOTIFICATION_SETTINGS = /* GraphQL */ `
+  query NotificationSettings { shopmeNotificationSettings { senderName senderEmail } }
+`;
+export const NOTIFICATION_SETTINGS_UPDATE = /* GraphQL */ `
+  mutation NotificationSettingsUpdate($senderName: String, $senderEmail: String) { shopmeNotificationSettingsUpdate(senderName: $senderName, senderEmail: $senderEmail) { settings { senderName senderEmail } userErrors { field message } } }
+`;
+export const NOTIFICATION_SEND_TEST = /* GraphQL */ `
+  mutation NotificationSendTest($key: String!, $to: String) { shopmeNotificationSendTest(key: $key, to: $to) { preview { subject } userErrors { field message } } }
 `;

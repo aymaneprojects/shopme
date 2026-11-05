@@ -4,6 +4,8 @@ import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { UserErrors, gql, mutate } from '../../api';
 import { SaveBar } from '../../components/SaveBar';
+import { Link } from 'react-router';
+import { Section, SettingsActions } from '../../components/SettingsKit';
 import { useFormat } from '../../components/shared';
 import { parseDecimal } from '../../format';
 import {
@@ -43,20 +45,26 @@ function PaymentsForm({ data }: { data: Payments }) {
     <>
       <SaveBar dirty={JSON.stringify(f) !== JSON.stringify(init)} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => setF(init)} />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
-      <div className="flex flex-col gap-4">
-        <Card title={t('payments.stripe')} actions={<Badge tone={data.stripe.stripeConfigured ? 'success' : 'warning'}>{data.stripe.stripeConfigured ? t('payments.configured') : t('payments.notConfigured')}</Badge>}>
-          <div className="flex flex-col gap-2">
-            <Switch checked={f.stripe} onChange={(v) => setF({ ...f, stripe: v })} label={t('payments.stripeEnable')} />
-            {!data.stripe.stripeConfigured && <p className="text-[13px] text-muted">{t('payments.stripeHint')}</p>}
-          </div>
-        </Card>
-        <Card title={t('payments.bank')}>
-          <div className="flex flex-col gap-3">
-            <Switch checked={f.bank} onChange={(v) => setF({ ...f, bank: v })} label={t('payments.bankEnable')} />
-            {f.bank && <Textarea label={t('payments.instructions')} help={t('payments.instructionsHelp')} rows={4} value={f.instructions} onChange={(e) => setF({ ...f, instructions: e.target.value })} />}
-          </div>
-        </Card>
-        <Card title={t('payments.cod')}><Switch checked={f.cod} onChange={(v) => setF({ ...f, cod: v })} label={t('payments.codEnable')} /></Card>
+      <div className="flex flex-col gap-6">
+        <Section title={t('payments.stripe')} description={t('payments.cardDesc')} action={<a href="https://docs.stripe.com/payments" target="_blank" rel="noreferrer" className="btn btn-secondary">{t('payments.learnMore')}</a>}>
+          <Card>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2"><Switch checked={f.stripe} onChange={(v) => setF({ ...f, stripe: v })} label={t('payments.stripeEnable')} /><Badge tone={data.stripe.stripeConfigured ? 'success' : 'warning'}>{data.stripe.stripeConfigured ? t('payments.configured') : t('payments.notConfigured')}</Badge></div>
+              {!data.stripe.stripeConfigured && <p className="text-[13px] text-muted">{t('payments.stripeHint')}</p>}
+            </div>
+          </Card>
+        </Section>
+        <Section title={t('payments.manual')} description={t('payments.manualDesc')}>
+          <Card>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
+                <Switch checked={f.bank} onChange={(v) => setF({ ...f, bank: v })} label={t('payments.bankEnable')} />
+                {f.bank && <Textarea label={t('payments.instructions')} help={t('payments.instructionsHelp')} rows={4} value={f.instructions} onChange={(e) => setF({ ...f, instructions: e.target.value })} />}
+              </div>
+              <div className="border-t border-line pt-4"><Switch checked={f.cod} onChange={(v) => setF({ ...f, cod: v })} label={t('payments.codEnable')} /></div>
+            </div>
+          </Card>
+        </Section>
       </div>
     </>
   );
@@ -116,7 +124,7 @@ export function ShippingSettings() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between"><h2 className="text-base font-semibold">{t('settings.shipping')}</h2>{add}</div>
+      <SettingsActions>{add}</SettingsActions>
       {q.isError && <Banner>{(q.error as Error).message}</Banner>}
       {q.isLoading && <Skeleton className="h-32" />}
       {q.data?.shippingZones.length === 0 && <Card><EmptyState title={t('shipping.emptyTitle')} description={t('shipping.emptyBody')} action={add} /></Card>}
@@ -200,7 +208,12 @@ export function TaxesSettings() {
   return (
     <div className="flex flex-col gap-4">
       <TaxToggles />
-      <Card title={t('taxes.rates')} actions={<Button size="sm" variant="primary" onClick={() => { setError(null); setEditing({ id: null, name: '', countryCode: '', province: '', rate: '' }); }}><Plus className="size-4" />{t('taxes.add')}</Button>}>
+      <SettingsActions>
+        <Link to="/analytics/reports/TAXES" className="btn btn-secondary">{t('taxes.reports')}</Link>
+        <Button variant="primary" onClick={() => { setError(null); setEditing({ id: null, name: '', countryCode: '', province: '', rate: '' }); }}><Plus className="size-4" />{t('taxes.add')}</Button>
+      </SettingsActions>
+      <Section title={t('taxes.rates')} description={t('taxes.ratesDesc')}>
+      <Card>
         {q.isError && <Banner>{(q.error as Error).message}</Banner>}
         {q.data?.taxRates.length === 0 && <p className="text-[13px] text-muted">{t('taxes.empty')}</p>}
         {(q.data?.taxRates.length ?? 0) > 0 && (
@@ -218,6 +231,7 @@ export function TaxesSettings() {
           </table>
         )}
       </Card>
+      </Section>
       <Modal open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? t('taxes.edit') : t('taxes.add')} closeLabel={t('common.close')}
         footer={<><Button onClick={() => setEditing(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!valid} loading={save.isPending} onClick={() => save.mutate()}>{t('save.save')}</Button></>}>
         {editing && (

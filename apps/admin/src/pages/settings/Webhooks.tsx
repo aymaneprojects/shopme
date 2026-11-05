@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { UserErrors, gql, mutate } from '../../api';
+import { SettingsActions } from '../../components/SettingsKit';
 import { useFormat } from '../../components/shared';
 import { WEBHOOKS, WEBHOOK_CREATE, WEBHOOK_DELETE, WEBHOOK_DELIVERIES } from '../../graphql';
 import { useI18n } from '../../i18n';
@@ -31,7 +32,8 @@ export function WebhooksSettings() {
   const secret = q.data?.shopmeWebhookSettings.signingSecret ?? null; // signing secret is shop-level, not per subscription
   const add = <Button variant="primary" onClick={() => { setError(null); setCreating({ topic: TOPICS[0]!, callbackUrl: '' }); }}><Plus className="size-4" />{t('hooks.add')}</Button>;
   return (
-    <Card title={t('settings.webhooks')} actions={add}>
+    <Card>
+      <SettingsActions>{add}</SettingsActions>
       <p className="mb-3 text-[13px] text-muted">{t('hooks.intro')}</p>
       {q.isLoading && <Skeleton className="h-24" />}
       {q.error && <Banner>{q.error.message}</Banner>}

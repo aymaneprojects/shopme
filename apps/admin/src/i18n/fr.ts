@@ -5,6 +5,7 @@ import { frCommerce } from './fr-commerce';
 import { frExt } from './fr-ext';
 import { frPlatform } from './fr-platform';
 import { frShop } from './fr-shop';
+import { frSettings } from './fr-settings';
 
 export const fr: Record<Key, string> = {
   'common.back': 'Retour', 'common.cancel': 'Annuler', 'common.close': 'Fermer', 'common.delete': 'Supprimer', 'common.loading': 'Chargement…',
@@ -99,4 +100,5 @@ export const fr: Record<Key, string> = {
   ...frCommerce,
   ...frCatalog,
   ...frOrdersUx,
+  ...frSettings,
 };
