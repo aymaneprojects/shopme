@@ -1,7 +1,10 @@
 import { Skeleton, cx } from '@shopme/ui';
 import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, PanelLeft } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { gql } from '../api';
+import { ORDERS_COUNT } from '../graphql';
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { LANGS, useI18n } from '../i18n';
 import type { Key } from '../i18n';
@@ -28,11 +31,23 @@ export const NAV: NavItem[] = [
     ],
   },
   { id: 'customers', labelKey: 'nav.customers', to: '/customers', icon: Users, children: [{ id: 'segments', labelKey: 'nav.segments', to: '/customers/segments', icon: Users }] },
-  { id: 'analytics', labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, children: [{ id: 'reports', labelKey: 'nav.reports', to: '/analytics/reports', icon: FileText }] },
   { id: 'discounts', labelKey: 'nav.discounts', to: '/discounts', icon: Percent },
-  { id: 'online-store', labelKey: 'nav.onlineStore', to: '/online-store', icon: Store },
+  { id: 'analytics', labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, children: [{ id: 'reports', labelKey: 'nav.reports', to: '/analytics/reports', icon: FileText }] },
+  {
+    id: 'online-store', labelKey: 'nav.onlineStore', to: '/online-store', icon: Store,
+    children: [
+      { id: 'themes', labelKey: 'nav.themes', to: '/online-store', icon: Store, end: true },
+      { id: 'store-pages', labelKey: 'nav.storePages', to: '/online-store/pages', icon: FileText },
+      { id: 'navigation', labelKey: 'nav.menus', to: '/online-store/navigation', icon: Menu },
+      { id: 'blog-posts', labelKey: 'store.blogPosts', to: '/online-store/blog-posts', icon: FileText },
+      { id: 'files', labelKey: 'store.files', to: '/online-store/files', icon: FileText },
+      { id: 'preferences', labelKey: 'store.preferences', to: '/online-store/preferences', icon: Settings },
+    ],
+  },
   { id: 'settings', labelKey: 'nav.settings', to: '/settings', icon: Settings },
 ];
+/** Items listed under the "Sales channels" label. */
+const CHANNEL_IDS = ['online-store'];
 
 /** Own logo mark: rounded square with a shopping bag. */
 export function Logo({ className }: { className?: string }) {
@@ -45,6 +60,8 @@ export function Logo({ className }: { className?: string }) {
   );
 }
 
+/** Index pages span the whole sheet; detail and edit pages keep the narrower centred column. */
+const WIDE_ROUTE = /^\/(products|collections|inventory|orders|orders\/drafts|orders\/abandoned|customers|customers\/segments|discounts|gift-cards)\/?$/;
 const COLLAPSE_KEY = 'shopme.sidebar.collapsed';
 const readCollapsed = () => { try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; } };
 
@@ -59,22 +76,35 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate: () => void; collapsed
   const { t } = useI18n();
   const can = useStaffAccess();
   const { pathname } = useLocation();
-  const link = (item: NavItem, child = false) => (
+  const link = (item: NavItem, child = false, extra?: ReactNode) => (
     <NavLink key={item.id} to={item.to} end={item.end || !!item.children} onClick={onNavigate} title={collapsed ? t(item.labelKey) : undefined} aria-label={collapsed ? t(item.labelKey) : undefined} className={({ isActive }) => itemCls(isActive, child, collapsed)}>
       {!child && <item.icon className="size-4 shrink-0" />}
       {!collapsed && t(item.labelKey)}
+      {extra}
     </NavLink>
   );
+  const unfulfilled = useQuery({ queryKey: ['orders-count', 'nav-unfulfilled'], staleTime: 60_000, queryFn: () => gql<{ ordersCount: { count: number } }>(ORDERS_COUNT, { query: 'fulfillment_status:unfulfilled status:open' }) });
+  const badge = (i: NavItem) => (i.id === 'orders' && !collapsed && (unfulfilled.data?.ordersCount.count ?? 0) > 0
+    ? <span className="ml-auto grid min-w-5 place-items-center rounded-full bg-white/15 px-1.5 text-[11px] font-semibold text-white" aria-label={t('nav.unfulfilledBadge')}>{unfulfilled.data!.ordersCount.count}</span> : null);
   const group = (i: NavItem) => {
     const open = !collapsed && !!i.children && (pathname.startsWith(i.to) || i.children.some((c) => pathname.startsWith(c.to)));
     return (
       <div key={i.id} className={cx('contents', i.id === 'settings' && '[&>a]:mt-auto')}>
-        {link(i)}
+        {link(i, false, badge(i))}
         {open && <div className="anim-fade flex flex-col gap-0.5">{i.children!.map((c) => link(c, true))}</div>}
       </div>
     );
   };
-  return <nav aria-label="Main" className="flex min-h-0 flex-1 flex-col gap-0.5">{NAV.filter((i) => can(NAV_PERMISSION[i.id])).map(group)}</nav>;
+  const items = NAV.filter((i) => can(NAV_PERMISSION[i.id]));
+  const channels = items.filter((i) => CHANNEL_IDS.includes(i.id));
+  return (
+    <nav aria-label="Main" className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
+      {items.filter((i) => !CHANNEL_IDS.includes(i.id) && i.id !== 'settings').map(group)}
+      {channels.length > 0 && !collapsed && <p className="mb-0.5 mt-3 px-2 text-xs font-medium text-frame-muted">{t('nav.salesChannels')}</p>}
+      {channels.map(group)}
+      {items.filter((i) => i.id === 'settings').map(group)}
+    </nav>
+  );
 }
 
 /** Settings mode: the sidebar swaps to the list of settings sections, with a way back to the main menu. */
@@ -136,12 +166,13 @@ function AccountMenu({ collapsed }: { collapsed: boolean }) {
   const initial = (shop.name[0] ?? 'S').toUpperCase();
   const row = 'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] hover:bg-hover';
   return (
-    <div ref={box} className="relative mt-2">
+    <div ref={box} className="relative mt-2 flex items-center gap-1">
       <button type="button" aria-haspopup="menu" aria-expanded={open} aria-label={t('shell.account')} title={collapsed ? shop.name : undefined} onClick={() => setOpen(!open)}
-        className={cx('flex h-9 w-full items-center gap-2 rounded-lg px-2 text-[13px] text-frame-text hover:bg-frame-hover', collapsed && 'justify-center')}>
+        className={cx('flex h-9 min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-[13px] text-frame-text hover:bg-frame-hover', collapsed && 'justify-center')}>
         <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary text-[11px] font-semibold text-white">{initial}</span>
         {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{shop.name}</span>}
       </button>
+      {!collapsed && <ActivityBell />}
       {open && (
         <div role="menu" aria-label={t('shell.account')} className="anim-fade absolute bottom-11 left-0 z-50 w-64 rounded-xl border border-line bg-canvas p-1.5 text-fg shadow-pop">
           <div role="menuitem" aria-current="true" className={cx(row, 'bg-hover')}>
@@ -194,8 +225,7 @@ export function Shell() {
           <span className="hidden text-[13px] font-semibold text-white sm:inline">ShopMe</span>
         </div>
         <button type="button" className="btn btn-plain btn-icon !hidden !text-frame-text hover:!bg-frame-hover md:!inline-flex" aria-label={collapsed ? t('shell.expand') : t('shell.collapse')} aria-pressed={collapsed} onClick={() => setCollapsed(!collapsed)}><PanelLeft className="size-[18px]" /></button>
-        <div className="ml-auto flex items-center gap-1"><ActivityBell /></div>
-      </header>
+              </header>
       <div className="flex min-h-0 flex-1">
         <aside className={cx('fixed inset-y-0 left-0 z-40 flex w-[var(--w-sidebar)] flex-col bg-frame px-2 pb-3 pt-14 transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 md:pt-1', open ? 'translate-x-0' : '-translate-x-full')}>
           <button type="button" onClick={() => { setOpen(false); setPalette(true); }} aria-label={t('shell.search')} aria-keyshortcuts="Control+K Meta+K" title={collapsed ? t('shell.search') : undefined}
@@ -208,7 +238,7 @@ export function Shell() {
         </aside>
         {open && <div className="anim-fade fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setOpen(false)} aria-hidden />}
         <div className="mb-1 mr-1 min-w-0 flex-1 overflow-y-auto rounded-xl bg-page text-fg max-md:mx-1 md:ml-0" id="sheet">
-          <main className="mx-auto w-full max-w-[1100px] p-4 md:px-5 md:py-5">
+          <main className={cx('mx-auto w-full p-4 md:px-5 md:py-5', WIDE_ROUTE.test(pathname) ? 'max-w-none md:px-3 md:py-3' : 'max-w-[1100px]')}>
             <div key={pathname.split('/').slice(0, 2).join('/')} className="anim-view"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></div>
           </main>
         </div>

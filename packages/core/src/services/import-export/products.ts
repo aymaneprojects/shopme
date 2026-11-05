@@ -228,14 +228,14 @@ export async function importProducts(env: ImportEnv, rows: AsyncIterable<CsvRow>
 }
 
 /** Stream a product CSV (one row per variant plus extra rows for images beyond the variant count). */
-export async function* exportProducts(db: Db, shopId: number, baseUrl = ''): AsyncGenerator<string> {
+export async function* exportProducts(db: Db, shopId: number, baseUrl = '', ids: number[] | null = null): AsyncGenerator<string> {
   const shop = await getShop(db, shopId);
   const currency = shop?.currency ?? 'USD';
   yield csvLine(PRODUCT_COLUMNS);
   const abs = (u: string | null) => (u ? (u.startsWith('/') ? baseUrl.replace(/\/$/, '') + u : u) : '');
   let after = 0;
   for (;;) {
-    const batch = await db.select().from(products).where(and(eq(products.shopId, shopId), gt(products.id, after))).orderBy(asc(products.id)).limit(100);
+    const batch = await db.select().from(products).where(and(eq(products.shopId, shopId), gt(products.id, after), ids ? inArray(products.id, ids) : undefined)).orderBy(asc(products.id)).limit(100);
     if (!batch.length) return;
     after = batch.at(-1)!.id;
     for (const p of batch) {

@@ -1,7 +1,7 @@
-import { Button, ConfirmDialog, Dropdown, Input, Modal, cx, useToast } from '@shopme/ui';
+import { Button, ConfirmDialog, Dropdown, Input, Modal, useToast } from '@shopme/ui';
 import type { ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, Plus } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -41,7 +41,6 @@ interface TabsProps<T extends string> {
 
 type Dialog = { kind: 'create' | 'rename' | 'duplicate'; view?: SavedView; name: string; error?: string } | null;
 
-const tabCls = (on: boolean) => cx('-mb-px whitespace-nowrap rounded-t-md border-b-2 px-3 py-2 text-[13px] font-medium', on ? 'border-accent text-accent' : 'border-transparent text-muted hover:bg-hover hover:text-fg');
 
 /**
  * The tabs above a list: the built-in ones, then the saved views shared by all staff, then "+" to save the current
@@ -96,29 +95,22 @@ export function ViewTabs<T extends string>({ resource, tabs, value, onTab, query
   const dialogTitle = dialog?.kind === 'rename' ? t('views.rename') : dialog?.kind === 'duplicate' ? t('views.duplicate') : t('views.saveAs');
   return (
     <>
-      <div role="tablist" aria-label={t('views.tabs')} className="flex items-center gap-1 overflow-x-auto border-b border-line">
-        {tabs.map((tab) => (
-          <button key={tab.id} role="tab" type="button" aria-selected={!active && value === tab.id} onClick={() => onTab(tab.id)} className={tabCls(!active && value === tab.id)}>{tab.label}</button>
-        ))}
-        {list.map((v) => {
-          const on = active?.id === v.id;
-          return (
-            <div key={v.id} className="flex items-center">
-              <button role="tab" type="button" aria-selected={on} onClick={() => useView(v)} className={tabCls(on)}>{v.name}</button>
-              {on && (
-                <Dropdown align="right" variant="plain" size="sm" icon label={t('views.actions', { name: v.name })} trigger={<ChevronDown className="size-3.5" />} items={[
-                  { key: 'save', label: t('views.saveChanges'), disabled: !dirty, onSelect: () => update.mutate({ id: v.id, params: current, query }) },
-                  { key: 'rename', label: t('views.rename'), onSelect: () => setDialog({ kind: 'rename', view: v, name: v.name }) },
-                  { key: 'duplicate', label: t('views.duplicate'), onSelect: () => setDialog({ kind: 'duplicate', view: v, name: t('views.copyOf', { name: v.name }) }) },
-                  { key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirmDelete(v) },
-                ]} />
-              )}
-            </div>
-          );
-        })}
-        <button type="button" aria-label={t('views.add')} title={t('views.add')} onClick={() => setDialog({ kind: 'create', name: '' })} className="-mb-px grid size-8 shrink-0 place-items-center rounded-md border-b-2 border-transparent text-muted hover:bg-hover hover:text-fg"><Plus className="size-4" /></button>
+      <div className="flex items-center gap-1">
+        <Dropdown variant="plain" size="sm" className="btn-neutral !font-semibold" label={t('views.tabs')}
+          trigger={<>{active ? active.name : tabs.find((x) => x.id === value)?.label}<ChevronsUpDown className="size-3.5 text-muted" /></>}
+          items={[
+            ...tabs.map((tab) => ({ key: `tab-${tab.id}`, label: tab.label, icon: !active && value === tab.id ? <Check className="size-4" /> : undefined, onSelect: () => onTab(tab.id) })),
+            ...list.map((v, i) => ({ key: v.id, label: v.name, separatorBefore: i === 0, icon: active?.id === v.id ? <Check className="size-4" /> : undefined, onSelect: () => useView(v) })),
+            ...(active ? [
+              { key: 'save', label: t('views.saveChanges'), disabled: !dirty, separatorBefore: true, onSelect: () => update.mutate({ id: active.id, params: current, query }) },
+              { key: 'rename', label: t('views.rename'), onSelect: () => setDialog({ kind: 'rename' as const, view: active, name: active.name }) },
+              { key: 'duplicate', label: t('views.duplicate'), onSelect: () => setDialog({ kind: 'duplicate' as const, view: active, name: t('views.copyOf', { name: active.name }) }) },
+              { key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirmDelete(active) },
+            ] : []),
+            { key: 'add', label: t('views.add'), icon: <Plus className="size-4" />, separatorBefore: true, onSelect: () => setDialog({ kind: 'create', name: '' }) },
+          ]} />
         {dirty && active && (
-          <span className="ml-auto flex items-center gap-2 pb-1 pl-2">
+          <span className="flex items-center gap-1.5 pl-1">
             <Button size="sm" onClick={() => open(active)}>{t('views.discard')}</Button>
             <Button size="sm" variant="primary" loading={update.isPending} onClick={() => update.mutate({ id: active.id, params: current, query })}>{t('views.saveChanges')}</Button>
           </span>

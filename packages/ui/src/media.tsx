@@ -36,7 +36,7 @@ export function ImageUploader({ onUploaded, onError, label, multiple = true, com
   };
   return (
     <button
-      type="button" disabled={busy} onClick={() => input.current?.click()}
+      type="button" disabled={busy} aria-label={compact ? label : undefined} onClick={() => input.current?.click()}
       onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.preventDefault(); setOver(false); void handle(e.dataTransfer.files); }}
       className={cx('flex flex-col items-center justify-center gap-1 rounded-md border border-dashed border-line text-[13px] text-muted hover:bg-surface', compact ? 'size-24' : 'w-full py-8', over && 'bg-primary-subtle', busy && 'opacity-60')}
@@ -51,7 +51,7 @@ export function ImageUploader({ onUploaded, onError, label, multiple = true, com
 export interface GalleryItem { key: string; url: string; alt?: string }
 
 /** Ordered image grid: first item is the featured image. Reorder by drag and drop or the arrow buttons. */
-export function MediaGallery({ items, onChange, canRemove = () => true, labels }: { items: GalleryItem[]; onChange: (items: GalleryItem[]) => void; canRemove?: (item: GalleryItem) => boolean; labels: { remove: string; moveLeft: string; moveRight: string; featured: string; alt: string } }) {
+export function MediaGallery({ items, onChange, canRemove = () => true, labels, onOpen, openLabel = 'View image', compact }: { /** Small fixed-size tiles in a wrapping row (product page header strip). */ compact?: boolean; /** Called with the index when an image is clicked (opens a viewer). */ onOpen?: (index: number) => void; openLabel?: string; items: GalleryItem[]; onChange: (items: GalleryItem[]) => void; canRemove?: (item: GalleryItem) => boolean; labels: { remove: string; moveLeft: string; moveRight: string; featured: string; alt: string } }) {
   const [drag, setDrag] = useState<number | null>(null);
   const move = (from: number, to: number) => {
     if (to < 0 || to >= items.length || from === to) return;
@@ -60,11 +60,13 @@ export function MediaGallery({ items, onChange, canRemove = () => true, labels }
     onChange(next);
   };
   return (
-    <ul className="grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-3">
+    <ul className={compact ? 'flex flex-wrap gap-3' : 'grid grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-3'}>
       {items.map((it, i) => (
         <li key={it.key} draggable onDragStart={() => setDrag(i)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (drag !== null) move(drag, i); setDrag(null); }}
-          className={cx('group relative overflow-hidden rounded-md border border-line bg-surface', i === 0 && 'col-span-2 row-span-2')}>
-          <img src={it.url} alt={it.alt ?? ''} className="aspect-square w-full object-cover" />
+          className={cx('group relative overflow-hidden rounded-lg border border-line bg-surface', compact ? 'size-24' : i === 0 && 'col-span-2 row-span-2')}>
+          {onOpen
+            ? <button type="button" aria-label={`${openLabel}: ${it.alt ?? ''}`.trim()} onClick={() => onOpen(i)} className="block w-full cursor-zoom-in"><img src={it.url} alt={it.alt ?? ''} className="aspect-square w-full object-cover" /></button>
+            : <img src={it.url} alt={it.alt ?? ''} className="aspect-square w-full object-cover" />}
           {i === 0 && <span className="absolute left-1 top-1 rounded bg-canvas/90 px-1.5 py-0.5 text-xs">{labels.featured}</span>}
           <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1 bg-canvas/85 p-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
             <button type="button" aria-label={labels.moveLeft} disabled={i === 0} onClick={() => move(i, i - 1)} className="rounded p-1 hover:bg-line disabled:opacity-40"><ArrowLeft className="size-4" /></button>

@@ -11,6 +11,7 @@ import { frShop } from './fr-shop';
 import { frSettings } from './fr-settings';
 import { frUx } from './fr-ux';
 import { frViews } from './fr-views';
+import { frQaCatalog } from './fr-qa-catalog';
 import { frEditor } from './fr-editor';
 import { frTimeline } from './fr-timeline';
 
@@ -114,5 +115,6 @@ export const fr: Record<Key, string> = {
   ...frContent,
   ...frPublishing,
   ...frViews,
+  ...frQaCatalog,
   ...frCheckout,
 };

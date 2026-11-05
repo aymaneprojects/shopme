@@ -1,7 +1,7 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Modal, Pagination, Tabs, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, ListToolbar, Modal, Pagination, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronRight, Download, Gift, Package, Plus, Search, ShoppingBag, Tag, Truck } from 'lucide-react';
+import { ChevronRight, Gift, Package, Percent, Search, ShoppingBag, Tag, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql, mutate } from '../api';
@@ -102,21 +102,19 @@ export function DiscountsPage() {
     { key: 'used', header: t('discounts.used'), cell: (d) => (d.discount.usageLimit ? `${d.discount.asyncUsageCount} / ${d.discount.usageLimit}` : d.discount.asyncUsageCount) },
     { key: 'dates', header: t('discounts.dates'), cell: (d) => <span className="text-muted">{fmt.date(d.discount.startsAt)}{d.discount.endsAt ? ` → ${fmt.date(d.discount.endsAt)}` : ''}</span> },
   ];
-  const create = <Button variant="primary" onClick={() => setChooser(true)}><Plus className="size-4" />{t('discounts.create')}</Button>;
+  const create = <Button variant="primary" onClick={() => setChooser(true)}>{t('discounts.create')}</Button>;
 
   return (
     <>
-      <PageHeader title={t('nav.discounts')} actions={<><Button loading={exporting} onClick={() => void exportCsv()}><Download className="size-4" />{t('csv.export')}</Button>{create}</>} />
+      <PageHeader icon={<Percent className="size-4" />} title={t('nav.discounts')} actions={<><Button loading={exporting} onClick={() => void exportCsv()}>{t('csv.export')}</Button>{create}</>} />
       <Card className="!p-0">
-        <div className="px-3 pt-1"><Tabs tabs={TABS.map((id) => ({ id, label: t(`discounts.tab.${id}` as Key) }))} value={tab} onChange={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v }); }} /></div>
-        <div className="flex items-center gap-2 border-b border-line p-3">
-          <div className="relative max-w-md flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('discounts.search')} aria-label={t('discounts.search')} className={searchCls} />
-          </div>
-          <input type="search" value={tagFilter} onChange={(e) => { setTagFilter(e.target.value); L.patch({ tag: e.target.value }); }} placeholder={t('discounts.filterTag')} aria-label={t('discounts.filterTag')} className="field-control max-w-44" />
-          <ColumnPicker locked={['code']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
-        </div>
+        <ListToolbar
+          className="!rounded-b-none !shadow-none border-b border-line" viewsLabel={t('list.views')}
+          views={TABS.map((id) => ({ id, label: t(`discounts.tab.${id}` as Key) }))} view={tab} onView={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v }); }}
+          query={search} onQuery={(v) => { setSearch(v); L.patch({ q: v }); }} placeholder={t('list.searchAndFilter')} removeFilterLabel={t('list.removeFilter')}
+          filters={[{ key: 'tag', label: t('discounts.tags'), options: [], text: true }]} values={{ tag: tagFilter }} onFilter={(_k, v) => { setTagFilter(v); L.patch({ tag: v }); }}
+          trailing={<ColumnPicker locked={['code']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />}
+        />
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading}
           selected={selected} onSelectedChange={setSelected} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}

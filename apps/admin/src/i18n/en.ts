@@ -10,6 +10,7 @@ import { enShop } from './en-shop';
 import { enSettings } from './en-settings';
 import { enUx } from './en-ux';
 import { enViews } from './en-views';
+import { enQaCatalog } from './en-qa-catalog';
 import { enEditor } from './en-editor';
 import { enTimeline } from './en-timeline';
 export const en = {
@@ -112,6 +113,7 @@ export const en = {
   ...enContent,
   ...enPublishing,
   ...enViews,
+  ...enQaCatalog,
   ...enCheckout,
 } as const;
 

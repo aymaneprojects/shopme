@@ -5,7 +5,7 @@ import { Button, ButtonGroup, cx } from './basics';
 import type { ButtonProps } from './basics';
 
 /** Modal built on the native <dialog> element (focus trap, Escape, inert backdrop). Fades and scales in. */
-export function Modal({ open, onClose, title, children, footer, footerStart, closeLabel = 'Close', wide, plain }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; /** Left-aligned footer content, e.g. a selected count. */ footerStart?: ReactNode; closeLabel?: string; wide?: boolean; /** Compact dialog without divider lines (confirmations). */ plain?: boolean }) {
+export function Modal({ open, onClose, title, children, footer, footerStart, closeLabel = 'Close', wide, medium, plain }: { /** Mid-size dialog (about 32rem). */ medium?: boolean; open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; /** Left-aligned footer content, e.g. a selected count. */ footerStart?: ReactNode; closeLabel?: string; wide?: boolean; /** Compact dialog without divider lines (confirmations). */ plain?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -16,7 +16,7 @@ export function Modal({ open, onClose, title, children, footer, footerStart, clo
   return (
     <dialog
       ref={ref} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}
-      className={cx('modal m-auto w-[calc(100%-2rem)] rounded-xl border-0 bg-canvas p-0 text-fg shadow-pop', wide ? 'max-w-2xl' : 'max-w-md')}
+      className={cx('modal m-auto w-[calc(100%-2rem)] rounded-xl border-0 bg-canvas p-0 text-fg shadow-pop', wide ? 'max-w-2xl' : medium ? 'max-w-lg' : 'max-w-md')}
     >
       {open && (
         <div className="flex max-h-[85vh] flex-col">
@@ -64,10 +64,10 @@ function useDismiss(open: boolean, close: () => void) {
   return ref;
 }
 
-export interface MenuItem { key: string; label: ReactNode; onSelect: () => void; danger?: boolean; disabled?: boolean; /** Optional leading icon. */ icon?: ReactNode }
+export interface MenuItem { key: string; label: ReactNode; onSelect: () => void; danger?: boolean; disabled?: boolean; /** Optional leading icon. */ icon?: ReactNode; /** Draws a divider above this item (groups related actions). */ separatorBefore?: boolean; /** Keyboard shortcut hint shown on the right, e.g. `Ctrl+D`. */ shortcut?: string }
 
 /** Button + popup menu with arrow-key navigation. Closes on outside click, Escape and selection. */
-export function Dropdown({ trigger, items, align = 'left', label, variant = 'secondary', size = 'md', icon, chevron }: { trigger: ReactNode; items: MenuItem[]; align?: 'left' | 'right'; label?: string; variant?: ButtonProps['variant']; size?: ButtonProps['size']; icon?: boolean; chevron?: boolean }) {
+export function Dropdown({ trigger, items, align = 'left', label, variant = 'secondary', size = 'md', icon, chevron, className, menuClassName, footer }: { /** Block shown under the items (e.g. a hint or a link). */ footer?: ReactNode; trigger: ReactNode; items: MenuItem[]; align?: 'left' | 'right'; label?: string; variant?: ButtonProps['variant']; size?: ButtonProps['size']; icon?: boolean; chevron?: boolean; /** Extra classes for the trigger button (e.g. `chip`). */ className?: string; menuClassName?: string }) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   const ref = useDismiss(open, close);
@@ -85,23 +85,61 @@ export function Dropdown({ trigger, items, align = 'left', label, variant = 'sec
   };
   return (
     <div ref={ref} className="relative inline-block">
-      <Button variant={variant} size={size} icon={icon} aria-haspopup="menu" aria-expanded={open} aria-label={label} onClick={() => setOpen(!open)}>
+      <Button variant={variant} size={size} icon={icon} className={className} aria-haspopup="menu" aria-expanded={open} aria-label={label} onClick={() => setOpen(!open)}>
         {trigger}{chevron && <ChevronDown className="size-3.5" />}
       </Button>
       {open && (
-        <ul ref={menu} role="menu" onKeyDown={nav} className={cx('anim-menu absolute z-30 mt-1 min-w-48 rounded-lg bg-canvas p-1 shadow-pop', align === 'right' ? 'right-0' : 'left-0')}>
+        <ul ref={menu} role="menu" onKeyDown={nav} className={cx('anim-menu absolute z-30 mt-1 min-w-48 rounded-lg bg-canvas p-1 shadow-pop', align === 'right' ? 'right-0' : 'left-0', menuClassName)}>
           {items.map((it) => (
-            <li key={it.key} role="none">
+            <li key={it.key} role="none" className={it.separatorBefore ? 'mt-1 border-t border-line pt-1' : undefined}>
               <button role="menuitem" type="button" disabled={it.disabled} onClick={() => { setOpen(false); it.onSelect(); }}
                 className={cx('flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover focus-visible:bg-hover focus-visible:outline-none disabled:opacity-50', it.danger && 'text-critical hover:bg-critical-subtle')}>
                 {it.icon && <span className="grid size-4 shrink-0 place-items-center [&_svg]:size-4" aria-hidden>{it.icon}</span>}
-                {it.label}
+                <span className="flex-1">{it.label}</span>
+                {it.shortcut && <kbd className="ml-4 text-xs text-muted">{it.shortcut}</kbd>}
               </button>
             </li>
           ))}
+          {footer && <li role="none" className="mt-1 border-t border-line px-2.5 pb-1 pt-2 text-xs text-muted">{footer}</li>}
         </ul>
       )}
     </div>
+  );
+}
+
+/** Context menu that opens at the pointer (`at` = viewport coordinates); closes on outside press, Escape and selection. */
+export function ContextMenu({ at, items, onClose, footer }: { at: { x: number; y: number } | null; items: MenuItem[]; onClose: () => void; footer?: ReactNode }) {
+  const menu = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    if (!at) return;
+    menu.current?.querySelector<HTMLElement>('[role=menuitem]:not(:disabled)')?.focus({ preventScroll: true });
+    const down = (e: MouseEvent) => { if (!menu.current?.contains(e.target as Node)) onClose(); };
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('mousedown', down); document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key); };
+  }, [at, onClose]);
+  if (!at) return null;
+  const nav = (e: ReactKeyboardEvent) => {
+    const els = [...(menu.current?.querySelectorAll<HTMLElement>('[role=menuitem]:not(:disabled)') ?? [])];
+    const i = els.indexOf(document.activeElement as HTMLElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); els[(i + 1) % els.length]?.focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); els[(i - 1 + els.length) % els.length]?.focus(); }
+  };
+  const left = Math.min(at.x, window.innerWidth - 240), top = Math.min(at.y, window.innerHeight - 40 * items.length - 24);
+  return (
+    <ul ref={menu} role="menu" onKeyDown={nav} style={{ left, top }} className="anim-menu fixed z-[90] min-w-48 rounded-lg bg-canvas p-1 shadow-pop">
+      {items.map((it) => (
+        <li key={it.key} role="none" className={it.separatorBefore ? 'mt-1 border-t border-line pt-1' : undefined}>
+          <button role="menuitem" type="button" disabled={it.disabled} onClick={() => { onClose(); it.onSelect(); }}
+            className={cx('flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover focus-visible:bg-hover focus-visible:outline-none disabled:opacity-50', it.danger && 'text-critical hover:bg-critical-subtle')}>
+            {it.icon && <span className="grid size-4 shrink-0 place-items-center [&_svg]:size-4" aria-hidden>{it.icon}</span>}
+            <span className="flex-1">{it.label}</span>
+            {it.shortcut && <kbd className="ml-4 text-xs text-muted">{it.shortcut}</kbd>}
+          </button>
+        </li>
+      ))}
+      {footer && <li role="none" className="mt-1 border-t border-line px-2.5 pb-1 pt-2 text-xs text-muted">{footer}</li>}
+    </ul>
   );
 }
 
@@ -116,13 +154,13 @@ export function SplitButton({ children, onClick, items, variant = 'primary', loa
 }
 
 /** Click-to-open floating panel for arbitrary content. */
-export function Popover({ trigger, children, align = 'left', label, className }: { trigger: ReactNode; children: ReactNode | ((close: () => void) => ReactNode); align?: 'left' | 'right'; label?: string; className?: string }) {
+export function Popover({ trigger, children, align = 'left', label, className, triggerVariant, triggerClassName }: { triggerVariant?: ButtonProps['variant']; triggerClassName?: string; trigger: ReactNode; children: ReactNode | ((close: () => void) => ReactNode); align?: 'left' | 'right'; label?: string; className?: string }) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   const ref = useDismiss(open, close);
   return (
     <div ref={ref} className="relative inline-block">
-      <Button aria-haspopup="dialog" data-popover-trigger aria-expanded={open} aria-label={label} onClick={() => setOpen(!open)}>{trigger}</Button>
+      <Button variant={triggerVariant} className={triggerClassName} aria-haspopup="dialog" data-popover-trigger aria-expanded={open} aria-label={label} onClick={() => setOpen(!open)}>{trigger}</Button>
       {open && <div role="dialog" aria-label={label} className={cx('anim-menu absolute z-30 mt-1 rounded-lg bg-canvas p-3 shadow-pop', align === 'right' ? 'right-0' : 'left-0', className)}>{typeof children === 'function' ? children(close) : children}</div>}
     </div>
   );

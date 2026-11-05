@@ -1,7 +1,7 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Modal, Pagination, TagInput, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, ListToolbar, Pagination, TagPickerDialog, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ImageIcon, Plus, Search } from 'lucide-react';
+import { Archive, ArrowUpDown, Check, CircleCheck, ImageIcon, Plus, Search, Tag, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -57,7 +57,6 @@ export function ProductsPage() {
   const [confirmDelete, setConfirmDelete] = useState<string[] | null>(null);
   const cols = useColumnVisibility('products');
   const [tagging, setTagging] = useState<{ ids: string[]; mode: 'add' | 'remove' } | null>(null);
-  const [tags, setTags] = useState<string[]>([]);
   const [collecting, setCollecting] = useState<{ ids: string[]; mode: 'add' | 'remove' } | null>(null);
 
   const terms = [
@@ -130,13 +129,14 @@ export function ProductsPage() {
     { key: 'vendor', header: t('field.vendor'), sortKey: 'VENDOR', cell: (p) => p.vendor || <span className="text-muted">—</span> },
   ];
 
-  const pick = (key: string, items: string[], all: string) => (
-    <select aria-label={all} value={get(key)} onChange={(e) => patch({ [key]: e.target.value })} className="field-control">
-      <option value="">{all}</option>
-      {items.map((i) => <option key={i} value={i}>{i}</option>)}
-    </select>
-  );
   const opt = options.data;
+  const toOptions = (items: string[]) => items.map((i) => ({ value: i, label: i }));
+  const filters = [
+    { key: 'vendor', label: t('filter.vendor'), options: toOptions(flattenStrings(opt?.productVendors)) },
+    { key: 'type', label: t('filter.type'), options: toOptions(flattenStrings(opt?.productTypes)) },
+    { key: 'tag', label: t('filter.tag'), options: toOptions(flattenStrings(opt?.productTags)) },
+    { key: 'stock', label: t('filter.stock'), options: [{ value: 'in', label: t('products.stockIn') }, { value: 'out', label: t('products.stockOut') }] },
+  ];
 
   const empty = hasFilters
     ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} action={<Button onClick={() => { setSearch(''); setParams({}); }}>{t('products.clearFilters')}</Button>} />
@@ -144,49 +144,40 @@ export function ProductsPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.products')} actions={<><ViewAs /><ImportButton kind="products" invalidate={['products', 'products-count']} /><ExportButton kind="products" /><Button variant="primary" onClick={() => nav('/products/new')}><Plus className="size-4" />{t('products.add')}</Button></>} />
+      <PageHeader icon={<Tag className="size-4" />} title={t('nav.products')} actions={<><ViewAs /><ImportButton kind="products" invalidate={['products', 'products-count']} /><ExportButton kind="products" currentIds={rows.map((r) => r.id)} selectedIds={selected} /><Button variant="primary" onClick={() => nav('/products/new')}>{t('products.add')}</Button></>} />
       <ProductMetricsStrip />
       <Card className="!p-0">
-        <div className="px-4 pt-2">
-          <ViewTabs
+        <ListToolbar
+          className="!rounded-b-none !shadow-none border-b border-line"
+          leading={<ViewTabs
             resource="PRODUCT" query={terms} value={status} onTab={(v) => { setSelected([]); patch({ status: v === 'all' ? '' : v, view: '' }); }}
             tabs={[{ id: 'all', label: t('products.tabAll') }, { id: 'active', label: label('ACTIVE') }, { id: 'draft', label: label('DRAFT') }, { id: 'archived', label: label('ARCHIVED') }]}
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-          <div className="relative min-w-48 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); patch({ q: e.target.value }); }} placeholder={t('products.search')} aria-label={t('products.search')} className="field-control w-full pl-8" />
-          </div>
-          {pick('vendor', flattenStrings(opt?.productVendors), t('field.vendor'))}
-          {pick('type', flattenStrings(opt?.productTypes), t('field.productType'))}
-          {pick('tag', flattenStrings(opt?.productTags), t('field.tags'))}
-          <select aria-label={t('products.inventory')} value={get('stock')} onChange={(e) => patch({ stock: e.target.value })} className="field-control">
-            <option value="">{t('products.inventory')}</option>
-            <option value="in">{t('products.stockIn')}</option>
-            <option value="out">{t('products.stockOut')}</option>
-          </select>
-          <select aria-label={t('common.sort')} value={sort.key} onChange={(e) => patch({ sort: e.target.value })} className="field-control">
-            {Object.keys(SORTS).map((k) => <option key={k} value={k}>{t(`sort.${k}` as 'sort.TITLE')}</option>)}
-          </select>
-          <ColumnPicker locked={['title']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
-        </div>
+          />}
+          query={search} onQuery={(v) => { setSearch(v); patch({ q: v }); }} placeholder={t('list.searchAndFilter')}
+          filters={filters} values={{ vendor: get('vendor'), type: get('type'), tag: get('tag'), stock: get('stock') }} onFilter={(k, v) => patch({ [k]: v })} removeFilterLabel={t('list.removeFilter')}
+          trailing={<>
+            <Dropdown align="right" variant="plain" size="sm" icon className="btn-neutral" label={t('common.sort')} trigger={<ArrowUpDown className="size-4" />}
+              items={Object.keys(SORTS).map((k) => ({ key: k, label: t(`sort.${k}` as 'sort.TITLE'), icon: sort.key === k ? <Check className="size-4" /> : undefined, onSelect: () => patch({ sort: k }) }))} />
+            <ColumnPicker locked={['title']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
+          </>}
+        />
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable
           rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading}
           selected={selected} onSelectedChange={setSelected} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           sort={sort} onSortChange={(s) => patch({ sort: s.key, dir: s.reverse ? 'desc' : 'asc' })}
           onRowClick={(r) => nav(`/products/${gidToNum(r.id)}`)}
+          bulkInline={2} moreLabel={t('list.moreBulk')} selectPageLabel={(n) => t('list.selectPage', { n })} deselectLabel={t('list.deselectAll')} showSelectedLabel={t('list.showSelected')}
           bulkActions={[
             { key: 'bulk', label: t('products.bulkEdit'), onRun: (ids) => nav(`/products/bulk?ids=${ids.map(gidToNum).join(',')}`) },
-            { key: 'active', label: t('products.setActive'), onRun: (ids) => bulk.mutate({ ids, action: 'ACTIVE' }) },
             { key: 'draft', label: t('products.setDraft'), onRun: (ids) => bulk.mutate({ ids, action: 'DRAFT' }) },
-            { key: 'archive', label: t('products.setArchived'), onRun: (ids) => bulk.mutate({ ids, action: 'ARCHIVED' }) },
-            { key: 'addTags', label: t('products.addTags'), onRun: (ids) => { setTags([]); setTagging({ ids, mode: 'add' }); } },
-            { key: 'removeTags', label: t('products.removeTags'), onRun: (ids) => { setTags([]); setTagging({ ids, mode: 'remove' }); } },
-            { key: 'addColl', label: t('products.addToCollections'), onRun: (ids) => setCollecting({ ids, mode: 'add' }) },
+            { key: 'archive', label: t('bulk.archive'), icon: <Archive className="size-4" />, onRun: (ids) => bulk.mutate({ ids, action: 'ARCHIVED' }) },
+            { key: 'active', label: t('products.setActive'), icon: <CircleCheck className="size-4" />, onRun: (ids) => bulk.mutate({ ids, action: 'ACTIVE' }) },
+            { key: 'delete', label: t('bulk.deleteProducts'), icon: <Trash2 className="size-4" />, danger: true, onRun: (ids) => setConfirmDelete(ids) },
+            { key: 'addTags', label: t('products.addTags'), separatorBefore: true, onRun: (ids) => setTagging({ ids, mode: 'add' }) },
+            { key: 'removeTags', label: t('products.removeTags'), onRun: (ids) => setTagging({ ids, mode: 'remove' }) },
+            { key: 'addColl', label: t('products.addToCollections'), separatorBefore: true, onRun: (ids) => setCollecting({ ids, mode: 'add' }) },
             { key: 'removeColl', label: t('products.removeFromCollections'), onRun: (ids) => setCollecting({ ids, mode: 'remove' }) },
-            { key: 'delete', label: t('common.delete'), danger: true, onRun: (ids) => setConfirmDelete(ids) },
           ]}
           empty={list.isError ? null : empty}
         />
@@ -198,10 +189,9 @@ export function ProductsPage() {
         />
         {count.data && rows.length > 0 && <p className="border-t border-line px-4 py-2 text-xs text-muted">{t('products.count', { n: count.data.productsCount.count })}</p>}
       </Card>
-      <Modal open={!!tagging} onClose={() => setTagging(null)} closeLabel={t('common.close')} title={tagging?.mode === 'remove' ? t('products.removeTags') : t('products.addTags')}
-        footer={<><Button onClick={() => setTagging(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!tags.length} onClick={() => { if (tagging) tagBulk.mutate({ ...tagging, tags }); setTagging(null); }}>{t('common.apply')}</Button></>}>
-        <TagInput label={t('field.tags')} value={tags} onChange={setTags} suggestions={flattenStrings(opt?.productTags)} removeLabel={t('common.remove')} />
-      </Modal>
+      <TagPickerDialog open={!!tagging} onClose={() => setTagging(null)} title={t(tagging?.mode === 'remove' ? 'products.removeTags' : 'products.addTags')} suggestions={flattenStrings(opt?.productTags)}
+        onSave={(list) => { if (tagging) tagBulk.mutate({ ...tagging, tags: list }); setTagging(null); }}
+        labels={{ search: t('tagpicker.search'), available: t('tagpicker.available'), save: t('save.save'), cancel: t('common.cancel'), close: t('common.close'), create: (x) => t('tagpicker.create', { tag: x }) }} />
       <CollectionPicker open={!!collecting} onClose={() => setCollecting(null)} onConfirm={(c) => { if (collecting) collectionBulk.mutate({ ...collecting, collections: c.map((x) => x.id) }); setCollecting(null); }} />
       <ConfirmDialog
         open={!!confirmDelete} onClose={() => setConfirmDelete(null)} danger

@@ -1,7 +1,7 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Modal, Pagination, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, ListToolbar, Pagination, Skeleton, TagInput, TagPickerDialog, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, ChevronUp, Copy, MoreHorizontal, Plus, Search } from 'lucide-react';
+import { ArrowUpDown, Check, ChevronDown, ChevronUp, Copy, MoreHorizontal, Plus, Search, Trash2, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -11,7 +11,7 @@ import { PageHeader } from '../components/PageHeader';
 import { ExportButton, ImportButton } from '../components/CsvTools';
 import { ViewTabs } from '../components/SavedViews';
 import { gidToNum, numToGid } from '../format';
-import { CUSTOMER, CUSTOMER_IDS, CUSTOMERS, CUSTOMERS_COUNT, CUSTOMER_DELETE, CUSTOMER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
+import { CUSTOMER, CUSTOMER_IDS, CUSTOMERS, CUSTOMERS_COUNT, CUSTOMER_DELETE, CUSTOMER_TAGS, CUSTOMER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { Timeline } from '../components/Timeline';
@@ -51,7 +51,7 @@ export function CustomersPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [confirm, setConfirm] = useState<string[] | null>(null);
   const [tagging, setTagging] = useState<{ ids: string[]; mode: 'add' | 'remove' } | null>(null);
-  const [newTags, setNewTags] = useState<string[]>([]);
+  const customerTags = useQuery({ queryKey: ['customer-tag-options'], staleTime: 60_000, queryFn: async () => { const r = await gql<{ customers: Connection<CustomerRow & { tags: string[] }> }>(CUSTOMER_TAGS); return [...new Set(r.customers.nodes.flatMap((c) => c.tags))].sort(); } });
   const sort = { key: L.get('sort') || 'CREATED_AT', reverse: L.get('dir') !== 'asc' };
   const terms = [term.trim(), TAB_QUERY[tab], L.get('tag') && `tag:"${L.get('tag').replace(/"/g, '')}"`, L.get('country') && `country:${L.get('country')}`].filter(Boolean).join(' ');
 
@@ -78,30 +78,32 @@ export function CustomersPage() {
     { key: 'orders', header: t('customers.orders'), sortKey: 'ORDERS_COUNT', cell: (c) => c.numberOfOrders },
     { key: 'spent', header: t('customers.spent'), cell: (c) => fmt.money(c.amountSpent) },
   ];
-  const add = <Button variant="primary" onClick={() => nav('/customers/new')}><Plus className="size-4" />{t('customers.add')}</Button>;
+  const add = <Button variant="primary" onClick={() => nav('/customers/new')}>{t('customers.add')}</Button>;
 
   return (
     <>
-      <PageHeader title={t('nav.customers')} actions={<>{count.data && <span className="text-[13px] text-muted">{t('customers.count', { n: count.data.customersCount.count })}</span>}<ExportButton kind="customers" /><ImportButton kind="customers" invalidate={['customers', 'customers-count']} />{add}</>} />
+      <PageHeader icon={<Users className="size-4" />} title={t('nav.customers')} actions={<>{count.data && <span className="text-[13px] text-muted">{t('customers.count', { n: count.data.customersCount.count })}</span>}<ExportButton kind="customers" /><ImportButton kind="customers" invalidate={['customers', 'customers-count']} />{add}</>} />
       <Card className="!p-0">
-        <div className="px-3 pt-1"><ViewTabs resource="CUSTOMER" query={terms} tabs={TABS.map((id) => ({ id, label: t(`customers.tab.${id}` as Key) }))} value={tab} onTab={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v, view: '' }); }} /></div>
-        <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
-          <div className="relative min-w-48 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('customers.search')} aria-label={t('customers.search')} className={searchCls} />
-          </div>
-          <input type="text" aria-label={t('field.tags')} placeholder={t('field.tags')} value={L.get('tag')} onChange={(e) => L.patch({ tag: e.target.value })} className={`${selectCls} w-28`} />
-          <select aria-label={t('common.sort')} value={sort.key} onChange={(e) => L.patch({ sort: e.target.value })} className={selectCls}>
-            {SORTS.map((s) => <option key={s} value={s}>{t(`customers.sort.${s}` as Key)}</option>)}
-          </select>
-        </div>
+        <ListToolbar
+          className="!rounded-b-none !shadow-none border-b border-line"
+          leading={<ViewTabs resource="CUSTOMER" query={terms} tabs={TABS.map((id) => ({ id, label: t(`customers.tab.${id}` as Key) }))} value={tab} onTab={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v, view: '' }); }} />}
+          query={search} onQuery={(v) => { setSearch(v); L.patch({ q: v }); }} placeholder={t('list.searchAndFilter')} removeFilterLabel={t('list.removeFilter')}
+          filters={[{ key: 'tag', label: t('filter.tag'), options: [], text: true }]} values={{ tag: L.get('tag') }} onFilter={(_k, v) => L.patch({ tag: v })}
+          trailing={<Dropdown align="right" variant="plain" size="sm" icon className="btn-neutral" label={t('common.sort')} trigger={<ArrowUpDown className="size-4" />}
+            items={SORTS.map((x) => ({ key: x, label: t(`customers.sort.${x}` as Key), icon: sort.key === x ? <Check className="size-4" /> : undefined, onSelect: () => L.patch({ sort: x }) }))} />}
+        />
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable
           rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading}
           selected={selected} onSelectedChange={setSelected} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           sort={sort} onSortChange={(s) => L.patch({ sort: s.key, dir: s.reverse ? '' : 'asc' })}
           onRowClick={(r) => nav(`/customers/${gidToNum(r.id)}`)}
-          bulkActions={[{ key: 'tag', label: t('orders.addTags'), onRun: (ids) => { setNewTags([]); setTagging({ ids, mode: 'add' }); } }, { key: 'untag', label: t('products.removeTags'), onRun: (ids) => { setNewTags([]); setTagging({ ids, mode: 'remove' }); } }, { key: 'delete', label: t('common.delete'), danger: true, onRun: setConfirm }]}
+          bulkInline={1} moreLabel={t('list.moreBulk')} selectPageLabel={(n) => t('list.selectPage', { n })} deselectLabel={t('list.deselectAll')} showSelectedLabel={t('list.showSelected')}
+          bulkActions={[
+            { key: 'tag', label: t('orders.addTags'), onRun: (ids) => setTagging({ ids, mode: 'add' }) },
+            { key: 'untag', label: t('products.removeTags'), onRun: (ids) => setTagging({ ids, mode: 'remove' }) },
+            { key: 'delete', label: t('customers.deleteBulk'), icon: <Trash2 className="size-4" />, danger: true, separatorBefore: true, onRun: setConfirm },
+          ]}
           empty={list.isError ? null : terms
             ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} action={<Button onClick={() => { setSearch(''); L.clear(); }}>{t('products.clearFilters')}</Button>} />
             : <EmptyState image={emptyCustomers} title={t('customers.emptyTitle')} description={t('customers.emptyBody')} action={add} />}
@@ -111,10 +113,9 @@ export function CustomersPage() {
           onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
       </Card>
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} danger title={t('customers.deleteTitle', { n: confirm?.length ?? 0 })} message={t('customers.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { if (confirm) bulk.mutate({ ids: confirm }); setConfirm(null); }} />
-      <Modal open={!!tagging} onClose={() => setTagging(null)} title={tagging?.mode === 'remove' ? t('products.removeTags') : t('orders.addTags')} closeLabel={t('common.close')}
-        footer={<><Button onClick={() => setTagging(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!newTags.length} onClick={() => { if (tagging) bulk.mutate({ ids: tagging.ids, tags: newTags, remove: tagging.mode === 'remove' }); setTagging(null); }}>{t('common.apply')}</Button></>}>
-        <TagInput label={t('field.tags')} value={newTags} onChange={setNewTags} removeLabel={t('common.remove')} />
-      </Modal>
+      <TagPickerDialog open={!!tagging} onClose={() => setTagging(null)} title={t(tagging?.mode === 'remove' ? 'products.removeTags' : 'orders.addTags')} suggestions={customerTags.data ?? []}
+        onSave={(list) => { if (tagging) bulk.mutate({ ids: tagging.ids, tags: list, remove: tagging.mode === 'remove' }); setTagging(null); }}
+        labels={{ search: t('tagpicker.search'), available: t('tagpicker.available'), save: t('save.save'), cancel: t('common.cancel'), close: t('common.close'), create: (x) => t('tagpicker.create', { tag: x }) }} />
     </>
   );
 }
