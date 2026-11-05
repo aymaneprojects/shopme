@@ -2,12 +2,14 @@ import { Banner, Button, Card, EmptyState, IndexTable, Input, Modal, Pagination,
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ClipboardList, Search, Warehouse } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
 import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
 import { PageHeader } from '../components/PageHeader';
 import { ExportButton, ImportButton } from '../components/CsvTools';
-import { INVENTORY_ACTIVATE, INVENTORY_MOVE, INVENTORY_SET_QUANTITIES, INVENTORY_VARIANTS, LOCATIONS } from '../graphql';
+import { ViewTabs } from '../components/SavedViews';
+import { INVENTORY_ACTIVATE, INVENTORY_ADJUST_QUANTITIES, INVENTORY_ITEM_TRACKING, INVENTORY_MOVE, INVENTORY_SET_QUANTITIES, INVENTORY_VARIANTS, LOCATIONS } from '../graphql';
 import { useT } from '../i18n';
 import { q as quote, useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
@@ -26,9 +28,21 @@ export function InventoryPage() {
   const t = useT();
   const toast = useToast();
   const qc = useQueryClient();
-  const [location, setLocation] = useState('');
-  const [search, setSearch] = useState('');
+  const [params, setParams] = useSearchParams();
+  const patch = (changes: Record<string, string>) => {
+    const next = new URLSearchParams(params);
+    for (const [k, v] of Object.entries(changes)) (v ? next.set(k, v) : next.delete(k));
+    setParams(next, { replace: true });
+  };
+  const location = params.get('loc') ?? '';
+  const untracked = params.get('tracking') === 'untracked';
+  const setLocation = (v: string) => patch({ loc: v });
+  const urlQ = params.get('q') ?? '';
+  const [search, setSearch] = useState(urlQ);
+  useEffect(() => { setSearch(urlQ); setCursor({}); }, [urlQ]); // a saved view changed the search
   const term = useDebounced(search);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [bulkQty, setBulkQty] = useState<{ name: 'available' | 'on_hand'; mode: 'set' | 'adjust'; location: string; value: string } | null>(null);
   const [cursor, setCursor] = useState<{ after?: string; before?: string }>({});
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [moving, setMoving] = useState<{ v: VariantRow; to: string; qty: string } | null>(null);
@@ -42,7 +56,7 @@ export function InventoryPage() {
     placeholderData: (p) => p,
   });
 
-  const rows = (list.data?.productVariants.nodes ?? []).filter((v) => v.inventoryItem.tracked);
+  const rows = (list.data?.productVariants.nodes ?? []).filter((v) => v.inventoryItem.tracked !== untracked);
   const levelsOf = (v: VariantRow) => v.inventoryItem.inventoryLevels.nodes.filter((l) => !location || l.location.id === location);
   const editKey = (v: VariantRow) => `${v.inventoryItem.id}|${location}`;
 
@@ -89,6 +103,30 @@ export function InventoryPage() {
     onError: (e) => toast(e.message, 'critical'),
   });
 
+  const refreshAll = () => { void qc.invalidateQueries({ queryKey: ['inventory'] }); void qc.invalidateQueries({ queryKey: ['products'] }); };
+  const tracking = useMutation({
+    mutationFn: ({ ids, tracked }: { ids: string[]; tracked: boolean }) => Promise.all(ids.map((id) => {
+      const item = rows.find((r) => r.id === id)!.inventoryItem.id;
+      return mutate(INVENTORY_ITEM_TRACKING, { id: item, tracked }, 'inventoryItemUpdate');
+    })),
+    onSuccess: (_d, v) => { toast(t(v.tracked ? 'inventory.tracking.on' : 'inventory.tracking.off', { n: v.ids.length })); setSelected([]); refreshAll(); },
+    onError: (e) => toast(e.message, 'critical'),
+  });
+  const bulkQuantity = useMutation({
+    mutationFn: async () => {
+      const b = bulkQty!;
+      const n = Math.trunc(Number(b.value));
+      const targets = rows.filter((r) => selected.includes(r.id) && r.inventoryItem.tracked);
+      // Make sure each item is stocked at the location first (a no-op when it already is).
+      for (const r of targets) await mutate(INVENTORY_ACTIVATE, { inventoryItemId: r.inventoryItem.id, locationId: b.location, available: 0 }, 'inventoryActivate');
+      if (b.mode === 'set') return mutate(INVENTORY_SET_QUANTITIES, { input: { reason: 'correction', name: b.name, quantities: targets.map((r) => ({ inventoryItemId: r.inventoryItem.id, locationId: b.location, quantity: Math.max(0, n) })) } }, 'inventorySetQuantities');
+      return mutate(INVENTORY_ADJUST_QUANTITIES, { input: { reason: 'correction', name: b.name, changes: targets.map((r) => ({ inventoryItemId: r.inventoryItem.id, locationId: b.location, delta: n })) } }, 'inventoryAdjustQuantities');
+    },
+    onSuccess: () => { toast(t('inventory.saved')); setBulkQty(null); setSelected([]); refreshAll(); },
+    onError: (e) => toast(e.message, 'critical'),
+  });
+  const activeLocations = locs.data?.locations.nodes.filter((l) => l.isActive !== false) ?? [];
+
   const columns: Array<Column<VariantRow>> = [
     { key: 'img', header: '', className: 'w-14', cell: (v) => <Thumb url={v.product.featuredMedia?.image?.url} /> },
     { key: 'product', header: t('products.product'), cell: (v) => <div><div className="font-medium">{v.product.title}</div>{v.title !== 'Default Title' && <div className="text-xs text-muted">{v.title}</div>}</div> },
@@ -131,21 +169,51 @@ export function InventoryPage() {
           <ExportButton kind="inventory" /><ImportButton kind="inventory" invalidate={['inventory']} />
         </>} />
       <Card className="!p-0">
+        <div className="px-3 pt-1">
+          <ViewTabs resource="INVENTORY" query={[term.trim(), location && `location:${location}`, untracked && 'tracked:false'].filter(Boolean).join(' ')} value="all" onTab={() => { setSelected([]); setParams(new URLSearchParams(), { replace: true }); }} tabs={[{ id: 'all', label: t('inventory.tabAll') }]} />
+        </div>
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
           <div className="relative min-w-48 flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); setCursor({}); }} placeholder={t('inventory.search')} aria-label={t('inventory.search')} className="field-control w-full pl-8" />
+            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); setCursor({}); patch({ q: e.target.value }); }} placeholder={t('inventory.search')} aria-label={t('inventory.search')} className="field-control w-full pl-8" />
           </div>
+          <select aria-label={t('inventory.trackingFilter')} value={untracked ? 'untracked' : ''} onChange={(e) => { setSelected([]); patch({ tracking: e.target.value }); }} className="field-control">
+            <option value="">{t('inventory.filterTracked')}</option>
+            <option value="untracked">{t('inventory.filterUntracked')}</option>
+          </select>
           <ColumnPicker locked={['product']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
         </div>
         {!location && rows.length > 0 && <p className="border-b border-line px-4 py-2 text-xs text-muted">{t('inventory.pickLocation')}</p>}
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading}
+          selected={selected} onSelectedChange={setSelected} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
+          bulkActions={untracked
+            ? [{ key: 'track', label: t('inventory.trackQuantity'), onRun: (ids) => tracking.mutate({ ids, tracked: true }) }]
+            : [
+              { key: 'available', label: t('inventory.editAvailable'), onRun: () => setBulkQty({ name: 'available', mode: 'set', location: location || activeLocations[0]?.id || '', value: '' }) },
+              { key: 'onhand', label: t('inventory.editOnHand'), onRun: () => setBulkQty({ name: 'on_hand', mode: 'set', location: location || activeLocations[0]?.id || '', value: '' }) },
+              { key: 'untrack', label: t('inventory.stopTracking'), onRun: (ids) => tracking.mutate({ ids, tracked: false }) },
+            ]}
           empty={list.isError ? null : <EmptyState icon={<Warehouse className="size-10" />} title={t('inventory.emptyTitle')} description={t('inventory.emptyBody')} />} />
         <Pagination hasPrevious={cursor.before ? !!pi?.hasPreviousPage : !!cursor.after} hasNext={cursor.before ? true : !!pi?.hasNextPage}
           previousLabel={t('common.previous')} nextLabel={t('common.next')}
           onPrevious={() => setCursor({ before: pi?.startCursor ?? undefined })} onNext={() => setCursor({ after: pi?.endCursor ?? undefined })} />
       </Card>
+      <Modal open={!!bulkQty} onClose={() => setBulkQty(null)} closeLabel={t('common.close')} title={t(bulkQty?.name === 'on_hand' ? 'inventory.editOnHandTitle' : 'inventory.editAvailableTitle', { n: selected.length })}
+        footer={<><Button onClick={() => setBulkQty(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={bulkQuantity.isPending} disabled={!bulkQty?.location || bulkQty.value.trim() === '' || !Number.isFinite(Number(bulkQty.value))} onClick={() => bulkQuantity.mutate()}>{t('common.apply')}</Button></>}>
+        {bulkQty && (
+          <div className="grid gap-3">
+            <Select label={t('inventory.location')} value={bulkQty.location} onChange={(e) => setBulkQty({ ...bulkQty, location: e.target.value })}>
+              {activeLocations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </Select>
+            <Select label={t('inventory.bulkMode')} value={bulkQty.mode} onChange={(e) => setBulkQty({ ...bulkQty, mode: e.target.value as 'set' | 'adjust' })}>
+              <option value="set">{t('inventory.bulkSet')}</option>
+              <option value="adjust">{t('inventory.bulkAdjust')}</option>
+            </Select>
+            <Input label={t('inventory.bulkValue')} type="number" min={bulkQty.mode === 'set' ? 0 : undefined} value={bulkQty.value} onChange={(e) => setBulkQty({ ...bulkQty, value: e.target.value })} />
+          </div>
+        )}
+      </Modal>
       <Modal open={!!counting} onClose={() => setCounting(null)} closeLabel={t('common.close')} title={t('inventory.counts')}
         footer={<><Button onClick={() => setCounting(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={countStock.isPending} disabled={!counting?.location || !counting.text.trim()} onClick={() => countStock.mutate()}>{t('inventory.countApply')}</Button></>}>
         {counting && (

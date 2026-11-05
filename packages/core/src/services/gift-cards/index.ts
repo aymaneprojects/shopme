@@ -82,6 +82,11 @@ const search = (q: string | null | undefined) => buildSearch(q, {
 
 export type GiftCardSortKey = 'AMOUNT_SPENT' | 'BALANCE' | 'CODE' | 'CREATED_AT' | 'CUSTOMER_NAME' | 'DISABLED_AT' | 'EXPIRES_ON' | 'ID' | 'INITIAL_VALUE' | 'UPDATED_AT';
 
+/** Gift cards issued for a paid order (one per unit of its gift card lines). */
+export async function listGiftCardsForOrder(db: Executor, shopId: number, orderId: number): Promise<GiftCard[]> {
+  return db.select().from(giftCards).where(and(eq(giftCards.shopId, shopId), eq(giftCards.orderId, orderId))).orderBy(asc(giftCards.id));
+}
+
 export async function listGiftCards(db: Executor, shopId: number, o: { query?: string | null; sortKey?: GiftCardSortKey; reverse?: boolean; offset: number; limit: number }): Promise<GiftCard[]> {
   const cols: Record<string, unknown> = {
     AMOUNT_SPENT: sql`${giftCards.initialValue} - ${giftCards.balance}`, BALANCE: giftCards.balance, CODE: giftCards.code, CREATED_AT: giftCards.createdAt, DISABLED_AT: giftCards.deactivatedAt,

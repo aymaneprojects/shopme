@@ -1,9 +1,9 @@
-import { Banner, Button, Card, ConfirmDialog, Dropdown, ImageUploader, Input, MediaGallery, Modal, RichTextEditor, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
+import { Banner, Button, Card, Checkbox, ConfirmDialog, Dropdown, ImageUploader, Input, MediaGallery, Modal, RichTextEditor, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { GalleryItem } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, Plus, X } from 'lucide-react';
+import { Eye, Gift, Plus, X } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
 import { CollectionPicker } from '../components/Pickers';
@@ -11,12 +11,13 @@ import { PageHeader } from '../components/PageHeader';
 import { PrevNext } from '../components/PrevNext';
 import { ViewAs } from '../components/ViewAs';
 import { SaveBar, guard } from '../components/SaveBar';
-import { InventoryFields, OptionsEditor, PricingFields, ShippingFields, VariantsTable } from '../components/VariantsEditor';
+import { InventoryFields, OptionsEditor, PricingFields, ShippingFields } from '../components/VariantsEditor';
+import { VariantsManager } from '../components/VariantsManager';
 import { formatMoney, numToGid } from '../format';
 import { LOCATIONS, PRODUCT, PRODUCT_DELETE, PRODUCT_DUPLICATE, PRODUCT_FILTER_OPTIONS, TAXONOMY_CATEGORIES } from '../graphql';
 import { useI18n } from '../i18n';
 import { flattenStrings } from '../lib/hooks';
-import { createProduct, emptyForm, formFromProduct, isPersistedMedia, updateProduct, validate } from '../lib/product-form';
+import { createProduct, emptyForm, formFromProduct, giftCardForm, isPersistedMedia, updateProduct, validate } from '../lib/product-form';
 import type { ApiProduct, LocationRef, ProductForm } from '../lib/product-form';
 import { useShop } from '../session';
 
@@ -27,13 +28,14 @@ export function ProductEditPage() {
   const locs = useQuery({ queryKey: ['locations'], queryFn: () => gql<{ locations: { nodes: Array<LocationRef & { isActive: boolean }> } }>(LOCATIONS) });
   const prod = useQuery({ queryKey: ['product', id], enabled: !isNew, queryFn: () => gql<{ product: ApiProduct | null }>(PRODUCT, { id: numToGid('Product', id) }) });
   const { t } = useI18n();
+  const [params] = useSearchParams();
 
   if (locs.isLoading || (!isNew && prod.isLoading)) return <div className="grid gap-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-64" /></div>;
   const error = locs.error ?? prod.error;
   if (error) return <Banner>{error.message}</Banner>;
   const locations = (locs.data?.locations.nodes ?? []).filter((l) => l.isActive !== false);
   if (!isNew && !prod.data?.product) return <Banner>{t('product.notFound')}</Banner>;
-  const initial = isNew ? emptyForm(locations) : formFromProduct(prod.data!.product!, locations);
+  const initial = isNew ? (params.get('giftCard') ? giftCardForm(locations, t('product.giftCardTitle')) : emptyForm(locations)) : formFromProduct(prod.data!.product!, locations);
   return <ProductFormView key={`${id}:${prod.dataUpdatedAt}`} id={isNew ? null : numToGid('Product', id)} initial={initial} locations={locations} previewUrl={prod.data?.product?.onlineStorePreviewUrl ?? null} />;
 }
 
@@ -52,6 +54,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
   const [pickCollections, setPickCollections] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [variantMf, setVariantMf] = useState<string | null>(null);
+  const [dup, setDup] = useState<{ title: string; images: boolean; status: 'DRAFT' | 'ACTIVE' } | null>(null);
   const cats = useQuery({ queryKey: ['taxonomy'], staleTime: 600_000, queryFn: () => gql<{ taxonomy: { categories: { nodes: Array<{ id: string; fullName: string }> } } | null }>(TAXONOMY_CATEGORIES) });
   const set = (p: Partial<ProductForm>) => setForm((f) => ({ ...f, ...p }));
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
@@ -87,8 +90,8 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
   });
 
   const duplicate = useMutation({
-    mutationFn: () => mutate<{ newProduct: { id: string } }>(PRODUCT_DUPLICATE, { productId: id, newTitle: t('product.copyOf', { title: form.title }), includeImages: true }, 'productDuplicate'),
-    onSuccess: (r) => { toast(t('product.duplicated')); void qc.invalidateQueries({ queryKey: ['products'] }); guard.off = true; nav(`/products/${r.newProduct.id.split('/').pop()}`); },
+    mutationFn: () => mutate<{ newProduct: { id: string } }>(PRODUCT_DUPLICATE, { productId: id, newTitle: dup!.title.trim(), includeImages: dup!.images, newStatus: dup!.status }, 'productDuplicate'),
+    onSuccess: (r) => { setDup(null); toast(t('product.duplicated')); void qc.invalidateQueries({ queryKey: ['products'] }); guard.off = true; nav(`/products/${r.newProduct.id.split('/').pop()}`); },
     onError: (e) => toast(e.message, 'critical'),
   });
 
@@ -111,7 +114,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
             { key: 'mail', label: t('share.email'), disabled: !publicUrl, onSelect: () => { window.location.href = `mailto:?subject=${encodeURIComponent(form.title)}&body=${encodeURIComponent(new URL(publicUrl!, window.location.origin).href)}`; } },
           ]} />
           <Dropdown align="right" chevron trigger={t('common.moreActions')} items={[
-            { key: 'duplicate', label: t('product.duplicate'), onSelect: () => duplicate.mutate() },
+            { key: 'duplicate', label: t('product.duplicate'), onSelect: () => setDup({ title: t('product.copyOf', { title: form.title }), images: true, status: 'DRAFT' }) },
             ...(form.status === 'ARCHIVED' ? [] : [{ key: 'archive', label: t('products.setArchived'), onSelect: () => set({ status: 'ARCHIVED' }) }]),
             ...(form.status === 'ACTIVE' ? [] : [{ key: 'activate', label: t('products.setActive'), onSelect: () => set({ status: 'ACTIVE' }) }]),
             { key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirmDelete(true) },
@@ -144,7 +147,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
             <>
               <Card title={t('product.pricing')}>{errors.price && <p className="mb-2 text-xs text-critical">{errors.price}</p>}<PricingFields v={first} patch={patchFirst} currency={shop.currency} /></Card>
               <Card title={t('product.inventory')}><InventoryFields v={first} patch={patchFirst} locations={locations} /></Card>
-              <Card title={t('product.shipping')}><ShippingFields v={first} patch={patchFirst} /></Card>
+              {!form.isGiftCard && <Card title={t('product.shipping')}><ShippingFields v={first} patch={patchFirst} /></Card>}
             </>
           )}
 
@@ -155,7 +158,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
                 <>
                   <p className="text-[13px] text-muted">{t('variants.count', { n: form.variants.length })}</p>
                   {errors.price && <p className="text-xs text-critical">{errors.price}</p>}
-                  <VariantsTable variants={form.variants} locations={locations} currency={shop.currency} media={form.media.filter(isPersistedMedia).map((m) => ({ id: m.key, url: m.url }))} onMetafields={id ? setVariantMf : undefined} onChange={(variants) => set({ variants })} />
+                  <VariantsManager options={form.options} variants={form.variants} locations={locations} currency={shop.currency} media={form.media.filter(isPersistedMedia).map((m) => ({ id: m.key, url: m.url }))} onMetafields={id ? setVariantMf : undefined} onChange={(p) => set(p)} />
                 </>
               )}
             </div>
@@ -179,6 +182,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
 
         <div className="flex flex-col gap-4">
           <Card title={t('field.status')}>
+            {form.isGiftCard && <p className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs"><Gift className="size-3.5" />{t('product.giftCardBadge')}</p>}
             <Select aria-label={t('field.status')} value={form.status} onChange={(e) => set({ status: e.target.value as ProductForm['status'] })}>
               <option value="ACTIVE">{t('status.ACTIVE')}</option>
               <option value="DRAFT">{t('status.DRAFT')}</option>
@@ -216,6 +220,22 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
         {variantMf && <MetafieldsEditor ownerId={variantMf} ownerType="PRODUCTVARIANT" title={form.variants.find((v) => v.id === variantMf)?.optionValues.join(' / ') || t('mf.title')} />}
       </Modal>
       <CollectionPicker open={pickCollections} onClose={() => setPickCollections(false)} excludeIds={form.collections.map((c) => c.id)} onConfirm={(c) => set({ collections: [...form.collections, ...c.map((x) => ({ id: x.id, title: x.title }))] })} />
+      <Modal open={!!dup} onClose={() => setDup(null)} closeLabel={t('common.close')} title={t('product.duplicateTitle')}
+        footer={<><Button onClick={() => setDup(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={duplicate.isPending} disabled={!dup?.title.trim()} onClick={() => duplicate.mutate()}>{t('product.duplicateConfirm')}</Button></>}>
+        {dup && (
+          <div className="grid gap-4">
+            <Input label={t('field.title')} value={dup.title} onChange={(e) => setDup({ ...dup, title: e.target.value })} />
+            <fieldset className="grid gap-1.5"><legend className="mb-1 text-[13px] font-medium">{t('product.duplicateDetails')}</legend>
+              <Checkbox label={t('product.duplicateMedia')} checked={dup.images} onChange={(e) => setDup({ ...dup, images: e.target.checked })} />
+            </fieldset>
+            <fieldset className="grid gap-1.5"><legend className="mb-1 text-[13px] font-medium">{t('product.duplicateStatus')}</legend>
+              {(['DRAFT', 'ACTIVE'] as const).map((st) => (
+                <label key={st} className="inline-flex items-center gap-2 text-[13px]"><input type="radio" name="dup-status" checked={dup.status === st} onChange={() => setDup({ ...dup, status: st })} />{t(st === 'DRAFT' ? 'product.duplicateAsDraft' : 'product.duplicateAsActive')}</label>
+              ))}
+            </fieldset>
+          </div>
+        )}
+      </Modal>
       <ConfirmDialog open={confirmDelete} onClose={() => setConfirmDelete(false)} danger title={t('product.deleteTitle')} message={t('products.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { setConfirmDelete(false); del.mutate(); }} />
     </>
   );

@@ -25,6 +25,7 @@ import './orders';
 import './customers';
 import './customers-ext';
 import './segments';
+import './saved-searches';
 import './discounts';
 import './settings';
 import './content';

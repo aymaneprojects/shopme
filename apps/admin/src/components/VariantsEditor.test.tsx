@@ -29,6 +29,16 @@ describe('generateVariants', () => {
     expect(next.map((v) => [v.id, v.optionValues.join('/')])).toEqual([['gid://v/1', 'Red/S'], [undefined, 'Red/M']]);
   });
 
+  it('does not bring back a combination that was deleted, but creates the ones of a new value', () => {
+    const options: OptionDef[] = [{ name: 'Color', values: ['Red', 'Blue'] }, { name: 'Size', values: ['S', 'M'] }];
+    const all = generateVariants(options, [blankVariant()]);
+    expect(all).toHaveLength(4);
+    const withoutBlueM = all.filter((v) => v.optionValues.join('/') !== 'Blue/M');
+    expect(generateVariants(options, withoutBlueM)).toHaveLength(3);
+    const more = generateVariants([options[0]!, { name: 'Size', values: ['S', 'M', 'L'] }], withoutBlueM);
+    expect(more.map((v) => v.optionValues.join('/'))).toEqual(['Red/S', 'Red/M', 'Red/L', 'Blue/S', 'Blue/L']);
+  });
+
   it('collapses to a single default variant without options', () => {
     const next = generateVariants([], [blankVariant({ optionValues: ['Red'], price: '5.00' }), blankVariant({ optionValues: ['Blue'] })]);
     expect(next).toHaveLength(1);

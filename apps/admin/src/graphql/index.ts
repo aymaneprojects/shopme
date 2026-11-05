@@ -15,9 +15,10 @@ import * as orders from './orders';
 import * as platform from './platform';
 import * as products from './products';
 import * as settings from './settings';
+import * as views from './views';
 
 /** Every operation string, keyed by export name. Used by `pnpm validate:graphql`. */
-export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...content, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog };
+export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...content, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog, ...views };
 
 export * from './common';
 export * from './catalog';
@@ -36,3 +37,4 @@ export * from './settings';
 export * from './online-store';
 export * from './dashboard';
 export * from './platform';
+export * from './views';

@@ -77,7 +77,7 @@ export function GiftCardsPage() {
   return (
     <>
       <PageHeader title={t('nav.giftCards')} actions={<>
-        <Button onClick={() => nav('/products/new')}>{t('giftCards.addProduct')}</Button>
+        <Button onClick={() => nav('/products/new?giftCard=1')}>{t('giftCards.addProduct')}</Button>
         <Button onClick={() => nav('/products?q=gift_card:true')}>{t('giftCards.viewProducts')}</Button>
         <Button loading={exportCsv.isPending} onClick={() => exportCsv.mutate()}>{t('csv.export')}</Button>
         {create}</>} />

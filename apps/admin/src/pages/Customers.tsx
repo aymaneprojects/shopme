@@ -1,14 +1,15 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Modal, Pagination, Skeleton, Tabs, TagInput, Textarea, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Modal, Pagination, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, ChevronUp, Copy, MoreHorizontal, Plus, Search } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../api';
 import { AddressBlock, FinancialBadge, FulfillmentBadge, searchCls, selectCls, useFormat, useListParams } from '../components/shared';
 import type { Money, MoneySet } from '../components/shared';
 import { PageHeader } from '../components/PageHeader';
 import { ExportButton, ImportButton } from '../components/CsvTools';
+import { ViewTabs } from '../components/SavedViews';
 import { gidToNum, numToGid } from '../format';
 import { CUSTOMER, CUSTOMER_IDS, CUSTOMERS, CUSTOMERS_COUNT, CUSTOMER_DELETE, CUSTOMER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
 import { useT } from '../i18n';
@@ -44,9 +45,11 @@ export function CustomersPage() {
   const tab = (TABS.includes(L.get('tab') as Tab) ? L.get('tab') : 'all') as Tab;
   const [search, setSearch] = useState(L.get('q'));
   const term = useDebounced(search);
+  const urlQ = L.get('q');
+  useEffect(() => { setSearch(urlQ); }, [urlQ]); // a saved view changed the search
   const [selected, setSelected] = useState<string[]>([]);
   const [confirm, setConfirm] = useState<string[] | null>(null);
-  const [tagging, setTagging] = useState<string[] | null>(null);
+  const [tagging, setTagging] = useState<{ ids: string[]; mode: 'add' | 'remove' } | null>(null);
   const [newTags, setNewTags] = useState<string[]>([]);
   const sort = { key: L.get('sort') || 'CREATED_AT', reverse: L.get('dir') !== 'asc' };
   const terms = [term.trim(), TAB_QUERY[tab], L.get('tag') && `tag:"${L.get('tag').replace(/"/g, '')}"`, L.get('country') && `country:${L.get('country')}`].filter(Boolean).join(' ');
@@ -58,8 +61,8 @@ export function CustomersPage() {
   });
   const count = useQuery({ queryKey: ['customers-count', terms], queryFn: () => gql<{ customersCount: { count: number } }>(CUSTOMERS_COUNT, { query: terms || null }) });
   const bulk = useMutation({
-    mutationFn: async ({ ids, tags }: { ids: string[]; tags?: string[] }) => {
-      await Promise.all(ids.map((id) => (tags ? mutate(TAGS_ADD, { id, tags }, 'tagsAdd') : mutate(CUSTOMER_DELETE, { input: { id } }, 'customerDelete'))));
+    mutationFn: async ({ ids, tags, remove }: { ids: string[]; tags?: string[]; remove?: boolean }) => {
+      await Promise.all(ids.map((id) => (tags ? (remove ? mutate(TAGS_REMOVE, { id, tags }, 'tagsRemove') : mutate(TAGS_ADD, { id, tags }, 'tagsAdd')) : mutate(CUSTOMER_DELETE, { input: { id } }, 'customerDelete'))));
     },
     onSuccess: (_d, v) => { toast(t(v.tags ? 'customers.tagged' : 'customers.deleted', { n: v.ids.length })); setSelected([]); void qc.invalidateQueries({ queryKey: ['customers'] }); },
     onError: (e) => toast(e.message, 'critical'),
@@ -80,7 +83,7 @@ export function CustomersPage() {
     <>
       <PageHeader title={t('nav.customers')} actions={<>{count.data && <span className="text-[13px] text-muted">{t('customers.count', { n: count.data.customersCount.count })}</span>}<ExportButton kind="customers" /><ImportButton kind="customers" invalidate={['customers', 'customers-count']} />{add}</>} />
       <Card className="!p-0">
-        <div className="px-3 pt-1"><Tabs tabs={TABS.map((id) => ({ id, label: t(`customers.tab.${id}` as Key) }))} value={tab} onChange={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v }); }} /></div>
+        <div className="px-3 pt-1"><ViewTabs resource="CUSTOMER" query={terms} tabs={TABS.map((id) => ({ id, label: t(`customers.tab.${id}` as Key) }))} value={tab} onTab={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v, view: '' }); }} /></div>
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
           <div className="relative min-w-48 flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
@@ -97,7 +100,7 @@ export function CustomersPage() {
           selected={selected} onSelectedChange={setSelected} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           sort={sort} onSortChange={(s) => L.patch({ sort: s.key, dir: s.reverse ? '' : 'asc' })}
           onRowClick={(r) => nav(`/customers/${gidToNum(r.id)}`)}
-          bulkActions={[{ key: 'tag', label: t('orders.addTags'), onRun: (ids) => { setNewTags([]); setTagging(ids); } }, { key: 'delete', label: t('common.delete'), danger: true, onRun: setConfirm }]}
+          bulkActions={[{ key: 'tag', label: t('orders.addTags'), onRun: (ids) => { setNewTags([]); setTagging({ ids, mode: 'add' }); } }, { key: 'untag', label: t('products.removeTags'), onRun: (ids) => { setNewTags([]); setTagging({ ids, mode: 'remove' }); } }, { key: 'delete', label: t('common.delete'), danger: true, onRun: setConfirm }]}
           empty={list.isError ? null : terms
             ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} action={<Button onClick={() => { setSearch(''); L.clear(); }}>{t('products.clearFilters')}</Button>} />
             : <EmptyState image={emptyCustomers} title={t('customers.emptyTitle')} description={t('customers.emptyBody')} action={add} />}
@@ -107,8 +110,8 @@ export function CustomersPage() {
           onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
       </Card>
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} danger title={t('customers.deleteTitle', { n: confirm?.length ?? 0 })} message={t('customers.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { if (confirm) bulk.mutate({ ids: confirm }); setConfirm(null); }} />
-      <Modal open={!!tagging} onClose={() => setTagging(null)} title={t('orders.addTags')} closeLabel={t('common.close')}
-        footer={<><Button onClick={() => setTagging(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!newTags.length} onClick={() => { if (tagging) bulk.mutate({ ids: tagging, tags: newTags }); setTagging(null); }}>{t('common.apply')}</Button></>}>
+      <Modal open={!!tagging} onClose={() => setTagging(null)} title={tagging?.mode === 'remove' ? t('products.removeTags') : t('orders.addTags')} closeLabel={t('common.close')}
+        footer={<><Button onClick={() => setTagging(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!newTags.length} onClick={() => { if (tagging) bulk.mutate({ ids: tagging.ids, tags: newTags, remove: tagging.mode === 'remove' }); setTagging(null); }}>{t('common.apply')}</Button></>}>
         <TagInput label={t('field.tags')} value={newTags} onChange={setNewTags} removeLabel={t('common.remove')} />
       </Modal>
     </>

@@ -9,6 +9,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Product shipping fields: package dimensions (length, width, height and unit), country/region of origin and HS code per variant, next to the physical product toggle and weight (the weight already feeds weight-based shipping rates).
+- Variants table: search, option filters, select all with bulk edit of prices and quantities and bulk delete, "Add variant" for a new option value combination, and a per-variant menu (edit option values, duplicate, delete). Deleted combinations are no longer regenerated.
+- Saved views on the Products, Orders, Customers and Inventory lists: save the search, filters and sort as a tab shared by all staff, rename, duplicate, delete and save changes (Admin API `savedSearchCreate`/`Update`/`Delete` and `*SavedSearches`).
+- Inventory bulk actions: edit available or on hand quantities, stop tracking and track quantity for the selected rows, plus a tracked/not tracked filter.
+- Gift card products: "Add gift card product" creates a product flagged as gift card (no shipping, denominations); the order page lists the gift cards issued when it is paid.
+- Products metrics strip over 30 days: average sell-through rate, days of stock remaining and ABC analysis by revenue (`shopmeProductMetrics`).
+- Bulk actions: products (add or remove tags, add to or remove from collections), orders (mark as paid, mark as fulfilled, add or remove tags) and customers (remove tags); Duplicate product dialog with title, media and status.
 - The demo store now ships real product, collection, home page, blog and About page photos (CC0, see `packages/core/assets/demo/README.md`).
 - Illustrated empty states in the admin (products, orders, customers, discounts, collections, analytics).
 - `pnpm screenshots` regenerates the README screenshots from a fresh demo store.

@@ -57,6 +57,13 @@
       "when": 1793841069204,
       "tag": "0007_wave7b_catalog",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793880642112,
+      "tag": "0008_catalog_views_dimensions",
+      "breakpoints": true
     }
   ]
 }

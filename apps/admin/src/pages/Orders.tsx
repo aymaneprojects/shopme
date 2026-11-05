@@ -1,16 +1,17 @@
-import { Banner, Button, Card, EmptyState, IndexTable, Modal, Pagination, Tabs, TagInput, useToast } from '@shopme/ui';
+import { Banner, Button, Card, EmptyState, IndexTable, Modal, Pagination, TagInput, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql, mutate } from '../api';
 import { FinancialBadge, FulfillmentBadge, searchCls, selectCls, useFormat, useListParams } from '../components/shared';
 import type { MoneySet } from '../components/shared';
 import { PageHeader } from '../components/PageHeader';
 import { ExportButton } from '../components/CsvTools';
+import { ViewTabs } from '../components/SavedViews';
 import { gidToNum } from '../format';
-import { ORDERS, ORDERS_COUNT, ORDER_CLOSE, TAGS_ADD } from '../graphql';
+import { FULFILLMENT_CREATE, ORDERS, ORDERS_COUNT, ORDER_CLOSE, ORDER_MARK_AS_PAID, ORDER_UNFULFILLED_LINES, TAGS_ADD, TAGS_REMOVE } from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useDebounced } from '../lib/hooks';
@@ -41,8 +42,10 @@ export function OrdersPage() {
   const tab = (TABS.includes(L.get('tab') as Tab) ? L.get('tab') : 'all') as Tab;
   const [search, setSearch] = useState(L.get('q'));
   const term = useDebounced(search);
+  const urlQ = L.get('q');
+  useEffect(() => { setSearch(urlQ); }, [urlQ]); // a saved view changed the search
   const [selected, setSelected] = useState<string[]>([]);
-  const [tagging, setTagging] = useState<string[] | null>(null);
+  const [tagging, setTagging] = useState<{ ids: string[]; mode: 'add' | 'remove' } | null>(null);
   const [newTags, setNewTags] = useState<string[]>([]);
   const sort = { key: L.get('sort') || 'CREATED_AT', reverse: L.get('dir') !== 'asc' };
 
@@ -60,8 +63,16 @@ export function OrdersPage() {
   const count = useQuery({ queryKey: ['orders-count', terms], queryFn: () => gql<{ ordersCount: { count: number } }>(ORDERS_COUNT, { query: terms || null }) });
 
   const bulk = useMutation({
-    mutationFn: async ({ ids, action, tags }: { ids: string[]; action: 'close' | 'tag'; tags?: string[] }) => {
-      await Promise.all(ids.map((id) => (action === 'close' ? mutate(ORDER_CLOSE, { input: { id } }, 'orderClose') : mutate(TAGS_ADD, { id, tags }, 'tagsAdd'))));
+    mutationFn: async ({ ids, action, tags }: { ids: string[]; action: 'close' | 'tag' | 'untag' | 'paid' | 'fulfilled'; tags?: string[] }) => {
+      await Promise.all(ids.map(async (id) => {
+        if (action === 'close') return mutate(ORDER_CLOSE, { input: { id } }, 'orderClose');
+        if (action === 'tag') return mutate(TAGS_ADD, { id, tags }, 'tagsAdd');
+        if (action === 'untag') return mutate(TAGS_REMOVE, { id, tags }, 'tagsRemove');
+        if (action === 'paid') return mutate(ORDER_MARK_AS_PAID, { input: { id } }, 'orderMarkAsPaid');
+        const r = await gql<{ order: { lineItems: { nodes: Array<{ id: string; unfulfilledQuantity: number }> } } | null }>(ORDER_UNFULFILLED_LINES, { id });
+        const lines = (r.order?.lineItems.nodes ?? []).filter((l) => l.unfulfilledQuantity > 0);
+        if (lines.length) await mutate(FULFILLMENT_CREATE, { fulfillment: { orderId: id, notifyCustomer: true, lineItems: lines.map((l) => ({ id: l.id, quantity: l.unfulfilledQuantity })) } }, 'fulfillmentCreate');
+      }));
     },
     onSuccess: (_d, v) => { toast(t('orders.bulkDone', { n: v.ids.length })); setSelected([]); void qc.invalidateQueries({ queryKey: ['orders'] }); },
     onError: (e) => toast(e.message, 'critical'),
@@ -91,7 +102,7 @@ export function OrdersPage() {
     <>
       <PageHeader title={t('nav.orders')} actions={<>{count.data && <span className="text-[13px] text-muted">{t('orders.count', { n: count.data.ordersCount.count })}</span>}<ExportButton kind="orders" /><Button variant="primary" onClick={() => nav('/orders/drafts/new')}>{t('draft.create')}</Button></>} />
       <Card className="!p-0">
-        <div className="px-3 pt-1"><Tabs tabs={TABS.map((id) => ({ id, label: t(`orders.tab.${id}` as Key) }))} value={tab} onChange={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v }); }} /></div>
+        <div className="px-3 pt-1"><ViewTabs resource="ORDER" query={terms} tabs={TABS.map((id) => ({ id, label: t(`orders.tab.${id}` as Key) }))} value={tab} onTab={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v, view: '' }); }} /></div>
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
           <div className="relative min-w-48 flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
@@ -113,7 +124,10 @@ export function OrdersPage() {
           sort={sort} onSortChange={(s) => L.patch({ sort: s.key, dir: s.reverse ? '' : 'asc' })}
           onRowClick={(r) => nav(`/orders/${gidToNum(r.id)}`)}
           bulkActions={[
-            { key: 'tag', label: t('orders.addTags'), onRun: (ids) => { setNewTags([]); setTagging(ids); } },
+            { key: 'paid', label: t('order.markPaid'), onRun: (ids) => bulk.mutate({ ids, action: 'paid' }) },
+            { key: 'fulfilled', label: t('order.markFulfilled'), onRun: (ids) => bulk.mutate({ ids, action: 'fulfilled' }) },
+            { key: 'tag', label: t('orders.addTags'), onRun: (ids) => { setNewTags([]); setTagging({ ids, mode: 'add' }); } },
+            { key: 'untag', label: t('products.removeTags'), onRun: (ids) => { setNewTags([]); setTagging({ ids, mode: 'remove' }); } },
             { key: 'close', label: t('orders.archive'), onRun: (ids) => bulk.mutate({ ids, action: 'close' }) },
           ]}
           empty={list.isError ? null : hasFilters
@@ -124,8 +138,8 @@ export function OrdersPage() {
           previousLabel={t('common.previous')} nextLabel={t('common.next')}
           onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
       </Card>
-      <Modal open={!!tagging} onClose={() => setTagging(null)} title={t('orders.addTags')} closeLabel={t('common.close')}
-        footer={<><Button onClick={() => setTagging(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!newTags.length} onClick={() => { if (tagging) bulk.mutate({ ids: tagging, action: 'tag', tags: newTags }); setTagging(null); }}>{t('common.apply')}</Button></>}>
+      <Modal open={!!tagging} onClose={() => setTagging(null)} title={tagging?.mode === 'remove' ? t('products.removeTags') : t('orders.addTags')} closeLabel={t('common.close')}
+        footer={<><Button onClick={() => setTagging(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!newTags.length} onClick={() => { if (tagging) bulk.mutate({ ids: tagging.ids, action: tagging.mode === 'add' ? 'tag' : 'untag', tags: newTags }); setTagging(null); }}>{t('common.apply')}</Button></>}>
         <TagInput label={t('field.tags')} value={newTags} onChange={setNewTags} removeLabel={t('common.remove')} />
       </Modal>
     </>
