@@ -86,7 +86,22 @@
       "one": "{{ count }} résultat pour « {{ terms }} »",
       "other": "{{ count }} résultats pour « {{ terms }} »"
     },
-    "no_results": "Aucun résultat pour « {{ terms }} ». Essayez une autre recherche."
+    "no_results": "Aucun résultat pour « {{ terms }} ». Essayez une autre recherche.",
+    "predictive": {
+      "products": "Produits",
+      "collections": "Collections",
+      "pages": "Pages",
+      "articles": "Articles",
+      "queries": "Suggestions",
+      "none": "Aucune suggestion pour « {terms} »",
+      "all": "Rechercher « {terms} »"
+    },
+    "corrected": "Résultats pour « {{ terms }} »",
+    "type": {
+      "product": "Produit",
+      "page": "Page",
+      "article": "Article"
+    }
   },
   "password": {
     "title": "Ouverture prochaine",

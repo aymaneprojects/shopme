@@ -1,10 +1,10 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   addOrderComment, cancelOrder, changeOrderTags, closeOrder, countOrders, createFulfillment, getCustomer, getFulfillment, getOrder, getOrderDetail, getProduct, getVariant, listEvents, listOrders,
   markOrderAsPaid, openOrder, paidAmounts, refundOrder, updateOrder, updateTracking,
   type Fulfillment as FulfillmentRow, type Order as OrderRow, type OrderDetail, type OrderLine, type OrderTransaction as TxRow, type Refund as RefundRow,
 } from '@shopme/core';
-import { parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
+import { formatMoney, parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
 import { ConnectionArgs, defineConnection, paginate, paginateArray, type PageArgs } from '../types/connection';
@@ -324,6 +324,30 @@ Order_.implement({
       currentTotalTaxSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalTax) }),
       currentTotalDiscountsSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalDiscounts) }),
       currentShippingPriceSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalShipping) }),
+      cartDiscountAmountSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => money(o, o.totalDiscounts) }),
+      currentCartDiscountAmountSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalDiscounts) }),
+      totalCapturableSet: t.field({ type: MoneyBag, resolve: (o) => money(o, 0) }),
+      totalTipReceivedSet: t.field({ type: MoneyBag, resolve: (o) => money(o, 0) }),
+      totalRefundedShippingSet: t.field({ type: MoneyBag, resolve: (o) => money(o, 0) }),
+      // Deprecated shop-currency scalars, kept because many clients still select them.
+      ...Object.fromEntries(([
+        ['totalPrice', (o: OrderRow) => o.total], ['subtotalPrice', (o: OrderRow) => o.subtotal], ['totalTax', (o: OrderRow) => o.totalTax], ['totalDiscounts', (o: OrderRow) => o.totalDiscounts],
+        ['totalShippingPrice', (o: OrderRow) => o.totalShipping], ['totalRefunded', (o: OrderRow) => o.totalRefunded], ['cartDiscountAmount', (o: OrderRow) => o.totalDiscounts],
+        ['totalCapturable', () => 0],
+      ] as const).map(([name, f]) => [name, t.field({ type: 'Money', nullable: name === 'subtotalPrice' || name === 'totalTax' || name === 'totalDiscounts' || name === 'cartDiscountAmount', deprecationReason: `Use \`${name}Set\` instead.`, resolve: (o: OrderRow) => formatMoney(f(o), o.currency) })])),
+      totalTipReceived: t.field({ type: MoneyV2, deprecationReason: 'Use `totalTipReceivedSet` instead.', resolve: (o) => moneyV2(0, o.currency) }),
+      totalReceived: t.field({ type: 'Money', deprecationReason: 'Use `totalReceivedSet` instead.', resolve: async (o, _a, ctx) => formatMoney(paidAmounts((await detailOf(ctx, o)).transactions).received, o.currency) }),
+      netPayment: t.field({ type: 'Money', deprecationReason: 'Use `netPaymentSet` instead.', resolve: async (o, _a, ctx) => { const p = paidAmounts((await detailOf(ctx, o)).transactions); return formatMoney(p.received - p.refunded, o.currency); } }),
+      confirmationNumber: t.string({ nullable: true, resolve: (o) => createHash('sha256').update(`order:${o.id}`).digest('hex').slice(0, 9).toUpperCase() }),
+      customerLocale: t.string({ nullable: true, resolve: async (o, _a, ctx) => (o.customerId ? (await getCustomer(ctx.db, ctx.shopId, o.customerId))?.locale ?? null : null) }),
+      customerAcceptsMarketing: t.boolean({ resolve: async (o, _a, ctx) => (o.customerId ? !!(await getCustomer(ctx.db, ctx.shopId, o.customerId))?.acceptsMarketing : false) }),
+      merchantEditable: t.boolean({ resolve: (o) => !o.cancelledAt }),
+      edited: t.boolean({ resolve: () => false }),
+      canNotifyCustomer: t.boolean({ resolve: (o) => !!o.email }),
+      poNumber: t.string({ nullable: true, resolve: () => null }),
+      checkoutToken: t.string({ nullable: true, resolve: (o) => o.cartToken }),
+      sourceIdentifier: t.string({ nullable: true, resolve: () => null }),
+      statusPageUrl: t.field({ type: 'URL', resolve: (o, _a, ctx) => `${ctx.app.config.appUrl}/account/orders/${o.id}` }),
       totalReceivedSet: t.field(set('totalReceivedSet', (_o, d) => paidAmounts(d.transactions).received)),
       netPaymentSet: t.field(set('netPaymentSet', (_o, d) => { const p = paidAmounts(d.transactions); return p.received - p.refunded; })),
       totalOutstandingSet: t.field(set('totalOutstandingSet', outstanding)),
@@ -463,6 +487,7 @@ const FulfillmentInput = builder.inputType('FulfillmentInput', {
     trackingInfo: t.field({ type: FulfillmentTrackingInput }), notifyCustomer: t.boolean({ defaultValue: false }),
     lineItemsByFulfillmentOrder: t.field({ type: [FulfillmentOrderLineItemsInput] }),
     orderId: t.id({ description: 'ShopMe extension: the order to fulfil.' }), lineItems: t.field({ type: [FulfillmentOrderLineItemInput], description: 'ShopMe extension: line item ids (LineItem GIDs) and quantities; omit to fulfil everything left.' }),
+    locationId: t.id({ description: 'ShopMe extension: the location stock ships from (default: the first by priority).' }),
   }),
 });
 const FulfillmentPayload = definePayload<{ fulfillment: FulfillmentShape | null }>('FulfillmentCreatePayload', (t) => ({ fulfillment: t.field({ type: Fulfillment, nullable: true, resolve: (p) => p.fulfillment }) }));
@@ -528,7 +553,7 @@ builder.mutationFields((t) => ({
       const r = await createFulfillment(ctx.db, ctx.shopId, orderId, {
         lines: picks.length ? picks.map((p) => ({ orderLineId: p.id!, quantity: p.quantity })) : null,
         tracking: tr ? { company: tr.company, numbers: tr.numbers ?? (tr.number ? [tr.number] : []), urls: tr.urls ?? (tr.url ? [tr.url] : []) } : null,
-        notifyCustomer: !!f.notifyCustomer, staffId: staffId(ctx),
+        notifyCustomer: !!f.notifyCustomer, staffId: staffId(ctx), locationId: f.locationId ? parseId(String(f.locationId), 'Location') : null,
       });
       return r.ok ? { fulfillment: { ...r.value.fulfillment, order: r.value.order }, userErrors: [] } : { fulfillment: null, userErrors: r.errors };
     },

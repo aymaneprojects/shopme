@@ -5,9 +5,11 @@ import { builder } from '../builder';
 import { requireScope } from '../context';
 import { ConnectionArgs, paginate } from '../types/connection';
 import { Node, legacyId, registerNode } from '../types/node';
+import { Customer_, Order_ } from '../types/sales';
+import { Shop } from './shop';
 import { Collection_, Location_, Metafield_, MetafieldConnection, Product_, ProductVariant, defineTypedPayload, typedError } from '../types/catalog';
 
-const MetafieldOwnerType = builder.enumType('MetafieldOwnerType', {
+export const MetafieldOwnerType = builder.enumType('MetafieldOwnerType', {
   values: [
     'API_PERMISSION', 'COMPANY', 'COMPANY_LOCATION', 'PAYMENT_CUSTOMIZATION', 'VALIDATION', 'CUSTOMER', 'DELIVERY_CUSTOMIZATION', 'DRAFTORDER', 'GIFT_CARD_TRANSACTION', 'TRANSFER',
     'MARKET', 'CARTTRANSFORM', 'COLLECTION', 'MEDIA_IMAGE', 'PRODUCT', 'PRODUCTVARIANT', 'SELLING_PLAN', 'ARTICLE', 'BLOG', 'PAGE', 'FULFILLMENT_CONSTRAINT_RULE',
@@ -52,6 +54,9 @@ withMetafields(Product_, 'PRODUCT');
 withMetafields(ProductVariant, 'PRODUCTVARIANT');
 withMetafields(Collection_, 'COLLECTION');
 withMetafields(Location_, 'LOCATION');
+withMetafields(Customer_, 'CUSTOMER');
+withMetafields(Order_, 'ORDER');
+withMetafields(Shop, 'SHOP');
 
 const MetafieldsSetInput = builder.inputType('MetafieldsSetInput', {
   fields: (t) => ({ ownerId: t.id({ required: true }), namespace: t.string(), key: t.string({ required: true }), value: t.string({ required: true }), compareDigest: t.string(), type: t.string() }),

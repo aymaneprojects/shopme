@@ -14,6 +14,8 @@ export interface CollectionRef { id: string; title: string }
 export interface ProductForm {
   title: string; descriptionHtml: string; status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
   vendor: string; productType: string; tags: string[]; templateSuffix: string; handle: string;
+  /** Taxonomy category GID, or empty. */
+  category: string;
   seoTitle: string; seoDescription: string;
   options: OptionDef[]; variants: VariantDraft[];
   media: GalleryItem[]; collections: CollectionRef[];
@@ -22,7 +24,8 @@ export interface ProductForm {
 /** Shape of the `product(id:)` query (see graphql/products.ts). */
 export interface ApiProduct {
   id: string; title: string; handle: string; descriptionHtml: string; status: ProductForm['status']; vendor: string; productType: string;
-  tags: string[]; templateSuffix: string | null; updatedAt: string;
+  tags: string[]; templateSuffix: string | null; updatedAt: string; onlineStorePreviewUrl?: string | null;
+  category?: { id: string; fullName: string } | null;
   seo: { title: string | null; description: string | null };
   options: Array<{ id: string; name: string; values: string[] }>;
   media: { nodes: Array<{ id: string; alt: string | null; image?: { url: string } }> };
@@ -32,6 +35,8 @@ export interface ApiProduct {
 export interface ApiVariant {
   id: string; title: string; sku: string | null; barcode: string | null; price: string; compareAtPrice: string | null; taxable: boolean; inventoryPolicy: 'DENY' | 'CONTINUE';
   selectedOptions: Array<{ name: string; value: string }>;
+  media?: { nodes: Array<{ id: string }> };
+  unitPriceMeasurement?: { quantityValue: number; quantityUnit: string; referenceValue: number; referenceUnit: string } | null;
   inventoryItem: {
     id: string; tracked: boolean; requiresShipping: boolean; unitCost: { amount: string } | null; measurement: { weight: { unit: WeightUnit; value: number } | null } | null;
     inventoryLevels: { nodes: Array<{ location: { id: string }; quantities: Array<{ name: string; quantity: number }> }> };
@@ -42,7 +47,7 @@ export const isPersistedMedia = (i: GalleryItem) => i.key.startsWith('gid://');
 
 export function emptyForm(locations: LocationRef[]): ProductForm {
   return {
-    title: '', descriptionHtml: '', status: 'DRAFT', vendor: '', productType: '', tags: [], templateSuffix: '', handle: '', seoTitle: '', seoDescription: '',
+    title: '', descriptionHtml: '', status: 'DRAFT', vendor: '', productType: '', tags: [], templateSuffix: '', handle: '', category: '', seoTitle: '', seoDescription: '',
     options: [], variants: [blankVariant({ quantities: Object.fromEntries(locations.map((l) => [l.id, '0'])) })], media: [], collections: [],
   };
 }
@@ -54,17 +59,19 @@ export function formFromProduct(p: ApiProduct, locations: LocationRef[]): Produc
     const levels = Object.fromEntries(locations.map((l) => [l.id, '0']));
     for (const lv of v.inventoryItem.inventoryLevels.nodes) levels[lv.location.id] = String(lv.quantities.find((q) => q.name === 'available')?.quantity ?? 0);
     const w = v.inventoryItem.measurement?.weight;
+    const u = v.unitPriceMeasurement;
     return {
       key: v.id, id: v.id, inventoryItemId: v.inventoryItem.id,
       optionValues: defaultTitle ? [] : options.map((o) => v.selectedOptions.find((s) => s.name === o.name)?.value ?? ''),
       price: v.price, compareAtPrice: v.compareAtPrice ?? '', cost: v.inventoryItem.unitCost?.amount ?? '', sku: v.sku ?? '', barcode: v.barcode ?? '',
       taxable: v.taxable, tracked: v.inventoryItem.tracked, continueSelling: v.inventoryPolicy === 'CONTINUE', requiresShipping: v.inventoryItem.requiresShipping,
-      weight: w ? String(w.value) : '', weightUnit: w?.unit ?? 'KILOGRAMS', quantities: levels,
+      weight: w ? String(w.value) : '', weightUnit: w?.unit ?? 'KILOGRAMS', quantities: levels, mediaId: v.media?.nodes[0]?.id ?? '',
+      unitQuantity: u ? String(u.quantityValue) : '', unitQuantityUnit: u?.quantityUnit || 'L', unitReference: u ? String(u.referenceValue) : '1', unitReferenceUnit: u?.referenceUnit || 'L',
     };
   });
   return {
     title: p.title, descriptionHtml: p.descriptionHtml, status: p.status === 'ARCHIVED' || p.status === 'ACTIVE' ? p.status : 'DRAFT',
-    vendor: p.vendor, productType: p.productType, tags: p.tags, templateSuffix: p.templateSuffix ?? '', handle: p.handle,
+    vendor: p.vendor, productType: p.productType, tags: p.tags, templateSuffix: p.templateSuffix ?? '', handle: p.handle, category: p.category?.id ?? '',
     seoTitle: p.seo.title ?? '', seoDescription: p.seo.description ?? '', options, variants,
     media: p.media.nodes.filter((m) => m.image).map((m) => ({ key: m.id, url: m.image!.url, alt: m.alt ?? '' })),
     collections: p.collections.nodes.filter((c) => !c.ruleSet).map((c) => ({ id: c.id, title: c.title })),
@@ -82,6 +89,12 @@ export function validate(f: ProductForm): Record<string, 'title' | 'price'> {
 const dec = (s: string) => toDecimalString(parseDecimal(s));
 const absolute = (url: string) => new URL(url, window.location.origin).href;
 
+/** Unit price measurement input, or null (clears it) when the quantity is empty. */
+function unitOf(v: VariantDraft) {
+  const q = parseDecimal(v.unitQuantity), r = parseDecimal(v.unitReference);
+  return q && q > 0 && r && r > 0 ? { quantityValue: q, quantityUnit: v.unitQuantityUnit, referenceValue: Math.round(r), referenceUnit: v.unitReferenceUnit } : null;
+}
+
 function variantInput(v: VariantDraft, options: OptionDef[], locations: LocationRef[], create: boolean) {
   const weight = parseDecimal(v.weight);
   return {
@@ -92,6 +105,8 @@ function variantInput(v: VariantDraft, options: OptionDef[], locations: Location
     taxable: v.taxable,
     barcode: v.barcode.trim() || null,
     inventoryPolicy: v.continueSelling ? 'CONTINUE' : 'DENY',
+    ...(v.id ? { mediaId: v.mediaId || null } : v.mediaId ? { mediaId: v.mediaId } : {}),
+    unitPriceMeasurement: unitOf(v),
     inventoryItem: {
       sku: v.sku.trim() || null, tracked: v.tracked, cost: dec(v.cost), requiresShipping: v.requiresShipping,
       ...(v.requiresShipping && weight !== null && { measurement: { weight: { value: weight, unit: v.weightUnit } } }),
@@ -124,7 +139,7 @@ async function syncVariants(productId: string, form: ProductForm, original: Vari
 function productInput(f: ProductForm) {
   return {
     title: f.title.trim(), descriptionHtml: f.descriptionHtml, status: f.status, vendor: f.vendor.trim(), productType: f.productType.trim(),
-    tags: f.tags, templateSuffix: f.templateSuffix.trim() || null,
+    tags: f.tags, templateSuffix: f.templateSuffix.trim() || null, category: f.category || null,
     seo: { title: f.seoTitle.trim() || null, description: f.seoDescription.trim() || null },
     ...(f.handle.trim() && { handle: f.handle.trim() }),
   };

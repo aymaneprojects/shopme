@@ -296,6 +296,14 @@ export async function updateCollection(db: Db, shopId: number, id: number, input
   });
 }
 
+/** Publish to / unpublish from the Online Store (collections carry a `publishedAt`). */
+export async function setCollectionPublished(db: Db, shopId: number, id: number, publish: boolean): Promise<Result<Collection>> {
+  const cur = await getCollection(db, shopId, id);
+  if (!cur) return errR(['id'], 'Collection does not exist', 'NOT_FOUND');
+  const [row] = await db.update(collections).set({ publishedAt: publish ? cur.publishedAt ?? new Date() : null, updatedAt: new Date() }).where(eq(collections.id, id)).returning();
+  return okR(row!);
+}
+
 export async function deleteCollection(db: Db, shopId: number, id: number): Promise<Result<number>> {
   const cur = await getCollection(db, shopId, id);
   if (!cur) return errR(['id'], 'Collection does not exist', 'NOT_FOUND');

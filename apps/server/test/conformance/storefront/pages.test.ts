@@ -29,7 +29,8 @@ describe('routes', () => {
     expect(title((await get('/collections')).body)).toBe('Collections - Little Leaf Coffee &amp; Tea');
     expect(title((await get('/collections/all')).body)).toBe('Products - Little Leaf Coffee &amp; Tea');
     expect(title((await get('/collections/all?page=2')).body)).toContain('Products - Page 2');
-    expect(title((await get('/search?q=tea')).body)).toMatch(/^Search: 2 results found for &quot;tea&quot; - /);
+    expect(title((await get('/search?q=tea&type=product')).body)).toMatch(/^Search: 2 results found for &quot;tea&quot; - /);
+    expect(title((await get('/search?q=tea')).body)).toMatch(/^Search: [2-9] results found for &quot;tea&quot; - /); // products, pages and articles
     expect(title((await get('/search?q=zzzz')).body)).toMatch(/^Search: 0 results found/);
   });
 

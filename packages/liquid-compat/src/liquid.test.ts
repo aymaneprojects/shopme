@@ -92,6 +92,22 @@ describe('filters', () => {
     const sd = await liquid('{{ product | structured_data }}', { product: { title: 'P', url: '/products/p', variants: [{ price: 1500, available: true }] }, shop: { currency: 'EUR' } });
     expect(JSON.parse(sd.replace(/\\u003c/g, '<'))).toMatchObject({ '@type': 'Product', offers: [{ price: '15.00', priceCurrency: 'EUR' }] });
   });
+  it('metafield_text and metafield_tag render typed values; structured_data uses absolute urls', async () => {
+    const mf = (type: string, value: unknown) => ({ type, value, toString: () => String(value) });
+    const ctx = {
+      a: mf('single_line_text_field', 'A <b>'), b: mf('multi_line_text_field', 'x\ny'), c: mf('number_integer', 3), d: mf('url', 'https://e.com'), e: mf('color', '#fff'),
+      f: mf('list.single_line_text_field', ['p', 'q']), g: mf('rating', { value: 4, scale_max: 5 }), h: mf('rich_text_field', '<p>Hi</p>'), i: mf('money', { amount: 1250, currency_code: 'EUR' }), n: null,
+    };
+    expect(await liquid('{{ a | metafield_text }}|{{ b | metafield_text }}|{{ c | metafield_text }}|{{ f | metafield_text }}|{{ g | metafield_text }}|{{ h | metafield_text }}|{{ i | metafield_text }}|{{ n | metafield_text }}', ctx))
+      .toBe('A &lt;b&gt;|x<br>y|3|p, q|4 / 5|Hi|12.50 EUR|');
+    expect(await liquid('{{ a | metafield_tag }}', ctx)).toBe('<span class="metafield-single_line_text_field">A &lt;b&gt;</span>');
+    expect(await liquid('{{ d | metafield_tag }}', ctx)).toBe('<a href="https://e.com" class="metafield-url">https://e.com</a>');
+    expect(await liquid('{{ f | metafield_tag }}', ctx)).toBe('<ul class="metafield-list_single_line_text_field"><li><span class="metafield-single_line_text_field">p</span></li><li><span class="metafield-single_line_text_field">q</span></li></ul>');
+    expect(await liquid('{{ h | metafield_tag }}', ctx)).toBe('<div class="metafield-rich_text_field"><p>Hi</p></div>');
+    const sd = await liquid('{{ product | structured_data }}', { product: { title: 'P', url: '/products/p', variants: [{ price: 1500, available: true, sku: 'S1' }] }, shop: { currency: 'EUR', name: 'S' }, request: { origin: 'https://s.test' } });
+    expect(JSON.parse(sd.replace(/\\u003c/g, '<'))).toMatchObject({ url: 'https://s.test/products/p', sku: 'S1', offers: [{ url: expect.any(String), availability: 'http://schema.org/InStock', seller: { name: 'S' } }] });
+    expect(await liquid('{{ p | json }}', { p: { title: 'x', metafields: { custom: { a: 1 } } } })).toBe('{"title":"x"}');
+  });
   it('standard LiquidJS filters used by themes exist', () => {
     const theme = new Theme({});
     const names = Object.keys(createEngine(theme).filters);

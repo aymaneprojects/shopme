@@ -2,7 +2,7 @@
 
 export const LOCATIONS = /* GraphQL */ `
   query Locations {
-    locations(first: 50) { nodes { id name isActive } }
+    locations(first: 50, sortKey: PRIORITY) { nodes { id name isActive fulfillsOnlineOrders } }
   }
 `;
 

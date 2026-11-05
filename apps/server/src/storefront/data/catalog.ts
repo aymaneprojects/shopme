@@ -1,5 +1,6 @@
-import { and, asc, eq, ilike, inArray, or, sql, type SQL } from 'drizzle-orm';
-import { schema as s, type Db } from '@shopme/core';
+import { and, asc, eq, inArray, sql, type SQL } from 'drizzle-orm';
+import { schema as s, searchProducts, type Db } from '@shopme/core';
+import { loadMetafields } from './metafields';
 import type { Image, ProductObject, VariantObject } from './types';
 
 type ProductRow = typeof s.products.$inferSelect;
@@ -34,7 +35,7 @@ export async function variantStock(db: Db, shopId: number, productIds: number[])
 export async function loadProducts(db: Db, shopId: number, ids: number[], opts: { selectedVariantId?: number } = {}): Promise<ProductObject[]> {
   if (!ids.length) return [];
   const prods = await db.select().from(s.products).where(and(eq(s.products.shopId, shopId), inArray(s.products.id, ids)));
-  const [variants, optionRows, valueRows, vov, mediaRows, items, stock] = await Promise.all([
+  const [variants, optionRows, valueRows, vov, mediaRows, items, stock, productMf] = await Promise.all([
     db.select().from(s.productVariants).where(inArray(s.productVariants.productId, ids)).orderBy(asc(s.productVariants.position), asc(s.productVariants.id)),
     db.select().from(s.productOptions).where(inArray(s.productOptions.productId, ids)).orderBy(asc(s.productOptions.position)),
     db.select({ v: s.productOptionValues, productId: s.productOptions.productId }).from(s.productOptionValues).innerJoin(s.productOptions, eq(s.productOptions.id, s.productOptionValues.optionId)).where(inArray(s.productOptions.productId, ids)).orderBy(asc(s.productOptionValues.position)),
@@ -43,7 +44,9 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
     db.select({ variantId: s.inventoryItems.variantId, requiresShipping: s.inventoryItems.requiresShipping, tracked: s.inventoryItems.tracked, weight: s.inventoryItems.weightValue, unit: s.inventoryItems.weightUnit })
       .from(s.inventoryItems).innerJoin(s.productVariants, eq(s.productVariants.id, s.inventoryItems.variantId)).where(inArray(s.productVariants.productId, ids)),
     variantStock(db, shopId, ids),
+    loadMetafields(db, shopId, 'PRODUCT', ids),
   ]);
+  const variantMf = await loadMetafields(db, shopId, 'PRODUCTVARIANT', variants.map((v) => v.id));
   const grams: Record<string, number> = { GRAMS: 1, KILOGRAMS: 1000, POUNDS: 453.59237, OUNCES: 28.349523125 };
   const byId = new Map(prods.map((p) => [p.id, p]));
   const out: ProductObject[] = [];
@@ -62,6 +65,7 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
       const item = items.find((x) => x.variantId === v.id);
       const img = v.mediaId ? images.find((m) => m.id === v.mediaId) ?? null : null;
       const defaultTitle = options.length === 0;
+      const unit = v.unitQuantityValue && v.unitReferenceValue ? { quantity_value: v.unitQuantityValue, quantity_unit: v.unitQuantityUnit ?? '', reference_value: v.unitReferenceValue, reference_unit: v.unitReferenceUnit ?? '' } : null;
       return {
         id: v.id, title: v.title, public_title: defaultTitle ? null : v.title, name: `${p.title}${defaultTitle ? '' : ` - ${v.title}`}`,
         option1: optVals[0] ?? (defaultTitle ? v.title : null), option2: optVals[1] ?? null, option3: optVals[2] ?? null, options: optVals.filter((x): x is string => !!x).length ? optVals.filter((x): x is string => !!x) : [v.title],
@@ -70,7 +74,7 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
         requires_shipping: item?.requiresShipping ?? true, taxable: v.taxable, weight: Math.round((item?.weight ?? 0) * (grams[item?.unit ?? 'GRAMS'] ?? 1)), weight_unit: 'g',
         featured_image: img, featured_media: img, image: img, url: `/products/${p.handle}?variant=${v.id}`, position: i + 1, product_id: id,
         quantity_rule: { min: 1, max: null, increment: 1 }, quantity_price_breaks: [], selling_plan_allocations: [], requires_selling_plan: false,
-        unit_price_measurement: null, unit_price: null, metafields: {}, created_at: iso(v.createdAt), updated_at: iso(v.updatedAt),
+        unit_price_measurement: unit, unit_price: unit ? Math.round((v.price / unit.quantity_value) * unit.reference_value) : null, metafields: variantMf.get(v.id) ?? {}, created_at: iso(v.createdAt), updated_at: iso(v.updatedAt),
       } satisfies VariantObject;
     });
     const prices = vObjs.map((v) => v.price);
@@ -88,15 +92,16 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
       options: options.map((o) => o.name),
       options_with_values: options.map((o, i) => ({ name: o.name, position: o.position, values: valueRows.filter((v) => v.v.optionId === o.id).map((v) => v.v.name), selected_value: selected?.options[i] ?? (selected ? null : (firstAvailable ?? vObjs[0])?.options[i] ?? null) })),
       has_only_default_variant: onlyDefault, selected_variant: selected, first_available_variant: firstAvailable, selected_or_first_available_variant: selected ?? firstAvailable ?? vObjs[0] ?? null,
-      template_suffix: p.templateSuffix ?? '', gift_card: p.isGiftCard, 'gift_card?': p.isGiftCard, requires_selling_plan: false, selling_plan_groups: [], metafields: {},
+      template_suffix: p.templateSuffix ?? '', gift_card: p.isGiftCard, 'gift_card?': p.isGiftCard, requires_selling_plan: false, selling_plan_groups: [], metafields: productMf.get(id) ?? {},
       published_at: iso(p.publishedAt), created_at: iso(p.createdAt), updated_at: iso(p.updatedAt), seo: { title: p.seoTitle, description: p.seoDescription },
     });
   }
   return out;
 }
 
-export async function getProductByHandle(db: Db, shopId: number, handle: string, opts: { selectedVariantId?: number } = {}): Promise<ProductObject | null> {
-  const [p] = await db.select({ id: s.products.id }).from(s.products).where(and(eq(s.products.shopId, shopId), eq(s.products.handle, handle), eq(s.products.status, 'ACTIVE'))).limit(1);
+/** `includeInactive` lets signed-in staff preview drafts and archived products. */
+export async function getProductByHandle(db: Db, shopId: number, handle: string, opts: { selectedVariantId?: number; includeInactive?: boolean } = {}): Promise<ProductObject | null> {
+  const [p] = await db.select({ id: s.products.id }).from(s.products).where(and(eq(s.products.shopId, shopId), eq(s.products.handle, handle), opts.includeInactive ? undefined : eq(s.products.status, 'ACTIVE'))).limit(1);
   return p ? (await loadProducts(db, shopId, [p.id], opts))[0] ?? null : null;
 }
 
@@ -110,17 +115,19 @@ export type SortKey = (typeof SORT_KEYS)[number];
 const COLLECTION_SORT: Record<string, SortKey> = { ALPHA_ASC: 'title-ascending', ALPHA_DESC: 'title-descending', BEST_SELLING: 'best-selling', CREATED: 'created-ascending', CREATED_DESC: 'created-descending', MANUAL: 'manual', PRICE_ASC: 'price-ascending', PRICE_DESC: 'price-descending' };
 export const defaultSort = (collectionSortOrder: string | undefined): SortKey => COLLECTION_SORT[collectionSortOrder ?? 'MANUAL'] ?? 'manual';
 
-export interface ListScope { collectionId?: number; q?: string }
+export interface ListScope { collectionId?: number; q?: string; prefix?: 'last' | 'none' }
 export interface ListOptions { sort?: SortKey; tag?: string; filters?: Record<string, string[]> }
 interface Candidate { id: number; title: string; vendor: string; type: string; tags: string[]; createdAt: Date; pos: number; priceMin: number; priceMax: number; available: boolean; options: Map<string, string[]> }
 
-async function candidates(db: Db, shopId: number, scope: ListScope, wantOptions: boolean): Promise<Candidate[]> {
+async function candidates(db: Db, shopId: number, scope: ListScope, wantOptions: boolean, corrected: { value: string | null }): Promise<Candidate[]> {
   const conds: SQL[] = [eq(s.products.shopId, shopId), eq(s.products.status, 'ACTIVE')];
+  let rank: Map<number, number> | null = null;
   if (scope.q) {
-    for (const term of scope.q.split(/\s+/).filter(Boolean)) {
-      const like = `%${term.replace(/[%_\\]/g, '\\$&')}%`;
-      conds.push(or(ilike(s.products.title, like), ilike(s.products.vendor, like), ilike(s.products.productType, like), ilike(s.products.descriptionHtml, like), sql`array_to_string(${s.products.tags}, ' ') ilike ${like}`)!);
-    }
+    const found = await searchProducts(db, shopId, scope.q, { prefix: scope.prefix });
+    rank = new Map(found.ids.map((id, i) => [id, i]));
+    corrected.value = found.corrected;
+    if (!found.ids.length) return [];
+    conds.push(inArray(s.products.id, found.ids));
   }
   const base = scope.collectionId
     ? await db.select({ p: s.products, pos: s.collectionProducts.position }).from(s.collectionProducts).innerJoin(s.products, eq(s.products.id, s.collectionProducts.productId)).where(and(eq(s.collectionProducts.collectionId, scope.collectionId), ...conds))
@@ -133,7 +140,8 @@ async function candidates(db: Db, shopId: number, scope: ListScope, wantOptions:
     optionMap = new Map();
     for (const r of rows) { const m = optionMap.get(r.productId) ?? new Map<string, string[]>(); m.set(r.name, [...(m.get(r.name) ?? []), r.value]); optionMap.set(r.productId, m); }
   }
-  return base.map(({ p, pos }: { p: ProductRow; pos: number }) => {
+  return base.map(({ p, pos: pos0 }: { p: ProductRow; pos: number }) => {
+    const pos = rank ? rank.get(p.id) ?? 0 : pos0;
     const vs = stock.filter((v) => v.productId === p.id);
     return { id: p.id, title: p.title, vendor: p.vendor, type: p.productType, tags: p.tags, createdAt: p.createdAt, pos, priceMin: Math.min(...vs.map((v) => v.price), Infinity), priceMax: Math.max(...vs.map((v) => v.price), 0), available: vs.some((v) => v.available), options: optionMap.get(p.id) ?? new Map() };
   });
@@ -175,11 +183,12 @@ function sortCandidates(list: Candidate[], sort: SortKey): Candidate[] {
 export interface FilterValue { label: string; value: string; count: number; active: boolean; param_name: string }
 export interface FilterGroup { label: string; param_name: string; type: 'list' | 'price_range'; values?: FilterValue[]; min_value?: { value: number }; max_value?: { value: number }; range_max?: number; active_values: FilterValue[]; url_to_remove: string }
 
-export interface Listing { ids: number[]; total: number; allCount: number; groups: FilterGroup[]; tags: string[]; types: string[]; vendors: string[] }
+export interface Listing { corrected: string | null; ids: number[]; total: number; allCount: number; groups: FilterGroup[]; tags: string[]; types: string[]; vendors: string[] }
 
 /** Ids (sorted and filtered) plus filter facets for a collection or search scope. */
 export async function listProducts(db: Db, shopId: number, scope: ListScope, o: ListOptions, withFacets: boolean): Promise<Listing> {
-  const all = await candidates(db, shopId, scope, withFacets);
+  const corrected = { value: null as string | null };
+  const all = await candidates(db, shopId, scope, withFacets, corrected);
   const filtered = applyFilters(all, o);
   const sorted = sortCandidates(filtered, o.sort ?? 'manual');
   const groups: FilterGroup[] = [];
@@ -204,7 +213,7 @@ export async function listProducts(db: Db, shopId: number, scope: ListScope, o: 
     if (vendors.length > 1) groups.push(list('Vendor', 'p.vendor', vendors, 'p.vendor'));
   }
   return {
-    ids: sorted.map((c) => c.id), total: sorted.length, allCount: all.length, groups,
+    corrected: corrected.value, ids: sorted.map((c) => c.id), total: sorted.length, allCount: all.length, groups,
     tags: [...new Set(all.flatMap((c) => c.tags))].sort(), types: [...new Set(all.map((c) => c.type).filter(Boolean))].sort(), vendors: [...new Set(all.map((c) => c.vendor).filter(Boolean))].sort(),
   };
 }

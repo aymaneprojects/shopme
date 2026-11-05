@@ -14,6 +14,11 @@
         <link rel="alternate" hreflang="{{ language.iso_code }}" href="{{ language.url }}">
       {%- endfor -%}
       {%- for language in localization.available_languages -%}{%- if language.primary -%}<link rel="alternate" hreflang="x-default" href="{{ language.url }}">{%- endif -%}{%- endfor -%}
+    {%- else -%}
+      {%- for language in localization.available_languages -%}
+        <link rel="alternate" hreflang="{{ language.iso_code | replace: '_', '-' }}" href="{{ canonical_url }}">
+      {%- endfor -%}
+      <link rel="alternate" hreflang="x-default" href="{{ canonical_url }}">
     {%- endif -%}
     <meta property="og:site_name" content="{{ shop.name | escape }}">
     <meta property="og:title" content="{{ page_title | escape }}">

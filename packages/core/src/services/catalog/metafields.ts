@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import type { UserError } from '@shopme/shopify-compat';
-import { collections, customers, locations, metafields, orders, productVariants, products, shops } from '../../db/schema';
+import { collections, customers, locations, metafieldDefinitions, metafields, orders, productVariants, products, shops } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { emit, txResult, type Result } from './common';
 
@@ -16,7 +16,7 @@ export const OWNER_TYPE_BY_GID: Record<string, keyof typeof OWNER_TABLES> = {
   Product: 'PRODUCT', ProductVariant: 'PRODUCTVARIANT', Collection: 'COLLECTION', Location: 'LOCATION', Shop: 'SHOP', Customer: 'CUSTOMER', Order: 'ORDER',
 };
 
-const BASE_TYPES = [
+export const METAFIELD_BASE_TYPES = [
   'single_line_text_field', 'multi_line_text_field', 'rich_text_field', 'number_integer', 'number_decimal', 'boolean', 'json', 'date', 'date_time', 'color', 'url',
   'weight', 'volume', 'dimension', 'money', 'rating', 'id', 'product_reference', 'variant_reference', 'collection_reference', 'file_reference', 'page_reference',
   'customer_reference', 'metaobject_reference', 'mixed_reference',
@@ -27,7 +27,7 @@ export const digest = (m: Pick<Metafield, 'type' | 'value'>) => createHash('sha2
 /** Returns an error message when `value` does not fit `type`, else null. */
 export function validateMetafieldValue(type: string, value: string): string | null {
   const base = type.startsWith('list.') ? type.slice(5) : type;
-  if (!BASE_TYPES.includes(base)) return `Type '${type}' is not a valid metafield type.`;
+  if (!METAFIELD_BASE_TYPES.includes(base)) return `Type '${type}' is not a valid metafield type.`;
   if (type.startsWith('list.')) {
     try { if (!Array.isArray(JSON.parse(value))) return 'Value must be a JSON array.'; } catch { return 'Value must be a JSON array.'; }
     return null;
@@ -80,7 +80,9 @@ export async function setMetafieldsTx(tx: Executor, shopId: number, inputs: Meta
     if (!/^[A-Za-z0-9_-]{2,64}$/.test(m.key)) { errors.push({ field: at('key'), message: 'Key is invalid (2-64 letters, digits, - and _).', code: 'INVALID' }); continue; }
     if (!(await ownerExists(tx, shopId, m.ownerType, m.ownerId))) { errors.push({ field: at('ownerId'), message: 'Owner does not exist.', code: 'INVALID' }); continue; }
     const [cur] = await tx.select().from(metafields).where(and(eq(metafields.shopId, shopId), eq(metafields.ownerType, m.ownerType), eq(metafields.ownerId, m.ownerId), eq(metafields.namespace, namespace), eq(metafields.key, m.key)));
-    const type = m.type || cur?.type;
+    const [def] = await tx.select({ type: metafieldDefinitions.type }).from(metafieldDefinitions).where(and(eq(metafieldDefinitions.shopId, shopId), eq(metafieldDefinitions.ownerType, m.ownerType), eq(metafieldDefinitions.namespace, namespace), eq(metafieldDefinitions.key, m.key)));
+    const type = m.type || cur?.type || def?.type;
+    if (def && type !== def.type) { errors.push({ field: at('type'), message: `Type must be ${def.type} to match the metafield definition.`, code: 'INVALID_TYPE' }); continue; }
     if (!type) { errors.push({ field: at('type'), message: 'Type must be specified.', code: 'INVALID_TYPE' }); continue; }
     const bad = validateMetafieldValue(type, m.value);
     if (bad) { errors.push({ field: at('value'), message: bad, code: bad.startsWith('Type') ? 'INVALID_TYPE' : 'INVALID_VALUE' }); continue; }

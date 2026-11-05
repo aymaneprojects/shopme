@@ -7,7 +7,7 @@ import { Node, legacyId, registerNode } from '../types/node';
 import { InventoryLevelConnection, Location_, LocationConnection, MetafieldInput, defineTypedPayload } from '../types/catalog';
 import { setMetafields } from '@shopme/core';
 
-const LocationSortKeys = builder.enumType('LocationSortKeys', { values: ['CREATED_AT', 'ID', 'NAME', 'RELEVANCE'] as const });
+const LocationSortKeys = builder.enumType('LocationSortKeys', { values: ['CREATED_AT', 'ID', 'NAME', 'RELEVANCE', 'PRIORITY'] as const });
 
 const LocationAddress = builder.objectRef<Location>('LocationAddress').implement({
   fields: (t) => ({

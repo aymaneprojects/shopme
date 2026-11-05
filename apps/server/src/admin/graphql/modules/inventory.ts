@@ -114,7 +114,7 @@ const InventoryChange = builder.objectRef<AppliedChange>('InventoryChange').impl
   }),
 });
 
-const InventoryAdjustmentGroup = builder.objectRef<AdjustmentGroup>('InventoryAdjustmentGroup').implement({
+export const InventoryAdjustmentGroup = builder.objectRef<AdjustmentGroup>('InventoryAdjustmentGroup').implement({
   interfaces: [Node],
   fields: (t) => ({
     createdAt: t.field({ type: 'DateTime', resolve: (g) => g.createdAt }),

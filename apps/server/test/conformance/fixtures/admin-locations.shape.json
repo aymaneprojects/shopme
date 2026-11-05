@@ -3,6 +3,10 @@
   "rootType": "Location",
   "fields": [
     {
+      "path": "activatable",
+      "type": "Boolean!"
+    },
+    {
       "path": "address",
       "type": "LocationAddress!"
     },
@@ -15,7 +19,23 @@
       "type": "String"
     },
     {
+      "path": "deactivatable",
+      "type": "Boolean!"
+    },
+    {
+      "path": "deactivatedAt",
+      "type": "String"
+    },
+    {
+      "path": "deletable",
+      "type": "Boolean!"
+    },
+    {
       "path": "fulfillsOnlineOrders",
+      "type": "Boolean!"
+    },
+    {
+      "path": "hasUnfulfilledOrders",
       "type": "Boolean!"
     },
     {
@@ -24,6 +44,10 @@
     },
     {
       "path": "isActive",
+      "type": "Boolean!"
+    },
+    {
+      "path": "isPrimary",
       "type": "Boolean!"
     },
     {

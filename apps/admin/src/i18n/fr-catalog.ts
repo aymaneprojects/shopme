@@ -1,0 +1,42 @@
+import type { enCatalog } from './en-catalog';
+
+export const frCatalog: Record<keyof typeof enCatalog, string> = {
+  'settings.locations': 'Emplacements', 'settings.metafields': 'Données personnalisées',
+  'loc.intro': 'Les lieux où vous stockez et expédiez vos produits. Les commandes en ligne sont préparées depuis le premier emplacement de cette liste qui a le stock.',
+  'loc.add': 'Ajouter un emplacement', 'loc.edit': 'Modifier l’emplacement', 'loc.saved': 'Emplacement enregistré', 'loc.emptyTitle': 'Aucun emplacement', 'loc.emptyBody': 'Ajoutez un emplacement pour suivre où se trouve votre stock.',
+  'loc.name': 'Nom de l’emplacement', 'loc.address1': 'Adresse', 'loc.address2': 'Appartement, bâtiment, etc.', 'loc.zip': 'Code postal', 'loc.city': 'Ville', 'loc.country': 'Pays', 'loc.phone': 'Téléphone',
+  'loc.fulfillsOnline': 'Préparer les commandes en ligne depuis cet emplacement', 'loc.primary': 'Par défaut', 'loc.inactive': 'Inactif', 'loc.noOnline': 'Pas de commandes en ligne', 'loc.noAddress': 'Aucune adresse',
+  'loc.priority': 'Priorité {n}', 'loc.moveUp': 'Monter', 'loc.moveDown': 'Descendre',
+  'loc.allocationHelp': 'Allocation du stock : une commande en ligne utilise le premier emplacement actif, par priorité, qui prépare les commandes en ligne et détient toute la quantité. Sinon elle est répartie entre les emplacements par ordre de priorité.',
+  'loc.deactivate': 'Désactiver', 'loc.activate': 'Activer', 'loc.activated': 'Emplacement activé', 'loc.deactivated': 'Emplacement désactivé',
+  'loc.deactivateTitle': 'Désactiver {name} ?', 'loc.deactivateBody': 'L’emplacement ne reçoit plus de stock ni de commandes. Vous pourrez le réactiver plus tard.',
+  'loc.deactivateStock': 'Cet emplacement contient encore du stock. Choisissez où le déplacer.', 'loc.moveStockTo': 'Déplacer le stock vers', 'loc.chooseLocation': 'Choisir un emplacement',
+
+  'mf.title': 'Métachamps', 'mf.intro': 'Définissez des champs personnalisés pour vos ressources. Ils ont un éditeur typé sur chaque produit, variante, collection, client et commande, et apparaissent dans Liquid sous `ressource.metafields.espace.cle`.',
+  'mf.owner.PRODUCT': 'Produits', 'mf.owner.PRODUCTVARIANT': 'Variantes', 'mf.owner.COLLECTION': 'Collections', 'mf.owner.CUSTOMER': 'Clients', 'mf.owner.ORDER': 'Commandes',
+  'mf.addDefinition': 'Ajouter une définition', 'mf.editDefinition': 'Modifier la définition', 'mf.defSaved': 'Définition enregistrée', 'mf.defDeleted': 'Définition supprimée',
+  'mf.emptyTitle': 'Aucune définition', 'mf.emptyBody': 'Ajoutez-en une pour donner à ce type de ressource un champ personnalisé, comme « Matière » ou « Conseils d’entretien ».',
+  'mf.name': 'Nom', 'mf.namespace': 'Espace de noms', 'mf.key': 'Clé', 'mf.type': 'Type', 'mf.description': 'Description', 'mf.typeLocked': 'Le type ne peut plus changer après la création.',
+  'mf.listCheckbox': 'Liste de valeurs', 'mf.listOf': 'Liste de {type}', 'mf.pin': 'Afficher en haut de l’éditeur', 'mf.pinned': 'Épinglé', 'mf.valuesCount': '{n} valeurs',
+  'mf.deleteTitle': 'Supprimer {name} ?', 'mf.deleteBody': 'La définition est supprimée. Les {n} valeurs enregistrées restent sur leurs ressources comme métachamps simples, sauf si vous les supprimez aussi.', 'mf.deleteValues': 'Supprimer aussi toutes les valeurs enregistrées',
+  'mf.none': 'Aucun métachamp. Ajoutez des définitions dans les paramètres, ou une valeur ci-dessous.', 'mf.addValue': 'Ajouter un métachamp sans définition', 'mf.value': 'Valeur', 'mf.save': 'Enregistrer les métachamps', 'mf.saved': 'Métachamps enregistrés',
+  'mf.variantMetafields': 'Métachamps de la variante', 'mf.colorPicker': 'sélecteur de couleur',
+  'mf.listHelp': 'Une valeur par ligne.', 'mf.jsonHelp': 'JSON valide.', 'mf.richHelp': 'HTML, ou JSON de texte enrichi.', 'mf.referenceHelp': 'L’identifiant (GID) de la ressource référencée.',
+  'mf.type.single_line_text_field': 'Texte sur une ligne', 'mf.type.multi_line_text_field': 'Texte multiligne', 'mf.type.rich_text_field': 'Texte enrichi', 'mf.type.number_integer': 'Nombre entier',
+  'mf.type.number_decimal': 'Nombre décimal', 'mf.type.boolean': 'Vrai ou faux', 'mf.type.date': 'Date', 'mf.type.date_time': 'Date et heure', 'mf.type.url': 'URL', 'mf.type.color': 'Couleur', 'mf.type.json': 'JSON',
+  'mf.type.file_reference': 'Fichier', 'mf.type.product_reference': 'Produit', 'mf.type.collection_reference': 'Collection', 'mf.type.variant_reference': 'Variante', 'mf.type.page_reference': 'Page',
+  'mf.type.weight': 'Poids', 'mf.type.volume': 'Volume', 'mf.type.dimension': 'Dimension', 'mf.type.money': 'Montant', 'mf.type.rating': 'Note', 'mf.type.id': 'Identifiant',
+  'mf.type.customer_reference': 'Client', 'mf.type.metaobject_reference': 'Métaobjet', 'mf.type.mixed_reference': 'Référence mixte',
+
+  'inventory.move': 'Déplacer', 'inventory.moveTitle': 'Déplacer du stock', 'inventory.moveTo': 'Déplacer vers', 'inventory.moveQuantity': 'Quantité', 'inventory.moved': 'Stock déplacé',
+  'products.bulkEdit': 'Modifier en masse', 'bulk.title': 'Éditeur en masse', 'bulk.location': 'Emplacement du stock', 'bulk.saved': '{n} variantes mises à jour', 'bulk.invalid': '{n} valeurs sont invalides',
+  'bulk.help': 'Cliquez sur une cellule pour la modifier. Les flèches et Entrée passent d’une cellule à l’autre. Les prix sont en {currency}. Le stock est la quantité disponible à l’emplacement choisi.',
+  'bulk.emptyTitle': 'Aucun produit sélectionné', 'bulk.emptyBody': 'Sélectionnez des produits dans la liste puis choisissez « Modifier en masse ».',
+
+  'pricing.unitPrice': 'Prix unitaire', 'pricing.unitQuantity': 'Quantité totale', 'pricing.unitReference': 'Mesure de base', 'pricing.unitUnit': 'Unité',
+  'pricing.unitPriceHelp': 'Affiche un prix par unité de mesure, par exemple pour 100 ml.', 'pricing.unitPriceShown': 'Affiché aux clients : {price} pour {ref}',
+  'variants.image': 'Image de la variante', 'variants.noImage': 'Aucune', 'variants.noMedia': 'Ajoutez des médias au produit pour choisir une image de variante.', 'variants.useImage': 'Utiliser cette image',
+  'product.category': 'Catégorie de produit', 'product.categoryHelp': 'Détermine les taux de taxe et améliore la recherche et les recommandations.', 'product.noCategory': 'Aucune catégorie',
+  'product.duplicate': 'Dupliquer', 'product.duplicated': 'Produit dupliqué', 'product.copyOf': 'Copie de {title}', 'product.preview': 'Aperçu', 'product.viewOnStore': 'Voir sur la boutique en ligne',
+  'order.fulfillFrom': 'Expédier depuis', 'order.fulfillFromHelp': 'Le stock part de l’emplacement où il a d’abord été réservé.', 'order.fulfillFromAuto': 'Là où le stock est réservé',
+};

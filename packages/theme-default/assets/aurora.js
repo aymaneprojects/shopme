@@ -175,3 +175,67 @@
     });
   }
 }());
+
+/* Predictive search: header toggle, debounced /search/suggest.json (products, collections, pages, articles, queries), keyboard navigation. */
+(function () {
+  'use strict';
+  var panel = document.querySelector('[data-predictive-search]');
+  if (!panel) return;
+  var toggle = document.querySelector('[data-search-toggle]');
+  var input = panel.querySelector('[data-predictive-input]');
+  var out = panel.querySelector('[data-predictive-results]');
+  var labels = {};
+  try { labels = JSON.parse(out.getAttribute('data-labels') || '{}'); } catch (e) { labels = {}; }
+  var A = window.aurora || {};
+  var timer, ctrl, cache = {};
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function open(show) {
+    panel.hidden = !show;
+    if (toggle) toggle.setAttribute('aria-expanded', show ? 'true' : 'false');
+    if (show) input.focus();
+  }
+  function group(title, items) {
+    return items.length ? '<div class="predictive-search__group"><h3>' + esc(title) + '</h3><ul>' + items.join('') + '</ul></div>' : '';
+  }
+  function row(url, inner) { return '<li><a class="predictive-search__item" role="option" href="' + esc(url) + '">' + inner + '</a></li>'; }
+  function render(r, term) {
+    var res = (r && r.resources && r.resources.results) || {};
+    var html = '';
+    html += group(labels.queries, (res.queries || []).map(function (q) { return row(q.url, '<span>' + (q.styled_text || esc(q.text)) + '</span>'); }));
+    html += group(labels.products, (res.products || []).map(function (p) {
+      return row(p.url, (p.image ? '<img src="' + esc(p.image) + '" alt="" loading="lazy" width="44" height="44">' : '') + '<span>' + esc(p.title) + '<br><span class="predictive-search__price">' + esc(A.currency || '') + ' ' + esc(p.price) + '</span></span>');
+    }));
+    html += group(labels.collections, (res.collections || []).map(function (c) { return row(c.url, '<span>' + esc(c.title) + '</span>'); }));
+    html += group(labels.articles, (res.articles || []).map(function (a) { return row(a.url, '<span>' + esc(a.title) + '</span>'); }));
+    html += group(labels.pages, (res.pages || []).map(function (p) { return row(p.url, '<span>' + esc(p.title) + '</span>'); }));
+    var empty = !html;
+    out.innerHTML = empty ? '<p class="empty">' + esc((labels.none || '').replace('{terms}', term)) + '</p>'
+      : html + '<div class="predictive-search__group"><a class="predictive-search__item" href="/search?q=' + encodeURIComponent(term) + '">' + esc((labels.all || '').replace('{terms}', term)) + '</a></div>';
+    input.setAttribute('aria-expanded', empty ? 'false' : 'true');
+  }
+  function query() {
+    var term = input.value.trim();
+    if (!term) { out.innerHTML = ''; input.setAttribute('aria-expanded', 'false'); return; }
+    if (cache[term]) return render(cache[term], term);
+    if (ctrl) ctrl.abort();
+    ctrl = window.AbortController ? new AbortController() : null;
+    var url = (panel.getAttribute('data-url') || '/search/suggest') + '.json?q=' + encodeURIComponent(term) + '&resources[type]=query,product,collection,article,page&resources[limit]=4&resources[options][fields]=title,product_type,variants.title,vendor';
+    fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl ? ctrl.signal : undefined })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { cache[term] = j; if (input.value.trim() === term) render(j, term); })
+      .catch(function () {});
+  }
+  if (toggle) toggle.addEventListener('click', function (e) { e.preventDefault(); open(panel.hidden); });
+  input.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(query, 180); });
+  panel.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { open(false); if (toggle) toggle.focus(); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    var links = Array.prototype.slice.call(out.querySelectorAll('a'));
+    if (!links.length) return;
+    e.preventDefault();
+    var i = links.indexOf(document.activeElement);
+    var next = e.key === 'ArrowDown' ? (i + 1) % links.length : (i <= 0 ? -1 : i - 1);
+    if (next < 0) input.focus(); else links[next].focus();
+  });
+}());

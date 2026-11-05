@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { normalizeTags } from './common';
 import { ruleMatches } from './collections';
 import { parseSearch } from './search';
+import { editDistance, tokenize } from './storefront-search';
+import { getCategory, searchCategories } from './taxonomy';
+import { validateMetafieldValue } from './metafields';
 
 describe('search parser', () => {
   it('parses fields, negation, operators, quotes and OR groups', () => {
@@ -42,5 +45,37 @@ describe('smart collection rules', () => {
     expect(m('VARIANT_INVENTORY', 'LESS_THAN', '5')).toBe(true);
     expect(m('VARIANT_WEIGHT', 'GREATER_THAN', '4.4')).toBe(true); // 2 kg = 4.41 lb
     expect(m('IS_PRICE_REDUCED', 'EQUALS', 'true')).toBe(true);
+  });
+});
+
+describe('storefront search helpers', () => {
+  it('tokenizes on letters and digits, keeping accents', () => {
+    expect(tokenize('Café-au-lait, 250g!')).toEqual(['café', 'au', 'lait', '250g']);
+    expect(tokenize('  ')).toEqual([]);
+  });
+  it('measures edit distance with transpositions', () => {
+    expect(editDistance('espreso', 'espresso')).toBe(1);
+    expect(editDistance('cofee', 'coffee')).toBe(1);
+    expect(editDistance('teh', 'the')).toBe(1);
+    expect(editDistance('tea', 'coffee')).toBeGreaterThan(2);
+  });
+});
+
+describe('taxonomy', () => {
+  it('finds categories by full name and by id', () => {
+    expect(searchCategories('shoes').map((c) => c.fullName)).toEqual(['Apparel & Accessories > Shoes']);
+    expect(getCategory(searchCategories('shoes')[0]!.id)?.name).toBe('Shoes');
+    expect(getCategory('nope')).toBeNull();
+    expect(searchCategories().length).toBeGreaterThan(20);
+  });
+});
+
+describe('metafield value validation', () => {
+  it('checks the types the definitions editor offers', () => {
+    expect(validateMetafieldValue('number_integer', '3.5')).toMatch(/integer/);
+    expect(validateMetafieldValue('color', '#00ff00')).toBeNull();
+    expect(validateMetafieldValue('list.single_line_text_field', '["a"]')).toBeNull();
+    expect(validateMetafieldValue('list.single_line_text_field', 'a')).toMatch(/array/);
+    expect(validateMetafieldValue('nope', 'x')).toMatch(/not a valid/);
   });
 });

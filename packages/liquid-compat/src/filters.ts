@@ -2,6 +2,7 @@ import { createHash, createHmac } from 'node:crypto';
 import type { Liquid } from 'liquidjs';
 import { renderMoneyFormat } from '@shopme/shopify-compat';
 import { registerColorFilters } from './filters-color';
+import { registerMetafieldFilters } from './filters-metafield';
 import { attrs, escapeHtml, rtOf, splitArgs, type Runtime } from './runtime';
 import { lookupKey, parseFont } from './theme';
 
@@ -64,7 +65,8 @@ function translate(this: FilterThis, key: string, ...args: unknown[]): string {
 
 function jsonSafe(v: unknown): string {
   const seen = new WeakSet<object>();
-  const s = JSON.stringify(v ?? null, (_k, val) => {
+  const s = JSON.stringify(v ?? null, (k, val) => {
+    if (k === 'metafields') return undefined; // like Shopify, `| json` of a resource omits metafields
     if (typeof val === 'bigint') return Number(val);
     if (val && typeof val === 'object') { if (seen.has(val)) return undefined; seen.add(val); }
     return val;
@@ -249,19 +251,31 @@ export function registerFilters(l: Liquid): void {
   reg('structured_data', function (v: any) {
     if (!v || typeof v !== 'object') return '{}';
     const shop = this.context.getSync(['shop']) as any;
+    const origin = str((this.context.getSync(['request', 'origin']) as string | undefined) ?? shop?.url).replace(/\/$/, '');
+    const abs = (u: unknown) => { const x = str(u); return x.startsWith('//') ? `https:${x}` : x.startsWith('/') ? origin + x : x; };
     const money = (c: unknown) => (num(c) / 100).toFixed(2);
     const variants = (v.variants ?? []) as any[];
+    const images = ((v.images ?? (v.featured_image ? [v.featured_image] : [])) as any[]).map((i) => abs(imageSrc(i))).filter(Boolean);
+    const single = variants.length === 1;
+    const mf = v.metafields?.reviews;
+    const rating = mf?.rating?.value, count = mf?.rating_count?.value;
     return jsonSafe({
-      '@context': 'http://schema.org/', '@type': 'Product', name: v.title, url: v.url, description: str(v.description).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
-      image: v.featured_image ? [imageSrc(v.featured_image)] : undefined, brand: v.vendor ? { '@type': 'Brand', name: v.vendor } : undefined,
-      offers: variants.map((x) => ({ '@type': 'Offer', sku: x.sku || undefined, price: money(x.price), priceCurrency: shop?.currency, availability: x.available ? 'http://schema.org/InStock' : 'http://schema.org/OutOfStock', url: x.url })),
+      '@context': 'http://schema.org/', '@type': 'Product', '@id': `${abs(v.url)}#product`, name: v.title, url: abs(v.url), description: str(v.description).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+      image: images.length ? images : undefined, brand: v.vendor ? { '@type': 'Brand', name: v.vendor } : undefined, category: v.type || undefined,
+      sku: single ? variants[0]?.sku || undefined : undefined, gtin: single ? variants[0]?.barcode || undefined : undefined,
+      aggregateRating: rating && count ? { '@type': 'AggregateRating', ratingValue: String(rating.value ?? rating), reviewCount: String(count) } : undefined,
+      offers: variants.map((x) => ({
+        '@type': 'Offer', sku: x.sku || undefined, gtin: x.barcode || undefined, price: money(x.price), priceCurrency: shop?.currency, itemCondition: 'http://schema.org/NewCondition',
+        availability: x.available ? 'http://schema.org/InStock' : 'http://schema.org/OutOfStock', url: abs(x.url), seller: { '@type': 'Organization', name: shop?.name },
+      })),
     });
   });
-  for (const n of ['payment_terms', 'payment_button', 'login_button', 'metafield_tag', 'standard_event_data']) reg(n, () => '');
+  for (const n of ['payment_terms', 'payment_button', 'login_button', 'standard_event_data']) reg(n, () => '');
   reg('applicable_disclosures', () => []);
   reg('unit_price_with_measurement', () => '');
   reg('payment_type_svg_tag', (v) => `<svg class="icon icon--full-color" viewBox="0 0 38 24" role="img" aria-label="${escapeHtml(v)}" xmlns="http://www.w3.org/2000/svg"><rect width="36" height="22" x="1" y="1" rx="3" fill="#fff" stroke="#999"/><text x="19" y="15" font-size="6" text-anchor="middle" fill="#333">${escapeHtml(str(v).slice(0, 8))}</text></svg>`);
   reg('payment_type_img_url', (v) => `/cdn/shopme/payment-${handleize(v)}.svg`);
 
   registerColorFilters(l);
+  registerMetafieldFilters(l);
 }

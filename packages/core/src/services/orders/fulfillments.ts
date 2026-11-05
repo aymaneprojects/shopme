@@ -2,7 +2,7 @@ import { eq, and, asc, gt, sql } from 'drizzle-orm';
 import { fulfillmentLines, fulfillments, inventoryAdjustments, inventoryItems, inventoryLevels, orderLines, orders } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { errR, okR, txResult, type Result } from '../catalog/common';
-import { defaultLocationId } from '../catalog/inventory';
+import { defaultLocationId, getLocation } from '../catalog/inventory';
 import { addEvent } from '../events';
 import { getOrder, getOrderDetail, type Fulfillment, type Order } from './orders';
 
@@ -10,13 +10,13 @@ import { getOrder, getOrderDetail, type Fulfillment, type Order } from './orders
  * Goods leave the building: release the stock committed by the order and take it off the shelf (committed and on_hand both go
  * down, available is unchanged since it was already reserved at checkout). No-op for untracked variants.
  */
-async function shipCommittedStock(tx: Executor, shopId: number, variantId: number | null, quantity: number, orderId: number): Promise<void> {
+async function shipCommittedStock(tx: Executor, shopId: number, variantId: number | null, quantity: number, orderId: number, preferred?: number | null): Promise<void> {
   if (!variantId || quantity <= 0) return;
   const [item] = await tx.select({ id: inventoryItems.id, tracked: inventoryItems.tracked }).from(inventoryItems)
     .where(and(eq(inventoryItems.shopId, shopId), eq(inventoryItems.variantId, variantId))).limit(1);
   if (!item?.tracked) return;
   const levels = await tx.select().from(inventoryLevels)
-    .where(and(eq(inventoryLevels.inventoryItemId, item.id), eq(inventoryLevels.shopId, shopId), gt(inventoryLevels.committed, 0))).orderBy(asc(inventoryLevels.id));
+    .where(and(eq(inventoryLevels.inventoryItemId, item.id), eq(inventoryLevels.shopId, shopId), gt(inventoryLevels.committed, 0))).orderBy(sql`(${inventoryLevels.locationId} = ${preferred ?? 0}) desc`, asc(inventoryLevels.id));
   let left = quantity;
   for (const lv of levels) {
     if (left <= 0) break;
@@ -39,7 +39,7 @@ export interface TrackingInput { company?: string | null; numbers?: string[]; ur
  * Sets the order's fulfillment status (UNFULFILLED -> PARTIALLY_FULFILLED -> FULFILLED).
  */
 export async function createFulfillment(
-  db: Db, shopId: number, orderId: number, o: { lines?: { orderLineId: number; quantity: number }[] | null; tracking?: TrackingInput | null; notifyCustomer?: boolean; staffId?: number | null },
+  db: Db, shopId: number, orderId: number, o: { lines?: { orderLineId: number; quantity: number }[] | null; tracking?: TrackingInput | null; notifyCustomer?: boolean; staffId?: number | null; locationId?: number | null },
 ): Promise<Result<{ order: Order; fulfillment: Fulfillment }>> {
   const order = await getOrder(db, shopId, orderId);
   if (!order) return errR(['fulfillment', 'orderId'], 'Order does not exist');
@@ -56,8 +56,10 @@ export async function createFulfillment(
       if (!line) return errR(['fulfillment', 'lineItems', String(i), 'id'], 'Line item does not exist');
       if (p.quantity <= 0 || p.quantity > remaining(line)) return errR(['fulfillment', 'lineItems', String(i), 'quantity'], `Quantity must be between 1 and ${remaining(line)}`);
     }
+    if (o.locationId && !(await getLocation(tx, shopId, o.locationId))?.isActive) return errR(['fulfillment', 'locationId'], 'Location does not exist or is inactive');
+    const locationId = o.locationId ?? (await defaultLocationId(tx, shopId));
     const [f] = await tx.insert(fulfillments).values({
-      shopId, orderId, locationId: await defaultLocationId(tx, shopId), name: `${order.name}.${d.fulfillments.length + 1}`, status: 'SUCCESS',
+      shopId, orderId, locationId, name: `${order.name}.${d.fulfillments.length + 1}`, status: 'SUCCESS',
       trackingCompany: o.tracking?.company ?? null, trackingNumbers: o.tracking?.numbers ?? [], trackingUrls: o.tracking?.urls ?? [], notifyCustomer: !!o.notifyCustomer,
     }).returning();
     const lines = await tx.insert(fulfillmentLines).values(picks.map((p) => ({ shopId, fulfillmentId: f!.id, orderLineId: p.orderLineId, quantity: p.quantity }))).returning();
@@ -65,7 +67,7 @@ export async function createFulfillment(
       const line = d.lines.find((l) => l.id === p.orderLineId)!;
       line.fulfilledQuantity += p.quantity;
       await tx.update(orderLines).set({ fulfilledQuantity: line.fulfilledQuantity }).where(eq(orderLines.id, line.id));
-      await shipCommittedStock(tx, shopId, line.variantId, p.quantity, orderId);
+      await shipCommittedStock(tx, shopId, line.variantId, p.quantity, orderId, locationId);
     }
     const all = d.lines.every((l) => remaining(l) <= 0);
     const [updated] = await tx.update(orders).set({ fulfillmentStatus: all ? 'FULFILLED' : 'PARTIALLY_FULFILLED', updatedAt: new Date() }).where(eq(orders.id, orderId)).returning();

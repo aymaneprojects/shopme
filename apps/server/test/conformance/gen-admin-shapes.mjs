@@ -54,9 +54,50 @@ function walk(value, typeName, prefix, out) {
   }
 }
 
+/** Paths that ShopMe implements beyond what the recorded samples happened to select (commonly used fields of the SDL). Types come from the SDL. */
+function addExtra(out, rootType, paths) {
+  for (const path of paths) {
+    let cur = rootType;
+    const segs = [];
+    for (const key of path.split('.')) {
+      const t = types.get(cur)?.get(key);
+      if (!t) { console.warn(`extra path ${rootType}.${path}: ${cur}.${key} is not in the SDL`); break; }
+      segs.push(key);
+      out.set(segs.join('.'), t);
+      if (t.startsWith('[')) segs[segs.length - 1] = `${key}[]`;
+      cur = named(t);
+    }
+  }
+}
+
+const EXTRA = {
+  products: [
+    'priceRange.minVariantPrice.amount', 'priceRange.minVariantPrice.currencyCode', 'priceRange.maxVariantPrice.amount', 'compareAtPriceRange', 'totalVariants', 'onlineStorePreviewUrl',
+    'category', 'requiresSellingPlan', 'giftCardTemplateSuffix', 'hasVariantsThatRequiresComponents', 'availablePublicationsCount.count', 'resourcePublicationsCount.count',
+    'publishedOnCurrentPublication', 'variants.nodes.unitPriceMeasurement', 'variants.nodes.showUnitPrice', 'variants.nodes.taxCode', 'variants.nodes.requiresComponents',
+    'variants.nodes.sellableOnlineQuantity', 'variants.nodes.inventoryItem.locationsCount.count', 'variants.nodes.inventoryItem.duplicateSkuCount', 'variants.nodes.inventoryItem.trackedEditable.locked',
+  ],
+  collections: ['publishedOnCurrentPublication', 'availablePublicationsCount.count', 'resourcePublicationsCount.count'],
+  locations: ['isPrimary', 'activatable', 'deactivatable', 'deletable', 'deactivatedAt', 'hasUnfulfilledOrders'],
+  orders: [
+    'totalPrice', 'subtotalPrice', 'totalTax', 'totalShippingPrice', 'totalDiscounts', 'totalRefunded', 'totalReceived', 'netPayment', 'totalCapturable', 'totalTipReceived', 'cartDiscountAmount',
+    'cartDiscountAmountSet.shopMoney.amount', 'currentCartDiscountAmountSet.shopMoney.amount', 'totalCapturableSet.shopMoney.amount', 'totalTipReceivedSet.shopMoney.amount',
+    'totalRefundedShippingSet.shopMoney.amount', 'confirmationNumber', 'customerLocale', 'customerAcceptsMarketing', 'merchantEditable', 'edited', 'canNotifyCustomer', 'poNumber',
+    'checkoutToken', 'sourceIdentifier', 'returnStatus', 'statusPageUrl',
+  ],
+  customers: ['lastOrder', 'statistics.predictedSpendTier', 'statistics.rfmGroup', 'emailMarketingConsent', 'smsMarketingConsent', 'canDelete', 'lifetimeDuration', 'unsubscribeUrl'],
+  shop: [
+    'contactEmail', 'shopAddress.address1', 'shopAddress.countryCodeV2', 'billingAddress.city', 'currencySettings.nodes.currencyCode', 'currencySettings.nodes.currencyName', 'currencySettings.nodes.enabled',
+    'enabledPresentmentCurrencies', 'plan.displayName', 'plan.partnerDevelopment', 'plan.shopifyPlus', 'setupRequired', 'checkoutApiSupported', 'timezoneAbbreviation', 'timezoneOffset',
+    'timezoneOffsetMinutes', 'orderNumberFormatPrefix', 'orderNumberFormatSuffix', 'taxShipping', 'shipsToCountries', 'features.storefront', 'unitSystem', 'currencyCode', 'ianaTimezone',
+    'primaryDomain.url', 'myshopifyDomain', 'weightUnit', 'taxesIncluded',
+  ],
+};
+
 function write(name, rootType, root, nodes) {
   const out = new Map();
   walk(nodes, rootType, '', out);
+  addExtra(out, rootType, EXTRA[name] ?? []);
   const fields = [...out].map(([p, type]) => ({ path: p, type })).sort((a, b) => a.path.localeCompare(b.path));
   writeFileSync(path.join(outDir, `admin-${name}.shape.json`), `${JSON.stringify({ root, rootType, fields }, null, 2)}\n`);
   console.log(`admin-${name}.shape.json: ${fields.length} paths`);
@@ -68,3 +109,4 @@ write('collections', 'Collection', 'collections', sample('collections').data.col
 write('locations', 'Location', 'locations', sample('shop').data.locations.nodes);
 write('orders', 'Order', 'orders', sample('orders').data.orders.nodes);
 write('customers', 'Customer', 'customers', sample('customers').data.customers.nodes);
+write('shop', 'Shop', 'shop', {});

@@ -37,7 +37,7 @@ modules/<name>.ts one file per feature (shop.ts is the worked example)
 - **Money**: store integer minor units; expose with `moneyBag(minor, currency)` (`MoneyBag`), `moneyV2(...)`, or the `Money` /
   `Decimal` scalars via `formatMoney` / `formatDecimal`. `DateTime` accepts `Date` or ISO string.
 - **Scopes**: call `requireScope(ctx, 'read_products')` (staff sessions hold every scope; `write_x` satisfies `read_x`).
-- `extensions.cost` is a stub (`cost.ts`).
+- `extensions.cost` is computed in `cost.ts` (requested and actual cost, per-shop throttle bucket); requests are never refused.
 
 ## Testing a module
 

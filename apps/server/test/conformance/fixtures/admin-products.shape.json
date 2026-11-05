@@ -3,12 +3,28 @@
   "rootType": "Product",
   "fields": [
     {
+      "path": "availablePublicationsCount",
+      "type": "Count"
+    },
+    {
+      "path": "availablePublicationsCount.count",
+      "type": "Int!"
+    },
+    {
+      "path": "category",
+      "type": "TaxonomyCategory"
+    },
+    {
       "path": "collections",
       "type": "CollectionConnection!"
     },
     {
       "path": "collections.nodes",
       "type": "[Collection!]!"
+    },
+    {
+      "path": "compareAtPriceRange",
+      "type": "ProductCompareAtPriceRange"
     },
     {
       "path": "createdAt",
@@ -47,8 +63,16 @@
       "type": "Int"
     },
     {
+      "path": "giftCardTemplateSuffix",
+      "type": "String"
+    },
+    {
       "path": "handle",
       "type": "String!"
+    },
+    {
+      "path": "hasVariantsThatRequiresComponents",
+      "type": "Boolean!"
     },
     {
       "path": "id",
@@ -73,6 +97,10 @@
     {
       "path": "metafields.nodes",
       "type": "[Metafield!]!"
+    },
+    {
+      "path": "onlineStorePreviewUrl",
+      "type": "URL"
     },
     {
       "path": "options",
@@ -111,6 +139,30 @@
       "type": "[String!]!"
     },
     {
+      "path": "priceRange",
+      "type": "ProductPriceRange!"
+    },
+    {
+      "path": "priceRange.maxVariantPrice",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "priceRange.maxVariantPrice.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "priceRange.minVariantPrice",
+      "type": "MoneyV2!"
+    },
+    {
+      "path": "priceRange.minVariantPrice.amount",
+      "type": "Decimal!"
+    },
+    {
+      "path": "priceRange.minVariantPrice.currencyCode",
+      "type": "CurrencyCode!"
+    },
+    {
       "path": "priceRangeV2",
       "type": "ProductPriceRangeV2!"
     },
@@ -147,6 +199,22 @@
       "type": "DateTime"
     },
     {
+      "path": "publishedOnCurrentPublication",
+      "type": "Boolean!"
+    },
+    {
+      "path": "requiresSellingPlan",
+      "type": "Boolean!"
+    },
+    {
+      "path": "resourcePublicationsCount",
+      "type": "Count"
+    },
+    {
+      "path": "resourcePublicationsCount.count",
+      "type": "Int!"
+    },
+    {
       "path": "seo",
       "type": "SEO!"
     },
@@ -173,6 +241,10 @@
     {
       "path": "title",
       "type": "String!"
+    },
+    {
+      "path": "totalVariants",
+      "type": "Int!"
     },
     {
       "path": "updatedAt",
@@ -215,6 +287,10 @@
       "type": "CountryCode"
     },
     {
+      "path": "variants.nodes[].inventoryItem.duplicateSkuCount",
+      "type": "Int!"
+    },
+    {
       "path": "variants.nodes[].inventoryItem.harmonizedSystemCode",
       "type": "String"
     },
@@ -251,6 +327,14 @@
       "type": "Int!"
     },
     {
+      "path": "variants.nodes[].inventoryItem.locationsCount",
+      "type": "Count"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.locationsCount.count",
+      "type": "Int!"
+    },
+    {
       "path": "variants.nodes[].inventoryItem.measurement",
       "type": "InventoryItemMeasurement!"
     },
@@ -275,6 +359,14 @@
       "type": "Boolean!"
     },
     {
+      "path": "variants.nodes[].inventoryItem.trackedEditable",
+      "type": "EditableProperty!"
+    },
+    {
+      "path": "variants.nodes[].inventoryItem.trackedEditable.locked",
+      "type": "Boolean!"
+    },
+    {
       "path": "variants.nodes[].inventoryPolicy",
       "type": "ProductVariantInventoryPolicy!"
     },
@@ -295,6 +387,10 @@
       "type": "Money!"
     },
     {
+      "path": "variants.nodes[].requiresComponents",
+      "type": "Boolean!"
+    },
+    {
       "path": "variants.nodes[].selectedOptions",
       "type": "[SelectedOption!]!"
     },
@@ -307,6 +403,14 @@
       "type": "String!"
     },
     {
+      "path": "variants.nodes[].sellableOnlineQuantity",
+      "type": "Int!"
+    },
+    {
+      "path": "variants.nodes[].showUnitPrice",
+      "type": "Boolean!"
+    },
+    {
       "path": "variants.nodes[].sku",
       "type": "String"
     },
@@ -315,8 +419,16 @@
       "type": "Boolean!"
     },
     {
+      "path": "variants.nodes[].taxCode",
+      "type": "String"
+    },
+    {
       "path": "variants.nodes[].title",
       "type": "String!"
+    },
+    {
+      "path": "variants.nodes[].unitPriceMeasurement",
+      "type": "UnitPriceMeasurement"
     },
     {
       "path": "vendor",

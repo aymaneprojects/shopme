@@ -1,13 +1,14 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { and, eq, ne } from 'drizzle-orm';
-import { findRedirect, listArticles, safeEqual, schema as s, sha256, type CartView, type Shop } from '@shopme/core';
+import { findRedirect, safeEqual, searchArticles, searchPages, searchProducts, suggestQueries, tokenize, schema as s, sha256, type CartView, type Shop } from '@shopme/core';
 import { formatMoney } from '@shopme/shopify-compat';
 import type { AppContext } from '../context';
 import { authenticate } from '../plugins/auth';
 import { getCollection, getProductByHandle, listCollections, listProducts, loadProducts } from './data/catalog';
 import { getPage, listPages, policiesOf } from './data/content';
 import { flashGlobals, takeFlash } from './flash';
+import { collectionAtom } from './seo';
 import type { ProductObject } from './data/types';
 import { buildCollection, buildGlobals, buildSearch, makeEnv, makeResolvers, pageInput, primaryShop, trPage, trProduct, type Env, type Query } from './env';
 import { CONSENT_COOKIE, cookieBannerHtml, injectCookieBanner } from './cookie-banner';
@@ -204,7 +205,11 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       if (second === 'products' && third && segs.length === 3) return productPage(req, reply, shop, env, third.replace(/\.(js|json|oembed)$/, ''), handleRaw);
       if (second === 'products.json' && segs.length === 2) return productsJson(req, reply, shop, handleRaw);
       if (segs.length === 2 && second === 'products' ) return notFound(req, reply, shop, env);
-      if (handleRaw.endsWith('.atom') || segs.length > 2) return notFound(req, reply, shop, env);
+      if (handleRaw.endsWith('.atom') && segs.length === 1) {
+        const xml = await collectionAtom(ctx, shop, handleRaw.slice(0, -5));
+        return xml ? reply.type('application/atom+xml; charset=utf-8').send(xml) : notFound(req, reply, shop, env);
+      }
+      if (segs.length > 2) return notFound(req, reply, shop, env);
       const base = await getCollection(db, shop.id, handleRaw);
       if (!base) return notFound(req, reply, shop, env);
       const tag = second;
@@ -220,7 +225,8 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     // --- products
     async function productPage(req: FastifyRequest, reply: FastifyReply, shop: Shop, env: Env, handle: string, collectionHandle?: string) {
       const variantQ = Number(first((req.query as Query).variant));
-      const product = trProduct(env, await getProductByHandle(db, shop.id, handle, { selectedVariantId: Number.isFinite(variantQ) ? variantQ : undefined }));
+      const preview = !!first((req.query as Query).preview) && !!(await authenticate(req));
+      const product = trProduct(env, await getProductByHandle(db, shop.id, handle, { selectedVariantId: Number.isFinite(variantQ) ? variantQ : undefined, includeInactive: preview }));
       if (!product) return notFound(req, reply, shop, env);
       const extra: Record<string, unknown> = { product };
       if (collectionHandle) { const b = await getCollection(db, shop.id, collectionHandle); if (b) extra.collection = await buildCollection(env, b, { withFacets: false }); }
@@ -263,12 +269,14 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     // --- cart page, search, pages, policies
     app.get('/cart', withShop(async (req, reply, shop) => renderTemplate(req, reply, await makeEnv(ctx, req, shop), { template: 'cart', pageType: 'cart', title: 'Cart', suffix: null })));
 
-    app.get('/search', withShop(async (req, reply, shop) => {
+    const searchPage = withShop(async (req, reply, shop) => {
       const env = await makeEnv(ctx, req, shop);
       const q = (first((req.query as Query).q) ?? '').trim();
       const search = await buildSearch(env, q);
       return renderTemplate(req, reply, env, { template: 'search', pageType: 'search', title: q ? `Search: ${search.results_count} results found for "${q}"` : 'Search', extra: { search } });
-    }));
+    });
+    app.get('/search', searchPage);
+    app.get('/search.json', searchPage);
 
     app.get('/search/suggest.json', withShop(async (req, reply, shop) => reply.type('application/json; charset=utf-8').send(await suggest(req, shop))));
     app.get('/search/suggest', withShop(async (req, reply, shop) => {
@@ -284,9 +292,10 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       const term = (first(q.q) ?? '').trim();
       const types = (first(q['resources[type]']) ?? 'product').split(',').map((x) => x.trim());
       const limit = Math.min(10, Math.max(1, parseInt(first(q['resources[limit]']) ?? '10', 10) || 10));
+      const prefix = first(q['resources[options][prefix]']) === 'none' ? 'none' : 'last';
       const results: Record<string, unknown[]> = {};
       if (types.includes('product')) {
-        const ids = term ? (await listProducts(db, shop.id, { q: term }, { sort: 'best-selling' }, false)).ids.slice(0, limit) : [];
+        const ids = term ? (await searchProducts(db, shop.id, term, { prefix, limit })).ids : [];
         results.products = (await loadProducts(db, shop.id, ids)).map((p, i) => ({
           available: p.available, body: p.description.replace(/<[^>]*>/g, ' ').trim().slice(0, 200), compare_at_price_max: dec(p.compare_at_price_max, shop), compare_at_price_min: dec(p.compare_at_price_min, shop), handle: p.handle, id: p.id,
           image: p.featured_image?.src ?? null, price: dec(p.price, shop), price_max: dec(p.price_max, shop), price_min: dec(p.price_min, shop), tags: p.tags, title: p.title, type: p.type,
@@ -294,12 +303,17 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
           featured_image: p.featured_image ? { alt: p.featured_image.alt, aspect_ratio: p.featured_image.aspect_ratio, height: p.featured_image.height, url: p.featured_image.src, width: p.featured_image.width } : null,
         }));
       }
-      if (types.includes('collection')) results.collections = term ? (await listCollections(db, shop.id)).filter((c) => c.title.toLowerCase().includes(term.toLowerCase())).slice(0, limit).map((c) => ({ id: c.id, handle: c.handle, title: c.title, url: `/collections/${c.handle}` })) : [];
-      if (types.includes('page')) results.pages = term ? (await listPages(db, shop.id)).filter((p) => p.title.toLowerCase().includes(term.toLowerCase())).slice(0, limit).map((p) => ({ id: p.id, handle: p.handle, title: p.title, url: p.url, body: p.content.replace(/<[^>]*>/g, ' ').slice(0, 200) })) : [];
-      if (types.includes('article')) {
-        const found = term ? await listArticles(db, shop.id, { query: term, publishedOnly: true, offset: 0, limit }) : [];
-        const blogs = new Map((await db.select({ id: s.blogs.id, handle: s.blogs.handle }).from(s.blogs).where(eq(s.blogs.shopId, shop.id))).map((b) => [b.id, b.handle]));
-        results.articles = found.map((a) => ({ id: a.id, handle: a.handle, title: a.title, author: a.author ?? '', url: `/blogs/${blogs.get(a.blogId)}/${a.handle}`, body: a.bodyHtml.replace(/<[^>]*>/g, ' ').slice(0, 200), published_at: a.publishedAt?.toISOString() ?? null }));
+      if (types.includes('collection')) {
+        const tokens = tokenize(term);
+        results.collections = tokens.length ? (await listCollections(db, shop.id)).filter((c) => tokens.every((t) => c.title.toLowerCase().includes(t))).slice(0, limit).map((c) => ({ id: c.id, handle: c.handle, title: c.title, url: `/collections/${c.handle}`, body: c.description.replace(/<[^>]*>/g, ' ').trim().slice(0, 200), image: c.image?.src ?? null })) : [];
+      }
+      if (types.includes('page')) results.pages = (await searchPages(db, shop.id, term, limit)).map((p) => ({ id: p.id, handle: p.handle, title: p.title, url: `/pages/${p.handle}`, body: p.bodyHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200), author: '', published_at: p.publishedAt?.toISOString() ?? null, tags: [], updated_at: p.updatedAt.toISOString() }));
+      if (types.includes('article')) results.articles = (await searchArticles(db, shop.id, term, limit)).map(({ a, blogHandle }) => ({ id: a.id, handle: a.handle, title: a.title, author: a.author ?? '', url: `/blogs/${blogHandle}/${a.handle}`, body: a.bodyHtml.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200), published_at: a.publishedAt?.toISOString() ?? null, tags: a.tags, image: null }));
+      if (types.includes('query')) {
+        results.queries = (await suggestQueries(db, shop.id, term, limit)).map((text) => {
+          const lead = tokenize(term).join(' ');
+          return { text, styled_text: text.startsWith(lead) ? `${escapeHtml(lead)}<mark>${escapeHtml(text.slice(lead.length))}</mark>` : escapeHtml(text), url: `/search?q=${encodeURIComponent(text)}&_pos=1&_psq=${encodeURIComponent(term)}&_ss=e&_v=1.0` };
+        });
       }
       return { resources: { results } };
     }

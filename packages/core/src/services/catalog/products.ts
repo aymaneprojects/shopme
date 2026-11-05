@@ -12,6 +12,7 @@ import { buildSearch, compare, dateCompare, idTerm, likeCi } from './search';
 import { activateLevel, defaultLocationId, getLocation, inventoryItemPatch, type InventoryItemUpdate } from './inventory';
 import { deleteMetafieldsFor, setMetafieldsTx, type MetafieldSetInput } from './metafields';
 import { recomputeSmartMembership, setProductCollections } from './collections';
+import { getCategory } from './taxonomy';
 
 export type Product = typeof products.$inferSelect;
 export type Variant = typeof productVariants.$inferSelect;
@@ -235,9 +236,11 @@ export async function listProductFilterValues(db: Executor, shopId: number, fiel
 
 export interface OptionInput { name?: string | null; position?: number | null; values?: { name?: string | null }[] | null }
 export interface VariantOptionValueInput { id?: number | null; name?: string | null; optionId?: number | null; optionName?: string | null }
+export interface UnitPriceMeasurement { quantityValue: number; quantityUnit: string; referenceValue: number; referenceUnit: string }
 export interface VariantInput {
   id?: number | null; price?: number | null; compareAtPrice?: number | null; barcode?: string | null; taxable?: boolean | null; taxCode?: string | null;
   inventoryPolicy?: string | null; mediaId?: number | null; optionValues?: VariantOptionValueInput[] | null;
+  unitPriceMeasurement?: UnitPriceMeasurement | null;
   inventoryItem?: InventoryItemUpdate | null; inventoryQuantities?: { locationId: number; availableQuantity: number }[] | null; metafields?: MetafieldSetInput[] | null;
 }
 
@@ -272,11 +275,15 @@ interface NewVariant {
 }
 
 /** Insert a variant, its inventory item and stock levels. */
+const unitCols = (u: UnitPriceMeasurement | null | undefined) => u === undefined ? {} : {
+  unitQuantityValue: u?.quantityValue ?? null, unitQuantityUnit: u?.quantityUnit ?? null, unitReferenceValue: u?.referenceValue ?? null, unitReferenceUnit: u?.referenceUnit ?? null,
+};
+
 async function insertVariant(tx: Executor, shopId: number, productId: number, v: NewVariant, shopWeightUnit: string, defaultLoc: number | null): Promise<Variant> {
   const inp = v.input;
   const [row] = await tx.insert(productVariants).values({
     shopId, productId, position: v.position, title: v.title, sku: inp.inventoryItem?.sku || null, barcode: inp.barcode ?? null, price: inp.price ?? 0,
-    compareAtPrice: inp.compareAtPrice ?? null, taxable: inp.taxable ?? true, taxCode: inp.taxCode ?? null, inventoryPolicy: inp.inventoryPolicy ?? 'DENY', mediaId: inp.mediaId ?? null,
+    compareAtPrice: inp.compareAtPrice ?? null, taxable: inp.taxable ?? true, taxCode: inp.taxCode ?? null, inventoryPolicy: inp.inventoryPolicy ?? 'DENY', mediaId: inp.mediaId ?? null, ...unitCols(inp.unitPriceMeasurement),
   }).returning();
   if (v.optionValueIds.length) await tx.insert(variantOptionValues).values(v.optionValueIds.map((x) => ({ shopId, variantId: row!.id, optionId: x.optionId, optionValueId: x.valueId })));
   const [item] = await tx.insert(inventoryItems).values({
@@ -484,7 +491,7 @@ export async function bulkUpdateVariants(db: Db, shopId: number, productId: numb
       const [row] = await tx.update(productVariants).set({
         title, ...(inp.price != null && { price: inp.price }), ...(inp.compareAtPrice !== undefined && { compareAtPrice: inp.compareAtPrice }), ...(inp.barcode !== undefined && { barcode: inp.barcode || null }),
         ...(inp.taxable != null && { taxable: inp.taxable }), ...(inp.taxCode !== undefined && { taxCode: inp.taxCode }), ...(inp.inventoryPolicy && { inventoryPolicy: inp.inventoryPolicy }),
-        ...(inp.mediaId !== undefined && { mediaId: inp.mediaId }), ...(inp.inventoryItem?.sku !== undefined && { sku: inp.inventoryItem.sku || null }),
+        ...(inp.mediaId !== undefined && { mediaId: inp.mediaId }), ...unitCols(inp.unitPriceMeasurement), ...(inp.inventoryItem?.sku !== undefined && { sku: inp.inventoryItem.sku || null }),
       }).where(eq(productVariants.id, cur.id)).returning();
       if (inp.inventoryItem) await tx.update(inventoryItems).set(inventoryItemPatch(inp.inventoryItem)).where(eq(inventoryItems.variantId, cur.id));
       if (inp.metafields?.length) await setMetafieldsTx(tx, shopId, inp.metafields.map((m) => ({ ...m, ownerType: 'PRODUCTVARIANT', ownerId: cur.id })));
@@ -522,13 +529,14 @@ export async function bulkDeleteVariants(db: Db, shopId: number, productId: numb
 export interface ProductInput {
   title?: string | null; handle?: string | null; descriptionHtml?: string | null; vendor?: string | null; productType?: string | null; tags?: string[] | null;
   status?: string | null; templateSuffix?: string | null; seo?: { title?: string | null; description?: string | null } | null; giftCard?: boolean | null;
-  collectionsToJoin?: number[] | null; collectionsToLeave?: number[] | null; metafields?: MetafieldSetInput[] | null; productOptions?: OptionInput[] | null;
+  category?: string | null; collectionsToJoin?: number[] | null; collectionsToLeave?: number[] | null; metafields?: MetafieldSetInput[] | null; productOptions?: OptionInput[] | null;
 }
 
 function validateProduct(input: ProductInput, creating: boolean): Result<null> {
   if (creating ? !input.title?.trim() : input.title !== undefined && !input.title?.trim()) return errR(['title'], "Title can't be blank", 'BLANK');
   if (input.title && input.title.length > 255) return errR(['title'], 'Title is too long (maximum is 255 characters)', 'TOO_LONG');
   if (input.status != null && !STATUSES.includes(input.status)) return errR(['status'], 'Status is invalid', 'INVALID');
+  if (input.category && !getCategory(input.category)) return errR(['category'], 'Product category is invalid', 'INVALID');
   if ((input.tags?.length ?? 0) > 250) return errR(['tags'], 'Too many tags (maximum is 250)', 'INVALID');
   return okR(null);
 }
@@ -537,6 +545,7 @@ const productFields = (input: ProductInput) => ({
   ...(input.descriptionHtml != null && { descriptionHtml: input.descriptionHtml }), ...(input.vendor != null && { vendor: input.vendor.trim() }),
   ...(input.productType != null && { productType: input.productType.trim() }), ...(input.tags != null && { tags: normalizeTags(input.tags) }),
   ...(input.templateSuffix !== undefined && { templateSuffix: input.templateSuffix || null }), ...(input.giftCard != null && { isGiftCard: input.giftCard }),
+  ...(input.category !== undefined && { category: input.category || null }),
   ...(input.seo && { seoTitle: input.seo.title ?? null, seoDescription: input.seo.description ?? null }),
 });
 
@@ -644,6 +653,7 @@ export async function duplicateProduct(db: Db, shopId: number, id: number, o: { 
       const [item] = await tx.select().from(inventoryItems).where(eq(inventoryItems.variantId, v.id));
       await insertVariant(tx, shopId, copy!.id, {
         input: { price: v.price, compareAtPrice: v.compareAtPrice, barcode: v.barcode, taxable: v.taxable, taxCode: v.taxCode, inventoryPolicy: v.inventoryPolicy,
+          unitPriceMeasurement: v.unitQuantityValue && v.unitReferenceValue ? { quantityValue: v.unitQuantityValue, quantityUnit: v.unitQuantityUnit ?? '', referenceValue: v.unitReferenceValue, referenceUnit: v.unitReferenceUnit ?? '' } : null,
           inventoryItem: item ? { sku: item.sku ?? v.sku, tracked: item.tracked, requiresShipping: item.requiresShipping, cost: item.unitCost, countryCodeOfOrigin: item.countryCodeOfOrigin, harmonizedSystemCode: item.harmonizedSystemCode, weight: item.weightValue != null ? { value: item.weightValue, unit: item.weightUnit as 'KILOGRAMS' } : null } : { sku: v.sku } },
         position: v.position, title: v.title, optionValueIds: (sel.get(v.id) ?? []).map((s) => map.get(s.valueId)!).filter(Boolean),
       }, shop?.weightUnit ?? 'KILOGRAMS', loc);

@@ -15,7 +15,7 @@ import type { Permission } from '../../lib/permissions';
 
 const SECTIONS: Array<{ id: string; key: Key; perm?: Permission }> = [
   { id: 'general', key: 'settings.general' }, { id: 'payments', key: 'settings.payments' }, { id: 'shipping', key: 'settings.shipping' },
-  { id: 'taxes', key: 'settings.taxes' }, { id: 'domains', key: 'settings.domains' }, { id: 'languages', key: 'settings.languages' },
+  { id: 'taxes', key: 'settings.taxes' }, { id: 'locations', key: 'settings.locations' }, { id: 'metafields', key: 'settings.metafields' }, { id: 'domains', key: 'settings.domains' }, { id: 'languages', key: 'settings.languages' },
   { id: 'users', key: 'settings.users', perm: 'staff' }, { id: 'notifications', key: 'settings.notifications' }, { id: 'policies', key: 'settings.policies' },
   { id: 'webhooks', key: 'settings.webhooks' }, { id: 'shopify-import', key: 'settings.shopifyImport' },
   { id: 'security', key: 'settings.security' }, { id: 'backup', key: 'settings.backup', perm: 'settings' },

@@ -30,6 +30,8 @@ export const PRODUCTS_PICKER = /* GraphQL */ `
 const VARIANT_FIELDS = /* GraphQL */ `
   id title sku barcode price compareAtPrice taxable inventoryPolicy
   selectedOptions { name value }
+  media(first: 1) { nodes { id } }
+  unitPriceMeasurement { quantityValue quantityUnit referenceValue referenceUnit }
   inventoryItem {
     id tracked requiresShipping
     unitCost { amount }
@@ -43,7 +45,8 @@ const VARIANT_FIELDS = /* GraphQL */ `
 export const PRODUCT = /* GraphQL */ `
   query Product($id: ID!) {
     product(id: $id) {
-      id title handle descriptionHtml status vendor productType tags templateSuffix updatedAt
+      id title handle descriptionHtml status vendor productType tags templateSuffix updatedAt onlineStorePreviewUrl
+      category { id fullName }
       seo { title description }
       options { id name position values }
       media(first: 100) { nodes { id alt mediaContentType ... on MediaImage { image { url } } } }

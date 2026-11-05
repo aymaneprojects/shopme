@@ -1,10 +1,10 @@
 import { Button, Checkbox, Input, Modal, Select, Textarea, useToast } from '@shopme/ui';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { mutate } from '../../api';
+import { gql, mutate } from '../../api';
 import { useFormat } from '../../components/shared';
 import type { MoneySet } from '../../components/shared';
-import { FULFILLMENT_CREATE, ORDER_CANCEL, REFUND_CREATE } from '../../graphql';
+import { FULFILLMENT_CREATE, LOCATIONS, ORDER_CANCEL, REFUND_CREATE } from '../../graphql';
 import { useT } from '../../i18n';
 import type { Key } from '../../i18n';
 import { calcRefund, clampQuantity, fromCents, toCents } from '../../lib/refund';
@@ -31,11 +31,14 @@ export function FulfillDialog({ open, onClose, orderId, lines, onDone }: { open:
   const [qty, setQty] = useState<Record<string, number>>(() => Object.fromEntries(lines.map((l) => [l.id, l.unfulfilledQuantity])));
   const [company, setCompany] = useState(''); const [number, setNumber] = useState(''); const [url, setUrl] = useState(''); const [notify, setNotify] = useState(true);
   const picked = lines.filter((l) => (qty[l.id] ?? 0) > 0);
+  const [locationId, setLocationId] = useState('');
+  const locs = useQuery({ queryKey: ['locations'], queryFn: () => gql<{ locations: { nodes: Array<{ id: string; name: string; isActive: boolean; fulfillsOnlineOrders: boolean }> } }>(LOCATIONS) });
+  const places = (locs.data?.locations.nodes ?? []).filter((l) => l.isActive);
   const run = useRun(() => { onDone(); onClose(); }, 'order.fulfilled');
   const m = useMutation({
     mutationFn: () => mutate(FULFILLMENT_CREATE, {
       fulfillment: {
-        orderId, notifyCustomer: notify, lineItems: picked.map((l) => ({ id: l.id, quantity: qty[l.id] })),
+        orderId, notifyCustomer: notify, ...(locationId && { locationId }), lineItems: picked.map((l) => ({ id: l.id, quantity: qty[l.id] })),
         ...((company || number || url) && { trackingInfo: { company: company || null, number: number || null, url: url || null } }),
       },
     }, 'fulfillmentCreate'),
@@ -54,6 +57,12 @@ export function FulfillDialog({ open, onClose, orderId, lines, onDone }: { open:
             </li>
           ))}
         </ul>
+        {places.length > 1 && (
+          <Select label={t('order.fulfillFrom')} help={t('order.fulfillFromHelp')} value={locationId} onChange={(e) => setLocationId(e.target.value)}>
+            <option value="">{t('order.fulfillFromAuto')}</option>
+            {places.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </Select>
+        )}
         <div className="grid gap-3 sm:grid-cols-2">
           <Input label={t('order.trackingCompany')} value={company} onChange={(e) => setCompany(e.target.value)} />
           <Input label={t('order.trackingNumber')} value={number} onChange={(e) => setNumber(e.target.value)} />
