@@ -1,5 +1,5 @@
 // Product operations. Names/fields follow docs/spec/admin-api-mvp.md (Shopify Admin API compatible).
-import { SELLING_PLAN_GROUP_FIELDS } from './subscriptions';
+import { SELLING_PLAN_GROUP_FIELDS } from './selling-plan-fields';
 
 export const PRODUCTS = /* GraphQL */ `
   query Products($first: Int, $after: String, $last: Int, $before: String, $query: String, $sortKey: ProductSortKeys, $reverse: Boolean) {

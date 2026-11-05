@@ -1,16 +1,6 @@
 // Purchase options (selling plan groups) on the product page, subscription contracts (list, detail, customer and order cards).
 
-const PLAN_FIELDS = `
-  id name options position
-  billingPolicy { ... on SellingPlanRecurringBillingPolicy { interval intervalCount minCycles maxCycles } }
-  deliveryPolicy { ... on SellingPlanRecurringDeliveryPolicy { interval intervalCount } }
-  pricingPolicies {
-    __typename
-    ... on SellingPlanPricingPolicyBase { adjustmentType adjustmentValue { __typename ... on SellingPlanPricingPolicyPercentageValue { percentage } ... on MoneyV2 { amount } } }
-    ... on SellingPlanRecurringPricingPolicy { afterCycle }
-  }
-`;
-export const SELLING_PLAN_GROUP_FIELDS = `id name merchantCode options summary productsCount { count } sellingPlans(first: 31) { nodes { ${PLAN_FIELDS} } }`;
+import { SELLING_PLAN_GROUP_FIELDS } from './selling-plan-fields';
 
 export const PRODUCT_SELLING_PLAN_GROUPS = /* GraphQL */ `
   query ProductSellingPlanGroups($id: ID!) {
