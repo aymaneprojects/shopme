@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { and, eq, ne } from 'drizzle-orm';
-import { findRedirect, returnRulesHtml, safeEqual, searchArticles, searchPages, searchProducts, suggestQueries, tokenize, schema as s, sha256, type CartView, type Shop } from '@shopme/core';
+import { findRedirect, returnRulesHtml, safeEqual, searchArticles, searchPages, searchProducts, suggestQueries, tokenize, schema as s, sha256, type CartView, type MarketContext, type Shop } from '@shopme/core';
 import { formatMoney } from '@shopme/shopify-compat';
 import type { AppContext } from '../context';
 import { authenticate } from '../plugins/auth';
@@ -13,6 +13,7 @@ import { collectionAtom } from './seo';
 import type { ProductObject } from './data/types';
 import { buildCollection, buildGlobals, buildSearch, makeEnv, makeResolvers, pageInput, primaryShop, trPage, trProduct, type Env, type Query } from './env';
 import { CONSENT_COOKIE, cookieBannerHtml, injectCookieBanner } from './cookie-banner';
+import { buyerContext, injectShopifyGlobals } from './market';
 import { localizeHtml } from './locale';
 import type { ThemeStore } from './theme-store';
 
@@ -92,7 +93,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     }
     const { html: page, errors } = await loaded.renderer.renderPage(input);
     for (const e of errors) req.log.warn({ liquid: e }, 'liquid error');
-    const html = localizeHtml(injectCookieBanner(page, cookieBannerHtml(env.shop, req.cookies?.[CONSENT_COOKIE])), env.prefix);
+    const html = localizeHtml(injectShopifyGlobals(injectCookieBanner(page, cookieBannerHtml(env.shop, req.cookies?.[CONSENT_COOKIE])), env.market, env.locale), env.prefix);
     return reply.code(spec.status ?? 200).header('cache-control', 'no-cache').type('text/html; charset=utf-8').send(html);
   }
 
@@ -125,8 +126,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
   // ---------------------------------------------------------------------------------------------------------------------
   // JSON helpers
   // ---------------------------------------------------------------------------------------------------------------------
-  const cur = (shop: Shop) => shop.currency;
-  const dec = (cents: number | null, shop: Shop) => (cents === null ? null : formatMoney(cents, cur(shop)));
+  const dec = (cents: number | null, currency: string) => (cents === null ? null : formatMoney(cents, currency));
   const imageJs = (i: ProductObject['featured_image']) => (i ? { id: i.id, product_id: i.product_id, position: i.position, alt: i.alt, width: i.width, height: i.height, src: i.src } : null);
 
   function productJs(p: ProductObject) {
@@ -146,27 +146,27 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     };
   }
 
-  function productListItem(p: ProductObject, shop: Shop) {
+  function productListItem(p: ProductObject, currency: string) {
     return {
       id: p.id, title: p.title, handle: p.handle, body_html: p.description, published_at: p.published_at, created_at: p.created_at, updated_at: p.updated_at, vendor: p.vendor, product_type: p.type, tags: p.tags,
       variants: p.variants.map((v) => ({
         id: v.id, title: v.title, option1: v.option1, option2: v.option2, option3: v.option3, sku: v.sku || null, requires_shipping: v.requires_shipping, taxable: v.taxable, featured_image: imageJs(v.featured_image),
-        available: v.available, price: dec(v.price, shop), grams: v.weight, compare_at_price: dec(v.compare_at_price, shop), position: v.position, product_id: p.id, created_at: v.created_at, updated_at: v.updated_at,
+        available: v.available, price: dec(v.price, currency), grams: v.weight, compare_at_price: dec(v.compare_at_price, currency), position: v.position, product_id: p.id, created_at: v.created_at, updated_at: v.updated_at,
       })),
       images: p.images.map((i) => ({ id: i.id, created_at: p.created_at, position: i.position, updated_at: p.updated_at, product_id: p.id, variant_ids: [], src: i.src, width: i.width, height: i.height })),
       options: p.options_with_values.map((o) => ({ name: o.name, position: o.position, values: o.values })),
     };
   }
 
-  function productJson(p: ProductObject, shop: Shop) {
+  function productJson(p: ProductObject, currency: string) {
     return {
       product: {
         id: p.id, title: p.title, body_html: p.description, vendor: p.vendor, product_type: p.type, created_at: p.created_at, handle: p.handle, updated_at: p.updated_at, published_at: p.published_at,
         template_suffix: p.template_suffix || null, published_scope: 'web', tags: p.tags.join(', '),
         variants: p.variants.map((v) => ({
-          id: v.id, product_id: p.id, title: v.title, price: dec(v.price, shop), position: v.position, inventory_policy: v.inventory_policy, compare_at_price: dec(v.compare_at_price, shop) ?? '', option1: v.option1, option2: v.option2, option3: v.option3,
+          id: v.id, product_id: p.id, title: v.title, price: dec(v.price, currency), position: v.position, inventory_policy: v.inventory_policy, compare_at_price: dec(v.compare_at_price, currency) ?? '', option1: v.option1, option2: v.option2, option3: v.option3,
           created_at: v.created_at, updated_at: v.updated_at, taxable: v.taxable, barcode: v.barcode || null, fulfillment_service: 'manual', grams: v.weight, inventory_management: v.inventory_management, requires_shipping: v.requires_shipping,
-          sku: v.sku || null, weight: v.weight, weight_unit: 'g', inventory_quantity: v.inventory_quantity, old_inventory_quantity: v.inventory_quantity, image_id: v.featured_image?.id ?? null, price_currency: shop.currency,
+          sku: v.sku || null, weight: v.weight, weight_unit: 'g', inventory_quantity: v.inventory_quantity, old_inventory_quantity: v.inventory_quantity, image_id: v.featured_image?.id ?? null, price_currency: currency,
         })),
         options: p.options_with_values.map((o) => ({ id: p.id * 10 + o.position, product_id: p.id, name: o.name, position: o.position, values: o.values })),
         images: p.images.map((i) => ({ id: i.id, product_id: p.id, position: i.position, alt: i.alt, width: i.width, height: i.height, src: i.src, variant_ids: [], created_at: p.created_at, updated_at: p.updated_at })),
@@ -175,12 +175,12 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     };
   }
 
-  async function relatedProducts(shop: Shop, source: ProductObject, limit: number): Promise<ProductObject[]> {
+  async function relatedProducts(shop: Shop, source: ProductObject, limit: number, pricing: MarketContext): Promise<ProductObject[]> {
     const rows = await db.select({ id: s.products.id, type: s.products.productType, tags: s.products.tags }).from(s.products)
       .where(and(eq(s.products.shopId, shop.id), eq(s.products.status, 'ACTIVE'), ne(s.products.id, source.id)));
     const score = (r: (typeof rows)[number]) => (r.type && r.type === source.type ? 2 : 0) + r.tags.filter((t) => source.tags.includes(t)).length;
     const ids = rows.sort((a, b) => score(b) - score(a) || a.id - b.id).slice(0, limit).map((r) => r.id);
-    return loadProducts(db, shop.id, ids);
+    return loadProducts(db, shop.id, ids, { pricing });
   }
 
   const withShop = (fn: (req: FastifyRequest, reply: FastifyReply, shop: Shop) => Promise<unknown>) => async (req: FastifyRequest, reply: FastifyReply) => {
@@ -243,7 +243,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     async function productPage(req: FastifyRequest, reply: FastifyReply, shop: Shop, env: Env, handle: string, collectionHandle?: string) {
       const variantQ = Number(first((req.query as Query).variant));
       const preview = !!first((req.query as Query).preview) && !!(await authenticate(req));
-      const product = trProduct(env, await getProductByHandle(db, shop.id, handle, { selectedVariantId: Number.isFinite(variantQ) ? variantQ : undefined, includeInactive: preview }));
+      const product = trProduct(env, await getProductByHandle(db, shop.id, handle, { selectedVariantId: Number.isFinite(variantQ) ? variantQ : undefined, includeInactive: preview, pricing: env.market }));
       if (!product) return notFound(req, reply, shop, env);
       const extra: Record<string, unknown> = { product };
       if (collectionHandle) { const b = await getCollection(db, shop.id, collectionHandle); if (b) extra.collection = await buildCollection(env, b, { withFacets: false }); }
@@ -257,10 +257,11 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       if (raw.includes('/')) return notFound(req, reply, shop);
       const m = /^(.+)\.(js|json|oembed)$/.exec(raw);
       if (m && m[2]) {
-        const p = await getProductByHandle(db, shop.id, m[1]!);
+        const market = await buyerContext(ctx, req, shop);
+        const p = await getProductByHandle(db, shop.id, m[1]!, { pricing: market });
         if (!p) return reply.code(404).type(m[2] === 'js' ? 'text/javascript; charset=utf-8' : 'application/json; charset=utf-8').send('');
         if (m[2] === 'js') return reply.type('text/javascript; charset=utf-8').send(JSON.stringify(productJs(p)));
-        if (m[2] === 'json') return reply.type('application/json; charset=utf-8').send(productJson(p, shop));
+        if (m[2] === 'json') return reply.type('application/json; charset=utf-8').send(productJson(p, market.currency));
         return reply.type('application/json; charset=utf-8').send({ version: '1.0', type: 'link', title: p.title, provider_name: shop.name, provider_url: ctx.config.appUrl, thumbnail_url: p.featured_image?.src ?? null });
       }
       return productPage(req, reply, shop, await makeEnv(ctx, req, shop), raw);
@@ -274,8 +275,9 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       const base = await getCollection(db, shop.id, collectionHandle);
       if (!base) return reply.code(404).type('application/json; charset=utf-8').send('');
       const listing = await listProducts(db, shop.id, { collectionId: base.isAll ? undefined : base.id }, { sort: 'manual' }, false);
-      const products = await loadProducts(db, shop.id, listing.ids.slice((page - 1) * limit, page * limit));
-      return reply.type('application/json; charset=utf-8').send({ products: products.map((p) => productListItem(p, shop)) });
+      const market = await buyerContext(ctx, req, shop);
+      const products = await loadProducts(db, shop.id, listing.ids.slice((page - 1) * limit, page * limit), { pricing: market });
+      return reply.type('application/json; charset=utf-8').send({ products: products.map((p) => productListItem(p, market.currency)) });
     }
 
     app.get('/collections.json', withShop(async (_req, reply, shop) => {
@@ -312,10 +314,11 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       const prefix = first(q['resources[options][prefix]']) === 'none' ? 'none' : 'last';
       const results: Record<string, unknown[]> = {};
       if (types.includes('product')) {
+        const market = await buyerContext(ctx, req, shop);
         const ids = term ? (await searchProducts(db, shop.id, term, { prefix, limit })).ids : [];
-        results.products = (await loadProducts(db, shop.id, ids)).map((p, i) => ({
-          available: p.available, body: p.description.replace(/<[^>]*>/g, ' ').trim().slice(0, 200), compare_at_price_max: dec(p.compare_at_price_max, shop), compare_at_price_min: dec(p.compare_at_price_min, shop), handle: p.handle, id: p.id,
-          image: p.featured_image?.src ?? null, price: dec(p.price, shop), price_max: dec(p.price_max, shop), price_min: dec(p.price_min, shop), tags: p.tags, title: p.title, type: p.type,
+        results.products = (await loadProducts(db, shop.id, ids, { pricing: market })).map((p, i) => ({
+          available: p.available, body: p.description.replace(/<[^>]*>/g, ' ').trim().slice(0, 200), compare_at_price_max: dec(p.compare_at_price_max, market.currency), compare_at_price_min: dec(p.compare_at_price_min, market.currency), handle: p.handle, id: p.id,
+          image: p.featured_image?.src ?? null, price: dec(p.price, market.currency), price_max: dec(p.price_max, market.currency), price_min: dec(p.price_min, market.currency), tags: p.tags, title: p.title, type: p.type,
           url: `${p.url}?_pos=${i + 1}&_psq=${encodeURIComponent(term)}&_psid=${p.id}`, variants: [], vendor: p.vendor,
           featured_image: p.featured_image ? { alt: p.featured_image.alt, aspect_ratio: p.featured_image.aspect_ratio, height: p.featured_image.height, url: p.featured_image.src, width: p.featured_image.width } : null,
         }));
@@ -339,10 +342,11 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       const q = req.query as Query;
       const id = Number(first(q.product_id));
       const limit = Math.min(10, Math.max(1, parseInt(first(q.limit) ?? '10', 10) || 10));
-      const [src] = Number.isFinite(id) ? await loadProducts(db, shop.id, [id]) : [];
+      const market = await buyerContext(ctx, req, shop);
+      const [src] = Number.isFinite(id) ? await loadProducts(db, shop.id, [id], { pricing: market }) : [];
       if (!src) return reply.code(404).type('application/json; charset=utf-8').send({ status: 404, message: 'Product not found' });
       const intent = first(q.intent) ?? 'related';
-      const related = await relatedProducts(shop, src, limit);
+      const related = await relatedProducts(shop, src, limit, market);
       const sectionId = first(q.section_id);
       if (sectionId && !req.url.split('?')[0]!.endsWith('.json')) {
         const env = await makeEnv(ctx, req, shop);

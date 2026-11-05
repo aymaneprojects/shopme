@@ -52,3 +52,4 @@ import './delivery';
 import './inventory-transfers';
 import './purchase-orders';
 import './bulk-operations';
+import './markets';

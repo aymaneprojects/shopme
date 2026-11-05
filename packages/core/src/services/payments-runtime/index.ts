@@ -31,8 +31,8 @@ export async function markOrderPaid(db: Executor, shopId: number, orderId: numbe
   const done = await db.update(s.transactions).set({ status: 'SUCCESS', processedAt: new Date(), ...(info.paymentId ? { paymentId: info.paymentId } : {}) })
     .where(and(eq(s.transactions.orderId, orderId), eq(s.transactions.kind, 'SALE'), eq(s.transactions.status, 'PENDING'))).returning({ id: s.transactions.id });
   if (!done.length) {
-    const [o] = await db.select({ total: s.orders.total, currency: s.orders.currency }).from(s.orders).where(eq(s.orders.id, orderId)).limit(1);
-    await db.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'SUCCESS', gateway: info.gateway, amount: o!.total, currency: o!.currency, paymentId: info.paymentId ?? null, processedAt: new Date() });
+    const [o] = await db.select({ total: s.orders.total, currency: s.orders.currency, pm: s.orders.presentmentMoney, pmCurrency: s.orders.presentmentCurrency }).from(s.orders).where(eq(s.orders.id, orderId)).limit(1);
+    await db.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'SUCCESS', gateway: info.gateway, amount: o!.total, currency: o!.currency, ...(o!.pm ? { presentmentAmount: o!.pm.total, presentmentCurrency: o!.pmCurrency } : {}), paymentId: info.paymentId ?? null, processedAt: new Date() });
   }
   await addEvent(db, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.paid', message: `Payment received (${info.gateway})` });
   return true;
@@ -40,8 +40,8 @@ export async function markOrderPaid(db: Executor, shopId: number, orderId: numbe
 
 /** Record a failed online payment attempt; the order stays PENDING so the buyer can be contacted or the order cancelled. */
 export async function recordPaymentFailure(db: Executor, shopId: number, orderId: number, info: { gateway: string; paymentId?: string | null; message?: string | null }): Promise<void> {
-  const [o] = await db.select({ total: s.orders.total, currency: s.orders.currency }).from(s.orders).where(and(eq(s.orders.id, orderId), eq(s.orders.shopId, shopId))).limit(1);
+  const [o] = await db.select({ total: s.orders.total, currency: s.orders.currency, pm: s.orders.presentmentMoney, pmCurrency: s.orders.presentmentCurrency }).from(s.orders).where(and(eq(s.orders.id, orderId), eq(s.orders.shopId, shopId))).limit(1);
   if (!o) return;
-  await db.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'FAILURE', gateway: info.gateway, amount: o.total, currency: o.currency, paymentId: info.paymentId ?? null, errorCode: info.message?.slice(0, 200) ?? null });
+  await db.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'FAILURE', gateway: info.gateway, amount: o.total, currency: o.currency, ...(o.pm ? { presentmentAmount: o.pm.total, presentmentCurrency: o.pmCurrency } : {}), paymentId: info.paymentId ?? null, errorCode: info.message?.slice(0, 200) ?? null });
   await addEvent(db, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.payment_failed', message: `Payment failed (${info.gateway})${info.message ? `: ${info.message}` : ''}` });
 }

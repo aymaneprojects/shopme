@@ -48,3 +48,4 @@ export * from './metaobjects';
 export * from './bulk-operations';
 export * from './draft-orders-ext';
 export * from './webhook-topics';
+export * from './markets';

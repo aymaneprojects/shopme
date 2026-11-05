@@ -10,6 +10,7 @@ import {
 } from '../pricing';
 import { quoteShipping, recordOrderDelivery } from '../shipping';
 import { discountEligibleFor } from '../discounts/eligibility';
+import { toPresentment } from '../markets/context';
 import { allocateGiftCards, getGiftCardByCode, giftCardRejection, normalizeGiftCardCode, type GiftCardRejection } from '../gift-cards';
 import { checkoutSettingsOf, isPhone, requiredAddressKeys, stripHiddenAddressFields, tipFor, type CheckoutSettings } from './settings';
 
@@ -21,7 +22,11 @@ export type DiscountRejection = 'not_found' | 'disabled' | 'not_started' | 'expi
 
 export interface CheckoutView {
   token: string;
+  /** Presentment currency the buyer pays in (every amount below is in it). */
   currency: string;
+  shopCurrency: string;
+  /** `currency` per one unit of the shop currency. */
+  rate: number;
   taxesIncluded: boolean;
   email: string | null;
   address: CheckoutAddressInput | null;
@@ -61,7 +66,7 @@ interface DiscountRow { d: typeof s.discounts.$inferSelect; code: string | null 
 
 /** Validate codes (and apply active automatic discounts) against the cart lines. */
 export async function evaluateDiscounts(
-  db: Executor, shopId: number, codes: string[], ctx: { lines: PricingLine[]; email: string | null; now?: Date; shippingPrice?: number },
+  db: Executor, shopId: number, codes: string[], ctx: { lines: PricingLine[]; email: string | null; now?: Date; shippingPrice?: number; /** Shop money -> cart currency, for fixed amounts and minimum spends (identity when single-currency). */ convert?: (shopMinor: number) => number },
 ): Promise<{ applied: PricingDiscount[]; rejected: { code: string; reason: DiscountRejection }[] }> {
   const now = ctx.now ?? new Date();
   const applied: PricingDiscount[] = [];
@@ -78,11 +83,12 @@ export async function evaluateDiscounts(
 
   const exts = rows.length ? await db.select().from(s.discountExtensions).where(inArray(s.discountExtensions.discountId, rows.map((r) => r.d.id))) : [];
   const email = lc(ctx.email);
+  const conv = ctx.convert ?? ((n: number) => n);
   for (const { d, code, requested } of rows) {
     const reject = (reason: DiscountRejection) => { if (requested) rejected.push({ code: requested, reason }); };
     const ext = exts.find((e) => e.discountId === d.id);
     const pd: PricingDiscount = {
-      id: d.id, code, title: d.title, valueType: d.valueType as PricingDiscount['valueType'], value: d.value, target: d.target as PricingDiscount['target'], appliesTo: d.appliesTo,
+      id: d.id, code, title: d.title, valueType: d.valueType as PricingDiscount['valueType'], value: d.valueType === 'FIXED_AMOUNT' ? conv(d.value) : d.value, target: d.target as PricingDiscount['target'], appliesTo: d.appliesTo,
       combinesWith: ext?.combinesWith, ...(ext?.bxgy && { bxgy: ext.bxgy }),
     };
     if (d.status === 'DISABLED') { reject('disabled'); continue; }
@@ -99,7 +105,7 @@ export async function evaluateDiscounts(
       const gets = ctx.lines.filter(scope(pd.bxgy.getAppliesTo)).reduce((a, l) => a + l.quantity, 0);
       if (buys < pd.bxgy.buyQuantity || gets < 1 || (overlap && buys < pd.bxgy.buyQuantity + pd.bxgy.getQuantity)) { reject('not_applicable'); continue; }
     }
-    if (d.minimumSubtotal !== null && eligible.reduce((a, l) => a + l.unitPrice * l.quantity, 0) < d.minimumSubtotal) { reject('minimum_subtotal'); continue; }
+    if (d.minimumSubtotal !== null && eligible.reduce((a, l) => a + l.unitPrice * l.quantity, 0) < conv(d.minimumSubtotal)) { reject('minimum_subtotal'); continue; }
     if (d.minimumQuantity !== null && eligible.reduce((a, l) => a + l.quantity, 0) < d.minimumQuantity) { reject('minimum_quantity'); continue; }
     if (d.oncePerCustomer && email) {
       const [used] = await db.select({ n: sql<number>`count(*)::int` }).from(s.orderDiscountApplications)
@@ -155,6 +161,9 @@ async function stockIssuesFor(db: Executor, shopId: number, lines: CartLineView[
 // Loading
 // ---------------------------------------------------------------------------------------------------------------------
 
+/** Shop money -> the cart's presentment currency. */
+export const converterOf = (cart: Pick<CartView, 'shopCurrency' | 'currency' | 'rate'>) => (shopMinor: number): number => toPresentment(cart, shopMinor);
+
 const toPricingLines = (lines: CartLineView[], collections: Map<number, number[]>): PricingLine[] => lines.map((l) => ({
   id: l.lineId, unitPrice: l.price, quantity: l.quantity, taxable: l.taxable, requiresShipping: l.requiresShipping, grams: l.grams * l.quantity, productId: l.productId, collectionIds: collections.get(l.productId) ?? [],
 }));
@@ -166,6 +175,15 @@ async function collectionsOf(db: Executor, shopId: number, productIds: number[])
     .where(and(eq(s.collectionProducts.shopId, shopId), inArray(s.collectionProducts.productId, productIds)));
   for (const r of rows) out.set(r.p, [...(out.get(r.p) ?? []), r.c]);
   return out;
+}
+
+/** Tax inclusion for the buyer's market: its own strategy when set, else the shop setting. */
+async function taxesIncludedFor(db: Executor, shop: Shop, marketId: number | null): Promise<boolean> {
+  if (!marketId) return shop.taxesIncluded;
+  const [m] = await db.select({ t: s.markets.taxPricingStrategy }).from(s.markets).where(eq(s.markets.id, marketId)).limit(1);
+  if (m?.t === 'INCLUDES_TAXES_IN_PRICE') return true;
+  if (m?.t === 'ADD_TAXES_AT_CHECKOUT') return false;
+  return shop.taxesIncluded;
 }
 
 async function cartRowByToken(db: Executor, shopId: number, token: string) {
@@ -185,7 +203,7 @@ export interface CartDiscounts {
 export async function priceCartDiscounts(db: Executor, shopId: number, cart: CartView, email: string | null = null): Promise<CartDiscounts> {
   if (!cart.lines.length) return { applications: [], rejected: [], totalDiscount: 0 };
   const lines = toPricingLines(cart.lines, await collectionsOf(db, shopId, [...new Set(cart.lines.map((l) => l.productId))]));
-  const { applied, rejected } = await evaluateDiscounts(db, shopId, cart.discountCodes, { lines, email });
+  const { applied, rejected } = await evaluateDiscounts(db, shopId, cart.discountCodes, { lines, email, convert: converterOf(cart) });
   const r = priceCheckout({ lines, discounts: applied.filter((d) => d.target !== 'SHIPPING'), shipping: null, taxRates: [], taxesIncluded: false, country: null, province: null });
   const applications = r.discountApplications.filter((a) => a.allocated > 0);
   return { applications, rejected, totalDiscount: applications.reduce((n, a) => n + a.allocated, 0) };
@@ -200,21 +218,23 @@ export async function loadCheckout(db: Executor, shop: Shop, token: string, now 
   const collections = await collectionsOf(db, shop.id, [...new Set(cart.lines.map((l) => l.productId))]);
   const plines = toPricingLines(cart.lines, collections);
 
+  const convert = converterOf(cart);
   const requiresShipping = cart.lines.some((l) => l.requiresShipping);
-  const shippable = plines.filter((l) => l.requiresShipping);
+  // Rates are defined in shop money: quoted on shop-currency prices, then shown in the cart currency.
   const options = requiresShipping
-    ? await quoteShipping(db, shop.id, { countryCode: address?.countryCode ?? null, provinceCode: address?.provinceCode ?? null, zip: address?.zip ?? null },
-      cart.lines.map((l) => ({ variantId: l.variantId, quantity: l.quantity, price: l.price, grams: l.grams * l.quantity, requiresShipping: l.requiresShipping })))
+    ? (await quoteShipping(db, shop.id, { countryCode: address?.countryCode ?? null, provinceCode: address?.provinceCode ?? null, zip: address?.zip ?? null },
+      cart.lines.map((l) => ({ variantId: l.variantId, quantity: l.quantity, price: l.shopPrice, grams: l.grams * l.quantity, requiresShipping: l.requiresShipping })))).map((o) => ({ ...o, price: convert(o.price) }))
     : [];
   const chosen = options.find((o) => o.id === row.shippingRateId) ?? options[0] ?? null;
-  const { applied, rejected } = await evaluateDiscounts(db, shop.id, cart.discountCodes, { lines: plines, email: row.email, now, shippingPrice: chosen?.price ?? 0 });
+  const { applied, rejected } = await evaluateDiscounts(db, shop.id, cart.discountCodes, { lines: plines, email: row.email, now, shippingPrice: chosen?.price ?? 0, convert });
 
   const taxRows = address?.countryCode ? await db.select().from(s.taxRates).where(and(eq(s.taxRates.shopId, shop.id), eq(s.taxRates.active, true), eq(s.taxRates.countryCode, address.countryCode.toUpperCase()))) : [];
   const taxRates: PricingTaxRate[] = taxRows.map((r) => ({ name: r.name, countryCode: r.countryCode, provinceCode: r.provinceCode, rate: r.rate, appliesToShipping: r.appliesToShipping, priority: r.priority }));
   let taxExempt = false;
   if (row.email) { const [c] = await db.select({ t: s.customers.taxExempt }).from(s.customers).where(and(eq(s.customers.shopId, shop.id), eq(s.customers.email, lc(row.email)))).limit(1); taxExempt = !!c?.t; }
 
-  const input: PricingInput = { lines: plines, discounts: applied, shipping: chosen, taxRates, taxesIncluded: shop.taxesIncluded, taxExempt, country: address?.countryCode ?? null, province: address?.provinceCode ?? null };
+  const taxesIncluded = await taxesIncludedFor(db, shop, cart.marketId);
+  const input: PricingInput = { lines: plines, discounts: applied, shipping: chosen, taxRates, taxesIncluded, taxExempt, country: address?.countryCode ?? null, province: address?.provinceCode ?? null };
   const pricing = priceCheckout(input);
   const meta = await metaOf(db, row.id);
   const gift = await giftCardsFor(db, shop.id, meta, cart, pricing, now);
@@ -222,7 +242,7 @@ export async function loadCheckout(db: Executor, shop: Shop, token: string, now 
   const tipChoice = { percent: meta?.tipPercent ?? null, amount: meta?.tipAmount ?? 0 };
   const tip = settings.tipping.enabled ? tipFor(Math.max(0, pricing.subtotal - pricing.totalDiscounts), tipChoice) : 0;
   return {
-    token, currency: cart.currency, taxesIncluded: shop.taxesIncluded, email: row.email, address, note: row.note, settings, tip, tipChoice, lines: cart.lines, requiresShipping,
+    token, currency: cart.currency, shopCurrency: shop.currency, rate: cart.rate, taxesIncluded, email: row.email, address, note: row.note, settings, tip, tipChoice, lines: cart.lines, requiresShipping,
     shippingOptions: options, shippingRateId: chosen?.id ?? null,
     appliedDiscounts: applied.map((d) => ({ code: d.code, title: d.title })), rejectedCodes: rejected,
     giftCards: gift.cards, giftCardTotal: gift.total, amountDue: pricing.total - gift.total + tip, stockIssues: await stockIssuesFor(db, shop.id, cart.lines), pricing, completed: !!row.completedAt,
@@ -302,7 +322,7 @@ export async function updateCheckout(db: Db, shop: Shop, token: string, patch: C
     const cart = (await loadCartView(db, shop.id, row.id))!;
     const pl = toPricingLines(cart.lines, await collectionsOf(db, shop.id, cart.lines.map((l) => l.productId)));
     // Validate with the codes already on the checkout, so a code that cannot combine with them is refused.
-    const r = await evaluateDiscounts(db, shop.id, [...new Set([...(set.discountCodes ?? row.discountCodes), code])], { lines: pl, email: set.email === undefined ? row.email : set.email });
+    const r = await evaluateDiscounts(db, shop.id, [...new Set([...(set.discountCodes ?? row.discountCodes), code])], { lines: pl, email: set.email === undefined ? row.email : set.email, convert: converterOf(cart) });
     const bad = r.rejected.find((x) => x.code === code);
     if (bad) return { ok: false, error: bad.reason };
     if (!(set.discountCodes ?? row.discountCodes).some((c) => norm(c) === code)) set.discountCodes = [...(set.discountCodes ?? row.discountCodes), code];
@@ -390,7 +410,8 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
   const gateway = free ? (giftCards.length ? 'gift_card' : 'free') : input.paymentMethod;
   const paymentId = online && input.startOnlinePayment ? await input.startOnlinePayment(checkout) : null;
   const res: CreateOrderResult = await createOrder(db, shop.id, {
-    email: row.email, phone: checkout.address?.phone ?? null, acceptsMarketing: settings.marketing !== 'hidden' && input.acceptsMarketing, tip: checkout.tip, currency: cart.currency, taxesIncluded: shop.taxesIncluded,
+    email: row.email, phone: checkout.address?.phone ?? null, acceptsMarketing: settings.marketing !== 'hidden' && input.acceptsMarketing, tip: checkout.tip, currency: shop.currency, taxesIncluded: checkout.taxesIncluded,
+    ...(cart.currency !== shop.currency ? { presentment: { currency: cart.currency, rate: cart.rate } } : {}),
     lines: checkout.pricing.lines.map((p) => {
       const l = byId.get(p.id)!;
       return {

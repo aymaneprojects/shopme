@@ -29,9 +29,10 @@ describe('migration of existing zones and rates', () => {
     writeFileSync(path.join(partial, 'meta', '_journal.json'), JSON.stringify(old));
     h = await createDb({ memory: true });
     await h.migrate(partial);
-    const { shop } = await setupStore(h.db, { shopName: 'M', email: 'm@example.com', password: 'correct horse', currency: 'EUR', country: 'FR', locale: 'en' });
-    shopId = shop.id;
-    await h.db.insert(s.locations).values([{ shopId, name: 'Warehouse', countryCode: 'FR', priority: 1 }, { shopId, name: 'Retail only', fulfillsOnlineOrders: false, countryCode: 'FR' }, { shopId, name: 'Closed', isActive: false, countryCode: 'FR' }]);
+    // Raw shop row: `setupStore` needs tables (markets) that later migrations create.
+    const [shop] = await h.db.insert(s.shops).values({ name: 'M', email: 'm@example.com', currency: 'EUR', country: 'FR', locale: 'en', timezone: 'UTC' }).returning({ id: s.shops.id });
+    shopId = shop!.id;
+    await h.db.insert(s.locations).values([{ shopId, name: 'Shop location', countryCode: 'FR' }, { shopId, name: 'Warehouse', countryCode: 'FR', priority: 1 }, { shopId, name: 'Retail only', fulfillsOnlineOrders: false, countryCode: 'FR' }, { shopId, name: 'Closed', isActive: false, countryCode: 'FR' }]);
     const [eu, rowZone, prov] = await h.db.insert(s.shippingZones).values([{ shopId, name: 'Europe' }, { shopId, name: 'World' }, { shopId, name: 'Quebec' }]).returning();
     await h.db.insert(s.shippingZoneCountries).values([
       ...['FR', 'DE'].map((countryCode) => ({ shopId, zoneId: eu!.id, countryCode })), { shopId, zoneId: rowZone!.id, countryCode: '*' }, { shopId, zoneId: prov!.id, countryCode: 'CA', provinceCodes: ['QC'] },

@@ -4,6 +4,7 @@ import * as s from '../../db/schema';
 import { addEvent } from '../events';
 import { nextOrderNumber } from '../sequences';
 import type { PricingLine, PricingResult } from '../pricing';
+import { unconvertMinor } from '../markets/money';
 
 export interface CheckoutAddressInput {
   firstName?: string | null; lastName?: string | null; company?: string | null;
@@ -24,7 +25,10 @@ export interface CreateOrderInput {
   email: string | null;
   phone?: string | null;
   acceptsMarketing?: boolean;
+  /** Shop currency. */
   currency: string;
+  /** Set when the buyer paid in another currency: `pricing`, line prices and `tip` are then in that currency (rate: presentment per shop unit). */
+  presentment?: { currency: string; rate: number };
   taxesIncluded: boolean;
   lines: OrderLineInput[];
   pricing: PricingResult;
@@ -101,6 +105,12 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
   const email = input.email ? normEmail(input.email) : null;
   const { pricing } = input;
   const tip = Math.max(0, input.tip ?? 0);
+  const pm = input.presentment && (input.presentment.currency !== input.currency || input.presentment.rate !== 1) ? input.presentment : null;
+  /** Presentment amount -> shop money (identity without a presentment currency). */
+  const shopOf = (n: number): number => (pm ? unconvertMinor(n, input.currency, pm.currency, pm.rate) : n);
+  const shopSubtotal = shopOf(pricing.subtotal), shopDiscounts = shopOf(pricing.totalDiscounts), shopShipping = shopOf(pricing.totalShipping), shopTax = shopOf(pricing.totalTax), shopTip = shopOf(tip);
+  const shopTotal = pm ? shopSubtotal - shopDiscounts + shopShipping + (input.taxesIncluded ? 0 : shopTax) + shopTip : pricing.total + tip;
+  const shopGift = (n: number) => (pm ? shopOf(n) : n);
   try {
     return await db.transaction(async (tx) => {
       if (input.cartToken) {
@@ -127,7 +137,7 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
         [customer] = await tx.insert(s.customers).values({ shopId, email, firstName: ship?.firstName ?? null, lastName: ship?.lastName ?? null, phone: input.phone ?? ship?.phone ?? null, acceptsMarketing: !!input.acceptsMarketing }).returning();
       }
       await tx.update(s.customers).set({
-        numberOfOrders: sql`${s.customers.numberOfOrders} + 1`, amountSpent: sql`${s.customers.amountSpent} + ${pricing.total + tip}`,
+        numberOfOrders: sql`${s.customers.numberOfOrders} + 1`, amountSpent: sql`${s.customers.amountSpent} + ${shopTotal}`,
         ...(input.acceptsMarketing ? { acceptsMarketing: true } : {}),
       }).where(eq(s.customers.id, customer!.id));
       if (ship && !customer!.defaultAddressId) {
@@ -139,9 +149,10 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
       const paid = input.payment.status === 'PAID';
       const [order] = await tx.insert(s.orders).values({
         shopId, orderNumber, name: `#${orderNumber}`, customerId: customer!.id, email, phone: input.phone ?? ship?.phone ?? null,
-        currency: input.currency, presentmentCurrency: input.currency, taxesIncluded: input.taxesIncluded, test: !!input.payment.test,
+        currency: input.currency, presentmentCurrency: pm?.currency ?? input.currency, currencyRate: pm?.rate ?? 1, taxesIncluded: input.taxesIncluded, test: !!input.payment.test,
         financialStatus: paid ? 'PAID' : 'PENDING', fulfillmentStatus: 'UNFULFILLED', note: input.note ?? null, sourceName: input.sourceName ?? 'web', cartToken: input.cartToken ?? null,
-        subtotal: pricing.subtotal, totalShipping: pricing.totalShipping, totalTax: pricing.totalTax, totalDiscounts: pricing.totalDiscounts, total: pricing.total + tip, totalTip: tip,
+        subtotal: shopSubtotal, totalShipping: shopShipping, totalTax: shopTax, totalDiscounts: shopDiscounts, total: shopTotal, totalTip: shopTip,
+        ...(pm ? { presentmentMoney: { subtotal: pricing.subtotal, shipping: pricing.totalShipping, tax: pricing.totalTax, discounts: pricing.totalDiscounts, tip, total: pricing.total + tip } } : {}),
       }).returning();
       const orderId = order!.id;
 
@@ -151,7 +162,8 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
         const [row] = await tx.insert(s.orderLines).values({
           shopId, orderId, position: i, productId: l.productId || null, variantId: l.variantId, title: l.title, variantTitle: l.variantTitle, sku: l.sku, vendor: l.vendor,
           quantity: l.quantity, currentQuantity: l.quantity, requiresShipping: l.requiresShipping, taxable: l.taxable, isGiftCard: l.isGiftCard,
-          unitPrice: l.unitPrice, discountedTotal: p.total, totalTax: p.tax, weightGrams: l.grams, imageUrl: l.imageUrl, properties: l.properties,
+          unitPrice: shopOf(l.unitPrice), discountedTotal: shopOf(p.total), totalTax: shopOf(p.tax), weightGrams: l.grams, imageUrl: l.imageUrl, properties: l.properties,
+          ...(pm ? { presentmentUnitPrice: l.unitPrice, presentmentDiscountedTotal: p.total, presentmentTotalTax: p.tax } : {}),
         }).returning({ id: s.orderLines.id });
         lineIds.set(l.id, row!.id);
       }
@@ -167,26 +179,27 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
       let shippingLineId: number | null = null;
       if (pricing.shipping) {
         const [sl] = await tx.insert(s.orderShippingLines).values({
-          shopId, orderId, title: pricing.shipping.rate.name, code: String(pricing.shipping.rate.id), price: pricing.shipping.price - pricing.shipping.discount, tax: pricing.shipping.tax,
+          shopId, orderId, title: pricing.shipping.rate.name, code: String(pricing.shipping.rate.id), price: shopOf(pricing.shipping.price - pricing.shipping.discount), tax: shopOf(pricing.shipping.tax),
         }).returning({ id: s.orderShippingLines.id });
         shippingLineId = sl!.id;
       }
       if (pricing.taxLines.length) {
         await tx.insert(s.orderTaxLines).values(pricing.taxLines.map((t) => ({
-          shopId, orderId, title: t.title, rate: t.rate, price: t.price,
+          shopId, orderId, title: t.title, rate: t.rate, price: shopOf(t.price),
           orderLineId: t.lineId === null ? null : lineIds.get(t.lineId)!, shippingLineId: t.shipping ? shippingLineId : null,
         })));
       }
       if (pricing.discountApplications.length) {
         await tx.insert(s.orderDiscountApplications).values(pricing.discountApplications.map((a) => ({
-          shopId, orderId, discountId: a.discountId > 0 ? a.discountId : null, code: a.code, title: a.title, valueType: a.valueType, value: a.value, allocatedAmount: a.allocated,
+          shopId, orderId, discountId: a.discountId > 0 ? a.discountId : null, code: a.code, title: a.title, valueType: a.valueType, value: a.valueType === 'FIXED_AMOUNT' ? shopOf(a.value) : a.value, allocatedAmount: shopOf(a.allocated),
           targetType: a.target === 'SHIPPING' ? 'SHIPPING_LINE' : 'LINE_ITEM',
         })));
       }
       const giftTotal = (input.giftCards ?? []).reduce((n, g) => n + g.amount, 0);
       if (pricing.total + tip - giftTotal > 0) {
         await tx.insert(s.transactions).values({
-          shopId, orderId, kind: 'SALE', status: paid ? 'SUCCESS' : 'PENDING', gateway: input.payment.gateway, amount: pricing.total + tip - giftTotal, currency: input.currency,
+          shopId, orderId, kind: 'SALE', status: paid ? 'SUCCESS' : 'PENDING', gateway: input.payment.gateway, amount: pm ? shopTotal - shopGift(giftTotal) : pricing.total + tip - giftTotal, currency: input.currency,
+          ...(pm ? { presentmentAmount: pricing.total + tip - giftTotal, presentmentCurrency: pm.currency } : {}),
           test: !!input.payment.test, paymentId: input.payment.paymentId ?? null, processedAt: paid ? new Date() : null,
         });
       }

@@ -42,6 +42,8 @@ export const carts = pgTable('carts', {
   discountCodes: text('discount_codes').array().notNull().default([]),
   shippingAddress: jsonb('shipping_address'), billingAddress: jsonb('billing_address'),
   shippingRateId: ref('shipping_rate_id'),
+  /** Buyer market and country the cart is priced for (null: the shop's default context). `currency` is the presentment currency. */
+  marketId: ref('market_id'), countryCode: text('country_code'),
   /** Set when the cart was opened from a draft order's pay link; the draft is completed by that checkout. No FK: draft_orders is defined later (ops.ts imports this file). */
   draftOrderId: ref('draft_order_id'),
   completedAt: ts('completed_at'),
@@ -68,6 +70,8 @@ export const orders = pgTable('orders', {
   presentmentCurrency: text('presentment_currency').notNull(),
   /** presentment = shop amount * rate (1 while single-currency). */
   currencyRate: numeric('currency_rate', { precision: 18, scale: 8, mode: 'number' }).notNull().default(1),
+  /** Exact amounts in `presentmentCurrency` as the buyer saw them (null while single-currency: equal to the shop amounts). */
+  presentmentMoney: jsonb('presentment_money').$type<{ subtotal: number; shipping: number; tax: number; discounts: number; tip: number; total: number }>(),
   taxesIncluded: boolean('taxes_included').notNull().default(false),
   test: boolean('test').notNull().default(false),
   financialStatus: text('financial_status').notNull().default('PENDING'),
@@ -109,6 +113,8 @@ export const orderLines = pgTable('order_lines', {
   unitPrice: money('unit_price').notNull(),
   discountedTotal: money('discounted_total').notNull(),
   totalTax: money('total_tax').notNull().default(0),
+  /** The same three amounts in the order's presentment currency (null while single-currency). */
+  presentmentUnitPrice: money('presentment_unit_price'), presentmentDiscountedTotal: money('presentment_discounted_total'), presentmentTotalTax: money('presentment_total_tax'),
   weightGrams: integer('weight_grams'),
   imageUrl: text('image_url'),
   properties: jsonb('properties').$type<Record<string, string>>().notNull().default({}),
@@ -152,6 +158,8 @@ export const transactions = pgTable('transactions', {
   parentId: ref('parent_id'),
   kind: text('kind').notNull(), status: text('status').notNull(),
   gateway: text('gateway'), amount: money('amount').notNull(), currency: text('currency').notNull(),
+  /** What the buyer paid or got back in the presentment currency (null while single-currency). `amount` stays in shop money. */
+  presentmentAmount: money('presentment_amount'), presentmentCurrency: text('presentment_currency'),
   test: boolean('test').notNull().default(false),
   errorCode: text('error_code'),
   paymentId: text('payment_id'), // provider reference (e.g. Stripe PaymentIntent id)

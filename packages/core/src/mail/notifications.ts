@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { Liquid } from 'liquidjs';
-import { renderMoneyFormat } from '@shopme/shopify-compat';
+import { defaultMoneyFormats, renderMoneyFormat } from '@shopme/shopify-compat';
+import { lineMoney, orderMoney } from '../services/markets/order-money';
 import type { Executor } from '../db/client';
 import { notificationTemplates, shops } from '../db/schema';
 import type { OrderSummary } from '../services/orders/create';
@@ -277,7 +278,8 @@ const GATEWAYS: Record<string, Record<string, string>> = {
   fr: { bank_transfer: 'Virement bancaire', cod: 'Paiement à la livraison', stripe: 'Carte bancaire', free: 'Aucun paiement dû', manual: 'Manuel', paid: 'Payé', pending: 'En attente de paiement', gift_card: 'Carte cadeau' },
 };
 
-export const moneyOf = (shop: Shop, minor: number, currency = shop.currency) => renderMoneyFormat(shop.moneyFormat, minor, currency);
+/** Money in `currency`; the shop's own format applies to the shop currency, other currencies get a generated one. */
+export const moneyOf = (shop: Shop, minor: number, currency = shop.currency) => renderMoneyFormat(currency === shop.currency ? shop.moneyFormat : defaultMoneyFormats(currency, shop.locale).moneyFormat, minor, currency);
 
 function bankInstructions(shop: Shop): string | null {
   const s = shop.settings as Record<string, any>;
@@ -287,7 +289,8 @@ function bankInstructions(shop: Shop): string | null {
 
 export function orderVars(o: OrderSummary, shop: Shop): Record<string, unknown> {
   const L = GATEWAYS[langOf(shop)]!;
-  const money = (n: number) => moneyOf(shop, n, o.order.currency);
+  const om = orderMoney(o.order);
+  const money = (n: number) => moneyOf(shop, n, om.currency);
   const paid = o.order.financialStatus === 'PAID';
   const gateway = o.transactions[0]?.gateway ?? 'free';
   const a = o.shippingAddress;
@@ -295,10 +298,10 @@ export function orderVars(o: OrderSummary, shop: Shop): Record<string, unknown> 
   return {
     order: {
       name: o.order.name, email: o.order.email, note: o.order.note, created_at: o.order.createdAt.toISOString(),
-      subtotal: money(o.order.subtotal), total: money(o.order.total), discount: o.order.totalDiscounts ? money(o.order.totalDiscounts) : null,
-      shipping: o.shippingLines.length ? money(o.order.totalShipping) : null,
-      tax: o.order.totalTax ? money(o.order.totalTax) : null, tax_label: langOf(shop) === 'fr' ? (o.order.taxesIncluded ? 'Dont taxes' : 'Taxes') : (o.order.taxesIncluded ? 'Included taxes' : 'Taxes'),
-      line_items: o.lines.map((l) => ({ title: [l.title, l.variantTitle].filter(Boolean).join(' - '), quantity: l.quantity, total: money(l.discountedTotal) })),
+      subtotal: money(om.subtotal), total: money(om.total), discount: om.discounts ? money(om.discounts) : null,
+      shipping: o.shippingLines.length ? money(om.shipping) : null,
+      tax: om.tax ? money(om.tax) : null, tax_label: langOf(shop) === 'fr' ? (o.order.taxesIncluded ? 'Dont taxes' : 'Taxes') : (o.order.taxesIncluded ? 'Included taxes' : 'Taxes'),
+      line_items: o.lines.map((l) => ({ title: [l.title, l.variantTitle].filter(Boolean).join(' - '), quantity: l.quantity, total: money(lineMoney(o.order, l).discountedTotal) })),
       shipping_address: address.length ? address : null,
       payment_method: L[gateway] ?? gateway, payment_status: paid ? L.paid : L.pending, paid,
       bank_instructions: !paid && gateway === 'bank_transfer' ? bankInstructions(shop) : null,

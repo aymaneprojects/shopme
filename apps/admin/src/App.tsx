@@ -69,6 +69,10 @@ const router = createBrowserRouter(
       { path: '/customers/new', element: L(() => import('./pages/CustomerEdit'), 'CustomerEditPage') },
       { path: '/customers/:id', element: L(() => import('./pages/Customers'), 'CustomerDetailPage') },
       { path: '/customers/:id/edit', element: L(() => import('./pages/CustomerEdit'), 'CustomerEditPage') },
+      { path: '/markets', element: L(() => import('./pages/markets/Markets'), 'MarketsPage') },
+      { path: '/markets/catalogs', element: L(() => import('./pages/markets/Catalogs'), 'CatalogsPage') },
+      { path: '/markets/catalogs/:id', element: L(() => import('./pages/markets/CatalogEdit'), 'CatalogEditPage') },
+      { path: '/markets/:id', element: L(() => import('./pages/markets/MarketDetail'), 'MarketDetailPage') },
       { path: '/discounts', element: L(() => import('./pages/Discounts'), 'DiscountsPage') },
       { path: '/discounts/:id', element: L(() => import('./pages/DiscountEdit'), 'DiscountEditPage') },
       {

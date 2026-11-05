@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client';
 import * as s from '../../db/schema';
+import { isIdentity, priceVariants, resolveMarketContext, type MarketContext } from '../markets/context';
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Types
@@ -20,8 +21,12 @@ export interface CartLineView {
   options: { name: string; value: string }[];
   hasOnlyDefaultVariant: boolean;
   sku: string;
-  /** Unit price in minor units. */
+  /** Unit price in minor units of the cart currency (the buyer's presentment currency). */
   price: number;
+  /** Compare-at price in the cart currency, when it is above `price`. */
+  compareAtPrice: number | null;
+  /** Unit price in shop money (what the variant is listed at before market pricing). */
+  shopPrice: number;
   taxable: boolean;
   requiresShipping: boolean;
   grams: number;
@@ -34,7 +39,14 @@ export interface CartView {
   token: string;
   note: string | null;
   attributes: Record<string, string>;
+  /** Presentment currency: prices, discounts, shipping and the order are in this currency. */
   currency: string;
+  /** Country the cart is priced for (null: the shop default) and the market it resolved to. */
+  countryCode: string | null;
+  marketId: number | null;
+  /** Shop currency and the rate behind `currency` (1 when equal). */
+  shopCurrency: string;
+  rate: number;
   discountCodes: string[];
   /** Display order: newest line first. */
   lines: CartLineView[];
@@ -147,13 +159,34 @@ export async function loadCartView(db: Executor, shopId: number, cartId: number)
       lines.push({
         lineId: r.id, key: lineKey(r.variantId, r.properties), variantId: r.variantId, productId: x.p.id, quantity: r.quantity, properties: r.properties, position: r.position,
         variantTitle: x.v.title, options, hasOnlyDefaultVariant: (counts.get(x.p.id) ?? 1) === 1 && options.length === 0, sku: x.v.sku ?? '',
-        price: x.v.price, taxable: x.v.taxable, requiresShipping: x.i?.requiresShipping ?? true, grams: Math.round((x.i?.weightValue ?? 0) * unit),
+        price: x.v.price, compareAtPrice: x.v.compareAtPrice && x.v.compareAtPrice > x.v.price ? x.v.compareAtPrice : null, shopPrice: x.v.price, taxable: x.v.taxable, requiresShipping: x.i?.requiresShipping ?? true, grams: Math.round((x.i?.weightValue ?? 0) * unit),
         product: { title: x.p.title, handle: x.p.handle, vendor: x.p.vendor, productType: x.p.productType, descriptionHtml: x.p.descriptionHtml, isGiftCard: x.p.isGiftCard },
         image: img?.url ? { url: img.url, alt: img.alt, width: img.width, height: img.height } : null,
       });
     }
   }
-  return { id: cart.id, token: cart.token, note: cart.note, attributes: cart.attributes, currency: cart.currency, discountCodes: cart.discountCodes, lines };
+  const view: CartView = { id: cart.id, token: cart.token, note: cart.note, attributes: cart.attributes, currency: cart.currency, countryCode: cart.countryCode, marketId: cart.marketId, shopCurrency: cart.currency, rate: 1, discountCodes: cart.discountCodes, lines };
+  if (cart.countryCode) await applyMarketPricing(db, shopId, cart, view);
+  return view;
+}
+
+/** Re-price the lines of a cart bound to a country: the buyer's market decides currency, adjustment and fixed prices. Persists a changed currency. */
+async function applyMarketPricing(db: Executor, shopId: number, cart: typeof s.carts.$inferSelect, view: CartView): Promise<void> {
+  const [shop] = await db.select({ id: s.shops.id, currency: s.shops.currency, country: s.shops.country }).from(s.shops).where(eq(s.shops.id, shopId)).limit(1);
+  if (!shop) return;
+  const ctx = await resolveMarketContext(db, shop, cart.countryCode);
+  view.shopCurrency = shop.currency; view.currency = ctx.currency; view.rate = ctx.rate; view.marketId = ctx.marketId;
+  if (!isIdentity(ctx) && view.lines.length) {
+    const priced = await priceVariants(db, shopId, ctx, view.lines.map((l) => ({ id: l.variantId, price: l.shopPrice, compareAt: l.compareAtPrice })));
+    for (const l of view.lines) { const p = priced.get(l.variantId); if (p) { l.price = p.price; l.compareAtPrice = p.compareAt; } }
+  }
+  if (ctx.currency !== cart.currency || ctx.marketId !== cart.marketId) await db.update(s.carts).set({ currency: ctx.currency, marketId: ctx.marketId }).where(eq(s.carts.id, cart.id));
+}
+
+/** Bind a cart to a buyer context (country, market, currency). Prices follow on the next load. */
+export async function setCartContext(db: Executor, shopId: number, cartId: number, ctx: Pick<MarketContext, 'countryCode' | 'marketId' | 'currency'> | null, shopCurrency: string): Promise<void> {
+  await db.update(s.carts).set(ctx ? { countryCode: ctx.countryCode, marketId: ctx.marketId, currency: ctx.currency } : { countryCode: null, marketId: null, currency: shopCurrency })
+    .where(and(eq(s.carts.id, cartId), eq(s.carts.shopId, shopId)));
 }
 
 export async function getCartByToken(db: Executor, shopId: number, token: string): Promise<CartView | null> {
@@ -162,15 +195,15 @@ export async function getCartByToken(db: Executor, shopId: number, token: string
   return loadCartView(db, shopId, c.id);
 }
 
-export async function createCart(db: Executor, shopId: number, currency: string): Promise<CartView> {
-  const [c] = await db.insert(s.carts).values({ shopId, token: newCartToken(), currency }).returning();
+export async function createCart(db: Executor, shopId: number, currency: string, ctx?: Pick<MarketContext, 'countryCode' | 'marketId'> | null): Promise<CartView> {
+  const [c] = await db.insert(s.carts).values({ shopId, token: newCartToken(), currency, countryCode: ctx?.countryCode ?? null, marketId: ctx?.marketId ?? null }).returning();
   return (await loadCartView(db, shopId, c!.id))!;
 }
 
 /** The cart for `token`, or a fresh one (also when the token is unknown or the cart was completed). */
-export async function getOrCreateCart(db: Executor, shopId: number, currency: string, token?: string | null): Promise<CartView> {
+export async function getOrCreateCart(db: Executor, shopId: number, currency: string, token?: string | null, ctx?: Pick<MarketContext, 'countryCode' | 'marketId'> | null): Promise<CartView> {
   if (token) { const c = await getCartByToken(db, shopId, token); if (c) return c; }
-  return createCart(db, shopId, currency);
+  return createCart(db, shopId, currency, ctx);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

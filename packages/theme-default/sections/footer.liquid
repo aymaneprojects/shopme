@@ -40,6 +40,7 @@
     <p>{{ 'general.copyright' | t: year: year, shop: shop.name }}</p>
     <p>{{ 'general.powered_by' | t }}</p>
     {%- render 'language-selector' -%}
+    {%- if section.settings.show_country_selector -%}{%- render 'country-selector' -%}{%- endif -%}
   </div>
 </footer>
 
@@ -51,7 +52,8 @@
   "settings": [
     { "type": "link_list", "id": "menu", "label": "Menu", "default": "footer" },
     { "type": "checkbox", "id": "show_description", "label": "Show store description", "default": true },
-    { "type": "checkbox", "id": "show_newsletter", "label": "Show newsletter sign-up", "default": true }
+    { "type": "checkbox", "id": "show_newsletter", "label": "Show newsletter sign-up", "default": true },
+    { "type": "checkbox", "id": "show_country_selector", "label": "Show country and currency selector", "default": true }
   ]
 }
 {% endschema %}

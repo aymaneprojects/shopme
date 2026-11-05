@@ -1,4 +1,4 @@
-import type { CartDiscounts, CartView, Shop } from '@shopme/core';
+import { currencyName, type BuyerCountry, type CartDiscounts, type CartView, type MarketContext, type Shop } from '@shopme/core';
 import { ajaxLine, cartLevelApplications, discountApplication } from './cart-format';
 import { policiesOf } from './data/content';
 
@@ -6,9 +6,9 @@ export const currencySymbol = (currency: string, locale = 'en'): string => {
   try { return new Intl.NumberFormat(locale, { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find((p) => p.type === 'currency')?.value ?? currency; } catch { return currency; }
 };
 
-const currencyObject = (iso: string, locale: string) => ({ iso_code: iso, name: iso, symbol: currencySymbol(iso, locale) });
+const currencyObject = (iso: string, locale: string) => ({ iso_code: iso, name: currencyName(iso, locale), symbol: currencySymbol(iso, locale) });
 
-export function shopObject(shop: Shop, origin: string, counts: { products: number; collections: number }) {
+export function shopObject(shop: Shop, origin: string, counts: { products: number; collections: number }, currencies: string[] = [shop.currency]) {
   const settings = shop.settings as Record<string, unknown>;
   const policies = policiesOf(settings);
   const policy = (h: string) => policies.find((p) => p.handle === h) ?? null;
@@ -16,7 +16,7 @@ export function shopObject(shop: Shop, origin: string, counts: { products: numbe
     id: shop.id, name: shop.name, email: shop.email, description: String(settings.description ?? ''), currency: shop.currency, money_format: shop.moneyFormat,
     money_with_currency_format: shop.moneyWithCurrencyFormat, taxes_included: shop.taxesIncluded, url: origin, secure_url: origin, domain: new URL(origin).host, permanent_domain: new URL(origin).host,
     address: { country: shop.country, country_code: shop.country, ...(settings.address as object | undefined) }, locale: shop.locale, timezone: shop.timezone, weight_unit: ({ KILOGRAMS: 'kg', GRAMS: 'g', POUNDS: 'lb', OUNCES: 'oz' } as Record<string, string>)[shop.weightUnit] ?? 'kg',
-    enabled_currencies: [currencyObject(shop.currency, shop.locale)], customer_accounts_enabled: true, customer_accounts_optional: true,
+    enabled_currencies: currencies.map((c) => currencyObject(c, shop.locale)), customer_accounts_enabled: true, customer_accounts_optional: true,
     password_message: String(settings.passwordMessage ?? ''), policies, refund_policy: policy('refund-policy'), privacy_policy: policy('privacy-policy'), shipping_policy: policy('shipping-policy'), terms_of_service: policy('terms-of-service'),
     features: {}, metafields: {}, products_count: counts.products, collections_count: counts.collections, brand: { logo: null, slogan: null, short_description: null, colors: {} },
   };
@@ -35,18 +35,23 @@ export const routesObject = (prefix = '') => {
 
 export interface LanguageView { locale: string; name: string; primary: boolean; prefix: string }
 
+const countryDisplay = (code: string, locale: string): string => { try { return new Intl.DisplayNames([locale, 'en'], { type: 'region' }).of(code) ?? code; } catch { return code; } };
+
 const endonym = (code: string): string => {
   try { const n = new Intl.DisplayNames([code], { type: 'language' }).of(code); if (n) return n.charAt(0).toLocaleUpperCase(code) + n.slice(1); } catch { /* fall through */ }
   return code;
 };
 
 /** Liquid `localization`: the published languages (`url` is the same page in that language, for hreflang) and the current one. */
-export function localizationObject(shop: Shop, current: string, languages: LanguageView[], origin: string, path: string) {
-  const country = { iso_code: shop.country, name: shop.country, currency: currencyObject(shop.currency, shop.locale), market: { handle: 'default', id: 1 }, unit_system: 'metric' };
+export function localizationObject(shop: Shop, current: string, languages: LanguageView[], origin: string, path: string, market?: MarketContext, countries: BuyerCountry[] = []) {
+  const countryObject = (code: string, name: string, currency: string, m: { handle: string; id: number }) => ({ iso_code: code, name, currency: currencyObject(currency, shop.locale), market: m, unit_system: 'metric', popular_languages: [] });
+  const marketOf = { handle: market?.marketHandle ?? 'primary', id: market?.marketId ?? 0 };
+  const available = countries.length ? countries.map((c) => countryObject(c.code, c.name, c.currency, { handle: c.marketHandle, id: c.marketId ?? 0 })) : [countryObject(shop.country, countryDisplay(shop.country, shop.locale), shop.currency, marketOf)];
+  const country = available.find((c) => c.iso_code === (market?.countryCode ?? shop.country)) ?? countryObject(market?.countryCode ?? shop.country, countryDisplay(market?.countryCode ?? shop.country, shop.locale), market?.currency ?? shop.currency, marketOf);
   const lang = (l: LanguageView) => ({ iso_code: l.locale, name: l.name, endonym_name: endonym(l.locale), primary: l.primary, root_url: l.prefix || '/', url: origin + l.prefix + (path === '/' && l.prefix ? '' : path) });
   const all = languages.length ? languages.map(lang) : [lang({ locale: shop.locale, name: shop.locale, primary: true, prefix: '' })];
   const language = all.find((l) => l.iso_code === current) ?? all[0]!;
-  return { country, language, available_countries: [country], available_languages: all, market: { handle: 'default', id: 1 } };
+  return { country, language, available_countries: available, available_languages: all, market: marketOf };
 }
 
 export function requestObject(shop: Shop, origin: string, path: string, pageType: string, locale = shop.locale, prefix = '') {
@@ -58,8 +63,8 @@ export function requestObject(shop: Shop, origin: string, path: string, pageType
 }
 
 /** Liquid `cart`: the Ajax shape plus drops themes expect (image object, product, variant, url_to_remove) and the discount applications. */
-export function liquidCart(cart: CartView | null, shop: Shop, d: CartDiscounts | null = null) {
-  const currency = cart?.currency ?? shop.currency;
+export function liquidCart(cart: CartView | null, shop: Shop, d: CartDiscounts | null = null, fallbackCurrency = shop.currency) {
+  const currency = cart?.currency ?? fallbackCurrency;
   const token = cart?.token ?? '';
   const lines = (cart?.lines ?? []).map((l, i) => {
     const a = ajaxLine(l, currency, d, token);

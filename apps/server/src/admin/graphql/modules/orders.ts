@@ -4,6 +4,7 @@ import {
   markOrderAsPaid, openOrder, paidAmounts, refundOrder, updateOrder, updateTracking,
   type Fulfillment as FulfillmentRow, type Order as OrderRow, type OrderDetail, type OrderLine, type OrderTransaction as TxRow, type Refund as RefundRow,
 } from '@shopme/core';
+import { lineMoney, orderMoney, presentmentShare } from '@shopme/core';
 import { formatMoney, parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
@@ -45,8 +46,17 @@ export const detailOf = (ctx: GraphQLContext, o: OrderRow) => {
 };
 const staffId = (ctx: GraphQLContext) => (ctx.auth.kind === 'session' ? ctx.auth.user.id : null);
 
+/** Shop money plus its presentment counterpart (proportional share of what the buyer paid; exact order-level amounts use `orderBag`). */
 const bag = (o: OrderRow, minor: number): MoneyBagShape =>
-  moneyBag(minor, o.currency, { minor: Math.round(minor * o.currencyRate), currency: o.presentmentCurrency });
+  moneyBag(minor, o.currency, { minor: presentmentShare(o, minor), currency: o.presentmentMoney ? o.presentmentCurrency : o.currency });
+/** An order-level amount with its exact presentment amount. */
+const orderBag = (o: OrderRow, key: 'subtotal' | 'shipping' | 'tax' | 'discounts' | 'tip' | 'total' | 'refunded' | 'currentTotal'): MoneyBagShape => {
+  const m = orderMoney(o);
+  const shop = { subtotal: o.subtotal, shipping: o.totalShipping, tax: o.totalTax, discounts: o.totalDiscounts, tip: o.totalTip, total: o.total, refunded: o.totalRefunded, currentTotal: o.total - o.totalRefunded };
+  return moneyBag(shop[key], o.currency, { minor: key === 'currentTotal' ? m.total - m.refunded : m[key], currency: m.currency });
+};
+/** Line amounts: the exact presentment columns when the order was placed in another currency. */
+const lineBag = (l: LineShape, shop: number, pick: (m: ReturnType<typeof lineMoney>) => number): MoneyBagShape => moneyBag(shop, l.order.currency, { minor: pick(lineMoney(l.order, l)), currency: orderMoney(l.order).currency });
 const asList = <T>(nodes: T[], a: PageArgs) => paginateArray(a, a.reverse ? [...nodes].reverse() : nodes);
 const fraction = (r: number) => (r > 1 ? r / 100 : r);
 
@@ -99,9 +109,9 @@ LineItem.implement({
     merchantEditable: t.boolean({ resolve: () => false }),
     createdAt: t.field({ type: 'DateTime', resolve: (l) => l.order.createdAt }),
     customAttributes: t.field({ type: [Attribute], resolve: (l) => Object.entries(l.properties).map(([key, value]) => ({ key, value })) }),
-    originalUnitPriceSet: t.field({ type: MoneyBag, resolve: (l) => bag(l.order, l.unitPrice) }),
-    originalTotalSet: t.field({ type: MoneyBag, resolve: (l) => bag(l.order, l.unitPrice * l.quantity) }),
-    discountedTotalSet: t.field({ type: MoneyBag, args: { withCodeDiscounts: t.arg.boolean({ defaultValue: false }) }, resolve: (l) => bag(l.order, l.discountedTotal) }),
+    originalUnitPriceSet: t.field({ type: MoneyBag, resolve: (l) => lineBag(l, l.unitPrice, (m) => m.unitPrice) }),
+    originalTotalSet: t.field({ type: MoneyBag, resolve: (l) => lineBag(l, l.unitPrice * l.quantity, (m) => m.unitPrice * l.quantity) }),
+    discountedTotalSet: t.field({ type: MoneyBag, args: { withCodeDiscounts: t.arg.boolean({ defaultValue: false }) }, resolve: (l) => lineBag(l, l.discountedTotal, (m) => m.discountedTotal) }),
     discountedUnitPriceSet: t.field({ type: MoneyBag, resolve: (l) => bag(l.order, Math.round(l.discountedTotal / Math.max(1, l.quantity))) }),
     discountedUnitPriceAfterAllDiscountsSet: t.field({ type: MoneyBag, resolve: (l) => bag(l.order, Math.round(l.discountedTotal / Math.max(1, l.quantity))) }),
     totalDiscountSet: t.field({ type: MoneyBag, resolve: (l) => bag(l.order, Math.max(0, l.unitPrice * l.quantity - l.discountedTotal)) }),
@@ -175,7 +185,7 @@ OrderTransaction.implement({
     status: t.field({ type: TxStatus, resolve: (x) => x.status as 'SUCCESS' }),
     gateway: t.exposeString('gateway', { nullable: true }),
     formattedGateway: t.string({ nullable: true, resolve: (x) => (x.gateway ? x.gateway.replace(/[_-]/g, ' ').replace(/^./, (c) => c.toUpperCase()) : null) }),
-    amountSet: t.field({ type: MoneyBag, resolve: (x) => bag(x.order, x.amount) }),
+    amountSet: t.field({ type: MoneyBag, resolve: (x) => (x.presentmentAmount != null ? moneyBag(x.amount, x.order.currency, { minor: x.presentmentAmount, currency: x.presentmentCurrency ?? x.order.presentmentCurrency }) : bag(x.order, x.amount)) }),
     createdAt: t.field({ type: 'DateTime', resolve: (x) => x.createdAt }),
     processedAt: t.field({ type: 'DateTime', nullable: true, resolve: (x) => x.processedAt }),
     test: t.exposeBoolean('test'),
@@ -320,22 +330,22 @@ Order_.implement({
       displayFinancialStatus: t.field({ type: FinancialStatus, nullable: true, resolve: (o) => o.financialStatus as 'PAID' }),
       displayFulfillmentStatus: t.field({ type: FulfillmentStatusEnum, resolve: (o) => (o.heldAt ? 'ON_HOLD' : o.fulfillmentStatus) as 'UNFULFILLED' }),
       shopmeFulfillmentHold: t.field({ type: FulfillmentHold, nullable: true, description: 'ShopMe extension: the hold that blocks fulfillment, if any.', resolve: (o) => (o.heldAt ? { reason: o.holdReason ?? 'OTHER', note: o.holdNote, heldAt: o.heldAt } : null) }),
-      subtotalPriceSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => money(o, o.subtotal) }),
-      totalPriceSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.total) }),
-      originalTotalPriceSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.total) }),
-      totalTaxSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => money(o, o.totalTax) }),
-      totalShippingPriceSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalShipping) }),
-      totalDiscountsSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => money(o, o.totalDiscounts) }),
-      totalRefundedSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalRefunded) }),
-      currentTotalPriceSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.total - o.totalRefunded) }),
-      currentSubtotalPriceSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.subtotal) }),
-      currentTotalTaxSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalTax) }),
-      currentTotalDiscountsSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalDiscounts) }),
-      currentShippingPriceSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalShipping) }),
-      cartDiscountAmountSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => money(o, o.totalDiscounts) }),
-      currentCartDiscountAmountSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalDiscounts) }),
+      subtotalPriceSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => orderBag(o, 'subtotal') }),
+      totalPriceSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'total') }),
+      originalTotalPriceSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'total') }),
+      totalTaxSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => orderBag(o, 'tax') }),
+      totalShippingPriceSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'shipping') }),
+      totalDiscountsSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => orderBag(o, 'discounts') }),
+      totalRefundedSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'refunded') }),
+      currentTotalPriceSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'currentTotal') }),
+      currentSubtotalPriceSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'subtotal') }),
+      currentTotalTaxSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'tax') }),
+      currentTotalDiscountsSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'discounts') }),
+      currentShippingPriceSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'shipping') }),
+      cartDiscountAmountSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => orderBag(o, 'discounts') }),
+      currentCartDiscountAmountSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'discounts') }),
       totalCapturableSet: t.field({ type: MoneyBag, resolve: (o) => money(o, 0) }),
-      totalTipReceivedSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.totalTip) }),
+      totalTipReceivedSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'tip') }),
       totalRefundedShippingSet: t.field({ type: MoneyBag, resolve: (o) => money(o, 0) }),
       // Deprecated shop-currency scalars, kept because many clients still select them.
       ...Object.fromEntries(([
