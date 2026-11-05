@@ -121,7 +121,9 @@ export const BasicEvent = builder.objectRef<EventRow>('BasicEvent').implement({
     subjectId: t.id({ resolve: (e) => String(e.subjectId ?? 0) }),
     subjectType: t.field({ type: EventSubjectType, resolve: subjectOf }),
     author: t.string({ nullable: true, resolve: async (e, _a, ctx) => (e.authorStaffUserId ? (await getStaff(ctx.db, ctx.shopId, e.authorStaffUserId))?.email ?? null : null) }),
-    arguments: t.field({ type: 'JSON', nullable: true, resolve: (e) => e.data ?? null }),
+    arguments: t.field({ type: 'JSON', nullable: true, resolve: (e) => { if (!e.data || !('html' in e.data)) return e.data ?? null; const { html: _html, ...rest } = e.data; return rest; } }),
+    /** ShopMe: the body of an email sent to the customer ("Show email"); read only when asked for. */
+    shopmeEmailHtml: t.string({ nullable: true, resolve: (e) => (typeof e.data?.html === 'string' ? e.data.html : null) }),
     additionalContent: t.field({ type: 'JSON', nullable: true, resolve: () => null }),
     additionalData: t.field({ type: 'JSON', nullable: true, resolve: () => null }),
     hasAdditionalContent: t.boolean({ resolve: () => false }),
@@ -139,7 +141,7 @@ export const CommentEvent = builder.objectRef<EventRow>('CommentEvent').implemen
     canDelete: t.boolean({ resolve: (e, _a, ctx) => ctx.auth.kind === 'session' && e.authorStaffUserId != null && ctx.auth.user.id === e.authorStaffUserId }),
     canEdit: t.boolean({ resolve: () => false }),
     edited: t.boolean({ resolve: () => false }),
-    attachments: t.stringList({ resolve: () => [] }),
+    attachments: t.stringList({ resolve: (e) => (Array.isArray(e.data?.attachments) ? (e.data!.attachments as unknown[]).filter((x): x is string => typeof x === 'string') : []) }),
   }),
 });
 export const EventConnection = defineConnection<EventRow>('Event', Event as never);

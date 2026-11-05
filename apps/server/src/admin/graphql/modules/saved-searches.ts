@@ -12,8 +12,8 @@ import { Shop } from './shop';
 const SearchResultType = builder.enumType('SearchResultType', {
   values: ['CUSTOMER', 'DRAFT_ORDER', 'INVENTORY_TRANSFER', 'PRODUCT', 'COLLECTION', 'FILE', 'PAGE', 'BLOG', 'ARTICLE', 'URL_REDIRECT', 'PRICE_RULE', 'DISCOUNT_REDEEM_CODE', 'ORDER', 'BALANCE_TRANSACTION', 'INVENTORY'] as const,
 });
-const SUPPORTED: readonly string[] = ['PRODUCT', 'ORDER', 'CUSTOMER', 'INVENTORY'];
-const SCOPE: Record<SavedSearchType, string> = { PRODUCT: 'products', ORDER: 'orders', CUSTOMER: 'customers', INVENTORY: 'inventory' };
+const SUPPORTED: readonly string[] = ['PRODUCT', 'ORDER', 'CUSTOMER', 'INVENTORY', 'PAGE', 'ARTICLE'];
+const SCOPE: Record<SavedSearchType, string> = { PRODUCT: 'products', ORDER: 'orders', CUSTOMER: 'customers', INVENTORY: 'inventory', PAGE: 'online_store_pages', ARTICLE: 'online_store_pages' };
 
 /** Split a search query into `key:value` filters and free text. */
 export function parseSearchQuery(query: string): { searchTerms: string; filters: { key: string; value: string }[] } {
@@ -64,6 +64,9 @@ builder.queryFields((t) => ({
   customerSavedSearches: t.field({ type: SavedSearchConnection, args: { ...ConnectionArgs }, deprecationReason: 'Use `segments` instead.', resolve: list('CUSTOMER') }),
   /** ShopMe extension: views of the inventory list. */
   inventorySavedSearches: t.field({ type: SavedSearchConnection, args: { ...ConnectionArgs }, resolve: list('INVENTORY') }),
+  /** ShopMe extensions: views of the pages and blog posts lists. */
+  pageSavedSearches: t.field({ type: SavedSearchConnection, args: { ...ConnectionArgs }, resolve: list('PAGE') }),
+  articleSavedSearches: t.field({ type: SavedSearchConnection, args: { ...ConnectionArgs }, resolve: list('ARTICLE') }),
 }));
 
 const missing = [{ field: ['input', 'id'], message: 'Saved search does not exist', code: 'DOES_NOT_EXIST' }];

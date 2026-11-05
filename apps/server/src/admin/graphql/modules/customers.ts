@@ -1,5 +1,5 @@
 import {
-  addCustomerComment, updateEmailMarketingConsent, listEvents, changeCustomerTags, countCustomers, createCustomer, customerStats, deleteCustomer, getCustomer, getDefaultAddress, listCustomerAddresses, listCustomers, listOrders, countOrders, updateCustomer,
+  addCustomerComment, updateEmailMarketingConsent, updateSmsMarketingConsent, listEvents, changeCustomerTags, countCustomers, createCustomer, customerStats, deleteCustomer, getCustomer, getDefaultAddress, listCustomerAddresses, listCustomers, listOrders, countOrders, updateCustomer,
   type Customer, type CustomerInput as ServiceInput,
 } from '@shopme/core';
 import { parseId, toGid, type UserError } from '@shopme/shopify-compat';
@@ -30,7 +30,7 @@ const CustomerEmailAddress = builder.objectRef<{ emailAddress: string; state: st
 });
 const CustomerPhoneNumber = builder.objectRef<{ phoneNumber: string }>('CustomerPhoneNumber').implement({ fields: (t) => ({ phoneNumber: t.exposeString('phoneNumber') }) });
 
-const displayName = (c: { firstName: string | null; lastName: string | null; email: string | null }) => [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || '';
+const displayName = (c: { firstName: string | null; lastName: string | null; email: string | null; erasedAt?: Date | null }) => [c.firstName, c.lastName].filter(Boolean).join(' ') || c.email || (c.erasedAt ? 'Erased customer' : '');
 
 Customer_.implement({
   interfaces: [Node, HasStoreCreditAccounts],
@@ -116,9 +116,12 @@ builder.queryFields((t) => ({
 const EmailConsentInput = builder.inputType('CustomerEmailMarketingConsentInput', {
   fields: (t) => ({ marketingState: t.string({ required: true }), marketingOptInLevel: t.string(), consentUpdatedAt: t.field({ type: 'DateTime' }) }),
 });
+const SmsConsentInput = builder.inputType('ShopmeCustomerSmsConsentInput', {
+  fields: (t) => ({ marketingState: t.string({ required: true }), marketingOptInLevel: t.string(), consentUpdatedAt: t.field({ type: 'DateTime' }) }),
+});
 const CustomerInput = builder.inputType('CustomerInput', {
   fields: (t) => ({
-    emailMarketingConsent: t.field({ type: EmailConsentInput }),
+    emailMarketingConsent: t.field({ type: EmailConsentInput }), smsMarketingConsent: t.field({ type: SmsConsentInput }),
     email: t.string(), firstName: t.string(), id: t.id(), lastName: t.string(), locale: t.string(), note: t.string(), phone: t.string(), tags: t.stringList(), taxExempt: t.boolean(),
     addresses: t.field({ type: [MailingAddressInput] }),
   }),
@@ -139,10 +142,18 @@ const toService = (i: typeof CustomerInput.$inferInput): ServiceInput => ({
 });
 /** The explicit consent state of the input (PENDING, UNSUBSCRIBED, ...) wins over the subscribed/not-subscribed flag; an unchanged state is left alone. */
 async function applyConsent(ctx: GraphQLContext, customer: Customer, input: typeof CustomerInput.$inferInput): Promise<Customer> {
+  let cur = customer;
   const c = input.emailMarketingConsent;
-  if (!c || c.marketingState === customer.emailMarketingState || !customer.email) return customer;
-  const r = await updateEmailMarketingConsent(ctx.db, ctx.shopId, customer.id, { marketingState: c.marketingState, marketingOptInLevel: c.marketingOptInLevel, consentUpdatedAt: c.consentUpdatedAt });
-  return r.ok ? r.value : customer;
+  if (c && c.marketingState !== cur.emailMarketingState && cur.email) {
+    const r = await updateEmailMarketingConsent(ctx.db, ctx.shopId, cur.id, { marketingState: c.marketingState, marketingOptInLevel: c.marketingOptInLevel, consentUpdatedAt: c.consentUpdatedAt });
+    if (r.ok) cur = r.value;
+  }
+  const sms = input.smsMarketingConsent;
+  if (sms && sms.marketingState !== cur.smsMarketingState && cur.phone) {
+    const r = await updateSmsMarketingConsent(ctx.db, ctx.shopId, cur.id, { marketingState: sms.marketingState, marketingOptInLevel: sms.marketingOptInLevel, consentUpdatedAt: sms.consentUpdatedAt, consentCollectedFrom: 'OTHER' });
+    if (r.ok) cur = r.value;
+  }
+  return cur;
 }
 const prefixed = (errors: UserError[]): UserError[] => errors.map((e) => ({ ...e, field: ['input', ...(e.field ?? [])] }));
 
@@ -151,12 +162,12 @@ const CommentPayload = definePayload<{ event: EventRow | null }>('CustomerTimeli
 builder.mutationFields((t) => ({
   /** ShopMe extension: Shopify has no public API for staff timeline comments. */
   customerTimelineCommentCreate: t.field({
-    type: CommentPayload, args: { id: t.arg.id({ required: true }), message: t.arg.string({ required: true }) },
+    type: CommentPayload, args: { id: t.arg.id({ required: true }), message: t.arg.string({ required: true }), attachments: t.arg.stringList({ description: 'URLs of uploaded files.' }) },
     resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'write_customers');
       const id = parseId(String(a.id), 'Customer');
       if (!id) return { event: null, userErrors: [{ field: ['id'], message: 'Customer does not exist' }] };
-      const r = await addCustomerComment(ctx.db, ctx.shopId, id, a.message, ctx.auth.kind === 'session' ? ctx.auth.user.id : null);
+      const r = await addCustomerComment(ctx.db, ctx.shopId, id, a.message, ctx.auth.kind === 'session' ? ctx.auth.user.id : null, a.attachments ?? []);
       return r.ok ? { event: r.value as EventRow, userErrors: [] } : { event: null, userErrors: r.errors };
     },
   }),

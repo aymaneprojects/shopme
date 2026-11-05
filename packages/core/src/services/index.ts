@@ -51,3 +51,4 @@ export * from './webhook-topics';
 export * from './markets';
 export * from './privacy';
 export * from './store-credit';
+export * from './companies';

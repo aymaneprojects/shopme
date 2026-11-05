@@ -72,6 +72,7 @@ export const orderSearch = (q: string | null | undefined) => buildSearch(q, {
     email: (_o, v) => likeCi(orders.email, v, true),
     id: (_o, v) => idTerm(orders.id, v),
     customer_id: (_o, v) => idTerm(orders.customerId, v),
+    company_id: (_o, v) => idTerm(orders.companyId, v),
     financial_status: (_o, v) => sql`${orders.financialStatus} = ${v.toUpperCase()}`,
     fulfillment_status: (_o, v) => { const s = FULFILLMENT_QUERY[v.toLowerCase()]; return v.toLowerCase() === 'on_hold' ? sql`${orders.heldAt} is not null` : s ? inArray(orders.fulfillmentStatus, s) : null; },
     status: (_o, v) => {

@@ -18,6 +18,10 @@ export const storefrontOf = (s: Shop) => ({
   passwordEnabled: s.settings.storefrontPasswordEnabled === true,
   password: typeof s.settings.storefrontPassword === 'string' ? s.settings.storefrontPassword : '',
   message: typeof s.settings.passwordMessage === 'string' ? s.settings.passwordMessage : '',
+  /** Restrict the whole storefront to signed-in customers who are contacts of a company (B2B). */
+  b2bOnly: s.settings.b2bOnly === true,
+  homepageTitle: typeof s.settings.homepageTitle === 'string' ? s.settings.homepageTitle : '',
+  socialSharingImage: typeof s.settings.socialSharingImage === 'string' ? s.settings.socialSharingImage : '',
 });
 
 export function paymentSettingsOf(s: Shop): PaymentSettings {
@@ -36,6 +40,8 @@ export interface ShopSettingsInput {
   address?: ShopAddress | null;
   storefrontPasswordEnabled?: boolean | null; storefrontPassword?: string | null; storefrontPasswordMessage?: string | null;
   primaryDomain?: string | null;
+  /** Storefront preferences: B2B-only access, the home page title and the social sharing image (a file URL). */
+  b2bOnly?: boolean | null; homepageTitle?: string | null; socialSharingImage?: string | null;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,6 +77,16 @@ export async function updateShopSettings(db: Db, shopId: number, input: ShopSett
   if (input.storefrontPasswordEnabled != null) settings.storefrontPasswordEnabled = input.storefrontPasswordEnabled;
   if (input.storefrontPassword != null) settings.storefrontPassword = input.storefrontPassword;
   if (input.storefrontPasswordMessage != null) settings.passwordMessage = input.storefrontPasswordMessage;
+  if (input.b2bOnly != null) settings.b2bOnly = input.b2bOnly;
+  if (input.homepageTitle != null) {
+    if (input.homepageTitle.length > 70) return errR(['homepageTitle'], 'Home page title is too long (maximum is 70 characters)');
+    settings.homepageTitle = input.homepageTitle.trim();
+  }
+  if (input.socialSharingImage != null) {
+    const u = input.socialSharingImage.trim();
+    if (u && !/^(https?:\/\/|\/)/i.test(u)) return errR(['socialSharingImage'], 'Social sharing image must be a URL');
+    settings.socialSharingImage = u;
+  }
 
   const formats = currency && currency !== cur.currency ? defaultMoneyFormats(currency, input.locale ?? cur.locale) : null;
   const [row] = await db.update(shops).set({

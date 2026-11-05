@@ -26,6 +26,8 @@ export const draftOrders = pgTable('draft_orders', {
   status: text('status').notNull().default('OPEN'),
   customerId: ref('customer_id').references(() => customers.id, { onDelete: 'set null' }),
   email: text('email'), phone: text('phone'), note: text('note'), tags: tagsCol(),
+  /** B2B purchasing entity; copied to the order when the draft is completed. */
+  companyId: ref('company_id'), companyContactId: ref('company_contact_id'), companyLocationId: ref('company_location_id'),
   currency: text('currency').notNull(),
   taxExempt: boolean('tax_exempt').notNull().default(false),
   lines: jsonb('lines').$type<DraftLine[]>().notNull().default([]),

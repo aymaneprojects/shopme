@@ -20,6 +20,8 @@ export const customers = pgTable('customers', {
   amountSpent: money('amount_spent').notNull().default(0),
   passwordHash: text('password_hash'), // storefront account
   lastLoginAt: ts('last_login_at'),
+  /** Data erasure: scheduled for this time (personal data is anonymized then, orders are kept), or done at `erasedAt`. */
+  erasureScheduledAt: ts('erasure_scheduled_at'), erasedAt: ts('erased_at'),
   /** Privacy: the data-sale opt-out flag and the last cookie consent the customer gave (restored on sign-in). */
   dataSaleOptOut: boolean('data_sale_opt_out').notNull().default(false),
   consent: jsonb('consent').$type<Record<string, unknown> | null>(),
@@ -93,6 +95,8 @@ export const orders = pgTable('orders', {
   processedAt: ts('processed_at').notNull().defaultNow(),
   note: text('note'), tags: tagsCol(), sourceName: text('source_name').default('web'),
   cartToken: text('cart_token'),
+  /** B2B purchasing entity (plain ids: the order keeps them if the company is deleted). */
+  companyId: ref('company_id'), companyContactId: ref('company_contact_id'), companyLocationId: ref('company_location_id'),
   subtotal: money('subtotal').notNull().default(0),
   totalShipping: money('total_shipping').notNull().default(0),
   totalTax: money('total_tax').notNull().default(0),

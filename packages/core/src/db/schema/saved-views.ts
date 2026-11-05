@@ -2,7 +2,7 @@ import { check, index, integer, pgTable, text } from 'drizzle-orm/pg-core';
 import { oneOf, pk, ref, shopIdCol, timestamps } from './_helpers';
 import { shops } from './shop';
 
-export const SAVED_SEARCH_TYPES = ['PRODUCT', 'ORDER', 'CUSTOMER', 'INVENTORY'] as const;
+export const SAVED_SEARCH_TYPES = ['PRODUCT', 'ORDER', 'CUSTOMER', 'INVENTORY', 'PAGE', 'ARTICLE'] as const;
 
 /**
  * Saved views of the admin lists (the tabs next to "All"): a named search shared by all staff of the shop.

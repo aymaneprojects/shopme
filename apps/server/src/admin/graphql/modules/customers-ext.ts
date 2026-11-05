@@ -1,6 +1,6 @@
 /** Customer fields (lastOrder, statistics, marketing consent...) and the address-book mutations; Shop fields live next to them. */
 import {
-  type Customer, addressBookAdd, addressBookDelete, addressBookSetDefault, addressBookUpdate, customerStats, lastOrderOf, shopAddressOf, type CustomerAddress,
+  type Customer, rfmGroupOf, addressBookAdd, addressBookDelete, addressBookSetDefault, addressBookUpdate, customerStats, lastOrderOf, shopAddressOf, type CustomerAddress,
 } from '@shopme/core';
 import { parseId, toGid } from '@shopme/shopify-compat';
 import { builder } from '../builder';
@@ -33,13 +33,23 @@ const SmsConsent = builder.objectRef<Customer>('CustomerSmsMarketingConsentState
 });
 const SpendTier = builder.enumType('CustomerPredictedSpendTier', { values: ['HIGH', 'MEDIUM', 'LOW'] as const });
 const RfmGroup = builder.enumType('CustomerRfmGroup', { values: ['CHAMPIONS', 'LOYAL', 'ACTIVE', 'NEW', 'PROMISING', 'NEEDS_ATTENTION', 'ALMOST_LOST', 'PREVIOUSLY_LOYAL', 'AT_RISK', 'DORMANT', 'PROSPECTS'] as const });
-const CustomerStatistics = builder.objectRef<Record<string, never>>('CustomerStatistics').implement({
-  fields: (t) => ({ predictedSpendTier: t.field({ type: SpendTier, nullable: true, resolve: () => null }), rfmGroup: t.field({ type: RfmGroup, nullable: true, resolve: () => null }) }),
+const CustomerStatistics = builder.objectRef<Customer>('CustomerStatistics').implement({
+  fields: (t) => ({
+    predictedSpendTier: t.field({ type: SpendTier, nullable: true, resolve: () => null }),
+    rfmGroup: t.field({
+      type: RfmGroup, nullable: true,
+      resolve: async (c, _a, ctx) => {
+        const last = await lastOrderOf(ctx.db, ctx.shopId, c.id);
+        const { numberOfOrders } = await customerStats(ctx.db, ctx.shopId, c.id);
+        return rfmGroupOf(last ? Math.floor((Date.now() - last.createdAt.getTime()) / 86400000) : null, numberOfOrders);
+      },
+    }),
+  }),
 });
 
 builder.objectFields(Customer_, (t) => ({
   lastOrder: t.field({ type: Order_, nullable: true, resolve: async (c, _a, ctx) => { requireScope(ctx, 'read_orders'); return lastOrderOf(ctx.db, ctx.shopId, c.id); } }),
-  statistics: t.field({ type: CustomerStatistics, resolve: () => ({}) }),
+  statistics: t.field({ type: CustomerStatistics, resolve: (c) => c }),
   emailMarketingConsent: t.field({ type: EmailConsent, nullable: true, resolve: (c) => (c.email ? c : null) }),
   smsMarketingConsent: t.field({ type: SmsConsent, nullable: true, resolve: (c) => (c.phone ? c : null) }),
   canDelete: t.boolean({ resolve: async (c, _a, ctx) => (await customerStats(ctx.db, ctx.shopId, c.id)).numberOfOrders === 0 }),

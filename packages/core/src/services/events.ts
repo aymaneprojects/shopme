@@ -39,11 +39,12 @@ export async function getEvent(db: Executor, shopId: number, id: number): Promis
 }
 
 /** Staff comments on a resource timeline (order, customer): plain text, one author each. */
-export async function addComment(db: Executor, shopId: number, subjectType: 'order' | 'customer', subjectId: number, message: string, staffId: number | null) {
+export async function addComment(db: Executor, shopId: number, subjectType: 'order' | 'customer', subjectId: number, message: string, staffId: number | null, attachments: string[] = []) {
   const text = message.trim();
-  if (!text) return errR(['message'], "Message can't be blank");
+  const files = attachments.filter((u) => /^(https?:\/\/|\/)/i.test(u)).slice(0, 10);
+  if (!text && !files.length) return errR(['message'], "Message can't be blank");
   if (text.length > 5000) return errR(['message'], 'Message is too long (maximum is 5000 characters)');
-  return okR(await addEvent(db, shopId, { subjectType, subjectId, kind: 'comment', verb: `${subjectType}.comment`, message: text, authorStaffUserId: staffId }));
+  return okR(await addEvent(db, shopId, { subjectType, subjectId, kind: 'comment', verb: `${subjectType}.comment`, message: text, authorStaffUserId: staffId, ...(files.length && { data: { attachments: files } }) }));
 }
 
 /** A comment can only be deleted by its author. System events are part of the audit trail and never deletable. */

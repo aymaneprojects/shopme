@@ -3,7 +3,8 @@ import { Liquid } from 'liquidjs';
 import { defaultMoneyFormats, renderMoneyFormat } from '@shopme/shopify-compat';
 import { lineMoney, orderMoney } from '../services/markets/order-money';
 import type { Executor } from '../db/client';
-import { notificationTemplates, shops } from '../db/schema';
+import { customers, notificationTemplates, shops } from '../db/schema';
+import { addEvent } from '../services/events';
 import type { OrderSummary } from '../services/orders/create';
 import type { Shop } from '../services/shops';
 import type { Mail, Mailer } from '../mail';
@@ -267,7 +268,17 @@ export async function sendNotification(db: Executor, mailer: Mailer, shop: Shop,
   const r = await renderNotification(db, shop, appUrl, key, vars);
   const mail: Mail = { to, subject: r.subject, html: r.html, text: r.text, from: senderOf(shop), replyTo: DEFS[key].audience === 'customer' ? shop.email : undefined };
   await mailer.send(mail);
+  if (DEFS[key].audience === 'customer') await recordCustomerEmail(db, shop.id, to, key, r.subject, r.html);
   return true;
+}
+
+/** Timeline entry on the customer for an email sent to them, with the subject and body for "Show email" (best effort, never throws). */
+async function recordCustomerEmail(db: Executor, shopId: number, to: string, template: string, subject: string, html: string): Promise<void> {
+  try {
+    const [c] = await db.select({ id: customers.id }).from(customers).where(and(eq(customers.shopId, shopId), eq(customers.email, to.trim().toLowerCase()))).limit(1);
+    if (!c) return;
+    await addEvent(db, shopId, { subjectType: 'customer', subjectId: c.id, verb: 'customers/email_sent', message: `Email "${subject}" sent`, data: { template, to, subject, html: html.slice(0, 200_000) } });
+  } catch { /* timeline only */ }
 }
 
 /** "New order" email to every staff recipient. Returns how many were sent. */
