@@ -164,7 +164,7 @@ export function ExplorationPage() {
             <Select label={t('bc.explore.dataset')} value={def.dataset} onChange={(e) => changeDataset(e.target.value as Dataset)}>{DATASETS.map((d) => <option key={d} value={d}>{t(`bc.dataset.${d}` as Key)}</option>)}</Select>
             <fieldset className="flex flex-col gap-1.5">
               <legend className="mb-1 font-medium">{t('bc.controls.metrics')}</legend>
-              {cat?.metrics.map((m) => <label key={m.key} className="flex items-center gap-2"><input type="checkbox" checked={def.metrics.includes(m.key)} onChange={() => toggleMetric(m.key)} />{t(`bc.metric.${m.key}` as Key)}</label>)}
+              {cat?.metrics.map((m) => <label key={m.key} className="flex items-center gap-2"><input type="checkbox" checked={def.metrics.includes(m.key)} onChange={() => toggleMetric(m.key)} />{cells.colLabel({ key: m.key, label: m.label, type: m.type })}</label>)}
             </fieldset>
             <Select label={t('bc.explore.dimension')} value={def.dimension ?? ''} onChange={(e) => { const d = e.target.value || null; set({ dimension: d, visualization: d && cat?.dimensions.find((x) => x.key === d)?.date ? 'LINE' : def.visualization === 'LINE' ? 'BAR' : def.visualization }); }}>
               <option value="">{t('bc.explore.noDimension')}</option>{cat?.dimensions.map((d) => <option key={d.key} value={d.key}>{t(`bc.dim.${d.key}` as Key)}</option>)}

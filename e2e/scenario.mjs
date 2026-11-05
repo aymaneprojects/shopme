@@ -497,6 +497,53 @@ export async function runScenario({ baseUrl, root }) {
       assert.match(detail, /#1001.*Paid.*Fulfilled.*€35\.50/);
     });
 
+    await step('7f2 customer tools: query bar, bulk edit, company, more actions', async () => {
+      await admin.goto(`${baseUrl}/admin/customers`);
+      const bar = admin.getByRole('combobox', { name: 'Filter customers with a query' });
+      await bar.fill('foo:bar');
+      await vis(admin.getByRole('alert').filter({ hasText: 'is not a customer field' }));
+      await bar.fill('orders_count:>0');
+      await admin.getByRole('button', { name: 'Apply', exact: true }).click();
+      const row = admin.getByRole('row', { name: /Julie Dupont/ });
+      await vis(row);
+      await admin.getByRole('button', { name: 'Save as segment' }).waitFor({ state: 'visible', timeout: T });
+      // bulk edit: add a tag to the selected customer
+      await row.getByRole('checkbox').check();
+      await admin.getByRole('button', { name: 'Edit in bulk' }).click();
+      await vis(admin.getByRole('dialog').getByText('Edit 1 customer'));
+      await admin.getByRole('dialog').locator('input').first().fill('vip');
+      await admin.getByRole('dialog').locator('input').first().press('Enter');
+      await admin.getByRole('dialog').getByRole('button', { name: 'Apply changes' }).click();
+      await vis(admin.getByText('1 customer updated'));
+      // the column chooser can show the tags column
+      await admin.getByRole('button', { name: 'Edit columns' }).click();
+      await admin.getByRole('checkbox', { name: 'Tags' }).check();
+      await vis(admin.getByRole('row', { name: /Julie Dupont.*vip/ }));
+      // a company with this customer as a contact
+      await admin.goto(`${baseUrl}/admin/customers/companies`);
+      await admin.getByRole('button', { name: 'Add company' }).first().click();
+      await admin.getByRole('dialog').getByLabel('Company', { exact: true }).fill('Maison Lumière Pro');
+      await admin.getByRole('dialog').getByRole('button', { name: 'Create company' }).click();
+      await admin.waitForURL(/\/admin\/customers\/companies\/\d+/);
+      await vis(admin.getByRole('heading', { name: 'Maison Lumière Pro' }));
+      await admin.getByRole('button', { name: 'Add contact' }).click();
+      await admin.getByRole('dialog').getByRole('searchbox').fill('Julie');
+      await admin.getByRole('dialog').getByRole('button', { name: /Julie Dupont/ }).click();
+      await vis(admin.getByRole('link', { name: 'Julie Dupont' }));
+      await shot('16b-admin-company', admin);
+      // the customer page shows the company, the group tile and the new More actions
+      await admin.goto(`${baseUrl}/admin/customers`);
+      await admin.getByRole('row', { name: /Julie Dupont/ }).getByText('Julie Dupont').click();
+      await admin.waitForURL(/\/admin\/customers\/\d+/);
+      await vis(admin.getByRole('link', { name: 'Maison Lumière Pro' }));
+      assert.match(await text(admin.locator('main')), /Customer group Customer/);
+      await admin.getByRole('button', { name: 'More actions' }).first().click();
+      await vis(admin.getByRole('menuitem', { name: 'Erase personal data' }));
+      await vis(admin.getByRole('menuitem', { name: 'Merge customer' }));
+      await vis(admin.getByRole('menuitem', { name: 'Request customer data' }));
+      await admin.keyboard.press('Escape');
+    });
+
     await step('7g inventory of Figue / L is 9', async () => {
       await admin.goto(`${baseUrl}/admin/inventory`);
       const row = admin.getByRole('row', { name: /Figue \/ L/ });
@@ -671,6 +718,46 @@ export async function runScenario({ baseUrl, root }) {
       const csv = await api.get(`${baseUrl}/admin/api/reports/SALES_BY_PRODUCT.csv?from=2020-01-01&to=2099-12-31`);
       assert.equal(csv.status(), 200);
       assert.match(await csv.text(), /Bougie parfumée/);
+    });
+
+    await step('11a2 analytics: overview, exploration, live view, reports list, content tabs', async () => {
+      await admin.goto(`${baseUrl}/admin/analytics?preset=THIS_YEAR`);
+      await vis(admin.getByText(/Last refreshed/));
+      await vis(admin.getByText('Orders fulfilled'));
+      await admin.getByRole('button', { name: 'Goals' }).click();
+      await admin.getByRole('dialog').getByLabel('Target').fill('5000');
+      await admin.getByRole('dialog').getByRole('button', { name: 'Set goal' }).click();
+      await vis(admin.getByRole('dialog').getByText('Goal saved').or(admin.getByRole('dialog').getByText('5,000')));
+      await admin.getByRole('dialog').getByRole('button', { name: 'Close', exact: true }).first().click();
+      await vis(admin.getByRole('progressbar'));
+      await admin.goto(`${baseUrl}/admin/analytics/explorations/new`);
+      await vis(admin.getByRole('textbox', { name: 'Report query' }));
+      await admin.getByRole('textbox', { name: 'Report query' }).fill('FROM orders SHOW orders, total_sales BY month SINCE this_year');
+      await admin.getByRole('button', { name: 'Refine query' }).click();
+      await vis(admin.locator('table'));
+      await admin.getByRole('button', { name: 'Save', exact: true }).first().click();
+      await admin.getByRole('dialog').getByLabel('Name').fill('Monthly sales');
+      await admin.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
+      await admin.waitForURL(/\/admin\/analytics\/explorations\/\d+/);
+      await admin.goto(`${baseUrl}/admin/analytics/reports`);
+      await vis(admin.getByRole('link', { name: 'Monthly sales' }));
+      await vis(admin.getByRole('link', { name: 'Sales by channel' }));
+      await admin.getByRole('button', { name: 'Pin Monthly sales' }).click();
+      await vis(admin.getByRole('button', { name: 'Unpin Monthly sales' }));
+      await admin.goto(`${baseUrl}/admin/analytics/reports/SALES_OVER_TIME?preset=THIS_YEAR`);
+      await admin.getByRole('button', { name: 'Controls' }).click();
+      await vis(admin.getByRole('complementary', { name: 'Controls' }));
+      await admin.getByRole('button', { name: 'Annotations' }).click();
+      await vis(admin.getByRole('heading', { name: 'Annotations' }));
+      await admin.goto(`${baseUrl}/admin/analytics/live`);
+      await vis(admin.getByText('Visitors right now'));
+      await shot('11a2-analytics-live', admin);
+      await admin.goto(`${baseUrl}/admin/content/files`);
+      await vis(admin.getByRole('link', { name: 'Metaobjects' }));
+      await admin.goto(`${baseUrl}/admin/content/navigation`);
+      await vis(admin.getByText('Customer account menu'));
+      await admin.goto(`${baseUrl}/admin/online-store/preferences`);
+      await vis(admin.getByLabel('Home page title'));
     });
 
     await step('11b languages: publish French, translate a product, storefront /fr', async () => {
