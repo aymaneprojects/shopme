@@ -22,7 +22,8 @@ describe('migration of existing zones and rates', () => {
     dir = mkdtempSync(path.join(tmpdir(), 'mig-'));
     cpSync(full, dir, { recursive: true });
     const journal = JSON.parse(readFileSync(path.join(full, 'meta', '_journal.json'), 'utf8')) as { entries: { tag: string }[] };
-    const old = { ...journal, entries: journal.entries.filter((e) => !e.tag.includes('shipping_profiles')) };
+    const cut = journal.entries.findIndex((e) => e.tag.includes('shipping_profiles'));
+    const old = { ...journal, entries: journal.entries.slice(0, cut) }; // every migration before delivery profiles
     const partial = mkdtempSync(path.join(tmpdir(), 'mig-partial-'));
     cpSync(full, partial, { recursive: true });
     writeFileSync(path.join(partial, 'meta', '_journal.json'), JSON.stringify(old));
