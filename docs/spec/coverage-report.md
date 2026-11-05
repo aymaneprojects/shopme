@@ -1,5 +1,61 @@
 # ShopMe coverage report: how completely do we reproduce observed Shopify behavior?
 
+## Status update (2026-11-05)
+
+Each P0 and P1 item below was checked against the code at the first public release (v0.1.0). The gap lists in section 8
+are unchanged; this table only records what has since been built. **Done** means delivered as described. **Partial** means
+a named part of the item is still missing (see the notes). **Not done** means absent. P2 items are not re-scored.
+
+### P0
+
+| # | Gap | Status | Notes |
+|---|---|---|---|
+| P0-1 | Customer accounts | Done | Register, login, logout, reset, order history, address book, `customer` object, `/account/*` |
+| P0-2 | Theme install/upload | Done | Zip upload, create, duplicate, delete, file copy and delete |
+| P0-3 | Section-level theme editor | Done | Add, remove and move sections and blocks, template switching, undo |
+| P0-4 | CSV import/export | Done | Products, customers, inventory and orders |
+| P0-5 | Shopify migration importer | Done | `packages/migrate` (command line and admin page); discounts, gift cards and theme code are not imported |
+| P0-6 | Notification emails | Partial | Shipping, refund, cancellation, password reset and the editor are done; account welcome and invite templates have no sending flow yet |
+| P0-7 | Draft and manual orders | Done | Draft create, edit, calculate, complete and invoice link; no `orderCreate` mutation |
+| P0-8 | Staff management and permissions | Done | Team page, invitations, roles, per-area permissions enforced through scopes, session list |
+| P0-9 | URL redirects with 301 and bulk CSV import | Partial | 301 on handle change and the admin page are done; no CSV or bulk import (`urlRedirectImport` is absent) |
+| P0-10 | Policies editor, legal pages, consent basics | Done | Policies editor, cookie banner, customer data export; no erasure tooling |
+| P0-11 | Image resizing and WebP/AVIF | Done | Width, height, crop and format, with a disk cache |
+| P0-12 | Cart-level discounts | Done | Cart, Ajax responses, Liquid and `/discount/:code` |
+| P0-13 | Blogs and articles | Done | Admin editors, storefront routes, Atom feeds, sitemap entries, `blog` and `article` objects |
+| P0-14 | Contact and newsletter forms | Done | `POST /contact` and newsletter sign-up |
+| P0-15 | Outbound webhooks with HMAC | Done | HMAC-SHA256 signatures, retries, delivery log, admin page |
+
+P0 result: 13 Done, 2 Partial, 0 Not done.
+
+### P1
+
+| # | Gap | Status | Notes |
+|---|---|---|---|
+| P1-1 | Gift cards | Done | Issue, balance, checkout redemption, public page, admin page |
+| P1-2 | Abandoned checkouts and recovery | Done | List, recovery emails, recovery link |
+| P1-3 | Order editing, returns and exchanges | Partial | Order editing and returns are done; exchanges are not built |
+| P1-4 | Automatic discounts, BXGY, order-level and bulk codes | Partial | Automatic, BXGY and order-level discounts are done; bulk code generation is absent |
+| P1-5 | Sitemap index, feeds, `search.json`, `meta.json`, `x-robots-tag` | Done | Blog Atom feeds included |
+| P1-6 | Storefront metafields and definitions UI | Partial | Product, variant, collection, customer and order owners are done; article, page and blog owners and `metafieldsDelete` are missing |
+| P1-7 | Search upgrade | Done | Ranking, typo tolerance, prefix option, pages and articles, predictive queries |
+| P1-8 | Multi-location inventory and transfers | Partial | Locations, activation, priority allocation and fulfillment location are done; inventory transfers and purchase orders are not built (P2-3) |
+| P1-9 | Shipping labels, carrier rates, packages, local pickup | Not done | No label purchase, carrier integration, packages or local pickup |
+| P1-10 | Product page admin gaps | Partial | Variant image, unit price, category, duplicate, preview, metafields and bulk editor are done; `productVariantAppendMedia` and a share link are missing |
+| P1-11 | Admin API completeness | Partial | `productSet`, `productChangeStatus`, publications, `customerAddress*`, files, staged uploads, `staffMember` are done; saved searches and `productPublish` are missing |
+| P1-12 | Bulk operations | Not done | No `bulkOperation*` roots or JSONL support |
+| P1-13 | Core type fields | Partial | Most listed fields are added; `Order.fulfillmentOrders` and `suggestedRefund` are missing |
+| P1-14 | Analytics reports | Done | Twelve reports, comparison, CSV export |
+| P1-15 | Staff 2FA, session list, login alerts | Done | TOTP, recovery codes, session revoke, sign-in alert email |
+| P1-16 | Security headers and ETag caching | Done | Strict admin CSP, storefront report-only CSP, HSTS option, ETag and 304 |
+| P1-17 | Store export/import and scheduled backups | Done | `.shopme` archive, backup settings, retention |
+| P1-18 | Languages and translations | Done | Locale prefixes, translatable resources, `/localization`; checkout and policy pages are not translated yet |
+
+P1 result: 9 Done, 7 Partial, 2 Not done.
+
+---
+
+
 Status: audit snapshot, 2026-11-04, branch `main` (v0.1.0 pre-release code). Written in our own words. Names of types,
 fields, routes and filters are interoperability facts; no vendor text is reproduced.
 

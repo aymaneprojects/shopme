@@ -41,7 +41,7 @@ Le menu **ShopMe** contient :
 - **Open admin** : la fenêtre d'administration (la rouvre si vous l'avez fermée).
 - **Open storefront** : votre boutique, dans votre navigateur habituel.
 - **Open data folder** : ouvre le dossier où tout est stocké.
-- **Export my store… (coming soon)** : bientôt disponible.
+- **Export my store…** / **Import a store…** : enregistre toute la boutique dans un fichier `.shopme` et recharge-la sur un serveur (ou un autre ordinateur).
 - **Quit** : quitter.
 
 Fermer la fenêtre d'administration quitte ShopMe et arrête la boutique.

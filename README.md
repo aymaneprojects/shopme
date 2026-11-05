@@ -25,22 +25,24 @@ or with an embedded database for local use.
 
 ## Features in v0.1
 
-- **Setup:** a first-run wizard creates the shop and the owner account.
-- **Catalog:** products, variants and options, media, collections (manual and smart rules), inventory (single location), metafields.
-- **Themes:** Shopify-format Liquid themes, the Aurora default theme (MIT), and a theme settings editor with preview.
-- **Storefront:** product, collection, search and page routes, and the Ajax Cart API.
-- **Checkout:** one-page checkout with discount codes, shipping zones and rates, and tax rates.
-- **Payments:** Stripe (card data is handled by Stripe.js; the server verifies signed webhooks), bank transfer, and cash on delivery.
-- **Orders:** list and detail views, fulfillments with tracking, refunds, cancellation, restock, and an order timeline.
-- **Customers and discounts:** customer records, discount codes.
-- **Online store content:** pages, menus.
-- **Admin:** dashboard, English and French interface.
+- **Catalog:** products, variants and options, media, collections (manual and smart rules), inventory across multiple locations, product types, vendors and tags, metafields with definitions, a bulk editor, and CSV import and export.
+- **Online store and themes:** Shopify-format Liquid themes (Online Store 2.0 layout), the Aurora default theme (MIT), theme upload and library, a section-level theme editor with preview, pages, menus, blogs and articles, URL redirects, contact and newsletter forms, and customer accounts (registration, login, password reset, order history, address book).
+- **Search and languages:** storefront search with ranking, typo tolerance, and predictive search; languages and translations with `/fr` URLs.
+- **Checkout and payments:** one-page checkout, Stripe (card data is handled by Stripe.js; the server verifies signed webhooks), bank transfer, cash on delivery, shipping zones and rates, tax rates, and gift cards as a payment method.
+- **Orders and customers:** order list and detail with timeline, fulfillments with tracking, refunds, cancellation, order editing, returns, draft orders with an invoice link, abandoned checkout recovery, customer records, and per-customer data export.
+- **Marketing and discounts:** discount codes, cart-level discounts, automatic discounts, buy X get Y, free shipping, gift cards (issue, balance, redemption, email), and abandoned checkout recovery emails.
+- **Content:** pages, menus, blogs and articles, and policies (refund, privacy, terms, shipping) with a cookie banner.
+- **Analytics:** 12 reports with a date range, a comparison period and CSV export, and first-party visit tracking that respects the cookie banner and Do Not Track.
+- **Platform and security:** a first-run setup wizard, staff roles and permissions with invitations, two-factor authentication (TOTP and recovery codes), active sessions, editable notification templates (English and French), signed outbound webhooks (HMAC-SHA256, with retries), security headers, ETag caching, image resizing (including WebP and AVIF), store export and import, and scheduled backups.
+- **Admin:** English and French interface, a dark navy theme with a light and dark switch, the Geist font, and a Ctrl/⌘+K command palette.
+- **Migration and data:** a Shopify migration importer (command line and admin page, through the Admin API), CSV import and export, and `.shopme` store archives for moving a whole store.
 - **API:** Shopify-shaped Admin GraphQL subset, documented in [docs/spec](docs/spec/README.md).
-- **Deployment:** zero-setup local mode with embedded PostgreSQL (PGlite), and Docker Compose with PostgreSQL 17.
+- **Deployment:** zero-setup local mode with embedded PostgreSQL (PGlite), Docker Compose with PostgreSQL 17, and desktop apps (beta).
 
-**Not in v0.1:** Storefront GraphQL API, outbound webhooks, OAuth apps, multi-currency, multi-language storefront,
-gift cards, returns, multi-location inventory. The CLI, client SDK and migration tool are placeholders.
-See the [ROADMAP](ROADMAP.md).
+**Not in v0.1:** Storefront GraphQL API, OAuth apps and an app platform, multi-currency and markets, EU VAT and OSS, shipping
+labels and carrier rates (including French carriers), local pickup, bulk operations, a REST Admin API, exchanges, customer
+segments, metaobjects, point of sale, inventory transfers, purchase orders, and bulk discount code generation. The CLI and the
+client SDK are placeholders. See the [ROADMAP](ROADMAP.md).
 
 ## Screenshots
 
@@ -56,6 +58,18 @@ See the [ROADMAP](ROADMAP.md).
   <tr>
     <td width="50%"><img src="docs/assets/screenshots/admin-order-detail.png" width="100%" alt="Order detail"><br><sub>Order detail</sub></td>
     <td width="50%"><img src="docs/assets/screenshots/admin-theme-editor.png" width="100%" alt="Theme editor"><br><sub>Theme editor</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/admin-section-editor.png" width="100%" alt="Section editor"><br><sub>Section editor</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/admin-themes.png" width="100%" alt="Theme library"><br><sub>Theme library</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/admin-command-palette.png" width="100%" alt="Command palette"><br><sub>Command palette</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/admin-save-bar.png" width="100%" alt="Save bar"><br><sub>Save bar</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/admin-product-editor-light.png" width="100%" alt="Product editor, light theme"><br><sub>Product editor, light theme</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/admin-settings.png" width="100%" alt="Settings"><br><sub>Settings</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/assets/screenshots/storefront-desktop.png" width="100%" alt="Storefront on desktop"><br><sub>Storefront</sub></td>
@@ -114,6 +128,7 @@ No Shopify code, theme files or documentation text is copied. See the [clean-roo
 - **Admin GraphQL:** a subset with Shopify-shaped types, fields and `userErrors`. It is not complete.
 - **Ajax Cart API:** implemented.
 - **Storefront GraphQL:** not implemented yet.
+- **Coverage:** [docs/spec/coverage-report.md](docs/spec/coverage-report.md) compares ShopMe with observed Shopify behavior and lists what is still missing.
 
 ## Roadmap
 

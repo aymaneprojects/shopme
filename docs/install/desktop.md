@@ -36,7 +36,7 @@ The **ShopMe** menu has:
 - **Open admin**: the back office window (reopens it if you closed it).
 - **Open storefront**: your shop, in your normal browser.
 - **Open data folder**: shows where everything is stored.
-- **Export my store… (coming soon)**.
+- **Export my store…** / **Import a store…**: save your whole store to a `.shopme` file and load it on a server (or another computer).
 - **Quit**.
 
 Closing the admin window quits ShopMe and stops the store.

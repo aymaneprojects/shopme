@@ -4,7 +4,7 @@
 
 - [Install and deploy](install/README.md) (also in [French](install/README.fr.md)): local run, Docker Compose, VPS with HTTPS, backups, upgrades.
 - [Caddyfile](install/Caddyfile): reverse proxy example used by the VPS guide.
-- [Desktop apps](install/desktop.md): planned Windows and macOS builds (not in v0.1.0).
+- [Desktop apps](install/desktop.md): Windows, macOS and Linux apps (beta), attached to each GitHub Release.
 
 ## Developer notes
 

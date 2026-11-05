@@ -5,44 +5,81 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project will follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) from 1.0 onward. Before 1.0, minor versions may include breaking changes.
 
-## [Unreleased]
+## [0.1.0] - 2026-11-05
+
+First public release (early alpha).
 
 ### Added
 
-- Customer accounts on the storefront: register, login, logout, password reset by email, account activation for guest customers, order history and order pages, address book. Classic `customers/*` templates and `customer` forms; the `customer` Liquid object; Aurora templates in English and French. Checkout starts with the signed-in customer's email and default address.
-- Blogs and articles: Admin GraphQL `blog(s)`, `blogsCount`, `article(s)`, `articleTags` and `blogCreate/Update/Delete`, `articleCreate/Update/Delete`; storefront `/blogs/:blog`, `/blogs/:blog/tagged/:tag`, `/blogs/:blog/:article`, Atom feed `/blogs/:blog.atom`; `blog`, `article`, `blogs` and `articles` Liquid objects; Aurora blog and article templates.
-- Contact form (`POST /contact`, emails the shop owner) and newsletter sign-up (`form 'customer'`, marketing consent plus the `newsletter` tag), with `form.errors` and `form.posted_successfully?`.
-- URL redirects: Admin GraphQL `urlRedirect(s)`, `urlRedirectsCount`, `urlRedirectCreate/Update/Delete`; the storefront answers stored redirects with 301 before the 404; changing a product, collection, page, blog or article handle creates a redirect.
-- Cart-level discounts: `/discount/:code`, discounts in `/cart.js` and every Ajax cart response (`total_discount`, `cart_level_discount_applications`, line `discounts` and `line_level_discount_allocations`), Liquid `cart.discount_applications`.
-- `/sitemap.xml` is now an index of child sitemaps (products, collections, pages, blogs); `/robots.txt` lists the private areas.
-- Migration `wave6a_accounts` (`customer_tokens`, `blogs.comment_policy`).
-- Analytics: 12 reports (sales over time, by product, variant and vendor, orders, average order value, returning customer rate, top customers, discount usage, taxes, inventory snapshot, sessions and conversion) with a date range and comparison picker, SVG charts and CSV export; `shopmeReport` in the Admin API; first-party visit tracking that respects the cookie banner and Do Not Track.
-- Staff two-step verification (TOTP, QR code, recovery codes), per-shop enforcement, sign-in challenge step, active sessions list with revoke, and a sign-in alert email.
-- Security headers on the storefront and admin (frame protection, nosniff, referrer policy, strict admin CSP, report-only storefront CSP, optional HSTS via `HSTS=true`) and ETag / 304 for storefront HTML and assets.
-- Store export and import (`.shopme` zip with every table, uploaded files and themes), Settings, Backup and transfer, scheduled automatic backups with retention, and the desktop app's "Export my store..." and "Import a store..." menu items.
-- Languages and translations: `shopLocales`, `shopLocaleEnable/Update/Disable`, `translatableResources`, `translationsRegister/Remove`; storefront locale prefixes (`/fr`), `POST /localization`, `localization` Liquid object, hreflang, an Aurora language selector, Settings, Languages and a side-by-side translation editor.
-- Migration `wave7c_platform` (`visits`, `staff_two_factor`, `shop_locales`, `translations`).
-- Catalog (wave 7b): metafield definitions (`metafieldDefinitions`, `metafieldDefinitionCreate/Update/Delete`, typed editors on products, variants, collections, customers and orders, Liquid `metafields` with `metafield_tag`/`metafield_text`); storefront search upgrade (ranking, `type`, `options[prefix]`, typo tolerance, pages and articles, predictive `queries`, Aurora dropdown); multi-location inventory (Settings > Locations, `inventoryActivate/Deactivate/MoveQuantities`, `locationActivate/Deactivate`, priority allocation, ship-from location); product editor (variant images, unit price, category, duplicate, preview, bulk editor); Admin API `productSet`, `productChangeStatus`, `publications`, `publishablePublish/Unpublish`, `customerAddress*`, `files`, `fileUpdate/Delete`, `stagedUploadsCreate`, `locationsCount`, `taxonomy`, more `Product`, `ProductVariant`, `Order`, `Customer` and `Shop` fields; `extensions.cost` with a throttle status; `/collections/:handle.atom`, `/meta.json`, `/search.json`, `x-robots-tag`, hreflang and Product JSON-LD.
-- Migration `wave7b_catalog` (`metafield_definitions`, `products.category`, variant unit price columns, `locations.priority`, full-text index).
+**Setup and platform**
 
-## [0.1.0] - 2026-11-04
-
-### Added
-
-- End-to-end test suite (`pnpm e2e`): 29-step merchant and shopper journey in a real browser, run in CI.
-- Desktop apps (beta): Windows `.exe`, macOS `.dmg`, Linux `.AppImage`, built by GitHub Actions for each release.
 - First-run setup wizard that creates the shop and the owner account.
-- Catalog: products, variants and options, media, manual and smart-rule collections, single-location inventory, metafields, product types, vendors and tags.
+- Zero-setup local mode with embedded PostgreSQL (PGlite) under `./data`; Docker image and Docker Compose setup with PostgreSQL 17; install guides for VPS deployment with Caddy.
+- Staff accounts with roles (owner, admin, staff), per-area permissions, invitations by link, and a Team page.
+- Staff two-step verification (TOTP, QR code, recovery codes), per-shop enforcement, a sign-in challenge step, an active sessions list with revoke, and a sign-in alert email.
+- Security headers on the storefront and the admin (frame protection, nosniff, referrer policy, strict admin CSP, report-only storefront CSP, optional HSTS with `HSTS=true`), and ETag / 304 responses for storefront HTML and assets.
+- Admin interface in English and French, a dark navy theme with a light and dark switch, the Geist font, and a Ctrl/⌘+K command palette.
+- Desktop apps (beta): Windows `.exe`, macOS `.dmg` and Linux `.AppImage`, built by GitHub Actions for each release and unsigned; "Export my store..." and "Import a store..." menu items.
+- Store export and import (`.shopme` archive with every table, uploaded files and themes), a Backup and transfer page, and scheduled automatic backups with retention.
+
+**Catalog**
+
+- Products, variants and options, media, product types, vendors and tags, metafields with definitions (typed editors on products, variants, collections, customers and orders), and a bulk editor.
+- Manual and smart-rule collections, with an Atom feed at `/collections/:handle.atom`.
+- Multi-location inventory: a locations page, activation and deactivation, priority allocation, and a ship-from location.
+- Product editor with variant images, unit price, category, duplicate, preview, and product set and status changes.
+- CSV import and export for products, customers, inventory and orders.
+- Shopify migration importer (`packages/migrate`, through the Admin API), with a page in the admin.
+- Admin GraphQL: `productSet`, `productChangeStatus`, `publications`, `publishablePublish/Unpublish`, `customerAddress*`, `files`, `fileUpdate/Delete`, `stagedUploadsCreate`, `locationsCount`, `taxonomy`, and more fields on `Product`, `ProductVariant`, `Order`, `Customer` and `Shop`.
+- Admin GraphQL: `extensions.cost` with a throttle status.
+
+**Themes and online store**
+
 - Liquid theme engine for Shopify-format themes, with the Aurora default theme (MIT) and a schema-driven theme settings editor with preview.
+- Theme upload and library in the admin (zip upload, create, duplicate, delete, rename, file copy and delete).
+- Section-level theme editor: add, remove and reorder sections and blocks, switch templates, and undo.
+- Pages, navigation menus, and blogs and articles: Admin GraphQL `blog(s)`, `article(s)`, `articleTags`, and create, update and delete mutations; storefront `/blogs/:blog`, tagged blogs, articles, and `/blogs/:blog.atom`; `blog` and `article` Liquid objects; Aurora blog and article templates.
+- URL redirects: Admin GraphQL `urlRedirect(s)` and mutations; the storefront answers stored redirects with 301 before the 404, and changing a product, collection, page, blog or article handle creates a redirect.
+- Policies with an editor (refund, privacy, terms, shipping), served at `/policies/:handle`, and a cookie banner.
+- Contact form (`POST /contact`, emails the shop owner) and newsletter sign-up (`form 'customer'`, marketing consent plus the `newsletter` tag), with `form.errors` and `form.posted_successfully?`.
+- Languages and translations: `shopLocales`, `translatableResources`, `translationsRegister/Remove` and related operations; storefront locale prefixes (`/fr`), `POST /localization`, the `localization` Liquid object, hreflang, an Aurora language selector, a Languages settings page and a side-by-side translation editor.
+- Image resizing for `/files/*` (width, height, crop, format including WebP and AVIF) with a disk cache.
+
+**Search and storefront**
+
 - Storefront routes for products, collections, search and pages, and the Ajax Cart API.
-- One-page checkout with discount codes, shipping zones and rates, and tax rates.
-- Payments: Stripe (PaymentIntents and signed webhooks), bank transfer and cash on delivery.
-- Orders: list and detail views, fulfillments with tracking, refunds, cancellation, restock and order timeline.
-- Customer records and discount management.
-- Online store content: pages and menus.
-- Admin dashboard in English and French.
-- Shopify-shaped Admin GraphQL API subset, with ShopMe-specific settings operations.
-- Zero-setup local mode with embedded PostgreSQL (PGlite) under `./data`.
-- Docker image and Docker Compose setup with PostgreSQL 17, plus install guides for VPS deployment with Caddy.
+- Search upgrade: full-text ranking, `type` and `options[prefix]`, typo tolerance, pages and articles, predictive `queries`, and an Aurora dropdown.
+- `/search.json`, `/meta.json`, `x-robots-tag`, canonical and hreflang tags, and Product JSON-LD.
+- `/sitemap.xml` as an index of child sitemaps (products, collections, pages, blogs), and `/robots.txt` listing the private areas.
+- Customer accounts: register, login, logout, password reset by email, account activation for guest customers, order history and order pages, and an address book. Classic `customers/*` templates and `customer` forms, the `customer` Liquid object, and Aurora templates in English and French. Checkout starts with the signed-in customer's email and default address.
+- Visit tracking that respects the cookie banner and Do Not Track.
+
+**Checkout and payments**
+
+- One-page checkout with discount codes, gift cards, shipping zones and rates, and tax rates.
+- Payments: Stripe (PaymentIntents and signed webhooks), bank transfer, and cash on delivery.
+- Cart-level discounts: `/discount/:code`, discounts in `/cart.js` and every Ajax cart response, and Liquid `cart.discount_applications`.
+- Automatic discounts and buy X get Y (BXGY), with combination rules; the admin discount type chooser (amount off products, buy X get Y, amount off order, free shipping) and a code or automatic method.
+
+**Orders and customers**
+
+- Orders: list and detail views, fulfillments with tracking, refunds, cancellation, restock, archive, and an order timeline.
+- Order editing (`orderEdit*` mutations and an edit page) and returns (`returnCreate`, `returnRequest`, approval and close), with restock on close.
+- Draft orders: create, edit, calculate, complete, and send an invoice link that opens a checkout or a payment-pending order.
+- Abandoned checkouts: a list in the admin, optional recovery emails after 1 to 24 hours, and a recovery link that restores the cart.
+- Gift cards: issue on purchase (including recipient and scheduled notifications), balance and transactions, redemption at checkout, a public gift card page, and an admin page.
+- Customer records, customer data export (`/admin/api/customers/:id/export.json`), and discount management.
+- Outbound webhooks: subscriptions for Shopify-style topics, JSON payloads, HMAC-SHA256 signatures with a rotatable secret, retries with backoff, and a delivery log.
+- Notification templates editor (English and French) for order, shipping, refund, cancellation, draft invoice, contact, staff invitation and login alert emails, with sender settings.
+
+**Analytics**
+
+- Twelve reports (sales over time, orders over time, average order value, sales by product, variant and vendor, returning customer rate, top customers, discount usage, taxes, inventory snapshot, and sessions and conversion) with a date range, a comparison picker, SVG charts, and CSV export.
+- `shopmeReport` in the Admin API.
+
+**Admin API and developer tools**
+
+- Shopify-shaped Admin GraphQL subset, with ShopMe-specific settings operations, and documentation under `docs/`.
 - Clean-room specifications and developer notes under `docs/`.
-- English and French READMEs, roadmap, contribution guide and security policy.
+- End-to-end test suite (`pnpm e2e`): a 29-step merchant and shopper journey in a real browser, run in CI.
+- English and French READMEs, roadmap, coverage report, contribution guide and security policy.

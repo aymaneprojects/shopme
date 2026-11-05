@@ -31,31 +31,33 @@ v0.1.0 code; partially done items are split so the open part stays visible.
 - [x] Ajax Cart API
 - [x] Admin GraphQL subset
 - [ ] Storefront GraphQL subset
-- [ ] Webhooks with HMAC signatures (inbound Stripe webhook is verified; outbound merchant webhooks are not built)
+- [x] Webhooks with HMAC signatures (outbound merchant webhooks with retries, and the inbound Stripe webhook)
 - [ ] OAuth apps
 - [ ] **Done when:** the conformance suite is green
 
 ## Phase 3 - Advanced commerce
-- [x] Discounts (codes)
+- [x] Discounts (codes, cart-level, automatic, buy X get Y)
 - [x] Shipping zones and rates
 - [x] Tax rates (basic, per zone)
 - [ ] EU VAT / OSS
 - [ ] Multi-currency
-- [ ] Multi-language storefront (the admin is already EN/FR)
-- [ ] Gift cards
+- [x] Multi-language storefront (`/fr` URLs, translations; the admin is EN/FR)
+- [x] Gift cards
 - [x] Refunds
-- [ ] Returns
-- [ ] Multi-location inventory
+- [x] Returns
+- [ ] Exchanges
+- [x] Multi-location inventory
+- [ ] Inventory transfers between locations
 - [ ] French carriers (Colissimo, Mondial Relay)
 
 ## Phase 4 - Ecosystem
 - [x] Theme settings editor (schema-driven, with preview)
-- [ ] Visual theme editor beyond settings (section layout editing)
+- [x] Visual theme editor beyond settings (section layout editing)
 - [x] Metafields
 - [ ] Metaobjects
 - [ ] App platform
 - [ ] CLI: theme dev / push (`packages/cli` is a placeholder)
-- [ ] One-click migration from Shopify (`packages/migrate` is a placeholder)
+- [x] One-click migration from Shopify (importer in `packages/migrate`, also started from the admin)
 
 ## Phase 5 - Production
 - [ ] Performance
@@ -64,8 +66,8 @@ v0.1.0 code; partially done items are split so the open part stays visible.
 - [ ] Observability
 - [ ] Helm charts (Docker Compose already available)
 - [ ] One-click deploy templates
-- [ ] Desktop apps: Windows `.exe` and macOS `.dmg` (Electron + embedded server + PGlite), built by GitHub Actions
-- [ ] Export / import a whole store (e.g. build it in the desktop app, then move it to a server)
+- [x] Desktop apps: Windows `.exe`, macOS `.dmg` and Linux `.AppImage` (beta; Electron + embedded server + PGlite), built by GitHub Actions
+- [x] Export / import a whole store (e.g. build it in the desktop app, then move it to a server)
 - [ ] Documentation site (the docs are in the repository under `docs/`)
 
 ## Later
