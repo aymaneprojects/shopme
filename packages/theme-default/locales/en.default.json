@@ -41,7 +41,12 @@
     "sale_price": "Sale price",
     "quantity": "Quantity",
     "description": "Description",
-    "unavailable": "Unavailable"
+    "unavailable": "Unavailable",
+    "gift_card": {
+      "recipient_email": "Recipient email (optional)",
+      "recipient_name": "Recipient name (optional)",
+      "message": "Message (optional)"
+    }
   },
   "collection": {
     "sort_by": "Sort by",
@@ -215,5 +220,16 @@
   "localization": {
     "language": "Language",
     "update": "Update language"
+  },
+  "gift_card": {
+    "title": "Your {{ shop }} gift card",
+    "balance": "Balance",
+    "initial_value": "Initial value: {{ amount }}",
+    "code": "Gift card code",
+    "expires_on": "Valid until {{ date }}",
+    "expired": "This gift card expired on {{ date }}.",
+    "disabled": "This gift card has been deactivated.",
+    "shop_now": "Start shopping",
+    "how_to": "Enter the code in the Gift card field at checkout. The balance is used up to the amount of your order."
   }
 }

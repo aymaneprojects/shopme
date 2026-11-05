@@ -1,3 +1,4 @@
+import { enCommerce } from './en-commerce';
 import { enExt } from './en-ext';
 import { enPlatform } from './en-platform';
 import { enShop } from './en-shop';
@@ -91,6 +92,7 @@ export const en = {
   ...enShop,
   ...enExt,
   ...enPlatform,
+  ...enCommerce,
 } as const;
 
 export type Key = keyof typeof en;

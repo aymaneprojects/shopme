@@ -6,3 +6,4 @@ export * from './ops';
 export * from './accounts';
 export * from './migrate';
 export * from './platform';
+export * from './wave7a';

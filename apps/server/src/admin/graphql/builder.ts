@@ -6,6 +6,7 @@ export interface SchemaTypes {
   DefaultFieldNullability: false;
   Scalars: {
     DateTime: { Input: Date; Output: Date | string };
+    Date: { Input: Date; Output: Date | string };
     Decimal: { Input: string; Output: string };
     Money: { Input: string; Output: string };
     UnsignedInt64: { Input: string; Output: string | number };

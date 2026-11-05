@@ -32,3 +32,6 @@ import './notifications';
 import './policies';
 import './webhooks';
 import './locales';
+import './gift-cards';
+import './abandoned';
+import './order-edit';

@@ -1,5 +1,6 @@
 import { getPrimaryShop, purgeExpiredSessions, purgeOldVisits, runScheduledBackup } from '@shopme/core';
 import type { AppContext } from './context';
+import { registerCommerceJobs } from './commerce-jobs';
 import { registerOpsJobs } from './ops';
 
 /**
@@ -17,5 +18,7 @@ export function registerJobs(ctx: AppContext): () => void {
   ctx.queue.register('store.auto-backup', backup);
   ctx.queue.every('auto-backup', 3600_000, backup);
   if (ctx.config.env !== 'test') ctx.queue.enqueue('store.auto-backup', {}, { delayMs: 90_000, maxAttempts: 1 });
-  return registerOpsJobs(ctx);
+  const stopOps = registerOpsJobs(ctx);
+  const stopCommerce = registerCommerceJobs(ctx);
+  return () => { stopOps(); stopCommerce(); };
 }

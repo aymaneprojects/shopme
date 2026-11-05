@@ -41,7 +41,12 @@
     "sale_price": "Prix promo",
     "quantity": "Quantité",
     "description": "Description",
-    "unavailable": "Indisponible"
+    "unavailable": "Indisponible",
+    "gift_card": {
+      "recipient_email": "E-mail du destinataire (facultatif)",
+      "recipient_name": "Nom du destinataire (facultatif)",
+      "message": "Message (facultatif)"
+    }
   },
   "collection": {
     "sort_by": "Trier par",
@@ -228,5 +233,16 @@
   "localization": {
     "language": "Langue",
     "update": "Changer de langue"
+  },
+  "gift_card": {
+    "title": "Votre carte cadeau {{ shop }}",
+    "balance": "Solde",
+    "initial_value": "Valeur initiale : {{ amount }}",
+    "code": "Code de la carte cadeau",
+    "expires_on": "Valable jusqu'au {{ date }}",
+    "expired": "Cette carte cadeau a expiré le {{ date }}.",
+    "disabled": "Cette carte cadeau a été désactivée.",
+    "shop_now": "Commencer mes achats",
+    "how_to": "Saisissez le code dans le champ Carte cadeau lors du paiement. Le solde est utilisé jusqu'au montant de votre commande."
   }
 }

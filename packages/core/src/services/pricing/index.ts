@@ -54,7 +54,13 @@ export interface PricingDiscount {
   target: 'ORDER' | 'PRODUCTS' | 'SHIPPING';
   /** `lineIds` targets specific pricing lines (draft order line discounts). */
   appliesTo: { productIds?: number[]; collectionIds?: number[]; lineIds?: number[] };
+  /** Which other discount classes this one may be combined with (undefined: none). Used by `resolveCombinations`. */
+  combinesWith?: { product: boolean; order: boolean; shipping: boolean };
+  /** Buy X get Y: `value`/`valueType` describe the effect on each discounted unit (100% = free). */
+  bxgy?: BxgyRule;
 }
+export type PricingScope = { productIds?: number[]; collectionIds?: number[] };
+export interface BxgyRule { buyQuantity: number; buyAppliesTo: PricingScope; getQuantity: number; getAppliesTo: PricingScope; usesPerOrder: number | null }
 
 export interface PricingTaxRate { name: string; countryCode: string; provinceCode: string | null; rate: number; appliesToShipping: boolean; priority: number }
 export interface PricingShippingRate { id: number; name: string; price: number }
@@ -101,9 +107,58 @@ export function discountMatchesLine(d: PricingDiscount, l: PricingLine): boolean
   return productIds.includes(l.productId) || l.collectionIds.some((c) => collectionIds.includes(c));
 }
 
+const inScope = (l: PricingLine, s: PricingScope) => !!s.productIds?.includes(l.productId) || l.collectionIds.some((c) => !!s.collectionIds?.includes(c));
+
+/**
+ * Buy X get Y: per-line discount amounts. Buy and get sets that share items need X+Y units per application (the cheapest Y of every
+ * group are discounted); disjoint sets need X buy units per application and discount the cheapest eligible get units.
+ */
+export function bxgyAmounts(d: PricingDiscount, lines: PricingLine[], remaining: number[]): number[] {
+  const out = lines.map(() => 0);
+  const r = d.bxgy;
+  if (!r || r.buyQuantity < 1 || r.getQuantity < 1) return out;
+  const units = (pred: (l: PricingLine) => boolean) => lines.flatMap((l, i) => (pred(l) ? Array.from({ length: l.quantity }, () => ({ i, price: l.unitPrice })) : []));
+  const buy = units((l) => inScope(l, r.buyAppliesTo));
+  const overlap = lines.some((l) => inScope(l, r.buyAppliesTo) && inScope(l, r.getAppliesTo));
+  const pool = overlap ? units((l) => inScope(l, r.buyAppliesTo) || inScope(l, r.getAppliesTo)) : units((l) => inScope(l, r.getAppliesTo));
+  let sets = overlap ? Math.floor(pool.length / (r.buyQuantity + r.getQuantity)) : Math.floor(buy.length / r.buyQuantity);
+  if (r.usesPerOrder != null) sets = Math.min(sets, r.usesPerOrder);
+  const free = [...pool].sort((a, b) => a.price - b.price || a.i - b.i).slice(0, sets * r.getQuantity);
+  for (const u of free) out[u.i]! += d.valueType === 'PERCENTAGE' ? percentOf(u.price, d.value * 100) : Math.min(u.price, d.value);
+  return out.map((a, i) => Math.min(a, remaining[i]!));
+}
+
 function amountFor(d: PricingDiscount, base: number): number {
   const raw = d.valueType === 'PERCENTAGE' ? percentOf(base, d.value * 100) : d.value; // bp -> micro-percent: x100
   return Math.max(0, Math.min(base, raw));
+}
+
+// --- combinations -----------------------------------------------------------------------------------------------------
+
+export type DiscountClass = 'PRODUCT' | 'ORDER' | 'SHIPPING';
+export const discountClassOf = (d: PricingDiscount): DiscountClass => (d.target === 'SHIPPING' ? 'SHIPPING' : d.target === 'ORDER' ? 'ORDER' : 'PRODUCT');
+const CLASS_RANK: Record<DiscountClass, number> = { PRODUCT: 0, ORDER: 1, SHIPPING: 2 };
+
+/** Two discounts combine when each allows the other's class; discounts of the same class only combine for product discounts that allow it. */
+export function canCombine(a: PricingDiscount, b: PricingDiscount): boolean {
+  const ca = discountClassOf(a); const cb = discountClassOf(b);
+  const allows = (x: PricingDiscount, c: DiscountClass) => !!x.combinesWith?.[c.toLowerCase() as 'product'];
+  return ca === cb ? ca === 'PRODUCT' && allows(a, 'PRODUCT') && allows(b, 'PRODUCT') : allows(a, cb) && allows(b, ca);
+}
+
+/**
+ * Pick the discounts that apply together. Candidates are tried by standalone savings (largest first, then lowest id) and kept when they
+ * combine with everything kept so far; the survivors are applied product, then order, then shipping. Deterministic for a given cart.
+ */
+export function resolveCombinations(candidates: PricingDiscount[], lines: PricingLine[], shippingPrice = 0): { chosen: PricingDiscount[]; dropped: PricingDiscount[] } {
+  const shipping = { id: 0, name: '', price: shippingPrice };
+  const savings = new Map(candidates.map((d) => [d, priceCheckout({ lines, discounts: [d], shipping: shippingPrice > 0 ? shipping : null, taxRates: [], taxesIncluded: false, country: null, province: null }).totalDiscounts]));
+  const ranked = [...candidates].sort((a, b) => savings.get(b)! - savings.get(a)! || a.id - b.id);
+  const chosen: PricingDiscount[] = [];
+  const dropped: PricingDiscount[] = [];
+  for (const d of ranked) (chosen.every((c) => canCombine(c, d)) ? chosen : dropped).push(d);
+  chosen.sort((a, b) => CLASS_RANK[discountClassOf(a)] - CLASS_RANK[discountClassOf(b)] || savings.get(b)! - savings.get(a)! || a.id - b.id);
+  return { chosen, dropped };
 }
 
 // --- shipping ---------------------------------------------------------------------------------------------------------
@@ -157,6 +212,10 @@ export function priceCheckout(input: PricingInput): PricingResult {
     if (d.target === 'SHIPPING') {
       allocated = input.shipping ? amountFor(d, shippingPrice - shippingDiscount) : 0;
       shippingDiscount += allocated;
+    } else if (d.bxgy) {
+      const per = bxgyAmounts(d, lines, remaining);
+      allocated = per.reduce((a, b) => a + b, 0);
+      per.forEach((n, i) => { remaining[i]! -= n; perLineDiscount[i]! += n; if (n > 0) lineAllocations.push({ lineId: lines[i]!.id, amount: n }); });
     } else {
       const idx = lines.map((l, i) => (discountMatchesLine(d, l) ? i : -1)).filter((i) => i >= 0);
       const base = idx.reduce((a, i) => a + remaining[i]!, 0);

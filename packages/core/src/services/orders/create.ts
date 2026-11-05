@@ -31,6 +31,8 @@ export interface CreateOrderInput {
   billingAddress: CheckoutAddressInput | null;
   /** PAID when the money is in (or nothing is due); PENDING for manual methods and unconfirmed online payments. */
   payment: { gateway: string; status: 'PAID' | 'PENDING'; paymentId?: string | null; test?: boolean };
+  /** Gift cards that pay part (or all) of the total: balances are debited atomically with the order. */
+  giftCards?: { giftCardId: number; amount: number }[];
   /** Checkout (cart) token: stored on the order and used to complete the cart exactly once. */
   cartToken?: string | null;
   note?: string | null;
@@ -40,14 +42,14 @@ export interface CreateOrderInput {
 export type CreateOrderResult =
   | { ok: true; orderId: number; orderNumber: number; name: string }
   | { ok: false; error: 'out_of_stock'; variantIds: number[] }
-  | { ok: false; error: 'discount_unavailable' | 'already_completed' };
+  | { ok: false; error: 'discount_unavailable' | 'already_completed' | 'gift_card_unavailable' };
 
 class Abort extends Error { constructor(readonly result: Extract<CreateOrderResult, { ok: false }>) { super(result.error); } }
 
 const normEmail = (e: string) => e.trim().toLowerCase();
 
 /** Move stock from available to committed for one variant, across the item's active locations. Fails when it is not there. */
-async function commitStock(tx: Executor, shopId: number, variantId: number, quantity: number, orderId: number): Promise<boolean> {
+export async function commitStock(tx: Executor, shopId: number, variantId: number, quantity: number, orderId: number): Promise<boolean> {
   const [row] = await tx.select({ itemId: s.inventoryItems.id, tracked: s.inventoryItems.tracked, policy: s.productVariants.inventoryPolicy })
     .from(s.productVariants).leftJoin(s.inventoryItems, eq(s.inventoryItems.variantId, s.productVariants.id))
     .where(and(eq(s.productVariants.id, variantId), eq(s.productVariants.shopId, shopId))).limit(1);
@@ -168,11 +170,19 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
           targetType: a.target === 'SHIPPING' ? 'SHIPPING_LINE' : 'LINE_ITEM',
         })));
       }
-      if (pricing.total > 0) {
+      const giftTotal = (input.giftCards ?? []).reduce((n, g) => n + g.amount, 0);
+      if (pricing.total - giftTotal > 0) {
         await tx.insert(s.transactions).values({
-          shopId, orderId, kind: 'SALE', status: paid ? 'SUCCESS' : 'PENDING', gateway: input.payment.gateway, amount: pricing.total, currency: input.currency,
+          shopId, orderId, kind: 'SALE', status: paid ? 'SUCCESS' : 'PENDING', gateway: input.payment.gateway, amount: pricing.total - giftTotal, currency: input.currency,
           test: !!input.payment.test, paymentId: input.payment.paymentId ?? null, processedAt: paid ? new Date() : null,
         });
+      }
+      for (const g of input.giftCards ?? []) {
+        const debited = await tx.update(s.giftCards).set({ balance: sql`${s.giftCards.balance} - ${g.amount}`, updatedAt: new Date() })
+          .where(and(eq(s.giftCards.id, g.giftCardId), eq(s.giftCards.shopId, shopId), eq(s.giftCards.enabled, true), sql`${s.giftCards.balance} >= ${g.amount}`)).returning({ id: s.giftCards.id });
+        if (!debited.length) throw new Abort({ ok: false, error: 'gift_card_unavailable' });
+        await tx.insert(s.giftCardTransactions).values({ shopId, giftCardId: g.giftCardId, amount: -g.amount, orderId, note: `Order ${order!.name}` });
+        await tx.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'SUCCESS', gateway: 'gift_card', amount: g.amount, currency: input.currency, test: !!input.payment.test, processedAt: new Date() });
       }
       await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.created', message: `Order ${order!.name} placed online (${input.payment.gateway})`, data: { gateway: input.payment.gateway } });
       if (paid) await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.paid', message: 'Payment received' });

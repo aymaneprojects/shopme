@@ -710,6 +710,40 @@ export async function runScenario({ baseUrl, root }) {
       assert.equal(off.status(), 200);
     });
 
+    await step('12 gift card issued in admin and redeemed at checkout; wave 7a admin pages load', async () => {
+      const a = await ctx.newPage();
+      page = a;
+      await a.goto(`${baseUrl}/admin`);
+      await a.evaluate(() => localStorage.setItem('shopme.lang', 'en'));
+      await a.goto(`${baseUrl}/admin/gift-cards/new`);
+      await a.getByLabel('Initial value').fill('20');
+      await a.getByLabel('Code', { exact: true }).fill('E2EGIFT2026');
+      await a.getByRole('button', { name: 'Issue', exact: true }).click();
+      await vis(a.getByText('E2EG-IFT2-026'));
+      await a.getByRole('button', { name: 'Close' }).first().click();
+      await a.waitForURL(/\/admin\/gift-cards\/\d+/, { timeout: T });
+      await vis(a.getByRole('heading', { name: /2026/ }));
+      await shot('21-gift-card', a);
+
+      await shop.locator('#gift-input').fill('e2egift2026');
+      await shop.locator('[data-gift-add]').click();
+      await vis(shop.locator('#summary-lines').getByText(/Carte cadeau/));
+      assert.match(await text(shop.locator('#summary-lines')), /Reste à payer\s*44,00 €/);
+
+      await a.goto(`${baseUrl}/admin/orders/abandoned`);
+      await vis(a.getByRole('heading', { name: 'Abandoned checkouts' }));
+      await vis(a.getByText('Recovery emails'));
+      await a.goto(`${baseUrl}/admin/discounts`);
+      await a.getByRole('button', { name: /Create discount/ }).click();
+      await vis(a.getByRole('button', { name: /Buy X get Y/ }));
+      await a.goto(`${baseUrl}/admin/orders/1/edit`);
+      await vis(a.getByRole('heading', { name: /Edit #1001/ }));
+      await vis(a.getByLabel(/^Quantity/));
+      await shot('22-order-edit', a);
+      await a.getByRole('button', { name: 'Cancel' }).click();
+      await a.waitForURL(/\/admin\/orders\/1$/, { timeout: T });
+    });
+
     await shopperCtx.close();
     await ctx.close();
     assert.deepEqual(pageErrors, [], 'uncaught page errors');

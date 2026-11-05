@@ -49,6 +49,21 @@
           {%- endfor -%}
         {%- endunless -%}
 
+        {%- if product.gift_card -%}
+          <div class="field">
+            <label for="{{ section.id }}-gc-email">{{ 'products.gift_card.recipient_email' | t }}</label>
+            <input id="{{ section.id }}-gc-email" type="email" name="properties[Recipient email]" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="{{ section.id }}-gc-name">{{ 'products.gift_card.recipient_name' | t }}</label>
+            <input id="{{ section.id }}-gc-name" type="text" name="properties[Recipient name]" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="{{ section.id }}-gc-message">{{ 'products.gift_card.message' | t }}</label>
+            <textarea id="{{ section.id }}-gc-message" name="properties[Message]" rows="3" maxlength="200"></textarea>
+          </div>
+        {%- endif -%}
+
         <div class="product-form__row">
           <div class="quantity">
             <label class="visually-hidden" for="{{ section.id }}-qty">{{ 'products.quantity' | t }}</label>

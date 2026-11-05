@@ -225,7 +225,7 @@ function CustomerPick({ label, onPick, onClear }: { label: string; onPick: (c: C
 }
 
 interface VariantHit { id: string; title: string; variants: { nodes: Array<{ id: string; title: string; price: string }> } }
-function VariantDialog({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (l: DraftLine[]) => void }) {
+export function VariantDialog({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (l: DraftLine[]) => void }) {
   const { t } = useI18n();
   const [search, setSearch] = useState('');
   const term = useDebounced(search).trim();

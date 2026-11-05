@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client';
 import * as s from '../../db/schema';
 import type { Shop } from '../shops';
@@ -6,12 +6,13 @@ import { loadCartView, type CartLineView, type CartView } from '../cart/service'
 import { completeDraftFromCheckout } from '../draft-orders';
 import { createOrder, type CheckoutAddressInput, type CreateOrderResult } from '../orders/create';
 import {
-  matchShippingRates, priceCheckout, type DiscountApplication, type PricingDiscount, type PricingInput, type PricingLine, type PricingResult, type PricingShippingRate, type PricingTaxRate,
+  matchShippingRates, priceCheckout, resolveCombinations, type DiscountApplication, type PricingDiscount, type PricingInput, type PricingLine, type PricingResult, type PricingShippingRate, type PricingTaxRate,
 } from '../pricing';
+import { allocateGiftCards, getGiftCardByCode, giftCardRejection, normalizeGiftCardCode, type GiftCardRejection } from '../gift-cards';
 
 /** A checkout is the cart row plus the buyer's details (email, address, chosen shipping rate, discount codes). */
 
-export type DiscountRejection = 'not_found' | 'disabled' | 'not_started' | 'expired' | 'usage_limit' | 'minimum_subtotal' | 'minimum_quantity' | 'already_used' | 'not_applicable';
+export type DiscountRejection = 'not_found' | 'disabled' | 'not_started' | 'expired' | 'usage_limit' | 'minimum_subtotal' | 'minimum_quantity' | 'already_used' | 'not_applicable' | 'not_combinable';
 
 export interface CheckoutView {
   token: string;
@@ -25,6 +26,11 @@ export interface CheckoutView {
   shippingRateId: number | null;
   appliedDiscounts: { code: string | null; title: string }[];
   rejectedCodes: { code: string; reason: DiscountRejection }[];
+  /** Gift cards entered by the buyer and what each one pays. */
+  giftCards: { id: number; code: string; lastCharacters: string; applied: number; balance: number }[];
+  giftCardTotal: number;
+  /** Total after gift cards: what the payment method has to collect. */
+  amountDue: number;
   /** Variants whose stock is below the quantity in the cart. */
   stockIssues: { variantId: number; title: string; available: number }[];
   pricing: PricingResult;
@@ -43,7 +49,7 @@ interface DiscountRow { d: typeof s.discounts.$inferSelect; code: string | null 
 
 /** Validate codes (and apply active automatic discounts) against the cart lines. */
 export async function evaluateDiscounts(
-  db: Executor, shopId: number, codes: string[], ctx: { lines: PricingLine[]; email: string | null; now?: Date },
+  db: Executor, shopId: number, codes: string[], ctx: { lines: PricingLine[]; email: string | null; now?: Date; shippingPrice?: number },
 ): Promise<{ applied: PricingDiscount[]; rejected: { code: string; reason: DiscountRejection }[] }> {
   const now = ctx.now ?? new Date();
   const applied: PricingDiscount[] = [];
@@ -58,19 +64,28 @@ export async function evaluateDiscounts(
   const auto = await db.select().from(s.discounts).where(and(eq(s.discounts.shopId, shopId), eq(s.discounts.kind, 'AUTOMATIC'), eq(s.discounts.status, 'ACTIVE')));
   for (const d of auto) rows.push({ d, code: null, requested: null });
 
+  const exts = rows.length ? await db.select().from(s.discountExtensions).where(inArray(s.discountExtensions.discountId, rows.map((r) => r.d.id))) : [];
   const email = lc(ctx.email);
   for (const { d, code, requested } of rows) {
     const reject = (reason: DiscountRejection) => { if (requested) rejected.push({ code: requested, reason }); };
-    const pd: PricingDiscount = { id: d.id, code, title: d.title, valueType: d.valueType as PricingDiscount['valueType'], value: d.value, target: d.target as PricingDiscount['target'], appliesTo: d.appliesTo };
+    const ext = exts.find((e) => e.discountId === d.id);
+    const pd: PricingDiscount = {
+      id: d.id, code, title: d.title, valueType: d.valueType as PricingDiscount['valueType'], value: d.value, target: d.target as PricingDiscount['target'], appliesTo: d.appliesTo,
+      combinesWith: ext?.combinesWith, ...(ext?.bxgy && { bxgy: ext.bxgy }),
+    };
     if (d.status === 'DISABLED') { reject('disabled'); continue; }
     if (d.startsAt && d.startsAt > now) { reject('not_started'); continue; }
     if (d.endsAt && d.endsAt < now) { reject('expired'); continue; }
     if (d.usageLimit !== null && d.usageCount >= d.usageLimit) { reject('usage_limit'); continue; }
-    const eligible = pd.target === 'SHIPPING' || pd.target === 'ORDER' ? ctx.lines : ctx.lines.filter((l) => {
-      const { productIds = [], collectionIds = [] } = d.appliesTo;
-      return productIds.includes(l.productId) || l.collectionIds.some((c) => collectionIds.includes(c));
-    });
+    const scope = (sc: { productIds?: number[]; collectionIds?: number[] }) => (l: PricingLine) => !!sc.productIds?.includes(l.productId) || l.collectionIds.some((c) => !!sc.collectionIds?.includes(c));
+    const eligible = pd.target === 'SHIPPING' || pd.target === 'ORDER' ? ctx.lines : ctx.lines.filter(scope(pd.bxgy?.buyAppliesTo ?? d.appliesTo));
     if (!eligible.length) { reject('not_applicable'); continue; }
+    if (pd.bxgy) {
+      const buys = ctx.lines.filter(scope(pd.bxgy.buyAppliesTo)).reduce((a, l) => a + l.quantity, 0);
+      const overlap = ctx.lines.some((l) => scope(pd.bxgy!.buyAppliesTo)(l) && scope(pd.bxgy!.getAppliesTo)(l));
+      const gets = ctx.lines.filter(scope(pd.bxgy.getAppliesTo)).reduce((a, l) => a + l.quantity, 0);
+      if (buys < pd.bxgy.buyQuantity || gets < 1 || (overlap && buys < pd.bxgy.buyQuantity + pd.bxgy.getQuantity)) { reject('not_applicable'); continue; }
+    }
     if (d.minimumSubtotal !== null && eligible.reduce((a, l) => a + l.unitPrice * l.quantity, 0) < d.minimumSubtotal) { reject('minimum_subtotal'); continue; }
     if (d.minimumQuantity !== null && eligible.reduce((a, l) => a + l.quantity, 0) < d.minimumQuantity) { reject('minimum_quantity'); continue; }
     if (d.oncePerCustomer && email) {
@@ -81,7 +96,9 @@ export async function evaluateDiscounts(
     }
     applied.push(pd);
   }
-  return { applied, rejected };
+  const { chosen, dropped } = resolveCombinations(applied, ctx.lines, ctx.shippingPrice ?? 0);
+  for (const d of dropped) if (d.code) rejected.push({ code: d.code, reason: 'not_combinable' });
+  return { applied: chosen, rejected };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -186,7 +203,6 @@ export async function loadCheckout(db: Executor, shop: Shop, token: string, now 
   const address = (row.shippingAddress ?? row.billingAddress ?? null) as CheckoutAddressInput | null;
   const collections = await collectionsOf(db, shop.id, [...new Set(cart.lines.map((l) => l.productId))]);
   const plines = toPricingLines(cart.lines, collections);
-  const { applied, rejected } = await evaluateDiscounts(db, shop.id, cart.discountCodes, { lines: plines, email: row.email, now });
 
   const requiresShipping = cart.lines.some((l) => l.requiresShipping);
   const shippable = plines.filter((l) => l.requiresShipping);
@@ -194,6 +210,7 @@ export async function loadCheckout(db: Executor, shop: Shop, token: string, now 
     ? await shippingOptionsFor(db, shop.id, { countryCode: address?.countryCode ?? null, provinceCode: address?.provinceCode ?? null }, { subtotal: shippable.reduce((a, l) => a + l.unitPrice * l.quantity, 0), grams: shippable.reduce((a, l) => a + l.grams, 0) })
     : [];
   const chosen = options.find((o) => o.id === row.shippingRateId) ?? options[0] ?? null;
+  const { applied, rejected } = await evaluateDiscounts(db, shop.id, cart.discountCodes, { lines: plines, email: row.email, now, shippingPrice: chosen?.price ?? 0 });
 
   const taxRows = address?.countryCode ? await db.select().from(s.taxRates).where(and(eq(s.taxRates.shopId, shop.id), eq(s.taxRates.active, true), eq(s.taxRates.countryCode, address.countryCode.toUpperCase()))) : [];
   const taxRates: PricingTaxRate[] = taxRows.map((r) => ({ name: r.name, countryCode: r.countryCode, provinceCode: r.provinceCode, rate: r.rate, appliesToShipping: r.appliesToShipping, priority: r.priority }));
@@ -201,12 +218,36 @@ export async function loadCheckout(db: Executor, shop: Shop, token: string, now 
   if (row.email) { const [c] = await db.select({ t: s.customers.taxExempt }).from(s.customers).where(and(eq(s.customers.shopId, shop.id), eq(s.customers.email, lc(row.email)))).limit(1); taxExempt = !!c?.t; }
 
   const input: PricingInput = { lines: plines, discounts: applied, shipping: chosen, taxRates, taxesIncluded: shop.taxesIncluded, taxExempt, country: address?.countryCode ?? null, province: address?.provinceCode ?? null };
+  const pricing = priceCheckout(input);
+  const gift = await giftCardsFor(db, shop.id, row.id, cart, pricing, now);
   return {
     token, currency: cart.currency, taxesIncluded: shop.taxesIncluded, email: row.email, address, lines: cart.lines, requiresShipping,
     shippingOptions: options, shippingRateId: chosen?.id ?? null,
     appliedDiscounts: applied.map((d) => ({ code: d.code, title: d.title })), rejectedCodes: rejected,
-    stockIssues: await stockIssuesFor(db, shop.id, cart.lines), pricing: priceCheckout(input), completed: !!row.completedAt,
+    giftCards: gift.cards, giftCardTotal: gift.total, amountDue: pricing.total - gift.total, stockIssues: await stockIssuesFor(db, shop.id, cart.lines), pricing, completed: !!row.completedAt,
   };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Gift cards (payment method)
+// ---------------------------------------------------------------------------------------------------------------------
+
+async function metaOf(db: Executor, cartId: number) {
+  const [m] = await db.select().from(s.checkoutMeta).where(eq(s.checkoutMeta.cartId, cartId)).limit(1);
+  return m ?? null;
+}
+
+/** Cards on the checkout that are still usable, and what each pays. Gift cards cannot pay for gift card products. */
+async function giftCardsFor(db: Executor, shopId: number, cartId: number, cart: CartView, pricing: PricingResult, now: Date) {
+  const codes = (await metaOf(db, cartId))?.giftCardCodes ?? [];
+  if (!codes.length) return { cards: [] as CheckoutView['giftCards'], total: 0, allocations: [] as { giftCardId: number; amount: number }[] };
+  const rows = (await db.select().from(s.giftCards).where(and(eq(s.giftCards.shopId, shopId), inArray(s.giftCards.code, codes)))).filter((c) => !giftCardRejection(c, cart.currency, now));
+  rows.sort((a, b) => codes.indexOf(a.code) - codes.indexOf(b.code));
+  const giftLines = new Set(cart.lines.filter((l) => l.product.isGiftCard).map((l) => l.lineId));
+  const payable = pricing.total - pricing.lines.filter((l) => giftLines.has(l.id)).reduce((n, l) => n + l.total, 0);
+  const allocations = allocateGiftCards(rows, payable);
+  const cards = rows.map((c) => ({ id: c.id, code: c.code, lastCharacters: c.code.slice(-4), applied: allocations.find((a) => a.giftCardId === c.id)?.amount ?? 0, balance: c.balance }));
+  return { cards, total: allocations.reduce((n, a) => n + a.amount, 0), allocations };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -219,6 +260,8 @@ export interface CheckoutPatch {
   shippingRateId?: number | null;
   addDiscountCode?: string;
   removeDiscountCode?: string;
+  addGiftCardCode?: string;
+  removeGiftCardCode?: string;
 }
 
 const ADDRESS_KEYS = ['firstName', 'lastName', 'company', 'address1', 'address2', 'city', 'province', 'provinceCode', 'zip', 'country', 'countryCode', 'phone'] as const;
@@ -232,7 +275,7 @@ export function cleanAddress(a: Record<string, unknown> | null | undefined): Che
   return out as CheckoutAddressInput;
 }
 
-export type CheckoutUpdateResult = { ok: true } | { ok: false; error: 'not_found' | 'completed' | 'invalid_email' | DiscountRejection };
+export type CheckoutUpdateResult = { ok: true } | { ok: false; error: 'not_found' | 'completed' | 'invalid_email' | DiscountRejection | GiftCardRejection };
 
 /** Persist what the buyer entered. Discount codes are validated before being stored. */
 export async function updateCheckout(db: Db, shop: Shop, token: string, patch: CheckoutPatch): Promise<CheckoutUpdateResult> {
@@ -251,10 +294,22 @@ export async function updateCheckout(db: Db, shop: Shop, token: string, patch: C
     const code = norm(patch.addDiscountCode);
     const cart = (await loadCartView(db, shop.id, row.id))!;
     const pl = toPricingLines(cart.lines, await collectionsOf(db, shop.id, cart.lines.map((l) => l.productId)));
-    const r = await evaluateDiscounts(db, shop.id, [code], { lines: pl, email: set.email === undefined ? row.email : set.email });
+    // Validate with the codes already on the checkout, so a code that cannot combine with them is refused.
+    const r = await evaluateDiscounts(db, shop.id, [...new Set([...(set.discountCodes ?? row.discountCodes), code])], { lines: pl, email: set.email === undefined ? row.email : set.email });
     const bad = r.rejected.find((x) => x.code === code);
     if (bad) return { ok: false, error: bad.reason };
-    if (!row.discountCodes.some((c) => norm(c) === code)) set.discountCodes = [...row.discountCodes, code];
+    if (!(set.discountCodes ?? row.discountCodes).some((c) => norm(c) === code)) set.discountCodes = [...(set.discountCodes ?? row.discountCodes), code];
+  }
+  if (patch.addGiftCardCode?.trim() || patch.removeGiftCardCode) {
+    const codes = (await metaOf(db, row.id))?.giftCardCodes ?? [];
+    let next = patch.removeGiftCardCode ? codes.filter((c) => c !== normalizeGiftCardCode(patch.removeGiftCardCode!)) : codes;
+    if (patch.addGiftCardCode?.trim()) {
+      const card = await getGiftCardByCode(db, shop.id, patch.addGiftCardCode);
+      const bad = giftCardRejection(card, row.currency);
+      if (bad) return { ok: false, error: bad };
+      if (!next.includes(card!.code)) next = [...next, card!.code];
+    }
+    await db.insert(s.checkoutMeta).values({ cartId: row.id, shopId: shop.id, giftCardCodes: next }).onConflictDoUpdate({ target: s.checkoutMeta.cartId, set: { giftCardCodes: next } });
   }
   if (Object.keys(set).length) await db.update(s.carts).set(set).where(eq(s.carts.id, row.id));
   return { ok: true };
@@ -265,7 +320,7 @@ export async function updateCheckout(db: Db, shop: Shop, token: string, patch: C
 // ---------------------------------------------------------------------------------------------------------------------
 
 export type CheckoutError =
-  | { code: 'not_found' | 'completed' | 'empty' | 'email' | 'shipping_method' | 'payment_method' | 'discount' }
+  | { code: 'not_found' | 'completed' | 'empty' | 'email' | 'shipping_method' | 'payment_method' | 'discount' | 'gift_card' }
   | { code: 'address'; fields: string[] }
   | { code: 'stock'; issues: CheckoutView['stockIssues'] };
 
@@ -304,7 +359,7 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
   }
   if (view.rejectedCodes.length) errors.push({ code: 'discount' });
   if (view.stockIssues.length) errors.push({ code: 'stock', issues: view.stockIssues });
-  const free = view.pricing.total === 0;
+  const free = view.amountDue === 0;
   if (!free && !input.allowedMethods.includes(input.paymentMethod)) errors.push({ code: 'payment_method' });
   if (errors.length) return { ok: false, errors };
 
@@ -317,7 +372,8 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
   const cart = (await loadCartView(db, shop.id, row.id)) as CartView;
   const byId = new Map(cart.lines.map((l) => [l.lineId, l]));
   const online = !free && input.paymentMethod === 'stripe';
-  const gateway = free ? 'free' : input.paymentMethod;
+  const giftCards = checkout.giftCards.filter((g) => g.applied > 0).map((g) => ({ giftCardId: g.id, amount: g.applied }));
+  const gateway = free ? (giftCards.length ? 'gift_card' : 'free') : input.paymentMethod;
   const paymentId = online && input.startOnlinePayment ? await input.startOnlinePayment(checkout) : null;
   const res: CreateOrderResult = await createOrder(db, shop.id, {
     email: row.email!, phone: checkout.address?.phone ?? null, acceptsMarketing: input.acceptsMarketing, currency: cart.currency, taxesIncluded: shop.taxesIncluded,
@@ -329,7 +385,7 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
         imageUrl: l.image?.url ?? null, isGiftCard: l.product.isGiftCard, properties: l.properties,
       };
     }),
-    pricing: checkout.pricing,
+    pricing: checkout.pricing, giftCards,
     shippingAddress: checkout.requiresShipping ? checkout.address : null, billingAddress: checkout.address,
     payment: { gateway, status: free ? 'PAID' : 'PENDING', paymentId },
     cartToken: token, note: input.note ?? row.note,
@@ -337,14 +393,9 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
   if (!res.ok) {
     if (res.error === 'out_of_stock') return { ok: false, errors: [{ code: 'stock', issues: (await loadCheckout(db, shop, token))!.stockIssues }] };
     if (res.error === 'discount_unavailable') return { ok: false, errors: [{ code: 'discount' }] };
+    if (res.error === 'gift_card_unavailable') return { ok: false, errors: [{ code: 'gift_card' }] };
     return { ok: false, errors: [{ code: 'completed' }] };
   }
   if (row.draftOrderId) await completeDraftFromCheckout(db, shop.id, row.draftOrderId, res.orderId);
-  return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.pricing.total, currency: cart.currency, paid: free, needsOnlinePayment: online, paymentId, email: row.email!, checkout };
-}
-
-/** Checkouts left open for a while (kept as abandoned carts; listed for the merchant, never deleted here). */
-export async function listAbandonedCheckouts(db: Executor, shopId: number, olderThanMs = 60 * 60 * 1000, limit = 100) {
-  const cutoff = new Date(Date.now() - olderThanMs);
-  return db.select().from(s.carts).where(and(eq(s.carts.shopId, shopId), isNull(s.carts.completedAt), sql`${s.carts.email} is not null`, sql`${s.carts.updatedAt} < ${cutoff}`)).orderBy(asc(s.carts.updatedAt)).limit(limit);
+  return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.amountDue, currency: cart.currency, paid: free, needsOnlinePayment: online, paymentId, email: row.email!, checkout };
 }

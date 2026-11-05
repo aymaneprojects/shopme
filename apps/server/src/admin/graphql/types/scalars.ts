@@ -18,3 +18,12 @@ builder.scalarType('UnsignedInt64', { serialize: (v) => String(v), parseValue: (
 builder.scalarType('JSON', { serialize: (v) => v, parseValue: (v) => v });
 builder.scalarType('URL', { serialize: (v) => String(v), parseValue: (v) => String(v) });
 builder.scalarType('HTML', { serialize: (v) => String(v), parseValue: (v) => String(v) });
+/** `Date`: calendar date ("2026-11-04"); parsed as UTC midnight. */
+builder.scalarType('Date', {
+  serialize: (v) => new Date(v).toISOString().slice(0, 10),
+  parseValue: (v) => {
+    const d = new Date(`${String(v).slice(0, 10)}T00:00:00Z`);
+    if (Number.isNaN(d.getTime())) throw new TypeError('Invalid Date');
+    return d;
+  },
+});

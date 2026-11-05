@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { allocate, applicableTaxRates, matchShippingRates, priceCheckout, roundDiv, type PricingDiscount, type PricingInput, type PricingLine, type PricingTaxRate } from './index';
+import { allocate, applicableTaxRates, bxgyAmounts, canCombine, matchShippingRates, priceCheckout, resolveCombinations, roundDiv, type PricingDiscount, type PricingInput, type PricingLine, type PricingTaxRate } from './index';
 
 const line = (id: number, unitPrice: number, quantity = 1, o: Partial<PricingLine> = {}): PricingLine =>
   ({ id, unitPrice, quantity, taxable: true, requiresShipping: true, grams: 100, productId: id, collectionIds: [], ...o });
@@ -101,5 +101,91 @@ describe('shipping rates', () => {
   it('filters by weight and price conditions; flat rates ignore them', () => {
     expect(matchShippingRates(rates, { subtotal: 3000, grams: 400 }).map((r) => r.name)).toEqual(['Light', 'Std', 'Flat']);
     expect(matchShippingRates(rates, { subtotal: 6000, grams: 800 }).map((r) => r.name)).toEqual(['Heavy', 'Free', 'Flat']);
+  });
+});
+
+describe('buy X get Y', () => {
+  const bx = (o: Partial<NonNullable<PricingDiscount['bxgy']>> = {}, d: Partial<PricingDiscount> = {}) => disc({
+    id: 5, code: null, target: 'PRODUCTS', value: 10000, appliesTo: {},
+    bxgy: { buyQuantity: 2, buyAppliesTo: { productIds: [1] }, getQuantity: 1, getAppliesTo: { productIds: [2] }, usesPerOrder: null, ...o }, ...d,
+  });
+
+  it('discounts the cheapest get units per set of buy units', () => {
+    const lines = [line(1, 1000, 4), line(2, 500, 1), line(3, 700, 1, { productId: 2 })];
+    const r = priceCheckout(base({ lines, discounts: [bx()] }));
+    // 4 buy units = 2 sets, but only 2 eligible get units (500 and 700): both are free
+    expect(r.discountApplications[0]!.allocated).toBe(1200);
+    expect(r.totalDiscounts).toBe(1200);
+  });
+
+  it('needs the buy quantity, honours uses per order and percentage effects', () => {
+    const lines = [line(1, 1000, 1), line(2, 500, 3)];
+    expect(priceCheckout(base({ lines, discounts: [bx()] })).totalDiscounts).toBe(0);
+    const six = [line(1, 1000, 6), line(2, 500, 3)];
+    expect(priceCheckout(base({ lines: six, discounts: [bx()] })).totalDiscounts).toBe(1500); // 3 sets, 3 get units
+    expect(priceCheckout(base({ lines: six, discounts: [bx({ usesPerOrder: 1 })] })).totalDiscounts).toBe(500);
+    expect(priceCheckout(base({ lines: six, discounts: [bx({}, { value: 5000 })] })).totalDiscounts).toBe(750);
+    expect(priceCheckout(base({ lines: six, discounts: [bx({}, { valueType: 'FIXED_AMOUNT', value: 200 })] })).totalDiscounts).toBe(600);
+  });
+
+  it('with the same product on both sides, every X+Y units give Y of the cheapest free', () => {
+    const same = bx({ buyAppliesTo: { productIds: [1] }, getAppliesTo: { productIds: [1] } });
+    expect(priceCheckout(base({ lines: [line(1, 900, 3)], discounts: [same] })).totalDiscounts).toBe(900); // buy 2 get 1
+    expect(priceCheckout(base({ lines: [line(1, 900, 2)], discounts: [same] })).totalDiscounts).toBe(0);
+    expect(priceCheckout(base({ lines: [line(1, 900, 5)], discounts: [same] })).totalDiscounts).toBe(900);
+    expect(priceCheckout(base({ lines: [line(1, 900, 6)], discounts: [same] })).totalDiscounts).toBe(1800);
+  });
+
+  it('allocates to lines and never exceeds what is left of a line', () => {
+    const lines = [line(1, 1000, 2), line(2, 500, 1)];
+    const r = priceCheckout(base({ lines, discounts: [disc({ id: 1, target: 'PRODUCTS', appliesTo: { productIds: [2] }, valueType: 'PERCENTAGE', value: 10000, code: null }), bx()] }));
+    expect(r.lines.find((l) => l.id === 2)).toMatchObject({ discount: 500, total: 0 });
+    expect(bxgyAmounts(bx(), lines, [2000, 0])).toEqual([0, 0]);
+  });
+});
+
+describe('discount combinations', () => {
+  const none = { product: false, order: false, shipping: false };
+  const order = (id: number, value: number, combinesWith = none) => disc({ id, code: `O${id}`, value, target: 'ORDER', combinesWith });
+  const product = (id: number, value: number, combinesWith = none) => disc({ id, code: `P${id}`, value, target: 'PRODUCTS', appliesTo: { productIds: [1] }, combinesWith });
+  const ship = (id: number, combinesWith = none) => disc({ id, code: `S${id}`, value: 10000, target: 'SHIPPING', combinesWith });
+  const lines = [line(1, 1000, 2)];
+
+  it('same-class discounts do not combine, except product discounts that allow it', () => {
+    expect(canCombine(order(1, 1000, { ...none, order: true }), order(2, 1000, { ...none, order: true }))).toBe(false);
+    expect(canCombine(product(1, 1000, { ...none, product: true }), product(2, 1000, { ...none, product: true }))).toBe(true);
+    expect(canCombine(product(1, 1000, { ...none, product: true }), product(2, 1000))).toBe(false);
+  });
+
+  it('different classes combine only when both allow the other', () => {
+    const o = order(1, 1000, { ...none, product: true }); const p = product(2, 1000, { ...none, order: true });
+    expect(canCombine(o, p)).toBe(true);
+    expect(canCombine(o, product(3, 1000))).toBe(false);
+    expect(canCombine(order(1, 1000), ship(4, { ...none, order: true }))).toBe(false);
+  });
+
+  it('keeps the biggest saving first, drops what cannot combine, applies product then order then shipping', () => {
+    const small = order(1, 500); const big = order(2, 2000); const p = product(3, 1000, { ...none, order: true }); const o = order(4, 1000, { ...none, product: true });
+    const r = resolveCombinations([small, big, p, o], lines, 0);
+    expect(r.chosen.map((d) => d.id)).toEqual([2]); // the 20% order discount saves most and combines with nothing
+    const r2 = resolveCombinations([small, p, o], lines, 0);
+    expect(r2.chosen.map((d) => d.id)).toEqual([3, 4]); // product first, then the order discount that allows products
+    expect(r2.dropped.map((d) => d.id)).toEqual([1]);
+    const withShip = resolveCombinations([ship(7, { ...none, order: true }), order(8, 1000, { ...none, shipping: true })], lines, 490);
+    expect(withShip.chosen.map((d) => d.id)).toEqual([8, 7]);
+  });
+
+  it('is deterministic: ties go to the lowest id regardless of input order', () => {
+    const a = order(1, 1000); const b = order(2, 1000);
+    expect(resolveCombinations([b, a], lines).chosen.map((d) => d.id)).toEqual([1]);
+    expect(resolveCombinations([a, b], lines).chosen.map((d) => d.id)).toEqual([1]);
+  });
+
+  it('prices a combined cart: product discount first, order discount on the remainder', () => {
+    const p = product(3, 5000, { ...none, order: true }); const o = order(4, 1000, { ...none, product: true });
+    const { chosen } = resolveCombinations([o, p], lines);
+    const r = priceCheckout(base({ lines, discounts: chosen }));
+    expect(r.discountApplications.map((a) => a.allocated)).toEqual([1000, 100]); // 50% of 2000, then 10% of 1000
+    expect(r.total).toBe(900);
   });
 });
