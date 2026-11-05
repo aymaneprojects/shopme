@@ -1,10 +1,12 @@
-import { Badge, Banner, Button, Card, Checkbox, ConfirmDialog, Dropdown, EmptyState, Input, Modal, Select, Skeleton, Switch, useToast } from '@shopme/ui';
+import { Badge, Banner, cx, Button, Card, Checkbox, ConfirmDialog, Dropdown, EmptyState, Input, Modal, Select, Skeleton, Switch, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MapPin, MoreHorizontal, Pencil, Plus, Trash2, Truck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, MoreHorizontal, Pencil, Plus, Trash2, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
 import { SubHeader } from '../../components/SettingsKit';
+import { SaveBar } from '../../components/SaveBar';
+import { RateDialog } from '../../components/RateDialog';
 import { ProductPicker, type PickedProduct } from '../../components/Pickers';
 import { useFormat } from '../../components/shared';
 import { Thumb } from '../Products';
@@ -46,6 +48,9 @@ export function ShippingProfilePage() {
 
   const [name, setName] = useState<string | null>(null);
   const [option, setOption] = useState<OptionForm | null>(null);
+  const [optionInit, setOptionInit] = useState('');
+  const [showDesc, setShowDesc] = useState(false);
+  const [previewIdx0, setPreview] = useState(0);
   const [zone, setZone] = useState<ZoneForm | null>(null);
   const [origins, setOrigins] = useState<{ groupId: string | null; ids: string[] } | null>(null);
   const [picker, setPicker] = useState(false);
@@ -99,10 +104,12 @@ export function ShippingProfilePage() {
   const openOption = (g: ApiGroup, z: ApiZone, existing: ApiMethod[] | null) => {
     setError(null);
     const first = existing?.[0];
-    setOption({
+    setShowDesc(false); setPreview(0);
+    const init: OptionForm = {
       groupId: g.locationGroup.id, zoneId: z.zone.id, name: first?.name ?? '', description: first?.description ?? '', active: first?.active ?? true,
       cards: existing ? existing.map((m) => cardOf(m, shop.weightUnit)) : [blankCard()], originalIds: existing?.map((m) => m.id) ?? [],
-    });
+    };
+    setOptionInit(JSON.stringify(init)); setOption(init);
   };
   const saveOption = () => {
     const o = option!;
@@ -143,7 +150,8 @@ export function ShippingProfilePage() {
   const countryList = countryOptions(lang);
   const singleCountry = zone && !zone.rest && zone.countries.length === 1;
   const coverage = (z: ApiZone) => z.zone.countries.map((c) => (c.code.restOfWorld ? t('delivery.restOfWorld') : `${countryName(c.code.countryCode ?? '', lang)}${c.provinces.length ? ` (${c.provinces.map((x) => x.code).join(', ')})` : ''}`)).join(', ') || '—';
-  const firstCard = option?.cards[0];
+  const previewIdx = Math.min(previewIdx0, Math.max(0, (option?.cards.length ?? 1) - 1));
+  const previewCard = option?.cards[previewIdx];
 
   return (
     <div className="flex flex-col gap-4">
@@ -217,54 +225,69 @@ export function ShippingProfilePage() {
 
       <ProductPicker open={picker} onClose={() => setPicker(false)} onConfirm={(picked) => void addProducts(picked)} />
 
-      <Modal open={!!option} onClose={() => setOption(null)} wide title={option?.originalIds.length ? t('delivery.editRate') : t('delivery.addRate')} closeLabel={t('common.close')}
-        footer={<><Button onClick={() => setOption(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!optionValid} loading={update.isPending} onClick={saveOption}>{t('save.save')}</Button></>}>
+      <RateDialog open={!!option} title={option?.originalIds.length ? t('delivery.editOptionTitle') : t('delivery.addOptionTitle')} onClose={() => setOption(null)}>
         {option && (
-          <div className="flex flex-col gap-4">
-            {error && <Banner>{error}</Banner>}
-            <Input label={t('delivery.rateName')} value={option.name} onChange={(e) => setOption({ ...option, name: e.target.value })} />
-            <Input label={t('delivery.rateDescription')} help={t('delivery.rateDescriptionHelp')} value={option.description} onChange={(e) => setOption({ ...option, description: e.target.value })} />
-            <Switch placement="end" checked={option.active} onChange={(v) => setOption({ ...option, active: v })} label={t('delivery.rateActive')} />
-            <div className="rounded-lg bg-hover p-4" aria-label={t('delivery.preview')}>
-              <p className="mb-2 text-xs text-muted">{t('delivery.preview')}</p>
-              <div className="flex items-center gap-3 rounded-lg bg-canvas px-3 py-2 text-[13px] shadow-card">
-                <span className="size-3 rounded-full border-2 border-primary" />
-                <span className="grow"><span className="block font-medium">{option.name || t('delivery.rateNamePlaceholder')}</span><span className="block text-xs text-muted">{option.description || ' '}</span></span>
-                <span className="font-medium">{firstCard && (parseDecimal(firstCard.price) ?? 0) > 0 ? money(String(parseDecimal(firstCard.price))) : t('shipping.free')}</span>
+          <>
+            <SaveBar dirty={JSON.stringify(option) !== optionInit} saving={update.isPending} saveDisabled={!optionValid} onSave={saveOption} onDiscard={() => setOption(null)} />
+            <div className="mx-auto flex w-full max-w-[648px] flex-col gap-4 px-4 pb-16 pt-6">
+              {error && <Banner>{error}</Banner>}
+              <Input label={t('delivery.optionName')} value={option.name} onChange={(e) => setOption({ ...option, name: e.target.value })} />
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-hover pl-2 text-[13px]">
+                  <span className={cx('size-2 rounded-full', option.active ? 'bg-success' : 'bg-muted')} />
+                  <select aria-label={t('delivery.status')} className="h-7 cursor-pointer appearance-none bg-transparent pr-2 text-[13px] font-medium outline-none" value={option.active ? '1' : '0'} onChange={(e) => setOption({ ...option, active: e.target.value === '1' })}>
+                    <option value="1">{t('delivery.active')}</option><option value="0">{t('delivery.inactive')}</option>
+                  </select>
+                </label>
+                {!showDesc && !option.description && <button type="button" className="inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[13px] text-muted hover:bg-hover" onClick={() => setShowDesc(true)}><Plus className="size-3.5" />{t('delivery.rateDescription')}</button>}
               </div>
-              {option.cards.length > 1 && <p className="mt-2 text-xs text-muted">{t('delivery.previewHighest')}</p>}
-            </div>
-            {option.cards.map((c, i) => {
-              const set = (patch: Partial<RateCard>) => setOption({ ...option, cards: option.cards.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
-              const problem = cardProblem(c);
-              const unit = WEIGHT_ABBR[shop.weightUnit] ?? '';
-              return (
-                <fieldset key={c.id ?? `new-${i}`} className="flex flex-col gap-3 rounded-lg border border-line p-3">
-                  <legend className="flex items-center gap-2 px-1 text-[13px] font-semibold">
-                    {t('delivery.rateN', { n: i + 1 })}
-                    {option.cards.length > 1 && <Button size="sm" variant="plain" aria-label={t('common.remove')} onClick={() => setOption({ ...option, cards: option.cards.filter((_, j) => j !== i) })}><Trash2 className="size-4" /></Button>}
-                  </legend>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Input label={`${t('shipping.price')} (${shop.currency})`} inputMode="decimal" placeholder="0.00" value={c.price} onChange={(e) => set({ price: e.target.value })} error={problem === 'price' ? t('delivery.errPrice') : undefined} />
-                    <Select label={t('shipping.condition')} value={c.cond} onChange={(e) => set({ cond: e.target.value as RateCard['cond'], min: '', max: '' })}>
-                      <option value="none">{t('delivery.condNone')}</option><option value="weight">{t('delivery.condWeight')}</option><option value="price">{t('delivery.condPrice')}</option>
-                    </Select>
+              {(showDesc || option.description) && <Input label={t('delivery.rateDescription')} help={t('delivery.rateDescriptionHelp')} value={option.description} onChange={(e) => setOption({ ...option, description: e.target.value })} />}
+              <div className="flex flex-col gap-4 rounded-lg bg-hover p-4" aria-label={t('delivery.preview')}>
+                <div className="flex items-center justify-center gap-3 py-3">
+                  {option.cards.length > 1 && <button type="button" aria-label={t('common.back')} disabled={previewIdx === 0} onClick={() => setPreview(previewIdx - 1)} className="rounded-full p-1 text-muted hover:bg-line disabled:opacity-30"><ChevronLeft className="size-4" /></button>}
+                  <div className="flex w-64 items-center gap-3 rounded-lg bg-canvas px-3 py-2.5 text-[13px] shadow-card">
+                    <span className="size-3.5 shrink-0 rounded-full border-[4px] border-primary" />
+                    <span className="min-w-0 grow"><span className="block truncate font-medium">{option.name || t('delivery.rateNamePlaceholder')}</span>{option.description ? <span className="block truncate text-xs text-muted">{option.description}</span> : <span className="mt-1 block h-1.5 w-28 rounded bg-hover" />}</span>
+                    <span className="text-xs font-semibold uppercase">{previewCard && (parseDecimal(previewCard.price) ?? 0) > 0 ? money(String(parseDecimal(previewCard.price))) : t('shipping.free')}</span>
                   </div>
-                  {c.cond !== 'none' && (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Input label={c.cond === 'weight' ? t('delivery.minWeight', { unit }) : t('delivery.minPrice', { currency: shop.currency })} inputMode="decimal" value={c.min} onChange={(e) => set({ min: e.target.value })} error={problem === 'range' ? t('delivery.errRange') : undefined} />
-                      <Input label={c.cond === 'weight' ? t('delivery.maxWeight', { unit }) : t('delivery.maxPrice', { currency: shop.currency })} inputMode="decimal" value={c.max} onChange={(e) => set({ max: e.target.value })} />
+                  {option.cards.length > 1 && <button type="button" aria-label={t('common.next')} disabled={previewIdx >= option.cards.length - 1} onClick={() => setPreview(previewIdx + 1)} className="rounded-full p-1 text-muted hover:bg-line disabled:opacity-30"><ChevronRight className="size-4" /></button>}
+                </div>
+                {option.cards.length > 1 && <div className="flex items-center justify-between gap-3 border-t border-line pt-2 text-xs text-muted"><span>{t('delivery.previewHighest')}</span><span className="shrink-0">{t('delivery.rateN', { n: previewIdx + 1 })}</span></div>}
+              </div>
+              {option.cards.map((c, i) => {
+                const set = (patch: Partial<RateCard>) => setOption({ ...option, cards: option.cards.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+                const problem = cardProblem(c);
+                const unit = WEIGHT_ABBR[shop.weightUnit] ?? '';
+                return (
+                  <section key={c.id ?? `new-${i}`} className="flex flex-col gap-2">
+                    <div className="mt-2 flex items-center justify-between">
+                      <h3 className="text-sm font-semibold">{option.cards.length > 1 ? t('delivery.rateN', { n: i + 1 }) : t('delivery.rate')}</h3>
+                      {option.cards.length > 1 && <Button size="sm" variant="plain" aria-label={t('common.remove')} onClick={() => { setOption({ ...option, cards: option.cards.filter((_, j) => j !== i) }); setPreview(0); }}><Trash2 className="size-4 text-critical" /></Button>}
                     </div>
-                  )}
-                  <Switch placement="end" checked={c.freeOn} onChange={(v) => set({ freeOn: v })} label={t('delivery.offerFree')} />
-                  {c.freeOn && <Input label={`${t('delivery.freeMinimum')} (${shop.currency})`} inputMode="decimal" value={c.freeOver} onChange={(e) => set({ freeOver: e.target.value })} error={problem === 'free' ? t('delivery.errPrice') : undefined} />}
-                </fieldset>
-              );
-            })}
-            <button type="button" onClick={() => setOption({ ...option, cards: [...option.cards, blankCard()] })} className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-line py-4 text-[13px] hover:bg-hover"><Plus className="size-4" />{t('delivery.addAnotherRate')}</button>
-          </div>
+                    <div className="flex flex-col gap-3 rounded-lg bg-canvas p-3 shadow-card">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Input label={`${t('shipping.price')} (${shop.currency})`} inputMode="decimal" placeholder="0.00" value={c.price} onChange={(e) => set({ price: e.target.value })} error={problem === 'price' && c.price !== '' ? t('delivery.errPrice') : undefined} />
+                        <Select label={t('shipping.condition')} value={c.cond} onChange={(e) => set({ cond: e.target.value as RateCard['cond'], min: '', max: '' })}>
+                          <option value="none">{t('delivery.condNone')}</option><option value="weight">{t('delivery.condWeight')}</option><option value="price">{t('delivery.condPrice')}</option>
+                        </Select>
+                      </div>
+                      {c.cond !== 'none' && (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <Input label={c.cond === 'weight' ? t('delivery.minWeight', { unit }) : t('delivery.minPrice', { currency: shop.currency })} inputMode="decimal" value={c.min} onChange={(e) => set({ min: e.target.value })} error={problem === 'range' ? t('delivery.errRange') : undefined} />
+                          <Input label={c.cond === 'weight' ? t('delivery.maxWeight', { unit }) : t('delivery.maxPrice', { currency: shop.currency })} inputMode="decimal" value={c.max} onChange={(e) => set({ max: e.target.value })} />
+                        </div>
+                      )}
+                      <Switch placement="end" checked={c.freeOn} onChange={(v) => set({ freeOn: v })} label={t('delivery.offerFree')} />
+                      {c.freeOn && <Input label={`${t('delivery.freeMinimum')} (${shop.currency})`} inputMode="decimal" value={c.freeOver} onChange={(e) => set({ freeOver: e.target.value })} error={problem === 'free' ? t('delivery.errPrice') : undefined} />}
+                    </div>
+                  </section>
+                );
+              })}
+              <button type="button" onClick={() => { setOption({ ...option, cards: [...option.cards, blankCard()] }); setPreview(option.cards.length); }} className="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-line py-4 text-[13px] font-medium hover:bg-hover"><Plus className="size-4" />{t('delivery.rate')}</button>
+            </div>
+          </>
         )}
-      </Modal>
+      </RateDialog>
 
       <Modal open={!!zone} onClose={() => setZone(null)} wide title={zone?.id ? t('delivery.editZone') : t('delivery.addZone')} closeLabel={t('common.close')}
         footer={<><Button onClick={() => setZone(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!zoneValid} loading={update.isPending} onClick={saveZone}>{t('save.save')}</Button></>}>

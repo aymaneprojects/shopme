@@ -1,6 +1,7 @@
 // Revue des réglages : titres de pages et noms de modèles de notification.
 export const frQaSettings = {
   'checkout.pageTitle': 'Page de paiement', 'notif.customerPageTitle': 'Notifications client', 'notif.staffPageTitle': 'Notifications employés',
+  'delivery.optionName': 'Nom de l’option', 'delivery.addOptionTitle': 'Ajouter une option d’expédition', 'delivery.editOptionTitle': 'Modifier l’option d’expédition', 'delivery.rate': 'Tarif', 'delivery.status': 'Statut', 'delivery.active': 'Actif', 'delivery.createProfileRow': 'Créer un profil personnalisé', 'settings.nav.users': 'Utilisateurs',
   'delivery.shipping': 'Expédition', 'delivery.profilesCount': '{n} profils', 'delivery.profilesCount.one': '{n} profil',
   'loc.addShort': 'Emplacement', 'loc.col.location': 'Emplacement',
   'notif.tpl.order_confirmation.name': 'Confirmation de commande', 'notif.tpl.order_confirmation.desc': 'Envoyée lorsqu’un client passe une commande',

@@ -167,13 +167,14 @@ export async function runScenario({ baseUrl, root }) {
       await vis(page.getByRole('button', { name: 'Add rate' }));
       await page.getByRole('button', { name: 'Add rate' }).first().click();
       dlg = page.getByRole('dialog');
-      await dlg.getByLabel('Rate name').fill('Livraison standard');
+      await dlg.getByLabel('Option name').fill('Livraison standard');
       await dlg.getByLabel('Price (EUR)').fill('4.90');
       await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+      await dlg.waitFor({ state: 'hidden' });
       await vis(page.getByText('Livraison standard'));
       await page.getByRole('button', { name: 'Add rate' }).first().click();
       dlg = page.getByRole('dialog');
-      await dlg.getByLabel('Rate name').fill('Livraison offerte');
+      await dlg.getByLabel('Option name').fill('Livraison offerte');
       await dlg.getByLabel('Price (EUR)').fill('0');
       await dlg.getByLabel('Condition').selectOption({ label: 'Based on order price' });
       await dlg.getByLabel(/Minimum order price/).fill('50');
