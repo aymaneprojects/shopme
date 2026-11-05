@@ -21,7 +21,7 @@ export const CUSTOMERS_COUNT = /* GraphQL */ `
 export const CUSTOMER = /* GraphQL */ `
   query Customer($id: ID!) {
     customer(id: $id) {
-      id displayName firstName lastName note tags createdAt numberOfOrders taxExempt
+      id displayName firstName lastName locale note tags createdAt numberOfOrders taxExempt
       defaultEmailAddress { emailAddress marketingState }
       defaultPhoneNumber { phoneNumber }
       amountSpent { amount currencyCode }

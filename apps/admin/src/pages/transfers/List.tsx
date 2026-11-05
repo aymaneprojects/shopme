@@ -1,12 +1,13 @@
-import { Banner, Button, Card, EmptyState, IndexTable, Pagination, Tabs } from '@shopme/ui';
+import { Banner, Button, Card, EmptyState, IndexTable, ListToolbar, Pagination } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search } from 'lucide-react';
+import { ArrowLeftRight, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
-import { searchCls, useFormat, useListParams } from '../../components/shared';
+import { LearnMore } from '../../components/LearnMore';
+import { useFormat, useListParams } from '../../components/shared';
 import { gidToNum } from '../../format';
 import { TRANSFERS } from '../../graphql';
 import { useT } from '../../i18n';
@@ -41,7 +42,7 @@ export function TransfersPage() {
   });
   const rows = list.data?.inventoryTransfers.nodes ?? [];
   const pi = list.data?.inventoryTransfers.pageInfo;
-  const create = <Button variant="primary" onClick={() => nav('/transfers/new')}><Plus className="size-4" />{t('transfers.create')}</Button>;
+  const create = <Button variant="primary" onClick={() => nav('/transfers/new')}>{t('transfers.create')}</Button>;
   const arrival = (r: TransferRow) => {
     const dates = r.shipments.nodes.map((s) => s.tracking?.arrivesAt).filter((d): d is string => !!d).sort();
     return dates[0] ? fmt.date(dates[0]) : '—';
@@ -55,27 +56,27 @@ export function TransfersPage() {
     { key: 'arrival', header: t('transfers.expectedArrival'), cell: arrival },
     { key: 'tags', header: t('field.tags'), cell: (r) => <span className="text-muted">{r.tags.join(', ')}</span> },
   ];
+  const empty = !list.isLoading && !list.isError && rows.length === 0 && !terms;
   return (
     <>
-      <PageHeader back="/products" title={t('nav.transfers')} actions={create} />
+      <PageHeader icon={<ArrowLeftRight className="size-4" />} title={t('nav.transfers')} actions={empty ? undefined : create} />
       <Card className="!p-0">
-        <div className="px-3 pt-1"><Tabs tabs={TABS.map((id) => ({ id, label: t(`transfers.tab.${id}` as Key) }))} value={tab} onChange={(v) => L.patch({ tab: v === 'all' ? '' : v })} /></div>
-        <div className="border-b border-line p-3">
-          <div className="relative max-w-md">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('transfers.search')} aria-label={t('transfers.search')} className={searchCls} />
-          </div>
-        </div>
+        {!empty && (
+          <ListToolbar
+            className="!rounded-b-none !shadow-none border-b border-line" viewsLabel={t('list.views')}
+            views={TABS.map((id) => ({ id, label: t(`transfers.tab.${id}` as Key) }))} view={tab} onView={(v) => L.patch({ tab: v === 'all' ? '' : v })}
+            query={search} onQuery={(v) => { setSearch(v); L.patch({ q: v }); }} placeholder={t('list.searchAndFilter')} />
+        )}
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
-        <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/transfers/${gidToNum(r.id)}`)}
-          selected={[]} onSelectedChange={() => {}} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
-          empty={list.isError ? null : terms
-            ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} />
-            : <EmptyState image={emptyProducts} title={t('transfers.emptyTitle')} description={t('transfers.emptyBody')} action={create} />} />
+        {empty
+          ? <EmptyState image={emptyProducts} title={t('transfers.emptyTitle')} description={t('transfers.emptyBody')} action={create} />
+          : <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/transfers/${gidToNum(r.id)}`)}
+            empty={list.isError ? null : <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} />} />}
         <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage}
           previousLabel={t('common.previous')} nextLabel={t('common.next')}
           onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
       </Card>
+      <LearnMore topic={t('qaf.learn.transfers')} />
     </>
   );
 }

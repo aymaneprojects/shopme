@@ -1,6 +1,6 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, Input, Popover, Select, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, ChevronRight, Coins, Minus, Monitor, Pencil, Percent, Plus, Receipt, ShoppingBag, Store, Tag, Undo2, WalletCards } from 'lucide-react';
+import { BookOpen, ChevronRight, Globe, Coins, Minus, Monitor, Pencil, Percent, Plus, Receipt, ShoppingBag, Store, Undo2, WalletCards } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../../api';
@@ -104,7 +104,7 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
   return (
     <>
       <SaveBar dirty={dirty} saving={update.isPending} onSave={save} onDiscard={() => { setName(market.name); setStatus(market.status); }} />
-      <PageHeader back="/markets" title={market.name} badges={<><Badge tone="neutral">{t('markets.region')}</Badge><Badge tone={market.status === 'ACTIVE' ? 'success' : 'neutral'}>{t(`markets.status.${market.status}` as Key)}</Badge></>}
+      <PageHeader large back="/markets" breadcrumb={{ icon: <Globe className="size-4" />, label: t('markets.title'), to: '/markets' }} title={market.name} badges={<><Badge tone="neutral">{t('markets.region')}</Badge><Badge tone={market.status === 'ACTIVE' ? 'success' : 'neutral'}>{t(`markets.status.${market.status}` as Key)}</Badge></>}
         actions={!primary && <Dropdown align="right" chevron label={t('markets.otherActions')} trigger={t('markets.otherActions')} items={[{ key: 'delete', label: t('markets.delete'), danger: true, onSelect: () => setConfirmDelete(true) }]} />} />
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
         <div className="flex min-w-0 flex-col gap-5">
@@ -153,18 +153,18 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
 
           <section>
             <h2 className="mb-2 text-sm font-semibold">{t('markets.inherited')}</h2>
-            <div className="divide-y divide-line">
+            <div>
               {!overridden && !primary && (
                 <SettingRow icon={Coins} label={t('markets.currency')} trailing={
                   <CurrencyPopover market={market} shopCurrency={shopInfo.currencyCode} lang={lang} busy={update.isPending} onSave={(c) => update.mutate({ currencySettings: c })}
-                    trigger={<Plus className="size-4" />} />}>
+                    plain trigger={<Plus className="size-4" />} />}>
                   <Inherited>{currencyLabel(shopInfo.currencyCode, lang)}</Inherited>
                 </SettingRow>
               )}
               {primary && <SettingRow icon={Coins} label={t('markets.currency')}><Inherited>{currencyLabel(shopInfo.currencyCode, lang)}</Inherited></SettingRow>}
               {!catalog && !primary && (
                 <SettingRow icon={BookOpen} label={t('markets.catalogs')} trailing={
-                  <Popover label={t('markets.add')} align="right" className="w-72 p-3" trigger={<Plus className="size-4" />}>
+                  <Popover label={t('markets.add')} align="right" className="w-72 p-3" triggerVariant="plain" triggerClassName="btn-icon btn-sm" trigger={<Plus className="size-4" />}>
                     {(close) => (
                       <div className="flex flex-col gap-2" onChange={() => close()}>
                         {catalogChoices.length ? <Select label={t('markets.catalogs')} value="" onChange={(e) => e.target.value && update.mutate({ catalogsToAdd: [e.target.value] })}>
@@ -182,7 +182,7 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
               <SettingRow icon={Monitor} label={t('markets.domain')}><Inherited>{shop.name} · {new Intl.DisplayNames([lang], { type: 'language' }).of(shop.locale) ?? shop.locale}</Inherited></SettingRow>
               {!taxOverridden && (
                 <SettingRow icon={Receipt} label={t('markets.taxes')} trailing={primary ? undefined : (
-                  <Popover label={t('markets.add')} align="right" className="w-72 p-3" trigger={<Plus className="size-4" />}>
+                  <Popover label={t('markets.add')} align="right" className="w-72 p-3" triggerVariant="plain" triggerClassName="btn-icon btn-sm" trigger={<Plus className="size-4" />}>
                     {(close) => (
                       <div className="flex flex-col gap-2">
                         <Button onClick={() => { update.mutate({ priceInclusions: { taxPricingStrategy: 'INCLUDES_TAXES_IN_PRICE' } }); close(); }}>{t('markets.taxesIncluded')}</Button>
@@ -211,10 +211,15 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
             <div className="flex items-center gap-2 rounded-md border border-line bg-canvas px-3 py-2 text-[13px]"><Store className="size-4 text-muted" aria-hidden />{t('markets.shopDefault')}</div>
           </div>
           <div>
-            <p className="mb-1 text-[13px] font-medium">{t('markets.other')}</p>
-            <Link to="/settings/policies" className="flex items-center gap-2 rounded-lg bg-canvas px-3 py-2.5 text-[13px] shadow-card hover:bg-hover">
-              <Tag className="size-4 text-muted" aria-hidden /><span className="min-w-0 flex-1"><span className="block font-medium">{t('markets.policies')}</span><span className="block text-muted">{t('markets.policiesBody')}</span></span><ChevronRight className="size-4 text-muted" aria-hidden />
-            </Link>
+            <p className="mb-1 mt-2 text-[13px] text-muted">{t('qaf.markets.otherFor', { name: market.name })}</p>
+            <div className="divide-y divide-line overflow-hidden rounded-lg bg-canvas shadow-card">
+              <Link to="/settings/privacy" className="flex items-center gap-2 px-3 py-2.5 text-[13px] hover:bg-hover">
+                <span className="min-w-0 flex-1"><span className="block font-medium">{t('qaf.markets.privacy')}</span><span className="block text-muted">{t('qaf.markets.privacyBody')}</span></span><ChevronRight className="size-4 text-muted" aria-hidden />
+              </Link>
+              <Link to="/settings/policies" className="flex items-center gap-2 px-3 py-2.5 text-[13px] hover:bg-hover">
+                <span className="min-w-0 flex-1"><span className="block font-medium">{t('markets.policies')}</span><span className="block text-muted">{t('markets.policiesBody')}</span></span><ChevronRight className="size-4 text-muted" aria-hidden />
+              </Link>
+            </div>
           </div>
         </aside>
       </div>
@@ -227,8 +232,8 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
 }
 
 /** Currency override popover: currency, exchange rate and price rounding. */
-function CurrencyPopover({ market, shopCurrency, lang, busy, onSave, trigger }: {
-  market: MarketRow; shopCurrency: string; lang: string; busy: boolean; trigger: React.ReactNode;
+function CurrencyPopover({ market, shopCurrency, lang, busy, onSave, trigger, plain }: {
+  plain?: boolean; market: MarketRow; shopCurrency: string; lang: string; busy: boolean; trigger: React.ReactNode;
   onSave: (c: { baseCurrency: string; baseCurrencyManualRate?: string; roundingEnabled: boolean; localCurrencies?: boolean }) => void;
 }) {
   const { t } = useI18n();
@@ -244,7 +249,7 @@ function CurrencyPopover({ market, shopCurrency, lang, busy, onSave, trigger }: 
   const sample = rateOk && foreign ? new Intl.NumberFormat(lang, { style: 'currency', currency: code, minimumFractionDigits: rounding ? 0 : undefined }).format(rounding ? Math.ceil(10 * rateNum) : 10 * rateNum) : '';
   const options = [shopCurrency, ...MARKET_CURRENCIES.filter((c) => c !== shopCurrency)];
   return (
-    <Popover label={t('markets.currency.title')} align="right" className="w-80 p-3" trigger={trigger}>
+    <Popover label={t('markets.currency.title')} align="right" className="w-80 p-3" triggerVariant={plain ? 'plain' : undefined} triggerClassName={plain ? 'btn-icon btn-sm' : undefined} trigger={trigger}>
       {(close) => (
         <div className="flex flex-col gap-3">
           <Select label={t('markets.currency.pick')} value={code} onChange={(e) => { const next = e.target.value; setCode(next); setRate(next === cur?.baseCurrency.currencyCode && next !== shopCurrency ? cur.baseCurrency.manualRate ?? '' : ''); }}>

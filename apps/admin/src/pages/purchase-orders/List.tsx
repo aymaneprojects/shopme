@@ -1,12 +1,13 @@
-import { Badge, Banner, Button, Card, EmptyState, IndexTable, Pagination, Tabs } from '@shopme/ui';
+import { Badge, Banner, Button, Card, EmptyState, IndexTable, ListToolbar, Pagination } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search } from 'lucide-react';
+import { ClipboardList, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
-import { searchCls, useFormat, useListParams } from '../../components/shared';
+import { LearnMore } from '../../components/LearnMore';
+import { useFormat, useListParams } from '../../components/shared';
 import type { Money } from '../../components/shared';
 import { gidToNum } from '../../format';
 import { PURCHASE_ORDERS } from '../../graphql';
@@ -48,7 +49,7 @@ export function PurchaseOrdersPage() {
   });
   const rows = list.data?.inventoryPurchaseOrders.nodes ?? [];
   const pi = list.data?.inventoryPurchaseOrders.pageInfo;
-  const create = <Button variant="primary" onClick={() => nav('/purchase-orders/new')}><Plus className="size-4" />{t('po.create')}</Button>;
+  const create = <Button variant="primary" onClick={() => nav('/purchase-orders/new')}>{t('po.create')}</Button>;
   const columns: Array<Column<PurchaseOrderRow>> = [
     { key: 'name', header: t('po.order'), cell: (r) => <div><p className="font-medium">{r.name}</p>{r.shopmeReferenceNumber && <p className="text-xs text-muted">{r.shopmeReferenceNumber}</p>}</div> },
     { key: 'supplier', header: t('po.supplier'), cell: (r) => r.origin?.supplierName ?? '—' },
@@ -58,27 +59,30 @@ export function PurchaseOrdersPage() {
     { key: 'total', header: t('po.total'), className: 'text-right', cell: (r) => <span className="whitespace-nowrap">{fmt.money(r.shopmeTotals.total)}</span> },
     { key: 'arrival', header: t('po.expectedArrival'), cell: (r) => fmt.date(r.shopmeExpectedArrival) },
   ];
+  const empty = !list.isLoading && !list.isError && rows.length === 0 && !terms;
   return (
     <>
-      <PageHeader back="/products" title={t('nav.purchaseOrders')} actions={create} />
-      <Card className="!p-0">
-        <div className="px-3 pt-1"><Tabs tabs={TABS.map((id) => ({ id, label: t(`po.tab.${id}` as Key) }))} value={tab} onChange={(v) => L.patch({ tab: v === 'all' ? '' : v })} /></div>
-        <div className="border-b border-line p-3">
-          <div className="relative max-w-md">
-            <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
-            <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('po.search')} aria-label={t('po.search')} className={searchCls} />
-          </div>
-        </div>
-        {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
-        <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/purchase-orders/${gidToNum(r.id)}`)}
-          selected={[]} onSelectedChange={() => {}} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
-          empty={list.isError ? null : terms
-            ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} />
-            : <EmptyState image={emptyOrders} title={t('po.emptyTitle')} description={t('po.emptyBody')} action={create} />} />
-        <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage}
-          previousLabel={t('common.previous')} nextLabel={t('common.next')}
-          onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
-      </Card>
+      <PageHeader icon={<ClipboardList className="size-4" />} title={t('nav.purchaseOrders')} actions={empty ? undefined : create} />
+      {empty ? (
+        <>
+          <ListToolbar viewsLabel={t('list.views')} views={TABS.map((id) => ({ id, label: t(`po.tab.${id}` as Key) }))} view={tab} onView={() => {}} query={search} onQuery={setSearch} placeholder={t('list.searchAndFilter')} />
+          <EmptyState image={emptyOrders} title={t('po.emptyTitle')} description={t('po.emptyBody')} action={create} />
+        </>
+      ) : (
+        <Card className="!p-0">
+          <ListToolbar
+            className="!rounded-b-none !shadow-none border-b border-line" viewsLabel={t('list.views')}
+            views={TABS.map((id) => ({ id, label: t(`po.tab.${id}` as Key) }))} view={tab} onView={(v) => L.patch({ tab: v === 'all' ? '' : v })}
+            query={search} onQuery={(v) => { setSearch(v); L.patch({ q: v }); }} placeholder={t('list.searchAndFilter')} />
+          {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
+          <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/purchase-orders/${gidToNum(r.id)}`)}
+            empty={list.isError ? null : <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} />} />
+          <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage}
+            previousLabel={t('common.previous')} nextLabel={t('common.next')}
+            onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
+        </Card>
+      )}
+      <LearnMore topic={t('qaf.learn.purchaseOrders')} />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { Banner, Button, Card, ConfirmDialog, TagInput, Textarea, Input } from '@shopme/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { CalendarDays, Hash, NotebookPen, StickyNote, X } from 'lucide-react';
+import { ArrowLeftRight, CalendarDays, Hash, NotebookPen, StickyNote, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
@@ -91,9 +91,9 @@ export function TransferForm({ initial }: { initial: TransferDraft }) {
   });
   const originName = options.find((o) => o.id === f.origin)?.name;
   return (
-    <div className="mx-auto max-w-3xl">
-      <PageHeader back={f.id ? `/transfers/${gidToNum(f.id)}` : '/transfers'} title={f.id ? t('transfers.editDraft') : t('transfers.createTitle')}
-        actions={<div className="flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-2">
+    <div className="mx-auto max-w-[800px]">
+      <PageHeader large back={f.id ? `/transfers/${gidToNum(f.id)}` : '/transfers'} breadcrumb={{ icon: <ArrowLeftRight className="size-4" />, label: t('nav.transfers'), to: '/transfers' }} title={f.id ? t('transfers.editDraft') : t('transfers.createTitle')}
+        actions={(f.id || f.origin || f.destination || f.lines.length > 0 || f.reference || f.note || f.tags.length > 0) && <div className="flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-2">
           {f.id && <Button onClick={() => setConfirmDelete(true)}>{t('common.delete')}</Button>}
           <Button disabled={!f.origin || !f.destination || f.origin === f.destination} loading={save.isPending && save.variables === false} onClick={() => { setError(null); save.mutate(false); }}>{t('transfers.saveDraft')}</Button>
           <Button variant="primary" disabled={!ready || f.origin === f.destination} loading={save.isPending && save.variables === true} onClick={() => { setError(null); save.mutate(true); }}>{t('transfers.markReady')}</Button>

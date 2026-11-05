@@ -5,6 +5,7 @@ import { BookOpen, Coins, Globe, ListFilter, Plus, Search, ArrowUpDown } from 'l
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql, mutate } from '../../api';
+import { LearnMore } from '../../components/LearnMore';
 import { PageHeader } from '../../components/PageHeader';
 import { searchCls, useListParams } from '../../components/shared';
 import { gidToNum } from '../../format';
@@ -73,7 +74,7 @@ export function MarketsPage() {
 
   return (
     <>
-      <PageHeader title={t('markets.title')} actions={create} />
+      <PageHeader icon={<Globe className="size-4" />} title={t('markets.title')} actions={create} />
       <Card className="!p-0">
         <div className="flex items-center gap-2 border-b border-line p-3">
           <div className="relative flex-1">
@@ -85,9 +86,9 @@ export function MarketsPage() {
         </div>
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/markets/${gidToNum(r.id)}`)}
-          selected={[]} onSelectedChange={() => {}} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           empty={list.isError ? null : query ? <EmptyState icon={<Search className="size-10" />} title={t('markets.noResults')} /> : <EmptyState icon={<Globe className="size-10" />} title={t('markets.emptyTitle')} description={t('markets.emptyBody')} action={create} />} />
       </Card>
+      <LearnMore topic={t('qaf.learn.markets')} />
       {creating && <CreateDialog busy={createMarket.isPending} onClose={() => setCreating(false)} onCreate={(name, countries) => createMarket.mutate({ name, countries })} taken={rows.filter((m) => !m.primary).flatMap((m) => countriesOf(m).map((c) => ({ code: c.code, market: m.name })))} />}
     </>
   );

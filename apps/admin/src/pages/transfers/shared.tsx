@@ -46,7 +46,7 @@ export function PinSelect({ value, onChange, options, placeholder, label, disabl
   return (
     <label className="relative inline-flex items-center">
       <MapPin className="pointer-events-none absolute left-2.5 size-4 text-muted" aria-hidden />
-      <select aria-label={label} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} className="field-control h-8 max-w-[16rem] pl-8 pr-8 text-[13px] font-medium">
+      <select aria-label={label} value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)} className="chip-select h-8 max-w-[16rem] pl-8 pr-7 text-[13px] font-medium">
         <option value="">{placeholder}</option>
         {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
       </select>

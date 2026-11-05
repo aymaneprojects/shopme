@@ -1,10 +1,11 @@
-import { Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Input, Select, Skeleton, useToast } from '@shopme/ui';
+import { Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Input, Select, Skeleton, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Users } from 'lucide-react';
+import { ArrowUpDown, Check, Plus, Search, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
+import { LearnMore } from '../components/LearnMore';
 import { PageHeader } from '../components/PageHeader';
 import { SaveBar, guard } from '../components/SaveBar';
 import { searchCls, selectCls, useFormat } from '../components/shared';
@@ -56,19 +57,18 @@ export function SegmentsPage() {
     { key: 'last', header: t('segments.lastActivity'), cell: (r) => (r.at ? t('segments.edited', { date: fmt.date(r.at) }) : <span className="text-muted">{t('segments.builtIn')}</span>) },
     { key: 'by', header: t('segments.createdBy'), cell: (r) => (r.builtIn ? 'ShopMe' : t('segments.you')) },
   ];
-  const create = <Button variant="primary" onClick={() => nav('/customers/segments/new')}><Plus className="size-4" />{t('segments.create')}</Button>;
+  const create = <Button variant="primary" onClick={() => nav('/customers/segments/new')}>{t('segments.create')}</Button>;
   return (
     <>
-      <PageHeader back="/customers" title={t('nav.segments')} actions={create} />
+      <PageHeader icon={<Users className="size-4" />} title={t('nav.segments')} actions={create} />
       <Card className="!p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
           <div className="relative min-w-48 flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('segments.search')} aria-label={t('segments.search')} className={searchCls} />
           </div>
-          <select aria-label={t('common.sort')} value={sort} onChange={(e) => setSort(e.target.value as 'recent' | 'name')} className={selectCls}>
-            <option value="recent">{t('segments.sort.recent')}</option><option value="name">{t('segments.sort.name')}</option>
-          </select>
+          <Dropdown align="right" variant="plain" size="sm" icon className="btn-neutral" label={t('common.sort')} trigger={<ArrowUpDown className="size-4" />}
+            items={(['recent', 'name'] as const).map((x) => ({ key: x, label: t(`segments.sort.${x}` as Key), icon: sort === x ? <Check className="size-4" /> : undefined, onSelect: () => setSort(x) }))} />
         </div>
         {custom.isError && <div className="p-3"><Banner>{(custom.error as Error).message}</Banner></div>}
         <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={custom.isLoading} onRowClick={open}
@@ -76,6 +76,7 @@ export function SegmentsPage() {
           bulkActions={[{ key: 'delete', label: t('common.delete'), danger: true, onRun: setConfirm }]}
           empty={<EmptyState icon={<Users className="size-10" />} title={t('content.noResults')} description={t('content.noResultsBody')} />} />
       </Card>
+      <LearnMore topic={t('qaf.learn.segments')} />
       <ConfirmDialog open={!!confirm} onClose={() => setConfirm(null)} danger title={t('segments.deleteTitle', { n: confirm?.length ?? 0 })} message={t('segments.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')}
         onConfirm={() => { if (confirm) del.mutate(confirm); setConfirm(null); }} />
     </>
