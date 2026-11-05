@@ -21,8 +21,8 @@ export const CUSTOMER_MERGE_PREVIEW = /* GraphQL */ `
   query CustomerMergePreview($a: ID!, $b: ID!, $o: CustomerMergeOverrideFields) {
     shopmeCustomerMergePreview(customerOneId: $a, customerTwoId: $b, overrideFields: $o) {
       resultingCustomerId blockers
-      customerOne { id displayName defaultEmailAddress { emailAddress } defaultPhoneNumber { phoneNumber } numberOfOrders }
-      customerTwo { id displayName defaultEmailAddress { emailAddress } defaultPhoneNumber { phoneNumber } numberOfOrders }
+      customerOne { id displayName firstName lastName defaultEmailAddress { emailAddress } defaultPhoneNumber { phoneNumber } numberOfOrders }
+      customerTwo { id displayName firstName lastName defaultEmailAddress { emailAddress } defaultPhoneNumber { phoneNumber } numberOfOrders }
       fields { firstName lastName email phone tags note defaultAddress { address1 city country } }
       moves { orders draftOrders addresses storeCreditAccounts giftCards timelineEvents companyContacts }
     }

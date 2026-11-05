@@ -58,6 +58,29 @@ describe('metaobject external id', () => {
   });
 });
 
+describe('video and 3D model files', () => {
+  it('uploads a video and a 3D model and lists them with their URL and type', async () => {
+    const cookie = (await t.app.inject({ method: 'POST', url: '/admin/api/auth/login', payload: { email: SETUP_BODY.email, password: SETUP_BODY.password } })).cookies.find((c) => c.name === 'shopme_session')!.value;
+    const up = async (name: string, mime: string) => {
+      const boundary = 'xx';
+      const body = Buffer.concat([Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${name}"\r\nContent-Type: ${mime}\r\n\r\n`), Buffer.from('binary-data'), Buffer.from(`\r\n--${boundary}--\r\n`)]);
+      const r = await t.app.inject({ method: 'POST', url: '/admin/api/files', payload: body, headers: { 'content-type': `multipart/form-data; boundary=${boundary}` }, cookies: { shopme_session: cookie } });
+      expect(r.statusCode, r.body).toBe(201);
+      return JSON.parse(r.body).file.url as string;
+    };
+    const video = await up('clip.mp4', 'video/mp4');
+    const model = await up('chair.glb', 'model/gltf-binary');
+    const made = (await ok(`mutation($f: [FileCreateInput!]!) { fileCreate(files: $f) { files { id } userErrors { message } } }`, { f: [{ originalSource: video, contentType: 'VIDEO' }, { originalSource: model, contentType: 'MODEL_3D' }] })).fileCreate;
+    expect(made.userErrors).toEqual([]);
+    const both = (await ok(`{ v: files(first: 10, query: "media_type:VIDEO") { nodes { __typename shopmeUrl shopmeMimeType shopmeFilename } } m: files(first: 10, query: "media_type:MODEL_3D") { nodes { __typename shopmeUrl shopmeMimeType shopmeFilename } } }`));
+    const list = [...both.v.nodes, ...both.m.nodes];
+    expect(list.map((n: { __typename: string }) => n.__typename).sort()).toEqual(['Model3d', 'Video']);
+    const m = list.find((n: { __typename: string }) => n.__typename === 'Model3d');
+    expect(m.shopmeUrl).toMatch(/chair\.glb$/);
+    expect(m.shopmeMimeType).toBe('model/gltf-binary');
+  });
+});
+
 describe('store preferences', () => {
   it('saves the home page title, the social sharing image and B2B-only access, and the storefront uses them', async () => {
     const r = (await ok(`mutation { shopmeShopUpdate(input: { homepageTitle: "Fresh coffee, roasted weekly", socialSharingImage: "https://cdn.example.com/share.jpg" }) { shop { id } userErrors { message } } }`)).shopmeShopUpdate;

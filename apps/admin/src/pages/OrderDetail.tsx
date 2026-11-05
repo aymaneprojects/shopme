@@ -8,6 +8,7 @@ import { gql, mutate } from '../api';
 import { AddressBlock, FinancialBadge, FulfillmentBadge, useFormat } from '../components/shared';
 import type { MoneySet } from '../components/shared';
 import { IconHeading, PageTitle, QtyChip, SideSection, TopBar, TwoColumn, nowrapItems } from '../components/OrderChrome';
+import { OrderCompanySection } from '../components/CompanyOrderCards';
 import { gidToNum, numToGid } from '../format';
 import { ORDER, ORDERS, ORDER_CLOSE, ORDER_MARK_AS_PAID, ORDER_OPEN, ORDER_UPDATE, TAGS_ADD, TAGS_REMOVE, DRAFT_ORDER_CREATE, FULFILLMENT_CANCEL, FULFILLMENT_ORDER_RELEASE_HOLD } from '../graphql';
 import { Timeline } from '../components/Timeline';
@@ -227,6 +228,7 @@ function OrderView({ order: o }: { order: OrderData }) {
             ) : <p className="text-muted">{o.email ?? t('orders.noCustomer')}</p>}
           </SideSection>
           <PickupCard orderId={o.id} onChange={() => void refresh()} />
+          <OrderCompanySection orderId={o.id} />
           <SideSection title={t('order.shippingAddress')} action={<Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
             { key: 'edit', icon: <MapPin />, label: t('order.shippingEdit'), disabled: !!o.cancelledAt, onSelect: () => setDialog('address') },
             { key: 'copy', icon: <Copy />, label: t('order.copyAddress'), disabled: !o.shippingAddress, onSelect: () => { const a = o.shippingAddress; void navigator.clipboard?.writeText([[a?.firstName, a?.lastName].filter(Boolean).join(' '), a?.address1, a?.address2, [a?.zip, a?.city].filter(Boolean).join(' '), a?.country].filter(Boolean).join('\n')).then(() => toast(t('abandoned.copied'))); } },

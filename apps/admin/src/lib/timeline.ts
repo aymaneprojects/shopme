@@ -5,7 +5,7 @@ export interface TimelineEvent {
   __typename: 'BasicEvent' | 'CommentEvent';
   id: string; action: string; message: string; createdAt: string;
   arguments?: Record<string, unknown> | null; authorEmail?: string | null; author?: { name: string } | null;
-  rawMessage?: string; canDelete?: boolean;
+  rawMessage?: string; canDelete?: boolean; attachments?: string[];
 }
 
 export interface DayGroup { day: string; events: TimelineEvent[] }

@@ -7,7 +7,7 @@ const EVENTS = `
       action message createdAt
       ... on Node { id }
       ... on BasicEvent { arguments authorEmail: author }
-      ... on CommentEvent { rawMessage canDelete author { name } }
+      ... on CommentEvent { rawMessage canDelete attachments author { name } }
     }
   }
 `;
@@ -19,8 +19,8 @@ export const CUSTOMER_TIMELINE = /* GraphQL */ `
   query CustomerTimeline($id: ID!) { customer(id: $id) { id ${EVENTS} } }
 `;
 export const CUSTOMER_TIMELINE_COMMENT_CREATE = /* GraphQL */ `
-  mutation CustomerTimelineCommentCreate($id: ID!, $message: String!) {
-    customerTimelineCommentCreate(id: $id, message: $message) { event { ... on Node { id } } userErrors { field message } }
+  mutation CustomerTimelineCommentCreate($id: ID!, $message: String!, $attachments: [String!]) {
+    customerTimelineCommentCreate(id: $id, message: $message, attachments: $attachments) { event { ... on Node { id } } userErrors { field message } }
   }
 `;
 export const TIMELINE_COMMENT_DELETE = /* GraphQL */ `

@@ -1,10 +1,11 @@
 import { Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Input, Modal, Pagination, Select, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Download, FileImage, FolderPlus, Folder, MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Box, Copy, Download, FileImage, FolderPlus, Folder, MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { UserErrors, gql, mutate, upload } from '../../api';
+import { ColumnPicker, useColumnVisibility } from '../../components/ColumnPicker';
 import { searchCls, selectCls, useFormat, useListParams } from '../../components/shared';
 import { FILES, FILE_CREATE, FILE_DELETE, FILE_FOLDERS, FILE_FOLDER_CREATE, FILE_FOLDER_DELETE, FILE_FOLDER_RENAME, FILE_UPDATE, FILES_MOVE } from '../../graphql';
 import { gidToNum } from '../../format';
@@ -17,10 +18,14 @@ import { StoreActions } from './Themes';
 interface Ref { type: 'PRODUCT' | 'COLLECTION' | 'ARTICLE' | 'THEME'; id: string | null; title: string }
 interface FolderRow { id: string; name: string; fileCount: number | null }
 interface FileRow {
+  __typename: string; shopmeUrl: string | null; shopmeMimeType: string | null;
   id: string; alt: string | null; createdAt: string; mimeType?: string | null; image?: { url: string; width: number | null; height: number | null } | null;
   shopmeFilename: string | null; shopmeFileSize: number | null; shopmeReferences: Ref[]; shopmeFolder: { id: string; name: string } | null;
 }
-const nameOf = (f: FileRow) => f.shopmeFilename || decodeURIComponent((f.image?.url ?? '').split('?')[0]!.split('/').pop() ?? '') || f.id;
+const fileUrl = (f: FileRow) => f.shopmeUrl ?? f.image?.url ?? '';
+const nameOf = (f: FileRow) => f.shopmeFilename || decodeURIComponent(fileUrl(f).split('?')[0]!.split('/').pop() ?? '') || f.id;
+const isModel = (f: File) => f.type.startsWith('model/') || /\.(glb|gltf|usdz)$/i.test(f.name);
+const contentTypeOf = (f: File): 'VIDEO' | 'MODEL_3D' | 'IMAGE' => (f.type.startsWith('video/') ? 'VIDEO' : isModel(f) ? 'MODEL_3D' : 'IMAGE');
 const REF_ORDER: Ref['type'][] = ['PRODUCT', 'COLLECTION', 'ARTICLE', 'THEME'];
 const refLink = (r: Ref) => (r.type === 'PRODUCT' ? `/products/${r.id}` : r.type === 'COLLECTION' ? `/collections/${r.id}` : r.type === 'ARTICLE' ? `/online-store/blog-posts/${r.id}` : '/online-store/themes');
 const formatBytes = (n: number | null, lang: string) => {
@@ -62,7 +67,7 @@ export function FilesPage() {
     mutationFn: async (files: File[]) => {
       for (const f of files) {
         const up = await upload<{ file: { url: string } }>('/files', f);
-        const created = await mutate<{ files: { id: string }[] }>(FILE_CREATE, { files: [{ originalSource: up.file.url, contentType: f.type.startsWith('video/') ? 'VIDEO' : 'IMAGE', alt: '' }] }, 'fileCreate');
+        const created = await mutate<{ files: { id: string }[] }>(FILE_CREATE, { files: [{ originalSource: up.file.url, contentType: contentTypeOf(f), alt: '' }] }, 'fileCreate');
         if (currentFolder && created.files[0]) await mutate(FILES_MOVE, { fileIds: [created.files[0].id], folderId: currentFolder.id }, 'shopmeFilesMove');
       }
     },
@@ -91,7 +96,8 @@ export function FilesPage() {
     mutationFn: (f: FolderRow) => mutate(FILE_FOLDER_DELETE, { id: f.id }, 'shopmeFileFolderDelete'),
     onSuccess: () => { toast(t('files.folderDeleted')); setFolderDelete(null); L.patch({ folder: '' }, true); refresh(); }, onError: (e) => { setFolderDelete(null); toast(errText(e), 'critical'); },
   });
-  const urlOf = (f: FileRow) => { const u = f.image?.url ?? ''; return u.startsWith('http') ? u : `${location.origin}${u}`; };
+  const urlOf = (f: FileRow) => { const u = fileUrl(f); return u.startsWith('http') ? u : `${location.origin}${u}`; };
+  const cols = useColumnVisibility('files');
   const rows = list.data?.nodes ?? [];
   const chosen = rows.filter((r) => selected.includes(r.id));
   const copy = (f: FileRow) => { void navigator.clipboard?.writeText(urlOf(f)); toast(t('files.copied')); };
@@ -99,7 +105,7 @@ export function FilesPage() {
   const download = (files: FileRow[]) => {
     files.forEach((f, i) => setTimeout(() => {
       const a = document.createElement('a');
-      a.href = f.image?.url ?? ''; a.download = nameOf(f); a.rel = 'noopener';
+      a.href = fileUrl(f); a.download = nameOf(f); a.rel = 'noopener';
       document.body.appendChild(a); a.click(); a.remove();
     }, i * 250));
     toast(t('files.downloading', { n: files.length }));
@@ -113,8 +119,10 @@ export function FilesPage() {
   const columns: Array<Column<FileRow>> = [
     { key: 'name', header: t('files.name'), cell: (f) => (
       <span className="flex items-center gap-3">
-        {f.image?.url ? <img src={f.image.url} alt="" className="size-10 rounded-md border border-line object-cover" /> : <span className="grid size-10 place-items-center rounded-md border border-line text-muted"><FileImage className="size-5" /></span>}
-        <span className="min-w-0"><span className="block truncate font-medium">{nameOf(f)}</span><span className="text-xs uppercase text-muted">{(f.mimeType ?? '').split('/')[1] ?? ''}{f.shopmeFolder && !folder ? ` · ${f.shopmeFolder.name}` : ''}</span></span>
+        {f.image?.url ? <img src={f.image.url} alt="" className="size-10 rounded-md border border-line object-cover" />
+          : f.__typename === 'Video' && f.shopmeUrl ? <video src={f.shopmeUrl} preload="metadata" muted aria-hidden className="size-10 rounded-md border border-line bg-surface object-cover" />
+            : <span className="grid size-10 place-items-center rounded-md border border-line text-muted">{f.__typename === 'Model3d' ? <Box className="size-5" /> : <FileImage className="size-5" />}</span>}
+        <span className="min-w-0"><span className="block truncate font-medium">{nameOf(f)}</span><span className="text-xs uppercase text-muted">{((f.mimeType ?? f.shopmeMimeType) ?? '').split('/')[1] ?? (f.__typename === 'Model3d' ? '3D' : '')}{f.shopmeFolder && !folder ? ` · ${f.shopmeFolder.name}` : ''}</span></span>
       </span>) },
     { key: 'alt', header: t('files.alt'), className: 'max-w-xs', cell: (f) => <span className="line-clamp-1 text-muted">{f.alt || '—'}</span> },
     { key: 'date', header: t('files.added'), cell: (f) => fmt.dateTime(f.createdAt) },
@@ -144,7 +152,7 @@ export function FilesPage() {
   return (
     <div className="flex flex-col gap-4">
       <StoreActions>{more}{newFolder}{add}</StoreActions>
-      <input ref={input} type="file" accept="image/*,video/*" multiple hidden aria-label={t('files.add')} onChange={(e) => { const f = Array.from(e.target.files ?? []); if (f.length) send.mutate(f); e.target.value = ''; }} />
+      <input ref={input} type="file" accept="image/*,video/*,model/gltf-binary,model/gltf+json,model/vnd.usdz+zip,.glb,.gltf,.usdz" multiple hidden aria-label={t('files.add')} onChange={(e) => { const f = Array.from(e.target.files ?? []); if (f.length) send.mutate(f); e.target.value = ''; }} />
       {(folders.data?.length ?? 0) > 0 && (
         <nav aria-label={t('files.folder')} className="flex flex-wrap gap-2">
           {chip('', t('files.allFiles'))}{chip('none', t('files.root'))}{folders.data!.map((f) => chip(folderNum(f.id), f.name, f.fileCount))}
@@ -153,15 +161,16 @@ export function FilesPage() {
       <Card className="!p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
           <select aria-label={t('files.type')} value={kind} onChange={(e) => L.patch({ type: e.target.value })} className={selectCls}>
-            <option value="">{t('files.type.all')}</option><option value="IMAGE">{t('files.type.image')}</option><option value="VIDEO">{t('files.type.video')}</option>
+            <option value="">{t('files.type.all')}</option><option value="IMAGE">{t('files.type.image')}</option><option value="VIDEO">{t('files.type.video')}</option><option value="MODEL_3D">{t('bc.files.type.model')}</option>
           </select>
           <div className="relative min-w-48 flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('files.search')} aria-label={t('files.search')} className={searchCls} />
           </div>
+          <ColumnPicker locked={['name']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
         </div>
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
-        <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(f) => setEdit({ file: f, alt: f.alt ?? '', folder: f.shopmeFolder?.id ?? '' })}
+        <IndexTable rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading} onRowClick={(f) => setEdit({ file: f, alt: f.alt ?? '', folder: f.shopmeFolder?.id ?? '' })}
           selected={selected} onSelectedChange={setSelected} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           bulkActions={[
             { key: 'download', label: t('files.download'), onRun: (ids) => download(rows.filter((r) => ids.includes(r.id))) },
@@ -176,6 +185,8 @@ export function FilesPage() {
         footer={edit && <><Button variant="critical" onClick={() => setConfirm([edit.file.id])}>{t('common.delete')}</Button><span className="flex-1" /><Button onClick={() => copy(edit.file)}><Copy className="size-4" />{t('files.copyLink')}</Button><Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('save.save')}</Button></>}>
         {edit && <div className="flex flex-col gap-3">
           {edit.file.image?.url && <img src={edit.file.image.url} alt={edit.alt} className="max-h-64 w-fit rounded-md border border-line object-contain" />}
+          {edit.file.__typename === 'Video' && edit.file.shopmeUrl && <video src={edit.file.shopmeUrl} controls preload="metadata" className="max-h-64 w-full rounded-md border border-line bg-black" />}
+          {edit.file.__typename === 'Model3d' && edit.file.shopmeUrl && <p className="flex items-center gap-2 rounded-md border border-line p-3 text-[13px]"><Box className="size-5 text-muted" />{t('bc.files.model')}<a className="ml-auto text-accent hover:underline" href={edit.file.shopmeUrl} download>{t('files.download')}</a></p>}
           <Input label={t('files.alt')} value={edit.alt} onChange={(e) => setEdit({ ...edit, alt: e.target.value })} />
           <Select label={t('files.folder')} value={edit.folder} onChange={(e) => setEdit({ ...edit, folder: e.target.value })}>
             <option value="">{t('files.root')}</option>{(folders.data ?? []).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}

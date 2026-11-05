@@ -90,7 +90,7 @@ export function SegmentEditPage() {
   const gid = numToGid('ShopmeCustomerSegment', id);
   const q = useQuery({ queryKey: ['segment', gid], enabled: id !== 'new' && id !== 'view', queryFn: () => gql<{ shopmeCustomerSegment: Segment | null }>(SEGMENT_GET, { id: gid }) });
   if (id === 'view') return <SegmentView key={location.search} id={null} initial={{ name: new URLSearchParams(location.search).get('name') ?? '', query: new URLSearchParams(location.search).get('q') ?? '' }} readOnly />;
-  if (id === 'new') return <SegmentView id={null} initial={{ name: '', query: '' }} />;
+  if (id === 'new') return <SegmentView key={location.search} id={null} initial={{ name: '', query: new URLSearchParams(location.search).get('q') ?? '' }} />;
   if (q.isLoading) return <div className="grid gap-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-64" /></div>;
   if (q.error) return <Banner>{q.error.message}</Banner>;
   const s = q.data?.shopmeCustomerSegment;

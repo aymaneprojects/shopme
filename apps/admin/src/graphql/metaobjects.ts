@@ -15,7 +15,7 @@ export const METAOBJECTS_SUMMARY = /* GraphQL */ `
 
 export const METAOBJECT_DEFINITIONS = /* GraphQL */ `
   query MetaobjectDefinitions($query: String) {
-    metaobjectDefinitions(first: 100, query: $query) { nodes { id type name description metaobjectsCount updatedAt capabilities { publishable { enabled } onlineStore { enabled } } fieldDefinitions { key } } }
+    metaobjectDefinitions(first: 100, query: $query) { nodes { id type name description metaobjectsCount updatedAt shopmeSystem capabilities { publishable { enabled } onlineStore { enabled } } fieldDefinitions { key } } }
   }
 `;
 
@@ -75,7 +75,7 @@ const REFERENCE = /* GraphQL */ `
 export const METAOBJECT = /* GraphQL */ `
   query Metaobject($id: ID!) {
     metaobject(id: $id) {
-      id handle displayName type updatedAt createdAt
+      id handle shopmeExternalId displayName type updatedAt createdAt
       capabilities { publishable { status } onlineStore { templateSuffix } }
       definition { ${DEFINITION_FIELDS} }
       fields { key type value reference { ${REFERENCE} } references(first: 100) { nodes { ${REFERENCE} } } }

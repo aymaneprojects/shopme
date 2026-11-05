@@ -6,14 +6,14 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
 import {
-  SAVED_SEARCH_CREATE, SAVED_SEARCH_DELETE, SAVED_SEARCH_UPDATE, SAVED_VIEWS_CUSTOMER, SAVED_VIEWS_INVENTORY, SAVED_VIEWS_ORDER, SAVED_VIEWS_PRODUCT,
+  SAVED_SEARCH_CREATE, SAVED_SEARCH_DELETE, SAVED_SEARCH_UPDATE, SAVED_VIEWS_ARTICLE, SAVED_VIEWS_CUSTOMER, SAVED_VIEWS_INVENTORY, SAVED_VIEWS_ORDER, SAVED_VIEWS_PAGE, SAVED_VIEWS_PRODUCT,
 } from '../graphql';
 import { useT } from '../i18n';
 
-export type ViewResource = 'PRODUCT' | 'ORDER' | 'CUSTOMER' | 'INVENTORY';
+export type ViewResource = 'PRODUCT' | 'ORDER' | 'CUSTOMER' | 'INVENTORY' | 'PAGE' | 'ARTICLE';
 export interface SavedView { id: string; name: string; query: string; params: string; resourceType: string }
 
-const QUERIES: Record<ViewResource, string> = { PRODUCT: SAVED_VIEWS_PRODUCT, ORDER: SAVED_VIEWS_ORDER, CUSTOMER: SAVED_VIEWS_CUSTOMER, INVENTORY: SAVED_VIEWS_INVENTORY };
+const QUERIES: Record<ViewResource, string> = { PRODUCT: SAVED_VIEWS_PRODUCT, ORDER: SAVED_VIEWS_ORDER, CUSTOMER: SAVED_VIEWS_CUSTOMER, INVENTORY: SAVED_VIEWS_INVENTORY, PAGE: SAVED_VIEWS_PAGE, ARTICLE: SAVED_VIEWS_ARTICLE };
 /** Parameters that are not part of a view: the saved view in use and the pagination cursors. */
 const TRANSIENT = ['view', 'after', 'before'];
 

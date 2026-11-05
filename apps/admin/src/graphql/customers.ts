@@ -24,6 +24,7 @@ export const CUSTOMER = /* GraphQL */ `
       id displayName firstName lastName locale note tags createdAt numberOfOrders taxExempt
       defaultEmailAddress { emailAddress marketingState }
       defaultPhoneNumber { phoneNumber }
+      smsMarketingConsent { marketingState }
       amountSpent { amount currencyCode }
       addressesV2(first: 10) { nodes { id firstName lastName company address1 address2 city province zip country countryCodeV2 phone } }
       orders(first: 5) {

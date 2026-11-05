@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
+import { DraftCompanySection } from '../../components/CompanyOrderCards';
 import { PageTitle, SideSection, TopBar } from '../../components/OrderChrome';
 import { PagedTable } from '../../components/PagedTable';
 import { VariantPicker } from '../../components/Pickers';
@@ -211,6 +212,7 @@ function DraftForm_({ draft, initial }: { draft: DraftData | null; initial: Draf
             <CustomerPick label={custLabel} onPick={(c) => { setCustLabel(c.displayName); set({ customerId: c.id, email: c.defaultEmailAddress?.emailAddress ?? form.email }); }} onClear={() => { setCustLabel(''); set({ customerId: '' }); }} />
             <Input className="mt-3" label={t('field.email')} type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} />
           </SideSection>
+          {draft && <DraftCompanySection draftId={draft.id} locked={completed} />}
           <SideSection title={t('field.tags')}><TagInput value={form.tags} onChange={(tags) => set({ tags })} removeLabel={t('common.remove')} /></SideSection>
         </fieldset>
       </div>

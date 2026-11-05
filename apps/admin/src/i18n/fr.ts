@@ -1,5 +1,6 @@
 import { frCheckout } from './fr-checkout';
 import { frPrivacy } from './fr-privacy';
+import { frBtnCustomers } from './fr-btn-customers';
 import { frCatalog } from './fr-catalog';
 import { frContent } from './fr-content';
 import { frPublishing } from './fr-publishing';
@@ -141,4 +142,5 @@ export const fr: Record<Key, string> = {
   ...frDiscountCodes,
   ...frMarkets,
   ...frPrivacy,
+  ...frBtnCustomers,
 };

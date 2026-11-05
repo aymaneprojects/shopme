@@ -135,6 +135,8 @@ Definition_.implement({
     access: t.field({ type: Access, resolve: (d) => d }), capabilities: t.field({ type: Capabilities, resolve: (d) => d }),
     hasThumbnailField: t.boolean({ resolve: (d) => d.fieldDefinitions.some((f) => f.type === 'file_reference' || f.type === 'color') }),
     metaobjectsCount: t.int({ resolve: (d) => d.entryCount }),
+    /** ShopMe: definitions created by the platform or an app (reserved type prefixes), hidden from the list by default. */
+    shopmeSystem: t.boolean({ resolve: (d) => !!d.ownerApp || /^(shopify--|app--)/.test(d.type) }),
     metaobjects: t.field({
       type: MetaobjectConnection, args: ConnectionArgs,
       resolve: (d, a, ctx) => {

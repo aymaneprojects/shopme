@@ -209,7 +209,7 @@ async function runReport(db: Executor, shopId: number, name: ReportName, from: s
         left join (select l.product_id, sum(l.current_quantity) as units from order_lines l join orders o on o.id = l.order_id where ${w} group by 1) s on s.product_id = p.id
         left join (select v.product_id, sum(il.available) as stock from product_variants v join inventory_items i on i.variant_id = v.id join inventory_levels il on il.inventory_item_id = i.id and il.is_active group by 1) st on st.product_id = p.id
         where p.shop_id = ${shopId} and p.status <> 'ARCHIVED' and (coalesce(s.units, 0) > 0 or coalesce(st.stock, 0) > 0) order by coalesce(s.units, 0) desc, p.title limit 500`);
-      return done([col('product', 'Product', 'text'), col('sold', 'Units sold', 'int'), col('stock', 'Units in stock', 'int'), col('rate', 'Sell-through rate', 'percent')],
+      return done([col('product', 'Product', 'text'), col('sold', 'Units sold', 'int'), col('stock', 'Units in stock', 'int'), col('sell_through', 'Sell-through rate', 'percent')],
         r.map((x) => [String(x.title), n(x.sold), n(x.stock), pct(n(x.sold), n(x.sold) + n(x.stock))]));
     }
     case 'ABC_ANALYSIS': {

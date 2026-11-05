@@ -33,3 +33,15 @@ describe('analytics date ranges', () => {
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
   });
 });
+
+describe('chart marks and categories', () => {
+  it('places a dated note on the period that contains it', async () => {
+    const { markIndex, REPORT_CATEGORY, REPORTS } = await import('./analytics');
+    const weeks: Array<[string, number]> = [['2026-10-05', 1], ['2026-10-12', 2], ['2026-10-19', 3]];
+    expect(markIndex(weeks, '2026-10-14')).toBe(1);
+    expect(markIndex(weeks, '2026-10-12')).toBe(1);
+    expect(markIndex(weeks, '2026-10-30')).toBe(2);
+    expect(markIndex(weeks, '2026-10-01')).toBe(-1);
+    expect(REPORTS.every((r) => REPORT_CATEGORY[r])).toBe(true);
+  });
+});

@@ -28,7 +28,7 @@ export const STORE_ACCESS_UPDATE = /* GraphQL */ `
 export const FILES = /* GraphQL */ `
   query Files($first: Int, $after: String, $last: Int, $before: String, $query: String) {
     files(first: $first, after: $after, last: $last, before: $before, query: $query) {
-      nodes { id alt createdAt shopmeFilename shopmeFileSize shopmeReferences { type id title } shopmeFolder { id name } ... on MediaImage { mimeType image { url width height } } }
+      nodes { __typename id alt createdAt shopmeUrl shopmeMimeType shopmeFilename shopmeFileSize shopmeReferences { type id title } shopmeFolder { id name } ... on MediaImage { mimeType image { url width height } } }
       pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
     }
   }

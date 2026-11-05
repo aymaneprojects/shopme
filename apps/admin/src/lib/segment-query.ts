@@ -39,4 +39,5 @@ export const BUILT_IN_SEGMENTS = [
   { id: 'subscribers', nameKey: 'segments.builtin.subscribers', query: 'accepts_marketing:true' },
   { id: 'repeat', nameKey: 'segments.builtin.repeat', query: 'orders_count:>1' },
   { id: 'never', nameKey: 'segments.builtin.never', query: 'orders_count:0' },
+  { id: 'abandoned', nameKey: 'segments.builtin.abandoned', query: 'abandoned_checkout_in_last:30d' },
 ] as const;
