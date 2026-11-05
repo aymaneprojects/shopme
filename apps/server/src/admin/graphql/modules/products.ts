@@ -1,7 +1,7 @@
 import {
   availableByVariant, bulkCreateVariants, bulkDeleteVariants, bulkUpdateVariants, changeTags, countProductMedia, countProducts, countVariants, createOptions, createProduct, createProductMedia,
   deleteProduct, duplicateProduct, getInventoryItemForVariant, getMedia, getProduct, getProductByHandle, getProductOptions, getProductSummary, getSelectedOptions, getVariant, listProductCollections,
-  listProductFilterValues, listProductMedia, listProducts, listVariants, reorderProductMedia, updateProduct,
+  createJob, getJob, listProductFilterValues, listProductMedia, listProducts, listVariants, reorderProductMedia, updateProduct,
   type BulkResult, type OptionInput, type Product, type ProductInput as ServiceProductInput, type Result, type Variant, type VariantInput,
 } from '@shopme/core';
 import { formatMoney, fromGid, parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
@@ -20,6 +20,8 @@ import { definePayload } from '../types/errors';
 import { CollectionSortKeys, UniqueMetafieldValueInput } from './collections';
 import { CreateMediaInput, Image, imageOf } from './files';
 import { InventoryItemInput, toItemUpdate } from './inventory';
+import { JOB_TYPE_DUPLICATE, ProductDuplicateOperation, type JobRow } from './product-operations';
+import { Shop } from './shop';
 
 export const ProductStatus = builder.enumType('ProductStatus', { values: ['ACTIVE', 'ARCHIVED', 'DRAFT'] as const });
 const ProductSortKeys = builder.enumType('ProductSortKeys', { values: ['CREATED_AT', 'ID', 'INVENTORY_TOTAL', 'PRODUCT_TYPE', 'PUBLISHED_AT', 'RELEVANCE', 'TITLE', 'UPDATED_AT', 'VENDOR'] as const });
@@ -257,7 +259,12 @@ type MediaRow = import('@shopme/core').Media;
 const ProductCreatePayload = definePayload<{ product: Product | null }>('ProductCreatePayload', (t) => ({ product: t.field({ type: Product_, nullable: true, resolve: (p) => p.product }) }));
 const ProductUpdatePayload = definePayload<{ product: Product | null }>('ProductUpdatePayload', (t) => ({ product: t.field({ type: Product_, nullable: true, resolve: (p) => p.product }) }));
 const ProductDeletePayload = definePayload<{ deletedProductId: string | null }>('ProductDeletePayload', (t) => ({ deletedProductId: t.id({ nullable: true, resolve: (p) => p.deletedProductId }) }));
-const ProductDuplicatePayload = definePayload<{ newProduct: Product | null }>('ProductDuplicatePayload', (t) => ({ newProduct: t.field({ type: Product_, nullable: true, resolve: (p) => p.newProduct }) }));
+const ProductDuplicatePayload = definePayload<{ newProduct: Product | null; productDuplicateOperation?: JobRow | null }>('ProductDuplicatePayload', (t) => ({
+  newProduct: t.field({ type: Product_, nullable: true, resolve: (p) => p.newProduct }),
+  productDuplicateOperation: t.field({ type: ProductDuplicateOperation, nullable: true, resolve: (p) => p.productDuplicateOperation ?? null }),
+  imageJob: t.field({ type: Job, nullable: true, resolve: () => null }),
+  shop: t.field({ type: Shop, resolve: (_p, _a, ctx) => shopOf(ctx) }),
+}));
 const OptionsCreatePayload = defineTypedPayload<{ product: Product | null }>('ProductOptionsCreatePayload', 'ProductOptionsCreateUserError', (t) => ({ product: t.field({ type: Product_, nullable: true, resolve: (p) => p.product }) }));
 const bulkPayload = (name: string, err: 'ProductVariantsBulkCreateUserError' | 'ProductVariantsBulkUpdateUserError') => defineTypedPayload<{ product: Product | null; productVariants: Variant[] | null }>(name, err, (t) => ({
   product: t.field({ type: Product_, nullable: true, resolve: (p) => p.product }),
@@ -274,7 +281,7 @@ const CreateMediaPayload = definePayload<{ product: Product | null; media: Media
 const TagsPayload = (name: string) => definePayload<{ node: unknown }>(name, (t) => ({ node: t.field({ type: Node, nullable: true, resolve: (p) => p.node as never }) }));
 const TagsAddPayload = TagsPayload('TagsAddPayload');
 const TagsRemovePayload = TagsPayload('TagsRemovePayload');
-const MoveInput = builder.inputType('MoveInput', {
+export const MoveInput = builder.inputType('MoveInput', {
   fields: (t) => ({ id: t.id({ required: true }), newPosition: t.field({ type: 'UnsignedInt64', required: true }) }),
 });
 const ReorderMediaPayload = definePayload<{ job: { id: string; done: boolean } | null; mediaUserErrors: UserError[] }>('ProductReorderMediaPayload', (t) => ({
@@ -401,7 +408,16 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_products');
       const id = parsePid(a.productId);
       if (!id) return { newProduct: null, userErrors: [{ field: ['productId'], message: 'Product does not exist' }] };
-      const r = await duplicateProduct(ctx.db, ctx.shopId, id, { newTitle: a.newTitle, newStatus: a.newStatus, includeImages: a.includeImages });
+      const o = { newTitle: a.newTitle, newStatus: a.newStatus, includeImages: a.includeImages };
+      if (a.synchronous === false) {
+        // Validate up front (like the real thing), then run in the background: poll `productOperation` / `productDuplicateJob`.
+        if (!(await getProduct(ctx.db, ctx.shopId, id))) return { newProduct: null, userErrors: [{ field: ['productId'], message: 'Product does not exist' }] };
+        if (!a.newTitle.trim()) return { newProduct: null, userErrors: [{ field: ['newTitle'], message: "Title can't be blank" }] };
+        const jobId = await createJob(ctx.db, ctx.shopId, JOB_TYPE_DUPLICATE);
+        ctx.app.queue.enqueue('product.duplicate', { shopId: ctx.shopId, jobId, productId: id, ...o }, { maxAttempts: 1 });
+        return { newProduct: null, productDuplicateOperation: (await getJob(ctx.db, ctx.shopId, jobId))!, userErrors: [] };
+      }
+      const r = await duplicateProduct(ctx.db, ctx.shopId, id, o);
       return r.ok ? { newProduct: r.value, userErrors: [] } : { newProduct: null, userErrors: prefixed(r.errors, []) };
     },
   }),

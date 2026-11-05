@@ -43,8 +43,8 @@ builder.queryFields((t) => ({ taxonomy: t.field({ type: Taxonomy, nullable: true
 
 /* ------------------------------ publications (one channel: Online Store) ------------------------------ */
 
-const ONLINE_STORE = { id: 1, name: 'Online Store' };
-const Publication = builder.objectRef<typeof ONLINE_STORE>('Publication').implement({
+export const ONLINE_STORE = { id: 1, name: 'Online Store' };
+export const Publication = builder.objectRef<typeof ONLINE_STORE>('Publication').implement({
   interfaces: [Node],
   fields: (t) => ({
     name: t.exposeString('name'), supportsFuturePublishing: t.boolean({ resolve: () => false }), autoPublish: t.boolean({ resolve: () => true }),
@@ -81,7 +81,7 @@ builder.objectFields(Collection_, (t) => ({
 }));
 
 /** Publish / unpublish a product or collection on the Online Store. A product has no separate publication state: it is published while ACTIVE. */
-async function setPublished(ctx: Parameters<typeof requireScope>[0], rawId: string, input: { publicationId?: string | number | null }[], publish: boolean) {
+export async function setPublished(ctx: Parameters<typeof requireScope>[0], rawId: string, input: { publicationId?: string | number | null }[], publish: boolean) {
   requireScope(ctx, 'write_publications');
   if (input.some((i) => !isOnline(i.publicationId))) return { publishable: null, userErrors: [{ field: ['input'], message: 'Publication does not exist' }] };
   const ref = rawId.startsWith('gid://') ? rawId.split('/')[3] : undefined;

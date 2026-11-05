@@ -7,9 +7,12 @@ import { errR, okR, type Result } from './catalog/common';
 import { randomToken } from './crypto';
 import { postGuarded, resolvesToPrivate, webhooksAllowPrivate } from './net-guard';
 import type { EventRow } from './events';
+import { buildSearch, dateCompare, idTerm, likeCi } from './catalog/search';
 import { getOrderSummary } from './orders/create';
 import type { Shop } from './shops';
 import { recordWebhookFailure } from './activity';
+import { bulkFinishPayload } from './bulk-operations';
+import { SHOPIFY_WEBHOOK_TOPICS } from './webhook-topics';
 
 /** Webhook topics in Shopify's enum form; the wire form (`X-Shopify-Topic`) is lower case with `/`. */
 export const WEBHOOK_TOPICS = [
@@ -18,9 +21,11 @@ export const WEBHOOK_TOPICS = [
   'FULFILLMENTS_CREATE', 'FULFILLMENTS_UPDATE', 'REFUNDS_CREATE',
   'CUSTOMERS_CREATE', 'CUSTOMERS_UPDATE', 'CUSTOMERS_DELETE',
   'DRAFT_ORDERS_CREATE', 'DRAFT_ORDERS_UPDATE', 'DRAFT_ORDERS_DELETE',
+  'BULK_OPERATIONS_FINISH',
 ] as const;
 export type WebhookTopic = (typeof WEBHOOK_TOPICS)[number];
-export const topicToWire = (t: string) => t.toLowerCase().replace('_', '/');
+/** `DRAFT_ORDERS_CREATE` -> `draft_orders/create` (the last underscore becomes the slash). */
+export const topicToWire = (t: string) => { const l = t.toLowerCase(); const i = l.lastIndexOf('_'); return i < 0 ? l : `${l.slice(0, i)}/${l.slice(i + 1)}`; };
 export const topicFromWire = (t: string) => t.toUpperCase().replace('/', '_');
 
 const ORDER_CHANGED = ['orders/updated'];
@@ -32,6 +37,7 @@ const VERB_TOPICS: Record<string, string[]> = {
   'order.fulfilled': ['orders/fulfilled', 'fulfillments/create', ...ORDER_CHANGED], 'order.tracking_updated': ['fulfillments/update', ...ORDER_CHANGED],
   'order.cancelled': ['orders/cancelled', ...ORDER_CHANGED], 'order.refunded': ['refunds/create', ...ORDER_CHANGED],
   'draft_orders/create': ['draft_orders/create'], 'draft_orders/update': ['draft_orders/update'], 'draft_orders/delete': ['draft_orders/delete'],
+  'bulk_operations/finish': ['bulk_operations/finish'],
 };
 
 export type WebhookSubscription = typeof webhookSubscriptions.$inferSelect;
@@ -54,7 +60,38 @@ export const signBody = (secret: string, body: string) => createHmac('sha256', s
 
 // ---- subscriptions ----------------------------------------------------------------------------------------------------------
 
-export interface SubscriptionInput { callbackUrl?: string | null; format?: string | null }
+export interface SubscriptionInput { callbackUrl?: string | null; format?: string | null; includeFields?: string[] | null; metafieldNamespaces?: string[] | null; filter?: string | null; name?: string | null }
+
+/** Optional columns of an input (only the ones given). `includeFields` and `metafieldNamespaces` are trimmed and de-duplicated. */
+function extras(i: SubscriptionInput) {
+  const list = (xs: string[]) => [...new Set(xs.map((x) => x.trim()).filter(Boolean))];
+  return {
+    ...(i.includeFields != null && { includeFields: list(i.includeFields) }), ...(i.metafieldNamespaces != null && { metafieldNamespaces: list(i.metafieldNamespaces) }),
+    ...(i.filter !== undefined && { filter: i.filter?.trim() || null }), ...(i.name !== undefined && { name: i.name?.trim() || null }),
+  };
+}
+
+/** Keep only `fields` (top-level keys or `a.b` paths, arrays are mapped) of a webhook payload. No fields keeps everything. */
+export function applyIncludeFields(payload: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
+  if (!fields.length) return payload;
+  const pick = (v: unknown, path: string[]): unknown => {
+    if (Array.isArray(v)) return v.map((x) => pick(x, path));
+    if (v === null || typeof v !== 'object') return v;
+    return Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([k]) => k === path[0]).map(([k, x]) => [k, path.length > 1 ? pick(x, path.slice(1)) : x]));
+  };
+  const merge = (a: unknown, b: unknown): unknown => {
+    if (Array.isArray(a) && Array.isArray(b) && a.length === b.length) return a.map((x, i) => merge(x, b[i]));
+    if (a && b && typeof a === 'object' && typeof b === 'object' && !Array.isArray(a) && !Array.isArray(b)) {
+      const out: Record<string, unknown> = { ...(a as Record<string, unknown>) };
+      for (const [k, v] of Object.entries(b as Record<string, unknown>)) out[k] = k in out ? merge(out[k], v) : v;
+      return out;
+    }
+    return b;
+  };
+  let out: unknown = {};
+  for (const f of fields) out = merge(out, pick(payload, f.split('.')));
+  return out as Record<string, unknown>;
+}
 
 async function validate(i: SubscriptionInput): Promise<string | null> {
   if (i.callbackUrl != null) {
@@ -70,14 +107,14 @@ async function validate(i: SubscriptionInput): Promise<string | null> {
 }
 
 export async function createSubscription(db: Executor, shopId: number, topic: string, i: SubscriptionInput): Promise<Result<WebhookSubscription>> {
-  if (!(WEBHOOK_TOPICS as readonly string[]).includes(topic)) return errR(['topic'], 'Topic is not supported', 'INVALID');
+  if (!(SHOPIFY_WEBHOOK_TOPICS as readonly string[]).includes(topic) && !(WEBHOOK_TOPICS as readonly string[]).includes(topic)) return errR(['topic'], 'Topic is not supported', 'INVALID');
   if (!i.callbackUrl) return errR(['webhookSubscription', 'callbackUrl'], "Address can't be blank", 'BLANK');
   const bad = await validate(i);
   if (bad) return errR(['webhookSubscription', 'callbackUrl'], bad, 'INVALID');
   const [dup] = await db.select({ id: webhookSubscriptions.id }).from(webhookSubscriptions)
     .where(and(eq(webhookSubscriptions.shopId, shopId), eq(webhookSubscriptions.topic, topic), eq(webhookSubscriptions.endpointUrl, i.callbackUrl))).limit(1);
   if (dup) return errR(['webhookSubscription', 'callbackUrl'], 'Address for this topic has already been taken', 'TAKEN');
-  const [row] = await db.insert(webhookSubscriptions).values({ shopId, topic, endpointUrl: i.callbackUrl, secret: '', format: 'JSON' }).returning();
+  const [row] = await db.insert(webhookSubscriptions).values({ shopId, topic, endpointUrl: i.callbackUrl, secret: '', format: 'JSON', ...extras(i) }).returning();
   return okR(row!);
 }
 
@@ -86,7 +123,7 @@ export async function updateSubscription(db: Executor, shopId: number, id: numbe
   if (!cur) return errR(['id'], 'Webhook subscription does not exist', 'NOT_FOUND');
   const bad = await validate(i);
   if (bad) return errR(['webhookSubscription', 'callbackUrl'], bad, 'INVALID');
-  const [row] = await db.update(webhookSubscriptions).set({ ...(i.callbackUrl && { endpointUrl: i.callbackUrl }), updatedAt: new Date() }).where(eq(webhookSubscriptions.id, id)).returning();
+  const [row] = await db.update(webhookSubscriptions).set({ ...(i.callbackUrl && { endpointUrl: i.callbackUrl }), ...extras(i), updatedAt: new Date() }).where(eq(webhookSubscriptions.id, id)).returning();
   return okR(row!);
 }
 
@@ -100,10 +137,32 @@ export async function getSubscription(db: Executor, shopId: number, id: number):
   return (await db.select().from(webhookSubscriptions).where(and(eq(webhookSubscriptions.shopId, shopId), eq(webhookSubscriptions.id, id))).limit(1))[0] ?? null;
 }
 
-export async function listSubscriptions(db: Executor, shopId: number, o: { topics?: string[]; reverse?: boolean; offset: number; limit: number }): Promise<WebhookSubscription[]> {
-  return db.select().from(webhookSubscriptions)
-    .where(and(eq(webhookSubscriptions.shopId, shopId), o.topics?.length ? inArray(webhookSubscriptions.topic, o.topics) : undefined))
-    .orderBy((o.reverse ? desc : asc)(webhookSubscriptions.id)).limit(o.limit).offset(o.offset);
+export interface SubscriptionFilter { topics?: string[]; format?: string | null; uri?: string | null; query?: string | null }
+
+const subSearch = (q: string | null | undefined) => buildSearch(q, {
+  fields: {
+    id: (_o, v) => idTerm(webhookSubscriptions.id, v),
+    topic: (_o, v) => sql`${webhookSubscriptions.topic} = ${v.toUpperCase().replace(/[/.-]/g, '_')}`,
+    endpoint: (_o, v) => likeCi(webhookSubscriptions.endpointUrl, v),
+    created_at: (op, v) => dateCompare(webhookSubscriptions.createdAt, op, v),
+    updated_at: (op, v) => dateCompare(webhookSubscriptions.updatedAt, op, v),
+  },
+  text: (v) => likeCi(webhookSubscriptions.endpointUrl, v),
+});
+const subWhere = (shopId: number, o: SubscriptionFilter) => and(
+  eq(webhookSubscriptions.shopId, shopId), o.topics?.length ? inArray(webhookSubscriptions.topic, o.topics) : undefined, o.format ? eq(webhookSubscriptions.format, o.format) : undefined,
+  o.uri ? eq(webhookSubscriptions.endpointUrl, o.uri) : undefined, subSearch(o.query),
+);
+
+export async function listSubscriptions(db: Executor, shopId: number, o: SubscriptionFilter & { sortKey?: 'CREATED_AT' | 'ID'; reverse?: boolean; offset: number; limit: number }): Promise<WebhookSubscription[]> {
+  const col = o.sortKey === 'CREATED_AT' ? webhookSubscriptions.createdAt : webhookSubscriptions.id;
+  return db.select().from(webhookSubscriptions).where(subWhere(shopId, o)).orderBy((o.reverse ? desc : asc)(col), (o.reverse ? desc : asc)(webhookSubscriptions.id)).limit(o.limit).offset(o.offset);
+}
+
+export async function countSubscriptions(db: Executor, shopId: number, o: SubscriptionFilter & { limit?: number } = {}): Promise<{ count: number; precision: 'EXACT' | 'AT_LEAST' }> {
+  const limit = o.limit ?? 10000;
+  const rows = await db.select({ id: webhookSubscriptions.id }).from(webhookSubscriptions).where(subWhere(shopId, o)).limit(limit + 1);
+  return rows.length > limit ? { count: limit, precision: 'AT_LEAST' } : { count: rows.length, precision: 'EXACT' };
 }
 
 export async function listDeliveries(db: Executor, shopId: number, o: { subscriptionId?: number | null; status?: string | null; offset: number; limit: number }): Promise<WebhookDelivery[]> {
@@ -197,6 +256,7 @@ async function draftPayload(db: Executor, shopId: number, id: number): Promise<R
 export async function buildPayload(db: Executor, shopId: number, topic: string, e: Pick<EventRow, 'subjectId' | 'data'>): Promise<Record<string, unknown> | null> {
   const id = e.subjectId;
   if (id == null) return null;
+  if (topic === 'bulk_operations/finish') return bulkFinishPayload(db, shopId, id);
   if (topic.endsWith('/delete')) return { id };
   const data = (e.data ?? {}) as { refundId?: number; fulfillmentId?: number };
   if (topic.startsWith('orders/')) return orderPayload(db, shopId, id);
@@ -221,7 +281,7 @@ export async function recordDeliveries(db: Executor, shopId: number, e: Pick<Eve
     if (!subs.length) continue;
     const payload = await buildPayload(db, shopId, wire, e);
     if (!payload) throw new Error(`webhook payload for ${wire} not available yet`);
-    const rows = await db.insert(webhookDeliveries).values(subs.map((s) => ({ shopId, subscriptionId: s.id, topic: wire, payload, nextAttemptAt: new Date() }))).returning({ id: webhookDeliveries.id });
+    const rows = await db.insert(webhookDeliveries).values(subs.map((s) => ({ shopId, subscriptionId: s.id, topic: wire, payload: applyIncludeFields(payload, s.includeFields), nextAttemptAt: new Date() }))).returning({ id: webhookDeliveries.id });
     ids.push(...rows.map((r) => r.id));
   }
   return ids;

@@ -1138,3 +1138,85 @@ catalogs/price lists, translations, discounts and discount allocations beyond em
 returns, fulfillment orders (other than the minimal object required by `fulfillmentCreate`), shipping profiles/delivery
 zones, gift cards, product bundles and combined listings, taxonomy categories, bulk operations, webhooks admin, files API,
 Storefront API (separate spec).
+
+## 8. Implemented beyond the MVP: bulk operations, discount bulk edits, drafts, publishing, webhooks
+
+What ShopMe does for these roots, and where it differs from the reference. Names, arguments, enums and `userErrors` codes
+match the reference schema; the notes below are behavior and limits.
+
+### 8.1 Bulk operations
+
+`bulkOperationRunQuery`, `bulkOperationRunMutation`, `bulkOperationCancel`, `bulkOperation`, `bulkOperations` (search `status`,
+`operation_type`, `created_at`, `completed_at`, `id`; sort `CREATED_AT`/`COMPLETED_AT`) and `currentBulkOperation(type)`.
+
+- A run is a row of `bulk_operations` plus a job on the in-process queue (`bulk.run`); the result is a JSONL file in object
+  storage, served from `/files/bulk/<shop>/<id>-<token>.jsonl`. The URL carries a random token; results expire after 7 days
+  (status `EXPIRED`, file deleted). A restart fails runs that were in flight.
+- One active operation per type and shop: a second start returns `OPERATION_IN_PROGRESS`.
+- Queries: only connection fields at the top level (`edges { node }` or `nodes`), at most 5 connections, nested at most 2 levels,
+  no variables, fragments allowed. Paging arguments (`first`, `after`, `last`, `before`) are ignored. Each node is one line with
+  the selected scalar and object fields, without its connection fields; nodes of a nested connection follow their parent and
+  carry `__parentId`. `id` is added to a node that has nested connections when it was not selected. Output is always grouped
+  (`groupObjects` has no effect). Invalid queries return `INVALID` with `field: ["query"]`.
+- Mutations: `stagedUploadsCreate` with resource `BULK_MUTATION_VARIABLES` returns an upload target whose parameters include
+  `key`; PUT or POST the JSONL there and pass the `key` as `stagedUploadPath`. The staged file is private to the shop and is not
+  listed under Files. Each line holds the variables of one execution; the result line is
+  `{"data":…,"errors":…,"__lineNumber":n}`. Codes: `INVALID_MUTATION` (not a single-field mutation, or invalid against the schema),
+  `NO_SUCH_FILE`, `INVALID_STAGED_UPLOAD_FILE` (not JSONL). Lines run one after another; a failing line does not stop the run.
+- Runs use the access scopes of the caller who started them. `bulk_operations/finish` is delivered to webhook subscriptions
+  (payload: `admin_graphql_api_id`, `completed_at`, `created_at`, `error_code`, `status`, `type`).
+- `bulkOperationCancel` moves a running operation to `CANCELING`; the runner stops between pages and keeps `partialDataUrl`.
+
+### 8.2 Discounts
+
+`automaticDiscount`, `automaticDiscounts`, `discountNodes`, `discountNodesCount`, `codeDiscountNodes`, `automaticDiscountNodes`,
+`discountCodesCount`, `discountRedeemCodeBulkCreation`, `discountTags`, `discountRedeemCodeBulkAdd`,
+`discountCodeRedeemCodeBulkDelete`, `discountCodeBulkActivate`, `discountCodeBulkDeactivate`, `discountCodeBulkDelete`,
+`discountAutomaticBulkDelete`, `discountBulkTagsAdd`, `discountBulkTagsRemove`.
+
+- A code discount can hold many codes (each with its own usage count); checkout accepts any of them. `codes` is paged from the
+  database. Codes are stored upper-case and are unique per shop.
+- `discountRedeemCodeBulkAdd` takes up to 250 codes; invalid, blank, too long and already used codes are reported per code on the
+  `DiscountRedeemCodeBulkCreation` (`errors` with `BLANK`, `TOO_LONG`, `INVALID`, `TAKEN`) and the others are added. The work is
+  done inside the call, so `done` is already true.
+- The bulk edit mutations take exactly one of `ids`, `search` or `savedSearchId` (`MISSING_ARGUMENT` / `TOO_MANY_ARGUMENTS`;
+  unknown ids or a wrong kind give `INVALID` on `ids`). They also finish inside the call and return a completed `Job`
+  (`job(id)` resolves it). Any saved search is accepted; only its query is used.
+- `discountCodeRedeemCodeBulkDelete` refuses to delete every code of a discount (`INVALID` on `ids`).
+- ShopMe extension `shopmeDiscountCodesGenerate(discountId, count, length, prefix, suffix, characterSet)` creates up to 10,000
+  unique random codes (`characterSet`: `ALPHANUMERIC`, `LETTERS`, `DIGITS`, `UNAMBIGUOUS`); it backs the "Generate codes" action on
+  the discount page.
+
+### 8.3 Orders and drafts
+
+`draftOrderBulkAddTags`, `draftOrderBulkRemoveTags`, `draftOrderBulkDelete` (same selection rules as above, `UserError` without
+codes), `draftOrderCreateFromOrder` (open lines at their current quantity; deleted variants become custom items),
+`draftOrderDuplicate` (`id`, or the deprecated `draftOrderId`), `draftOrderTag`, `tagsAdd` / `tagsRemove` for orders, products,
+draft orders and customers, `orderCapture`, `abandonment`, `abandonmentByAbandonedCheckoutId`.
+
+- `orderCapture` captures an `AUTHORIZATION` transaction in one or several parts and moves the order to `PARTIALLY_PAID` or
+  `PAID`. Checkout in ShopMe records sales, not authorizations, so the mutation applies to authorizations created by payment
+  providers or imports; on other transactions it returns `userErrors` on `input.parentTransactionId`.
+- `Abandonment` is the customer view of one abandoned checkout (type `CHECKOUT`); it exists only when the buyer's email matches a
+  customer. Not implemented on it: `app`, `productsViewed`, `productsAddedToCart`.
+- Draft order tags have no table: `DraftOrderTag.id` is a stable hash of the lower-cased tag.
+
+### 8.4 Products and collections
+
+`collectionReorderProducts` (manually sorted collections only; positions are 0-based; codes `COLLECTION_NOT_FOUND`,
+`MANUALLY_SORTED_COLLECTION`, `INVALID_MOVE`), `productVariantsBulkReorder` (1-based final positions),
+`productOptionsReorder` (by id or by name; variant titles are rebuilt), `collectionPublish`, `collectionUnpublish`,
+`productPublish`, `productUnpublish`, `publishablePublishToCurrentChannel`, `publishableUnpublishToCurrentChannel` on the single
+Online Store publication, and `productDuplicate(synchronous: false)` which returns a `ProductDuplicateOperation`
+(`productOperation(id)` and `productDuplicateJob(id)` report progress, `job(id)` as well). `ProductPublication.channel`,
+`CollectionPublication.channel` and `Job.query` are not implemented.
+
+### 8.5 Webhooks
+
+`WebhookSubscriptionTopic` lists all 236 topics of the reference enum, so tools can register the topics they know; ShopMe
+delivers the topics of `WEBHOOK_TOPICS` (products, orders, fulfillments, refunds, customers, draft orders and
+`BULK_OPERATIONS_FINISH`). Any other topic is stored and never fires. `webhookSubscriptions` accepts `uri`, `callbackUrl`,
+`format`, `topics`, `query` (`id`, `topic`, `endpoint`, `created_at`, `updated_at`) and `sortKey`; `webhookSubscriptionsCount` is
+available. `includeFields` (top-level keys and `a.b` paths) is applied to delivered payloads; `metafieldNamespaces`, `filter` and
+`name` are stored and returned but not applied. `metafields` on the input and the EventBridge and Pub/Sub endpoint variants are not
+implemented; only the JSON format is delivered.

@@ -10,3 +10,4 @@ export * from './storefront-search';
 export * from './collections';
 export * from './products';
 export * from './saved-searches';
+export * from './reorder';

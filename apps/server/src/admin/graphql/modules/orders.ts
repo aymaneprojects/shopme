@@ -54,7 +54,7 @@ export interface LineShape extends OrderLine { order: OrderRow }
 interface TaxLineShape { title: string; rate: number; price: number; order: OrderRow }
 interface ShippingLineShape { id: number; title: string; code: string | null; price: number; order: OrderRow }
 interface DiscountShape { id: number; code: string | null; title: string | null; valueType: string; value: number; targetType: string; index: number; order: OrderRow }
-interface TxShape extends TxRow { order: OrderRow }
+export interface TxShape extends TxRow { order: OrderRow }
 interface FulfillmentShape extends FulfillmentRow { order: OrderRow }
 interface RefundShape extends RefundRow { order: OrderRow }
 interface FulfillmentLineShape { id: number; quantity: number; line: LineShape }
@@ -167,7 +167,7 @@ const DiscountApplicationConnection = defineConnection('DiscountApplication', Di
 
 /* ------------------------------ transactions, fulfillments, refunds ------------------------------ */
 
-const OrderTransaction = builder.objectRef<TxShape>('OrderTransaction');
+export const OrderTransaction = builder.objectRef<TxShape>('OrderTransaction');
 OrderTransaction.implement({
   interfaces: [Node],
   fields: (t) => ({

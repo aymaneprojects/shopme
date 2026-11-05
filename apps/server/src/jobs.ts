@@ -1,7 +1,9 @@
-import { getPrimaryShop, purgeExpiredSessions, purgeOldVisits, recordBackupResult, runScheduledBackup } from '@shopme/core';
+import { JobReporter, duplicateProduct, getPrimaryShop, purgeExpiredSessions, purgeOldVisits, recordBackupResult, runScheduledBackup } from '@shopme/core';
 import type { AppContext } from './context';
 import { registerCommerceJobs } from './commerce-jobs';
 import { registerOpsJobs } from './ops';
+import { registerBulkJobs } from './bulk/runner';
+import { schema } from './admin/graphql/schema';
 
 /**
  * Register background jobs on the in-process queue (ctx.queue). Feature agents add their handlers here,
@@ -25,6 +27,14 @@ export function registerJobs(ctx: AppContext): () => void {
   ctx.queue.register('store.auto-backup', backup);
   ctx.queue.every('auto-backup', 3600_000, backup);
   if (ctx.config.env !== 'test') ctx.queue.enqueue('store.auto-backup', {}, { delayMs: 90_000, maxAttempts: 1 });
+  registerBulkJobs(ctx, schema);
+  // `productDuplicate(synchronous: false)`: copy in the background and keep the outcome on the job row.
+  ctx.queue.register<{ shopId: number; jobId: number; productId: number; newTitle: string; newStatus?: string | null; includeImages?: boolean | null }>('product.duplicate', async (j) => {
+    const r = await duplicateProduct(ctx.db, j.shopId, j.productId, { newTitle: j.newTitle, newStatus: j.newStatus, includeImages: j.includeImages });
+    const rep = new JobReporter(ctx.db, j.jobId);
+    rep.result.details = { productId: j.productId, newProductId: r.ok ? r.value.id : null, errors: r.ok ? [] : r.errors.map((e) => ({ ...e, field: ['productId'] })) };
+    await rep.finish();
+  });
   const stopOps = registerOpsJobs(ctx);
   const stopCommerce = registerCommerceJobs(ctx);
   return () => { stopOps(); stopCommerce(); };

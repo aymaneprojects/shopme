@@ -45,3 +45,6 @@ export * from './activity';
 export * from './inventory-transfers';
 export * from './purchase-orders';
 export * from './metaobjects';
+export * from './bulk-operations';
+export * from './draft-orders-ext';
+export * from './webhook-topics';

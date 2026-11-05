@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
 import { EligibilityCard, TagsCard } from '../components/EligibilityCard';
+import { GenerateCodesCard } from '../components/GenerateCodes';
 import { CollectionPicker, ProductPicker } from '../components/Pickers';
 import { PageHeader } from '../components/PageHeader';
 import { SaveBar, guard } from '../components/SaveBar';
@@ -166,6 +167,8 @@ function DiscountFormView({ id, status, initial }: { id: string | null; status?:
               )}
             </div>
           </Card>
+
+          {id && !automatic && <GenerateCodesCard discountId={id} />}
 
           {!shipping && !bxgy && (
             <Card title={t('discount.value')}>

@@ -12,3 +12,4 @@ export * from './saved-views';
 export * from './shipping';
 export * from './transfers';
 export * from './metaobjects';
+export * from './bulk';
