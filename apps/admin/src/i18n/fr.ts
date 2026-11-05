@@ -1,4 +1,5 @@
 import { frCheckout } from './fr-checkout';
+import { frPrivacy } from './fr-privacy';
 import { frCatalog } from './fr-catalog';
 import { frContent } from './fr-content';
 import { frPublishing } from './fr-publishing';
@@ -115,4 +116,5 @@ export const fr: Record<Key, string> = {
   ...frPublishing,
   ...frViews,
   ...frCheckout,
+  ...frPrivacy,
 };

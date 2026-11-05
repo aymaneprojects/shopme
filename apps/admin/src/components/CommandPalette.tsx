@@ -21,6 +21,7 @@ const PAGES: Array<{ key: Key; to: string; icon: ComponentType<{ className?: str
   { key: 'nav.customers', to: '/customers', icon: Users }, { key: 'nav.discounts', to: '/discounts', icon: Tag }, { key: 'nav.onlineStore', to: '/online-store', icon: FileText },
   { key: 'settings.general', to: '/settings/general', icon: Settings, group: 'cmd.settings' }, { key: 'settings.payments', to: '/settings/payments', icon: Settings, group: 'cmd.settings' },
   { key: 'settings.checkout', to: '/settings/checkout', icon: Settings, group: 'cmd.settings' },
+  { key: 'settings.accounts', to: '/settings/accounts', icon: Settings, group: 'cmd.settings' }, { key: 'settings.privacy', to: '/settings/privacy', icon: Settings, group: 'cmd.settings' }, { key: 'settings.events', to: '/settings/events', icon: Settings, group: 'cmd.settings' },
   { key: 'settings.shipping', to: '/settings/shipping', icon: Settings, group: 'cmd.settings' }, { key: 'settings.taxes', to: '/settings/taxes', icon: Settings, group: 'cmd.settings' },
   { key: 'settings.domains', to: '/settings/domains', icon: Settings, group: 'cmd.settings' }, { key: 'settings.languages', to: '/settings/languages', icon: Settings, group: 'cmd.settings' },
   { key: 'settings.users', to: '/settings/users', icon: Settings, group: 'cmd.settings' }, { key: 'settings.notifications', to: '/settings/notifications', icon: Settings, group: 'cmd.settings' },

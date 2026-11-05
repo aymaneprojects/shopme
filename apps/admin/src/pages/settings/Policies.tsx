@@ -1,20 +1,20 @@
 import { Badge, Banner, Button, Card, Input, RichTextEditor, Select, Skeleton, Switch, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Lock, Mail, Scale, Truck, Undo2 } from 'lucide-react';
+import { FileText, Lock, Mail, Repeat, Scale, ShoppingBag, Truck, Undo2 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
 import { LinkRow, RowCard, Section, SubHeader } from '../../components/SettingsKit';
 import { SaveBar } from '../../components/SaveBar';
-import { COOKIE_BANNER, COOKIE_BANNER_UPDATE, FINAL_SALE_TITLES, RETURN_RULES, RETURN_RULES_UPDATE, SHOP_POLICIES, SHOP_POLICY_UPDATE } from '../../graphql';
+import { FINAL_SALE_TITLES, RETURN_RULES, RETURN_RULES_UPDATE, SHOP_POLICIES, SHOP_POLICY_UPDATE } from '../../graphql';
 import { CollectionPicker, ProductPicker } from '../../components/Pickers';
 import { useShop } from '../../session';
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 
-const TYPES = ['REFUND_POLICY', 'PRIVACY_POLICY', 'TERMS_OF_SERVICE', 'SHIPPING_POLICY', 'CONTACT_INFORMATION'] as const;
-const ICONS: Record<(typeof TYPES)[number], ComponentType<{ className?: string }>> = { REFUND_POLICY: Undo2, PRIVACY_POLICY: Lock, TERMS_OF_SERVICE: Scale, SHIPPING_POLICY: Truck, CONTACT_INFORMATION: Mail };
+const TYPES = ['REFUND_POLICY', 'PRIVACY_POLICY', 'TERMS_OF_SERVICE', 'SHIPPING_POLICY', 'CONTACT_INFORMATION', 'TERMS_OF_SALE', 'LEGAL_NOTICE', 'SUBSCRIPTION_POLICY'] as const;
+const ICONS: Record<(typeof TYPES)[number], ComponentType<{ className?: string }>> = { REFUND_POLICY: Undo2, PRIVACY_POLICY: Lock, TERMS_OF_SERVICE: Scale, SHIPPING_POLICY: Truck, CONTACT_INFORMATION: Mail, TERMS_OF_SALE: ShoppingBag, LEGAL_NOTICE: Scale, SUBSCRIPTION_POLICY: Repeat };
 interface Policy { id: string; type: string; title: string; body: string; url: string | null }
 const usePolicies = () => useQuery({ queryKey: ['shop-policies'], queryFn: () => gql<{ shop: { shopPolicies: Policy[] } }>(SHOP_POLICIES) });
 const isSet = (p?: Policy) => !!p && p.body.replace(/<[^>]*>/g, '').trim().length > 0;
@@ -79,18 +79,9 @@ function PolicyForm({ type, policy }: { type: (typeof TYPES)[number]; policy?: P
 
 function CookieBanner() {
   const { t } = useI18n();
-  const toast = useToast();
-  const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['cookie-banner'], retry: false, queryFn: () => gql<{ shop: { cookieBanner: { enabled: boolean; message: string } } }>(COOKIE_BANNER) });
-  const toggle = useMutation({
-    mutationFn: (v: boolean) => mutate(COOKIE_BANNER_UPDATE, { input: { cookieBannerEnabled: v } }, 'shopmeShopUpdate'),
-    onSuccess: () => { toast(t('settings.saved')); void qc.invalidateQueries({ queryKey: ['cookie-banner'] }); }, onError: (e) => toast(e.message, 'critical'),
-  });
   return (
     <Section title={t('policies.cookies')} description={t('policies.cookiesHelp')}>
-      <Card>
-        {q.error ? <Banner>{q.error.message}</Banner> : <Switch checked={toggle.isPending ? !!toggle.variables : !!q.data?.shop.cookieBanner.enabled} onChange={(v) => toggle.mutate(v)} label={t('policies.cookiesEnable')} />}
-      </Card>
+      <RowCard><LinkRow to="/settings/privacy/cookie-banner" icon={Lock} title={t('priv.banner')} description={t('policies.cookiesMoved')} /></RowCard>
     </Section>
   );
 }

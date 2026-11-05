@@ -1,4 +1,5 @@
 import { enCheckout } from './en-checkout';
+import { enPrivacy } from './en-privacy';
 import { enOrdersUx } from './en-orders-ux';
 import { enCommerce } from './en-commerce';
 import { enCatalog } from './en-catalog';
@@ -113,6 +114,7 @@ export const en = {
   ...enPublishing,
   ...enViews,
   ...enCheckout,
+  ...enPrivacy,
 } as const;
 
 export type Key = keyof typeof en;

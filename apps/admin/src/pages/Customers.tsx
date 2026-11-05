@@ -16,6 +16,7 @@ import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { Timeline } from '../components/Timeline';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
+import { StoreCreditCard, StoreCreditDialog } from '../components/StoreCredit';
 import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
 import emptyCustomers from '../assets/empty/empty-customers.webp';
@@ -145,6 +146,7 @@ function CustomerView({ c }: { c: CustomerData }) {
   const qc = useQueryClient();
   const [note, setNote] = useState(c.note ?? '');
   const [confirm, setConfirm] = useState(false);
+  const [creditOpen, setCreditOpen] = useState(false);
   const refresh = () => { void qc.invalidateQueries({ queryKey: ['customer'] }); void qc.invalidateQueries({ queryKey: ['customers'] }); };
   const fail = (e: Error) => toast(e.message, 'critical');
   const saveNote = useMutation({ mutationFn: () => mutate(CUSTOMER_UPDATE, { input: { id: c.id, note } }, 'customerUpdate'), onSuccess: () => { toast(t('customers.saved')); refresh(); }, onError: fail });
@@ -168,6 +170,7 @@ function CustomerView({ c }: { c: CustomerData }) {
       <PageHeader back="/customers" title={c.displayName}
         actions={<>
           <Dropdown align="right" label={t('common.moreActions')} trigger={<>{t('common.moreActions')}<ChevronDown className="size-4" /></>} items={[
+            { key: 'credit', label: t('credit.assign'), onSelect: () => setCreditOpen(true) },
             { key: 'edit', label: t('customers.edit'), onSelect: () => nav(`/customers/${num}/edit`) },
             { key: 'orders', label: t('customers.viewAllOrders'), disabled: c.numberOfOrders === 0, onSelect: () => nav(`/orders?q=${encodeURIComponent(`customer_id:${num}`)}`) },
             { key: 'data', label: t('customers.requestData'), onSelect: () => { downloadJson(`customer-${num}.json`, c); toast(t('customers.dataExported')); } },
@@ -213,6 +216,7 @@ function CustomerView({ c }: { c: CustomerData }) {
             </div>
           </Card>
           <Card title={t('customers.addresses')}>{c.addressesV2.nodes.length ? <div className="flex flex-col gap-3">{c.addressesV2.nodes.map((a) => <AddressBlock key={a.id} a={a} />)}</div> : <p className="text-[13px] text-muted">{t('customers.noAddress')}</p>}</Card>
+          <StoreCreditCard customerId={c.id} onEdit={() => setCreditOpen(true)} />
           <Card title={t('field.tags')}><TagInput value={c.tags} onChange={(v) => tags.mutate(v)} removeLabel={t('common.remove')} /></Card>
           <Card title={t('order.notes')}>
             <Textarea aria-label={t('order.notes')} value={note} onChange={(e) => setNote(e.target.value)} />
@@ -220,6 +224,7 @@ function CustomerView({ c }: { c: CustomerData }) {
           </Card>
         </div>
       </div>
+      <StoreCreditDialog customerId={c.id} open={creditOpen} onClose={() => setCreditOpen(false)} />
       <ConfirmDialog open={confirm} onClose={() => setConfirm(false)} danger title={t('customers.deleteTitle', { n: 1 })} message={t('customers.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { setConfirm(false); del.mutate(); }} />
     </>
   );
