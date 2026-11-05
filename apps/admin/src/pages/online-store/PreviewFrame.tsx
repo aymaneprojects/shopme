@@ -159,14 +159,14 @@ export function PreviewFrame({ src, title, device, inspector, selected, highligh
 
   const label = (target: Target) => live.current.nameOf(target);
   const tag = (b: Box, name: string, solid: boolean): ReactNode => (
-    <span className={cx('absolute max-w-[16rem] truncate whitespace-nowrap rounded-sm px-1.5 py-0.5 text-[11px] font-medium leading-4 text-white', solid ? 'bg-[#2f5bea]' : 'bg-[#2f5bea]/85')} style={{ left: b.x, top: b.y >= 20 ? b.y - 20 : b.y }}>{name}</span>
+    <span className={cx('absolute max-w-[16rem] truncate whitespace-nowrap rounded-sm px-1.5 py-0.5 text-[11px] font-medium leading-4 text-on-primary', solid ? 'bg-primary' : 'bg-primary/85')} style={{ left: b.x, top: b.y >= 20 ? b.y - 20 : b.y }}>{name}</span>
   );
   const showHover = !!hover && keyOf(hover.target) !== key;
   const handles = [showHover ? hover : null, sel && selected ? { target: selected, box: sel } : null].filter((x): x is Hit => !!x && !x.target.block);
   const handle = (hit: Hit, where: 'before' | 'after') => {
     const y = where === 'before' ? hit.box.y : hit.box.y + hit.box.h;
     return <button key={`${keyOf(hit.target)}:${where}`} type="button" aria-label={`${t('editor.insertHere')}: ${where === 'before' ? t('editor.addBefore') : t('editor.addAfter')}`} onClick={() => onInsert(hit.target.section, where)}
-      className="pointer-events-auto absolute grid size-5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[#2f5bea] text-[15px] leading-none text-white shadow" style={{ left: hit.box.x + hit.box.w / 2, top: Math.min(Math.max(y, 10), size.h - 10) }}>+</button>;
+      className="pointer-events-auto absolute grid size-5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-primary text-[15px] leading-none text-white shadow" style={{ left: hit.box.x + hit.box.w / 2, top: Math.min(Math.max(y, 10), size.h - 10) }}>+</button>;
   };
   const tb = sel && toolbar && size.w ? (() => {
     const bottom = sel.y + sel.h;
@@ -175,32 +175,32 @@ export function PreviewFrame({ src, title, device, inspector, selected, highligh
     const left = Math.min(Math.max(sel.x + sel.w / 2, half + 4), Math.max(size.w - half - 4, half + 4));
     return { top, left };
   })() : null;
-  const btn = 'inline-flex size-8 items-center justify-center rounded-full text-white/85 hover:bg-white/15 hover:text-white disabled:opacity-30';
+  const btn = 'inline-flex size-8 items-center justify-center rounded-full text-fg hover:bg-hover disabled:opacity-30';
 
   return (
-    <div className={cx('relative mx-auto max-w-full overflow-hidden rounded-md border border-line bg-white', fill ? 'h-full' : 'h-[calc(100vh-12rem)] min-h-[28rem]')} style={{ width: DEVICE_WIDTH[device] }}>
+    <div className={cx('relative mx-auto max-w-full overflow-hidden rounded-lg border border-line bg-white', fill ? 'h-full' : 'h-full min-h-[20rem]')} style={{ width: DEVICE_WIDTH[device] }}>
       <iframe ref={frame} title={title} src={src} onLoad={attach} className="block size-full border-0 bg-white" />
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden={!toolbar}>
         {showHover && hover && (
           <>
-            <div className="absolute rounded-[1px] outline outline-2 -outline-offset-1 outline-[#2f5bea]/70 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]" style={{ left: hover.box.x, top: hover.box.y, width: hover.box.w, height: hover.box.h }} />
+            <div className="absolute rounded-[1px] outline outline-2 -outline-offset-1 outline-primary/70 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)]" style={{ left: hover.box.x, top: hover.box.y, width: hover.box.w, height: hover.box.h }} />
             {tag(hover.box, label(hover.target), false)}
           </>
         )}
         {sel && selected && (
           <>
-            <div className="absolute rounded-[1px] outline outline-2 -outline-offset-1 outline-[#2f5bea] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.5)]" style={{ left: sel.x, top: sel.y, width: sel.w, height: sel.h }} />
+            <div className="absolute rounded-[1px] outline outline-2 -outline-offset-1 outline-primary shadow-[inset_0_0_0_1px_rgba(255,255,255,0.5)]" style={{ left: sel.x, top: sel.y, width: sel.w, height: sel.h }} />
             {tag(sel, label(selected), true)}
           </>
         )}
         {handles.flatMap((hit) => [handle(hit, 'before'), handle(hit, 'after')])}
         {tb && toolbar && (
-          <div role="toolbar" aria-label={title} className="pointer-events-auto absolute flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-white/10 bg-bar p-1 shadow-lg" style={{ top: tb.top, left: tb.left }}>
+          <div role="toolbar" aria-label={title} className="pointer-events-auto absolute flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-line bg-canvas p-1 shadow-pop" style={{ top: tb.top, left: tb.left }}>
             <button type="button" className={btn} aria-label={t('editor.moveUp')} disabled={!toolbar.up} onClick={toolbar.up}><ArrowUp className="size-4" /></button>
             <button type="button" className={btn} aria-label={t('editor.moveDown')} disabled={!toolbar.down} onClick={toolbar.down}><ArrowDown className="size-4" /></button>
             {toolbar.duplicate && <button type="button" className={btn} aria-label={t('editor.duplicate')} onClick={toolbar.duplicate}><Copy className="size-4" /></button>}
             <button type="button" className={btn} aria-label={toolbar.hidden ? t('editor.show') : t('editor.hide')} onClick={toolbar.toggle}>{toolbar.hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button>
-            {toolbar.remove && <button type="button" className={cx(btn, 'hover:!bg-red-500/30')} aria-label={t('common.remove')} onClick={toolbar.remove}><Trash2 className="size-4" /></button>}
+            {toolbar.remove && <button type="button" className={cx(btn, '!text-critical')} aria-label={t('common.remove')} onClick={toolbar.remove}><Trash2 className="size-4" /></button>}
           </div>
         )}
         {busy && <div className="absolute right-2 top-2 rounded-full bg-bar/80 p-1.5 text-white"><Spinner /></div>}

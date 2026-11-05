@@ -1,19 +1,22 @@
-import { Badge, Button, Dropdown, useToast } from '@shopme/ui';
+import { Button, useToast } from '@shopme/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal } from 'lucide-react';
+import { CopyPlus, Download, Eye, Keyboard, LayoutGrid, MoreHorizontal } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { mutate } from '../../api';
 import { gidToNum } from '../../format';
 import { THEME_DUPLICATE, THEME_PUBLISH } from '../../graphql';
 import { useT } from '../../i18n';
 import type { Key } from '../../i18n';
+import { EditorMenu } from './EditorMenu';
 
-/** Theme status, Publish and the "more" menu shown in the header of both theme editor tabs. */
+/** The "more" menu and Publish button at the right of the editor's top bar. */
 export function ThemeToolbar({ themeId, name, role, dirty, previewUrl, onShortcuts }: { themeId: string; name: string; role?: string; dirty: boolean; previewUrl: string; onShortcuts?: () => void }) {
   const t = useT();
   const toast = useToast();
   const qc = useQueryClient();
   const nav = useNavigate();
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const live = role === 'MAIN';
   const refresh = () => { void qc.invalidateQueries({ queryKey: ['themes'] }); void qc.invalidateQueries({ queryKey: ['theme-settings'] }); };
   const publish = useMutation({
@@ -28,16 +31,20 @@ export function ThemeToolbar({ themeId, name, role, dirty, previewUrl, onShortcu
   });
   return (
     <>
-      {role && (live ? <Badge tone="success">{t('themes.live')}</Badge> : <Badge>{t(`themes.role.${role}` as Key)}</Badge>)}
-      <Dropdown align="right" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
-        { key: 'preview', label: t('editor.openPreview'), onSelect: () => { window.open(previewUrl, '_blank', 'noopener'); } },
-        { key: 'duplicate', label: t('themes.duplicate'), onSelect: () => duplicate.mutate() },
-        { key: 'download', label: t('themes.download'), onSelect: () => { window.location.href = `/admin/api/themes/${gidToNum(themeId)}/download.zip`; } },
-        ...(onShortcuts ? [{ key: 'shortcuts', label: t('editor.shortcuts'), onSelect: onShortcuts }] : []),
-        { key: 'all', label: t('editor.allThemes'), onSelect: () => nav('/online-store') },
-        { key: 'info', label: t('editor.themeInfo', { name, role: role ? t(`themes.role.${role}` as Key) : '' }), disabled: true, onSelect: () => {} },
-      ]} />
-      <Button variant="primary" disabled={live || dirty} loading={publish.isPending} title={dirty ? t('editor.saveFirst') : undefined} onClick={() => publish.mutate()}>{t('themes.publish')}</Button>
+      <button type="button" aria-label={t('common.moreActions')} aria-haspopup="menu" aria-expanded={!!menu} title={t('common.moreActions')} className="grid size-8 place-items-center rounded-md text-fg hover:bg-hover aria-expanded:bg-hover"
+        onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu(menu ? null : { x: r.right, y: r.bottom + 4 }); }}><MoreHorizontal className="size-4" /></button>
+      {menu && (
+        <EditorMenu at={menu} align="right" label={t('common.moreActions')} onClose={() => setMenu(null)}
+          items={[
+            { key: 'preview', label: t('editor.openPreview'), icon: <Eye />, onSelect: () => { window.open(previewUrl, '_blank', 'noopener'); } },
+            { key: 'duplicate', label: t('themes.duplicate'), icon: <CopyPlus />, onSelect: () => duplicate.mutate() },
+            { key: 'download', label: t('themes.download'), icon: <Download />, onSelect: () => { window.location.href = `/admin/api/themes/${gidToNum(themeId)}/download.zip`; } },
+            ...(onShortcuts ? [{ key: 'shortcuts', label: t('editor.shortcuts'), icon: <Keyboard />, onSelect: onShortcuts }] : []),
+            { key: 'all', label: t('editor.allThemes'), icon: <LayoutGrid />, separator: true, onSelect: () => nav('/online-store') },
+          ]}
+          footer={<><p className="text-[13px] font-semibold">{name}</p><p className="text-xs text-muted">{role ? t(`themes.role.${role}` as Key) : ''}</p></>} />
+      )}
+      <Button size="sm" disabled={live || dirty} loading={publish.isPending} title={dirty ? t('editor.saveFirst') : undefined} onClick={() => publish.mutate()}>{t('themes.publish')}</Button>
     </>
   );
 }
