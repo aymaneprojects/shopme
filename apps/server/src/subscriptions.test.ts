@@ -423,6 +423,38 @@ describe('Stripe subscriptions: card saved at checkout, charged off-session at r
   });
 });
 
+describe('minimum and maximum billing cycles, interrupted attempts', () => {
+  it('keeps customers from cancelling before the minimum, ends after the last cycle and replays an interrupted attempt', async () => {
+    const tea = (await db().select().from(s.products).where(eq(s.products.handle, 'jasmine-pearl-green-tea')))[0]!.id;
+    const created = (await g(`mutation($input: SellingPlanGroupInput!, $resources: SellingPlanGroupResourceInput) { sellingPlanGroupCreate(input: $input, resources: $resources) { sellingPlanGroup { sellingPlans(first: 1) { nodes { id } } } userErrors { message } } }`, {
+      input: { name: 'Tea trial', sellingPlansToCreate: [{ name: 'Two months', billingPolicy: { recurring: { interval: 'MONTH', intervalCount: 1, minCycles: 2, maxCycles: 2 } }, deliveryPolicy: { recurring: { interval: 'MONTH', intervalCount: 1 } } }] },
+      resources: { productIds: [gid('Product', tea)] },
+    })).sellingPlanGroupCreate;
+    const planId = num(created.sellingPlanGroup.sellingPlans.nodes[0].id);
+    const reg = await t.app.inject({ method: 'POST', url: '/account/register', payload: new URLSearchParams({ 'customer[email]': 'trial@example.com', 'customer[password]': 'correct horse' }).toString(), headers: { 'content-type': 'application/x-www-form-urlencoded' } });
+    const cookie = reg.cookies.find((c) => c.name === 'shopme_customer')!.value;
+    const cart = await cartWith([{ id: sku['JPG-50'], quantity: 1, selling_plan: planId }]);
+    const { token } = await checkout(cart, 'trial@example.com', 'bank_transfer');
+    const [order] = await db().select().from(s.orders).where(eq(s.orders.cartToken, token));
+    let c = await contractOfOrder(order!.id);
+
+    const account = await t.app.inject({ url: '/account', cookies: { shopme_customer: cookie } });
+    expect(account.body).not.toContain(`/account/subscriptions/${c.id}/cancel`);
+    await t.app.inject({ method: 'POST', url: `/account/subscriptions/${c.id}/cancel`, cookies: { shopme_customer: cookie } });
+    expect((await contractOfOrder(order!.id)).status).toBe('ACTIVE');
+
+    // A billing attempt left pending by a stopped process is replayed with the same key once it is stale.
+    const due = new Date(c.nextBillingDate.getTime() + 60_000);
+    await db().insert(s.subscriptionBillingAttempts).values({ shopId, contractId: c.id, idempotencyKey: 'cycle-2-attempt-1', status: 'PENDING', cycleIndex: 2, billingDate: c.nextBillingDate, createdAt: new Date(due.getTime() - 3600_000) });
+    const out = await runDueBilling(t.app, due);
+    expect(out).toEqual([expect.objectContaining({ status: 'ordered', paid: false })]);
+    expect((await db().select().from(s.subscriptionBillingAttempts).where(eq(s.subscriptionBillingAttempts.contractId, c.id)))).toEqual([expect.objectContaining({ idempotencyKey: 'cycle-2-attempt-1', status: 'SUCCEEDED' })]);
+    c = await contractOfOrder(order!.id);
+    expect(c).toMatchObject({ status: 'EXPIRED', cyclesCompleted: 2 });
+    expect((await runDueBilling(t.app, new Date(due.getTime() + 90 * DAY))).filter((o) => 'contract' in o && o.contract.id === c.id)).toEqual([]);
+  });
+});
+
 describe('discount purchase type: subscriptions and the first N payments', () => {
   it('stores the purchase type and cycle limit, applies to subscription lines only and keeps it for the limited renewals', async () => {
     const r = (await g(`mutation($d: DiscountCodeBasicInput!) { discountCodeBasicCreate(basicCodeDiscount: $d) { codeDiscountNode { codeDiscount { ... on DiscountCodeBasic { recurringCycleLimit customerGets { appliesOnOneTimePurchase appliesOnSubscription } } } } userErrors { field message } } }`, {

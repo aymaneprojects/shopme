@@ -32,6 +32,7 @@
           <th scope="row">
             {%- if line.url -%}<a href="{{ line.url }}">{{ line.product_title | escape }}</a>{%- else -%}{{ line.product_title | escape }}{%- endif -%}
             {%- if line.variant_title != blank -%}<br><span class="customer__muted">{{ line.variant_title | escape }}</span>{%- endif -%}
+            {%- if line.selling_plan_allocation -%}<br><span class="customer__muted">{{ line.selling_plan_allocation.selling_plan.name | escape }}</span>{%- endif -%}
           </th>
           <td>{{ line.sku | escape }}</td>
           <td class="customer__num">{{ line.final_price | money }}</td>

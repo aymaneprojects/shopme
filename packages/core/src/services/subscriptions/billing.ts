@@ -14,6 +14,8 @@ export const BILLING_MAX_ATTEMPTS = 3;
 export const BILLING_RETRY_DELAY_MS = 24 * 3600_000;
 /** Days before the billing date when the "upcoming renewal" email goes out. */
 export const UPCOMING_RENEWAL_DAYS = 3;
+/** A billing attempt still pending after this long was interrupted and may be replayed. */
+const STALE_ATTEMPT_MS = 15 * 60_000;
 
 export interface OffSessionChargeInput { amount: number; currency: string; customer: string; paymentMethod: string; idempotencyKey: string; description: string; reference: string; email: string | null }
 /** Charge a saved card without the customer present (Stripe off-session PaymentIntent). */
@@ -126,8 +128,20 @@ export async function billSubscriptionContract(db: Db, shop: Shop, contractId: n
   const lines = await listContractLines(db, shop.id, [c.id]);
   const cycle = c.cyclesCompleted + 1;
   const key = opts.idempotencyKey ?? `cycle-${cycle}-attempt-${c.failedAttempts + 1}`;
-  const [attempt] = await db.insert(subscriptionBillingAttempts).values({ shopId: shop.id, contractId: c.id, idempotencyKey: key, status: 'PENDING', cycleIndex: cycle, billingDate: c.nextBillingDate })
-    .onConflictDoNothing().returning();
+  if (c.billingPolicy.maxCycles != null && c.cyclesCompleted >= c.billingPolicy.maxCycles) {
+    await db.update(subscriptionContracts).set({ status: 'EXPIRED', updatedAt: now }).where(eq(subscriptionContracts.id, c.id));
+    await addEvent(db, shop.id, { subjectType: CONTRACT_SUBJECT, subjectId: c.id, verb: 'subscription_contracts/expired', message: 'Subscription completed its last billing cycle' });
+    return { status: 'skipped', reason: 'not_active' };
+  }
+  const insert = () => db.insert(subscriptionBillingAttempts).values({ shopId: shop.id, contractId: c.id, idempotencyKey: key, status: 'PENDING', cycleIndex: cycle, billingDate: c.nextBillingDate }).onConflictDoNothing().returning();
+  let [attempt] = await insert();
+  if (!attempt) {
+    // An attempt with this key that never finished (the process stopped mid-way) is replayed with the same key: the payment provider's
+    // idempotency then returns the first charge instead of taking a second one.
+    const stale = await db.delete(subscriptionBillingAttempts).where(and(eq(subscriptionBillingAttempts.contractId, c.id), eq(subscriptionBillingAttempts.idempotencyKey, key),
+      eq(subscriptionBillingAttempts.status, 'PENDING'), lte(subscriptionBillingAttempts.createdAt, new Date(now.getTime() - STALE_ATTEMPT_MS)))).returning({ id: subscriptionBillingAttempts.id });
+    if (stale.length) [attempt] = await insert();
+  }
   if (!attempt) return { status: 'skipped', reason: 'busy' };
 
   const maxAttempts = opts.maxAttempts ?? BILLING_MAX_ATTEMPTS;

@@ -141,7 +141,7 @@ export function OrdersPage() {
   const rows = list.data?.orders.nodes ?? [];
   const pi = list.data?.orders.pageInfo;
   const hasFilters = !!terms;
-  const channelName = (s?: string | null) => (({ web: t('qa.channel.web'), draft: t('qa.channel.draft'), draft_order: t('qa.channel.draft'), shopify_draft_order: t('qa.channel.draft'), manual: t('qa.channel.manual'), pos: t('qa.channel.pos') }) as Record<string, string>)[s ?? 'web'] ?? s ?? '';
+  const channelName = (s?: string | null) => (({ web: t('qa.channel.web'), draft: t('qa.channel.draft'), draft_order: t('qa.channel.draft'), shopify_draft_order: t('qa.channel.draft'), manual: t('qa.channel.manual'), pos: t('qa.channel.pos'), subscription_contract: t('sub.channel') }) as Record<string, string>)[s ?? 'web'] ?? s ?? '';
   const columns: Array<Column<OrderRow>> = [
     {
       key: 'name', header: t('orders.order'), sortKey: 'ORDER_NUMBER',

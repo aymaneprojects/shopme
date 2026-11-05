@@ -74,7 +74,7 @@ export function summaryFragment(c0: PageCtx, v: CheckoutView): string {
     const pl = p.lines.find((x) => x.id === l.lineId)!;
     const title = [l.product.title, l.hasOnlyDefaultVariant ? '' : l.variantTitle].filter(Boolean);
     const sp = l.sellingPlan;
-    const plan = sp ? `<small class="plan">${esc(sp.name)}</small><small class="note">${esc(c.t('recurring', { price: c.money(recurringUnit(sp) * l.quantity), frequency: frequencyLabel(c.lang, sp.billingPolicy) }))}</small>` : '';
+    const plan = sp ? `<small class="plan">${esc(sp.name)}</small><small class="recurring">${esc(c.t('recurring', { price: c.money(recurringUnit(sp) * l.quantity), frequency: frequencyLabel(c.lang, sp.billingPolicy) }))}</small>` : '';
     return `<li class="line"><div class="thumb">${l.image ? `<img src="${attr(l.image.url)}" alt="" width="64" height="64">` : ''}<span class="qty" aria-label="${esc(c.t('qty'))}">${l.quantity}</span></div>`
       + `<div class="grow">${esc(title[0])}${title[1] ? `<small>${esc(title[1])}</small>` : ''}${plan}</div><div>${esc(c.money(pl.total))}</div></li>`;
   }).join('');

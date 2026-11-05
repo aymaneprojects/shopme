@@ -59,7 +59,7 @@ export const enSubscriptions = {
 
   'sub.tl.created': 'Started subscription {sub} with order {order}', 'sub.tl.paused': 'Subscription {sub} paused', 'sub.tl.activated': 'Subscription {sub} resumed', 'sub.tl.cancelled': 'Subscription {sub} cancelled',
   'sub.customer.title': 'Subscriptions', 'sub.customer.none': 'No subscriptions', 'sub.customer.viewAll': 'View all', 'sub.customer.next': 'Next order on {date}',
-  'sub.order.card': 'Subscription', 'sub.order.line': 'Subscription {name}', 'sub.order.renewalOf': 'Renewal order of subscription {name}', 'sub.order.startedBy': 'This order started subscription {name}',
+  'sub.channel': 'Subscription renewal', 'sub.order.card': 'Subscription', 'sub.order.line': 'Subscription {name}', 'sub.order.renewalOf': 'Renewal order of subscription {name}', 'sub.order.startedBy': 'This order started subscription {name}',
 
   'sub.disc.purchaseType': 'Purchase type', 'sub.disc.oneTime': 'One-time purchase', 'sub.disc.subscription': 'Subscription', 'sub.disc.both': 'Both',
   'sub.disc.recurring': 'Recurring payments for subscriptions', 'sub.disc.first': 'Limit discount to the first payment', 'sub.disc.limited': 'Limit discount to multiple recurring payments',

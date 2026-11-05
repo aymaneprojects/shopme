@@ -63,6 +63,7 @@ export function orderObject(o: Order, shop: Shop, d?: OrderDetail, handles: Map<
         url: l.productId && handles.has(l.productId) ? `/products/${handles.get(l.productId)}` : null, product_id: l.productId, variant_id: l.variantId, properties: l.properties, requires_shipping: l.requiresShipping,
         image: l.imageUrl ? { src: l.imageUrl, url: l.imageUrl, alt: l.title, width: null, height: null } : null,
         fulfillment: null, 'fulfillment_status': l.fulfilledQuantity >= l.quantity ? 'fulfilled' : l.fulfilledQuantity > 0 ? 'partial' : 'unfulfilled', gift_card: l.isGiftCard, line_level_discount_allocations: [],
+        selling_plan_allocation: l.sellingPlanName ? { price: lm.unitPrice, selling_plan: { id: l.sellingPlanId, name: l.sellingPlanName } } : null,
       };
     }),
     shipping_address: addr(d?.shippingAddress ?? null), billing_address: addr(d?.billingAddress ?? null), shipping_methods: (d?.shippingLines ?? []).map((l, _i, all) => ({ title: l.title, price: all.length === 1 ? om.shipping : presentmentShare(o, l.price) })),
@@ -119,7 +120,7 @@ export async function subscriptionObjects(db: Db, shop: Shop, customerId: number
       id: c.id, name: `#${c.id}`, status: c.status.toLowerCase(), currency: c.currency, created_at: c.createdAt.toISOString(), next_billing_date: ended ? null : c.nextBillingDate.toISOString(),
       billing_interval: c.billingPolicy.interval.toLowerCase(), billing_interval_count: c.billingPolicy.intervalCount, delivery_interval: c.deliveryPolicy.interval.toLowerCase(), delivery_interval_count: c.deliveryPolicy.intervalCount,
       lines: own, subtotal, delivery_price: c.deliveryPrice, total: subtotal + c.deliveryPrice,
-      can_pause: c.status === 'ACTIVE', can_resume: c.status === 'PAUSED', can_cancel: !ended, can_skip: c.status === 'ACTIVE',
+      can_pause: c.status === 'ACTIVE', can_resume: c.status === 'PAUSED', can_cancel: !ended && (c.billingPolicy.minCycles == null || c.cyclesCompleted >= c.billingPolicy.minCycles), can_skip: c.status === 'ACTIVE',
       pause_url: `${base}/pause`, resume_url: `${base}/resume`, cancel_url: `${base}/cancel`, skip_url: `${base}/skip`,
     };
   });

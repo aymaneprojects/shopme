@@ -60,7 +60,7 @@ export const frSubscriptions: Record<keyof typeof enSubscriptions, string> = {
 
   'sub.tl.created': "A démarré l'abonnement {sub} avec la commande {order}", 'sub.tl.paused': 'Abonnement {sub} mis en pause', 'sub.tl.activated': 'Abonnement {sub} repris', 'sub.tl.cancelled': 'Abonnement {sub} résilié',
   'sub.customer.title': 'Abonnements', 'sub.customer.none': 'Aucun abonnement', 'sub.customer.viewAll': 'Tout afficher', 'sub.customer.next': 'Prochaine commande le {date}',
-  'sub.order.card': 'Abonnement', 'sub.order.line': 'Abonnement {name}', 'sub.order.renewalOf': "Commande de renouvellement de l'abonnement {name}", 'sub.order.startedBy': "Cette commande a démarré l'abonnement {name}",
+  'sub.channel': "Renouvellement d'abonnement", 'sub.order.card': 'Abonnement', 'sub.order.line': 'Abonnement {name}', 'sub.order.renewalOf': "Commande de renouvellement de l'abonnement {name}", 'sub.order.startedBy': "Cette commande a démarré l'abonnement {name}",
 
   'sub.disc.purchaseType': "Type d'achat", 'sub.disc.oneTime': 'Achat unique', 'sub.disc.subscription': 'Abonnement', 'sub.disc.both': 'Les deux',
   'sub.disc.recurring': 'Paiements récurrents des abonnements', 'sub.disc.first': 'Limiter la réduction au premier paiement', 'sub.disc.limited': 'Limiter la réduction à plusieurs paiements récurrents',

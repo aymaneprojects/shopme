@@ -129,7 +129,7 @@ function OrderView({ order: o }: { order: OrderData }) {
   const isClosed = !!o.closedAt;
   const held = o.shopmeFulfillmentHold;
   const needsShipping = lines.some((l) => l.requiresShipping);
-  const channel = ({ web: t('qa.channel.web'), draft: t('qa.channel.draft'), draft_order: t('qa.channel.draft'), shopify_draft_order: t('qa.channel.draft'), manual: t('qa.channel.manual'), pos: t('qa.channel.pos') } as Record<string, string>)[o.sourceName ?? ''] ?? o.sourceName ?? t('qa.channel.web');
+  const channel = ({ web: t('qa.channel.web'), draft: t('qa.channel.draft'), draft_order: t('qa.channel.draft'), shopify_draft_order: t('qa.channel.draft'), manual: t('qa.channel.manual'), pos: t('qa.channel.pos'), subscription_contract: t('sub.channel') } as Record<string, string>)[o.sourceName ?? ''] ?? o.sourceName ?? t('qa.channel.web');
   const liveFulfillments = o.fulfillments.filter((f) => f.status !== 'CANCELLED');
 
   return (

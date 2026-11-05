@@ -210,6 +210,10 @@ export async function changeContractStatus(db: Db, shopId: number, id: number, a
     const ended = c.status === 'CANCELLED' || c.status === 'EXPIRED';
     return errR(['subscriptionContractId'], ended ? 'The subscription has ended' : `A ${c.status.toLowerCase()} subscription cannot be ${VERB[action]}`, ended ? 'CONTRACT_TERMINATED' : 'INVALID');
   }
+  // Customers cannot end a subscription before its minimum number of billing cycles; staff can.
+  if (action === 'cancel' && opts.actor === 'customer' && c.billingPolicy.minCycles != null && c.cyclesCompleted < c.billingPolicy.minCycles) {
+    return errR(['subscriptionContractId'], `This subscription can be cancelled after ${c.billingPolicy.minCycles} orders`, 'INVALID');
+  }
   const now = opts.now ?? new Date();
   const set: Partial<typeof subscriptionContracts.$inferInsert> = { updatedAt: now };
   const data: Record<string, unknown> = { actor: opts.actor ?? 'staff' };
