@@ -61,7 +61,6 @@ export function LabelsRow() {
   return (
     <>
       <ActionCollapseRow title={t('postage.labelsRow')} description={t('postage.labelsRowDesc')}
-        summary={sellers.length ? t('postage.labelCarriers', { n: sellers.length }) : t('postage.labelsOff')}
         action={<Button size="sm" onClick={() => setCalc(true)}><Calculator className="size-3.5" />{t('postage.calculate')}</Button>}>
         <RowCard className="border border-line shadow-none">
           {cfg.isLoading ? <div className="p-3"><Skeleton className="h-10" /></div> : sellers.length === 0 ? <p className="px-4 py-3 text-[13px] text-muted">{t('postage.labelsNone')}</p> : (

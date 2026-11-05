@@ -19,7 +19,6 @@ export const enPostage = {
   'postage.labelsRow': 'Shipping labels', 'postage.labelsRowDesc': 'Buy and print labels from your carrier accounts',
   'postage.calculate': 'Calculate rates', 'postage.labelsHelp': 'Carrier accounts that sell labels. Labels are bought from an order, in the shipping card.',
   'postage.labelsNone': 'No carrier account sells labels yet. Add one in Carrier accounts, or add the test carrier to try it.',
-  'postage.labelCarriers': '{n} carriers', 'postage.labelCarriers.one': '{n} carrier', 'postage.labelsOff': 'Not set up',
   'postage.calcTitle': 'Calculate label rates', 'postage.calcIntro': 'Rates for a parcel sent from your first location to the country you choose.',
   'postage.destination': 'Destination country', 'postage.zip': 'Postal code',
   'postage.carrierRates': 'Carrier-calculated rates', 'postage.labelsYes': 'Labels can be purchased', 'postage.labelsNo': 'Rates only',
