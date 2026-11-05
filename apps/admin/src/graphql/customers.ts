@@ -6,7 +6,7 @@ export const CUSTOMERS = /* GraphQL */ `
       nodes {
         id displayName note tags numberOfOrders createdAt
         defaultEmailAddress { emailAddress marketingState }
-        defaultAddress { city country }
+        defaultAddress { city country countryCodeV2 }
         amountSpent { amount currencyCode }
       }
       pageInfo { hasNextPage hasPreviousPage startCursor endCursor }

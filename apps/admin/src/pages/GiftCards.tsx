@@ -272,8 +272,8 @@ function CardView({ card: c }: { card: Detail }) {
           <NoteCard title={t('giftCards.note')} value={c.note ?? ''} placeholder={t('giftCards.noteHelp')} onSave={(n) => save.mutateAsync(n)} />
           <Card title={t('giftCards.origin')}>
             <div className="flex flex-col gap-1 text-[13px]">
-              {c.order ? <Link className="text-primary hover:underline" to={`/orders/${gidToNum(c.order.id)}`}>{t('giftCards.fromOrder', { name: c.order.name })}</Link> : <span className="text-muted">{t('giftCards.manual')}</span>}
-              {c.customer && <Link className="text-primary hover:underline" to={`/customers/${gidToNum(c.customer.id)}`}>{c.customer.displayName}</Link>}
+              {c.order ? <Link className="text-accent hover:underline" to={`/orders/${gidToNum(c.order.id)}`}>{t('giftCards.fromOrder', { name: c.order.name })}</Link> : <span className="text-muted">{t('giftCards.manual')}</span>}
+              {c.customer && <Link className="text-accent hover:underline" to={`/customers/${gidToNum(c.customer.id)}`}>{c.customer.displayName}</Link>}
               {c.recipientAttributes && <p>{t('giftCards.recipient')}: {c.recipientAttributes.preferredName ?? c.recipientAttributes.recipient.displayName}{c.recipientAttributes.message && <span className="block text-muted">“{c.recipientAttributes.message}”</span>}</p>}
               <span className="text-muted">{t('giftCards.issuedOn')}: {fmt.date(c.createdAt)}</span>
             </div>

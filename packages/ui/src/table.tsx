@@ -61,11 +61,11 @@ export function IndexTable<T>({ rows, rowId, columns, loading, selected, onSelec
       <div className="max-md:overflow-x-auto">
         <table className="itable w-full text-left text-[13px]">
           <thead className="border-b border-line bg-surface text-xs text-muted">
-            {some ? (
+            {some && (
               <tr className="h-9" role="toolbar" aria-label={selectedLabel(selected!.length)}>
                 <th className="w-10 px-3 font-normal">{headCheck}</th>
                 <th colSpan={columns.length} className="px-0 font-normal">
-                  <div className="flex items-center gap-1.5 whitespace-nowrap text-fg">
+                  <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 py-1 text-fg">
                     <Dropdown variant="secondary" size="sm" className="chip" chevron trigger={selectedLabel(selected!.length)} items={[
                       { key: 'page', label: selectPageLabel(ids.length), onSelect: () => onSelectedChange!(ids) },
                       { key: 'none', label: deselectLabel, onSelect: () => onSelectedChange!([]) },
@@ -81,8 +81,8 @@ export function IndexTable<T>({ rows, rowId, columns, loading, selected, onSelec
                   </div>
                 </th>
               </tr>
-            ) : (
-              <tr className="h-9">
+            )}
+              <tr className={cx('h-9', some && '[visibility:collapse]')} aria-hidden={some || undefined}>
                 {selectable && <th className="w-10 px-3">{headCheck}</th>}
                 {columns.map((c) => (
                   <th key={c.key} className={cx('px-3 font-semibold', c.className)} aria-sort={sort && sort.key === c.sortKey ? (sort.reverse ? 'descending' : 'ascending') : undefined}>
@@ -95,7 +95,6 @@ export function IndexTable<T>({ rows, rowId, columns, loading, selected, onSelec
                   </th>
                 ))}
               </tr>
-            )}
           </thead>
           <tbody>
             {loading && Array.from({ length: 6 }, (_, i) => (

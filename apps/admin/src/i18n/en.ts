@@ -62,7 +62,7 @@ export const en = {
   'products.inStock': '{n} in stock for {v} variants', 'products.inStock.one': '{n} in stock for {v} variant', 'products.notTracked': 'Inventory not tracked', 'products.search': 'Search products',
   'products.stockIn': 'In stock', 'products.stockOut': 'Out of stock', 'products.count': '{n} products', 'products.count.one': '{n} product',
   'products.emptyTitle': 'Add your first product', 'products.emptyBody': 'Products you add will appear here. Start with a title, a price and a photo.',
-  'products.noResults': 'No products found', 'products.noResultsBody': 'Try changing the search or the filters.', 'products.clearFilters': 'Clear filters',
+  'products.noResults': 'No results found', 'products.noResultsBody': 'Try changing the search or the filters.', 'products.clearFilters': 'Clear filters',
   'products.setActive': 'Set as active', 'products.setDraft': 'Set as draft', 'products.setArchived': 'Archive',
   'products.updated': '{n} products updated', 'products.updated.one': '{n} product updated', 'products.deleted': '{n} products deleted', 'products.deleted.one': '{n} product deleted', 'products.deleteTitle': 'Delete {n} products?', 'products.deleteTitle.one': 'Delete {n} product?',
   'products.deleteBody': 'This cannot be undone.',

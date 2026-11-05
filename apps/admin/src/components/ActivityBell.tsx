@@ -52,7 +52,7 @@ export function ActivityBell() {
     <div ref={box} className="relative">
       <button type="button" className="btn btn-plain btn-icon relative !text-frame-text hover:!bg-frame-hover" aria-label={unread ? t('activity.openUnread', { n: unread }) : t('activity.open')} aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen(!open)}>
         <Bell className="size-[18px]" />
-        {unread > 0 && <span className="absolute right-0.5 top-0.5 grid min-w-4 place-items-center rounded-full bg-critical px-1 text-[10px] font-semibold leading-4 text-white">{unread > 99 ? '99+' : unread}</span>}
+        {unread > 0 && <span className="absolute right-0.5 top-0.5 grid min-w-4 place-items-center rounded-full bg-[var(--color-critical-fill)] px-1 text-[10px] font-semibold leading-4 text-white">{unread > 99 ? '99+' : unread}</span>}
       </button>
       {open && (
         <div role="dialog" aria-label={t('activity.title')} className="anim-fade absolute bottom-10 left-0 z-50 w-[22rem] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-line bg-canvas text-fg shadow-pop">

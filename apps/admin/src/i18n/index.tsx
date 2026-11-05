@@ -26,7 +26,7 @@ interface I18n { lang: Lang; setLang: (l: Lang) => void; t: (key: Key, vars?: Re
 export const translate = (lang: Lang, key: Key, vars?: Record<string, string | number>) => {
   const count = Number(vars?.$count ?? vars?.n);
   const singular = Number.isFinite(count) && new Intl.PluralRules(lang).select(count) === 'one' ? (dicts[lang] as Record<string, string | undefined>)[`${key}.one`] : undefined;
-  return (singular ?? dicts[lang][key] ?? en[key]).replace(/\{(\w+)\}/g, (_, k: string) => String(vars?.[k] ?? ''));
+  return (singular ?? dicts[lang][key] ?? en[key] ?? key).replace(/\{(\w+)\}/g, (_, k: string) => String(vars?.[k] ?? ''));
 };
 
 const Ctx = createContext<I18n>({ lang: 'en', setLang: () => {}, t: (k, v) => translate('en', k, v) });

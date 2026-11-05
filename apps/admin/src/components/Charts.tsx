@@ -7,12 +7,15 @@ export interface Mark { day: string; text: string }
 
 const W = 640, H = 200, PX = 8, PT = 8, PB = 22;
 
+/** Gridlines at 0, half and the maximum; the middle one is dropped when its label would repeat a neighbour (small whole-number axes). */
+const gridTicks = (max: number, format: (n: number) => string) => [0, 0.5, 1].filter((t) => t !== 0.5 || (format(max * 0.5) !== format(0) && format(max * 0.5) !== format(max)));
+
 export function LineChart({ series, format, label, marks = [] }: { series: Series[]; format: (n: number) => string; label: string; marks?: Mark[] }) {
   const n = Math.max(1, ...series.map((s) => s.points.length));
   const max = Math.max(1, ...series.flatMap((s) => s.points.map((p) => p[1])));
   const x = (i: number) => PX + (n === 1 ? (W - PX * 2) / 2 : (i / (n - 1)) * (W - PX * 2));
   const y = (v: number) => PT + (1 - v / max) * (H - PT - PB);
-  const ticks = [0, 0.5, 1];
+  const ticks = gridTicks(max, format);
   const main = series[0];
   return (
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} className="w-full">
@@ -56,7 +59,7 @@ export function BarChart({ series, format, label, marks = [] }: { series: Series
   const main = series[0];
   return (
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label} className="w-full">
-      {[0, 0.5, 1].map((t) => (
+      {gridTicks(max, format).map((t) => (
         <g key={t}>
           <line x1={PX} x2={W - PX} y1={y(max * t)} y2={y(max * t)} stroke="var(--color-border)" strokeDasharray={t ? '3 3' : undefined} />
           <text x={PX + 2} y={y(max * t) - 3} fontSize="10" fill="var(--color-text-muted)">{format(max * t)}</text>

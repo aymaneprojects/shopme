@@ -124,6 +124,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - Online store: pages, blog posts, menus (list and editor), files and preferences pages with bulk actions.
   - Analytics: overview page, reports list, report auto-refresh.
   - Settings: dedicated settings navigation, narrower pages with section descriptions, users table, notifications overview and template preview with test send, policies list, locations table, custom data by resource, domains and languages tables.
+- Settings: a "Sales channels" entry in the settings sidebar, and an "Accepted payment methods" row on Payments (card brands enabled through Stripe and the manual, redirect and test methods, drawn as neutral text marks).
+- Checkout configurations: Settings > Checkout lists several configurations with the active one; duplicate, rename, edit (contact and sign-in rules, address fields, marketing, tipping, branding), set active and delete (`shopmeCheckoutConfigurations`, `shopmeCheckoutConfiguration{Create,Rename,Update,Activate,Delete}`). The storefront checkout uses the active configuration.
+- Notes on draft orders, customers and gift cards are collapsed behind a "+" (a pencil once there is a note) that opens an edit dialog, like the order page.
+- Admin collections: the template ("Default collection") link sits beside the title, metafields are a dashed panel in the side column (also while creating, saved with the collection), and the products card gets a status filter chip with "Clear all" and a column count control for the grid view.
+- Image focal point: click the image in the product media viewer to set it (`fileUpdate(files: [{ focalPoint }])`, `Image.shopmePresentation.focalPoint`, stored on the media). The storefront exposes it as `image.presentation.focal_point` and Aurora applies it as `object-position` on product cards, the product page, collection tiles and links, the featured product, hero, slideshow and the other cropped images.
+- Customers: WhatsApp marketing consent next to SMS consent (checkbox on the customer form, state on the customer page, `whatsapp_subscription:` search, bulk edit, merge and the "Accepts WhatsApp Marketing" column of the CSV export; `Customer.shopmeWhatsappMarketingConsent`). Consent is only stored and exported: nothing is sent through WhatsApp.
+- Per-variant Online Store availability: a variant can be hidden from the Online Store while its product stays published (`ProductVariant.shopmeHiddenFromOnlineStore`). The product page no longer offers it, and the cart refuses it. At least one variant must stay available.
 
 ### Changed
 

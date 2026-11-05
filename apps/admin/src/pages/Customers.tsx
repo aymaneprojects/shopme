@@ -17,6 +17,7 @@ import { ExportButton, ImportButton } from '../components/CsvTools';
 import { ViewTabs } from '../components/SavedViews';
 import { gidToNum, numToGid } from '../format';
 import { CUSTOMER, CUSTOMER_CANCEL_ERASURE, CUSTOMER_DATA_REQUEST, CUSTOMER_DETAIL_EXTRAS, CUSTOMER_IDS, CUSTOMERS, CUSTOMERS_COUNT, CUSTOMER_DELETE, CUSTOMER_REQUEST_ERASURE, CUSTOMER_TAGS, CUSTOMER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
+import { countryName } from '../lib/countries';
 import { useI18n, useT } from '../i18n';
 import type { Key } from '../i18n';
 import { Timeline } from '../components/Timeline';
@@ -28,7 +29,7 @@ import emptyCustomers from '../assets/empty/empty-customers.webp';
 
 export interface CustomerRow {
   id: string; displayName: string; note: string | null; tags: string[]; numberOfOrders: number; createdAt: string;
-  defaultEmailAddress: { emailAddress: string; marketingState: string } | null; defaultAddress: { city: string | null; country: string | null } | null; amountSpent: Money;
+  defaultEmailAddress: { emailAddress: string; marketingState: string } | null; defaultAddress: { city: string | null; country: string | null; countryCodeV2?: string | null } | null; amountSpent: Money;
 }
 const PAGE_SIZE = 25;
 const TABS = ['all', 'subscribed', 'hasOrders', 'noOrders', 'repeat'] as const;
@@ -79,6 +80,7 @@ export function CustomersPage() {
     onError: (e) => toast(e.message, 'critical'),
   });
 
+  const { lang } = useI18n();
   const rows = list.data?.customers.nodes ?? [];
   const pi = list.data?.customers.pageInfo;
   const labels: Record<string, string> = { name: t('customers.name'), email: t('field.email'), mk: t('customers.subscription'), loc: t('customers.location'), orders: t('customers.orders'), spent: t('customers.spent'), tags: t('field.tags'), since: t('customers.since') };
@@ -86,7 +88,7 @@ export function CustomersPage() {
     { key: 'name', header: labels.name, sortKey: 'NAME', cell: (c) => <span className="font-medium">{c.displayName}{c.note && <span title={c.note} className="ml-1 text-muted">✎</span>}</span> },
     { key: 'email', header: labels.email, cell: (c) => c.defaultEmailAddress?.emailAddress ?? <span className="text-muted">—</span> },
     { key: 'mk', header: <HelpHeader label={labels.mk!} help={t('bc.help.subscription')} />, cell: (c) => <MarketingBadge state={c.defaultEmailAddress?.marketingState} /> },
-    { key: 'loc', header: <HelpHeader label={labels.loc!} help={t('bc.help.location')} />, sortKey: 'LOCATION', cell: (c) => [c.defaultAddress?.city, c.defaultAddress?.country].filter(Boolean).join(', ') || <span className="text-muted">—</span> },
+    { key: 'loc', header: <HelpHeader label={labels.loc!} help={t('bc.help.location')} />, sortKey: 'LOCATION', cell: (c) => [c.defaultAddress?.city, c.defaultAddress?.countryCodeV2 ? countryName(c.defaultAddress.countryCodeV2, lang) : c.defaultAddress?.country].filter(Boolean).join(', ') || <span className="text-muted">—</span> },
     { key: 'orders', header: labels.orders, sortKey: 'ORDERS_COUNT', cell: (c) => c.numberOfOrders },
     { key: 'spent', header: <HelpHeader label={labels.spent!} help={t('bc.help.spent')} />, cell: (c) => fmt.money(c.amountSpent) },
     { key: 'tags', header: labels.tags, cell: (c) => (c.tags.length ? <span className="line-clamp-1 max-w-48">{c.tags.join(', ')}</span> : <span className="text-muted">—</span>) },

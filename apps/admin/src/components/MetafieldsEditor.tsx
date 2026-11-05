@@ -149,7 +149,7 @@ export function ProductMetafields({ ownerId, edits, onChange, ownerType = 'PRODU
   const frame = (children: ReactNode) => (bare ? <div className="flex flex-col gap-2">{showAll && <div className="flex justify-end">{showAll}</div>}{children}</div> : <Card title={t('mf.title')} actions={showAll}>{children}</Card>);
   if (defs.isLoading || (ownerId && vals.isLoading)) return frame(<Skeleton className="h-16" />);
   return frame(<>
-      {rows.length === 0 && <p className="text-[13px] text-muted">{t('mf.none')}</p>}
+      {rows.length === 0 && <p className="text-[13px] text-muted">{t('fin.mf.noDefinitions')}</p>}
       <div className="flex flex-col divide-y divide-line">
         {shown.map((f) => {
           const id = idOf(f.namespace, f.key);

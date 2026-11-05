@@ -99,9 +99,13 @@ describe('WhatsApp marketing consent', () => {
 
 describe('image focal point', () => {
   it('is stored on the media, exposed to the Admin API and applied by the Aurora theme', async () => {
-    const [{ pm, m }] = await db().select({ pm: s.productMedia, m: s.media }).from(s.productMedia).innerJoin(s.media, eq(s.media.id, s.productMedia.mediaId)).where(and(isNotNull(s.media.url), eq(s.media.type, 'IMAGE'))).limit(1);
+    const { pm, m } = (await db().select({ pm: s.productMedia, m: s.media }).from(s.productMedia).innerJoin(s.media, eq(s.media.id, s.productMedia.mediaId)).where(and(isNotNull(s.media.url), eq(s.media.type, 'IMAGE'))).limit(1))[0]!;
     const [product] = await db().select().from(s.products).where(eq(s.products.id, pm.productId));
     const gid = `gid://shopify/MediaImage/${m.id}`;
+
+    // No focal point yet: the presentation exists and its focal point is null.
+    const before = await g(`{ node(id: "${gid}") { ... on MediaImage { image { shopmePresentation { focalPoint { x y } } } } } }`);
+    expect(before.node.image.shopmePresentation).toEqual({ focalPoint: null });
 
     const set = await g(`mutation($f: [FileUpdateInput!]!) { fileUpdate(files: $f) { files { id ... on MediaImage { image { shopmePresentation { focalPoint { x y } } } } } userErrors { message } } }`, { f: [{ id: gid, focalPoint: { x: 30, y: 40.5 } }] });
     expect(set.fileUpdate.userErrors).toEqual([]);

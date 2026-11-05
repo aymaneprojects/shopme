@@ -22,7 +22,6 @@ import { fromField } from '../lib/metafields';
 import { useI18n } from '../i18n';
 import { defaultRule, isRuleValid, toRuleInput } from '../lib/collection-rules';
 import type { RuleSet } from '../lib/collection-rules';
-import { Thumb } from './Products';
 
 interface ApiCollection {
   id: string; title: string; handle: string; descriptionHtml: string; sortOrder: string; templateSuffix: string | null; updatedAt: string;
@@ -151,9 +150,12 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
             <div className="flex flex-col gap-3">
               <div className="flex items-start gap-3">
                 <div className="flex shrink-0 flex-col items-center gap-1.5" aria-label={t('collection.image')}>
-                  {form.imageUrl ? <img src={form.imageUrl} alt="" className="size-16 rounded-lg border border-line object-cover" /> : <Thumb className="size-16" />}
-                  <ImageUploader multiple={false} look="tile" label={t('media.upload')} onUploaded={(f) => set({ imageUrl: f[0]!.url })} onError={(m) => toast(m, 'critical')} />
-                  {form.imageUrl && <button type="button" onClick={() => set({ imageUrl: '' })} className="text-xs text-muted hover:text-fg">{t('common.remove')}</button>}
+                  {form.imageUrl ? (
+                    <>
+                      <img src={form.imageUrl} alt="" className="size-24 rounded-lg border border-line object-cover" />
+                      <button type="button" onClick={() => set({ imageUrl: '' })} className="text-xs text-muted hover:text-fg">{t('common.remove')}</button>
+                    </>
+                  ) : <ImageUploader multiple={false} look="tile" label={t('media.upload')} onUploaded={(f) => set({ imageUrl: f[0]!.url })} onError={(m) => toast(m, 'critical')} />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <Input label={t('field.title')} required value={form.title} error={titleError} onChange={(e) => set({ title: e.target.value })} />

@@ -16,6 +16,9 @@ export interface Publication { id: string; name: string; shopmeKind?: string }
 export interface ChannelState { id: string; name: string; /** The built-in Online Store: new products are published there automatically. */ online: boolean; published: boolean; /** `datetime-local` value; empty = now. */ publishDate: string }
 export interface CatalogRef { id: string; title: string; status: string }
 
+/** The built-in channel is stored under its English name; it shows in the interface language. */
+export const useChannelName = () => { const { t } = useI18n(); return (name: string) => (name === 'Online Store' ? t('nav.onlineStore') : name); };
+
 export const usePublications = () => useQuery({ queryKey: ['publications'], staleTime: 60_000, queryFn: async () => (await gql<{ publications: { nodes: Publication[] } }>(PUBLICATIONS)).publications.nodes });
 export const useCatalogOptions = () => useQuery({ queryKey: ['catalog-options'], staleTime: 60_000, queryFn: async () => (await gql<{ catalogs: { nodes: CatalogRef[] } }>(CATALOGS_PICKER)).catalogs.nodes });
 
@@ -43,6 +46,7 @@ export function channelChanges(before: ChannelState[], after: ChannelState[]) {
 
 /** Sidebar row "Sales channels": one line per channel with its state, and a Manage dialog (publish, unpublish, schedule). */
 export function ChannelsSection({ value, onChange, bare }: { value: ChannelState[]; onChange: (v: ChannelState[]) => void; /** Inside a card that already has the title: only the manage button is shown. */ bare?: boolean }) {
+  const channelName = useChannelName();
   const { t } = useI18n();
   const fmt = useFormat();
   const [open, setOpen] = useState(false);
@@ -52,7 +56,7 @@ export function ChannelsSection({ value, onChange, bare }: { value: ChannelState
     <section className="flex flex-col gap-2">
       {bare ? <div><Button size="sm" onClick={() => setOpen(true)}>{t('bp.channels.manage')}</Button></div> : <SideHead title={t('bp.channels.title')} action={{ label: t('bp.channels.manage'), onClick: () => setOpen(true) }} />}
       <ul className="flex flex-col gap-1.5 text-[13px]">
-        {value.map((c) => <li key={c.id} className="flex items-center justify-between gap-2"><span className="min-w-0 truncate">{c.name}</span>{state(c)}</li>)}
+        {value.map((c) => <li key={c.id} className="flex items-center justify-between gap-2"><span className="min-w-0 truncate">{channelName(c.name)}</span>{state(c)}</li>)}
         {value.length === 0 && <li className="text-muted">{t('bp.channels.none')}</li>}
       </ul>
       <p className="text-xs text-muted">{t('bp.channels.count', { n: live.length, $count: live.length })}</p>
@@ -62,6 +66,7 @@ export function ChannelsSection({ value, onChange, bare }: { value: ChannelState
 }
 
 function ChannelsDialog({ open, value, onClose, onApply }: { open: boolean; value: ChannelState[]; onClose: () => void; onApply: (v: ChannelState[]) => void }) {
+  const channelName = useChannelName();
   const { t } = useI18n();
   const [draft, setDraft] = useState(value);
   const patch = (id: string, p: Partial<ChannelState>) => setDraft((d) => d.map((c) => (c.id === id ? { ...c, ...p } : c)));
@@ -72,7 +77,7 @@ function ChannelsDialog({ open, value, onClose, onApply }: { open: boolean; valu
         <p className="text-[13px] text-muted">{t('bp.channels.help')}</p>
         {draft.map((c) => (
           <div key={c.id} className="rounded-lg border border-line p-3">
-            <Checkbox label={c.name} checked={c.published} onChange={(e) => patch(c.id, { published: e.target.checked, ...(e.target.checked ? {} : { publishDate: '' }) })} />
+            <Checkbox label={channelName(c.name)} checked={c.published} onChange={(e) => patch(c.id, { published: e.target.checked, ...(e.target.checked ? {} : { publishDate: '' }) })} />
             {c.published && (
               <div className="mt-2 pl-6">
                 {c.publishDate ? (
@@ -126,6 +131,7 @@ export function CatalogPickerDialog({ open, title, options, initial = [], confir
 
 /** Checklist of sales channels, for the bulk include / exclude actions. */
 export function ChannelPickerDialog({ open, title, confirmLabel, onClose, onApply }: { open: boolean; title: string; confirmLabel: string; onClose: () => void; onApply: (ids: string[]) => void }) {
+  const channelName = useChannelName();
   const { t } = useI18n();
   const pubs = usePublications();
   const [ids, setIds] = useState<string[]>([]);
@@ -133,7 +139,7 @@ export function ChannelPickerDialog({ open, title, confirmLabel, onClose, onAppl
     <Modal open={open} onClose={onClose} closeLabel={t('common.close')} title={title} medium
       footer={<><Button onClick={onClose}>{t('common.cancel')}</Button><Button variant="primary" disabled={!ids.length} onClick={() => { onApply(ids); setIds([]); }}>{confirmLabel}</Button></>}>
       <div className="flex flex-col gap-2">
-        {(pubs.data ?? []).map((p) => <Checkbox key={p.id} label={p.name} checked={ids.includes(p.id)} onChange={(e) => setIds(e.target.checked ? [...ids, p.id] : ids.filter((x) => x !== p.id))} />)}
+        {(pubs.data ?? []).map((p) => <Checkbox key={p.id} label={channelName(p.name)} checked={ids.includes(p.id)} onChange={(e) => setIds(e.target.checked ? [...ids, p.id] : ids.filter((x) => x !== p.id))} />)}
       </div>
     </Modal>
   );

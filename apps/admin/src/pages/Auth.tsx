@@ -75,7 +75,7 @@ function TwoFactorStep({ challenge, onBack }: { challenge: string; onBack: () =>
         {error && <Banner>{/expired/i.test(error) ? t('login.2fa.expired') : /invalid/i.test(error) ? t('login.2fa.invalid') : error}</Banner>}
         <Input label={t('login.2fa.code')} autoFocus required inputMode={recovery ? 'text' : 'numeric'} autoComplete="one-time-code" maxLength={recovery ? 12 : 7} value={code} onChange={(e) => setCode(e.target.value)} />
         <Button type="submit" variant="primary" loading={busy}>{t('login.2fa.verify')}</Button>
-        <button type="button" className="text-sm text-primary underline" onClick={() => { setRecovery(!recovery); setCode(''); }}>{t(recovery ? 'login.2fa.authenticator' : 'login.2fa.recovery')}</button>
+        <button type="button" className="text-sm text-accent underline" onClick={() => { setRecovery(!recovery); setCode(''); }}>{t(recovery ? 'login.2fa.authenticator' : 'login.2fa.recovery')}</button>
         <button type="button" className="text-sm text-muted underline" onClick={onBack}>{t('login.2fa.back')}</button>
       </form>
     </AuthLayout>

@@ -4,7 +4,7 @@ export const frQaCatalog: Record<keyof typeof enQaCatalog, string> = {
   'nav.themes': 'Thèmes', 'nav.storePages': 'Pages', 'nav.menus': 'Navigation',
   'nav.unfulfilledBadge': 'Commandes à traiter', 'nav.salesChannels': 'Canaux de vente',
   'list.searchAndFilter': 'Rechercher et filtrer', 'list.views': 'Vues', 'list.removeFilter': 'Retirer le filtre', 'list.moreBulk': 'Plus d’actions',
-  'list.selectPage': 'Sélectionner les {n} sur la page', 'list.deselectAll': 'Tout désélectionner', 'list.showSelected': 'Afficher uniquement les éléments sélectionnés',
+  'list.selectPage': 'Sélectionner les {n} sur la page', 'list.deselectAll': 'Tout désélectionner', 'list.showSelected': 'Afficher la sélection uniquement',
   'export.title': 'Exporter {what}', 'export.description': 'Ce fichier CSV peut être ouvert dans un tableur et réimporté pour mettre à jour {what}.',
   'export.what': 'Exporter', 'export.current': 'Page actuelle', 'export.all': 'Tous {what}', 'export.selected': '{n} sélectionné(s)', 'export.matching': '{n} correspondant à votre recherche',
   'export.format': 'Exporter au format', 'export.formatSheet': 'CSV pour Excel, Numbers ou d’autres tableurs', 'export.formatPlain': 'Fichier CSV simple', 'export.confirm': 'Exporter {what}',

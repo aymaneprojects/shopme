@@ -13,9 +13,9 @@ const ImageTransformInput = builder.inputType('ImageTransformInput', {
   fields: (t) => ({ maxWidth: t.int(), maxHeight: t.int(), scale: t.int({ defaultValue: 1 }), preferredContentType: t.string() }),
 });
 const FocalPoint = builder.objectRef<{ x: number; y: number }>('ShopmeFocalPoint').implement({ fields: (t) => ({ x: t.exposeFloat('x'), y: t.exposeFloat('y') }) });
-const ImagePresentation = builder.objectRef<{ x: number; y: number } | null>('ShopmeImagePresentation').implement({
+const ImagePresentation = builder.objectRef<{ focal: { x: number; y: number } | null }>('ShopmeImagePresentation').implement({
   description: 'How the storefront crops the image: the focal point (percent of the width and height) becomes its `object-position`.',
-  fields: (t) => ({ focalPoint: t.field({ type: FocalPoint, nullable: true, resolve: (f) => f }) }),
+  fields: (t) => ({ focalPoint: t.field({ type: FocalPoint, nullable: true, resolve: (p) => p.focal }) }),
 });
 export const Image = builder.objectRef<ImageShape>('Image').implement({
   fields: (t) => ({
@@ -24,7 +24,7 @@ export const Image = builder.objectRef<ImageShape>('Image').implement({
     altText: t.exposeString('altText', { nullable: true }),
     width: t.exposeInt('width', { nullable: true }),
     height: t.exposeInt('height', { nullable: true }),
-    shopmePresentation: t.field({ type: ImagePresentation, resolve: (i) => i.focal ?? null }),
+    shopmePresentation: t.field({ type: ImagePresentation, resolve: (i) => ({ focal: i.focal ?? null }) }),
   }),
 });
 
