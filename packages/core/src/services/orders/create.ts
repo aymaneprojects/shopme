@@ -13,7 +13,8 @@ export interface CheckoutAddressInput {
 }
 
 export interface OrderLineInput extends PricingLine {
-  variantId: number;
+  /** Null for custom items (draft orders). */
+  variantId: number | null;
   title: string; variantTitle: string | null; sku: string | null; vendor: string | null;
   imageUrl: string | null; isGiftCard: boolean; properties: Record<string, string>;
 }
@@ -97,6 +98,7 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
         if (!done.length) throw new Abort({ ok: false, error: 'already_completed' });
       }
       for (const a of pricing.discountApplications) {
+        if (a.discountId <= 0) continue; // custom (draft order) discount: no usage counting
         const used = await tx.update(s.discounts).set({ usageCount: sql`${s.discounts.usageCount} + 1` })
           .where(and(eq(s.discounts.id, a.discountId), eq(s.discounts.shopId, shopId), sql`(${s.discounts.usageLimit} is null or ${s.discounts.usageCount} < ${s.discounts.usageLimit})`)).returning({ id: s.discounts.id });
         if (!used.length) throw new Abort({ ok: false, error: 'discount_unavailable' });
@@ -132,14 +134,14 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
       for (const [i, l] of input.lines.entries()) {
         const p = pricing.lines.find((x) => x.id === l.id)!;
         const [row] = await tx.insert(s.orderLines).values({
-          shopId, orderId, position: i, productId: l.productId, variantId: l.variantId, title: l.title, variantTitle: l.variantTitle, sku: l.sku, vendor: l.vendor,
+          shopId, orderId, position: i, productId: l.productId || null, variantId: l.variantId, title: l.title, variantTitle: l.variantTitle, sku: l.sku, vendor: l.vendor,
           quantity: l.quantity, currentQuantity: l.quantity, requiresShipping: l.requiresShipping, taxable: l.taxable, isGiftCard: l.isGiftCard,
           unitPrice: l.unitPrice, discountedTotal: p.total, totalTax: p.tax, weightGrams: l.grams, imageUrl: l.imageUrl, properties: l.properties,
         }).returning({ id: s.orderLines.id });
         lineIds.set(l.id, row!.id);
       }
       const bad: number[] = [];
-      for (const [variantId, quantity] of [...input.lines.reduce((m, l) => m.set(l.variantId, (m.get(l.variantId) ?? 0) + l.quantity), new Map<number, number>())]) {
+      for (const [variantId, quantity] of [...input.lines.reduce((m, l) => (l.variantId == null ? m : m.set(l.variantId, (m.get(l.variantId) ?? 0) + l.quantity)), new Map<number, number>())]) {
         if (!(await commitStock(tx, shopId, variantId, quantity, orderId))) bad.push(variantId);
       }
       if (bad.length) throw new Abort({ ok: false, error: 'out_of_stock', variantIds: bad });
@@ -162,7 +164,7 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
       }
       if (pricing.discountApplications.length) {
         await tx.insert(s.orderDiscountApplications).values(pricing.discountApplications.map((a) => ({
-          shopId, orderId, discountId: a.discountId, code: a.code, title: a.title, valueType: a.valueType, value: a.value, allocatedAmount: a.allocated,
+          shopId, orderId, discountId: a.discountId > 0 ? a.discountId : null, code: a.code, title: a.title, valueType: a.valueType, value: a.value, allocatedAmount: a.allocated,
           targetType: a.target === 'SHIPPING' ? 'SHIPPING_LINE' : 'LINE_ITEM',
         })));
       }

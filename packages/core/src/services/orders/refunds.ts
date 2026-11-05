@@ -18,6 +18,8 @@ export interface RefundInput {
   /** Refund transactions to record (amounts in minor units). Defaults to one transaction for the refund total. */
   transactions?: { amount: number; gateway?: string | null; parentId?: number | null }[] | null;
   allowOverRefunding?: boolean;
+  /** Send the refund notification email. */
+  notifyCustomer?: boolean;
   processedAt?: Date | null;
   staffId?: number | null;
 }
@@ -78,7 +80,7 @@ export async function refundOrder(db: Db, shopId: number, orderId: number, input
       totalRefunded, updatedAt: now,
       ...(received > 0 && { financialStatus: totalRefunded >= order.total ? 'REFUNDED' : 'PARTIALLY_REFUNDED' }),
     }).where(eq(orders.id, orderId)).returning();
-    await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.refunded', message: `Refunded ${total} (minor units)${input.note ? `: ${input.note}` : ''}`, authorStaffUserId: input.staffId, data: { refundId: refund!.id, total } });
+    await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.refunded', message: `Refunded ${total} (minor units)${input.note ? `: ${input.note}` : ''}`, authorStaffUserId: input.staffId, data: { refundId: refund!.id, total, notify: !!input.notifyCustomer } });
     return okR({ order: updated!, refund: { ...refund!, lines: insertedLines, transactions: txRows } });
   });
 }
@@ -86,7 +88,7 @@ export async function refundOrder(db: Db, shopId: number, orderId: number, input
 export const CANCEL_REASONS = ['CUSTOMER', 'DECLINED', 'FRAUD', 'INVENTORY', 'STAFF', 'OTHER'] as const;
 
 export async function cancelOrder(
-  db: Db, shopId: number, id: number, o: { reason: string; restock: boolean; refund?: boolean; staffNote?: string | null; staffId?: number | null },
+  db: Db, shopId: number, id: number, o: { reason: string; restock: boolean; refund?: boolean; staffNote?: string | null; staffId?: number | null; notifyCustomer?: boolean },
 ): Promise<Result<Order>> {
   const cur = await getOrder(db, shopId, id);
   if (!cur) return errR(['orderId'], 'Order does not exist', 'NOT_FOUND');
@@ -108,7 +110,7 @@ export async function cancelOrder(
       cancelledAt: now, closedAt: fresh.closedAt ?? now, cancelReason: o.reason, updatedAt: now,
       ...(unpaid && { financialStatus: 'VOIDED' }), ...(o.restock && d.lines.every((l) => l.fulfilledQuantity === 0) && { fulfillmentStatus: 'RESTOCKED' }),
     }).where(eq(orders.id, id)).returning();
-    await addEvent(tx, shopId, { subjectType: 'order', subjectId: id, verb: 'order.cancelled', message: `Order was cancelled (${o.reason.toLowerCase()})${o.staffNote ? `: ${o.staffNote}` : ''}`, authorStaffUserId: o.staffId, data: { reason: o.reason, restock: o.restock } });
+    await addEvent(tx, shopId, { subjectType: 'order', subjectId: id, verb: 'order.cancelled', message: `Order was cancelled (${o.reason.toLowerCase()})${o.staffNote ? `: ${o.staffNote}` : ''}`, authorStaffUserId: o.staffId, data: { reason: o.reason, restock: o.restock, notify: !!o.notifyCustomer } });
     return okR(row!);
   });
 }

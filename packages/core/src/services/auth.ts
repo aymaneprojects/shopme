@@ -1,11 +1,11 @@
 import { and, eq, gt, isNull, lt, or } from 'drizzle-orm';
 import { hash, verify } from '@node-rs/argon2';
-import { apiTokens, sessions, staffUsers } from '../db/schema';
+import { apiTokens, PERMISSION_AREAS, sessions, staffUsers } from '../db/schema';
 import type { Executor } from '../db/client';
 import { randomToken, sha256 } from './crypto';
 
 export type StaffUser = typeof staffUsers.$inferSelect;
-export type PublicStaffUser = Pick<StaffUser, 'id' | 'shopId' | 'email' | 'firstName' | 'lastName' | 'role'>;
+export type PublicStaffUser = Pick<StaffUser, 'id' | 'shopId' | 'email' | 'firstName' | 'lastName' | 'role'> & { permissions: string[] };
 
 export const SESSION_TTL_MS = 14 * 24 * 3600 * 1000;
 export const MIN_PASSWORD_LENGTH = 8;
@@ -14,7 +14,7 @@ export const hashPassword = (password: string) => hash(password);
 export const verifyPassword = (hashed: string, password: string) => verify(hashed, password).catch(() => false);
 const DUMMY_HASH_PROMISE = hash('shopme-dummy-password');
 
-export const publicStaff = (u: StaffUser): PublicStaffUser => ({ id: u.id, shopId: u.shopId, email: u.email, firstName: u.firstName, lastName: u.lastName, role: u.role });
+export const publicStaff = (u: StaffUser): PublicStaffUser => ({ id: u.id, shopId: u.shopId, email: u.email, firstName: u.firstName, lastName: u.lastName, role: u.role, permissions: u.role === 'staff' ? u.permissions : [...PERMISSION_AREAS] });
 
 export async function createStaffUser(db: Executor, input: { shopId: number; email: string; password: string; firstName?: string | null; lastName?: string | null; role?: 'owner' | 'admin' | 'staff' }) {
   const [row] = await db.insert(staffUsers).values({

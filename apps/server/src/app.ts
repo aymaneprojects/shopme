@@ -9,6 +9,7 @@ import { registerAdminSpa, registerFilesStatic } from './admin/spa';
 import { registerCheckout } from './checkout';
 import type { AppContext } from './context';
 import { registerJobs } from './jobs';
+import { registerOpsRoutes } from './ops-routes';
 import { resolvePaths, type ServerPaths } from './paths';
 import { installOriginCheck } from './plugins/auth';
 import { registerStorefront } from './storefront';
@@ -68,9 +69,10 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   registerAdminSpa(app);
   await registerCheckout(app);
   await registerWebhooks(app);
+  await registerOpsRoutes(app);
   await registerStorefront(app); // last: owns "/" and (later) catch-all storefront routes
-  registerJobs(ctx);
+  const stopEvents = registerJobs(ctx);
 
-  app.addHook('onClose', async () => { await ctx.queue.stop(); });
+  app.addHook('onClose', async () => { stopEvents(); await ctx.queue.stop(); });
   return app;
 }

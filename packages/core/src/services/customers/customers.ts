@@ -143,6 +143,7 @@ export async function deleteCustomer(db: Db, shopId: number, id: number): Promis
   const [o] = await db.select({ n: sql<number>`count(*)::int` }).from(orders).where(and(eq(orders.shopId, shopId), eq(orders.customerId, id)));
   if ((o?.n ?? 0) > 0) return errR(null, "Customer can't be deleted because they have associated orders");
   await db.delete(customers).where(eq(customers.id, id));
+  await addEvent(db, shopId, { subjectType: 'customer', subjectId: id, verb: 'customers/delete', message: 'Customer was deleted' });
   return okR(id);
 }
 

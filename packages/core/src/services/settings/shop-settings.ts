@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { defaultMoneyFormats } from '@shopme/shopify-compat';
-import { orders, shops, staffUsers, WEIGHT_UNITS } from '../../db/schema';
+import { orders, shops, WEIGHT_UNITS } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { errR, okR, type Result } from '../catalog/common';
 import { addEvent } from '../events';
@@ -100,16 +100,4 @@ export async function updatePaymentSettings(db: Db, shopId: number, input: Payme
   if (p.manual.bankTransfer.enabled && !p.manual.bankTransfer.instructions.trim()) return errR(['bankTransfer', 'instructions'], 'Payment instructions are required for bank transfer');
   await db.update(shops).set({ settings: { ...cur.settings, payments: p }, updatedAt: new Date() }).where(eq(shops.id, shopId));
   return okR(p);
-}
-
-/** Staff list for Settings > Users (never includes password hashes). */
-export async function listStaff(db: Executor, shopId: number) {
-  return db.select({ id: staffUsers.id, email: staffUsers.email, firstName: staffUsers.firstName, lastName: staffUsers.lastName, role: staffUsers.role, active: staffUsers.active })
-    .from(staffUsers).where(eq(staffUsers.shopId, shopId)).orderBy(staffUsers.id);
-}
-export type StaffMemberRow = Awaited<ReturnType<typeof listStaff>>[number];
-
-export async function getStaff(db: Executor, shopId: number, id: number): Promise<StaffMemberRow | null> {
-  return (await db.select({ id: staffUsers.id, email: staffUsers.email, firstName: staffUsers.firstName, lastName: staffUsers.lastName, role: staffUsers.role, active: staffUsers.active })
-    .from(staffUsers).where(and(eq(staffUsers.shopId, shopId), eq(staffUsers.id, id))))[0] ?? null;
 }

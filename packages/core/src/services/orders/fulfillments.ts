@@ -69,7 +69,7 @@ export async function createFulfillment(
     }
     const all = d.lines.every((l) => remaining(l) <= 0);
     const [updated] = await tx.update(orders).set({ fulfillmentStatus: all ? 'FULFILLED' : 'PARTIALLY_FULFILLED', updatedAt: new Date() }).where(eq(orders.id, orderId)).returning();
-    await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.fulfilled', message: `Fulfilled ${picks.reduce((s, p) => s + p.quantity, 0)} item(s) (${f!.name})`, authorStaffUserId: o.staffId, data: { fulfillmentId: f!.id } });
+    await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.fulfilled', message: `Fulfilled ${picks.reduce((s, p) => s + p.quantity, 0)} item(s) (${f!.name})`, authorStaffUserId: o.staffId, data: { fulfillmentId: f!.id, notify: !!o.notifyCustomer } });
     return okR({ order: updated!, fulfillment: { ...f!, lines } });
   });
 }
@@ -88,6 +88,6 @@ export async function updateTracking(db: Db, shopId: number, id: number, trackin
     ...(tracking.numbers && { trackingNumbers: tracking.numbers }), ...(tracking.urls && { trackingUrls: tracking.urls }),
     ...(notify != null && { notifyCustomer: notify }), updatedAt: new Date(),
   }).where(eq(fulfillments.id, id)).returning();
-  await addEvent(db, shopId, { subjectType: 'order', subjectId: f.orderId, verb: 'order.tracking_updated', message: `Tracking updated for ${f.name}` });
+  await addEvent(db, shopId, { subjectType: 'order', subjectId: f.orderId, verb: 'order.tracking_updated', message: `Tracking updated for ${f.name}`, data: { fulfillmentId: id, notify: !!notify } });
   return okR({ ...row!, lines: f.lines });
 }
