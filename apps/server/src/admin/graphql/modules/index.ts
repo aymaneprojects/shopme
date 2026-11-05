@@ -22,4 +22,6 @@ import './customers';
 import './discounts';
 import './settings';
 import './content';
+import './blogs';
+import './redirects';
 import './analytics';

@@ -41,6 +41,12 @@
         <span class="visually-hidden">{{ 'header.search' | t }}</span>
         {% render 'icon', name: 'search' %}
       </a>
+      {%- if shop.customer_accounts_enabled -%}
+        <a class="icon-button" href="{{ routes.account_url }}">
+          <span class="visually-hidden">{{ 'header.account' | t }}</span>
+          {% render 'icon', name: 'user' %}
+        </a>
+      {%- endif -%}
       <a class="icon-button cart-link" href="{{ routes.cart_url }}">
         <span class="visually-hidden">{{ 'accessibility.cart_count' | t: count: cart.item_count }}</span>
         {% render 'icon', name: 'cart' %}

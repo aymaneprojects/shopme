@@ -109,7 +109,12 @@ export async function seedDemo(db: Db, storage: Storage, opts: { adminPassword?:
   ] as const;
   await db.insert(s.pages).values(pageDefs.map(([handle, title, bodyHtml]) => ({ shopId, handle, title, bodyHtml, publishedAt: new Date() }))).onConflictDoNothing();
   const [blog] = await db.insert(s.blogs).values({ shopId, handle: 'news', title: 'News' }).onConflictDoNothing().returning();
-  if (blog) await db.insert(s.articles).values({ shopId, blogId: blog.id, handle: 'welcome', title: 'Welcome to Little Leaf', author: 'The Little Leaf team', bodyHtml: '<p>We are open for business. Here is what to expect.</p>', publishedAt: new Date() });
+  if (blog) {
+    await db.insert(s.articles).values([
+      { shopId, blogId: blog.id, handle: 'welcome', title: 'Welcome to Little Leaf', author: 'The Little Leaf team', bodyHtml: '<p>We are open for business. Here is what to expect.</p>', summaryHtml: '<p>We are open for business.</p>', tags: ['news'], publishedAt: new Date(Date.now() - 86400000) },
+      { shopId, blogId: blog.id, handle: 'brewing-guide', title: 'A simple brewing guide', author: 'The Little Leaf team', bodyHtml: '<p>Fresh water, a clean filter and a steady hand: three habits for better coffee.</p>', tags: ['brewing', 'guide'], publishedAt: new Date() },
+    ]);
+  }
 
   const [menu] = await db.insert(s.menus).values({ shopId, handle: 'main-menu', title: 'Main menu' }).onConflictDoNothing().returning();
   if (menu) {

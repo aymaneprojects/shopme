@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { and, eq, ne } from 'drizzle-orm';
-import { safeEqual, schema as s, sha256, type CartView, type Shop } from '@shopme/core';
+import { findRedirect, listArticles, safeEqual, schema as s, sha256, type CartView, type Shop } from '@shopme/core';
 import { formatMoney } from '@shopme/shopify-compat';
 import type { AppContext } from '../context';
 import { authenticate } from '../plugins/auth';
 import { getCollection, getProductByHandle, listCollections, listProducts, loadProducts } from './data/catalog';
 import { getPage, listPages, policiesOf } from './data/content';
+import { flashGlobals, takeFlash } from './flash';
 import type { ProductObject } from './data/types';
 import { buildCollection, buildGlobals, buildSearch, makeEnv, makeResolvers, pageInput, primaryShop, type Env, type Query } from './env';
 import type { ThemeStore } from './theme-store';
@@ -44,7 +45,10 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
   async function renderTemplate(req: FastifyRequest, reply: FastifyReply, env: Env, spec: PageSpec) {
     const loaded = await store.main(env.shop.id);
     const globals = await buildGlobals(env, loaded.themeId, spec.pageType);
-    Object.assign(globals, spec.extra ?? {}, {
+    const query0 = req.query as Query;
+    const fromQuery: Record<string, unknown> = query0.contact_posted === 'true' || query0.customer_posted === 'true'
+      ? { __form_success: { contact: query0.contact_posted === 'true', customer: query0.customer_posted === 'true' } } : {};
+    Object.assign(globals, fromQuery, flashGlobals(takeFlash(req, reply)), spec.extra ?? {}, {
       page_title: escapeHtml(spec.title ? `${spec.title}${spec.title === env.shop.name ? '' : ` - ${env.shop.name}`}` : env.shop.name),
       page_description: spec.description ?? String((env.shop.settings as Record<string, unknown>).description ?? ''),
       handle: spec.pageType,
@@ -71,7 +75,15 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     return reply.code(spec.status ?? 200).header('cache-control', 'no-cache').type('text/html; charset=utf-8').send(html);
   }
 
+  /** 301 for a stored URL redirect (old product, collection, page or blog handles, merchant-defined paths), else the themed 404. */
   async function notFound(req: FastifyRequest, reply: FastifyReply, shop: Shop, env?: Env) {
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      const [rawPath, qs] = req.url.split('?') as [string, string | undefined];
+      let path = rawPath;
+      try { path = decodeURIComponent(rawPath); } catch { /* keep raw */ }
+      const hit = (await findRedirect(db, shop.id, path)) ?? (path.length > 1 && path.endsWith('/') ? await findRedirect(db, shop.id, path.replace(/\/+$/, '')) : null);
+      if (hit) return reply.redirect(hit.target + (qs && !hit.target.includes('?') ? `?${qs}` : ''), 301);
+    }
     const e = env ?? (await makeEnv(ctx, req, shop));
     return renderTemplate(req, reply, e, { template: '404', pageType: '404', title: '404 Not Found', status: 404, suffix: null });
   }
@@ -150,16 +162,16 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     return loadProducts(db, shop.id, ids);
   }
 
+  const withShop = (fn: (req: FastifyRequest, reply: FastifyReply, shop: Shop) => Promise<unknown>) => async (req: FastifyRequest, reply: FastifyReply) => {
+    const shop = await primaryShop(ctx);
+    if (!shop) return reply.code(503).type('text/html; charset=utf-8').send('<!doctype html><meta charset="utf-8"><title>ShopMe</title><body style="font-family:system-ui;max-width:36rem;margin:4rem auto"><h1>Store not set up</h1><p><a href="/admin/">Open the admin</a> to finish setup.</p></body>');
+    return fn(req, reply, shop);
+  };
+
   // ---------------------------------------------------------------------------------------------------------------------
   // Routes
   // ---------------------------------------------------------------------------------------------------------------------
   function register(app: FastifyInstance) {
-    const withShop = (fn: (req: FastifyRequest, reply: FastifyReply, shop: Shop) => Promise<unknown>) => async (req: FastifyRequest, reply: FastifyReply) => {
-      const shop = await primaryShop(ctx);
-      if (!shop) return reply.code(503).type('text/html; charset=utf-8').send('<!doctype html><meta charset="utf-8"><title>ShopMe</title><body style="font-family:system-ui;max-width:36rem;margin:4rem auto"><h1>Store not set up</h1><p><a href="/admin/">Open the admin</a> to finish setup.</p></body>');
-      return fn(req, reply, shop);
-    };
-
     // Password gate: everything except /password, /robots.txt and theme assets redirects to the password page while it is on.
     app.addHook('onRequest', async (req, reply) => {
       const path = req.url.split('?')[0]!;
@@ -281,7 +293,11 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       }
       if (types.includes('collection')) results.collections = term ? (await listCollections(db, shop.id)).filter((c) => c.title.toLowerCase().includes(term.toLowerCase())).slice(0, limit).map((c) => ({ id: c.id, handle: c.handle, title: c.title, url: `/collections/${c.handle}` })) : [];
       if (types.includes('page')) results.pages = term ? (await listPages(db, shop.id)).filter((p) => p.title.toLowerCase().includes(term.toLowerCase())).slice(0, limit).map((p) => ({ id: p.id, handle: p.handle, title: p.title, url: p.url, body: p.content.replace(/<[^>]*>/g, ' ').slice(0, 200) })) : [];
-      if (types.includes('article')) results.articles = [];
+      if (types.includes('article')) {
+        const found = term ? await listArticles(db, shop.id, { query: term, publishedOnly: true, offset: 0, limit }) : [];
+        const blogs = new Map((await db.select({ id: s.blogs.id, handle: s.blogs.handle }).from(s.blogs).where(eq(s.blogs.shopId, shop.id))).map((b) => [b.id, b.handle]));
+        results.articles = found.map((a) => ({ id: a.id, handle: a.handle, title: a.title, author: a.author ?? '', url: `/blogs/${blogs.get(a.blogId)}/${a.handle}`, body: a.bodyHtml.replace(/<[^>]*>/g, ' ').slice(0, 200), published_at: a.publishedAt?.toISOString() ?? null }));
+      }
       return { resources: { results } };
     }
 
@@ -339,19 +355,6 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       return (passwordPage(['Wrong password']) as (r: FastifyRequest, p: FastifyReply) => Promise<unknown>)(req, reply);
     }));
 
-    // --- generated files
-    app.get('/robots.txt', async (_req, reply) => reply.type('text/plain; charset=utf-8').send(`User-agent: *\nDisallow: /admin\nDisallow: /cart\nDisallow: /checkout\nDisallow: /search\nSitemap: ${ctx.config.appUrl}/sitemap.xml\n`));
-    app.get('/sitemap.xml', withShop(async (_req, reply, shop) => {
-      const [prods, cols, pgs] = await Promise.all([
-        db.select({ handle: s.products.handle, updatedAt: s.products.updatedAt }).from(s.products).where(and(eq(s.products.shopId, shop.id), eq(s.products.status, 'ACTIVE'))),
-        listCollections(db, shop.id), listPages(db, shop.id),
-      ]);
-      const origin = ctx.config.appUrl;
-      const u = (loc: string, d?: Date | string | null) => `<url><loc>${origin}${loc}</loc>${d ? `<lastmod>${new Date(d).toISOString()}</lastmod>` : ''}</url>`;
-      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${u('/')}${cols.map((c) => u(`/collections/${c.handle}`)).join('')}${prods.map((p) => u(`/products/${p.handle}`, p.updatedAt)).join('')}${pgs.map((p) => u(p.url, p.updated_at)).join('')}</urlset>`;
-      return reply.type('application/xml; charset=utf-8').send(xml);
-    }));
-
     // --- theme assets
     app.get('/cdn/shop/t/:themeId/assets/*', async (req, reply) => {
       const { themeId, '*': name } = req.params as { themeId: string; '*': string };
@@ -367,5 +370,5 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     app.get('/*', withShop(async (req, reply, shop) => notFound(req, reply, shop)));
   }
 
-  return { register, renderSections };
+  return { register, renderSections, renderTemplate, notFound, withShop };
 }

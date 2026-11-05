@@ -22,11 +22,13 @@
     "page_not_found_text": "La page que vous cherchez n'existe pas ou a été déplacée.",
     "back_to_store": "Retour à la boutique",
     "empty_collections": "Aucune collection pour le moment.",
-    "no_products": "Aucun produit trouvé."
+    "no_products": "Aucun produit trouvé.",
+    "date_format": "%d/%m/%Y"
   },
   "header": {
     "cart": "Panier",
-    "search": "Recherche"
+    "search": "Recherche",
+    "account": "Compte"
   },
   "products": {
     "add_to_cart": "Ajouter au panier",
@@ -65,6 +67,7 @@
     "subtotal": "Sous-total",
     "note": "Note de commande",
     "taxes_shipping": "Taxes et frais de livraison calculés à la commande.",
+    "discount": "Réduction",
     "checkout": "Commander",
     "update": "Mettre à jour",
     "decrease": "Diminuer la quantité de {{ title }}",
@@ -89,5 +92,124 @@
   },
   "footer": {
     "menu": "Menu du pied de page"
+  },
+  "customer": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "register": "Créer un compte",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "password_confirmation": "Confirmer le mot de passe",
+    "first_name": "Prénom",
+    "last_name": "Nom",
+    "login_page": {
+      "title": "Connexion",
+      "forgot": "Mot de passe oublié ?",
+      "submit": "Se connecter",
+      "no_account": "Nouveau client ?"
+    },
+    "register_page": {
+      "title": "Créer un compte",
+      "submit": "Créer mon compte",
+      "have_account": "Vous avez déjà un compte ?",
+      "marketing": "Recevoir les actualités et offres par e-mail"
+    },
+    "recover": {
+      "title": "Réinitialiser votre mot de passe",
+      "text": "Saisissez votre e-mail : nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+      "submit": "Envoyer l'e-mail",
+      "cancel": "Annuler",
+      "success": "Si un compte existe pour cette adresse e-mail, nous vous avons envoyé un message avec un lien pour continuer."
+    },
+    "reset": {
+      "title": "Choisir un nouveau mot de passe",
+      "submit": "Enregistrer le mot de passe"
+    },
+    "activate": {
+      "title": "Activer votre compte",
+      "text": "Choisissez un mot de passe pour activer votre compte.",
+      "submit": "Activer le compte"
+    },
+    "account_page": {
+      "title": "Mon compte",
+      "welcome": "Bonjour {{ name }}",
+      "order_history": "Historique des commandes",
+      "no_orders": "Vous n'avez pas encore passé de commande.",
+      "details": "Détails du compte",
+      "view_addresses": "Voir les adresses ({{ count }})",
+      "default_address": "Adresse par défaut",
+      "order": "Commande",
+      "date": "Date",
+      "payment_status": "Paiement",
+      "fulfillment_status": "Expédition",
+      "total": "Total"
+    },
+    "order_page": {
+      "title": "Commande {{ name }}",
+      "placed_on": "Passée le {{ date }}",
+      "cancelled": "Annulée le {{ date }}",
+      "product": "Produit",
+      "sku": "Référence",
+      "price": "Prix",
+      "quantity": "Quantité",
+      "total": "Total",
+      "subtotal": "Sous-total",
+      "discount": "Réduction",
+      "shipping": "Livraison",
+      "taxes": "Taxes",
+      "order_total": "Total",
+      "billing_address": "Adresse de facturation",
+      "shipping_address": "Adresse de livraison",
+      "shipments": "Expéditions",
+      "tracking": "Suivi",
+      "back": "Retour au compte"
+    },
+    "addresses": {
+      "title": "Adresses",
+      "add": "Ajouter une adresse",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "save": "Enregistrer l'adresse",
+      "default": "Par défaut",
+      "set_default": "Définir comme adresse par défaut",
+      "company": "Société",
+      "address1": "Adresse",
+      "address2": "Appartement, bâtiment, etc.",
+      "city": "Ville",
+      "country": "Pays/région",
+      "province": "État/province",
+      "zip": "Code postal",
+      "phone": "Téléphone",
+      "confirm_delete": "Supprimer cette adresse ?",
+      "none": "Aucune adresse enregistrée.",
+      "back": "Retour au compte"
+    }
+  },
+  "blog": {
+    "read_more": "Lire la suite",
+    "by": "Par {{ author }}",
+    "published": "Publié le {{ date }}",
+    "tags": "Étiquettes",
+    "all": "Tous",
+    "no_articles": "Aucun article pour le moment.",
+    "next": "Article suivant",
+    "previous": "Article précédent",
+    "back": "Retour à {{ blog }}",
+    "feed": "Flux Atom"
+  },
+  "contact": {
+    "title": "Nous contacter",
+    "name": "Nom",
+    "email": "E-mail",
+    "phone": "Téléphone (facultatif)",
+    "message": "Message",
+    "submit": "Envoyer",
+    "success": "Merci de nous avoir contactés. Nous vous répondrons dès que possible."
+  },
+  "newsletter": {
+    "title": "Restons en contact",
+    "label": "Adresse e-mail",
+    "submit": "S'abonner",
+    "success": "Merci pour votre inscription !"
   }
 }

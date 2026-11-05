@@ -1,0 +1,85 @@
+{%- assign date_format = 'general.date_format' | t -%}
+{%- assign placed = order.created_at | date: date_format -%}
+{%- assign cancelled_on = order.cancelled_at | date: date_format -%}
+<div class="page-width section-pad customer">
+  <div class="section-head">
+    <h1 class="page-title">{{ 'customer.order_page.title' | t: name: order.name }}</h1>
+    <a class="link-arrow" href="{{ routes.account_url }}">{{ 'customer.order_page.back' | t }}</a>
+  </div>
+  <p>{{ 'customer.order_page.placed_on' | t: date: placed }}</p>
+  {%- if order.cancelled -%}
+    <p class="form-errors" role="status">{{ 'customer.order_page.cancelled' | t: date: cancelled_on }}{% if order.cancel_reason_label %} ({{ order.cancel_reason_label }}){% endif %}</p>
+  {%- endif -%}
+  <p>{{ 'customer.account_page.payment_status' | t }}: <strong>{{ order.financial_status_label }}</strong> &middot; {{ 'customer.account_page.fulfillment_status' | t }}: <strong>{{ order.fulfillment_status_label }}</strong></p>
+
+  <table class="customer__table">
+    <thead>
+      <tr>
+        <th scope="col">{{ 'customer.order_page.product' | t }}</th>
+        <th scope="col">{{ 'customer.order_page.sku' | t }}</th>
+        <th scope="col" class="customer__num">{{ 'customer.order_page.price' | t }}</th>
+        <th scope="col" class="customer__num">{{ 'customer.order_page.quantity' | t }}</th>
+        <th scope="col" class="customer__num">{{ 'customer.order_page.total' | t }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {%- for line in order.line_items -%}
+        <tr>
+          <th scope="row">
+            {%- if line.url -%}<a href="{{ line.url }}">{{ line.product_title | escape }}</a>{%- else -%}{{ line.product_title | escape }}{%- endif -%}
+            {%- if line.variant_title != blank -%}<br><span class="customer__muted">{{ line.variant_title | escape }}</span>{%- endif -%}
+          </th>
+          <td>{{ line.sku | escape }}</td>
+          <td class="customer__num">{{ line.final_price | money }}</td>
+          <td class="customer__num">{{ line.quantity }}</td>
+          <td class="customer__num">{{ line.final_line_price | money }}</td>
+        </tr>
+      {%- endfor -%}
+    </tbody>
+    <tfoot>
+      <tr><th scope="row" colspan="4">{{ 'customer.order_page.subtotal' | t }}</th><td class="customer__num">{{ order.subtotal_price | money }}</td></tr>
+      {%- if order.total_discounts > 0 -%}
+        <tr><th scope="row" colspan="4">{{ 'customer.order_page.discount' | t }}</th><td class="customer__num">-{{ order.total_discounts | money }}</td></tr>
+      {%- endif -%}
+      {%- for method in order.shipping_methods -%}
+        <tr><th scope="row" colspan="4">{{ 'customer.order_page.shipping' | t }} ({{ method.title | escape }})</th><td class="customer__num">{{ method.price | money }}</td></tr>
+      {%- endfor -%}
+      {%- if order.tax_price > 0 -%}
+        <tr><th scope="row" colspan="4">{{ 'customer.order_page.taxes' | t }}</th><td class="customer__num">{{ order.tax_price | money }}</td></tr>
+      {%- endif -%}
+      <tr><th scope="row" colspan="4">{{ 'customer.order_page.order_total' | t }}</th><td class="customer__num"><strong>{{ order.total_price | money_with_currency }}</strong></td></tr>
+    </tfoot>
+  </table>
+
+  <div class="customer__layout">
+    {%- if order.shipping_address -%}
+      <section>
+        <h2>{{ 'customer.order_page.shipping_address' | t }}</h2>
+        <p>{{ order.shipping_address.name | escape }}<br>{{ order.shipping_address.street | escape }}<br>{{ order.shipping_address.zip | escape }} {{ order.shipping_address.city | escape }}<br>{{ order.shipping_address.country | escape }}</p>
+      </section>
+    {%- endif -%}
+    {%- if order.billing_address -%}
+      <section>
+        <h2>{{ 'customer.order_page.billing_address' | t }}</h2>
+        <p>{{ order.billing_address.name | escape }}<br>{{ order.billing_address.street | escape }}<br>{{ order.billing_address.zip | escape }} {{ order.billing_address.city | escape }}<br>{{ order.billing_address.country | escape }}</p>
+      </section>
+    {%- endif -%}
+  </div>
+
+  {%- if order.fulfillments.size > 0 -%}
+    <h2>{{ 'customer.order_page.shipments' | t }}</h2>
+    <ul class="customer__list">
+      {%- for f in order.fulfillments -%}
+        <li>{{ f.name | escape }}{% if f.tracking_company != blank %} &middot; {{ f.tracking_company | escape }}{% endif %}
+          {%- if f.tracking_number != blank %} &middot; {{ 'customer.order_page.tracking' | t }}:
+            {%- if f.tracking_url != blank %} <a href="{{ f.tracking_url }}" rel="noopener">{{ f.tracking_number | escape }}</a>{% else %} {{ f.tracking_number | escape }}{% endif -%}
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+    </ul>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{ "name": "Order", "tag": "section", "settings": [] }
+{% endschema %}

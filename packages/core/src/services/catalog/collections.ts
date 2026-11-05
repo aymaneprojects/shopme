@@ -3,6 +3,7 @@ import { currencyExponent } from '@shopme/shopify-compat';
 import { collectionProducts, collectionRules, collections, inventoryItems, inventoryLevels, media, productVariants, products, shops } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { slugify, uniqueHandle } from '../handle';
+import { redirectPathChange } from '../content/redirects';
 import { WEIGHT_KG, emit, errR, okR, txResult, type Result } from './common';
 import { buildSearch, dateCompare, idTerm, likeCi } from './search';
 import { deleteMetafieldsFor, setMetafieldsTx, type MetafieldSetInput } from './metafields';
@@ -280,6 +281,7 @@ export async function updateCollection(db: Db, shopId: number, id: number, input
       ...(rules && { isSmart: true, rulesAppliedDisjunctively: input.ruleSet!.appliedDisjunctively }),
       updatedAt: new Date(),
     }).where(and(eq(collections.shopId, shopId), eq(collections.id, id))).returning();
+    if (handle !== cur.handle) await redirectPathChange(tx, shopId, `/collections/${cur.handle}`, `/collections/${handle}`);
     if (rules) {
       await replaceRules(tx, shopId, id, rules);
       await tx.delete(collectionProducts).where(eq(collectionProducts.collectionId, id));

@@ -1,13 +1,24 @@
 import { lazyList, type PageInput, type ResourceResolvers } from '@shopme/liquid-compat';
-import { getPrimaryShop, getCartByToken, type CartView, type Db, type Shop } from '@shopme/core';
+import { getPrimaryShop, getCartByToken, priceCartDiscounts, resolveCustomerSession, type CartView, type Customer, type Db, type Shop } from '@shopme/core';
 import type { FastifyRequest } from 'fastify';
 import type { AppContext } from '../context';
 import { getCollection, getProductByHandle, listCollections, listProducts, loadProducts, SORT_KEYS, defaultSort, type CollectionBase, type FilterGroup, type SortKey } from './data/catalog';
+import { countryOptions } from '../checkout/geo';
+import { buildBlog, getBlog, getPublishedArticle, listBlogHandles } from './data/blogs';
 import { getPage, listMenus, listPages, type LinklistObject } from './data/content';
+import { buildCustomer } from './data/customer';
 import type { ProductObject } from './data/types';
 import { lazyMap, liquidCart, localizationObject, requestObject, routesObject, shopObject } from './objects';
 
 export const CART_COOKIE = 'cart';
+export const CUSTOMER_COOKIE = 'shopme_customer';
+
+/** The signed-in storefront customer of a request (signed session cookie), or null. */
+export async function customerOf(ctx: AppContext, req: FastifyRequest, shop: Shop): Promise<Customer | null> {
+  const raw = req.cookies[CUSTOMER_COOKIE];
+  const un = raw ? req.unsignCookie(raw) : null;
+  return un?.valid && un.value ? resolveCustomerSession(ctx.db, shop.id, un.value) : null;
+}
 
 export type Query = Record<string, string | string[] | undefined>;
 
@@ -20,12 +31,13 @@ export interface Env {
   path: string;
   query: Query;
   cart: CartView | null;
+  customer: Customer | null;
 }
 
 export async function makeEnv(ctx: AppContext, req: FastifyRequest, shop: Shop, path?: string): Promise<Env> {
   const token = req.cookies[CART_COOKIE];
   const cart = token ? await getCartByToken(ctx.db, shop.id, token.split('?')[0]!.split('%3F')[0]!) : null;
-  return { ctx, db: ctx.db, shop, origin: ctx.config.appUrl, path: path ?? req.url.split('?')[0]!, query: req.query as Query, cart };
+  return { ctx, db: ctx.db, shop, origin: ctx.config.appUrl, path: path ?? req.url.split('?')[0]!, query: req.query as Query, cart, customer: await customerOf(ctx, req, shop) };
 }
 
 export async function primaryShop(ctx: AppContext): Promise<Shop | null> { return getPrimaryShop(ctx.db); }
@@ -111,7 +123,10 @@ export async function buildSearch(env: Env, q: string) {
 /** Request-wide Liquid globals (everything except the page's own resource). */
 export async function buildGlobals(env: Env, themeId: number, pageType: string): Promise<Record<string, unknown>> {
   const { db, shop } = env;
-  const [menus, pages, cols] = await Promise.all([listMenus(db, shop.id, env.path), listPages(db, shop.id), listCollections(db, shop.id)]);
+  const [menus, pages, cols, blogRows, pricing, customer] = await Promise.all([
+    listMenus(db, shop.id, env.path), listPages(db, shop.id), listCollections(db, shop.id), listBlogHandles(db, shop.id),
+    env.cart ? priceCartDiscounts(db, shop.id, env.cart, env.customer?.email ?? null) : null, env.customer ? buildCustomer(db, shop, env.customer) : null,
+  ]);
   const linklists: Record<string, LinklistObject> = {};
   for (const m of menus) { linklists[m.handle] = m; linklists[m.handle.replace(/-/g, '_')] = m; }
   const colLight = cols.map((c) => ({ id: c.id, handle: c.handle, title: c.title, url: `/collections/${c.handle}`, description: c.description, image: c.image, featured_image: c.image, products_count: c.productsCount, all_products_count: c.productsCount }));
@@ -119,9 +134,11 @@ export async function buildGlobals(env: Env, themeId: number, pageType: string):
   const origin = env.origin;
   const request = requestObject(shop, origin, env.path, pageType);
   return {
-    shop: shopObject(shop, origin, { products: 0, collections: cols.length }), request, routes: routesObject(), localization: localizationObject(shop), cart: liquidCart(env.cart, shop),
+    shop: shopObject(shop, origin, { products: 0, collections: cols.length }), request, routes: routesObject(), localization: localizationObject(shop), cart: liquidCart(env.cart, shop, pricing),
     linklists, pages: lazyMap(pages.map((p) => p.handle), async (h) => pages.find((p) => p.handle === h) ?? null), collections,
-    all_products: lazyMap(true, async (h) => getProductByHandle(db, shop.id, h), {}), customer: null, theme: { id: themeId, name: 'Aurora', role: 'main' },
+    all_products: lazyMap(true, async (h) => getProductByHandle(db, shop.id, h), {}), customer, blogs: lazyMap(blogRows.map((b) => b.handle), async (h) => { const b = blogRows.find((x) => x.handle === h); return b ? buildBlog(db, shop.id, b) : null; }),
+    articles: lazyMap(true, async (key) => { const [bh, ah] = key.split(/[/.]/); const b = bh ? await getBlog(db, shop.id, bh) : null; const a = b && ah ? await getPublishedArticle(db, shop.id, b, ah) : null; return a ?? null; }, {}),
+    all_country_option_tags: countryOptions(null, shop.locale).map((c) => `<option value="${c.code}" data-provinces="[]">${c.name.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</option>`).join(''), theme: { id: themeId, name: 'Aurora', role: 'main' },
     canonical_url: origin + env.path, page_title: '', page_description: '', current_page: 1, current_tags: [], powered_by_link: '<a href="https://github.com/" rel="nofollow">Powered by ShopMe</a>',
     additional_checkout_buttons: false, content_for_additional_checkout_buttons: '', handle: '',
   };

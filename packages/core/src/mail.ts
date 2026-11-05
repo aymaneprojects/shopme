@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-export interface Mail { to: string; subject: string; text: string; html?: string }
+export interface Mail { to: string; subject: string; text: string; html?: string; replyTo?: string }
 export interface Mailer { send(mail: Mail): Promise<void> }
 interface Logger { info(obj: unknown, msg?: string): void }
 

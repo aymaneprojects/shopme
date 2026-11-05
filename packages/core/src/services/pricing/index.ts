@@ -71,7 +71,11 @@ export interface PricingInput {
 
 export interface PricedLine { id: number; subtotal: number; discount: number; /** After discounts (tax included when taxesIncluded). */ total: number; tax: number }
 export interface TaxLine { title: string; rate: number; price: number; lineId: number | null; shipping: boolean }
-export interface DiscountApplication { discountId: number; code: string | null; title: string; valueType: 'PERCENTAGE' | 'FIXED_AMOUNT'; value: number; target: PricingDiscount['target']; allocated: number }
+export interface DiscountApplication {
+  discountId: number; code: string | null; title: string; valueType: 'PERCENTAGE' | 'FIXED_AMOUNT'; value: number; target: PricingDiscount['target']; allocated: number;
+  /** Share of `allocated` taken from each priced line (empty for shipping discounts). */
+  lineAllocations: { lineId: number; amount: number }[];
+}
 
 export interface PricingResult {
   lines: PricedLine[];
@@ -147,6 +151,7 @@ export function priceCheckout(input: PricingInput): PricingResult {
 
   for (const d of input.discounts) {
     let allocated = 0;
+    const lineAllocations: DiscountApplication['lineAllocations'] = [];
     if (d.target === 'SHIPPING') {
       allocated = input.shipping ? amountFor(d, shippingPrice - shippingDiscount) : 0;
       shippingDiscount += allocated;
@@ -155,9 +160,9 @@ export function priceCheckout(input: PricingInput): PricingResult {
       const base = idx.reduce((a, i) => a + remaining[i]!, 0);
       allocated = amountFor(d, base);
       const split = allocate(allocated, idx.map((i) => remaining[i]!));
-      idx.forEach((i, k) => { remaining[i]! -= split[k]!; perLineDiscount[i]! += split[k]!; });
+      idx.forEach((i, k) => { remaining[i]! -= split[k]!; perLineDiscount[i]! += split[k]!; if (split[k]! > 0) lineAllocations.push({ lineId: lines[i]!.id, amount: split[k]! }); });
     }
-    applications.push({ discountId: d.id, code: d.code, title: d.title, valueType: d.valueType, value: d.value, target: d.target, allocated });
+    applications.push({ discountId: d.id, code: d.code, title: d.title, valueType: d.valueType, value: d.value, target: d.target, allocated, lineAllocations });
   }
 
   const rates = input.taxExempt ? [] : applicableTaxRates(input.taxRates, input.country, input.province);

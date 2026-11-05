@@ -115,11 +115,16 @@ class FormTag extends Tag {
     const resource = pos[1] as any;
     const id = hash.id ?? `${type}-form`;
     const { id: _i, class: cls, ...rest } = hash;
-    const action = FORM_ACTIONS[type] ?? String(pos[1] ?? '/');
+    const hostAction = (ctx.getSync(['__form_actions']) as Record<string, string> | undefined)?.[type];
+    const action = hostAction ?? (type === 'customer_address' && resource?.id ? `/account/addresses/${resource.id}` : FORM_ACTIONS[type] ?? String(pos[1] ?? '/'));
     const extra: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(rest)) extra[k.replace(/_/g, '-')] = v;
-    const formErrors = ctx.getSync(['__form_errors', type]) as string[] | undefined;
-    const form = { id, errors: formErrors ?? (null as string[] | null), posted_successfully: false, 'posted_successfully?': false, ...(type === 'product' && resource ? { product_id: resource.id } : {}) };
+    // Host-provided state: `__form_errors[type]` (string[] or { field: message }), `__form_success[type]`, `__form_values[type]` (re-filled inputs).
+    const rawErrors = ctx.getSync(['__form_errors', type]) as string[] | Record<string, string> | null | undefined;
+    const errors = !rawErrors ? null : Array.isArray(rawErrors) ? rawErrors : Object.assign(Object.keys(rawErrors), { messages: rawErrors, translated_fields: Object.fromEntries(Object.keys(rawErrors).map((k) => [k, k])) });
+    const ok = ctx.getSync(['__form_success', type]) === true;
+    const values = (ctx.getSync(['__form_values', type]) ?? {}) as Record<string, unknown>;
+    const form = { ...values, id, errors, posted_successfully: ok, 'posted_successfully?': ok, ...(type === 'product' && resource ? { product_id: resource.id } : {}) };
     ctx.push({ form });
     try {
       const inner = (yield this.liquid.renderer.renderTemplates(this.templates, ctx)) as string;

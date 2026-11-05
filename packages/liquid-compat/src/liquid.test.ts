@@ -115,6 +115,16 @@ describe('tags', () => {
     expect(out.endsWith('f1</form>')).toBe(true);
     expect(await liquid("{% form 'localization' %}x{% endform %}")).toContain('action="/localization"');
   });
+  it('form takes host-provided errors, success, values and actions (account and contact forms)', async () => {
+    const src = "{% form 'customer_login' %}{{ form.errors.size }}|{{ form.errors.messages.form }}|{{ form.email }}|{{ form.posted_successfully? }}|{{ form.errors | default_errors }}{% endform %}";
+    const out = await liquid(src, { __form_errors: { customer_login: { form: 'Bad <login>' } }, __form_values: { customer_login: { email: 'a@b.c' } } });
+    expect(out).toContain('action="/account/login"');
+    expect(out).toContain('1|Bad <login>|a@b.c|false|<div class="errors"><ul><li>Bad &lt;login&gt;</li></ul></div>');
+    expect(await liquid("{% form 'recover_customer_password' %}{% if form.posted_successfully? %}sent{% endif %}{% if form.errors %}err{% endif %}{% endform %}", { __form_success: { recover_customer_password: true } })).toContain('>sent</form>');
+    expect(await liquid("{% form 'reset_customer_password' %}x{% endform %}", { __form_actions: { reset_customer_password: '/account/reset/5/tok' } })).toContain('action="/account/reset/5/tok"');
+    expect(await liquid("{% form 'customer_address', address %}x{% endform %}", { address: { id: 9 } })).toContain('action="/account/addresses/9"');
+    expect(await liquid("{% form 'customer_address', address %}x{% endform %}", { address: { id: 0 } })).toContain('action="/account/addresses"');
+  });
   it('paginate slices arrays, builds the paginate object and links', async () => {
     const products = Array.from({ length: 25 }, (_, i) => i + 1);
     const src = '{% paginate c.products by 10 %}{% for p in c.products %}{{ p }},{% endfor %}|{{ paginate.current_page }}/{{ paginate.pages }}|{{ paginate.items }}|{{ paginate.next.url }}|{{ paginate.previous.url }}{% endpaginate %}';

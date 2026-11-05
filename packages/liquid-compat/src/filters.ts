@@ -124,7 +124,11 @@ export function registerFilters(l: Liquid): void {
   reg('customer_logout_link', (v) => `<a href="/account/logout" id="customer_logout_link">${str(v)}</a>`);
   reg('customer_register_link', (v) => `<a href="/account/register" id="customer_register_link">${str(v)}</a>`);
   reg('default_pagination', (v, ...a) => paginationHtml(v, splitArgs(a).named));
-  reg('default_errors', (v) => (Array.isArray(v) && v.length ? `<div class="errors"><ul>${v.map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul></div>` : ''));
+  reg('default_errors', (v: any) => {
+    const m = (v as { messages?: Record<string, string> } | null)?.messages;
+    const list: string[] = Array.isArray(v) ? (m ? Object.values(m) : v) : [];
+    return list.length ? `<div class="errors"><ul>${list.map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul></div>` : '';
+  });
 
   // --- money
   reg('money', function (v) { return formatMoney(rtOf(this.context), v, 'plain'); });

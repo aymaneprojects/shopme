@@ -5,7 +5,7 @@ import type { Shop } from '../shops';
 import { loadCartView, type CartLineView, type CartView } from '../cart/service';
 import { createOrder, type CheckoutAddressInput, type CreateOrderResult } from '../orders/create';
 import {
-  matchShippingRates, priceCheckout, type PricingDiscount, type PricingInput, type PricingLine, type PricingResult, type PricingShippingRate, type PricingTaxRate,
+  matchShippingRates, priceCheckout, type DiscountApplication, type PricingDiscount, type PricingInput, type PricingLine, type PricingResult, type PricingShippingRate, type PricingTaxRate,
 } from '../pricing';
 
 /** A checkout is the cart row plus the buyer's details (email, address, chosen shipping rate, discount codes). */
@@ -157,6 +157,24 @@ async function collectionsOf(db: Executor, shopId: number, productIds: number[])
 async function cartRowByToken(db: Executor, shopId: number, token: string) {
   const [c] = await db.select().from(s.carts).where(and(eq(s.carts.shopId, shopId), eq(s.carts.token, token))).limit(1);
   return c ?? null;
+}
+
+export interface CartDiscounts {
+  /** Applications visible in the cart (product and order discounts; shipping discounts need an address and show at checkout). */
+  applications: DiscountApplication[];
+  rejected: { code: string; reason: DiscountRejection }[];
+  /** Sum of all applications (line level and cart level). */
+  totalDiscount: number;
+}
+
+/** Discounts as the cart shows them (Ajax `/cart.js`, Liquid `cart`): same evaluation and allocation as checkout, without address, shipping or tax. */
+export async function priceCartDiscounts(db: Executor, shopId: number, cart: CartView, email: string | null = null): Promise<CartDiscounts> {
+  if (!cart.lines.length) return { applications: [], rejected: [], totalDiscount: 0 };
+  const lines = toPricingLines(cart.lines, await collectionsOf(db, shopId, [...new Set(cart.lines.map((l) => l.productId))]));
+  const { applied, rejected } = await evaluateDiscounts(db, shopId, cart.discountCodes, { lines, email });
+  const r = priceCheckout({ lines, discounts: applied.filter((d) => d.target !== 'SHIPPING'), shipping: null, taxRates: [], taxesIncluded: false, country: null, province: null });
+  const applications = r.discountApplications.filter((a) => a.allocated > 0);
+  return { applications, rejected, totalDiscount: applications.reduce((n, a) => n + a.allocated, 0) };
 }
 
 /** Everything the checkout page needs, priced. Null when the token is unknown. */

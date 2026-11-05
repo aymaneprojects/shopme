@@ -1,0 +1,39 @@
+{%- assign date_format = 'general.date_format' | t -%}
+<article class="page-width page-width--narrow section-pad article">
+  <p class="article__back"><a class="link-arrow" href="{{ blog.url }}">{{ 'blog.back' | t: blog: blog.title }}</a></p>
+  <h1 class="page-title">{{ article.title | escape }}</h1>
+  <p class="article__meta">
+    {{ 'blog.published' | t: date: article.published_at | date: date_format }}
+    {%- if section.settings.show_author and article.author != blank %} &middot; {{ 'blog.by' | t: author: article.author }}{% endif -%}
+  </p>
+  {%- if article.image -%}
+    <div class="article__image">{{ article.image | image_url: width: 1200 | image_tag: alt: article.image.alt, loading: 'eager' }}</div>
+  {%- endif -%}
+  <div class="rte">{{ article.content }}</div>
+
+  {%- if article.tags.size > 0 -%}
+    <p class="article__tags">
+      {%- for tag in article.tags -%}
+        <a class="chip" href="{{ blog.url }}/tagged/{{ tag | handle }}">{{ tag | escape }}</a>
+      {%- endfor -%}
+    </p>
+  {%- endif -%}
+
+  {%- if section.settings.show_navigation and blog.previous_article or blog.next_article -%}
+    <nav class="article__nav" aria-label="{{ blog.title | escape }}">
+      {%- if blog.previous_article -%}<a href="{{ blog.previous_article.url }}" rel="prev">&larr; {{ 'blog.previous' | t }}: {{ blog.previous_article.title | escape }}</a>{%- endif -%}
+      {%- if blog.next_article -%}<a href="{{ blog.next_article.url }}" rel="next">{{ 'blog.next' | t }}: {{ blog.next_article.title | escape }} &rarr;</a>{%- endif -%}
+    </nav>
+  {%- endif -%}
+</article>
+
+{% schema %}
+{
+  "name": "Article",
+  "tag": "section",
+  "settings": [
+    { "type": "checkbox", "id": "show_author", "label": "Show author", "default": true },
+    { "type": "checkbox", "id": "show_navigation", "label": "Show previous and next links", "default": true }
+  ]
+}
+{% endschema %}

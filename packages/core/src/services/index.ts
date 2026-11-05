@@ -15,6 +15,7 @@ export * from './payments-runtime';
 export * from './orders/create';
 export * from './orders';
 export * from './customers';
+export * from './accounts';
 export * from './discounts';
 export * from './settings';
 export * from './content';

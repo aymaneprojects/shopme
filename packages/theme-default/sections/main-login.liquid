@@ -1,0 +1,48 @@
+<div class="page-width page-width--narrow section-pad customer">
+  <section class="customer__recover" id="recover" aria-labelledby="recover-title">
+    <h1 class="page-title" id="recover-title">{{ 'customer.recover.title' | t }}</h1>
+    {%- form 'recover_customer_password', class: 'customer__form' -%}
+      {%- if form.posted_successfully? -%}
+        <p class="form-success" role="status">{{ 'customer.recover.success' | t }}</p>
+      {%- endif -%}
+      {%- if form.errors -%}
+        <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+      {%- endif -%}
+      <p>{{ 'customer.recover.text' | t }}</p>
+      <div class="field">
+        <label for="RecoverEmail">{{ 'customer.email' | t }}</label>
+        <input id="RecoverEmail" type="email" name="email" autocomplete="email" autocapitalize="off" required>
+      </div>
+      <div class="customer__actions">
+        <button class="button" type="submit">{{ 'customer.recover.submit' | t }}</button>
+        <a href="#login">{{ 'customer.recover.cancel' | t }}</a>
+      </div>
+    {%- endform -%}
+  </section>
+
+  <section class="customer__login" id="login" aria-labelledby="login-title">
+    <h1 class="page-title" id="login-title">{{ 'customer.login_page.title' | t }}</h1>
+    {%- form 'customer_login', class: 'customer__form' -%}
+      {%- if form.errors -%}
+        <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+      {%- endif -%}
+      <div class="field">
+        <label for="CustomerEmail">{{ 'customer.email' | t }}</label>
+        <input id="CustomerEmail" type="email" name="customer[email]" value="{{ form.email | escape }}" autocomplete="email" autocapitalize="off" required>
+      </div>
+      <div class="field">
+        <label for="CustomerPassword">{{ 'customer.password' | t }}</label>
+        <input id="CustomerPassword" type="password" name="customer[password]" autocomplete="current-password" required>
+      </div>
+      <div class="customer__actions">
+        <button class="button" type="submit">{{ 'customer.login_page.submit' | t }}</button>
+        <a href="#recover">{{ 'customer.login_page.forgot' | t }}</a>
+      </div>
+    {%- endform -%}
+    <p class="customer__alt">{{ 'customer.login_page.no_account' | t }} <a href="{{ routes.account_register_url }}">{{ 'customer.register' | t }}</a></p>
+  </section>
+</div>
+
+{% schema %}
+{ "name": "Login", "tag": "section", "settings": [] }
+{% endschema %}
