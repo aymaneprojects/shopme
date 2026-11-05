@@ -5,7 +5,7 @@ export const CUSTOMER_FIELDS: readonly QueryField[] = [
   { key: 'email', kind: 'text' }, { key: 'first_name', kind: 'text' }, { key: 'last_name', kind: 'text' }, { key: 'phone', kind: 'text' }, { key: 'id', kind: 'number' },
   { key: 'tag', kind: 'text' }, { key: 'country', kind: 'text' }, { key: 'language', kind: 'text' }, { key: 'orders_count', kind: 'number' }, { key: 'amount_spent', kind: 'number' },
   { key: 'accepts_marketing', kind: 'bool' }, { key: 'verified_email', kind: 'bool' }, { key: 'tax_exempt', kind: 'bool' }, { key: 'company', kind: 'text' },
-  { key: 'email_subscription', kind: 'enum', values: ['subscribed', 'not_subscribed', 'pending', 'unsubscribed'] }, { key: 'sms_subscription', kind: 'enum', values: ['subscribed', 'not_subscribed', 'pending', 'unsubscribed'] },
+  { key: 'email_subscription', kind: 'enum', values: ['subscribed', 'not_subscribed', 'pending', 'unsubscribed'] }, { key: 'sms_subscription', kind: 'enum', values: ['subscribed', 'not_subscribed', 'pending', 'unsubscribed'] }, { key: 'whatsapp_subscription', kind: 'enum', values: ['subscribed', 'not_subscribed', 'unsubscribed'] },
   { key: 'state', kind: 'enum', values: ['disabled', 'invited', 'enabled', 'declined'] }, { key: 'created_at', kind: 'date' }, { key: 'updated_at', kind: 'date' }, { key: 'last_order_at', kind: 'date' },
   { key: 'abandoned_checkout_in_last', kind: 'text' },
 ];

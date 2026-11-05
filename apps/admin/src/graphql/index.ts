@@ -28,9 +28,10 @@ import * as btnCustomers from './btn-customers';
 import * as btnOrders from './btn-orders';
 import * as buttonsProducts from './buttons-products';
 import * as btnSettings from './btn-settings';
+import * as finalOps from './final';
 
 /** Every operation string, keyed by export name. Used by `pnpm validate:graphql`. */
-export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...content, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog, ...views, ...wave8c, ...timeline, ...shipping, ...transfers, ...metaobjects, ...discountCodes, ...markets, ...privacy, ...btnOrders, ...buttonsProducts, ...btnSettings, ...btnCustomers };
+export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...content, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog, ...views, ...wave8c, ...timeline, ...shipping, ...transfers, ...metaobjects, ...discountCodes, ...markets, ...privacy, ...btnOrders, ...buttonsProducts, ...btnSettings, ...btnCustomers, ...finalOps };
 
 export * from './common';
 export * from './catalog';
@@ -58,6 +59,7 @@ export * from './wave8c';
 export * from './shipping';
 export * from './metaobjects';
 export * from './privacy';
+export * from './final';
 export * from './btn-orders';
 export * from './buttons-products';
 export * from './btn-settings';

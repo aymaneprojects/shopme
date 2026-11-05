@@ -26,7 +26,7 @@ export function IssuedGiftCardsCard({ orderId }: { orderId: string }) {
           <li key={c.id} className="flex items-center justify-between gap-3 py-2 text-[13px]">
             <Link to={`/gift-cards/${gidToNum(c.id)}`} className="font-medium text-accent hover:underline">{c.maskedCode}</Link>
             <span className="flex items-center gap-2">
-              {!c.enabled && <Badge tone="neutral">{t('giftCards.state.DISABLED' as Key)}</Badge>}
+              {!c.enabled && <Badge tone="neutral">{t('giftCards.state.disabled' as Key)}</Badge>}
               {fmt.money(c.balance)} <span className="text-muted">/ {fmt.money(c.initialValue)}</span>
             </span>
           </li>

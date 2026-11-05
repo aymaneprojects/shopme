@@ -31,6 +31,13 @@ const SmsConsent = builder.objectRef<Customer>('CustomerSmsMarketingConsentState
     consentCollectedFrom: t.string({ nullable: true, resolve: (c) => c.smsMarketingCollectedFrom }),
   }),
 });
+/** ShopMe extension: WhatsApp marketing consent is stored and exported only. */
+const WhatsappConsent = builder.objectRef<Customer>('ShopmeCustomerWhatsappMarketingConsentState').implement({
+  fields: (t) => ({
+    marketingState: t.field({ type: SmsMarketingState, resolve: (c) => c.whatsappMarketingState as 'SUBSCRIBED' }),
+    consentUpdatedAt: t.field({ type: 'DateTime', nullable: true, resolve: (c) => c.whatsappMarketingUpdatedAt }),
+  }),
+});
 const SpendTier = builder.enumType('CustomerPredictedSpendTier', { values: ['HIGH', 'MEDIUM', 'LOW'] as const });
 const RfmGroup = builder.enumType('CustomerRfmGroup', { values: ['CHAMPIONS', 'LOYAL', 'ACTIVE', 'NEW', 'PROMISING', 'NEEDS_ATTENTION', 'ALMOST_LOST', 'PREVIOUSLY_LOYAL', 'AT_RISK', 'DORMANT', 'PROSPECTS'] as const });
 const CustomerStatistics = builder.objectRef<Customer>('CustomerStatistics').implement({
@@ -52,6 +59,7 @@ builder.objectFields(Customer_, (t) => ({
   statistics: t.field({ type: CustomerStatistics, resolve: (c) => c }),
   emailMarketingConsent: t.field({ type: EmailConsent, nullable: true, resolve: (c) => (c.email ? c : null) }),
   smsMarketingConsent: t.field({ type: SmsConsent, nullable: true, resolve: (c) => (c.phone ? c : null) }),
+  shopmeWhatsappMarketingConsent: t.field({ type: WhatsappConsent, nullable: true, resolve: (c) => (c.phone ? c : null) }),
   canDelete: t.boolean({ resolve: async (c, _a, ctx) => (await customerStats(ctx.db, ctx.shopId, c.id)).numberOfOrders === 0 }),
   lifetimeDuration: t.string({
     resolve: (c) => {

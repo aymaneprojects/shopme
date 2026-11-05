@@ -1,13 +1,15 @@
-import { Banner, Button, ButtonGroup, Card, ConfirmDialog, Dropdown, ImageUploader, Input, Select, Skeleton, Textarea, useToast } from '@shopme/ui';
+import { Banner, Button, ButtonGroup, Card, ConfirmDialog, Dropdown, ImageUploader, Input, Modal, Skeleton, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Eye, LayoutGrid, List, MoreHorizontal, Plus, Search, Trash2 } from 'lucide-react';
+import { Copy, Eye, LayoutTemplate, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
 import { ChannelsSection, channelChanges, channelStates, usePublications } from '../components/Channels';
 import type { ChannelState } from '../components/Channels';
 import { ConditionsBuilder } from '../components/ConditionsBuilder';
-import { MetafieldsEditor } from '../components/MetafieldsEditor';
+import { CollectionProducts } from '../components/CollectionProducts';
+import { ProductMetafields } from '../components/MetafieldsEditor';
+import type { MetafieldEdits } from '../components/MetafieldsEditor';
 import { RichText } from '../components/RichText';
 import { PageHeader } from '../components/PageHeader';
 import { PrevNext } from '../components/PrevNext';
@@ -15,11 +17,11 @@ import { ProductPicker } from '../components/Pickers';
 import type { PickedProduct } from '../components/Pickers';
 import { SaveBar, guard } from '../components/SaveBar';
 import { numToGid } from '../format';
-import { COLLECTION, COLLECTION_ADD_PRODUCTS, COLLECTION_CREATE, COLLECTION_DELETE, COLLECTION_REMOVE_PRODUCTS, COLLECTION_UPDATE, PUBLISHABLE_PUBLISH, PUBLISHABLE_UNPUBLISH } from '../graphql';
+import { COLLECTION, COLLECTION_ADD_PRODUCTS, COLLECTION_CREATE, COLLECTION_DELETE, COLLECTION_REMOVE_PRODUCTS, COLLECTION_UPDATE, METAFIELDS_SET, PUBLISHABLE_PUBLISH, PUBLISHABLE_UNPUBLISH } from '../graphql';
+import { fromField } from '../lib/metafields';
 import { useI18n } from '../i18n';
 import { defaultRule, isRuleValid, toRuleInput } from '../lib/collection-rules';
 import type { RuleSet } from '../lib/collection-rules';
-import { Thumb } from './Products';
 
 interface ApiCollection {
   id: string; title: string; handle: string; descriptionHtml: string; sortOrder: string; templateSuffix: string | null; updatedAt: string;
@@ -30,16 +32,16 @@ interface ApiCollection {
 interface CollectionForm {
   title: string; descriptionHtml: string; imageUrl: string; sortOrder: string; templateSuffix: string; handle: string; seoTitle: string; seoDescription: string;
   smart: boolean; ruleSet: RuleSet; products: PickedProduct[];
-  channels: ChannelState[];
+  channels: ChannelState[]; metafieldEdits: MetafieldEdits;
 }
 
 const SORT_ORDERS = ['MANUAL', 'BEST_SELLING', 'ALPHA_ASC', 'ALPHA_DESC', 'PRICE_DESC', 'PRICE_ASC', 'CREATED_DESC', 'CREATED'];
-const blank: CollectionForm = { title: '', descriptionHtml: '', imageUrl: '', sortOrder: 'MANUAL', templateSuffix: '', handle: '', seoTitle: '', seoDescription: '', smart: false, ruleSet: { appliedDisjunctively: false, rules: [] }, products: [], channels: [] };
+const blank: CollectionForm = { title: '', descriptionHtml: '', imageUrl: '', sortOrder: 'MANUAL', templateSuffix: '', handle: '', seoTitle: '', seoDescription: '', smart: false, ruleSet: { appliedDisjunctively: false, rules: [] }, products: [], channels: [], metafieldEdits: {} };
 
 function fromApi(c: ApiCollection, pubs: Array<{ id: string; name: string; shopmeKind?: string }>): CollectionForm {
   return {
     title: c.title, descriptionHtml: c.descriptionHtml, imageUrl: c.image?.url ?? '', sortOrder: c.sortOrder, templateSuffix: c.templateSuffix ?? '', handle: c.handle,
-    seoTitle: c.seo.title ?? '', seoDescription: c.seo.description ?? '', smart: !!c.ruleSet, ruleSet: c.ruleSet ?? blank.ruleSet, products: c.products.nodes, channels: channelStates(pubs, c.resourcePublicationsV2?.nodes ?? []),
+    seoTitle: c.seo.title ?? '', seoDescription: c.seo.description ?? '', smart: !!c.ruleSet, ruleSet: c.ruleSet ?? blank.ruleSet, products: c.products.nodes, channels: channelStates(pubs, c.resourcePublicationsV2?.nodes ?? []), metafieldEdits: {},
   };
 }
 
@@ -66,11 +68,11 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
   const [titleError, setTitleError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [productFilter, setProductFilter] = useState('');
-  const [grid, setGrid] = useState(false);
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [templateDraft, setTemplateDraft] = useState('');
+  const [metafieldsOpen, setMetafieldsOpen] = useState(false);
   const set = (p: Partial<CollectionForm>) => setForm((f) => ({ ...f, ...p }));
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
-  const shownProducts = form.products.filter((p) => !productFilter.trim() || p.title.toLowerCase().includes(productFilter.trim().toLowerCase()));
 
   const save = useMutation({
     mutationFn: async () => {
@@ -95,6 +97,8 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
       }
       const base = id ? initial.channels : form.channels.map((c) => ({ ...c, published: c.online, publishDate: '' }));
       const { publish, unpublish } = channelChanges(base, form.channels);
+      const mf = Object.values(form.metafieldEdits).map((m) => ({ ownerId: cid!, namespace: m.namespace, key: m.key, type: m.type, value: fromField(m.type, m.value) }));
+      if (mf.length) await mutate(METAFIELDS_SET, { metafields: mf }, 'metafieldsSet');
       if (publish.length) await mutate(PUBLISHABLE_PUBLISH, { id: cid, input: publish }, 'publishablePublish');
       if (unpublish.length) await mutate(PUBLISHABLE_UNPUBLISH, { id: cid, input: unpublish }, 'publishableUnpublish');
       return cid;
@@ -102,6 +106,7 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
     onSuccess: async (cid) => {
       toast(t('collection.saved'));
       void qc.invalidateQueries({ queryKey: ['collections'] });
+      void qc.invalidateQueries({ queryKey: ['owner-metafields'] });
       if (!id) { guard.off = true; nav(`/collections/${cid.split('/').pop()}`, { replace: true }); } else await qc.invalidateQueries({ queryKey: ['collection'] });
     },
     onError: (e) => { if (e.message !== 'validation') { setError(e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message); toast(t('product.saveFailed'), 'critical'); } },
@@ -145,11 +150,19 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
             <div className="flex flex-col gap-3">
               <div className="flex items-start gap-3">
                 <div className="flex shrink-0 flex-col items-center gap-1.5" aria-label={t('collection.image')}>
-                  {form.imageUrl ? <img src={form.imageUrl} alt="" className="size-16 rounded-lg border border-line object-cover" /> : <Thumb className="size-16" />}
-                  <ImageUploader multiple={false} look="tile" label={t('media.upload')} onUploaded={(f) => set({ imageUrl: f[0]!.url })} onError={(m) => toast(m, 'critical')} />
-                  {form.imageUrl && <button type="button" onClick={() => set({ imageUrl: '' })} className="text-xs text-muted hover:text-fg">{t('common.remove')}</button>}
+                  {form.imageUrl ? (
+                    <>
+                      <img src={form.imageUrl} alt="" className="size-24 rounded-lg border border-line object-cover" />
+                      <button type="button" onClick={() => set({ imageUrl: '' })} className="text-xs text-muted hover:text-fg">{t('common.remove')}</button>
+                    </>
+                  ) : <ImageUploader multiple={false} look="tile" label={t('media.upload')} onUploaded={(f) => set({ imageUrl: f[0]!.url })} onError={(m) => toast(m, 'critical')} />}
                 </div>
-                <div className="min-w-0 flex-1"><Input label={t('field.title')} required value={form.title} error={titleError} onChange={(e) => set({ title: e.target.value })} /></div>
+                <div className="min-w-0 flex-1">
+                  <Input label={t('field.title')} required value={form.title} error={titleError} onChange={(e) => set({ title: e.target.value })} />
+                  <button type="button" className="mt-1.5 inline-flex items-center gap-1.5 rounded-md py-0.5 text-[13px] text-muted hover:text-fg" onClick={() => { setTemplateDraft(form.templateSuffix); setTemplateOpen(true); }}>
+                    <LayoutTemplate className="size-4" aria-hidden />{form.templateSuffix.trim() ? t('fin.col.templateNamed', { name: form.templateSuffix.trim() }) : t('fin.col.defaultTemplate')}
+                  </button>
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-[13px] font-medium">{t('field.description')}</span>
@@ -178,44 +191,8 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
             </div>
           </Card>
 
-          <Card title={t('collection.products', { n: form.products.length })} actions={!form.smart && <Button size="sm" onClick={() => setPicking(true)}><Plus className="size-4" />{t('collection.addProducts')}</Button>}>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <div className="relative min-w-40 flex-1">
-                <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
-                <input type="search" value={productFilter} onChange={(e) => setProductFilter(e.target.value)} placeholder={t('bp.collection.filter')} aria-label={t('bp.collection.filter')} className="field-control w-full pl-8" />
-              </div>
-              <select aria-label={t('collection.sortOrder')} value={form.sortOrder} onChange={(e) => set({ sortOrder: e.target.value })} className="field-control w-auto">
-                {SORT_ORDERS.map((s) => <option key={s} value={s}>{t(`sortOrder.${s}` as 'sortOrder.MANUAL')}</option>)}
-              </select>
-              <ButtonGroup>
-                <Button icon aria-label={t('bp.collection.listView')} aria-pressed={!grid} onClick={() => setGrid(false)}><List className="size-4" /></Button>
-                <Button icon aria-label={t('bp.collection.gridView')} aria-pressed={grid} onClick={() => setGrid(true)}><LayoutGrid className="size-4" /></Button>
-              </ButtonGroup>
-            </div>
-            {form.products.length === 0 ? <p className="text-[13px] text-muted">{form.smart ? t('collection.autoEmpty') : t('collection.manualEmpty')}</p> : shownProducts.length === 0 ? <p className="text-[13px] text-muted">{t('products.noResults')}</p> : grid ? (
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {shownProducts.map((p) => (
-                  <li key={p.id} className="group relative flex flex-col gap-1.5">
-                    <Thumb url={p.featuredMedia?.image?.url} className="aspect-square w-full" />
-                    <span className="truncate text-[13px]">{p.title}</span>
-                    {!form.smart && <button type="button" aria-label={`${t('common.remove')} ${p.title}`} className="absolute right-1 top-1 rounded-full bg-canvas p-1 text-muted opacity-0 shadow-card hover:text-fg focus-visible:opacity-100 group-hover:opacity-100" onClick={() => set({ products: form.products.filter((x) => x.id !== p.id) })}><Trash2 className="size-3.5" /></button>}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <ul className="divide-y divide-line">
-                {shownProducts.map((p) => (
-                  <li key={p.id} className="flex items-center gap-3 py-2">
-                    <Thumb url={p.featuredMedia?.image?.url} className="size-8" />
-                    <span className="flex-1 text-[13px]">{p.title}</span>
-                    {!form.smart && <button type="button" aria-label={`${t('common.remove')} ${p.title}`} className="rounded p-1 text-muted hover:bg-surface" onClick={() => set({ products: form.products.filter((x) => x.id !== p.id) })}><Trash2 className="size-4" /></button>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+          <CollectionProducts products={form.products} smart={form.smart} sortOrder={form.sortOrder} onSortOrder={(sortOrder) => set({ sortOrder })} onAdd={() => setPicking(true)} onRemove={(pid) => set({ products: form.products.filter((x) => x.id !== pid) })} />
 
-          {id && <MetafieldsEditor ownerId={id} ownerType="COLLECTION" />}
 
           <Card title={t('product.seo')}>
             <div className="flex flex-col gap-3">
@@ -227,13 +204,21 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
         </div>
         <div className="flex flex-col gap-4">
           <Card title={t('bp.channels.title')}><ChannelsSection value={form.channels} onChange={(channels) => set({ channels })} bare /></Card>
-          <Card title={t('collection.organization')}>
-            <div className="flex flex-col gap-3">
-              <Input label={t('product.template')} help={t('product.templateHelp')} value={form.templateSuffix} onChange={(e) => set({ templateSuffix: e.target.value })} />
-            </div>
-          </Card>
+          {metafieldsOpen || Object.keys(form.metafieldEdits).length > 0 ? (
+            <Card title={t('mf.title')} actions={Object.keys(form.metafieldEdits).length === 0 && <Button variant="plain" size="sm" onClick={() => setMetafieldsOpen(false)}>{t('common.close')}</Button>}>
+              <ProductMetafields bare ownerType="COLLECTION" ownerId={id} edits={form.metafieldEdits} onChange={(metafieldEdits) => set({ metafieldEdits })} />
+            </Card>
+          ) : (
+            <button type="button" aria-label={t('mf.title')} onClick={() => setMetafieldsOpen(true)} className="flex min-h-12 w-full flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-line text-[13px] text-muted hover:bg-hover hover:text-fg">
+              <Plus className="size-4" aria-hidden /><span>{t('mf.title')}</span>
+            </button>
+          )}
         </div>
       </div>
+      <Modal open={templateOpen} onClose={() => setTemplateOpen(false)} closeLabel={t('common.close')} medium title={t('fin.col.templateTitle')}
+        footer={<><Button onClick={() => setTemplateOpen(false)}>{t('common.cancel')}</Button><Button variant="primary" onClick={() => { set({ templateSuffix: templateDraft.trim() }); setTemplateOpen(false); }}>{t('save.save')}</Button></>}>
+        <Input autoFocus label={t('product.template')} help={t('product.templateHelp')} placeholder={t('fin.col.defaultTemplate')} value={templateDraft} onChange={(e) => setTemplateDraft(e.target.value)} />
+      </Modal>
       <ProductPicker open={picking} onClose={() => setPicking(false)} excludeIds={form.products.map((p) => p.id)} onConfirm={(p) => set({ products: [...form.products, ...p] })} />
       <ConfirmDialog open={confirmDelete} onClose={() => setConfirmDelete(false)} danger title={t('collections.deleteTitle', { n: 1 })} message={t('collections.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { setConfirmDelete(false); del.mutate(); }} />
     </>

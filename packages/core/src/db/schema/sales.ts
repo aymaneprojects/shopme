@@ -34,6 +34,9 @@ export const customers = pgTable('customers', {
   smsMarketingOptInLevel: text('sms_marketing_opt_in_level').notNull().default('UNKNOWN'),
   smsMarketingUpdatedAt: ts('sms_marketing_updated_at'),
   smsMarketingCollectedFrom: text('sms_marketing_collected_from'),
+  /** WhatsApp marketing consent: stored and exported only (nothing is sent through WhatsApp). */
+  whatsappMarketingState: text('whatsapp_marketing_state').notNull().default('NOT_SUBSCRIBED'),
+  whatsappMarketingUpdatedAt: ts('whatsapp_marketing_updated_at'),
   ...timestamps(),
 }, (t) => [uniqueIndex('customers_shop_email_uq').on(t.shopId, t.email), index('customers_shop_created_idx').on(t.shopId, t.createdAt)]);
 

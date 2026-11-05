@@ -7,6 +7,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { SaveBar, guard } from '../components/SaveBar';
 import { UserErrors, gql, mutate } from '../api';
 import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
+import { NoteCard } from '../components/NoteCard';
 import { PageHeader } from '../components/PageHeader';
 import { searchCls, useFormat, useListParams } from '../components/shared';
 import type { Money } from '../components/shared';
@@ -181,7 +182,7 @@ function IssueForm() {
         </Card>
         <div className="flex flex-col gap-4">
           <Card title={t('order.customer')}><CustomerSearch value={f.customer} onPick={(customer) => setF({ ...f, customer })} onClear={() => setF({ ...f, customer: null })} /></Card>
-          <Card title={t('giftCards.note')}><Textarea aria-label={t('giftCards.note')} placeholder={t('giftCards.noteHelp')} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></Card>
+          <NoteCard title={t('giftCards.note')} value={f.note} placeholder={t('giftCards.noteHelp')} onSave={(note) => setF({ ...f, note })} />
         </div>
       </div>
       <Modal open={!!issued} onClose={() => issued && nav(`/gift-cards/${gidToNum(issued.id)}`, { replace: true })} title={t('giftCards.issuedTitle')} closeLabel={t('common.close')}
@@ -201,14 +202,13 @@ function CardView({ card: c }: { card: Detail }) {
   const { shop } = useShop();
   const [adjust, setAdjust] = useState<{ kind: 'credit' | 'debit'; amount: string; note: string } | null>(null);
   const [confirm, setConfirm] = useState(false);
-  const [note, setNote] = useState(c.note ?? '');
   const [expires, setExpires] = useState(c.expiresOn ?? '');
   const refresh = () => { void qc.invalidateQueries({ queryKey: ['gift-card'] }); void qc.invalidateQueries({ queryKey: ['gift-cards'] }); };
   const fail = (e: Error) => toast(errText(e), 'critical');
   const state = stateOf(c);
 
   const save = useMutation({
-    mutationFn: () => mutate(GIFT_CARD_UPDATE, { id: c.id, input: { note: note.trim() || null, expiresOn: expires || null } }, 'giftCardUpdate'),
+    mutationFn: (n?: string) => mutate(GIFT_CARD_UPDATE, { id: c.id, input: { note: (n ?? c.note ?? '').trim() || null, expiresOn: expires || null } }, 'giftCardUpdate'),
     onSuccess: () => { toast(t('giftCards.saved')); refresh(); }, onError: fail,
   });
   const off = useMutation({ mutationFn: () => mutate(GIFT_CARD_DEACTIVATE, { id: c.id }, 'giftCardDeactivate'), onSuccess: () => { setConfirm(false); toast(t('giftCards.deactivated')); refresh(); }, onError: fail });
@@ -266,14 +266,14 @@ function CardView({ card: c }: { card: Detail }) {
           <Card title={t('giftCards.details')}>
             <div className="flex flex-col gap-3">
               <Input type="date" label={t('giftCards.expiresOn')} value={expires} onChange={(e) => setExpires(e.target.value)} />
-              <Textarea label={t('giftCards.note')} value={note} onChange={(e) => setNote(e.target.value)} />
-              <div className="flex justify-end"><Button size="sm" disabled={note === (c.note ?? '') && expires === (c.expiresOn ?? '')} loading={save.isPending} onClick={() => save.mutate()}>{t('save.save')}</Button></div>
+              <div className="flex justify-end"><Button size="sm" disabled={expires === (c.expiresOn ?? '')} loading={save.isPending} onClick={() => save.mutate(undefined)}>{t('save.save')}</Button></div>
             </div>
           </Card>
+          <NoteCard title={t('giftCards.note')} value={c.note ?? ''} placeholder={t('giftCards.noteHelp')} onSave={(n) => save.mutateAsync(n)} />
           <Card title={t('giftCards.origin')}>
             <div className="flex flex-col gap-1 text-[13px]">
-              {c.order ? <Link className="text-primary hover:underline" to={`/orders/${gidToNum(c.order.id)}`}>{t('giftCards.fromOrder', { name: c.order.name })}</Link> : <span className="text-muted">{t('giftCards.manual')}</span>}
-              {c.customer && <Link className="text-primary hover:underline" to={`/customers/${gidToNum(c.customer.id)}`}>{c.customer.displayName}</Link>}
+              {c.order ? <Link className="text-accent hover:underline" to={`/orders/${gidToNum(c.order.id)}`}>{t('giftCards.fromOrder', { name: c.order.name })}</Link> : <span className="text-muted">{t('giftCards.manual')}</span>}
+              {c.customer && <Link className="text-accent hover:underline" to={`/customers/${gidToNum(c.customer.id)}`}>{c.customer.displayName}</Link>}
               {c.recipientAttributes && <p>{t('giftCards.recipient')}: {c.recipientAttributes.preferredName ?? c.recipientAttributes.recipient.displayName}{c.recipientAttributes.message && <span className="block text-muted">“{c.recipientAttributes.message}”</span>}</p>}
               <span className="text-muted">{t('giftCards.issuedOn')}: {fmt.date(c.createdAt)}</span>
             </div>

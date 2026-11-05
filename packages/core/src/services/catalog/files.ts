@@ -19,14 +19,16 @@ export function listFiles(db: Executor, shopId: number, o: { query?: string | nu
   )).orderBy(o.reverse ? asc(media.id) : desc(media.id)).limit(o.limit).offset(o.offset);
 }
 
-export async function updateFiles(db: Db, shopId: number, updates: { id: number; alt?: string | null; originalSource?: string | null }[]): Promise<Result<Media[]>> {
+export async function updateFiles(db: Db, shopId: number, updates: { id: number; alt?: string | null; originalSource?: string | null; /** Percent of width and height (0-100); null clears it. */ focalPoint?: { x: number; y: number } | null }[]): Promise<Result<Media[]>> {
   return txResult(db, async (tx) => {
     const out: Media[] = [];
     for (const [i, u] of updates.entries()) {
       const [cur] = await tx.select().from(media).where(and(eq(media.shopId, shopId), eq(media.id, u.id)));
       if (!cur) return errR(['files', String(i), 'id'], 'File does not exist', 'FILE_DOES_NOT_EXIST');
       if (u.originalSource && !/^(https?:\/\/|\/files\/)/.test(u.originalSource)) return errR(['files', String(i), 'originalSource'], 'Invalid source URL', 'INVALID');
-      const [row] = await tx.update(media).set({ ...(u.alt !== undefined && { alt: u.alt }), ...(u.originalSource && { url: u.originalSource }), updatedAt: new Date() }).where(eq(media.id, u.id)).returning();
+      if (u.focalPoint && ![u.focalPoint.x, u.focalPoint.y].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) return errR(['files', String(i), 'focalPoint'], 'The focal point must be between 0 and 100 percent', 'INVALID');
+      if (u.focalPoint !== undefined && cur.type !== 'IMAGE') return errR(['files', String(i), 'focalPoint'], 'Only images have a focal point', 'INVALID');
+      const [row] = await tx.update(media).set({ ...(u.alt !== undefined && { alt: u.alt }), ...(u.focalPoint !== undefined && { focalX: u.focalPoint?.x ?? null, focalY: u.focalPoint?.y ?? null }), ...(u.originalSource && { url: u.originalSource }), updatedAt: new Date() }).where(eq(media.id, u.id)).returning();
       out.push(row!);
     }
     return okR(out);

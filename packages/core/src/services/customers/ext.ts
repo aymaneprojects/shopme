@@ -6,7 +6,7 @@ import {
 import type { Db, Executor } from '../../db/client';
 import { errR, normalizeTags, okR, txResult, type Result } from '../catalog/common';
 import { addEvent } from '../events';
-import { updateEmailMarketingConsent, updateSmsMarketingConsent } from '../privacy/marketing';
+import { updateEmailMarketingConsent, updateSmsMarketingConsent, updateWhatsappMarketingConsent } from '../privacy/marketing';
 import { changeCustomerTags, getCustomer, updateCustomer, type Customer } from './customers';
 
 /** Days between the erasure request and the anonymization (the merchant can cancel in between). */
@@ -111,12 +111,14 @@ export async function mergeCustomers(db: Db, shopId: number, oneId: number, twoI
     await tx.delete(customerTokens).where(eq(customerTokens.customerId, drop.id));
     // The customer fields.
     const smsFrom = keep.smsMarketingState === 'SUBSCRIBED' || drop.smsMarketingState !== 'SUBSCRIBED' ? keep : drop;
+    const waFrom = keep.whatsappMarketingState === 'SUBSCRIBED' || drop.whatsappMarketingState !== 'SUBSCRIBED' ? keep : drop;
     const emailFrom = keep.emailMarketingState === 'SUBSCRIBED' || drop.emailMarketingState !== 'SUBSCRIBED' ? keep : drop;
     await tx.update(customers).set({
       firstName: fields.firstName, lastName: fields.lastName, email: fields.email, phone: fields.phone, tags: fields.tags, note: fields.note,
       defaultAddressId: fields.defaultAddressId, taxExempt: keep.taxExempt || drop.taxExempt, verifiedEmail: keep.verifiedEmail || drop.verifiedEmail,
       acceptsMarketing: emailFrom.acceptsMarketing, emailMarketingState: emailFrom.emailMarketingState, emailMarketingOptInLevel: emailFrom.emailMarketingOptInLevel, emailMarketingUpdatedAt: emailFrom.emailMarketingUpdatedAt,
       smsMarketingState: smsFrom.smsMarketingState, smsMarketingOptInLevel: smsFrom.smsMarketingOptInLevel, smsMarketingUpdatedAt: smsFrom.smsMarketingUpdatedAt, smsMarketingCollectedFrom: smsFrom.smsMarketingCollectedFrom,
+      whatsappMarketingState: waFrom.whatsappMarketingState, whatsappMarketingUpdatedAt: waFrom.whatsappMarketingUpdatedAt,
       createdAt: keep.createdAt < drop.createdAt ? keep.createdAt : drop.createdAt, updatedAt: new Date(),
     }).where(eq(customers.id, keep.id));
     await tx.delete(customers).where(eq(customers.id, drop.id));
@@ -131,7 +133,7 @@ export async function mergeCustomers(db: Db, shopId: number, oneId: number, twoI
 
 export interface BulkCustomerPatch {
   addTags?: string[]; removeTags?: string[]; taxExempt?: boolean | null;
-  emailMarketingState?: 'SUBSCRIBED' | 'UNSUBSCRIBED' | null; smsMarketingState?: 'SUBSCRIBED' | 'UNSUBSCRIBED' | null;
+  emailMarketingState?: 'SUBSCRIBED' | 'UNSUBSCRIBED' | null; smsMarketingState?: 'SUBSCRIBED' | 'UNSUBSCRIBED' | null; whatsappMarketingState?: 'SUBSCRIBED' | 'UNSUBSCRIBED' | null;
   /** `REPLACE` overwrites the note, `APPEND` adds a paragraph, `CLEAR` empties it. */
   noteMode?: 'REPLACE' | 'APPEND' | 'CLEAR' | null; note?: string | null;
 }
@@ -161,6 +163,10 @@ export async function bulkUpdateCustomers(db: Db, shopId: number, ids: number[],
       if (patch.smsMarketingState) {
         if (!c.phone) throw new Error('A phone number is needed to change SMS marketing consent');
         if (c.smsMarketingState !== patch.smsMarketingState) { const r = await updateSmsMarketingConsent(db, shopId, id, { marketingState: patch.smsMarketingState, marketingOptInLevel: patch.smsMarketingState === 'SUBSCRIBED' ? 'SINGLE_OPT_IN' : 'UNKNOWN', consentCollectedFrom: 'OTHER' }); if (!r.ok) throw new Error(r.errors[0]!.message); }
+      }
+      if (patch.whatsappMarketingState) {
+        if (!c.phone) throw new Error('A phone number is needed to change WhatsApp marketing consent');
+        if (c.whatsappMarketingState !== patch.whatsappMarketingState) { const r = await updateWhatsappMarketingConsent(db, shopId, id, { marketingState: patch.whatsappMarketingState }); if (!r.ok) throw new Error(r.errors[0]!.message); }
       }
       out.updated++;
     } catch (e) { out.errors.push({ id, message: (e as Error).message }); }
@@ -230,7 +236,7 @@ export async function eraseCustomerPersonalData(db: Db, shopId: number, id: numb
     await tx.delete(customerAddresses).where(eq(customerAddresses.customerId, id));
     const [row] = await tx.update(customers).set({
       email: null, firstName: null, lastName: null, phone: null, note: null, tags: [], taxExempt: false, passwordHash: null, consent: null, dataSaleOptOut: false, lastLoginAt: null, state: 'DISABLED',
-      acceptsMarketing: false, emailMarketingState: 'REDACTED', emailMarketingOptInLevel: 'UNKNOWN', smsMarketingState: 'REDACTED', smsMarketingOptInLevel: 'UNKNOWN', smsMarketingCollectedFrom: null,
+      acceptsMarketing: false, emailMarketingState: 'REDACTED', emailMarketingOptInLevel: 'UNKNOWN', smsMarketingState: 'REDACTED', smsMarketingOptInLevel: 'UNKNOWN', smsMarketingCollectedFrom: null, whatsappMarketingState: 'REDACTED',
       erasureScheduledAt: null, erasedAt: new Date(), updatedAt: new Date(),
     }).where(eq(customers.id, id)).returning();
     const own = await tx.select({ id: orders.id }).from(orders).where(and(eq(orders.shopId, shopId), eq(orders.customerId, id)));

@@ -24,6 +24,7 @@ import { frEditor } from './fr-editor';
 import { frDiscountCodes } from './fr-discount-codes';
 import { frTimeline } from './fr-timeline';
 import { frQaStore } from './fr-qa-store';
+import { frFinal } from './fr-final';
 import { frQaSettings } from './fr-qa-settings';
 import { frQaHome } from './fr-qa-home';
 import { frShipping } from './fr-shipping';
@@ -63,7 +64,7 @@ export const fr: Record<Key, string> = {
   'products.inStock': '{n} en stock pour {v} variantes', 'products.inStock.one': '{n} en stock pour {v} variante', 'products.notTracked': 'Stock non suivi', 'products.search': 'Rechercher des produits',
   'products.stockIn': 'En stock', 'products.stockOut': 'En rupture', 'products.count': '{n} produits', 'products.count.one': '{n} produit',
   'products.emptyTitle': 'Ajoutez votre premier produit', 'products.emptyBody': 'Les produits que vous ajoutez apparaîtront ici. Commencez par un titre, un prix et une photo.',
-  'products.noResults': 'Aucun produit trouvé', 'products.noResultsBody': 'Essayez de modifier la recherche ou les filtres.', 'products.clearFilters': 'Effacer les filtres',
+  'products.noResults': 'Aucun résultat', 'products.noResultsBody': 'Essayez de modifier la recherche ou les filtres.', 'products.clearFilters': 'Effacer les filtres',
   'products.setActive': 'Passer en actif', 'products.setDraft': 'Passer en brouillon', 'products.setArchived': 'Archiver',
   'products.updated': '{n} produits mis à jour', 'products.updated.one': '{n} produit mis à jour', 'products.deleted': '{n} produits supprimés', 'products.deleted.one': '{n} produit supprimé', 'products.deleteTitle': 'Supprimer {n} produits ?', 'products.deleteTitle.one': 'Supprimer {n} produit ?',
   'products.deleteBody': 'Cette action est irréversible.',
@@ -140,6 +141,7 @@ export const fr: Record<Key, string> = {
   ...frQaFeatures,
   ...frCheckout,
   ...frQaStore,
+  ...frFinal,
   ...frQaSettings,
   ...frQaHome,
   ...frTransfers,

@@ -188,7 +188,7 @@ function SettingsNavLinks({ onNavigate, collapsed }: { onNavigate: () => void; c
         </>
       )}
       {sections.map((s) => (
-        <NavLink key={s.id} to={`/settings/${s.id}`} onClick={onNavigate} title={collapsed ? t(s.key) : undefined} aria-label={collapsed ? t(s.key) : undefined} className={({ isActive }) => cx('flex min-h-7 items-center gap-2 rounded-lg px-2 py-1 text-[13px] leading-4 transition-colors', collapsed && 'justify-center', isActive ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover')}>
+        <NavLink key={s.id} to={s.to ?? `/settings/${s.id}`} onClick={onNavigate} title={collapsed ? t(s.key) : undefined} aria-label={collapsed ? t(s.key) : undefined} className={({ isActive }) => cx('flex min-h-7 items-center gap-2 rounded-lg px-2 py-1 text-[13px] leading-4 transition-colors', collapsed && 'justify-center', isActive ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover')}>
           <s.icon className="size-4 shrink-0" />{!collapsed && t(s.key)}
         </NavLink>
       ))}
@@ -254,7 +254,7 @@ function AccountMenu({ collapsed, userBlock }: { collapsed: boolean; userBlock?:
             <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary text-[11px] font-semibold text-white">{initial}</span><span className="min-w-0 flex-1 truncate font-medium">{shop.name}</span><Check className="size-4" />
           </div>
           <div className="my-1.5 border-t border-line" />
-          <div className="flex items-center gap-2.5 px-2 py-1.5 text-[13px]"><span className="grid size-5 shrink-0 place-items-center rounded-full bg-accent text-[10px] font-semibold text-white">{(user.email[0] ?? 'U').toUpperCase()}</span><span className="min-w-0 flex-1 truncate">{user.email}</span></div>
+          <div className="flex items-center gap-2.5 px-2 py-1.5 text-[13px]"><span className="grid size-5 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold text-on-primary">{(user.email[0] ?? 'U').toUpperCase()}</span><span className="min-w-0 flex-1 truncate">{user.email}</span></div>
           {LANGS.map((l) => <button key={l.id} type="button" role="menuitem" aria-current={lang === l.id} className={row} onClick={() => setLang(l.id)}><Languages className="size-4 text-muted" />{l.label}{lang === l.id && <Check className="ml-auto size-4" />}</button>)}
           {themes.map(([id, label, Icon]) => <button key={id} type="button" role="menuitem" aria-current={theme === id} className={row} onClick={() => pick(id)}><Icon className="size-4 text-muted" />{label}{theme === id && <Check className="ml-auto size-4" />}</button>)}
           <a role="menuitem" href="https://github.com/aymaneprojects/shopme#readme" target="_blank" rel="noreferrer" className={row}><CircleHelp className="size-4 text-muted" />{t('shell.help')}</a>

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { gql } from '../api';
 import { COLLECTION_PUBLICATIONS, PRODUCT_PUBLICATIONS } from '../graphql';
 import { useI18n } from '../i18n';
+import { useChannelName } from './Channels';
 import { useFormat } from './shared';
 
 interface Row { isPublished: boolean; publishDate: string | null; publication: { id: string; name: string } }
@@ -10,6 +11,7 @@ interface Row { isPublished: boolean; publishDate: string | null; publication: {
 function Rows({ id, kind }: { id: string; kind: 'product' | 'collection' }) {
   const { t } = useI18n();
   const fmt = useFormat();
+  const channelName = useChannelName();
   const q = useQuery({
     queryKey: ['resource-publications', id],
     queryFn: async () => {
@@ -22,7 +24,7 @@ function Rows({ id, kind }: { id: string; kind: 'product' | 'collection' }) {
     <ul className="flex w-64 flex-col gap-1.5 text-[13px]">
       {(q.data ?? []).map((r) => (
         <li key={r.publication.id} className="flex items-center justify-between gap-2">
-          <span className="min-w-0 truncate">{r.publication.name}</span>
+          <span className="min-w-0 truncate">{channelName(r.publication.name)}</span>
           {!r.isPublished ? <Badge tone="neutral">{t('bp.channels.off')}</Badge> : r.publishDate && new Date(r.publishDate) > new Date() ? <Badge tone="info">{t('bp.channels.scheduled', { date: fmt.dateTime(r.publishDate) })}</Badge> : <Badge tone="success">{t('bp.channels.on')}</Badge>}
         </li>
       ))}

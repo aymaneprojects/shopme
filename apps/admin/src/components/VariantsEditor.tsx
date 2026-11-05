@@ -229,9 +229,9 @@ export function InventoryFields({ v, patch, locations }: { v: VariantDraft; patc
               <button type="button" aria-label={t('bp.stock.editLocations')} title={t('bp.stock.editLocations')} onClick={() => setChoosing(true)} className="grid size-5 place-items-center rounded text-muted hover:bg-hover hover:text-fg"><Pencil className="size-3.5" /></button>
             </span>
             <span className="flex items-center gap-3">
-              <span className="inline-flex w-20 items-center justify-end gap-1">{t('bp.stock.unavailable')}<Hint text={t('bp.stock.unavailableHelp')} /></span>
-              <span className="inline-flex w-20 items-center justify-end gap-1">{t('bp.stock.committed')}<Hint text={t('bp.stock.committedHelp')} /></span>
-              <span className="inline-flex w-24 items-center justify-end gap-1">
+              <span className="inline-flex w-[4.75rem] items-center justify-end gap-1">{t('bp.stock.unavailable')}<Hint text={t('bp.stock.unavailableHelp')} /></span>
+              <span className="inline-flex w-[4.75rem] items-center justify-end gap-1">{t('bp.stock.committed')}<Hint text={t('bp.stock.committedHelp')} /></span>
+              <span className="inline-flex w-20 items-center justify-end gap-1">
                 <select aria-label={t('bp.stock.state')} value={state} onChange={(e) => setState(e.target.value as 'available' | 'on_hand')} className="bg-transparent text-right text-xs font-medium outline-none">
                   <option value="available">{t('inventory.available')}</option><option value="on_hand">{t('bp.stock.onHand')}</option>
                 </select>
@@ -248,15 +248,15 @@ export function InventoryFields({ v, patch, locations }: { v: VariantDraft; patc
             <div key={l.id} className="flex items-center justify-between gap-3 border-t border-line px-3 py-1.5">
               <span className="min-w-0 truncate">{l.name}</span>
               <span className="flex items-center gap-3">
-                <span className="w-20 text-right tabular-nums text-muted">
+                <span className="w-[4.75rem] text-right tabular-nums text-muted">
                   {total('unavailable', l.id) + total('incoming', l.id) > 0 ? (
                     <Popover label={t('bp.stock.breakdown')} align="right" triggerVariant="plain" triggerClassName="btn-neutral !h-6 !px-1.5 tabular-nums" trigger={total('unavailable', l.id)}>
                       {() => <dl className="grid w-48 grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-[13px]"><dt>{t('bp.stock.reserved')}</dt><dd className="tabular-nums">{total('unavailable', l.id)}</dd><dt>{t('bp.stock.incoming')}</dt><dd className="tabular-nums">{total('incoming', l.id)}</dd></dl>}
                     </Popover>
                   ) : 0}
                 </span>
-                <span className="w-20 text-right tabular-nums text-muted">{total('committed', l.id)}</span>
-                <input type="number" min={0} aria-label={`${state === 'available' ? t('inventory.available') : t('bp.stock.onHand')} — ${l.name}`} className="field-control w-24 text-right"
+                <span className="w-[4.75rem] text-right tabular-nums text-muted">{total('committed', l.id)}</span>
+                <input type="number" min={0} aria-label={`${state === 'available' ? t('inventory.available') : t('bp.stock.onHand')} — ${l.name}`} className="field-control w-20 text-right"
                   value={(state === 'available' ? v.quantities[l.id] : v.onHand[l.id]) ?? '0'} onChange={(e) => edit(l, e.target.value)} />
               </span>
             </div>
@@ -274,6 +274,7 @@ export function InventoryFields({ v, patch, locations }: { v: VariantDraft; patc
         {!showSku && <AddPill label={t('inventory.sku')} onClick={() => setMore({ ...more, sku: true })} />}
         {!showBarcode && <AddPill label={t('inventory.barcode')} onClick={() => setMore({ ...more, barcode: true })} />}
         <PillSwitch checked={v.continueSelling} onChange={(continueSelling) => patch({ continueSelling })} label={t('inventory.continueSelling')} />
+        <PillSwitch checked={!v.onlineStoreHidden} onChange={(on) => patch({ onlineStoreHidden: !on })} label={t('fin.variant.onlineStore')} />
       </div>
       {choosing && <StockLocationsDialog open v={v} locations={locations} onClose={() => setChoosing(false)} onApply={setStocked} />}
     </div>

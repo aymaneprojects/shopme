@@ -16,6 +16,10 @@
   if eager
     assign loading_mode = 'eager'
   endif
+  assign focal = ''
+  if image.presentation.focal_point != blank
+    assign focal = 'object-position: ' | append: image.presentation.focal_point
+  endif
   assign play = autoplay
   unless controls
     assign play = true
@@ -43,9 +47,9 @@
   {%- if use_mobile and mobile_image -%}
     <picture>
       <source media="(max-width: 749px)" srcset="{{ mobile_image | image_url: width: 900 }}">
-      {{ image | image_url: width: 2000 | image_tag: loading: loading_mode, widths: '750, 1100, 1500, 2000', sizes: sizes | default: '100vw', alt: image.alt }}
+      {{ image | image_url: width: 2000 | image_tag: loading: loading_mode, widths: '750, 1100, 1500, 2000', sizes: sizes | default: '100vw', alt: image.alt, style: focal }}
     </picture>
   {%- else -%}
-    {{ image | image_url: width: 2000 | image_tag: loading: loading_mode, widths: '750, 1100, 1500, 2000', sizes: sizes | default: '100vw', alt: image.alt }}
+    {{ image | image_url: width: 2000 | image_tag: loading: loading_mode, widths: '750, 1100, 1500, 2000', sizes: sizes | default: '100vw', alt: image.alt, style: focal }}
   {%- endif -%}
 {%- endif -%}

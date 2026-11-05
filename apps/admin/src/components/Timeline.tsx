@@ -76,7 +76,7 @@ export function Timeline({ kind, id, refreshKey, confirmationNumber, transaction
       <h2 className="mb-2 text-[15px] font-semibold">{t('timeline.title')}</h2>
       <div className="overflow-hidden rounded-lg bg-canvas shadow-card">
         <div className="flex items-start gap-3 p-3">
-          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-xs font-semibold text-accent-fg">{initials}</span>
+          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-xs font-semibold text-on-primary">{initials}</span>
           <textarea className="min-h-9 min-w-0 flex-1 resize-none self-center border-0 bg-transparent p-0 text-[13px] outline-none placeholder:text-muted" rows={1} aria-label={t('timeline.commentLabel')} placeholder={t('timeline.placeholder')} value={text} maxLength={5000}
             onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && text.trim() && !post.isPending) post.mutate(); }} />
         </div>

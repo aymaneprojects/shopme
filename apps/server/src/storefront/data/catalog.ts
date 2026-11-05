@@ -10,7 +10,8 @@ const iso = (d: Date | null | undefined): string | null => (d ? d.toISOString() 
 function imageObject(m: typeof s.media.$inferSelect, position: number, productId: number): Image {
   const w = m.width ?? null, h = m.height ?? null;
   const base = { id: m.id, src: m.url ?? '', url: m.url ?? '', alt: m.alt ?? null, width: w, height: h, aspect_ratio: w && h ? w / h : null, position, product_id: productId, media_type: 'image' };
-  return { ...base, preview_image: { src: base.src, width: w, height: h, aspect_ratio: base.aspect_ratio, alt: base.alt } };
+  const presentation = m.focalX != null && m.focalY != null ? { focal_point: `${+m.focalX.toFixed(1)}% ${+m.focalY.toFixed(1)}%` } : null;
+  return { ...base, preview_image: { src: base.src, width: w, height: h, aspect_ratio: base.aspect_ratio, alt: base.alt }, presentation };
 }
 
 export interface VariantStock { variantId: number; productId: number; price: number; compareAt: number | null; available: boolean; quantity: number | null }
@@ -57,7 +58,10 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
     if (!p) continue;
     const options = optionRows.filter((o) => o.productId === id);
     const images = mediaRows.filter((m) => m.productId === id && m.m.url).map((m, i) => imageObject(m.m, i + 1, id));
-    const vrows = variants.filter((v) => v.productId === id);
+    // Variants hidden from the Online Store are not offered (unless every variant is hidden, which the admin refuses): neither they nor option values only they use are listed.
+    const allRows = variants.filter((v) => v.productId === id);
+    const vrows = allRows.some((v) => !v.hiddenFromOnlineStore) ? allRows.filter((v) => !v.hiddenFromOnlineStore) : allRows;
+    const usedValueIds = vrows.length < allRows.length ? new Set(vov.filter((x) => vrows.some((v) => v.id === x.variantId)).map((x) => x.valueId)) : null;
     const vObjs: VariantObject[] = vrows.map((v, i) => {
       const optVals = options.map((o) => {
         const link = vov.find((x) => x.variantId === v.id && x.optionId === o.id);
@@ -92,7 +96,7 @@ export async function loadProducts(db: Db, shopId: number, ids: number[], opts: 
       compare_at_price: compareMax || null, compare_at_price_min: compareMin || 0, compare_at_price_max: compareMax, compare_at_price_varies: compareMin !== compareMax,
       featured_image: images[0] ?? null, featured_media: images[0] ?? null, images, media: images, variants: vObjs,
       options: options.map((o) => o.name),
-      options_with_values: options.map((o, i) => ({ name: o.name, position: o.position, values: valueRows.filter((v) => v.v.optionId === o.id).map((v) => v.v.name), selected_value: selected?.options[i] ?? (selected ? null : (firstAvailable ?? vObjs[0])?.options[i] ?? null) })),
+      options_with_values: options.map((o, i) => ({ name: o.name, position: o.position, values: valueRows.filter((v) => v.v.optionId === o.id && (!usedValueIds || usedValueIds.has(v.v.id))).map((v) => v.v.name), selected_value: selected?.options[i] ?? (selected ? null : (firstAvailable ?? vObjs[0])?.options[i] ?? null) })),
       has_only_default_variant: onlyDefault, selected_variant: selected, first_available_variant: firstAvailable, selected_or_first_available_variant: selected ?? firstAvailable ?? vObjs[0] ?? null,
       template_suffix: p.templateSuffix ?? '', gift_card: p.isGiftCard, 'gift_card?': p.isGiftCard, requires_selling_plan: false, selling_plan_groups: [], metafields: productMf.get(id) ?? {},
       published_at: iso(p.publishedAt), created_at: iso(p.createdAt), updated_at: iso(p.updatedAt), seo: { title: p.seoTitle, description: p.seoDescription },

@@ -256,6 +256,8 @@ export interface UnitPriceMeasurement { quantityValue: number; quantityUnit: str
 export interface VariantInput {
   id?: number | null; price?: number | null; compareAtPrice?: number | null; barcode?: string | null; taxable?: boolean | null; taxCode?: string | null;
   inventoryPolicy?: string | null; mediaId?: number | null; optionValues?: VariantOptionValueInput[] | null;
+  /** Hide the variant from the Online Store (product page options and cart) while the product stays published. */
+  hiddenFromOnlineStore?: boolean | null;
   unitPriceMeasurement?: UnitPriceMeasurement | null;
   inventoryItem?: InventoryItemUpdate | null; inventoryQuantities?: { locationId: number; availableQuantity: number }[] | null; metafields?: MetafieldSetInput[] | null;
 }
@@ -299,7 +301,7 @@ async function insertVariant(tx: Executor, shopId: number, productId: number, v:
   const inp = v.input;
   const [row] = await tx.insert(productVariants).values({
     shopId, productId, position: v.position, title: v.title, sku: inp.inventoryItem?.sku || null, barcode: inp.barcode ?? null, price: inp.price ?? 0,
-    compareAtPrice: inp.compareAtPrice ?? null, taxable: inp.taxable ?? true, taxCode: inp.taxCode ?? null, inventoryPolicy: inp.inventoryPolicy ?? 'DENY', mediaId: inp.mediaId ?? null, ...unitCols(inp.unitPriceMeasurement),
+    compareAtPrice: inp.compareAtPrice ?? null, taxable: inp.taxable ?? true, taxCode: inp.taxCode ?? null, inventoryPolicy: inp.inventoryPolicy ?? 'DENY', mediaId: inp.mediaId ?? null, hiddenFromOnlineStore: inp.hiddenFromOnlineStore ?? false, ...unitCols(inp.unitPriceMeasurement),
   }).returning();
   if (v.optionValueIds.length) await tx.insert(variantOptionValues).values(v.optionValueIds.map((x) => ({ shopId, variantId: row!.id, optionId: x.optionId, optionValueId: x.valueId })));
   const [item] = await tx.insert(inventoryItems).values({
@@ -494,6 +496,10 @@ export async function bulkUpdateVariants(db: Db, shopId: number, productId: numb
       if (cur.productId !== productId) { fail(errR([...at, 'id'], 'Variant does not belong to the specified product', 'MUST_BE_FOR_THIS_PRODUCT')); continue; }
       if (inp.inventoryQuantities?.length) { fail(errR([...at, 'inventoryQuantities'], 'Inventory quantities can not be set during a variant update; use inventory mutations', 'NO_INVENTORY_QUANTITES_DURING_UPDATE')); continue; }
       if (fail(validateVariantFields(inp, at, { negative: 'NEGATIVE_PRICE_VALUE' }))) continue;
+      if (inp.hiddenFromOnlineStore === true && !cur.hiddenFromOnlineStore) {
+        const [others] = await tx.select({ n: sql<number>`count(*)::int` }).from(productVariants).where(and(eq(productVariants.productId, productId), ne(productVariants.id, cur.id), eq(productVariants.hiddenFromOnlineStore, false)));
+        if (!others?.n) { fail(errR([...at, 'shopmeHiddenFromOnlineStore'], 'At least one variant must stay available on the Online Store', 'INVALID')); continue; }
+      }
       let title = cur.title;
       if (inp.optionValues?.length) {
         const picked = await resolveOptionValues(tx, shopId, opts, inp.optionValues, at);
@@ -508,7 +514,7 @@ export async function bulkUpdateVariants(db: Db, shopId: number, productId: numb
       const [row] = await tx.update(productVariants).set({
         title, ...(inp.price != null && { price: inp.price }), ...(inp.compareAtPrice !== undefined && { compareAtPrice: inp.compareAtPrice }), ...(inp.barcode !== undefined && { barcode: inp.barcode || null }),
         ...(inp.taxable != null && { taxable: inp.taxable }), ...(inp.taxCode !== undefined && { taxCode: inp.taxCode }), ...(inp.inventoryPolicy && { inventoryPolicy: inp.inventoryPolicy }),
-        ...(inp.mediaId !== undefined && { mediaId: inp.mediaId }), ...unitCols(inp.unitPriceMeasurement), ...(inp.inventoryItem?.sku !== undefined && { sku: inp.inventoryItem.sku || null }),
+        ...(inp.mediaId !== undefined && { mediaId: inp.mediaId }), ...(inp.hiddenFromOnlineStore != null && { hiddenFromOnlineStore: inp.hiddenFromOnlineStore }), ...unitCols(inp.unitPriceMeasurement), ...(inp.inventoryItem?.sku !== undefined && { sku: inp.inventoryItem.sku || null }),
       }).where(eq(productVariants.id, cur.id)).returning();
       if (inp.inventoryItem) {
         const [it] = await tx.update(inventoryItems).set(inventoryItemPatch(inp.inventoryItem)).where(eq(inventoryItems.variantId, cur.id)).returning({ id: inventoryItems.id });

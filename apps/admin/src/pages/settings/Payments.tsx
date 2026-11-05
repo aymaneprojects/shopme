@@ -12,6 +12,7 @@ import { countryOptions } from '../../lib/countries';
 import { errText, major, minor, newId, useConfig, useSaveConfig } from '../../lib/config';
 import type { GiftCardsConfig, PaymentRule, PaymentsConfig } from '../../lib/config';
 import { useShop } from '../../session';
+import { PaymentLogos } from '../../components/PaymentLogos';
 
 interface Payments { bankTransfer: { enabled: boolean; instructions: string }; cod: { enabled: boolean }; stripe: { enabled: boolean; stripeConfigured: boolean } }
 const BRANDS: Array<[string, string]> = [['visa', 'Visa'], ['mastercard', 'Mastercard'], ['amex', 'American Express'], ['discover', 'Discover'], ['diners', 'Diners Club'], ['jcb', 'JCB'], ['unionpay', 'UnionPay'], ['cartes_bancaires', 'Cartes Bancaires']];
@@ -58,6 +59,14 @@ function PaymentsForm({ data, cfg, gift }: { data: Payments; cfg: PaymentsConfig
       <SaveBar dirty={JSON.stringify(f) !== JSON.stringify(init)} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => setF(init)} />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
       <div className="flex flex-col gap-6">
+        <Section title={t('pay.logos.title')} description={t('pay.logos.desc')}>
+          <Card>
+            <PaymentLogos stripe={f.stripe} brands={f.brands} methods={[
+              ...(f.bank ? [t('pay.logos.bank')] : []), ...(f.cod ? [t('pay.logos.cod')] : []), ...(f.test ? [t('pay.logos.test')] : []),
+              ...cfg.customMethods.filter((m) => m.enabled).map((m) => m.name), ...cfg.redirectGateways.filter((g) => g.enabled).map((g) => g.name),
+            ]} />
+          </Card>
+        </Section>
         <Section title={t('payments.stripe')} description={t('payments.cardDesc')} action={<a href="https://docs.stripe.com/payments" target="_blank" rel="noreferrer" className="btn btn-secondary">{t('payments.learnMore')}</a>}>
           <Card>
             <div className="flex flex-col gap-3">

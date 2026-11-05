@@ -5,12 +5,16 @@
 {%- enddoc -%}
 {%- liquid
   assign image = card_product.featured_image
+  assign focal = ''
+  if image.presentation.focal_point != blank
+    assign focal = 'object-position: ' | append: image.presentation.focal_point
+  endif
   assign sizes_attr = sizes | default: '(min-width: 990px) 25vw, (min-width: 600px) 33vw, 50vw'
 -%}
 <article class="card card--align-{{ settings.card_text_align | default: 'left' }}">
   <a class="card__media" href="{{ card_product.url }}" tabindex="-1" aria-hidden="true">
     {%- if image -%}
-      {{ image | image_url: width: 640 | image_tag: loading: 'lazy', widths: '240, 360, 480, 640', sizes: sizes_attr, alt: card_product.title }}
+      {{ image | image_url: width: 640 | image_tag: loading: 'lazy', widths: '240, 360, 480, 640', sizes: sizes_attr, alt: card_product.title, style: focal }}
     {%- else -%}
       {{ 'product-1' | placeholder_svg_tag: 'card__placeholder' }}
     {%- endif -%}

@@ -72,7 +72,7 @@ export function TranslationsPage() {
   const patch = (k: string, v: string) => { const n = new URLSearchParams(sp); n.set(k, v); setSp(n, { replace: true }); setSelected(null); };
 
   if (locales.isLoading) return <Skeleton className="h-40" />;
-  if (!locale) return <Card title={t('tr.title')}><p className="mb-3 text-[13px] text-muted">{t('tr.noLocales')}</p><Link to="/settings/languages" className="text-[13px] text-primary underline">{t('tr.addLanguage')}</Link></Card>;
+  if (!locale) return <Card title={t('tr.title')}><p className="mb-3 text-[13px] text-muted">{t('tr.noLocales')}</p><Link to="/settings/languages" className="text-[13px] text-accent underline">{t('tr.addLanguage')}</Link></Card>;
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3">

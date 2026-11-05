@@ -43,14 +43,14 @@ export interface ApiProduct {
   category?: { id: string; fullName: string } | null;
   seo: { title: string | null; description: string | null };
   options: Array<{ id: string; name: string; values: string[] }>;
-  media: { nodes: Array<{ id: string; alt: string | null; mediaContentType?: string; image?: { url: string } }> };
+  media: { nodes: Array<{ id: string; alt: string | null; mediaContentType?: string; image?: { url: string; shopmePresentation?: { focalPoint: { x: number; y: number } | null } | null } }> };
   collections: { nodes: Array<{ id: string; title: string; ruleSet: unknown }> };
   variants: { nodes: ApiVariant[] };
   resourcePublicationsV2?: { nodes: Array<{ isPublished: boolean; publishDate: string | null; publication: { id: string; name: string } }> };
   shopmeCatalogs?: ProductCatalog[];
 }
 export interface ApiVariant {
-  id: string; title: string; sku: string | null; barcode: string | null; price: string; compareAtPrice: string | null; taxable: boolean; inventoryPolicy: 'DENY' | 'CONTINUE';
+  id: string; title: string; sku: string | null; barcode: string | null; price: string; compareAtPrice: string | null; taxable: boolean; inventoryPolicy: 'DENY' | 'CONTINUE'; shopmeHiddenFromOnlineStore?: boolean;
   selectedOptions: Array<{ name: string; value: string }>;
   media?: { nodes: Array<{ id: string }> };
   unitPriceMeasurement?: { quantityValue: number; quantityUnit: string; referenceValue: number; referenceUnit: string } | null;
@@ -100,7 +100,7 @@ export function formFromProduct(p: ApiProduct, locations: LocationRef[], pubs: P
       key: v.id, id: v.id, inventoryItemId: v.inventoryItem.id,
       optionValues: defaultTitle ? [] : options.map((o) => v.selectedOptions.find((s) => s.name === o.name)?.value ?? ''),
       price: v.price, compareAtPrice: v.compareAtPrice ?? '', cost: v.inventoryItem.unitCost?.amount ?? '', sku: v.sku ?? '', barcode: v.barcode ?? '',
-      taxable: v.taxable, tracked: v.inventoryItem.tracked, continueSelling: v.inventoryPolicy === 'CONTINUE', requiresShipping: v.inventoryItem.requiresShipping,
+      taxable: v.taxable, tracked: v.inventoryItem.tracked, continueSelling: v.inventoryPolicy === 'CONTINUE', onlineStoreHidden: !!v.shopmeHiddenFromOnlineStore, requiresShipping: v.inventoryItem.requiresShipping,
       weight: w ? String(w.value) : '', weightUnit: w?.unit ?? 'KILOGRAMS',
       length: side(d?.length), width: side(d?.width), height: side(d?.height), dimensionUnit: d?.unit ?? 'CENTIMETERS',
       countryOfOrigin: v.inventoryItem.countryCodeOfOrigin ?? '', hsCode: v.inventoryItem.harmonizedSystemCode ?? '', quantities: levels, onHand, committed, unavailable, incoming, levelIds,
@@ -114,7 +114,7 @@ export function formFromProduct(p: ApiProduct, locations: LocationRef[], pubs: P
     extraMedia: p.media.nodes.filter((m) => m.mediaContentType === 'VIDEO' || m.mediaContentType === 'MODEL_3D').map((m): ExtraMedia => ({ key: m.id, url: '', name: m.alt ?? '', type: m.mediaContentType as ExtraMedia['type'], persisted: true })),
     vendor: p.vendor, productType: p.productType, tags: p.tags, templateSuffix: p.templateSuffix ?? '', handle: p.handle, category: p.category?.id ?? '',
     seoTitle: p.seo.title ?? '', seoDescription: p.seo.description ?? '', isGiftCard: !!p.isGiftCard, options, variants,
-    media: p.media.nodes.filter((m) => m.image).map((m) => ({ key: m.id, url: m.image!.url, alt: m.alt ?? '' })),
+    media: p.media.nodes.filter((m) => m.image).map((m) => ({ key: m.id, url: m.image!.url, alt: m.alt ?? '', focalPoint: m.image!.shopmePresentation?.focalPoint ?? null })),
     collections: p.collections.nodes.filter((c) => !c.ruleSet).map((c) => ({ id: c.id, title: c.title })),
   };
 }
@@ -147,6 +147,7 @@ function variantInput(v: VariantDraft, options: OptionDef[], locations: Location
     taxable: v.taxable,
     barcode: v.barcode.trim() || null,
     inventoryPolicy: v.continueSelling ? 'CONTINUE' : 'DENY',
+    shopmeHiddenFromOnlineStore: v.onlineStoreHidden,
     ...(v.id ? { mediaId: v.mediaId || null } : v.mediaId ? { mediaId: v.mediaId } : {}),
     unitPriceMeasurement: unitOf(v),
     inventoryItem: {

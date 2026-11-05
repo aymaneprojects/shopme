@@ -3,7 +3,7 @@
   <ul class="multicolumn multicolumn--{{ section.settings.columns }} multicolumn--{{ section.settings.align }}" role="list">
     {%- for block in section.blocks -%}
       <li class="multicolumn__item" {{ block.shopify_attributes }}>
-        {%- if block.settings.image -%}<div class="multicolumn__media">{{ block.settings.image | image_url: width: 600 | image_tag: loading: 'lazy', alt: block.settings.title }}</div>{%- endif -%}
+        {%- if block.settings.image -%}<div class="multicolumn__media">{%- capture focal -%}{%- if block.settings.image.presentation.focal_point != blank -%}object-position: {{ block.settings.image.presentation.focal_point }}{%- endif -%}{%- endcapture -%}{{ block.settings.image | image_url: width: 600 | image_tag: loading: 'lazy', alt: block.settings.title, style: focal }}</div>{%- endif -%}
         {%- if block.settings.title != blank -%}<h3 class="multicolumn__title">{{ block.settings.title | escape }}</h3>{%- endif -%}
         {%- if block.settings.text != blank -%}<div class="rte">{{ block.settings.text }}</div>{%- endif -%}
         {%- if block.settings.link_label != blank -%}<a class="link-arrow" href="{{ block.settings.link | default: routes.all_products_collection_url }}">{{ block.settings.link_label | escape }}</a>{%- endif -%}

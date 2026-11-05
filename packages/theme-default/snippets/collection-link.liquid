@@ -13,7 +13,9 @@
   <a class="spotlight" href="{{ link_collection.url }}">
     <span class="spotlight__media">
       {%- if picture -%}
-        {{ picture | image_url: width: 240 | image_tag: loading: 'lazy', alt: title }}
+        {%- assign focal = '' -%}
+        {%- if picture.presentation.focal_point != blank -%}{%- assign focal = 'object-position: ' | append: picture.presentation.focal_point -%}{%- endif -%}
+        {{ picture | image_url: width: 240 | image_tag: loading: 'lazy', alt: title, style: focal }}
       {%- else -%}
         {{ 'collection-1' | placeholder_svg_tag: 'spotlight__placeholder' }}
       {%- endif -%}

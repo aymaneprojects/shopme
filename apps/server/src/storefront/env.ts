@@ -1,6 +1,7 @@
+import { and, eq } from 'drizzle-orm';
 import { privacyEnvFor, privacyLiquid, type PrivacyEnv } from './privacy';
 import { lazyList, type PageInput, type ResourceResolvers } from '@shopme/liquid-compat';
-import { accountUrlOf, customerAccountsSettingsOf, enabledPresentmentCurrencies, getPrimaryShop, getCartByToken, listBuyerCountries, loadTranslator, moneyFormatsFor, NO_TRANSLATOR, searchArticles, searchPages, priceCartDiscounts, resolveCustomerSession, type CartView, type Customer, type Db, type MarketContext, type Shop, type Translator } from '@shopme/core';
+import { accountUrlOf, customerAccountsSettingsOf, enabledPresentmentCurrencies, getPrimaryShop, getCartByToken, listBuyerCountries, loadTranslator, moneyFormatsFor, NO_TRANSLATOR, searchArticles, schema as s, searchPages, priceCartDiscounts, resolveCustomerSession, type CartView, type Customer, type Db, type MarketContext, type Shop, type Translator } from '@shopme/core';
 import type { FastifyRequest } from 'fastify';
 import type { AppContext } from '../context';
 import { buyerContext, syncCartToBuyer } from './market';
@@ -229,11 +230,14 @@ export function makeResolvers(env: Env, globals: Record<string, unknown>): Resou
     page: async (h) => trPage(env, await getPage(env.db, env.shop.id, h)),
     metaobject: (v) => entryFromSetting(env.db, env.shop.id, v, env.tr),
     linklist: async (h) => (globals.linklists as Record<string, unknown>)[h] ?? null,
-    image: (v) => {
+    image: async (v) => {
       if (!v) return null;
       const m = /^shopify:\/\/shop_images\/(.+)$/.exec(v);
       const src = m ? `/files/${m[1]}` : v;
-      return { src, url: src, alt: '', width: null, height: null, aspect_ratio: null };
+      // The focal point and size live on the library entry of the file, when there is one.
+      const [row] = await env.db.select({ focalX: s.media.focalX, focalY: s.media.focalY, width: s.media.width, height: s.media.height }).from(s.media).where(and(eq(s.media.shopId, env.shop.id), eq(s.media.url, src))).limit(1);
+      const presentation = row?.focalX != null && row.focalY != null ? { focal_point: `${+row.focalX.toFixed(1)}% ${+row.focalY.toFixed(1)}%` } : null;
+      return { src, url: src, alt: '', width: row?.width ?? null, height: row?.height ?? null, aspect_ratio: row?.width && row.height ? row.width / row.height : null, presentation };
     },
   };
 }

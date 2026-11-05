@@ -111,7 +111,7 @@ export const LABELS_PAGE = /* GraphQL */ `
   query ShopmeShippingLabelsPage($status: String) {
     shopmeShippingLabels(status: $status, first: 100) { id orderId orderName carrier service trackingNumber trackingUrl cost status createdAt }
     shopmeShippingLabelsCount { count }
-    shopmeOrdersAwaitingLabel { id name createdAt totalPriceSet { ${MONEY} } customer { displayName } shippingAddress { city country } lineItems(first: 20) { nodes { quantity } } }
+    shopmeOrdersAwaitingLabel { id name createdAt totalPriceSet { ${MONEY} } customer { displayName } shippingAddress { city country countryCodeV2 } lineItems(first: 20) { nodes { quantity } } }
   }
 `;
 export const LABEL_CREATE = /* GraphQL */ `

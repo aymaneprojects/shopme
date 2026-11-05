@@ -62,6 +62,7 @@ const customerSearch = (q: string | null | undefined) => buildSearch(q, {
     language: (_o, v) => sql`${customers.locale} ilike ${`${v}%`}`,
     email_subscription: (_o, v) => sql`${customers.emailMarketingState} = ${v.toUpperCase()}`,
     sms_subscription: (_o, v) => sql`${customers.smsMarketingState} = ${v.toUpperCase()}`,
+    whatsapp_subscription: (_o, v) => sql`${customers.whatsappMarketingState} = ${v.toUpperCase()}`,
     last_order_at: (op, v) => dateCompare(sql`(select max(o.processed_at) from orders o where o.customer_id = ${customers.id})`, op, v),
     company: (_o, v) => (v === 'true' || v === 'false' ? sql`${v === 'true' ? sql`` : sql`not `}exists (select 1 from company_contacts cc where cc.customer_id = ${customers.id})` : sql`exists (select 1 from company_contacts cc join companies co on co.id = cc.company_id where cc.customer_id = ${customers.id} and co.name ilike ${`%${v}%`})`),
     company_id: (_o, v) => sql`exists (select 1 from company_contacts cc where cc.customer_id = ${customers.id} and cc.company_id::text = ${v})`,

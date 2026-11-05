@@ -2,6 +2,7 @@ import { Banner, Button, Card, Checkbox, Input, Select, Skeleton, Textarea, useT
 import { Plus } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { UserErrors, gql, mutate } from '../api';
 import { METAFIELDS_SET, METAFIELD_DEFINITIONS, OWNER_METAFIELDS } from '../graphql';
 import { useI18n } from '../i18n';
@@ -121,9 +122,9 @@ export type MetafieldEdits = Record<string, { namespace: string; key: string; ty
  * Metafields card of the product page: one row per definition, saved with the product. An empty definition is an "Add" chip that opens its input;
  * only the first rows show until "Show all". Works before the first save too (`ownerId` null): the values are saved with the new product.
  */
-export function ProductMetafields({ ownerId, edits, onChange }: { ownerId: string | null; edits: MetafieldEdits; onChange: (next: MetafieldEdits) => void }) {
+export function ProductMetafields({ ownerId, edits, onChange, ownerType = 'PRODUCT', bare }: { ownerId: string | null; edits: MetafieldEdits; onChange: (next: MetafieldEdits) => void; ownerType?: MetafieldOwnerType; /** Render the rows without the card (the caller supplies the frame). */ bare?: boolean }) {
   const { t } = useI18n();
-  const defs = useQuery({ queryKey: ['metafield-definitions', 'PRODUCT'], queryFn: () => gql<{ metafieldDefinitions: { nodes: MetafieldDefinitionRow[] } }>(METAFIELD_DEFINITIONS, { ownerType: 'PRODUCT' }) });
+  const defs = useQuery({ queryKey: ['metafield-definitions', ownerType], queryFn: () => gql<{ metafieldDefinitions: { nodes: MetafieldDefinitionRow[] } }>(METAFIELD_DEFINITIONS, { ownerType }) });
   const vals = useQuery({ queryKey: ['owner-metafields', ownerId], enabled: !!ownerId, queryFn: () => gql<{ node: { metafields?: { nodes: MetafieldValue[] } } | null }>(OWNER_METAFIELDS, { id: ownerId }) });
   const [opened, setOpened] = useState<string[]>([]);
   const [all, setAll] = useState(false);
@@ -144,10 +145,11 @@ export function ProductMetafields({ ownerId, edits, onChange }: { ownerId: strin
     if (value === f.value) delete next[id]; else next[id] = { namespace: f.namespace, key: f.key, type: f.type, value };
     onChange(next);
   };
-  if (defs.isLoading || (ownerId && vals.isLoading)) return <Card title={t('mf.title')}><Skeleton className="h-16" /></Card>;
-  return (
-    <Card title={t('mf.title')} actions={rows.length > LIMIT ? <Button variant="plain" size="sm" onClick={() => setAll((x) => !x)}>{all ? t('bp.mf.showLess') : t('bp.mf.showAll', { n: rows.length })}</Button> : undefined}>
-      {rows.length === 0 && <p className="text-[13px] text-muted">{t('mf.none')}</p>}
+  const showAll = rows.length > LIMIT ? <Button variant="plain" size="sm" onClick={() => setAll((x) => !x)}>{all ? t('bp.mf.showLess') : t('bp.mf.showAll', { n: rows.length })}</Button> : undefined;
+  const frame = (children: ReactNode) => (bare ? <div className="flex flex-col gap-2">{showAll && <div className="flex justify-end">{showAll}</div>}{children}</div> : <Card title={t('mf.title')} actions={showAll}>{children}</Card>);
+  if (defs.isLoading || (ownerId && vals.isLoading)) return frame(<Skeleton className="h-16" />);
+  return frame(<>
+      {rows.length === 0 && <p className="text-[13px] text-muted">{t('fin.mf.noDefinitions')}</p>}
       <div className="flex flex-col divide-y divide-line">
         {shown.map((f) => {
           const id = idOf(f.namespace, f.key);
@@ -165,6 +167,5 @@ export function ProductMetafields({ ownerId, edits, onChange }: { ownerId: strin
           );
         })}
       </div>
-    </Card>
-  );
+    </>);
 }

@@ -2,13 +2,17 @@
   assign current = product.selected_or_first_available_variant
   assign first_image = current.featured_image | default: product.featured_image
   assign first_alt = first_image.alt | default: product.title
+  assign first_focal = ''
+  if first_image.presentation.focal_point != blank
+    assign first_focal = 'object-position: ' | append: first_image.presentation.focal_point
+  endif
 -%}
 <div class="page-width section-pad product" data-product-section data-section-id="{{ section.id }}">
   <div class="product__grid">
     <div class="product__gallery" role="group" aria-label="{{ 'accessibility.gallery' | t }}">
       <div class="product__main-image" data-main-image>
         {%- if first_image -%}
-          {{ first_image | image_url: width: 1000 | image_tag: loading: 'eager', widths: '500, 750, 1000', sizes: '(min-width: 990px) 50vw, 100vw', alt: first_alt }}
+          {{ first_image | image_url: width: 1000 | image_tag: loading: 'eager', widths: '500, 750, 1000', sizes: '(min-width: 990px) 50vw, 100vw', alt: first_alt, style: first_focal }}
         {%- else -%}
           {{ 'product-1' | placeholder_svg_tag: 'product__placeholder' }}
         {%- endif -%}

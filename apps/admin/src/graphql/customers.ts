@@ -6,7 +6,7 @@ export const CUSTOMERS = /* GraphQL */ `
       nodes {
         id displayName note tags numberOfOrders createdAt
         defaultEmailAddress { emailAddress marketingState }
-        defaultAddress { city country }
+        defaultAddress { city country countryCodeV2 }
         amountSpent { amount currencyCode }
       }
       pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
@@ -25,6 +25,7 @@ export const CUSTOMER = /* GraphQL */ `
       defaultEmailAddress { emailAddress marketingState }
       defaultPhoneNumber { phoneNumber }
       smsMarketingConsent { marketingState }
+      shopmeWhatsappMarketingConsent { marketingState }
       amountSpent { amount currencyCode }
       addressesV2(first: 10) { nodes { id firstName lastName company address1 address2 city province zip country countryCodeV2 phone } }
       orders(first: 5) {

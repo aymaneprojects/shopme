@@ -11,11 +11,12 @@ import { PageHeader } from '../../components/PageHeader';
 import { gidToNum } from '../../format';
 import { LABELS_PAGE, LABEL_CREATE, LABEL_VOID, ORDER_LABEL_PRINT } from '../../graphql';
 import { useI18n, useT } from '../../i18n';
+import { countryName } from '../../lib/countries';
 import { printDocuments } from '../../lib/print';
 import { useShop } from '../../session';
 
 interface Label { id: string; orderId: string; orderName: string; carrier: string; service: string | null; trackingNumber: string | null; trackingUrl: string | null; cost: string; status: string; createdAt: string }
-interface Awaiting { id: string; name: string; createdAt: string; totalPriceSet: MoneySet; customer: { displayName: string } | null; shippingAddress: { city: string | null; country: string | null } | null; lineItems: { nodes: Array<{ quantity: number }> } }
+interface Awaiting { id: string; name: string; createdAt: string; totalPriceSet: MoneySet; customer: { displayName: string } | null; shippingAddress: { city: string | null; country: string | null; countryCodeV2?: string | null } | null; lineItems: { nodes: Array<{ quantity: number }> } }
 interface PageData { shopmeShippingLabels: Label[]; shopmeShippingLabelsCount: { count: number }; shopmeOrdersAwaitingLabel: Awaiting[] }
 type Tab = 'awaiting' | 'labels' | 'voided';
 
@@ -117,7 +118,7 @@ export function ShippingLabelsPage() {
     { key: 'name', header: t('orders.order'), cell: (o) => <span className="font-medium">{o.name}</span> },
     { key: 'date', header: t('orders.date'), cell: (o) => fmt.date(o.createdAt) },
     { key: 'cust', header: t('orders.customer'), cell: (o) => o.customer?.displayName ?? <span className="text-muted">{t('orders.noCustomer')}</span> },
-    { key: 'dest', header: t('btn.labels.destination'), cell: (o) => [o.shippingAddress?.city, o.shippingAddress?.country].filter(Boolean).join(', ') || '—' },
+    { key: 'dest', header: t('btn.labels.destination'), cell: (o) => [o.shippingAddress?.city, o.shippingAddress?.countryCodeV2 ? countryName(o.shippingAddress.countryCodeV2, lang) : o.shippingAddress?.country].filter(Boolean).join(', ') || '—' },
     { key: 'items', header: t('orders.items'), cell: (o) => o.lineItems.nodes.reduce((n, l) => n + l.quantity, 0) },
     { key: 'total', header: t('orders.total'), cell: (o) => fmt.money(o.totalPriceSet) },
     { key: 'act', header: '', className: 'text-right', cell: (o) => <Button size="sm" onClick={(e) => { e.stopPropagation(); setDialog([o.id]); }}>{t('btn.labels.add')}</Button> },

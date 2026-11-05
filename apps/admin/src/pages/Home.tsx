@@ -43,9 +43,14 @@ export const openPalette = () => window.dispatchEvent(new Event('shopme:open-pal
 /** Scaled, non-interactive thumbnail of the live storefront home (same origin, sandboxed: no scripts). */
 function StorePreview({ protectedStore }: { protectedStore: boolean }) {
   const t = useT();
+  // The page is fetched and its scripts removed before it goes into the frame: a sandboxed frame that still holds scripts logs a console error for each of them.
+  const page = useQuery({ queryKey: ['store-preview'], staleTime: 60_000, retry: false, queryFn: async () => {
+    const html = await (await fetch('/', { credentials: 'same-origin' })).text();
+    return html.replace(/<script\b[\s\S]*?<\/script>/gi, '').replace(/<head([^>]*)>/i, '<head$1><base href="/">');
+  } });
   return (
     <div className="relative mx-auto h-[184px] w-[290px] overflow-hidden rounded-xl bg-canvas shadow-card ring-1 ring-line" role="img" aria-label={t('home.preview.label')}>
-      <iframe src="/" title={t('home.preview.label')} sandbox="" tabIndex={-1} aria-hidden loading="lazy" className="pointer-events-none origin-top-left border-0 bg-white"
+      <iframe srcDoc={page.data} title={t('home.preview.label')} sandbox="" tabIndex={-1} aria-hidden loading="lazy" className="pointer-events-none origin-top-left border-0 bg-white"
         style={{ width: 1280, height: 800, transform: 'scale(0.2266)' }} />
       <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-lg bg-ink/75 px-2 py-1 text-xs font-semibold text-white">
         {protectedStore ? <Lock className="size-3" aria-hidden /> : <span className="size-1.5 rounded-full bg-[#4ade80]" aria-hidden />}
@@ -177,7 +182,7 @@ export function HomePage() {
           {kpi(t('home.aov'), fmt.money(d?.averageOrderValue))}
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_20rem]">
-          <Card title={t('home.salesByDay')} actions={<Link to="/analytics/SALES_OVER_TIME" className="text-[13px] text-primary underline">{t('analytics.viewReports')}</Link>}>
+          <Card title={t('home.salesByDay')} actions={<Link to="/analytics/SALES_OVER_TIME" className="text-[13px] text-accent underline">{t('analytics.viewReports')}</Link>}>
             {series.length ? <SalesChart data={series} label={t('home.salesByDay')} format={(n) => fmt.money({ amount: String(n), currencyCode: shop.currency })} /> : <p className="py-8 text-center text-[13px] text-muted">{t('home.noSales')}</p>}
           </Card>
           <Card title={t('home.topProducts')}>
@@ -191,7 +196,7 @@ export function HomePage() {
             )}
           </Card>
         </div>
-        <Card className="mt-4" title={t('btn.home.growth')} actions={<Link to="/marketing" className="text-[13px] text-primary underline">{t('btn.home.growthOpen')}</Link>}>
+        <Card className="mt-4" title={t('btn.home.growth')} actions={<Link to="/marketing" className="text-[13px] text-accent underline">{t('btn.home.growthOpen')}</Link>}>
           <div className="flex items-center gap-3 text-[13px]">
             <Megaphone className="size-5 text-muted" aria-hidden />
             <p className="text-muted">{growth.data ? t('btn.home.growthSummary', { campaigns: growth.data.shopmeMarketingCampaigns.filter((c) => c.status === 'ACTIVE').length, orders: growth.data.shopmeAttribution.attributedOrders }) : t('btn.home.growthBody')}</p>

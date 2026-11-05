@@ -31,7 +31,8 @@ export function Section({ title, description, action, children, className }: { t
 
 /** Card holding rows separated by hairlines. */
 export function RowCard({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cx('divide-y divide-line overflow-hidden rounded-lg bg-canvas shadow-card', className)}>{children}</div>;
+  // No overflow clipping: row menus ("...") must be able to open past the edge of the card.
+  return <div className={cx('divide-y divide-line rounded-lg bg-canvas shadow-card [&>*:first-child]:rounded-t-lg [&>*:last-child]:rounded-b-lg', className)}>{children}</div>;
 }
 
 interface RowProps { icon?: ComponentType<{ className?: string }>; title: ReactNode; description?: ReactNode; trailing?: ReactNode }

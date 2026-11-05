@@ -44,6 +44,17 @@ export async function updateSmsMarketingConsent(db: Executor, shopId: number, cu
   return okR(row!);
 }
 
+export interface WhatsappConsentInput { marketingState: string; consentUpdatedAt?: Date | null }
+/** WhatsApp marketing consent is only stored and exported; nothing is sent through WhatsApp. A phone number is needed to record it. */
+export async function updateWhatsappMarketingConsent(db: Executor, shopId: number, customerId: number, input: WhatsappConsentInput): Promise<Result<Customer>> {
+  const [c] = await db.select().from(customers).where(and(eq(customers.shopId, shopId), eq(customers.id, customerId))).limit(1);
+  if (!c) return errR(['customerId'], 'Customer not found', 'INVALID');
+  if (!c.phone) return errR(['customerId'], 'A phone number is needed to change WhatsApp marketing consent', 'INVALID');
+  if (!(SMS_MARKETING_STATES as readonly string[]).includes(input.marketingState)) return errR(['shopmeWhatsappMarketingConsent', 'marketingState'], 'Marketing state is not valid', 'INCLUSION');
+  const [row] = await db.update(customers).set({ whatsappMarketingState: input.marketingState, whatsappMarketingUpdatedAt: input.consentUpdatedAt ?? new Date(), updatedAt: new Date() }).where(eq(customers.id, customerId)).returning();
+  return okR(row!);
+}
+
 // --- subscribing (newsletter form, checkout checkbox) with optional double opt-in ------------------------------------------
 
 export interface SubscribeResult { customer: Customer; state: EmailMarketingState; confirmToken: string | null }

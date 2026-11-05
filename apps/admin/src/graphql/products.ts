@@ -23,14 +23,14 @@ export const PRODUCTS_COUNT = /* GraphQL */ `
 export const PRODUCTS_PICKER = /* GraphQL */ `
   query ProductsPicker($first: Int!, $after: String, $query: String) {
     products(first: $first, after: $after, query: $query) {
-      nodes { id title status featuredMedia { id ... on MediaImage { image { url } } } }
+      nodes { id title status featuredMedia { id ... on MediaImage { image { url shopmePresentation { focalPoint { x y } } } } } }
       pageInfo { hasNextPage endCursor }
     }
   }
 `;
 
 const VARIANT_FIELDS = /* GraphQL */ `
-  id title sku barcode price compareAtPrice taxable inventoryPolicy
+  id title sku barcode price compareAtPrice taxable inventoryPolicy shopmeHiddenFromOnlineStore
   selectedOptions { name value }
   media(first: 1) { nodes { id } }
   unitPriceMeasurement { quantityValue quantityUnit referenceValue referenceUnit }

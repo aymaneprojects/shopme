@@ -1,5 +1,5 @@
 import {
-  addCustomerComment, updateEmailMarketingConsent, updateSmsMarketingConsent, listEvents, changeCustomerTags, countCustomers, createCustomer, customerStats, deleteCustomer, getCustomer, getDefaultAddress, listCustomerAddresses, listCustomers, listOrders, countOrders, updateCustomer,
+  addCustomerComment, updateEmailMarketingConsent, updateSmsMarketingConsent, updateWhatsappMarketingConsent, listEvents, changeCustomerTags, countCustomers, createCustomer, customerStats, deleteCustomer, getCustomer, getDefaultAddress, listCustomerAddresses, listCustomers, listOrders, countOrders, updateCustomer,
   type Customer, type CustomerInput as ServiceInput,
 } from '@shopme/core';
 import { parseId, toGid, type UserError } from '@shopme/shopify-compat';
@@ -119,9 +119,13 @@ const EmailConsentInput = builder.inputType('CustomerEmailMarketingConsentInput'
 const SmsConsentInput = builder.inputType('ShopmeCustomerSmsConsentInput', {
   fields: (t) => ({ marketingState: t.string({ required: true }), marketingOptInLevel: t.string(), consentUpdatedAt: t.field({ type: 'DateTime' }) }),
 });
+const WhatsappConsentInput = builder.inputType('ShopmeCustomerWhatsappConsentInput', {
+  fields: (t) => ({ marketingState: t.string({ required: true }), consentUpdatedAt: t.field({ type: 'DateTime' }) }),
+});
 const CustomerInput = builder.inputType('CustomerInput', {
   fields: (t) => ({
     emailMarketingConsent: t.field({ type: EmailConsentInput }), smsMarketingConsent: t.field({ type: SmsConsentInput }),
+    shopmeWhatsappMarketingConsent: t.field({ type: WhatsappConsentInput }),
     email: t.string(), firstName: t.string(), id: t.id(), lastName: t.string(), locale: t.string(), note: t.string(), phone: t.string(), tags: t.stringList(), taxExempt: t.boolean(),
     addresses: t.field({ type: [MailingAddressInput] }),
   }),
@@ -151,6 +155,11 @@ async function applyConsent(ctx: GraphQLContext, customer: Customer, input: type
   const sms = input.smsMarketingConsent;
   if (sms && sms.marketingState !== cur.smsMarketingState && cur.phone) {
     const r = await updateSmsMarketingConsent(ctx.db, ctx.shopId, cur.id, { marketingState: sms.marketingState, marketingOptInLevel: sms.marketingOptInLevel, consentUpdatedAt: sms.consentUpdatedAt, consentCollectedFrom: 'OTHER' });
+    if (r.ok) cur = r.value;
+  }
+  const wa = input.shopmeWhatsappMarketingConsent;
+  if (wa && wa.marketingState !== cur.whatsappMarketingState && cur.phone) {
+    const r = await updateWhatsappMarketingConsent(ctx.db, ctx.shopId, cur.id, { marketingState: wa.marketingState, consentUpdatedAt: wa.consentUpdatedAt });
     if (r.ok) cur = r.value;
   }
   return cur;

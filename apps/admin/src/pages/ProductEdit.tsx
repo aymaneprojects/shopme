@@ -20,7 +20,7 @@ import { ViewAs } from '../components/ViewAs';
 import { SaveBar, guard } from '../components/SaveBar';
 import { VariantsManager } from '../components/VariantsManager';
 import { numToGid } from '../format';
-import { LOCATIONS, PRODUCT, PRODUCT_DELETE, PRODUCT_DUPLICATE, PRODUCT_FILTER_OPTIONS, TAXONOMY_CATEGORIES } from '../graphql';
+import { FILE_UPDATE, LOCATIONS, PRODUCT, PRODUCT_DELETE, PRODUCT_DUPLICATE, PRODUCT_FILTER_OPTIONS, TAXONOMY_CATEGORIES } from '../graphql';
 import { useI18n } from '../i18n';
 import { flattenStrings } from '../lib/hooks';
 import { createProduct, emptyForm, formFromProduct, giftCardForm, isPersistedMedia, updateProduct, validate } from '../lib/product-form';
@@ -64,6 +64,13 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
   const [dup, setDup] = useState<{ title: string; images: boolean; inventory: boolean; translations: boolean; skus: boolean; status: 'DRAFT' | 'ACTIVE' | 'UNLISTED' } | null>(null);
   const [activeVariant, setActiveVariant] = useState('');
   const [editing, setEditing] = useState<number | null>(null);
+  // Focal points save on their own (a click in the media viewer), so they stay out of the form and never mark it as changed.
+  const [focals, setFocals] = useState<Record<string, { x: number; y: number } | null>>(() => Object.fromEntries(initial.media.map((m) => [m.key, m.focalPoint ?? null])));
+  const focal = useMutation({
+    mutationFn: (a: { key: string; point: { x: number; y: number } | null }) => mutate(FILE_UPDATE, { files: [{ id: a.key, focalPoint: a.point }] }, 'fileUpdate'),
+    onSuccess: (_r, a) => { setFocals((f) => ({ ...f, [a.key]: a.point })); toast(t(a.point ? 'focal.saved' : 'focal.cleared')); },
+    onError: (e) => toast(e.message, 'critical'),
+  });
   const cats = useQuery({ queryKey: ['taxonomy'], staleTime: 600_000, queryFn: () => gql<{ taxonomy: { categories: { nodes: Array<{ id: string; fullName: string }> } } | null }>(TAXONOMY_CATEGORIES) });
   const set = (p: Partial<ProductForm>) => setForm((f) => ({ ...f, ...p }));
   const dirty = JSON.stringify(form) !== JSON.stringify(initial);
@@ -220,9 +227,10 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
       <Modal open={!!variantMf} onClose={() => setVariantMf(null)} closeLabel={t('common.close')} title={t('mf.variantMetafields')} wide>
         {variantMf && <MetafieldsEditor ownerId={variantMf} ownerType="PRODUCTVARIANT" title={form.variants.find((v) => v.id === variantMf)?.optionValues.join(' / ') || t('mf.title')} />}
       </Modal>
-      <MediaViewer items={form.media.map((m) => ({ key: m.key, url: m.url, name: m.url.split('/').pop()?.split('?')[0] ?? '', alt: m.alt ?? '', usedIn: `${t('nav.products')} (1)` }))} index={viewing} onIndexChange={setViewing} onClose={() => setViewing(null)}
+      <MediaViewer items={form.media.map((m) => ({ key: m.key, url: m.url, name: m.url.split('/').pop()?.split('?')[0] ?? '', alt: m.alt ?? '', usedIn: `${t('nav.products')} (1)`, focalPoint: focals[m.key] ?? null }))} index={viewing} onIndexChange={setViewing} onClose={() => setViewing(null)}
         onSave={(item, change) => set({ media: form.media.map((m) => (m.key === item.key ? { ...m, alt: change.alt } : m)) })}
-        labels={{ close: t('common.close'), info: t('viewer.info'), name: t('viewer.name'), alt: t('viewer.alt'), details: t('viewer.details'), usedIn: t('viewer.usedIn'), save: t('viewer.save'), counter: (i, n) => t('viewer.counter', { i, n }), previous: t('viewer.previous'), next: t('viewer.next'), download: t('viewer.download') }} />
+        onFocalPoint={(item, point) => { if (!isPersistedMedia(item)) { toast(t('focal.saveFirst'), 'critical'); return; } focal.mutate({ key: item.key, point }); }}
+        labels={{ close: t('common.close'), info: t('viewer.info'), name: t('viewer.name'), alt: t('viewer.alt'), details: t('viewer.details'), usedIn: t('viewer.usedIn'), save: t('viewer.save'), counter: (i, n) => t('viewer.counter', { i, n }), previous: t('viewer.previous'), next: t('viewer.next'), download: t('viewer.download'), focalPoint: t('focal.title'), focalHint: t('focal.hint'), focalClear: t('focal.clear') }} />
       {editing !== null && form.media[editing] && <ImageEditor open url={form.media[editing]!.url} name={form.media[editing]!.url.split('/').pop()?.split('?')[0] ?? 'image'} onClose={() => setEditing(null)} onError={(m) => toast(m, 'critical')}
         onSaved={(f) => { set({ media: [...form.media, { key: `new-${f.id}`, url: f.url, alt: form.media[editing]!.alt }] }); setEditing(null); toast(t('bp.editor.added')); }} />}
       <CollectionPicker open={pickCollections} onClose={() => setPickCollections(false)} excludeIds={form.collections.map((c) => c.id)} onConfirm={(c) => set({ collections: [...form.collections, ...c.map((x) => ({ id: x.id, title: x.title }))] })} />
