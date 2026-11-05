@@ -25,8 +25,13 @@ storefront password requires a password. Address, description, `taxShipping` and
 the API only exposes `stripe.stripeConfigured: Boolean`, and enabling Stripe without keys is a userError. Bank transfer
 needs instructions to be enabled.
 
-## Shipping zones and rates (replaces `deliveryProfiles`)
+## Shipping zones and rates (view of the general delivery profile)
 
+Shipping is stored as delivery profiles (see `docs/spec/shipping-profiles.md`): the Admin API names `deliveryProfile(s)`,
+`deliveryProfileCreate|Update|Remove`, `locationLocalPickupEnable|Disable`, `shippingPackageUpdate|Delete|MakeDefault` apply, with ShopMe
+additions `shopmeShippingPackageCreate`, `shopmeLocationLocalDeliveryUpdate`, `Location.shopmeLocalDelivery`, `Order.shopmeDelivery`,
+`shopmeOrderPickupMarkReady|MarkPickedUp` and `DeliveryMethodDefinition.shopmeFreeOverAmount` (free shipping threshold, also accepted as
+`shopmeFreeOverAmount` / `shopmeClearFreeOver` on `DeliveryMethodDefinitionInput`). The simpler zone API below is a view of the general profile:
 Queries `shippingZones`, `shippingZone(id)`; mutations `shippingZoneCreate|Update|Delete`,
 `shippingRateCreate|Update|Delete`. A zone has `countries { countryCode provinceCodes }` (`"*"` = rest of world) and
 `rates`. Rate: `name`, `type` (`FLAT | WEIGHT_BASED | PRICE_BASED | FREE`), `price`, `minWeight/maxWeight` (grams,

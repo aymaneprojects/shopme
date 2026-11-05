@@ -39,7 +39,7 @@ export function toItemUpdate(i: ItemInputShape | null | undefined, currency: str
   };
 }
 
-const Weight = builder.objectRef<{ unit: string; value: number }>('Weight').implement({
+export const Weight = builder.objectRef<{ unit: string; value: number }>('Weight').implement({
   fields: (t) => ({ unit: t.field({ type: WEIGHT_UNIT, resolve: (w) => w.unit as never }), value: t.exposeFloat('value') }),
 });
 const Dimensions = builder.objectRef<{ unit: string; length: number | null; width: number | null; height: number | null }>('InventoryItemDimensions').implement({

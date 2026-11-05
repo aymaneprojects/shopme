@@ -1,3 +1,4 @@
+import { PickupCard } from '../components/PickupCard';
 import { Badge, Banner, Button, ButtonGroup, Card, Checkbox, ConfirmDialog, Dropdown, Modal, Skeleton, SplitButton, TagInput, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, ArchiveRestore, Ban, ChevronDown, ChevronUp, Copy, CopyPlus, CornerUpLeft, Eye, MapPin, MoreHorizontal, Pause, Pencil, Printer, Truck, User, X } from 'lucide-react';
@@ -205,6 +206,7 @@ function OrderView({ order: o }: { order: OrderData }) {
               </div>
             ) : <p className="text-[13px] text-muted">{o.email ?? t('orders.noCustomer')}</p>}
           </Card>
+          <PickupCard orderId={o.id} onChange={() => void refresh()} />
           <Card title={t('order.shippingAddress')} actions={<Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
             { key: 'edit', icon: <MapPin />, label: t('order.shippingEdit'), disabled: !!o.cancelledAt, onSelect: () => setDialog('address') },
             { key: 'copy', icon: <Copy />, label: t('order.copyAddress'), disabled: !o.shippingAddress, onSelect: () => { const a = o.shippingAddress; void navigator.clipboard?.writeText([[a?.firstName, a?.lastName].filter(Boolean).join(' '), a?.address1, a?.address2, [a?.zip, a?.city].filter(Boolean).join(' '), a?.country].filter(Boolean).join('\n')).then(() => toast(t('abandoned.copied'))); } },

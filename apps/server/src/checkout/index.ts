@@ -182,7 +182,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       const rate = Number(b.shippingRateId);
       const first = await updateCheckout(db, shop, token, {
         ...(email === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? { email: email || null } : {}),
-        address: addressWithRules(b, settings, contact.phone), shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : undefined, ...tipPatch(b, shop, settings),
+        address: addressWithRules(b, settings, contact.phone), shippingRateId: Number.isFinite(rate) && rate !== 0 ? rate : undefined, ...tipPatch(b, shop, settings),
         removeDiscountCode: str(b.removeDiscountCode) || undefined, removeGiftCardCode: str(b.removeGiftCardCode) || undefined,
       });
       if (!first.ok) return reply.code(first.error === 'not_found' ? 404 : 409).send({});
@@ -259,7 +259,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       };
 
       const rate = Number(b.shippingRateId);
-      const saved = await updateCheckout(db, shop, token, { email: contact.email, address: addressWithRules(b, settings, contact.phone), shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : undefined, ...tipPatch(b, shop, settings) });
+      const saved = await updateCheckout(db, shop, token, { email: contact.email, address: addressWithRules(b, settings, contact.phone), shippingRateId: Number.isFinite(rate) && rate !== 0 ? rate : undefined, ...tipPatch(b, shop, settings) });
       if (!saved.ok) return saved.error === 'completed' ? reply.redirect(`/checkouts/${token}/thank-you`, 303) : fail([saved.error === 'invalid_email' ? c.t(settings.contactMethod === 'email_or_phone' ? 'err_contact' : 'err_email') : c.t('err_generic')]);
 
       let clientSecret = '';
@@ -267,7 +267,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       let paymentError = false;
       const res = await submitCheckout(db, shop, token, {
         paymentMethod: str(b.paymentMethod), allowedMethods: methods.map((m) => m.id), acceptsMarketing: settings.marketing !== 'hidden' && !!b.acceptsMarketing, note: settings.orderNotes ? str(b.note).trim().slice(0, 5000) || null : undefined,
-        shippingRateId: Number.isFinite(rate) && rate > 0 ? rate : null,
+        shippingRateId: Number.isFinite(rate) && rate !== 0 ? rate : null,
         startOnlinePayment: async (view) => {
           if (!stripe) throw new Error('Stripe is not configured');
           const pi = await stripe.createPaymentIntent({ amount: view.amountDue, currency: view.currency, reference: token, email: view.email, description: `${shop.name} checkout`, idempotencyKey: randomUUID() });

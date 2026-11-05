@@ -6,8 +6,9 @@ import { loadCartView, type CartLineView, type CartView } from '../cart/service'
 import { completeDraftFromCheckout } from '../draft-orders';
 import { createOrder, type CheckoutAddressInput, type CreateOrderResult } from '../orders/create';
 import {
-  matchShippingRates, priceCheckout, resolveCombinations, type DiscountApplication, type PricingDiscount, type PricingInput, type PricingLine, type PricingResult, type PricingShippingRate, type PricingTaxRate,
+  priceCheckout, resolveCombinations, type DiscountApplication, type PricingDiscount, type PricingInput, type PricingLine, type PricingResult, type PricingShippingRate, type PricingTaxRate,
 } from '../pricing';
+import { quoteShipping, recordOrderDelivery } from '../shipping';
 import { discountEligibleFor } from '../discounts/eligibility';
 import { allocateGiftCards, getGiftCardByCode, giftCardRejection, normalizeGiftCardCode, type GiftCardRejection } from '../gift-cards';
 import { checkoutSettingsOf, isPhone, requiredAddressKeys, stripHiddenAddressFields, tipFor, type CheckoutSettings } from './settings';
@@ -117,25 +118,8 @@ export async function evaluateDiscounts(
 // Shipping
 // ---------------------------------------------------------------------------------------------------------------------
 
-/** Rates the buyer can pick for a destination: the zone listing the country (and province), else the rest-of-world zone. */
-export async function shippingOptionsFor(db: Executor, shopId: number, dest: { countryCode: string | null; provinceCode: string | null }, cart: { subtotal: number; grams: number }): Promise<PricingShippingRate[]> {
-  if (!dest.countryCode) return [];
-  const code = dest.countryCode.toUpperCase();
-  const prov = (dest.provinceCode ?? '').toUpperCase();
-  const rows = await db.select().from(s.shippingZoneCountries).where(and(eq(s.shippingZoneCountries.shopId, shopId), inArray(s.shippingZoneCountries.countryCode, [code, '*'])));
-  const specific = rows.find((r) => r.countryCode === code && (!r.provinceCodes.length || r.provinceCodes.map((p) => p.toUpperCase()).includes(prov)));
-  const zone = specific ?? rows.find((r) => r.countryCode === '*');
-  if (!zone) return [];
-  const rates = await db.select().from(s.shippingRates).where(and(eq(s.shippingRates.zoneId, zone.zoneId), eq(s.shippingRates.active, true)));
-  return matchShippingRates(rates, cart);
-}
-
-/** Country codes that can be shipped to (`'*'` means any). */
-export async function shippableCountries(db: Executor, shopId: number): Promise<string[]> {
-  const rows = await db.select({ c: s.shippingZoneCountries.countryCode }).from(s.shippingZoneCountries)
-    .innerJoin(s.shippingRates, and(eq(s.shippingRates.zoneId, s.shippingZoneCountries.zoneId), eq(s.shippingRates.active, true))).where(eq(s.shippingZoneCountries.shopId, shopId));
-  return [...new Set(rows.map((r) => r.c))];
-}
+// Rates, pickup and local delivery come from the shipping module (`quoteShipping`, `shippableCountries`).
+export { shippableCountries } from '../shipping/quote';
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Stock
@@ -219,7 +203,8 @@ export async function loadCheckout(db: Executor, shop: Shop, token: string, now 
   const requiresShipping = cart.lines.some((l) => l.requiresShipping);
   const shippable = plines.filter((l) => l.requiresShipping);
   const options = requiresShipping
-    ? await shippingOptionsFor(db, shop.id, { countryCode: address?.countryCode ?? null, provinceCode: address?.provinceCode ?? null }, { subtotal: shippable.reduce((a, l) => a + l.unitPrice * l.quantity, 0), grams: shippable.reduce((a, l) => a + l.grams, 0) })
+    ? await quoteShipping(db, shop.id, { countryCode: address?.countryCode ?? null, provinceCode: address?.provinceCode ?? null, zip: address?.zip ?? null },
+      cart.lines.map((l) => ({ variantId: l.variantId, quantity: l.quantity, price: l.price, grams: l.grams * l.quantity, requiresShipping: l.requiresShipping })))
     : [];
   const chosen = options.find((o) => o.id === row.shippingRateId) ?? options[0] ?? null;
   const { applied, rejected } = await evaluateDiscounts(db, shop.id, cart.discountCodes, { lines: plines, email: row.email, now, shippingPrice: chosen?.price ?? 0 });
@@ -425,6 +410,7 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
     if (res.error === 'gift_card_unavailable') return { ok: false, errors: [{ code: 'gift_card' }] };
     return { ok: false, errors: [{ code: 'completed' }] };
   }
+  await recordOrderDelivery(db, shop.id, res.orderId, checkout.requiresShipping ? checkout.pricing.shipping?.rate ?? null : null);
   if (row.draftOrderId) await completeDraftFromCheckout(db, shop.id, row.draftOrderId, res.orderId);
   return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.amountDue, currency: cart.currency, paid: free, needsOnlinePayment: online, paymentId, email: row.email ?? '', checkout };
 }

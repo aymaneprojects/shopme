@@ -323,7 +323,7 @@ export const frShop: Record<keyof typeof enShop, string> = {
   "settings.payments": "Paiements",
   "settings.primaryDomain": "Domaine principal",
   "settings.saved": "Paramètres enregistrés",
-  "settings.shipping": "Livraison",
+  "settings.shipping": "Expédition et livraison",
   "settings.standards": "Standards et formats",
   "settings.storeDetails": "Informations de la boutique",
   "settings.storeLocale": "Langue de la boutique",
