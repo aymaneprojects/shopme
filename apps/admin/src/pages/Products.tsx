@@ -1,7 +1,7 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Pagination, Tabs, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ImageIcon, Plus, Search, Tag } from 'lucide-react';
+import { ImageIcon, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -12,6 +12,7 @@ import { PRODUCTS, PRODUCTS_COUNT, PRODUCT_DELETE, PRODUCT_FILTER_OPTIONS, PRODU
 import { useT } from '../i18n';
 import { flattenStrings, q, useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
+import emptyProducts from '../assets/empty/empty-products.webp';
 
 export interface ProductRow {
   id: string; title: string; handle: string; status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED' | 'UNLISTED'; vendor: string; productType: string;
@@ -112,7 +113,7 @@ export function ProductsPage() {
 
   const empty = hasFilters
     ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} action={<Button onClick={() => { setSearch(''); setParams({}); }}>{t('products.clearFilters')}</Button>} />
-    : <EmptyState icon={<Tag className="size-10" />} title={t('products.emptyTitle')} description={t('products.emptyBody')} action={<Button variant="primary" onClick={() => nav('/products/new')}><Plus className="size-4" />{t('products.add')}</Button>} />;
+    : <EmptyState image={emptyProducts} title={t('products.emptyTitle')} description={t('products.emptyBody')} action={<Button variant="primary" onClick={() => nav('/products/new')}><Plus className="size-4" />{t('products.add')}</Button>} />;
 
   return (
     <>

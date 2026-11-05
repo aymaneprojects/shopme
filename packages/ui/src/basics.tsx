@@ -77,10 +77,12 @@ export function Skeleton({ className }: { className?: string }) {
   return <div aria-hidden className={cx('skeleton', className ?? 'h-4 w-full')} />;
 }
 
-export function EmptyState({ icon, title, description, action }: { icon?: ReactNode; title: string; description?: string; action?: ReactNode }) {
+export function EmptyState({ icon, image, title, description, action }: { icon?: ReactNode; image?: string; title: string; description?: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-      {icon && <div className="grid size-12 place-items-center rounded-full bg-surface text-muted [&_svg]:size-6">{icon}</div>}
+      {image
+        ? <img src={image} alt="" aria-hidden="true" width={160} height={160} className="size-40 object-contain" />
+        : icon && <div className="grid size-12 place-items-center rounded-full bg-surface text-muted [&_svg]:size-6">{icon}</div>}
       <h3 className="text-base font-semibold">{title}</h3>
       {description && <p className="max-w-sm text-[13px] text-muted">{description}</p>}
       {action}

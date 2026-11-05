@@ -1,7 +1,7 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, Input, Modal, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FilePlus2, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
@@ -18,6 +18,7 @@ import { blankDraft, estimateTotals, toDraftInput, totalsFromCalculation, totals
 import type { CalculatedDraft, DraftForm, DraftLine } from '../../lib/draft-order';
 import { useDebounced } from '../../lib/hooks';
 import { useShop } from '../../session';
+import emptyOrders from '../../assets/empty/empty-orders.webp';
 
 const errText = (e: unknown) => (e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : (e as Error).message);
 const statusTone = { OPEN: 'warning', INVOICE_SENT: 'info', COMPLETED: 'success' } as const;
@@ -42,7 +43,7 @@ export function DraftsPage() {
       <PageHeader back="/orders" title={t('draft.title')} actions={add} />
       <PagedTable<DraftRow> title={t('draft.title')} doc={DRAFT_ORDERS} root="draftOrders" queryKey="drafts" columns={columns} searchLabel={t('draft.search')}
         onRowClick={(r) => nav(`/orders/drafts/${gidToNum(r.id)}`)}
-        empty={<EmptyState icon={<FilePlus2 className="size-10" />} title={t('draft.emptyTitle')} description={t('draft.emptyBody')} action={add} />} />
+        empty={<EmptyState image={emptyOrders} title={t('draft.emptyTitle')} description={t('draft.emptyBody')} action={add} />} />
     </>
   );
 }

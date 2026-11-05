@@ -76,6 +76,10 @@ de réduction. La CLI et le SDK client sont des espaces réservés. Voir la [feu
     <td width="50%"><img src="docs/assets/screenshots/storefront-desktop.png" width="100%" alt="Vitrine sur ordinateur"><br><sub>Vitrine</sub></td>
     <td width="50%"><img src="docs/assets/screenshots/checkout-desktop.png" width="100%" alt="Tunnel de commande sur ordinateur"><br><sub>Tunnel de commande</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/storefront-product.png" width="100%" alt="Page produit de la vitrine"><br><sub>Page produit</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/storefront-collection.png" width="100%" alt="Page collection de la vitrine"><br><sub>Page collection</sub></td>
+  </tr>
 </table>
 
 ## Démarrage rapide

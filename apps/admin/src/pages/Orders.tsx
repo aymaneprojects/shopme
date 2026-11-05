@@ -1,7 +1,7 @@
 import { Banner, Button, Card, EmptyState, IndexTable, Modal, Pagination, Tabs, TagInput, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search, ShoppingCart } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql, mutate } from '../api';
@@ -15,6 +15,7 @@ import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
+import emptyOrders from '../assets/empty/empty-orders.webp';
 
 export interface OrderRow {
   id: string; name: string; createdAt: string; displayFinancialStatus: string; displayFulfillmentStatus: string; tags: string[];
@@ -117,7 +118,7 @@ export function OrdersPage() {
           ]}
           empty={list.isError ? null : hasFilters
             ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} action={<Button onClick={() => { setSearch(''); L.clear(); }}>{t('products.clearFilters')}</Button>} />
-            : <EmptyState icon={<ShoppingCart className="size-10" />} title={t('orders.emptyTitle')} description={t('orders.emptyBody')} />}
+            : <EmptyState image={emptyOrders} title={t('orders.emptyTitle')} description={t('orders.emptyBody')} />}
         />
         <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage}
           previousLabel={t('common.previous')} nextLabel={t('common.next')}

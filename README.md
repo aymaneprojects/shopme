@@ -75,6 +75,10 @@ client SDK are placeholders. See the [ROADMAP](ROADMAP.md).
     <td width="50%"><img src="docs/assets/screenshots/storefront-desktop.png" width="100%" alt="Storefront on desktop"><br><sub>Storefront</sub></td>
     <td width="50%"><img src="docs/assets/screenshots/checkout-desktop.png" width="100%" alt="Checkout on desktop"><br><sub>Checkout</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/storefront-product.png" width="100%" alt="Storefront product page"><br><sub>Product page</sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/storefront-collection.png" width="100%" alt="Storefront collection page"><br><sub>Collection page</sub></td>
+  </tr>
 </table>
 
 ## Quick start

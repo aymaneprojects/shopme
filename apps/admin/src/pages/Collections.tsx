@@ -1,7 +1,7 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Pagination, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FolderTree, Plus, Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -14,6 +14,7 @@ import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
 import type { Rule, RuleSet } from '../lib/collection-rules';
 import { Thumb } from './Products';
+import emptyCollections from '../assets/empty/empty-collections.webp';
 
 interface CollectionRow { id: string; title: string; handle: string; productsCount: { count: number } | null; image: { url: string } | null; ruleSet: RuleSet | null }
 const PAGE_SIZE = 25;
@@ -86,7 +87,7 @@ export function CollectionsPage() {
           bulkActions={[{ key: 'delete', label: t('common.delete'), danger: true, onRun: (ids) => setConfirm(ids) }]}
           empty={list.isError ? null : hasFilters
             ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} />
-            : <EmptyState icon={<FolderTree className="size-10" />} title={t('collections.emptyTitle')} description={t('collections.emptyBody')} action={<Button variant="primary" onClick={() => nav('/collections/new')}><Plus className="size-4" />{t('collections.add')}</Button>} />}
+            : <EmptyState image={emptyCollections} title={t('collections.emptyTitle')} description={t('collections.emptyBody')} action={<Button variant="primary" onClick={() => nav('/collections/new')}><Plus className="size-4" />{t('collections.add')}</Button>} />}
         />
         <Pagination
           hasPrevious={before ? !!pi?.hasPreviousPage : !!after} hasNext={before ? true : !!pi?.hasNextPage}

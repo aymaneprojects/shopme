@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project will follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) from 1.0 onward. Before 1.0, minor versions may include breaking changes.
 
+## [Unreleased]
+
+### Added
+
+- The demo store now ships real product, collection, home page, blog and About page photos (CC0, see `packages/core/assets/demo/README.md`).
+- Illustrated empty states in the admin (products, orders, customers, discounts, collections, analytics).
+- `pnpm screenshots` regenerates the README screenshots from a fresh demo store.
+
+### Fixed
+
+- `pnpm seed` now fills the default main and footer menus, which the setup step creates empty.
+- Aurora: the newsletter form in the footer no longer overflows the screen on phones.
+
 ## [0.1.0] - 2026-11-05
 
 First public release (early alpha).

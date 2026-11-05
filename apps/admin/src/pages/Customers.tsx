@@ -1,7 +1,7 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Modal, Pagination, Skeleton, Tabs, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Plus, Search, Users } from 'lucide-react';
+import { MoreHorizontal, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -16,6 +16,7 @@ import type { Key } from '../i18n';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
 import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
+import emptyCustomers from '../assets/empty/empty-customers.webp';
 
 export interface CustomerRow {
   id: string; displayName: string; note: string | null; tags: string[]; numberOfOrders: number; createdAt: string;
@@ -99,7 +100,7 @@ export function CustomersPage() {
           bulkActions={[{ key: 'tag', label: t('orders.addTags'), onRun: (ids) => { setNewTags([]); setTagging(ids); } }, { key: 'delete', label: t('common.delete'), danger: true, onRun: setConfirm }]}
           empty={list.isError ? null : terms
             ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} action={<Button onClick={() => { setSearch(''); L.clear(); }}>{t('products.clearFilters')}</Button>} />
-            : <EmptyState icon={<Users className="size-10" />} title={t('customers.emptyTitle')} description={t('customers.emptyBody')} action={add} />}
+            : <EmptyState image={emptyCustomers} title={t('customers.emptyTitle')} description={t('customers.emptyBody')} action={add} />}
         />
         <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage}
           previousLabel={t('common.previous')} nextLabel={t('common.next')}

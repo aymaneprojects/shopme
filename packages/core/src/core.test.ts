@@ -104,7 +104,7 @@ describe('database + services (PGlite in memory)', () => {
     await seedDemo(h.db, storage);
     const r = (await h.db.execute(sql`select (select count(*)::int from products) p, (select count(*)::int from product_variants) v, (select count(*)::int from menus) m, (select count(*)::int from collections) c`)) as unknown as { rows: Record<string, number>[] };
     expect(r.rows[0]).toEqual({ p: 5, v: 10, m: 2, c: 3 });
-    expect(existsSync(path.join(dir, 'demo', 'highland-morning-coffee-beans.svg'))).toBe(true);
+    expect(existsSync(path.join(dir, 'demo', 'product-highland-morning-coffee-beans-1.webp'))).toBe(true);
   });
 
   it('saves uploads', async () => {

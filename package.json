@@ -15,7 +15,8 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "e2e": "node e2e/run.mjs"
+    "e2e": "node e2e/run.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "devDependencies": {
     "playwright": "1.63.0",

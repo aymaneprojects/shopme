@@ -1,7 +1,7 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Modal, Pagination, Tabs, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Gift, Package, Percent, Plus, Search, ShoppingBag, Truck } from 'lucide-react';
+import { Gift, Package, Plus, Search, ShoppingBag, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql, mutate } from '../api';
@@ -15,6 +15,7 @@ import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
+import emptyDiscounts from '../assets/empty/empty-discounts.webp';
 
 export interface DiscountRow {
   id: string;
@@ -93,7 +94,7 @@ export function DiscountsPage() {
           ]}
           empty={list.isError ? null : terms
             ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} />
-            : <EmptyState icon={<Percent className="size-10" />} title={t('discounts.emptyTitle')} description={t('discounts.emptyBody')} action={create} />} />
+            : <EmptyState image={emptyDiscounts} title={t('discounts.emptyTitle')} description={t('discounts.emptyBody')} action={create} />} />
         <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage}
           previousLabel={t('common.previous')} nextLabel={t('common.next')}
           onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />

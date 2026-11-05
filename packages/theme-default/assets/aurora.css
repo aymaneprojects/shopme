@@ -197,8 +197,8 @@ a.pagination__link:hover { border-color: var(--color-primary); color: var(--colo
 
 /* Footer */
 .footer-section { margin-top: 24px; background: var(--color-surface); }
-.site-footer__inner { display: grid; gap: 24px; padding-top: 40px; padding-bottom: 24px; }
-@media (min-width: 750px) { .site-footer__inner { grid-template-columns: 2fr 1fr; } }
+.site-footer__inner { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; padding-top: 40px; padding-bottom: 24px; }
+@media (min-width: 750px) { .site-footer__inner { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); } }
 .site-footer__name { font-weight: 700; font-size: 1.15rem; margin-bottom: 6px; }
 .site-footer__text { color: var(--color-muted); max-width: 46ch; }
 .site-footer__links { display: grid; gap: 8px; } .site-footer__links a { text-decoration: none; } .site-footer__links a:hover { text-decoration: underline; color: var(--color-primary); }
@@ -236,7 +236,7 @@ a.pagination__link:hover { border-color: var(--color-primary); color: var(--colo
 .customer__address { padding: 16px; border: 1px solid var(--color-border); border-radius: var(--radius); }
 .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-primary); font-size: .8rem; font-weight: 600; }
 .link-button { border: 0; background: none; padding: 0; color: var(--color-sale); cursor: pointer; text-decoration: underline; }
-.site-footer__newsletter { max-width: 420px; } .newsletter__row { display: flex; gap: 8px; }
+.site-footer__newsletter { max-width: 420px; width: 100%; } .newsletter__row { display: flex; gap: 8px; } .newsletter__row input { flex: 1 1 auto; min-width: 0; } .newsletter__row .button { flex: none; }
 .blog__tags, .article__tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
 .chip { display: inline-block; padding: 4px 12px; border: 1px solid var(--color-border); border-radius: 999px; text-decoration: none; font-size: .9rem; } .chip:hover, .chip.is-active { border-color: var(--color-primary); color: var(--color-primary); }
 .article__meta { color: var(--color-muted); } .article__image { margin: 16px 0 24px; } .article__image img { width: 100%; border-radius: var(--radius); }

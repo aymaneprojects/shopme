@@ -1,7 +1,7 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Input, Modal, Pagination, Select, Skeleton, Tabs, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Gift, MoreHorizontal, Plus, Search } from 'lucide-react';
+import { MoreHorizontal, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
@@ -18,6 +18,7 @@ import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
 import { generateCode } from '../lib/discount-form';
 import { useShop } from '../session';
+import emptyDiscounts from '../assets/empty/empty-discounts.webp';
 
 interface Card_ {
   id: string; enabled: boolean; isRedeemable: boolean; expiresOn: string | null; createdAt: string; deactivatedAt: string | null; lastCharacters: string; maskedCode: string; note: string | null;
@@ -75,7 +76,7 @@ export function GiftCardsPage() {
           selected={[]} onSelectedChange={() => {}} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           empty={list.isError ? null : terms
             ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} />
-            : <EmptyState icon={<Gift className="size-10" />} title={t('giftCards.emptyTitle')} description={t('giftCards.emptyBody')} action={create} />} />
+            : <EmptyState image={emptyDiscounts} title={t('giftCards.emptyTitle')} description={t('giftCards.emptyBody')} action={create} />} />
         <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage}
           previousLabel={t('common.previous')} nextLabel={t('common.next')}
           onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />

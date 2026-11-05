@@ -1,4 +1,4 @@
-import { Banner, Card, Input, Select, Skeleton, cx } from '@shopme/ui';
+import { Banner, Card, EmptyState, Input, Select, Skeleton, cx } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
 import { Download } from 'lucide-react';
 import { useMemo } from 'react';
@@ -14,6 +14,7 @@ import { en } from '../i18n/en';
 import { CHART_COLUMN, PRESETS, REPORTS, SNAPSHOT_REPORTS, TIME_REPORTS, comparisonRange, delta, fillSeries, presetRange } from '../lib/analytics';
 import type { Compare, Preset, Range, ReportName } from '../lib/analytics';
 import { useShop } from '../session';
+import emptyAnalytics from '../assets/empty/empty-analytics.webp';
 
 type Group = 'DAY' | 'WEEK' | 'MONTH';
 interface Column { key: string; label: string; type: 'text' | 'date' | 'int' | 'money' | 'percent' }
@@ -135,7 +136,7 @@ export function AnalyticsPage() {
             </Card>
           )}
           <Card title={t(`analytics.report.${name}` as Key)}>
-            {q.isLoading ? <Skeleton className="h-32" /> : !rep || rep.rows.length === 0 ? <p className="py-6 text-center text-[13px] text-muted">{t('analytics.noData')}</p> : (
+            {q.isLoading ? <Skeleton className="h-32" /> : !rep || rep.rows.length === 0 ? <EmptyState image={emptyAnalytics} title={t('analytics.noData')} /> : (
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead><tr className="border-b border-line text-left text-muted">{rep.columns.map((c) => <th key={c.key} scope="col" className={cx('px-2 py-1.5 font-medium', c.type !== 'text' && c.type !== 'date' && 'text-right')}>{cells.colLabel(c)}</th>)}</tr></thead>

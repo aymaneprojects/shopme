@@ -1,7 +1,7 @@
 import { Badge, Banner, Button, Card, EmptyState, IndexTable, Pagination, Select, Skeleton, Switch, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Search, ShoppingCart } from 'lucide-react';
+import { Copy, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../../api';
@@ -14,6 +14,7 @@ import { useT } from '../../i18n';
 import { useDebounced } from '../../lib/hooks';
 import type { Connection } from '../../lib/hooks';
 import { Thumb } from '../Products';
+import emptyOrders from '../../assets/empty/empty-orders.webp';
 
 interface Row {
   id: string; name: string; createdAt: string; updatedAt: string; lineItemsQuantity: number; shopmeEmail: string | null; shopmeRecoveryEmailsSent: number; shopmeRecoveryEmailSentAt: string | null;
@@ -92,7 +93,7 @@ export function AbandonedPage() {
         <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/orders/abandoned/${gidToNum(r.id)}`)}
           selected={[]} onSelectedChange={() => {}} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           empty={list.isError ? null : term ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} />
-            : <EmptyState icon={<ShoppingCart className="size-10" />} title={t('abandoned.emptyTitle')} description={t('abandoned.emptyBody')} />} />
+            : <EmptyState image={emptyOrders} title={t('abandoned.emptyTitle')} description={t('abandoned.emptyBody')} />} />
         <Pagination hasPrevious={L.get('before') ? !!pi?.hasPreviousPage : !!L.get('after')} hasNext={L.get('before') ? true : !!pi?.hasNextPage}
           previousLabel={t('common.previous')} nextLabel={t('common.next')}
           onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
