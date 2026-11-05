@@ -203,12 +203,12 @@ export const DISCOUNT_NODES = /* GraphQL */ `
         id
         discount {
           __typename
-          ... on DiscountCodeBasic { title status startsAt endsAt usageLimit asyncUsageCount summary codes(first: 1) { nodes { code } } }
-          ... on DiscountCodeBxgy { title status startsAt endsAt usageLimit asyncUsageCount summary codes(first: 1) { nodes { code } } }
-          ... on DiscountCodeFreeShipping { title status startsAt endsAt usageLimit asyncUsageCount summary codes(first: 1) { nodes { code } } }
-          ... on DiscountAutomaticBasic { title status startsAt endsAt asyncUsageCount summary }
-          ... on DiscountAutomaticBxgy { title status startsAt endsAt asyncUsageCount summary }
-          ... on DiscountAutomaticFreeShipping { title status startsAt endsAt asyncUsageCount summary }
+          ... on DiscountCodeBasic { title status startsAt endsAt usageLimit asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } codes(first: 1) { nodes { code } } }
+          ... on DiscountCodeBxgy { title status startsAt endsAt usageLimit asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } codes(first: 1) { nodes { code } } }
+          ... on DiscountCodeFreeShipping { title status startsAt endsAt usageLimit asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } codes(first: 1) { nodes { code } } }
+          ... on DiscountAutomaticBasic { title status startsAt endsAt asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } }
+          ... on DiscountAutomaticBxgy { title status startsAt endsAt asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } }
+          ... on DiscountAutomaticFreeShipping { title status startsAt endsAt asyncUsageCount summary combinesWith { productDiscounts orderDiscounts shippingDiscounts } }
         }
       }
       pageInfo { hasNextPage hasPreviousPage startCursor endCursor }

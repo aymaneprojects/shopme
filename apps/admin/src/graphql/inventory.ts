@@ -9,7 +9,7 @@ export const INVENTORY_VARIANTS = /* GraphQL */ `
         inventoryItem {
           id tracked
           inventoryLevels(first: 50) {
-            nodes { location { id name } quantities(names: ["available", "committed", "on_hand"]) { name quantity } }
+            nodes { location { id name } quantities(names: ["available", "committed", "on_hand", "incoming", "reserved"]) { name quantity } }
           }
         }
       }

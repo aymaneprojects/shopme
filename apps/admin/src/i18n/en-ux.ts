@@ -1,0 +1,20 @@
+// Catalog admin controls: column picker, view-as, share, record navigation, stock counts, theme editor actions, home shortcuts.
+export const enUx = {
+  'columns.edit': 'Edit columns', 'columns.title': 'Columns',
+  'viewAs.label': 'View as', 'viewAs.desktop': 'Visitor on a computer', 'viewAs.mobile': 'Visitor on a phone',
+  'share.label': 'Share', 'share.copyLink': 'Copy link', 'share.copied': 'Link copied', 'share.copyFailed': 'Could not copy the link', 'share.email': 'Send by email',
+  'nav.previousRecord': 'Previous', 'nav.nextRecord': 'Next',
+  'collection.duplicate': 'Duplicate collection', 'collection.duplicated': 'Collection duplicated', 'collection.view': 'View on the store',
+  'inventory.unavailable': 'Unavailable', 'inventory.incoming': 'Incoming', 'inventory.counts': 'Stock counts',
+  'inventory.countHelp': 'Enter one line per item as "SKU, counted quantity". The available quantity at the chosen location is set to the counted value.',
+  'inventory.countLines': 'Counted quantities', 'inventory.countApply': 'Apply counts', 'inventory.countDone': 'Stock counts applied',
+  'inventory.countBadLine': 'Line not understood: {line}', 'inventory.countUnknownSku': 'No tracked item with the SKU {sku}',
+  'discounts.combines': 'Combines with', 'discounts.combines.yes': 'combines', 'discounts.combines.no': 'does not combine',
+  'discount.removeEnd': 'Remove end date',
+  'home.processOrders': 'Process orders', 'home.nextSteps': 'Next steps',
+  'home.setupPayments': 'Set up payments', 'home.setupPayments.body': 'Choose how customers pay at checkout.',
+  'home.setupDomain': 'Get a custom domain', 'home.setupDomain.body': 'Give your store a web address of its own.',
+  'home.setupPolicies': 'Review store policies', 'home.setupPolicies.body': 'Check your refund, privacy and shipping policies.',
+  'editor.redo': 'Redo', 'editor.duplicate': 'Duplicate', 'editor.openPreview': 'Open preview in a new tab', 'editor.allThemes': 'All themes',
+  'editor.saveFirst': 'Save your changes before publishing', 'editor.deleteBlock': 'Delete block', 'editor.deleteSection': 'Delete section', 'editor.searchSections': 'Search sections',
+} as const;

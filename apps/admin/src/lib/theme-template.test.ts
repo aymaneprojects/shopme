@@ -85,4 +85,23 @@ describe('history', () => {
     expect(s.present.order).toEqual(['hero', 'rich']);
     expect(h(s, { kind: 'undo' })).toBe(s);
   });
+
+  it('redoes an undone change until a new change is made', () => {
+    let s = { past: [] as Template[], present: base() };
+    s = h(s, { kind: 'do', action: { kind: 'removeSection', id: 'hero' } });
+    s = h(s, { kind: 'undo' });
+    s = h(s, { kind: 'redo' });
+    expect(s.present.order).toEqual(['rich']);
+    expect(h(s, { kind: 'redo' })).toBe(s);
+    s = h(s, { kind: 'undo' });
+    s = h(s, { kind: 'do', action: { kind: 'toggleSection', id: 'rich' } });
+    expect(h(s, { kind: 'redo' })).toBe(s);
+  });
+  it('duplicates a section right after the original', () => {
+    const s = r(base(), { kind: 'duplicateSection', id: 'hero', newId: 'hero_2' });
+    expect(s.order).toEqual(['hero', 'hero_2', 'rich']);
+    expect(s.sections['hero_2']).toEqual(s.sections['hero']);
+    expect(s.sections['hero_2']).not.toBe(s.sections['hero']);
+    expect(r(s, { kind: 'duplicateSection', id: 'hero', newId: 'hero_2' })).toBe(s);
+  });
 });
