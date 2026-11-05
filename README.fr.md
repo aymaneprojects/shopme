@@ -7,7 +7,7 @@
 **La simplicité de Shopify, la liberté de l'open source.**
 
 [![Licence : AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-blue.svg)](LICENSE)
-[![CI](https://github.com/aymaneprojects/shoppen/actions/workflows/ci.yml/badge.svg)](https://github.com/aymaneprojects/shoppen/actions/workflows/ci.yml)
+[![CI](https://github.com/aymaneprojects/shopme/actions/workflows/ci.yml/badge.svg)](https://github.com/aymaneprojects/shopme/actions/workflows/ci.yml)
 ![statut : alpha](https://img.shields.io/badge/statut-alpha-orange.svg)
 
 [English](README.md) · [Feuille de route](ROADMAP.md) · [Journal des modifications](CHANGELOG.md) · [Documentation](docs/README.md)
@@ -108,7 +108,7 @@ Ouvrez <http://localhost:3000/admin>. Compose démarre ShopMe et PostgreSQL 17. 
 ### Applications de bureau
 
 Les applications Windows (`.exe`), macOS (`.dmg`) et Linux (`.AppImage`) (bêta) sont fabriquées automatiquement à chaque
-version et publiées dans les [Releases GitHub](https://github.com/aymaneprojects/shoppen/releases) : un double-clic, et votre
+version et publiées dans les [Releases GitHub](https://github.com/aymaneprojects/shopme/releases) : un double-clic, et votre
 boutique tourne sur votre ordinateur. Elles ne sont pas encore signées (un avertissement de sécurité s'affiche au premier
 lancement). Voir [docs/install/desktop.fr.md](docs/install/desktop.fr.md).
 

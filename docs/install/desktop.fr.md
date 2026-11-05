@@ -5,7 +5,7 @@ de données à installer.
 
 ## 1. Télécharger
 
-Ouvrez la [page des Releases](https://github.com/aymaneprojects/shoppen/releases/latest) et téléchargez le fichier adapté à
+Ouvrez la [page des Releases](https://github.com/aymaneprojects/shopme/releases/latest) et téléchargez le fichier adapté à
 votre système :
 
 | Système | Fichier |

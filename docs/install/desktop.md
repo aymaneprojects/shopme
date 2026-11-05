@@ -4,7 +4,7 @@ Run your store on your own computer: download, double-click, done. No terminal, 
 
 ## 1. Download
 
-Open the [Releases page](https://github.com/aymaneprojects/shoppen/releases/latest) and download the file for your system:
+Open the [Releases page](https://github.com/aymaneprojects/shopme/releases/latest) and download the file for your system:
 
 | System | File |
 | --- | --- |

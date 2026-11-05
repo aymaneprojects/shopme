@@ -1,10 +1,10 @@
 // Derives value-free shape fixtures (field paths + JSON types + status) from the private Ajax recordings.
-// Usage: node gen-ajax-shapes.mjs [recordingsDir]   (default /home/user/shoppen-re/raw/storefront/ajax)
+// Usage: node gen-ajax-shapes.mjs [recordingsDir]   (default ~/shopme-re/raw/storefront/ajax)
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const src = process.argv[2] ?? '/home/user/shoppen-re/raw/storefront/ajax';
+const src = process.argv[2] ?? `${process.env.HOME}/shopme-re/raw/storefront/ajax`;
 const out = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures');
 if (!existsSync(src)) { console.error(`no recordings at ${src}`); process.exit(1); }
 

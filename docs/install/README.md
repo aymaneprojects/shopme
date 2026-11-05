@@ -9,7 +9,7 @@ Not technical? Use the [desktop app](desktop.md) (Windows, macOS, Linux): one do
 Requirements: Node.js 22 and pnpm 9 (`corepack enable`).
 
 ```bash
-git clone https://github.com/aymaneprojects/shoppen.git shopme
+git clone https://github.com/aymaneprojects/shopme.git
 cd shopme
 pnpm install
 pnpm dev

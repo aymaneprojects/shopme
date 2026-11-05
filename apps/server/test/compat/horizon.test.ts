@@ -1,3 +1,5 @@
+import path from 'node:path';
+import { homedir } from 'node:os';
 import { existsSync } from 'node:fs';
 import { installThemeFiles, readThemeDir, schema as s, seedDemo } from '@shopme/core';
 import { analyzeTheme, createEngine, Theme } from '@shopme/liquid-compat';
@@ -7,7 +9,7 @@ import { createTestApp } from '../../src/test-utils';
 
 // Compatibility measurement against a third-party theme that is NOT part of this repository.
 // Skipped unless the private reference copy exists. Prints numbers; asserts only that pages render at all.
-const DIR = '/home/user/shoppen-re/raw/theme/horizon';
+const DIR = path.join(process.env.SHOPME_RE_DIR ?? path.join(homedir(), 'shopme-re'), 'raw/theme/horizon');
 
 describe.skipIf(!existsSync(DIR))('Horizon compatibility (measurement)', () => {
   it('loads, renders home/product/collection/cart and reports unsupported tags and filters', async () => {

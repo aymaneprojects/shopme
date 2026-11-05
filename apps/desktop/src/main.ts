@@ -167,7 +167,7 @@ function warnIfTranslated(): void {
     detail: 'It works, but much slower. Download the Apple Silicon version (ShopMe-…-mac-apple-silicon.dmg) for full speed, then replace this app with it.\n\nVous utilisez la version Intel de ShopMe sur un Mac Apple Silicon. Elle fonctionne, mais beaucoup plus lentement. Téléchargez la version Apple Silicon pour retrouver toute la vitesse.',
     buttons: ['Download / Télécharger', 'Later / Plus tard'],
     defaultId: 0, cancelId: 1,
-  }).then((r) => { if (r.response === 0) void shell.openExternal('https://github.com/aymaneprojects/shoppen/releases/latest'); });
+  }).then((r) => { if (r.response === 0) void shell.openExternal('https://github.com/aymaneprojects/shopme/releases/latest'); });
 }
 
 if (!app.requestSingleInstanceLock()) {

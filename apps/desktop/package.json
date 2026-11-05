@@ -6,7 +6,7 @@
   "private": true,
   "type": "module",
   "author": "ShopMe contributors <hello@shopme.org>",
-  "homepage": "https://github.com/aymaneprojects/shoppen",
+  "homepage": "https://github.com/aymaneprojects/shopme",
   "license": "MIT",
   "main": "stage/main.mjs",
   "scripts": {

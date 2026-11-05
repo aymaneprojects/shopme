@@ -7,7 +7,7 @@
 **The simplicity of Shopify, the freedom of open source.**
 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
-[![CI](https://github.com/aymaneprojects/shoppen/actions/workflows/ci.yml/badge.svg)](https://github.com/aymaneprojects/shoppen/actions/workflows/ci.yml)
+[![CI](https://github.com/aymaneprojects/shopme/actions/workflows/ci.yml/badge.svg)](https://github.com/aymaneprojects/shopme/actions/workflows/ci.yml)
 ![status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)
 
 [Français](README.fr.md) · [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Documentation](docs/README.md)
@@ -105,7 +105,7 @@ Open <http://localhost:3000/admin>. Compose starts ShopMe and PostgreSQL 17. Set
 ### Desktop apps
 
 Windows (`.exe`), macOS (`.dmg`) and Linux (`.AppImage`) apps (beta) are built automatically for each release and attached to
-[GitHub Releases](https://github.com/aymaneprojects/shoppen/releases): double-click, and your store runs on your computer.
+[GitHub Releases](https://github.com/aymaneprojects/shopme/releases): double-click, and your store runs on your computer.
 They are unsigned for now (expect a security prompt on first launch). See [docs/install/desktop.md](docs/install/desktop.md).
 
 ## Deploy on your server

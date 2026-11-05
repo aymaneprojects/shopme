@@ -7,7 +7,7 @@ ShopMe est un processus Node.js plus PostgreSQL. En local, PostgreSQL est facult
 Prérequis : Node.js 22 et pnpm 9 (`corepack enable`).
 
 ```bash
-git clone https://github.com/aymaneprojects/shoppen.git shopme
+git clone https://github.com/aymaneprojects/shopme.git
 cd shopme
 pnpm install
 pnpm dev

@@ -3,7 +3,7 @@
  * Regenerates `fixtures/admin-*.shape.json` from the private reverse-engineering captures
  * (full SDL + recorded sample responses). Only field PATHS and GraphQL TYPES are written; no values, no descriptions.
  *
- *   node apps/server/test/conformance/gen-admin-shapes.mjs [path/to/shoppen-re/raw]
+ *   node apps/server/test/conformance/gen-admin-shapes.mjs [path/to/shopme-re/raw]
  *
  * The captures are private and never committed. The generated fixtures are committed, so the conformance tests
  * run without the private directory.
@@ -12,7 +12,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const raw = process.argv[2] ?? process.env.SHOPPEN_RE_RAW ?? '/home/user/shoppen-re/raw';
+const raw = process.argv[2] ?? process.env.SHOPME_RE_RAW ?? `${process.env.HOME}/shopme-re/raw`;
 const outDir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures');
 mkdirSync(outDir, { recursive: true });
 
