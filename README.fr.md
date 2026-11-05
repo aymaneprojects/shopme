@@ -4,7 +4,7 @@
 
 # ShopMe
 
-**La simplicité de Shopify, la liberté de l'open source.**
+**Votre boutique en ligne, sur votre ordinateur ou votre serveur. Open source.**
 
 [![Licence : AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-blue.svg)](LICENSE)
 [![CI](https://github.com/aymaneprojects/shopme/actions/workflows/ci.yml/badge.svg)](https://github.com/aymaneprojects/shopme/actions/workflows/ci.yml)
@@ -26,7 +26,7 @@ Tout tourne dans un seul processus Node.js avec PostgreSQL, ou avec une base emb
 ## Fonctionnalités de la v0.1
 
 - **Catalogue :** produits, variantes et options, médias, collections (manuelles et à règles automatiques), stock sur plusieurs emplacements, types de produits, fournisseurs et étiquettes, métachamps avec leurs définitions, éditeur en masse, et import et export CSV.
-- **Boutique en ligne et thèmes :** thèmes Liquid au format Shopify (mise en page Online Store 2.0), thème par défaut Aurora (MIT), envoi et bibliothèque de thèmes, éditeur de sections avec aperçu, pages, menus, blogs et articles, redirections d'URL, formulaires de contact et d'inscription à la newsletter, et comptes clients (inscription, connexion, réinitialisation du mot de passe, historique des commandes, carnet d'adresses).
+- **Boutique en ligne et thèmes :** thèmes Liquid (mise en page Online Store 2.0), thème par défaut Aurora (MIT), envoi et bibliothèque de thèmes, éditeur de sections avec aperçu, pages, menus, blogs et articles, redirections d'URL, formulaires de contact et d'inscription à la newsletter, et comptes clients (inscription, connexion, réinitialisation du mot de passe, historique des commandes, carnet d'adresses).
 - **Recherche et langues :** recherche de la vitrine avec classement, tolérance aux fautes de frappe et recherche prédictive ; langues et traductions avec des URL en `/fr`.
 - **Paiement en tunnel et moyens de paiement :** commande en une seule page, Stripe (les données de carte sont traitées par Stripe.js ; le serveur vérifie les webhooks signés), virement bancaire, paiement à la livraison, zones et tarifs de livraison, taux de taxes, et cartes cadeaux comme moyen de paiement.
 - **Commandes et clients :** liste et fiche de commande avec historique, expéditions avec suivi, remboursements, annulation, modification de commande, retours, commandes brouillons avec lien de facture, relance des paniers abandonnés, fiches clients, et export des données d'un client.
@@ -36,7 +36,7 @@ Tout tourne dans un seul processus Node.js avec PostgreSQL, ou avec une base emb
 - **Plateforme et sécurité :** un assistant de premier lancement, des rôles et permissions pour l'équipe avec invitations, la double authentification (TOTP et codes de récupération), la liste des sessions actives, un éditeur des modèles de notifications (anglais et français), des webhooks sortants signés (HMAC-SHA256, avec nouvelles tentatives), des en-têtes de sécurité, la mise en cache par ETag, le redimensionnement des images (y compris WebP et AVIF), l'export et l'import de boutique, et des sauvegardes planifiées.
 - **Administration :** interface en anglais et en français, thème bleu nuit sombre avec bascule clair et sombre, police Geist, et palette de commandes Ctrl/⌘+K.
 - **Migration et données :** un importateur de migration depuis Shopify (ligne de commande et page d'administration, via l'API Admin), import et export CSV, et archives de boutique `.shopme` pour déplacer une boutique complète.
-- **API :** sous-ensemble de l'API GraphQL Admin de forme Shopify, documenté dans [docs/spec](docs/spec/README.md).
+- **API :** API GraphQL Admin (sous-ensemble compatible), documentée dans [docs/spec](docs/spec/README.md).
 - **Déploiement :** mode local sans configuration avec PostgreSQL embarqué (PGlite), Docker Compose avec PostgreSQL 17, et applications de bureau (bêta).
 
 **Absent de la v0.1 :** l'API GraphQL Storefront, les applications OAuth et une plateforme d'applications, la multi-devise et
@@ -123,22 +123,20 @@ restaurations et les mises à jour.
 - **Base de données :** PostgreSQL via Drizzle ORM. Sans `DATABASE_URL`, la base PGlite embarquée est utilisée.
 - **API :** GraphQL Yoga avec Pothos pour le schéma.
 - **Admin :** application monopage React et Vite, compilée et servie par le serveur sur `/admin`.
-- **Moteur de thèmes :** moteur basé sur LiquidJS pour les thèmes au format Shopify.
+- **Moteur de thèmes :** moteur de thèmes basé sur LiquidJS.
 - **Tâches de fond :** file d'attente dans le processus, Redis n'est donc pas nécessaire.
 - **Locataires :** une boutique par installation. Les tables gardent un `shop_id` pour qu'une offre hébergée multi-boutiques reste possible plus tard.
 
-## Compatibilité avec Shopify
+## Compatibilité
 
-ShopMe est développé **en clean-room** : il reproduit ce que font les interfaces, avec son propre code et ses propres
-spécifications. Les spécifications de [docs/spec](docs/spec/README.md) sont rédigées avec nos mots, à partir de la
-documentation publique et de notre propre boutique de développement. Aucun code, fichier de thème ni texte de documentation
-de Shopify n'est copié. Voir la [politique clean-room](docs/legal/clean-room.md).
+ShopMe est écrit de zéro, avec son propre code et ses propres spécifications (voir la [politique clean-room](docs/legal/clean-room.md)).
+Pour l'interopérabilité, il lit les thèmes au format Shopify et expose un sous-ensemble compatible de l'API Admin de Shopify.
 
-- **Thèmes :** le moteur Liquid et le format de thème suivent la mise en page Shopify Online Store 2.0. Le thème par défaut Aurora est fourni avec ShopMe. La couverture des thèmes tiers n'est pas encore vérifiée.
-- **API GraphQL Admin :** un sous-ensemble aux types, champs et `userErrors` de forme Shopify. Il n'est pas complet.
+- **Thèmes :** thèmes Liquid avec la mise en page Online Store 2.0. Le thème par défaut Aurora est fourni avec ShopMe. La couverture des thèmes tiers n'est pas encore vérifiée.
+- **API GraphQL Admin :** un sous-ensemble compatible de types, champs et `userErrors`. Il n'est pas complet.
 - **API panier Ajax :** implémentée.
 - **API GraphQL Storefront :** pas encore implémentée.
-- **Couverture :** [docs/spec/coverage-report.md](docs/spec/coverage-report.md) compare ShopMe au comportement observé de Shopify et liste ce qui manque encore.
+- **Couverture :** [docs/spec/coverage-report.md](docs/spec/coverage-report.md) liste ce qui est fait et ce qui manque encore.
 
 ## Feuille de route
 

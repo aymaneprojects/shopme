@@ -1,4 +1,0 @@
-{ customers(first:20){ nodes{ id legacyResourceId firstName lastName displayName locale note tags state verifiedEmail taxExempt createdAt
-  defaultEmailAddress{emailAddress marketingState} defaultPhoneNumber{phoneNumber}
-  numberOfOrders amountSpent{amount currencyCode}
-  addressesV2(first:5){nodes{address1 city zip countryCodeV2 provinceCode}} } } }

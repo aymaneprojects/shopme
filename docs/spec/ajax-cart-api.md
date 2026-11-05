@@ -6,7 +6,7 @@ password protected). Endpoint paths, parameter names, JSON field names and statu
 codes are listed because they are interoperability facts. No vendor code or doc text
 is reproduced.
 
-Capture method: `scripts/re/capture-storefront.mjs` (Playwright, same-origin
+Capture method: a private Playwright recorder (same-origin
 `fetch` from a page that already passed the password gate). Raw exchanges live in the
 private capture directory (`$RE_OUT/raw/storefront/ajax/NN-name.json`, not committed).
 Numbers in brackets such as `[#18]` point at those files.

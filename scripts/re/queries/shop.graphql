@@ -1,6 +1,0 @@
-{ shop{ id name email myshopifyDomain primaryDomain{host url} currencyCode enabledPresentmentCurrencies ianaTimezone weightUnit unitSystem taxesIncluded taxShipping
-   billingAddress{countryCodeV2 city} currencyFormats{moneyFormat moneyWithCurrencyFormat}
-   features{storefront giftCards} }
-  locations(first:10){nodes{id name isActive fulfillsOnlineOrders address{city countryCode}}}
-
- }

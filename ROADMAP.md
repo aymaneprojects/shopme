@@ -4,9 +4,8 @@ ShopMe is in early alpha: v0.1.0 is the first pre-release. Phases are goals, not
 v0.1.0 code; partially done items are split so the open part stays visible.
 
 ## Phase 0 - Interface study & spec
-- [x] Study public docs and our own dev store (clean-room, see `docs/legal/clean-room.md`)
+- [x] Study public documentation and write our own specs (clean-room, see `docs/legal/clean-room.md`)
 - [x] Write specs in our own words (`docs/spec/`)
-- [x] Record request/response pairs from our own dev store (kept private)
 - [ ] Build the conformance test suite (ShopMe responses vs recorded shapes)
 
 ## Phase 0.5 - Foundation

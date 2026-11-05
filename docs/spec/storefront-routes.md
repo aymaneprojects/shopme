@@ -5,7 +5,7 @@ from black-box requests against a Shopify development store (fake data, one mark
 one language, USD, storefront password enabled). Status codes, paths and query
 parameter names are interoperability facts; no vendor code or doc text is copied.
 
-Probe tooling: `scripts/re/capture-storefront.mjs` (screenshots, HAR, Ajax) plus an
+Probe tooling: a private Playwright recorder (screenshots, HAR, Ajax) plus an
 ad-hoc route probe (redirect-aware GETs, results kept in the private capture
 directory as `raw/storefront/routes-probe.json`). Redirects were not followed when
 recording statuses below. "Template" is the page type reported by the store's own
@@ -120,8 +120,7 @@ and clamps the line (an oversized cart line of 1,000,000 was reduced to the avai
 
 ## 6. Screenshots (private; not committed)
 
-Directory: `$RE_OUT/screenshots/storefront/` (default `~/shopme-re/screenshots/storefront/`; in the
-authoring session `/home/user/shopme-re/screenshots/storefront/`). Each name exists with a
+Directory: a private folder outside the repository. Each name exists with a
 `desktop-` (1440x900, scale 1, full page) and a `mobile-` (iPhone 13 profile, scale 1, full page) prefix:
 
 - `*-home.png` : `/`

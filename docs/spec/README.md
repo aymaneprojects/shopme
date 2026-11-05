@@ -38,19 +38,10 @@ The policy is in [../legal/clean-room.md](../legal/clean-room.md). In short:
 5. **Verification.** Statements marked "public docs", "to verify" or "to confirm" are not yet backed by an observation on our
    store. They become conformance tests (request/response pairs reduced to synthetic data) before the behavior is relied on.
 
-## Regenerating the private captures
+## Private reference material
 
-You need your own development store, an app installed on it with read-only scopes, and credentials in `.env`
-(see [../../scripts/re/README.md](../../scripts/re/README.md) for setup).
-
-```bash
-bash scripts/re/run-all.sh
-```
-
-This fetches a token, saves the schema (`raw/admin-<version>/schema.graphql` and an introspection JSON), the sample
-responses (`raw/samples/{shop,products,collections,customers,orders}.json`), the theme files
-(`raw/theme/<theme-name>/...`) and, when present, the storefront capture. Output goes to `$RE_OUT` (default
-`~/shopme-re`), which must be outside any git repository. `API_VERSION` defaults to `2026-10`.
+Reference material used while writing the specs (schema dumps, sample responses, recordings) is kept outside the
+repository and is never committed. Behavior that matters is encoded as conformance tests with synthetic data.
 
 ## Status and versioning of the specs
 
