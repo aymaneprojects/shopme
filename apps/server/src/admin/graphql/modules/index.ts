@@ -24,6 +24,7 @@ import './metafield-definitions';
 import './orders';
 import './customers';
 import './customers-ext';
+import './segments';
 import './discounts';
 import './settings';
 import './content';

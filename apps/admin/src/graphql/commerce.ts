@@ -10,6 +10,7 @@ const GIFT_CARD_FIELDS = `
   balance { amount currencyCode } initialValue { amount currencyCode }
   customer { id displayName }
   order { id name }
+  recipientAttributes { recipient { id displayName } }
 `;
 
 export const GIFT_CARDS = /* GraphQL */ `

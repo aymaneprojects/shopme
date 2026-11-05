@@ -1,12 +1,14 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, EmptyState, ImageUploader, Input, Modal, RichTextEditor, Select, Skeleton, Switch, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Pencil, Plus } from 'lucide-react';
+import { FileText, Pencil, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
+import { SeoListing } from '../../components/SeoListing';
+import { VisibilityList } from '../../components/VisibilityList';
+import { StoreActions } from './Themes';
 import { UserErrors, gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
-import { PagedTable } from '../../components/PagedTable';
 import { SaveBar, guard } from '../../components/SaveBar';
 import { useFormat } from '../../components/shared';
 import { gidToNum, numToGid } from '../../format';
@@ -28,14 +30,22 @@ export function BlogPostsPage() {
     { key: 'title', header: t('field.title'), cell: (a) => <span className="font-medium">{a.title}</span> },
     { key: 'blog', header: t('blogs.blog'), cell: (a) => a.blog?.title ?? '—' },
     { key: 'author', header: t('blogs.author'), cell: (a) => a.author?.name ?? '—' },
-    { key: 'status', header: t('field.status'), cell: (a) => <Badge tone={a.isPublished ? 'success' : 'neutral'}>{t(a.isPublished ? 'pages.visible' : 'pages.hidden')}</Badge> },
-    { key: 'updated', header: t('pages.updated'), cell: (a) => fmt.date(a.updatedAt) },
+    { key: 'status', header: t('pages.visibility'), cell: (a) => <Badge tone={a.isPublished ? 'success' : 'neutral'}>{t(a.isPublished ? 'pages.visible' : 'pages.hidden')}</Badge> },
+    { key: 'updated', header: t('pages.updated'), cell: (a) => fmt.dateTime(a.updatedAt) },
   ];
   const add = <Button variant="primary" onClick={() => nav('/online-store/blog-posts/new')}><Plus className="size-4" />{t('blogs.addPost')}</Button>;
   return (
-    <PagedTable<ArticleRow> title={t('store.blogPosts')} doc={ARTICLES} root="articles" queryKey="articles" columns={columns} actions={add} searchLabel={t('blogs.searchPosts')}
-      onRowClick={(r) => nav(`/online-store/blog-posts/${gidToNum(r.id)}`)}
-      empty={<EmptyState icon={<FileText className="size-10" />} title={t('blogs.emptyTitle')} description={t('blogs.emptyBody')} action={add} />} />
+    <div className="flex flex-col gap-4">
+      <StoreActions><Link to="/online-store/blogs" className="btn btn-secondary"><Pencil className="size-4" />{t('blogs.manage')}</Link>{add}</StoreActions>
+      <VisibilityList<ArticleRow> queryKey="articles" doc={ARTICLES} root="articles" columns={columns} searchLabel={t('blogs.searchPosts')}
+        sorts={[{ key: 'UPDATED_AT', label: t('pages.updated') }, { key: 'TITLE', label: t('field.title') }, { key: 'AUTHOR', label: t('blogs.author') }, { key: 'BLOG_TITLE', label: t('blogs.blog') }]}
+        onRowClick={(r) => nav(`/online-store/blog-posts/${gidToNum(r.id)}`)}
+        setVisible={{ doc: ARTICLE_UPDATE, field: 'articleUpdate', vars: (id, v) => ({ id, article: { isPublished: v } }) }}
+        remove={{ doc: ARTICLE_DELETE, field: 'articleDelete', vars: (id) => ({ id }) }}
+        deleteTitle={(n) => t('blogs.deleteManyTitle', { n })} deleteBody={t('blogs.deletePostBody')}
+        noResults={<EmptyState icon={<Search className="size-10" />} title={t('content.noResults')} description={t('content.noResultsBody')} />}
+        empty={<EmptyState icon={<FileText className="size-10" />} title={t('blogs.emptyTitle')} description={t('blogs.emptyBody')} action={add} />} />
+    </div>
   );
 }
 
@@ -56,7 +66,7 @@ export function BlogPostEditPage() {
   const a = q.data?.article;
   const initial: ArticleForm = a
     ? { title: a.title, handle: a.handle, body: a.body, summary: a.summary ?? '', author: a.author?.name ?? '', tags: a.tags, imageUrl: a.image?.url ?? '', imageAlt: a.image?.altText ?? '', blogId: a.blog?.id ?? '', isPublished: a.isPublished }
-    : { title: '', handle: '', body: '', summary: '', author: `${user.firstName} ${user.lastName}`.trim(), tags: [], imageUrl: '', imageAlt: '', blogId: blogs.data?.blogs.nodes[0]?.id ?? '', isPublished: false };
+    : { title: '', handle: '', body: '', summary: '', author: [user.firstName, user.lastName].filter(Boolean).join(" "), tags: [], imageUrl: '', imageAlt: '', blogId: blogs.data?.blogs.nodes[0]?.id ?? '', isPublished: false };
   return <PostForm key={`${id}:${q.dataUpdatedAt}`} id={a ? gid : null} initial={initial} blogs={blogs.data?.blogs.nodes ?? []} />;
 }
 
@@ -91,33 +101,38 @@ function PostForm({ id, initial, blogs }: { id: string | null; initial: ArticleF
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setError(null); }} />
       <PageHeader back="/online-store/blog-posts" title={id ? form.title || t('pages.untitled') : t('blogs.addPost')}
-        actions={<>{id && <Button variant="danger" onClick={() => setConfirm(true)}>{t('common.delete')}</Button>}{!id && <Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('save.save')}</Button>}</>} />
+        more={id ? [{ key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirm(true) }] : undefined} />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
-      <div className="grid gap-4 lg:grid-cols-[1fr_18rem]">
+      <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">
           <Card><div className="flex flex-col gap-3">
-            <Input label={t('field.title')} required value={form.title} onChange={(e) => set({ title: e.target.value })} />
+            <Input label={t('field.title')} required placeholder={t('blogs.titlePlaceholder')} value={form.title} onChange={(e) => set({ title: e.target.value })} />
             <div className="flex flex-col gap-1"><span className="text-[13px] font-medium">{t('pages.content')}</span><RichTextEditor value={form.body} onChange={(body) => set({ body })} labels={rte} /></div>
-            <Textarea label={t('blogs.summary')} help={t('blogs.summaryHelp')} value={form.summary} onChange={(e) => set({ summary: e.target.value })} />
           </div></Card>
+          <Card title={t('blogs.summary')}><Textarea aria-label={t('blogs.summary')} placeholder={t('blogs.summaryHelp')} value={form.summary} onChange={(e) => set({ summary: e.target.value })} /></Card>
+          <SeoListing title={form.title} prefix={`/blogs/${blogs.find((b) => b.id === form.blogId)?.handle ?? ''}/`} handle={form.handle} onHandle={(handle) => set({ handle })} description={form.summary || form.body} />
+        </div>
+        <div className="flex flex-col gap-4">
+          <Card title={t('pages.visibility')}>
+            <div role="radiogroup" aria-label={t('pages.visibility')} className="flex flex-col gap-2 text-[13px]">
+              <label className="inline-flex items-center gap-2"><input type="radio" name="visibility" checked={form.isPublished} onChange={() => set({ isPublished: true })} />{t('pages.visible')}</label>
+              <label className="inline-flex items-center gap-2"><input type="radio" name="visibility" checked={!form.isPublished} onChange={() => set({ isPublished: false })} />{t('pages.hidden')}</label>
+            </div>
+          </Card>
           <Card title={t('blogs.image')}>
             <div className="flex flex-col gap-3">
               {form.imageUrl && <img src={form.imageUrl} alt={form.imageAlt} className="max-h-48 w-fit rounded-md border border-line object-contain" />}
-              <ImageUploader multiple={false} compact label={t('media.upload')} onUploaded={(f) => set({ imageUrl: f[0]!.url })} onError={(m) => toast(m, 'critical')} />
+              <ImageUploader multiple={false} compact label={t('blogs.addImage')} onUploaded={(f) => set({ imageUrl: f[0]!.url })} onError={(m) => toast(m, 'critical')} />
               {form.imageUrl && <><Input label={t('blogs.imageAlt')} value={form.imageAlt} onChange={(e) => set({ imageAlt: e.target.value })} /><Button size="sm" className="w-fit" onClick={() => set({ imageUrl: '', imageAlt: '' })}>{t('common.remove')}</Button></>}
             </div>
           </Card>
-        </div>
-        <div className="flex flex-col gap-4">
-          <Card title={t('pages.visibility')}><Switch checked={form.isPublished} onChange={(v) => set({ isPublished: v })} label={t('pages.visible')} /></Card>
           <Card title={t('blogs.organization')}>
             <div className="flex flex-col gap-3">
+              <Input label={t('blogs.author')} value={form.author} onChange={(e) => set({ author: e.target.value })} />
               <Select label={t('blogs.blog')} value={form.blogId} onChange={(e) => set({ blogId: e.target.value })}>
                 {!form.blogId && <option value="" />}{blogs.map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
               </Select>
-              <Input label={t('blogs.author')} value={form.author} onChange={(e) => set({ author: e.target.value })} />
               <TagInput label={t('field.tags')} value={form.tags} onChange={(tags) => set({ tags })} removeLabel={t('common.remove')} />
-              <Input label={t('product.handle')} value={form.handle} onChange={(e) => set({ handle: e.target.value })} />
             </div>
           </Card>
         </div>

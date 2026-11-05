@@ -1,9 +1,14 @@
-import { Banner, Button, Card, ConfirmDialog, Input, Modal, Select, Skeleton, useToast } from '@shopme/ui';
+import { Banner, Button, Card, ConfirmDialog, EmptyState, IndexTable, Input, Modal, Select, Skeleton, useToast } from '@shopme/ui';
+import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { UserErrors, gql, mutate } from '../../api';
-import { SaveBar } from '../../components/SaveBar';
+import { Link, useNavigate, useParams } from 'react-router';
+import { PageHeader } from '../../components/PageHeader';
+import { SaveBar, guard } from '../../components/SaveBar';
+import { gidToNum } from '../../format';
+import { StoreActions } from './Themes';
 import { COLLECTIONS, MENUS, MENU_CREATE, MENU_DELETE, MENU_UPDATE, PAGES, PRODUCTS_PICKER } from '../../graphql';
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
@@ -18,28 +23,47 @@ const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,
 
 export function MenusPage() {
   const { t } = useI18n();
+  const nav = useNavigate();
   const q = useQuery({ queryKey: ['menus'], queryFn: () => gql<{ menus: { nodes: ApiMenu[] } }>(MENUS) });
-  const [sel, setSel] = useState<string>('');
+  const [search, setSearch] = useState('');
+  const [desc, setDesc] = useState(false);
   if (q.isLoading) return <Skeleton className="h-64" />;
   if (q.error) return <Banner>{q.error.message}</Banner>;
-  const menus = q.data!.menus.nodes;
-  const current = sel === 'new' ? null : menus.find((m) => m.id === sel) ?? menus[0] ?? null;
+  const menus = q.data!.menus.nodes.filter((m) => m.title.toLowerCase().includes(search.trim().toLowerCase())).sort((a, b) => (desc ? -1 : 1) * a.title.localeCompare(b.title));
+  const columns: Array<Column<ApiMenu>> = [
+    { key: 'title', header: <button type="button" className="inline-flex items-center gap-1" onClick={() => setDesc(!desc)}>{t('menus.menu')}{desc ? <ArrowDown className="size-3" /> : <ArrowUp className="size-3" />}</button>, cell: (m) => <span className="font-medium">{m.title}</span> },
+    { key: 'items', header: t('menus.items'), cell: (m) => <span className="text-muted">{m.items.map((i) => i.title).join(', ') || '—'}</span> },
+  ];
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end gap-2">
-        <Select label={t('menus.menu')} value={current?.id ?? 'new'} onChange={(e) => setSel(e.target.value)}>
-          {menus.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}<option value="new">{t('menus.new')}</option>
-        </Select>
-      </div>
-      <MenuEditor key={`${current?.id ?? 'new'}:${q.dataUpdatedAt}`} menu={current} onCreated={(id) => setSel(id)} />
+      <StoreActions>
+        <Link to="/online-store/redirects" className="btn btn-secondary">{t('store.redirects')}</Link>
+        <Button variant="primary" onClick={() => nav('/online-store/navigation/new')}><Plus className="size-4" />{t('menus.create')}</Button>
+      </StoreActions>
+      <Card className="!p-0">
+        <div className="border-b border-line p-3"><div className="relative max-w-md"><Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" /><input type="search" className="field-control w-full pl-8" placeholder={t('menus.searchMenus')} aria-label={t('menus.searchMenus')} value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>
+        <IndexTable rows={menus} rowId={(m) => m.id} columns={columns} onRowClick={(m) => nav(`/online-store/navigation/${gidToNum(m.id)}`)} empty={<EmptyState icon={<Search className="size-10" />} title={t('menus.emptyList')} />} />
+      </Card>
     </div>
   );
 }
 
-function MenuEditor({ menu, onCreated }: { menu: ApiMenu | null; onCreated: (id: string) => void }) {
+export function MenuEditPage() {
+  const { id = 'new' } = useParams();
+  const { t } = useI18n();
+  const q = useQuery({ queryKey: ['menus'], queryFn: () => gql<{ menus: { nodes: ApiMenu[] } }>(MENUS) });
+  if (q.isLoading) return <Skeleton className="h-64" />;
+  if (q.error) return <Banner>{q.error.message}</Banner>;
+  const menu = id === 'new' ? null : q.data!.menus.nodes.find((m) => gidToNum(m.id) === id) ?? null;
+  if (id !== 'new' && !menu) return <Banner>{t('menus.notFound')}</Banner>;
+  return <MenuEditor key={`${id}:${q.dataUpdatedAt}`} menu={menu} />;
+}
+
+function MenuEditor({ menu }: { menu: ApiMenu | null }) {
   const { t } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
+  const nav = useNavigate();
   const initial = { title: menu?.title ?? '', items: fromApi(menu?.items) };
   const [title, setTitle] = useState(initial.title);
   const [items, setItems] = useState(initial.items);
@@ -55,10 +79,10 @@ function MenuEditor({ menu, onCreated }: { menu: ApiMenu | null; onCreated: (id:
       if (menu) { await mutate(MENU_UPDATE, { id: menu.id, title: title.trim(), items: tree.toInput(items, true) }, 'menuUpdate'); return menu.id; }
       return (await mutate<{ menu: { id: string } }>(MENU_CREATE, { title: title.trim(), handle: slug(title) || 'menu', items: tree.toInput(items, false) }, 'menuCreate')).menu.id;
     },
-    onSuccess: (id) => { toast(t('menus.saved')); setError(null); void refresh().then(() => onCreated(id)); },
+    onSuccess: (id) => { toast(t('menus.saved')); setError(null); void refresh().then(() => { guard.off = true; nav(`/online-store/navigation/${gidToNum(id)}`, { replace: true }); }); },
     onError: (e) => setError(e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message),
   });
-  const del = useMutation({ mutationFn: () => mutate(MENU_DELETE, { id: menu!.id }, 'menuDelete'), onSuccess: () => { void refresh().then(() => onCreated('')); }, onError: (e) => toast(e.message, 'critical') });
+  const del = useMutation({ mutationFn: () => mutate(MENU_DELETE, { id: menu!.id }, 'menuDelete'), onSuccess: () => { guard.off = true; void refresh().then(() => nav('/online-store/navigation')); }, onError: (e) => toast(e.message, 'critical') });
 
   const rows: Array<{ item: MenuItem; path: Path }> = [];
   (function walk(list: MenuItem[], base: Path) { list.forEach((it, i) => { rows.push({ item: it, path: [...base, i] }); walk(it.items, [...base, i]); }); })(items, []);
@@ -67,9 +91,14 @@ function MenuEditor({ menu, onCreated }: { menu: ApiMenu | null; onCreated: (id:
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setTitle(initial.title); setItems(initial.items); setError(null); }} />
-      {error && <Banner>{error}</Banner>}
-      <Card title={t('menus.items')} actions={<span className="flex gap-2">{!menu && <Button size="sm" variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('save.save')}</Button>}{menu && !menu.isDefault && <Button size="sm" variant="danger" onClick={() => setConfirm(true)}>{t('common.delete')}</Button>}</span>}>
-        <Input className="mb-4 max-w-sm" label={t('field.title')} value={title} onChange={(e) => setTitle(e.target.value)} />
+      {error && <div className="mx-auto mb-4 max-w-3xl"><Banner>{error}</Banner></div>}
+      <PageHeader back="/online-store/navigation" title={menu ? menu.title : t('menus.add')} more={menu && !menu.isDefault ? [{ key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirm(true) }] : undefined} />
+      <div className="mx-auto flex max-w-3xl flex-col gap-4">
+      <Card>
+        <Input label={t('field.name')} placeholder={t('menus.namePlaceholder')} value={title} onChange={(e) => setTitle(e.target.value)} />
+        <p className="mt-2 text-[13px] text-muted">{t('menus.handle')}: {menu?.handle ?? (slug(title) || '—')}</p>
+      </Card>
+      <Card title={t('menus.items')}>
         {rows.length === 0 && <p className="mb-3 text-[13px] text-muted">{t('menus.empty')}</p>}
         <ul className="flex flex-col gap-2">
           {rows.map(({ item, path }) => (
@@ -86,8 +115,9 @@ function MenuEditor({ menu, onCreated }: { menu: ApiMenu | null; onCreated: (id:
             </li>
           ))}
         </ul>
-        <div className="mt-3"><Button size="sm" onClick={() => setPicker([])}><Plus className="size-4" />{t('menus.addItem')}</Button></div>
+        <div className="mt-3"><Button className="w-full justify-start" onClick={() => setPicker([])}><Plus className="size-4" />{t('menus.addItem')}</Button></div>
       </Card>
+      </div>
       <LinkPicker open={!!picker} onClose={() => setPicker(null)} onPick={(it) => { setItems(tree.addItem(items, picker ?? [], it)); setPicker(null); }} />
       <ConfirmDialog open={confirm} onClose={() => setConfirm(false)} danger title={t('menus.deleteTitle')} message={t('menus.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { setConfirm(false); del.mutate(); }} />
     </>

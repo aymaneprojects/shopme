@@ -1,7 +1,7 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Modal, Pagination, Skeleton, Tabs, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Plus, Search } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, MoreHorizontal, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -10,7 +10,7 @@ import type { Money, MoneySet } from '../components/shared';
 import { PageHeader } from '../components/PageHeader';
 import { ExportButton, ImportButton } from '../components/CsvTools';
 import { gidToNum, numToGid } from '../format';
-import { CUSTOMER, CUSTOMERS, CUSTOMERS_COUNT, CUSTOMER_DELETE, CUSTOMER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
+import { CUSTOMER, CUSTOMER_IDS, CUSTOMERS, CUSTOMERS_COUNT, CUSTOMER_DELETE, CUSTOMER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
@@ -155,12 +155,23 @@ function CustomerView({ c }: { c: CustomerData }) {
   const del = useMutation({ mutationFn: () => mutate(CUSTOMER_DELETE, { input: { id: c.id } }, 'customerDelete'), onSuccess: () => { refresh(); nav('/customers'); }, onError: fail });
   const num = gidToNum(c.id);
   const since = fmt.date(c.createdAt);
+  const ids = useQuery({ queryKey: ['customer-neighbours'], staleTime: 60_000, queryFn: () => gql<{ customers: { nodes: Array<{ id: string }> } }>(CUSTOMER_IDS) });
+  const at = ids.data?.customers.nodes.findIndex((x) => x.id === c.id) ?? -1;
+  const neighbours = { prev: at > 0 ? ids.data!.customers.nodes[at - 1]!.id : null, next: at >= 0 ? ids.data!.customers.nodes[at + 1]?.id ?? null : null };
 
   return (
     <>
       <PageHeader back="/customers" title={c.displayName}
-        actions={<><Button onClick={() => nav(`/customers/${num}/edit`)}>{t('customers.edit')}</Button>
-          <Dropdown align="right" label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[{ key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirm(true) }]} /></>} />
+        actions={<>
+          <Dropdown align="right" label={t('common.moreActions')} trigger={<>{t('common.moreActions')}<ChevronDown className="size-4" /></>} items={[
+            { key: 'edit', label: t('customers.edit'), onSelect: () => nav(`/customers/${num}/edit`) },
+            { key: 'orders', label: t('customers.viewAllOrders'), disabled: c.numberOfOrders === 0, onSelect: () => nav(`/orders?q=${encodeURIComponent(`customer_id:${num}`)}`) },
+            { key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirm(true) },
+          ]} />
+          <span className="inline-flex gap-1">
+            <Button size="sm" icon aria-label={t('customers.previous')} disabled={!neighbours.prev} onClick={() => neighbours.prev && nav(`/customers/${gidToNum(neighbours.prev)}`)}><ChevronUp className="size-4" /></Button>
+            <Button size="sm" icon aria-label={t('customers.next')} disabled={!neighbours.next} onClick={() => neighbours.next && nav(`/customers/${gidToNum(neighbours.next)}`)}><ChevronDown className="size-4" /></Button>
+          </span></>} />
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">
           <Card>
@@ -171,7 +182,7 @@ function CustomerView({ c }: { c: CustomerData }) {
             </dl>
           </Card>
           <MetafieldsEditor ownerId={c.id} ownerType="CUSTOMER" />
-          <Card title={t('customers.recentOrders')} actions={c.numberOfOrders > 0 && <Link className="text-[13px] text-accent hover:underline" to={`/orders?q=${encodeURIComponent(`customer_id:${num}`)}`}>{t('customers.viewAllOrders')}</Link>}>
+          <Card title={t('customers.recentOrders')} actions={<span className="flex items-center gap-3">{c.numberOfOrders > 0 && <Link className="text-[13px] text-accent hover:underline" to={`/orders?q=${encodeURIComponent(`customer_id:${num}`)}`}>{t('customers.viewAllOrders')}</Link>}<Button size="sm" variant="primary" onClick={() => nav('/orders/drafts/new')}>{t('customers.createOrder')}</Button></span>}>
             {c.orders.nodes.length === 0 ? <p className="text-[13px] text-muted">{t('customers.noOrders')}</p> : (
               <ul className="divide-y divide-line">
                 {c.orders.nodes.map((o) => (
@@ -187,9 +198,10 @@ function CustomerView({ c }: { c: CustomerData }) {
           </Card>
         </div>
         <div className="flex flex-col gap-4">
-          <Card title={t('customers.contact')}>
+          <Card title={t('customers.contact')} actions={<Dropdown align="right" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[{ key: 'edit', label: t('customers.editContact'), onSelect: () => nav(`/customers/${num}/edit`) }]} />}>
             <div className="flex flex-col gap-1 text-[13px]">
-              <span>{c.defaultEmailAddress?.emailAddress ?? '—'}</span>
+              <span className="flex items-center gap-2">{c.defaultEmailAddress?.emailAddress ?? '—'}
+                {c.defaultEmailAddress && <Button size="sm" icon aria-label={t('customers.copyEmail')} onClick={() => { void navigator.clipboard?.writeText(c.defaultEmailAddress!.emailAddress); toast(t('customers.copied')); }}><Copy className="size-3.5" /></Button>}</span>
               <span className="text-muted">{c.defaultPhoneNumber?.phoneNumber ?? ''}</span>
               <div className="mt-1"><MarketingBadge state={c.defaultEmailAddress?.marketingState} /></div>
             </div>

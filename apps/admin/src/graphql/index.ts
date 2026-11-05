@@ -6,6 +6,7 @@ import * as common from './common';
 import * as drafts from './drafts';
 import * as staff from './staff';
 import * as customers from './customers';
+import * as content from './content';
 import * as dashboard from './dashboard';
 import * as discounts from './discounts';
 import * as inventory from './inventory';
@@ -16,7 +17,7 @@ import * as products from './products';
 import * as settings from './settings';
 
 /** Every operation string, keyed by export name. Used by `pnpm validate:graphql`. */
-export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog };
+export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...content, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog };
 
 export * from './common';
 export * from './catalog';
@@ -28,6 +29,7 @@ export * from './collections';
 export * from './inventory';
 export * from './orders';
 export * from './customers';
+export * from './content';
 export * from './discounts';
 export * from './commerce';
 export * from './settings';

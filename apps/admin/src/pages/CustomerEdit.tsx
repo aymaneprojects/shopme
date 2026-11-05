@@ -1,5 +1,6 @@
 import { Banner, Button, Card, Checkbox, Input, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
@@ -11,10 +12,10 @@ import { useI18n } from '../i18n';
 import { countryOptions } from '../lib/countries';
 
 interface CustomerForm {
-  firstName: string; lastName: string; email: string; phone: string; marketing: boolean; taxExempt: boolean; note: string; tags: string[];
+  firstName: string; lastName: string; email: string; phone: string; marketing: boolean; locale: string; taxExempt: boolean; note: string; tags: string[];
   address1: string; address2: string; city: string; zip: string; province: string; countryCode: string;
 }
-const blank: CustomerForm = { firstName: '', lastName: '', email: '', phone: '', marketing: false, taxExempt: false, note: '', tags: [], address1: '', address2: '', city: '', zip: '', province: '', countryCode: '' };
+const blank: CustomerForm = { firstName: '', lastName: '', email: '', phone: '', marketing: false, locale: '', taxExempt: false, note: '', tags: [], address1: '', address2: '', city: '', zip: '', province: '', countryCode: '' };
 
 interface Api {
   id: string; firstName: string | null; lastName: string | null; note: string | null; tags: string[]; taxExempt?: boolean;
@@ -41,6 +42,7 @@ export function CustomerEditPage() {
 
 function CustomerFormView({ id, initial }: { id: string | null; initial: CustomerForm }) {
   const { t, lang } = useI18n();
+  const [showAddress, setShowAddress] = useState(false);
   const nav = useNavigate();
   const toast = useToast();
   const qc = useQueryClient();
@@ -61,7 +63,7 @@ function CustomerFormView({ id, initial }: { id: string | null; initial: Custome
       const hasAddress = !id && (form.address1 || form.city || form.countryCode);
       const input = {
         ...(id && { id }), firstName: form.firstName || null, lastName: form.lastName || null, email: form.email || null, phone: form.phone || null,
-        note: form.note || null, tags: form.tags, taxExempt: form.taxExempt,
+        note: form.note || null, tags: form.tags, ...(!id && { locale: form.locale || lang }), taxExempt: form.taxExempt,
         emailMarketingConsent: { marketingState: form.marketing ? 'SUBSCRIBED' : 'NOT_SUBSCRIBED', marketingOptInLevel: 'SINGLE_OPT_IN' },
         ...(hasAddress && { addresses: [{ address1: form.address1, address2: form.address2, city: form.city, zip: form.zip, province: form.province, countryCode: form.countryCode || null, firstName: form.firstName, lastName: form.lastName }] }),
       };
@@ -78,8 +80,7 @@ function CustomerFormView({ id, initial }: { id: string | null; initial: Custome
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setErrors({}); }} />
-      <PageHeader back={id ? `/customers/${gidToNum(id)}` : '/customers'} title={id ? t('customers.edit') : t('customers.addTitle')}
-        actions={!id && <Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>{t('save.save')}</Button>} />
+      <PageHeader back={id ? `/customers/${gidToNum(id)}` : '/customers'} title={id ? t('customers.edit') : t('customers.addTitle')} />
       {(error || errors.name) && <div className="mb-4"><Banner>{error ?? errors.name}</Banner></div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">
@@ -87,12 +88,17 @@ function CustomerFormView({ id, initial }: { id: string | null; initial: Custome
             <div className="grid gap-3 sm:grid-cols-2">
               <Input label={t('field.firstName')} value={form.firstName} onChange={(e) => set({ firstName: e.target.value })} />
               <Input label={t('field.lastName')} value={form.lastName} onChange={(e) => set({ lastName: e.target.value })} />
+            </div>
+            {!id && <Select className="mt-3" label={t('customers.language')} help={t('customers.languageHelp')} value={form.locale || lang} onChange={(e) => set({ locale: e.target.value })}><option value="en">English</option><option value="fr">Français</option></Select>}
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <Input label={t('field.email')} type="email" value={form.email} error={errors.email} onChange={(e) => set({ email: e.target.value })} />
               <Input label={t('customer.phone')} type="tel" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
             </div>
             <div className="mt-3"><Checkbox label={t('customer.marketingConsent')} checked={form.marketing} onChange={(e) => set({ marketing: e.target.checked })} /></div>
+            <p className="-mx-4 -mb-4 mt-4 rounded-b-lg bg-surface px-4 py-3 text-[13px] text-muted">{t('customers.consentNotice')}</p>
           </Card>
-          {!id && (
+          {!id && !showAddress && <Button className="w-full justify-start" onClick={() => setShowAddress(true)}><Plus className="size-4" />{t('customers.addAddress')}</Button>}
+          {!id && showAddress && (
             <Card title={t('customers.address')}>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Select label={t('customer.country')} value={form.countryCode} onChange={(e) => set({ countryCode: e.target.value })}>

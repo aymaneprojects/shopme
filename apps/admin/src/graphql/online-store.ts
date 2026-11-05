@@ -68,9 +68,9 @@ export const THEME_PUBLISH = /* GraphQL */ `
 `;
 
 export const PAGES = /* GraphQL */ `
-  query Pages($first: Int, $after: String, $last: Int, $before: String, $query: String) {
-    pages(first: $first, after: $after, last: $last, before: $before, query: $query) {
-      nodes { id title handle isPublished updatedAt }
+  query Pages($first: Int, $after: String, $last: Int, $before: String, $query: String, $sortKey: PageSortKeys, $reverse: Boolean) {
+    pages(first: $first, after: $after, last: $last, before: $before, query: $query, sortKey: $sortKey, reverse: $reverse) {
+      nodes { id title handle body isPublished updatedAt }
       pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
     }
   }

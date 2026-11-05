@@ -1,7 +1,9 @@
 import { Badge, Banner, Button, ConfirmDialog, Dropdown, Input, Modal, Skeleton, cx, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink, MoreHorizontal, Palette, Upload } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { gql, mutate, upload } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
@@ -12,14 +14,22 @@ import type { Key } from '../../i18n';
 
 const TABS: Array<{ to: string; key: Key; end?: boolean }> = [
   { to: '/online-store', key: 'store.themes', end: true }, { to: '/online-store/blog-posts', key: 'store.blogPosts' }, { to: '/online-store/blogs', key: 'store.blogs' },
-  { to: '/online-store/pages', key: 'store.pages' }, { to: '/online-store/navigation', key: 'store.navigation' }, { to: '/online-store/redirects', key: 'store.redirects' },
+  { to: '/online-store/pages', key: 'store.pages' }, { to: '/online-store/navigation', key: 'store.navigation' }, { to: '/online-store/files', key: 'store.files' },
+  { to: '/online-store/redirects', key: 'store.redirects' }, { to: '/online-store/preferences', key: 'store.preferences' },
 ];
+
+/** Renders its children in the Online Store header, left of "View your store" (the page's own header actions). */
+export function StoreActions({ children }: { children: ReactNode }) {
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useEffect(() => setHost(document.getElementById('store-header-actions')), []);
+  return host ? createPortal(children, host) : null;
+}
 
 export function OnlineStoreLayout() {
   const t = useT();
   return (
     <>
-      <PageHeader title={t('nav.onlineStore')} actions={<a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 field-control font-medium hover:bg-surface"><ExternalLink className="size-4" />{t('store.view')}</a>} />
+      <PageHeader title={t('nav.onlineStore')}  actions={<><span id="store-header-actions" className="contents" /><a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 field-control font-medium hover:bg-surface"><ExternalLink className="size-4" />{t('store.view')}</a></>} />
       <nav aria-label={t('nav.onlineStore')} className="mb-4 flex gap-1 overflow-x-auto border-b border-line">
         {TABS.map((x) => <NavLink key={x.to} to={x.to} end={x.end} className={({ isActive }) => cx('-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium', isActive ? 'border-accent text-accent' : 'border-transparent text-muted hover:text-fg')}>{t(x.key)}</NavLink>)}
       </nav>
