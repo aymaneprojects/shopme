@@ -106,7 +106,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
         actions={id && <>
           <ViewAs url={publicUrl} />
           <Button disabled={!previewUrl} onClick={() => { if (previewUrl) window.open(previewUrl, '_blank', 'noopener'); }}><Eye className="size-4" />{t('product.preview')}</Button>
-          <Dropdown align="right" chevron trigger={t('share.label')} items={[
+          <Dropdown align="right" chevron disabled={dirty} title={dirty ? t('btn.share.saveFirst') : undefined} trigger={t('share.label')} items={[
             { key: 'copy', label: t('share.copyLink'), disabled: !publicUrl, onSelect: () => { void navigator.clipboard?.writeText(new URL(publicUrl!, window.location.origin).href).then(() => toast(t('share.copied')), () => toast(t('share.copyFailed'), 'critical')); } },
             { key: 'mail', label: t('share.email'), disabled: !publicUrl, onSelect: () => { window.location.href = `mailto:?subject=${encodeURIComponent(form.title)}&body=${encodeURIComponent(new URL(publicUrl!, window.location.origin).href)}`; } },
           ]} />

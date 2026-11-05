@@ -1,6 +1,6 @@
-import { Badge, cx } from '@shopme/ui';
+import { Badge, Checkbox, cx } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Clock, CornerDownLeft, FileText, Search, Settings, ShoppingCart, Tag, Users } from 'lucide-react';
+import { Clock, CornerDownLeft, FileText, ListFilter, Search, Settings, ShoppingCart, Tag, Users } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
@@ -50,8 +50,11 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const [scope, setScope] = useState<Scope | null>(null);
   const [recent, setRecent] = useState<string[]>([]);
   const [active, setActive] = useState(0);
+  const [refine, setRefine] = useState(false);
+  const [hidden, setHidden] = useState<Scope[]>([]); // result types switched off with the filter button
+  const on = (s: Scope) => (!scope || scope === s) && !hidden.includes(s);
   const term = useDebounced(text, 200).trim();
-  const live = (s: Scope) => open && (!scope || scope === s);
+  const live = (s: Scope) => open && on(s);
   const products = useRemote<{ id: string; title: string; status: string }>(PRODUCTS, 'products', term, live('products'));
   const orders = useRemote<{ id: string; name: string; displayFinancialStatus: string }>(ORDERS, 'orders', term, live('orders'));
   const customers = useRemote<{ id: string; displayName: string }>(CUSTOMERS, 'customers', term, live('customers'));
@@ -59,22 +62,22 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) { d.showModal(); setText(''); setScope(null); setActive(0); setRecent(readRecent()); }
+    if (open && !d.open) { d.showModal(); setText(''); setScope(null); setActive(0); setRecent(readRecent()); setRefine(false); }
     if (!open && d.open) d.close();
   }, [open]);
 
   const q = text.trim().toLowerCase();
   const entries = useMemo<Entry[]>(() => {
-    const showPages = scope === 'pages' || (!scope && !!q);
+    const showPages = !hidden.includes('pages') && (scope === 'pages' || (!scope && !!q));
     const pages = showPages ? PAGES.map((p) => ({ id: p.to, label: t(p.key), to: p.to, group: (p.group ?? 'cmd.pages') as Key, icon: p.icon })).filter((p) => !q || p.label.toLowerCase().includes(q)) : [];
     const id = (gid: string) => encodeURIComponent(gid.split('/').pop() ?? gid);
     return [
-      ...(!scope || scope === 'customers' ? customers.map((c) => ({ id: c.id, label: c.displayName, to: `/customers/${id(c.id)}`, group: 'cmd.customers' as Key, icon: Users })) : []),
-      ...(!scope || scope === 'orders' ? orders.map((o) => ({ id: o.id, label: o.name, to: `/orders/${id(o.id)}`, group: 'cmd.orders' as Key, icon: ShoppingCart, hint: o.displayFinancialStatus })) : []),
-      ...(!scope || scope === 'products' ? products.map((p) => ({ id: p.id, label: p.title, to: `/products/${id(p.id)}`, group: 'cmd.products' as Key, icon: Tag, hint: p.status })) : []),
+      ...(on('customers') ? customers.map((c) => ({ id: c.id, label: c.displayName, to: `/customers/${id(c.id)}`, group: 'cmd.customers' as Key, icon: Users })) : []),
+      ...(on('orders') ? orders.map((o) => ({ id: o.id, label: o.name, to: `/orders/${id(o.id)}`, group: 'cmd.orders' as Key, icon: ShoppingCart, hint: o.displayFinancialStatus })) : []),
+      ...(on('products') ? products.map((p) => ({ id: p.id, label: p.title, to: `/products/${id(p.id)}`, group: 'cmd.products' as Key, icon: Tag, hint: p.status })) : []),
       ...pages,
     ];
-  }, [q, t, scope, products, orders, customers]);
+  }, [q, t, scope, hidden, products, orders, customers]); // eslint-disable-line react-hooks/exhaustive-deps
   const idle = !q && !scope;
 
   useEffect(() => setActive(0), [text, scope]);
@@ -109,7 +112,15 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               <button key={s.id} type="button" aria-pressed={scope === s.id} onClick={() => setScope(scope === s.id ? null : s.id)}
                 className={cx('rounded-lg px-2.5 py-1 text-xs font-medium transition-colors', scope === s.id ? 'bg-primary text-white' : 'bg-surface text-fg hover:bg-hover')}>{t(s.key)}</button>
             ))}
+            <button type="button" aria-label={t('btn.cmd.refine')} title={t('btn.cmd.refine')} aria-expanded={refine} aria-pressed={refine || hidden.length > 0} onClick={() => setRefine(!refine)}
+              className={cx('ml-auto grid size-7 place-items-center rounded-lg transition-colors hover:bg-hover', (refine || hidden.length > 0) ? 'bg-hover text-fg' : 'text-muted')}><ListFilter className="size-4" /></button>
           </div>
+          {refine && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-surface px-3 py-2 text-xs" role="group" aria-label={t('btn.cmd.include')}>
+              <span className="font-semibold text-muted">{t('btn.cmd.include')}</span>
+              {SCOPES.map((s) => <Checkbox key={s.id} label={t(s.key)} checked={!hidden.includes(s.id)} onChange={() => setHidden(hidden.includes(s.id) ? hidden.filter((x) => x !== s.id) : [...hidden, s.id])} />)}
+            </div>
+          )}
           <ul id="cmd-list" role="listbox" className="h-[18rem] overflow-y-auto p-1.5">
             {idle && !recent.length && <li className="grid h-full place-items-center px-3 text-center text-[13px]">{t('cmd.searchIn', { shop: shop.name })}</li>}
             {idle && recent.length > 0 && (

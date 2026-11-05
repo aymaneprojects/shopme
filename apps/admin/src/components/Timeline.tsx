@@ -1,26 +1,37 @@
-import { Banner, Button, ConfirmDialog, Skeleton, useToast } from '@shopme/ui';
+import { Banner, Button, ConfirmDialog, Modal, Skeleton, uploadFile, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AtSign, Hash, Smile, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { AtSign, ChevronDown, Hash, Paperclip, Smile, Trash2, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { gql, mutate } from '../api';
-import { CUSTOMER_TIMELINE, CUSTOMER_TIMELINE_COMMENT_CREATE, ORDER_TIMELINE, ORDER_TIMELINE_COMMENT_CREATE, TIMELINE_COMMENT_DELETE } from '../graphql';
+import { CUSTOMER_TIMELINE, CUSTOMER_TIMELINE_COMMENT_CREATE, ORDER_COMMENT_CREATE, ORDER_TIMELINE, TIMELINE_COMMENT_DELETE } from '../graphql';
 import { useI18n } from '../i18n';
+import type { Key } from '../i18n';
 import { dayLabel, eventText, groupByDay, type TimelineEvent } from '../lib/timeline';
+import { useFormat } from './shared';
+import type { MoneySet } from './shared';
 import { useShop } from '../session';
 
-interface Props { kind: 'order' | 'customer'; id: string }
+type Tx = { id: string; kind: string; status: string; gateway: string; createdAt: string; amountSet: MoneySet };
+interface Props { kind: 'order' | 'customer'; id: string; /** Order pages: the confirmation number shown as its own entry. */ confirmationNumber?: string | null; /** Order pages: payments, shown under the payment entries. */ transactions?: Tx[] }
+const fileName = (u: string) => decodeURIComponent(u.split('?')[0]!.split('/').pop() ?? u);
 interface Data { order?: { name: string; currencyCode: string; events: { nodes: TimelineEvent[] } } | null; customer?: { events: { nodes: TimelineEvent[] } } | null }
 
 /**
  * Activity timeline of an order or a customer: a comment box for staff and the system events (and comments) grouped by day, newest first.
  * Refetches by itself; `refreshKey` lets the host page force a reload after it changed something.
  */
-export function Timeline({ kind, id, refreshKey }: Props & { refreshKey?: unknown }) {
+export function Timeline({ kind, id, refreshKey, confirmationNumber, transactions = [] }: Props & { refreshKey?: unknown }) {
   const { t, lang } = useI18n();
   const { user } = useShop();
   const toast = useToast();
   const qc = useQueryClient();
+  const fmt = useFormat();
   const [text, setText] = useState('');
+  const [files, setFiles] = useState<Array<{ url: string; name: string }>>([]);
+  const [uploading, setUploading] = useState(false);
+  const [email, setEmail] = useState<{ subject: string; html: string; to: string } | null>(null);
+  const [open, setOpen] = useState<string[]>([]);
+  const picker = useRef<HTMLInputElement>(null);
   const [removing, setRemoving] = useState<TimelineEvent | null>(null);
   const key = ['timeline', kind, id, refreshKey];
   const q = useQuery({ queryKey: key, queryFn: () => gql<Data>(kind === 'order' ? ORDER_TIMELINE : CUSTOMER_TIMELINE, { id }) });
@@ -28,8 +39,10 @@ export function Timeline({ kind, id, refreshKey }: Props & { refreshKey?: unknow
   const fail = (e: Error) => toast(e.message, 'critical');
 
   const post = useMutation({
-    mutationFn: () => mutate(kind === 'order' ? ORDER_TIMELINE_COMMENT_CREATE : CUSTOMER_TIMELINE_COMMENT_CREATE, { id, message: text.trim() }, kind === 'order' ? 'orderTimelineCommentCreate' : 'customerTimelineCommentCreate'),
-    onSuccess: () => { setText(''); void reload(); }, onError: fail,
+    mutationFn: () => (kind === 'order'
+      ? mutate(ORDER_COMMENT_CREATE, { id, message: text.trim(), attachments: files.map((f) => f.url) }, 'orderTimelineCommentCreate')
+      : mutate(CUSTOMER_TIMELINE_COMMENT_CREATE, { id, message: text.trim() }, 'customerTimelineCommentCreate')),
+    onSuccess: () => { setText(''); setFiles([]); void reload(); }, onError: fail,
   });
   const del = useMutation({
     mutationFn: (eventId: string) => mutate(TIMELINE_COMMENT_DELETE, { id: eventId }, 'timelineCommentDelete'),
@@ -37,7 +50,19 @@ export function Timeline({ kind, id, refreshKey }: Props & { refreshKey?: unknow
   });
 
   const owner = kind === 'order' ? q.data?.order : q.data?.customer;
-  const events = owner?.events.nodes ?? [];
+  const raw = owner?.events.nodes ?? [];
+  // The confirmation number is an entry of its own, right after the order was placed.
+  const events = (() => {
+    const at = raw.findIndex((e) => e.action === 'order.created');
+    if (kind !== 'order' || !confirmationNumber || at < 0) return raw;
+    const made = raw[at]!;
+    return [...raw.slice(0, at + 1), { __typename: 'BasicEvent', id: 'confirmation', action: 'order.confirmation_number', message: '', createdAt: made.createdAt, arguments: { number: confirmationNumber } } as TimelineEvent, ...raw.slice(at + 1)];
+  })();
+  const attach = async (list: FileList | null) => {
+    if (!list?.length) return;
+    setUploading(true);
+    try { const up = await Promise.all([...list].map((f) => uploadFile(f))); setFiles((cur) => [...cur, ...up.map((u) => ({ url: u.url, name: u.filename }))].slice(0, 10)); } catch (e) { fail(e as Error); } finally { setUploading(false); if (picker.current) picker.current.value = ''; }
+  };
   const order = kind === 'order' ? q.data?.order : null;
   const initials = ((user.firstName?.[0] ?? '') + (user.lastName?.[0] ?? '') || user.email[0] || '?').toUpperCase();
   const time = (iso: string) => new Intl.DateTimeFormat(lang, { timeStyle: 'short' }).format(new Date(iso));
@@ -56,11 +81,22 @@ export function Timeline({ kind, id, refreshKey }: Props & { refreshKey?: unknow
             onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && text.trim() && !post.isPending) post.mutate(); }} />
         </div>
         <div className="flex items-center gap-1 bg-surface px-3 py-2">
+          {kind === 'order' && (
+            <>
+              <input ref={picker} type="file" multiple hidden aria-hidden tabIndex={-1} onChange={(e) => void attach(e.target.files)} />
+              <button type="button" aria-label={t('btn.timeline.attach')} title={t('btn.timeline.attach')} disabled={uploading || files.length >= 10} onClick={() => picker.current?.click()} className="grid size-7 place-items-center rounded-md text-muted hover:bg-hover hover:text-fg disabled:opacity-50"><Paperclip className="size-4" /></button>
+            </>
+          )}
           {([[Smile, '🙂'], [AtSign, '@'], [Hash, '#']] as const).map(([Icon, ch], i) => (
             <button key={i} type="button" aria-label={ch} onClick={() => setText((v) => v + ch)} className="grid size-7 place-items-center rounded-md text-muted hover:bg-hover hover:text-fg"><Icon className="size-4" /></button>
           ))}
-          <Button className="ml-auto" size="sm" variant="primary" disabled={!text.trim()} loading={post.isPending} onClick={() => post.mutate()}>{t('timeline.post')}</Button>
+          <Button className="ml-auto" size="sm" variant="primary" disabled={!text.trim() && !files.length} loading={post.isPending || uploading} onClick={() => post.mutate()}>{t('timeline.post')}</Button>
         </div>
+        {files.length > 0 && (
+          <ul className="flex flex-wrap gap-1.5 border-t border-line px-3 py-2" aria-label={t('btn.timeline.attachments')}>
+            {files.map((f) => <li key={f.url} className="inline-flex max-w-full items-center gap-1 rounded-full border border-line bg-surface py-0.5 pl-2.5 pr-1 text-xs"><span className="truncate">{f.name}</span><button type="button" aria-label={`${t('common.remove')} ${f.name}`} className="grid size-5 place-items-center rounded-full hover:bg-hover" onClick={() => setFiles(files.filter((x) => x.url !== f.url))}><X className="size-3" /></button></li>)}
+          </ul>
+        )}
       </div>
       <p className="mt-1.5 text-right text-xs text-muted">{t('timeline.staffOnly')}</p>
 
@@ -81,12 +117,27 @@ export function Timeline({ kind, id, refreshKey }: Props & { refreshKey?: unknow
                     {comment ? (
                       <div className="min-w-0 flex-1 rounded-lg bg-canvas p-3 shadow-card">
                         <p className="mb-1 text-xs text-muted">{who ?? t('timeline.staff')}</p>
-                        <p className="whitespace-pre-wrap break-words">{e.rawMessage ?? e.message}</p>
+                        {(e.rawMessage ?? e.message) && <p className="whitespace-pre-wrap break-words">{e.rawMessage ?? e.message}</p>}
+                        {!!e.attachments?.length && <ul className="mt-1 flex flex-wrap gap-1.5">{e.attachments.map((u) => <li key={u}><a href={u} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md bg-surface px-2 py-0.5 text-xs text-accent underline"><Paperclip className="size-3" aria-hidden />{fileName(u)}</a></li>)}</ul>}
                       </div>
                     ) : (
                       <div className="min-w-0 flex-1">
-                        <p className="break-words">{eventText(e, t, lang, order)}</p>
+                        <p className="break-words">
+                          {eventText(e, t, lang, order)}
+                          {kind === 'order' && transactions.length > 0 && (e.action === 'order.paid' || e.action === 'order.created') && (
+                            <button type="button" aria-expanded={open.includes(e.id)} aria-label={t('btn.timeline.paymentDetails')} title={t('btn.timeline.paymentDetails')} onClick={() => setOpen(open.includes(e.id) ? open.filter((x) => x !== e.id) : [...open, e.id])}
+                              className="ml-1 inline-grid size-5 place-items-center rounded align-middle text-muted hover:bg-hover"><ChevronDown className={`size-3.5 transition-transform ${open.includes(e.id) ? 'rotate-180' : ''}`} /></button>
+                          )}
+                        </p>
                         {who && <p className="text-xs text-muted">{who}</p>}
+                        {open.includes(e.id) && (
+                          <ul className="mt-1.5 flex flex-col gap-1 rounded-lg bg-surface p-2 text-xs">
+                            {transactions.map((x) => <li key={x.id} className="flex flex-wrap justify-between gap-x-3"><span>{t(`btn.timeline.tx.${x.kind}` as Key)} · {x.gateway.replace(/[_-]/g, ' ')}{x.status !== 'SUCCESS' ? ` · ${x.status.toLowerCase()}` : ''}</span><span className="tabular-nums">{fmt.money(x.amountSet)} · {fmt.dateTime(x.createdAt)}</span></li>)}
+                          </ul>
+                        )}
+                        {e.action === 'order.email_sent' && typeof e.arguments?.html === 'string' && (
+                          <Button size="sm" className="mt-1.5" onClick={() => setEmail({ subject: String(e.arguments?.subject ?? ''), html: String(e.arguments?.html), to: String(e.arguments?.to ?? '') })}>{t('btn.timeline.showEmail')}</Button>
+                        )}
                       </div>
                     )}
                     <span className="flex shrink-0 items-center gap-1 pt-0.5 text-xs text-muted">
@@ -103,6 +154,14 @@ export function Timeline({ kind, id, refreshKey }: Props & { refreshKey?: unknow
           </div>
         ))}
       </div>
+      <Modal open={!!email} onClose={() => setEmail(null)} title={email?.subject || t('btn.timeline.emailTitle')} closeLabel={t('common.close')} wide footer={<Button onClick={() => setEmail(null)}>{t('common.close')}</Button>}>
+        {email && (
+          <>
+            <p className="mb-2 text-[13px] text-muted">{t('btn.timeline.emailTo', { to: email.to })}</p>
+            <iframe title={email.subject || t('btn.timeline.emailTitle')} sandbox="" srcDoc={email.html} className="h-[60vh] w-full rounded-lg border border-line bg-white" />
+          </>
+        )}
+      </Modal>
       <ConfirmDialog open={!!removing} danger loading={del.isPending} onClose={() => setRemoving(null)} closeLabel={t('common.close')} title={t('timeline.deleteTitle')}
         message={t('timeline.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => removing && del.mutate(removing.id)} />
     </section>

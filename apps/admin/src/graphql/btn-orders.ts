@@ -83,7 +83,7 @@ export const ORDER_EDIT_ADD_CUSTOM_ITEM = /* GraphQL */ `
   }
   fragment Calc on CalculatedOrder {
     id totalPriceSet { ${MONEY} } subtotalPriceSet { ${MONEY} } totalOutstandingSet { ${MONEY} } shopmeShippingFeeSet { ${MONEY} } shopmeOrderDiscountSet { ${MONEY} } shopmeShippingFeeTitle shopmeOrderDiscountDescription
-    lineItems(first: 100) { nodes { id title variantTitle sku quantity editableQuantity editableQuantityBeforeChanges hasStagedLineItemDiscount image { url } originalUnitPriceSet { ${MONEY} } discountedUnitPriceSet { ${MONEY} } editableSubtotalSet { ${MONEY} } } }
+    lineItems(first: 100) { nodes { id title variantTitle sku quantity editableQuantity editableQuantityBeforeChanges hasStagedLineItemDiscount variant { id } image { url } originalUnitPriceSet { ${MONEY} } discountedUnitPriceSet { ${MONEY} } editableSubtotalSet { ${MONEY} } } }
   }
 `;
 export const ORDER_EDIT_ADD_SHIPPING = /* GraphQL */ `
@@ -92,7 +92,7 @@ export const ORDER_EDIT_ADD_SHIPPING = /* GraphQL */ `
   }
   fragment Calc on CalculatedOrder {
     id totalPriceSet { ${MONEY} } subtotalPriceSet { ${MONEY} } totalOutstandingSet { ${MONEY} } shopmeShippingFeeSet { ${MONEY} } shopmeOrderDiscountSet { ${MONEY} } shopmeShippingFeeTitle shopmeOrderDiscountDescription
-    lineItems(first: 100) { nodes { id title variantTitle sku quantity editableQuantity editableQuantityBeforeChanges hasStagedLineItemDiscount image { url } originalUnitPriceSet { ${MONEY} } discountedUnitPriceSet { ${MONEY} } editableSubtotalSet { ${MONEY} } } }
+    lineItems(first: 100) { nodes { id title variantTitle sku quantity editableQuantity editableQuantityBeforeChanges hasStagedLineItemDiscount variant { id } image { url } originalUnitPriceSet { ${MONEY} } discountedUnitPriceSet { ${MONEY} } editableSubtotalSet { ${MONEY} } } }
   }
 `;
 export const ORDER_EDIT_SET_ORDER_DISCOUNT = /* GraphQL */ `
@@ -101,7 +101,7 @@ export const ORDER_EDIT_SET_ORDER_DISCOUNT = /* GraphQL */ `
   }
   fragment Calc on CalculatedOrder {
     id totalPriceSet { ${MONEY} } subtotalPriceSet { ${MONEY} } totalOutstandingSet { ${MONEY} } shopmeShippingFeeSet { ${MONEY} } shopmeOrderDiscountSet { ${MONEY} } shopmeShippingFeeTitle shopmeOrderDiscountDescription
-    lineItems(first: 100) { nodes { id title variantTitle sku quantity editableQuantity editableQuantityBeforeChanges hasStagedLineItemDiscount image { url } originalUnitPriceSet { ${MONEY} } discountedUnitPriceSet { ${MONEY} } editableSubtotalSet { ${MONEY} } } }
+    lineItems(first: 100) { nodes { id title variantTitle sku quantity editableQuantity editableQuantityBeforeChanges hasStagedLineItemDiscount variant { id } image { url } originalUnitPriceSet { ${MONEY} } discountedUnitPriceSet { ${MONEY} } editableSubtotalSet { ${MONEY} } } }
   }
 `;
 

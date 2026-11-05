@@ -2,12 +2,29 @@ import { Dropdown } from '@shopme/ui';
 import type { MenuItem } from '@shopme/ui';
 import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { useT } from '../i18n';
+import { NAV } from './Shell';
+
+/** Index pages of the navigation (Orders, Drafts, Customers...): the arrow goes to the parent section and the section icon sits before the title. */
+function indexPage(pathname: string): { to: string; icon: ReactNode } | null {
+  const path = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
+  for (const item of NAV) {
+    if (item.id === 'home' || item.id === 'settings') continue;
+    if (item.to === path) return { to: '/', icon: <item.icon className="size-4" /> };
+    const child = item.children?.find((c) => c.to === path);
+    if (child) return { to: item.to, icon: <item.icon className="size-4" /> };
+  }
+  return null;
+}
 
 /** Page title row: back arrow, title, status badges, then secondary/primary actions and an optional "More actions" menu. */
 export function PageHeader({ title, back, actions, badges, more, subtitle, icon, breadcrumb, large }: { /** Detail pages: breadcrumb row (back arrow, section icon, parent) above a large title. */ large?: boolean; /** Parent list shown before the title: `Products / Title`. */ breadcrumb?: { icon?: ReactNode; label: ReactNode; to: string }; /** Section icon shown before the title on index pages. */ icon?: ReactNode; title: ReactNode; back?: string; actions?: ReactNode; badges?: ReactNode; more?: MenuItem[]; subtitle?: ReactNode }) {
   const t = useT();
+  const { pathname } = useLocation();
+  const index = !back && !breadcrumb && !large ? indexPage(pathname) : null;
+  back ??= index?.to;
+  icon ??= index?.icon;
   if (large && breadcrumb) {
     return (
       <div className="mb-4 flex flex-col gap-2">

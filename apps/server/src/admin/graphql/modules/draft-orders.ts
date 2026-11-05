@@ -48,7 +48,7 @@ const viewOf = (shop: ShopRow, appUrl: string, d: DraftRow): View => ({
 const calcViewOf = (shop: ShopRow, draft: Omit<DraftInput, 'lines'> & { lines: DraftLine[]; currency: string }, pricing: PricingResult, calc: DraftCalc): View => ({
   id: 0, name: '', status: 'OPEN', email: draft.email ?? null, phone: draft.phone ?? null, note: draft.note ?? null, tags: draft.tags ?? [], taxExempt: !!draft.taxExempt, taxesIncluded: shop.taxesIncluded, currency: draft.currency,
   lines: draft.lines, calc, appliedDiscount: draft.appliedDiscount ?? null, shippingLine: draft.shippingLine ?? null, shippingAddress: draft.shippingAddress ?? null, billingAddress: draft.billingAddress ?? null,
-  poNumber: draft.poNumber ?? null, marketId: draft.marketId ?? null, presentmentCurrency: null,
+  poNumber: draft.poNumber ?? null, marketId: draft.marketId ?? null, presentmentCurrency: (draft as { presentmentCurrency?: string | null }).presentmentCurrency ?? null,
   customerId: draft.customerId ?? null, orderId: null, createdAt: new Date(), updatedAt: new Date(), completedAt: null, invoiceSentAt: null, invoiceUrl: null,
   totals: { subtotal: pricing.subtotal, totalDiscounts: pricing.totalDiscounts, totalShipping: pricing.totalShipping, totalTax: pricing.totalTax, total: pricing.total },
 });

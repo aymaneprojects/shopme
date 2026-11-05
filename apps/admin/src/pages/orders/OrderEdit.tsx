@@ -8,16 +8,16 @@ import { IconHeading, PageTitle, SideSection, TopBar, TwoColumn } from '../../co
 import { useFormat } from '../../components/shared';
 import type { MoneySet } from '../../components/shared';
 import { numToGid, parseDecimal } from '../../format';
-import { ORDER_EDIT_ADD_LINE_ITEM_DISCOUNT, ORDER_EDIT_ADD_VARIANT, ORDER_EDIT_BEGIN, ORDER_EDIT_COMMIT, ORDER_EDIT_DISCARD, ORDER_EDIT_SET_QUANTITY } from '../../graphql';
+import { ORDER_EDIT_ADD_CUSTOM_ITEM, ORDER_EDIT_ADD_SHIPPING, ORDER_EDIT_ADD_LINE_ITEM_DISCOUNT, ORDER_EDIT_ADD_VARIANT, ORDER_EDIT_SET_ORDER_DISCOUNT, ORDER_EDIT_BEGIN, ORDER_EDIT_COMMIT, ORDER_EDIT_DISCARD, ORDER_EDIT_SET_QUANTITY } from '../../graphql';
 import { useT } from '../../i18n';
 import { Thumb } from '../Products';
 import { VariantDialog } from './Drafts';
 
 interface CLine {
   id: string; title: string; variantTitle: string | null; sku: string | null; quantity: number; editableQuantity: number; editableQuantityBeforeChanges: number; hasStagedLineItemDiscount: boolean;
-  image: { url: string } | null; originalUnitPriceSet: MoneySet; discountedUnitPriceSet: MoneySet; editableSubtotalSet: MoneySet;
+  variant?: { id: string } | null; image: { url: string } | null; originalUnitPriceSet: MoneySet; discountedUnitPriceSet: MoneySet; editableSubtotalSet: MoneySet;
 }
-interface Calc { id: string; totalPriceSet: MoneySet; subtotalPriceSet: MoneySet | null; totalOutstandingSet: MoneySet; lineItems: { nodes: CLine[] }; originalOrder?: { id: string; name: string } }
+interface Calc { id: string; shopmeShippingFeeSet: MoneySet; shopmeOrderDiscountSet: MoneySet; shopmeShippingFeeTitle: string | null; shopmeOrderDiscountDescription: string | null; totalPriceSet: MoneySet; subtotalPriceSet: MoneySet | null; totalOutstandingSet: MoneySet; lineItems: { nodes: CLine[] }; originalOrder?: { id: string; name: string } }
 type Payload = { calculatedOrder: Calc | null };
 
 /** Order edit session: every change is sent to the server, which recalculates; nothing touches the order until "Update order". */
@@ -35,6 +35,13 @@ export function OrderEditPage() {
   const [discountFor, setDiscountFor] = useState<CLine | null>(null);
   const [percent, setPercent] = useState('');
   const [adding, setAdding] = useState(false);
+  const [panel, setPanel] = useState<'custom' | 'discount' | 'shipping' | null>(null);
+  const [custom, setCustom] = useState({ title: '', price: '', quantity: '1', taxable: true, requiresShipping: false });
+  const [odKind, setOdKind] = useState<'percent' | 'amount'>('percent');
+  const [odValue, setOdValue] = useState('');
+  const [odReason, setOdReason] = useState('');
+  const [feeTitle, setFeeTitle] = useState('');
+  const [feePrice, setFeePrice] = useState('');
   const [confirm, setConfirm] = useState(false);
   const [note, setNote] = useState('');
   const [notify, setNotify] = useState(false);
@@ -60,6 +67,19 @@ export function OrderEditPage() {
     mutationFn: () => mutate<Payload>(ORDER_EDIT_ADD_LINE_ITEM_DISCOUNT, { id: calc!.id, lineItemId: discountFor!.id, discount: { description: t('orderEdit.discountLabel'), percentValue: parseDecimal(percent) ?? 0 } }, 'orderEditAddLineItemDiscount'),
     onSuccess: (p) => { apply(p); setDiscountFor(null); setPercent(''); }, onError: (e) => setError(errText(e)),
   });
+  const done = (p: Payload) => { apply(p); setPanel(null); };
+  const addCustom = useMutation({
+    mutationFn: (cur: string) => mutate<Payload>(ORDER_EDIT_ADD_CUSTOM_ITEM, { id: calc!.id, title: custom.title.trim(), price: { amount: String(parseDecimal(custom.price) ?? 0), currencyCode: cur }, quantity: Math.max(1, Math.floor(Number(custom.quantity) || 1)), taxable: custom.taxable, requiresShipping: custom.requiresShipping }, 'orderEditAddCustomItem'),
+    onSuccess: (p) => { done(p); setCustom({ title: '', price: '', quantity: '1', taxable: true, requiresShipping: false }); }, onError: (e) => setError(errText(e)),
+  });
+  const setOrderDiscount = useMutation({
+    mutationFn: (v: { clear?: boolean; cur: string }) => mutate<Payload>(ORDER_EDIT_SET_ORDER_DISCOUNT, { id: calc!.id, discount: v.clear ? null : { description: odReason.trim() || t('orderEdit.discountLabel'), ...(odKind === 'percent' ? { percentValue: parseDecimal(odValue) ?? 0 } : { fixedValue: { amount: String(parseDecimal(odValue) ?? 0), currencyCode: v.cur } }) } }, 'shopmeOrderEditSetOrderDiscount'),
+    onSuccess: (p, v) => { done(p); if (v.clear) { setOdValue(''); setOdReason(''); } }, onError: (e) => setError(errText(e)),
+  });
+  const setFee = useMutation({
+    mutationFn: (v: { clear?: boolean; cur: string }) => mutate<Payload>(ORDER_EDIT_ADD_SHIPPING, { id: calc!.id, shippingLine: { title: feeTitle.trim() || t('btn.edit.feeDefault'), price: { amount: v.clear ? '0' : String(parseDecimal(feePrice) ?? 0), currencyCode: v.cur } } }, 'orderEditAddShippingLine'),
+    onSuccess: (p, v) => { done(p); if (v.clear) { setFeeTitle(''); setFeePrice(''); } }, onError: (e) => setError(errText(e)),
+  });
   const commit = useMutation({
     mutationFn: () => mutate(ORDER_EDIT_COMMIT, { id: calc!.id, notifyCustomer: notify, staffNote: note.trim() || null }, 'orderEditCommit'),
     onSuccess: () => { toast(t('orderEdit.updated')); nav(`/orders/${id}`); }, onError: (e) => { setConfirm(false); setError(errText(e)); },
@@ -71,7 +91,9 @@ export function OrderEditPage() {
   const lines = calc.lineItems.nodes;
   const outstanding = Number(calc.totalOutstandingSet.shopMoney.amount);
   const cur = calc.totalOutstandingSet.shopMoney.currencyCode;
-  const busy = setQty.isPending || addVariant.isPending;
+  const busy = setQty.isPending || addVariant.isPending || addCustom.isPending || setOrderDiscount.isPending || setFee.isPending;
+  const orderDiscount = Number(calc.shopmeOrderDiscountSet.shopMoney.amount);
+  const shippingFee = Number(calc.shopmeShippingFeeSet.shopMoney.amount);
 
   const changes = lines.filter((l) => l.editableQuantity !== l.editableQuantityBeforeChanges || l.hasStagedLineItemDiscount);
   const total = Number(calc.totalPriceSet.shopMoney.amount);
@@ -86,7 +108,7 @@ export function OrderEditPage() {
           <PageTitle>{t('qa.editOrderTitle')}</PageTitle>
           {error && <Banner>{error}</Banner>}
           <section>
-            <IconHeading icon={<Inbox />} tone="attention" actions={<Button size="sm" onClick={() => setAdding(true)}><Plus className="size-3.5" />{t('draft.productBtn')}</Button>}>{t('order.items')}</IconHeading>
+            <IconHeading icon={<Inbox />} tone="attention" actions={<><Button size="sm" onClick={() => setPanel('custom')}><Plus className="size-3.5" />{t('btn.edit.customItem')}</Button><Button size="sm" onClick={() => setAdding(true)}><Plus className="size-3.5" />{t('draft.productBtn')}</Button></>}>{t('order.items')}</IconHeading>
             <Card className="!p-0">
               <ul className="divide-y divide-line px-4">
                 {lines.map((l) => {
@@ -118,6 +140,8 @@ export function OrderEditPage() {
             <Card className="overflow-hidden !p-0">
               <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 px-4 py-3.5 text-[13px]">
                 <dt>{t('order.subtotal')}</dt><dd className="text-right text-muted">{fmt.money(calc.subtotalPriceSet)}</dd>
+                <dt>{orderDiscount > 0 ? <span className="flex items-center gap-1">{calc.shopmeOrderDiscountDescription ?? t('order.discount')}<button type="button" aria-label={t('common.remove')} className="grid size-5 place-items-center rounded hover:bg-hover" onClick={() => setOrderDiscount.mutate({ clear: true, cur })}><X className="size-3" /></button></span> : <button type="button" className="text-accent hover:underline" onClick={() => setPanel('discount')}>{t('btn.edit.addDiscount')}</button>}</dt><dd className="text-right text-muted">{orderDiscount > 0 ? `−${m(orderDiscount)}` : ''}</dd>
+                <dt>{shippingFee > 0 ? <span className="flex items-center gap-1">{calc.shopmeShippingFeeTitle ?? t('order.shipping')}<button type="button" aria-label={t('common.remove')} className="grid size-5 place-items-center rounded hover:bg-hover" onClick={() => setFee.mutate({ clear: true, cur })}><X className="size-3" /></button></span> : <button type="button" className="text-accent hover:underline" onClick={() => setPanel('shipping')}>{t('btn.edit.addShipping')}</button>}</dt><dd className="text-right text-muted">{shippingFee > 0 ? m(shippingFee) : ''}</dd>
                 <dt className="font-semibold">{t('order.total')}</dt><dd className="text-right font-semibold">{fmt.money(calc.totalPriceSet)}</dd>
               </dl>
               <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 border-t border-line px-4 py-3.5 text-[13px]">
@@ -137,18 +161,47 @@ export function OrderEditPage() {
         </>}
         side={
           <SideSection title={t('orderEdit.summary')}>
-            {changes.length === 0 ? <p className="text-muted">{t('orderEdit.noChanges')}</p> : (
+            {changes.length === 0 && orderDiscount === 0 && shippingFee === 0 ? <p className="text-muted">{t('orderEdit.noChanges')}</p> : (
               <ul className="flex flex-col gap-1">
                 {changes.map((l) => <li key={l.id} className="flex justify-between gap-2"><span className="truncate">{l.title}</span><span className="text-muted">{l.editableQuantityBeforeChanges} → {l.editableQuantity}</span></li>)}
+                {orderDiscount > 0 && <li className="flex justify-between gap-2"><span className="truncate">{calc.shopmeOrderDiscountDescription ?? t('order.discount')}</span><span className="text-muted">−{m(orderDiscount)}</span></li>}
+                {shippingFee > 0 && <li className="flex justify-between gap-2"><span className="truncate">{calc.shopmeShippingFeeTitle ?? t('order.shipping')}</span><span className="text-muted">+{m(shippingFee)}</span></li>}
               </ul>
             )}
-            <Button variant="primary" className="mt-3 w-full" disabled={busy || changes.length === 0} onClick={() => setConfirm(true)}>{t('orderEdit.update')}</Button>
+            <Button variant="primary" className="mt-3 w-full" disabled={busy || (changes.length === 0 && orderDiscount === 0 && shippingFee === 0)} onClick={() => setConfirm(true)}>{t('orderEdit.update')}</Button>
             <p className="mt-3 text-xs text-muted">{t('orderEdit.help')}</p>
           </SideSection>} />
-      <VariantDialog open={adding} onClose={() => setAdding(false)} onAdd={(ls) => ls.forEach((l) => l.variantId && addVariant.mutate(l.variantId))} />
+      <VariantDialog open={adding} onClose={() => setAdding(false)} excludeVariantIds={lines.flatMap((l) => (l.variant ? [l.variant.id] : []))} onAdd={(ls) => ls.forEach((l) => l.variantId && addVariant.mutate(l.variantId))} />
       <Modal open={!!discountFor} onClose={() => setDiscountFor(null)} title={t('orderEdit.discount')} closeLabel={t('common.close')}
         footer={<><Button onClick={() => setDiscountFor(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={addDiscount.isPending} disabled={!((parseDecimal(percent) ?? 0) > 0)} onClick={() => addDiscount.mutate()}>{t('draft.add')}</Button></>}>
         <Input label={t('orderEdit.percent')} inputMode="decimal" value={percent} onChange={(e) => setPercent(e.target.value)} />
+      </Modal>
+      <Modal open={panel === 'custom'} onClose={() => setPanel(null)} title={t('btn.edit.customItem')} closeLabel={t('common.close')}
+        footer={<><Button onClick={() => setPanel(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={addCustom.isPending} disabled={!custom.title.trim() || parseDecimal(custom.price) == null} onClick={() => addCustom.mutate(cur)}>{t('draft.add')}</Button></>}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="sm:col-span-2"><Input label={t('field.title')} value={custom.title} maxLength={255} onChange={(e) => setCustom({ ...custom, title: e.target.value })} /></div>
+          <Input label={t('order.price')} inputMode="decimal" value={custom.price} onChange={(e) => setCustom({ ...custom, price: e.target.value })} />
+          <Input label={t('order.quantity')} type="number" min={1} value={custom.quantity} onChange={(e) => setCustom({ ...custom, quantity: e.target.value })} />
+          <Checkbox label={t('btn.edit.taxable')} checked={custom.taxable} onChange={(e) => setCustom({ ...custom, taxable: e.target.checked })} />
+          <Checkbox label={t('btn.edit.requiresShipping')} checked={custom.requiresShipping} onChange={(e) => setCustom({ ...custom, requiresShipping: e.target.checked })} />
+        </div>
+      </Modal>
+      <Modal open={panel === 'discount'} onClose={() => setPanel(null)} title={t('btn.edit.addDiscount')} closeLabel={t('common.close')}
+        footer={<><Button onClick={() => setPanel(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={setOrderDiscount.isPending} disabled={!((parseDecimal(odValue) ?? 0) > 0)} onClick={() => setOrderDiscount.mutate({ cur })}>{t('draft.add')}</Button></>}>
+        <div className="grid gap-3">
+          <div role="group" aria-label={t('btn.edit.discountType')} className="flex gap-2">
+            {(['percent', 'amount'] as const).map((k) => <Button key={k} size="sm" variant={odKind === k ? 'primary' : 'secondary'} aria-pressed={odKind === k} onClick={() => setOdKind(k)}>{k === 'percent' ? '%' : cur}</Button>)}
+          </div>
+          <Input label={odKind === 'percent' ? t('orderEdit.percent') : t('btn.edit.discountAmount')} inputMode="decimal" value={odValue} onChange={(e) => setOdValue(e.target.value)} />
+          <Input label={t('btn.edit.discountReason')} maxLength={100} value={odReason} onChange={(e) => setOdReason(e.target.value)} />
+        </div>
+      </Modal>
+      <Modal open={panel === 'shipping'} onClose={() => setPanel(null)} title={t('btn.edit.addShipping')} closeLabel={t('common.close')}
+        footer={<><Button onClick={() => setPanel(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={setFee.isPending} disabled={!((parseDecimal(feePrice) ?? 0) > 0)} onClick={() => setFee.mutate({ cur })}>{t('draft.add')}</Button></>}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Input label={t('btn.edit.feeName')} maxLength={100} placeholder={t('btn.edit.feeDefault')} value={feeTitle} onChange={(e) => setFeeTitle(e.target.value)} />
+          <Input label={t('order.price')} inputMode="decimal" value={feePrice} onChange={(e) => setFeePrice(e.target.value)} />
+        </div>
       </Modal>
       <Modal open={confirm} onClose={() => setConfirm(false)} title={t('orderEdit.confirmTitle')} closeLabel={t('common.close')}
         footer={<><Button onClick={() => setConfirm(false)}>{t('common.cancel')}</Button><Button variant="primary" loading={commit.isPending} onClick={() => commit.mutate()}>{t('orderEdit.update')}</Button></>}>

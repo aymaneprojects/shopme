@@ -67,7 +67,7 @@ function useDismiss(open: boolean, close: () => void) {
 export interface MenuItem { key: string; label: ReactNode; onSelect: () => void; danger?: boolean; disabled?: boolean; /** Optional leading icon. */ icon?: ReactNode; /** Draws a divider above this item (groups related actions). */ separatorBefore?: boolean; /** Keyboard shortcut hint shown on the right, e.g. `Ctrl+D`. */ shortcut?: string }
 
 /** Button + popup menu with arrow-key navigation. Closes on outside click, Escape and selection. */
-export function Dropdown({ trigger, items, align = 'left', label, variant = 'secondary', size = 'md', icon, chevron, className, menuClassName, footer }: { /** Block shown under the items (e.g. a hint or a link). */ footer?: ReactNode; trigger: ReactNode; items: MenuItem[]; align?: 'left' | 'right'; label?: string; variant?: ButtonProps['variant']; size?: ButtonProps['size']; icon?: boolean; chevron?: boolean; /** Extra classes for the trigger button (e.g. `chip`). */ className?: string; menuClassName?: string }) {
+export function Dropdown({ trigger, items, align = 'left', label, variant = 'secondary', size = 'md', icon, chevron, className, menuClassName, footer, disabled, title }: { /** Block shown under the items (e.g. a hint or a link). */ footer?: ReactNode; /** Greys the trigger out (for example while the page has unsaved changes). */ disabled?: boolean; title?: string; trigger: ReactNode; items: MenuItem[]; align?: 'left' | 'right'; label?: string; variant?: ButtonProps['variant']; size?: ButtonProps['size']; icon?: boolean; chevron?: boolean; /** Extra classes for the trigger button (e.g. `chip`). */ className?: string; menuClassName?: string }) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   const ref = useDismiss(open, close);
@@ -85,7 +85,7 @@ export function Dropdown({ trigger, items, align = 'left', label, variant = 'sec
   };
   return (
     <div ref={ref} className="relative inline-block">
-      <Button variant={variant} size={size} icon={icon} className={className} aria-haspopup="menu" aria-expanded={open} aria-label={label} onClick={() => setOpen(!open)}>
+      <Button variant={variant} size={size} icon={icon} className={className} aria-haspopup="menu" aria-expanded={open} aria-label={label} disabled={disabled} title={title} onClick={() => setOpen(!open)}>
         {trigger}{chevron && <ChevronDown className="size-3.5" />}
       </Button>
       {open && (

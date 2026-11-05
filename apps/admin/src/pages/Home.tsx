@@ -1,13 +1,13 @@
-import { Badge, Banner, Button, Card, Skeleton } from '@shopme/ui';
-import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Check, Lock, Package, Rocket, Search, ShoppingCart } from 'lucide-react';
+import { Badge, Banner, Button, Card, ConfirmDialog, Skeleton, useToast } from '@shopme/ui';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { BarChart3, Check, Lock, Megaphone, Package, Rocket, Search, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { gql } from '../api';
+import { gql, mutate } from '../api';
 import { selectCls, useFormat } from '../components/shared';
 import type { Money } from '../components/shared';
-import { ORDERS_COUNT, PAYMENT_SETTINGS, SHOPME_DASHBOARD, SHOP_POLICIES } from '../graphql';
+import { MARKETING_PAGE, ORDERS_COUNT, PAYMENT_SETTINGS, SHOPME_DASHBOARD, SHOP_POLICIES, STORE_ACCESS_UPDATE } from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useStoreInfo } from '../lib/storeInfo';
@@ -107,7 +107,18 @@ export function HomePage() {
   const fmt = useFormat();
   const { shop, user } = useShop();
   const nav = useNavigate();
+  const toast = useToast();
+  const qc = useQueryClient();
   const store = useStoreInfo();
+  const [launching, setLaunching] = useState(false);
+  const launch_ = useMutation({
+    mutationFn: () => mutate(STORE_ACCESS_UPDATE, { input: { storefrontPasswordEnabled: false } }, 'shopmeShopUpdate'),
+    onSuccess: () => { setLaunching(false); toast(t('btn.home.launched')); void qc.invalidateQueries({ queryKey: ['store-info'] }); }, onError: (e) => { setLaunching(false); toast(e.message, 'critical'); },
+  });
+  const growth = useQuery({
+    queryKey: ['home-growth'], retry: false, staleTime: 60_000,
+    queryFn: () => gql<{ shopmeMarketingCampaigns: Array<{ status: string }>; shopmeAttribution: { attributedOrders: number; totalOrders: number } }>(MARKETING_PAGE, { from: new Date(Date.now() - 30 * 86_400_000).toISOString(), to: new Date(Date.now() + 86_400_000).toISOString() }),
+  });
   const toProcess = useQuery({ queryKey: ['orders-count', 'to-process'], queryFn: () => gql<{ ordersCount: { count: number } }>(ORDERS_COUNT, { query: 'fulfillment_status:unfulfilled status:open' }) });
   const pay = useQuery({ queryKey: ['home-payments'], retry: false, queryFn: () => gql<{ shopmePaymentSettings: { bankTransfer: { enabled: boolean }; cod: { enabled: boolean }; stripe: { enabled: boolean; stripeConfigured: boolean } } }>(PAYMENT_SETTINGS) });
   const pol = useQuery({ queryKey: ['home-policies'], retry: false, queryFn: () => gql<{ shop: { shopPolicies: Array<{ body: string }> } }>(SHOP_POLICIES) });
@@ -137,7 +148,7 @@ export function HomePage() {
         </div>
         <StorePreview protectedStore={prot} />
         {prot
-          ? <Link to="/online-store/preferences" className={launch}><Rocket className="size-4" />{t('home.launch')}</Link>
+          ? <button type="button" className={launch} onClick={() => setLaunching(true)}><Rocket className="size-4" />{t('home.launch')}</button>
           : <a href={store.url || '/'} target="_blank" rel="noreferrer" className={launch}><Rocket className="size-4" />{t('home.viewStore')}</a>}
         <h1 className="mt-8 text-center text-[26px] font-medium leading-9">
           <span className="underline decoration-dotted decoration-1 underline-offset-4">{shop.name}</span><br />{t(prot ? 'home.headline.protected' : 'home.headline.online')}<br />{t('home.question')}
@@ -180,6 +191,12 @@ export function HomePage() {
             )}
           </Card>
         </div>
+        <Card className="mt-4" title={t('btn.home.growth')} actions={<Link to="/marketing" className="text-[13px] text-primary underline">{t('btn.home.growthOpen')}</Link>}>
+          <div className="flex items-center gap-3 text-[13px]">
+            <Megaphone className="size-5 text-muted" aria-hidden />
+            <p className="text-muted">{growth.data ? t('btn.home.growthSummary', { campaigns: growth.data.shopmeMarketingCampaigns.filter((c) => c.status === 'ACTIVE').length, orders: growth.data.shopmeAttribution.attributedOrders }) : t('btn.home.growthBody')}</p>
+          </div>
+        </Card>
         <Card className="mt-4" title={t('home.quickLinks')}>
           <div className="flex flex-wrap gap-2">
             <Link to="/products/new" className={link}><Package className="size-4" />{t('products.add')}</Link>
@@ -188,6 +205,8 @@ export function HomePage() {
           </div>
         </Card>
       </div>
+    <ConfirmDialog open={launching} loading={launch_.isPending} onClose={() => setLaunching(false)} closeLabel={t('common.close')} title={t('btn.home.launchTitle')}
+        message={t('btn.home.launchBody')} confirmLabel={t('home.launch')} cancelLabel={t('common.cancel')} onConfirm={() => launch_.mutate()} />
     </>
   );
 }

@@ -1,13 +1,13 @@
-import { Button, Checkbox, Modal } from '@shopme/ui';
+import { Button, Checkbox, Modal, Popover, Select } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Search } from 'lucide-react';
+import { AlertTriangle, ListFilter, Search, X } from 'lucide-react';
 import { Fragment, useState } from 'react';
 import { gql } from '../api';
-import { COLLECTIONS, DRAFT_VARIANT_SEARCH, PRODUCTS_PICKER } from '../graphql';
+import { COLLECTIONS, DRAFT_VARIANT_SEARCH, PRODUCTS_PICKER, PRODUCT_FILTER_OPTIONS } from '../graphql';
 import { useT } from '../i18n';
 import { useShop } from '../session';
 import { useFormat } from './shared';
-import { useDebounced } from '../lib/hooks';
+import { flattenStrings, q, useDebounced } from '../lib/hooks';
 import { Thumb } from '../pages/Products';
 
 export interface PickedProduct { id: string; title: string; status?: string; featuredMedia?: { image?: { url: string } } | null }
@@ -77,7 +77,11 @@ export function VariantPicker({ open, onClose, onConfirm, excludeVariantIds = []
   const [search, setSearch] = useState('');
   const [picked, setPicked] = useState<Map<string, PickedVariant>>(new Map());
   const term = useDebounced(search).trim();
-  const { data, isLoading } = useQuery({ queryKey: ['picker-variants', term], enabled: open, queryFn: () => gql<{ products: { nodes: VariantProduct[] } }>(DRAFT_VARIANT_SEARCH, { query: term || null }) });
+  const [by, setBy] = useState<'all' | 'title' | 'sku' | 'vendor'>('all');
+  const [filters, setFilters] = useState<{ vendor?: string; type?: string; tag?: string }>({});
+  const options = useQuery({ queryKey: ['picker-filter-options'], enabled: open, staleTime: 60_000, queryFn: () => gql<{ productTypes: { edges: Array<{ node: string }> }; productVendors: { edges: Array<{ node: string }> }; productTags: { edges: Array<{ node: string }> } }>(PRODUCT_FILTER_OPTIONS) });
+  const query = [term && (by === 'all' ? term : by === 'sku' ? `sku:${q(term)}` : `${by}:${q(term)}`), filters.vendor && `vendor:${q(filters.vendor)}`, filters.type && `product_type:${q(filters.type)}`, filters.tag && `tag:${q(filters.tag)}`].filter(Boolean).join(' ');
+  const { data, isLoading } = useQuery({ queryKey: ['picker-variants', query], enabled: open, queryFn: () => gql<{ products: { nodes: VariantProduct[] } }>(DRAFT_VARIANT_SEARCH, { query: query || null }) });
   const products = data?.products.nodes ?? [];
   const pick = (p: VariantProduct, v: VariantProduct['variants']['nodes'][number]): PickedVariant => ({ variantId: v.id, productTitle: p.title, variantTitle: v.title, price: v.price });
   const toggle = (p: VariantProduct, v: VariantProduct['variants']['nodes'][number]) => setPicked((m) => { const n = new Map(m); n.has(v.id) ? n.delete(v.id) : n.set(v.id, pick(p, v)); return n; });
@@ -86,14 +90,30 @@ export function VariantPicker({ open, onClose, onConfirm, excludeVariantIds = []
     if (free.every((v) => n.has(v.id))) free.forEach((v) => n.delete(v.id)); else free.forEach((v) => n.set(v.id, pick(p, v)));
     return n;
   });
-  const close = () => { setPicked(new Map()); setSearch(''); onClose(); };
+  const close = () => { setPicked(new Map()); setSearch(''); setFilters({}); setBy('all'); onClose(); };
   const hasOptions = (p: VariantProduct) => p.variants.nodes.length > 1 || p.variants.nodes[0]?.title !== 'Default Title';
   return (
     <Modal open={open} onClose={close} title={t('picker.addProducts')} closeLabel={t('common.close')} wide footerStart={t('picker.selected', { n: picked.size, $count: picked.size })}
       footer={<><Button onClick={close}>{t('picker.close')}</Button><Button variant="primary" disabled={!picked.size} onClick={() => { onConfirm([...picked.values()]); close(); }}>{t('picker.done')}</Button></>}>
-      <div className="relative mb-3">
-        <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
-        <input type="search" autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('picker.searchProducts')} aria-label={t('picker.searchProducts')} className="field-control w-full !pl-8" />
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="relative min-w-48 flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
+          <input type="search" autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('picker.searchProducts')} aria-label={t('picker.searchProducts')} className="field-control w-full !pl-8" />
+        </div>
+        <Select aria-label={t('btn.picker.searchBy')} value={by} onChange={(e) => setBy(e.target.value as typeof by)} className="!w-auto">
+          <option value="all">{t('btn.picker.by.all')}</option><option value="title">{t('btn.picker.by.title')}</option><option value="sku">SKU</option><option value="vendor">{t('field.vendor')}</option>
+        </Select>
+        <Popover label={t('btn.picker.addFilter')} className="w-64" trigger={<><ListFilter className="size-4" />{t('btn.picker.addFilter')}</>}>
+          <div className="flex flex-col gap-2">
+            <Select label={t('field.vendor')} value={filters.vendor ?? ''} onChange={(e) => setFilters({ ...filters, vendor: e.target.value || undefined })}><option value="">—</option>{flattenStrings(options.data?.productVendors).map((v) => <option key={v} value={v}>{v}</option>)}</Select>
+            <Select label={t('field.productType')} value={filters.type ?? ''} onChange={(e) => setFilters({ ...filters, type: e.target.value || undefined })}><option value="">—</option>{flattenStrings(options.data?.productTypes).map((v) => <option key={v} value={v}>{v}</option>)}</Select>
+            <Select label={t('filter.tag')} value={filters.tag ?? ''} onChange={(e) => setFilters({ ...filters, tag: e.target.value || undefined })}><option value="">—</option>{flattenStrings(options.data?.productTags).map((v) => <option key={v} value={v}>{v}</option>)}</Select>
+          </div>
+        </Popover>
+        {(Object.entries(filters) as Array<[keyof typeof filters, string | undefined]>).filter(([, v]) => v).map(([k, v]) => (
+          <span key={k} className="inline-flex items-center gap-1 rounded-full border border-line bg-surface py-0.5 pl-2.5 pr-1 text-xs">{k === 'vendor' ? t('field.vendor') : k === 'type' ? t('field.productType') : t('filter.tag')}: {v}
+            <button type="button" aria-label={`${t('list.removeFilter')} ${v}`} className="grid size-5 place-items-center rounded-full hover:bg-hover" onClick={() => setFilters({ ...filters, [k]: undefined })}><X className="size-3" /></button></span>
+        ))}
       </div>
       {isLoading ? <p className="text-[13px] text-muted">{t('common.loading')}</p> : products.length === 0 ? <p className="text-[13px] text-muted">{t('picker.none')}</p> : (
         <table className="w-full text-left text-[13px]">
@@ -135,5 +155,5 @@ function Stock({ v }: { v: { inventoryQuantity: number | null; inventoryItem: { 
   const t = useT();
   if (!v.inventoryItem?.tracked) return <span className="text-muted">{t('picker.notTracked')}</span>;
   const n = v.inventoryQuantity ?? 0;
-  return <span className="inline-flex items-center gap-1">{n <= 0 && <AlertTriangle className="size-3.5 text-warning" aria-hidden />}{n}</span>;
+  return <span className="inline-flex items-center gap-1" title={n <= 0 ? t('btn.picker.outOfStock') : n <= 5 ? t('btn.picker.lowStock') : undefined}>{n <= 5 && <AlertTriangle className={`size-3.5 ${n <= 0 ? 'text-critical' : 'text-warning'}`} role="img" aria-label={n <= 0 ? t('btn.picker.outOfStock') : t('btn.picker.lowStock')} />}{n}</span>;
 }

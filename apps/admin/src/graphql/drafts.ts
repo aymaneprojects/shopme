@@ -1,12 +1,12 @@
 // Draft orders (Orders > Drafts).
 
 const MONEY = 'shopMoney { amount currencyCode }';
-const TOTALS = `subtotalPriceSet { ${MONEY} } totalDiscountsSet { ${MONEY} } totalShippingPriceSet { ${MONEY} } totalTaxSet { ${MONEY} } totalPriceSet { ${MONEY} }`;
+const TOTALS = `subtotalPriceSet { ${MONEY} } totalDiscountsSet { ${MONEY} } totalShippingPriceSet { ${MONEY} } totalTaxSet { ${MONEY} } totalPriceSet { ${MONEY} } shopmePresentmentTotalSet { ${MONEY} }`;
 
 export const DRAFT_ORDERS = /* GraphQL */ `
   query DraftOrders($first: Int, $after: String, $last: Int, $before: String, $query: String) {
     draftOrders(first: $first, after: $after, last: $last, before: $before, query: $query) {
-      nodes { id name status email createdAt totalPriceSet { ${MONEY} } customer { id displayName } }
+      nodes { id name status email createdAt poNumber tags totalPriceSet { ${MONEY} } customer { id displayName } shopmeMarket { id name currencyCode } }
       pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
     }
   }
@@ -14,7 +14,7 @@ export const DRAFT_ORDERS = /* GraphQL */ `
 export const DRAFT_ORDER = /* GraphQL */ `
   query DraftOrder($id: ID!) {
     draftOrder(id: $id) {
-      id name status email note2 tags invoiceSentAt ${TOTALS}
+      id name status email note2 tags invoiceSentAt poNumber shopmeMarket { id name currencyCode } ${TOTALS}
       customer { id displayName }
       order { id name }
       appliedDiscount { valueType value }

@@ -4,13 +4,19 @@ import { Columns3 } from 'lucide-react';
 import { useState } from 'react';
 import { useT } from '../i18n';
 
-const read = (key: string): string[] => {
-  try { const v = JSON.parse(localStorage.getItem(`shopme.columns.${key}`) ?? '[]') as unknown; return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []; } catch { return []; }
+const read = (key: string, fallback: string[]): string[] => {
+  try {
+    const raw = localStorage.getItem(`shopme.columns.${key}`);
+    if (raw == null) return fallback;
+    const v = JSON.parse(raw) as unknown;
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : fallback;
+  } catch { return fallback; }
 };
 
 /** Which table columns are hidden; remembered per table in this browser. */
-export function useColumnVisibility(storageKey: string) {
-  const [hidden, setHidden] = useState<string[]>(() => read(storageKey));
+/** `defaultHidden`: columns hidden until the user chooses to show them. */
+export function useColumnVisibility(storageKey: string, defaultHidden: string[] = []) {
+  const [hidden, setHidden] = useState<string[]>(() => read(storageKey, defaultHidden));
   const toggle = (key: string) => setHidden((h) => {
     const next = h.includes(key) ? h.filter((k) => k !== key) : [...h, key];
     try { localStorage.setItem(`shopme.columns.${storageKey}`, JSON.stringify(next)); } catch { /* storage unavailable */ }

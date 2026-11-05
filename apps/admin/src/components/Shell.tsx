@@ -1,5 +1,5 @@
 import { Dropdown, Skeleton, cx, useToast } from '@shopme/ui';
-import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Globe, BookOpen } from 'lucide-react';
+import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -16,13 +16,14 @@ import { SETTINGS_SECTIONS } from '../lib/settingsNav';
 import { useSession, useShop } from '../session';
 import { ActivityBell } from './ActivityBell';
 import { CommandPalette } from './CommandPalette';
+import { LearnMore } from './LearnMore';
 
 interface NavItem { id: string; labelKey: Key; to: string; icon: ComponentType<{ className?: string }>; end?: boolean; children?: NavItem[] }
 
 // Data-driven so later items can be gated by a feature flag instead of removed.
 export const NAV: NavItem[] = [
   { id: 'home', labelKey: 'nav.home', to: '/', icon: Home, end: true },
-  { id: 'orders', labelKey: 'nav.orders', to: '/orders', icon: ShoppingCart, children: [{ id: 'drafts', labelKey: 'nav.drafts', to: '/orders/drafts', icon: FilePlus2 }, { id: 'abandoned', labelKey: 'nav.abandoned', to: '/orders/abandoned', icon: ShoppingBasket }] },
+  { id: 'orders', labelKey: 'nav.orders', to: '/orders', icon: ShoppingCart, children: [{ id: 'drafts', labelKey: 'nav.drafts', to: '/orders/drafts', icon: FilePlus2 }, { id: 'abandoned', labelKey: 'nav.abandoned', to: '/orders/abandoned', icon: ShoppingBasket }, { id: 'shipping-labels', labelKey: 'nav.shippingLabels', to: '/orders/shipping-labels', icon: Truck }] },
   {
     id: 'products', labelKey: 'nav.products', to: '/products', icon: Tag,
     children: [
@@ -38,6 +39,7 @@ export const NAV: NavItem[] = [
   { id: 'content', labelKey: 'nav.content', to: '/content', icon: Boxes, children: [{ id: 'metaobjects', labelKey: 'nav.metaobjects', to: '/content/metaobjects', icon: Boxes }] },
   { id: 'markets', labelKey: 'nav.markets', to: '/markets', icon: Globe, children: [{ id: 'catalogs', labelKey: 'nav.catalogs', to: '/markets/catalogs', icon: BookOpen }] },
   { id: 'analytics', labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, children: [{ id: 'reports', labelKey: 'nav.reports', to: '/analytics/reports', icon: FileText }] },
+  { id: 'marketing', labelKey: 'nav.growth', to: '/marketing', icon: Megaphone },
   {
     id: 'online-store', labelKey: 'nav.onlineStore', to: '/online-store', icon: Store,
     children: [
@@ -65,8 +67,35 @@ export function Logo({ className }: { className?: string }) {
   );
 }
 
+/** "Learn more about ..." line under index pages and a few settings pages; each path maps to its topic. */
+const LEARN_MORE: Array<[RegExp, Key]> = [
+  [/^\/collections$/, 'btn.learn.collections'], [/^\/orders$/, 'btn.learn.orders'], [/^\/orders\/[^/]+\/refund$/, 'btn.learn.refunds'], [/^\/orders\/[^/]+\/edit$/, 'btn.learn.orderEdit'],
+  [/^\/orders\/drafts$/, 'btn.learn.drafts'], [/^\/orders\/abandoned$/, 'btn.learn.abandoned'], [/^\/orders\/shipping-labels$/, 'btn.learn.labels'], [/^\/discounts$/, 'btn.learn.discounts'],
+  [/^\/online-store\/pages$/, 'btn.learn.pages'], [/^\/settings\/users$/, 'btn.learn.users'], [/^\/settings\/policies$/, 'btn.learn.policies'], [/^\/settings\/payments$/, 'btn.learn.payments'],
+  [/^\/settings\/shipping\/pickup$/, 'btn.learn.pickup'], [/^\/settings\/shipping\/local-delivery$/, 'btn.learn.localDelivery'], [/^\/settings\/taxes$/, 'btn.learn.taxes'],
+  [/^\/settings\/domains$/, 'btn.learn.domains'], [/^\/settings\/languages$/, 'btn.learn.languages'], [/^\/settings\/events$/, 'btn.learn.events'],
+];
+
+/** Adds the docs link for the current page unless the page already shows its own (`LearnMore` marks itself with `data-learn-more="page"`). */
+function ShellLearnMore({ pathname }: { pathname: string }) {
+  const { t } = useI18n();
+  const topic = LEARN_MORE.find(([re]) => re.test(pathname.replace(/\/$/, '') || '/'))?.[1];
+  const [own, setOwn] = useState(false);
+  useEffect(() => {
+    const sheet = document.getElementById('sheet');
+    if (!sheet) return;
+    const check = () => setOwn(!!sheet.querySelector('[data-learn-more="page"]'));
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(sheet, { childList: true, subtree: true });
+    return () => obs.disconnect();
+  }, [pathname]);
+  if (!topic || own) return null;
+  return <LearnMore topic={t(topic)} shell />;
+}
+
 /** Index pages span the whole sheet; detail and edit pages keep the narrower centred column. */
-const WIDE_ROUTE = /^\/(products|collections|inventory|orders|orders\/drafts|orders\/abandoned|customers|customers\/segments|discounts|gift-cards|markets|transfers|purchase-orders|content\/metaobjects|content\/entries)\/?$/;
+const WIDE_ROUTE = /^\/(products|collections|inventory|orders|orders\/drafts|orders\/abandoned|orders\/shipping-labels|marketing|customers|customers\/segments|discounts|gift-cards|markets|transfers|purchase-orders|content\/metaobjects|content\/entries)\/?$/;
 const COLLAPSE_KEY = 'shopme.sidebar.collapsed';
 const readCollapsed = () => { try { return localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { return false; } };
 
@@ -105,7 +134,11 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate: () => void; collapsed
   return (
     <nav aria-label="Main" className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
       {items.filter((i) => !CHANNEL_IDS.includes(i.id) && i.id !== 'settings').map(group)}
-      {channels.length > 0 && !collapsed && <p className="mb-0.5 mt-3 px-2 text-xs font-medium text-frame-muted">{t('nav.salesChannels')}</p>}
+      {channels.length > 0 && !collapsed && (
+        <NavLink to="/channels" onClick={onNavigate} className={({ isActive }) => cx('mb-0.5 mt-3 flex items-center gap-0.5 rounded-lg px-2 py-0.5 text-xs font-medium hover:bg-frame-hover', isActive ? 'text-white' : 'text-frame-muted')}>
+          {t('nav.salesChannels')}<ChevronRight className="size-3.5" aria-hidden />
+        </NavLink>
+      )}
       {channels.map(group)}
       {items.filter((i) => i.id === 'settings').map(group)}
     </nav>
@@ -280,6 +313,7 @@ export function Shell() {
         <div className="mb-1 mr-1 min-w-0 flex-1 overflow-y-auto rounded-xl bg-page text-fg max-md:mx-1 md:ml-0" id="sheet">
           <main className={cx('mx-auto w-full p-4 md:px-5 md:py-5', WIDE_ROUTE.test(pathname) ? 'max-w-none md:px-3 md:py-3' : 'max-w-[1100px]')}>
             <div key={pathname.split('/').slice(0, 2).join('/')} className="anim-view"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></div>
+            <ShellLearnMore pathname={pathname} />
           </main>
         </div>
       </div>

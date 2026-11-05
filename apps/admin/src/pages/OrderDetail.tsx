@@ -9,7 +9,7 @@ import { AddressBlock, FinancialBadge, FulfillmentBadge, useFormat } from '../co
 import type { MoneySet } from '../components/shared';
 import { IconHeading, PageTitle, QtyChip, SideSection, TopBar, TwoColumn, nowrapItems } from '../components/OrderChrome';
 import { gidToNum, numToGid } from '../format';
-import { ORDER, ORDERS, ORDER_CLOSE, ORDER_MARK_AS_PAID, ORDER_OPEN, ORDER_UPDATE, TAGS_ADD, TAGS_REMOVE, DRAFT_ORDER_CREATE, FULFILLMENT_CANCEL, FULFILLMENT_ORDER_RELEASE_HOLD } from '../graphql';
+import { ORDERS_CAPTURE, ORDER, ORDERS, ORDER_CLOSE, ORDER_MARK_AS_PAID, ORDER_OPEN, ORDER_UPDATE, TAGS_ADD, TAGS_REMOVE, DRAFT_ORDER_CREATE, FULFILLMENT_CANCEL, FULFILLMENT_ORDER_RELEASE_HOLD } from '../graphql';
 import { Timeline } from '../components/Timeline';
 import { printDocuments, printHtml, type PrintDoc } from '../lib/print';
 import { useI18n, useT } from '../i18n';
@@ -21,6 +21,7 @@ import { AddressDialog, CancelDialog, FulfillDialog, HoldDialog, TrackingDialog,
 import { ReturnDialog, ReturnsCard } from './orders/Returns';
 import type { OrderLine } from './orders/OrderDialogs';
 import { Thumb } from './Products';
+import { AddressProblemsText, ConversionSection, FulfilmentFields, RiskSection, useOrderExtras } from './orders/OrderExtras';
 
 type Addr = Parameters<typeof AddressBlock>[0]['a'];
 interface OrderData {
@@ -62,7 +63,9 @@ function OrderView({ order: o }: { order: OrderData }) {
   const [note, setNote] = useState(o.note ?? '');
   const [editNote, setEditNote] = useState(false);
   const { lang } = useI18n();
-  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['timeline'] }), qc.invalidateQueries({ queryKey: ['order'] })]).then(() => qc.invalidateQueries({ queryKey: ['orders'] }));
+  const extrasQ = useOrderExtras(o.id);
+  const extras = extrasQ.data ?? null;
+  const refresh = () => Promise.all([qc.invalidateQueries({ queryKey: ['timeline'] }), qc.invalidateQueries({ queryKey: ['order'] }), qc.invalidateQueries({ queryKey: ['order-extras'] })]).then(() => qc.invalidateQueries({ queryKey: ['orders'] }));
   const fail = (e: Error) => toast(e.message, 'critical');
 
   const act = useMutation({
@@ -72,6 +75,10 @@ function OrderView({ order: o }: { order: OrderData }) {
       else await mutate(ORDER_MARK_AS_PAID, { input: { id: o.id } }, 'orderMarkAsPaid');
     },
     onSuccess: () => { toast(t('order.updated')); void refresh(); }, onError: fail,
+  });
+  const capture = useMutation({
+    mutationFn: () => mutate<{ succeeded: number; results: Array<{ message: string | null }> }>(ORDERS_CAPTURE, { ids: [o.id] }, 'shopmeOrdersCapture'),
+    onSuccess: (r) => { if (r.succeeded) toast(t('btn.order.captured')); else toast(r.results[0]?.message ?? t('btn.order.captureFailed'), 'critical'); void refresh(); }, onError: fail,
   });
   const saveNote = useMutation({ mutationFn: () => mutate(ORDER_UPDATE, { input: { id: o.id, note } }, 'orderUpdate'), onSuccess: () => { toast(t('order.updated')); void refresh(); }, onError: fail });
   const release = useMutation({ mutationFn: () => mutate(FULFILLMENT_ORDER_RELEASE_HOLD, { id: o.id }, 'fulfillmentOrderReleaseHold'), onSuccess: () => { toast(t('hold.released')); void refresh(); }, onError: fail });
@@ -144,6 +151,8 @@ function OrderView({ order: o }: { order: OrderData }) {
         main={<>
           <PageTitle badges={<><FinancialBadge status={o.displayFinancialStatus} /><FulfillmentBadge status={o.displayFulfillmentStatus} />{o.cancelledAt && <Badge tone="critical">{t('order.cancelledBadge')}</Badge>}{isClosed && !o.cancelledAt && <Badge>{t('order.archived')}</Badge>}</>}
             subtitle={t('qa.fromChannel', { date: fmt.dateTime(o.createdAt), channel })}>{o.name}</PageTitle>
+          {extras?.test && <Banner tone="info">{t('btn.order.testBanner')}</Banner>}
+          {!!extras?.shopmeAddressProblems.length && !o.cancelledAt && <Banner tone="warning"><AddressProblemsText problems={extras.shopmeAddressProblems} onReview={() => setDialog('address')} /></Banner>}
           {o.cancelledAt && <Banner tone="warning">{t('order.cancelledOn', { date: fmt.dateTime(o.cancelledAt) })}</Banner>}
           {unfulfilled.length > 0 && (
             <section>
@@ -157,6 +166,7 @@ function OrderView({ order: o }: { order: OrderData }) {
               <Card className="!p-0">
                 <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-3 text-[13px] text-muted">
                   <span className="flex items-center gap-2">{needsShipping ? <Truck className="size-4" /> : <Ban className="size-4" />}{needsShipping ? (o.shippingLines.nodes[0]?.title ?? t('order.shipping')) : t('qa.noShipping')}</span>
+                  {extras?.shopmeLocation && <span className="inline-flex items-center gap-1 rounded-full border border-line bg-canvas px-2 py-0.5 text-xs text-fg" title={t('btn.order.shipsFrom')}><MapPin className="size-3" aria-hidden />{extras.shopmeLocation.name}</span>}
                 </div>
                 {held && <div className="px-4 pt-3"><Banner tone="warning">{t('hold.banner', { reason: t(`hold.reason.${held.reason}` as Key) })}{held.reasonNotes ? ` — ${held.reasonNotes}` : ''}</Banner></div>}
                 <div className="px-4"><LineList lines={unfulfilled} qty={(l) => l.unfulfilledQuantity} /></div>
@@ -183,7 +193,7 @@ function OrderView({ order: o }: { order: OrderData }) {
           <IssuedGiftCardsCard orderId={o.id} />
 
           <section>
-            <IconHeading icon={<CircleDollarSign />} actions={canMarkPaid && <Button size="sm" variant="primary" loading={act.isPending} onClick={() => act.mutate('paid')}>{t('order.markPaid')}</Button>}>{t(`fin.${o.displayFinancialStatus}` as Key)}</IconHeading>
+            <IconHeading icon={<CircleDollarSign />} actions={<>{extras?.capturable && !o.cancelledAt && <Button size="sm" loading={capture.isPending} onClick={() => capture.mutate()}>{t('btn.order.capture')}</Button>}{canMarkPaid && <Button size="sm" variant="primary" loading={act.isPending} onClick={() => act.mutate('paid')}>{t('order.markPaid')}</Button>}</>}>{t(`fin.${o.displayFinancialStatus}` as Key)}</IconHeading>
             <Card className="!p-0">
               <dl className="grid grid-cols-[7rem_1fr_auto] gap-x-4 gap-y-2 px-4 py-3.5 text-[13px]">
                 <dt>{t('order.subtotal')}</dt><dd className="text-muted">{t('order.itemsCount', { n: lines.reduce((n, l) => n + l.quantity, 0) })}</dd><dd className="text-right text-muted">{fmt.money(o.subtotalPriceSet)}</dd>
@@ -199,7 +209,7 @@ function OrderView({ order: o }: { order: OrderData }) {
             </Card>
           </section>
 
-          <Timeline kind="order" id={o.id} />
+          <Timeline kind="order" id={o.id} confirmationNumber={extras?.confirmationNumber ?? null} transactions={o.transactions} />
         </>}
         side={<>
           <SideSection title={t('order.notes')} action={<button type="button" className="btn btn-plain btn-icon btn-sm" aria-label={o.note ? t('qa.editNote') : t('qa.addNote')} onClick={() => setEditNote(!editNote)}>{o.note ? <Pencil className="size-4" /> : <Plus className="size-4" />}</button>}>
@@ -214,6 +224,7 @@ function OrderView({ order: o }: { order: OrderData }) {
             <p className="text-muted">{t('qa.channel')}</p>
             <p>{channel}</p>
           </SideSection>
+          {extras && <FulfilmentFields key={`${extras.shopmeFulfillBy}|${extras.poNumber}`} orderId={o.id} extras={extras} disabled={!!o.cancelledAt} />}
           <SideSection title={t('order.customer')} action={o.customer && <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
             { key: 'view', icon: <User />, label: t('order.viewCustomer'), onSelect: () => nav(`/customers/${gidToNum(o.customer!.id)}`) },
             { key: 'copy', icon: <Copy />, label: t('order.copyEmail'), onSelect: () => { void navigator.clipboard?.writeText(o.email ?? o.customer?.defaultEmailAddress?.emailAddress ?? '').then(() => toast(t('abandoned.copied'))); } },
@@ -234,6 +245,8 @@ function OrderView({ order: o }: { order: OrderData }) {
           <SideSection title={t('order.billingAddress')} action={<Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
             { key: 'edit', icon: <MapPin />, label: t('order.billingEdit'), disabled: !!o.cancelledAt, onSelect: () => setDialog('billing') },
           ]} />}><AddressBlock a={o.billingAddress} /></SideSection>
+          {extras && <ConversionSection c={extras.shopmeConversion} />}
+          {extras && <RiskSection risk={extras.shopmeRisk} />}
           <div className="border-b border-line py-3.5"><MetafieldsEditor ownerId={o.id} ownerType="ORDER" /></div>
           <SideSection title={t('field.tags')}><TagInput value={o.tags} onChange={(v) => tags.mutate(v)} removeLabel={t('common.remove')} /></SideSection>
         </>} />
