@@ -149,6 +149,8 @@ export async function resolveSettings(defs: SettingDef[] | undefined, values: Re
         v = empty || !fn ? null : ((await fn(String(v))) ?? null);
         break;
       }
+      case 'metaobject': v = empty || !sc.resolvers.metaobject ? null : ((await sc.resolvers.metaobject(String(v))) ?? null); break;
+      case 'metaobject_list': v = Array.isArray(v) && sc.resolvers.metaobject ? (await Promise.all(v.map((h) => sc.resolvers.metaobject!(String(h))))).filter(Boolean) : []; break;
       case 'link_list': v = empty || !sc.resolvers.linklist ? null : ((await sc.resolvers.linklist(String(v))) ?? null); break;
       case 'collection_list': v = Array.isArray(v) && sc.resolvers.collection ? (await Promise.all(v.map((h) => sc.resolvers.collection!(String(h))))).filter(Boolean) : []; break;
       case 'url': v = resolveLinkValue(v); break;

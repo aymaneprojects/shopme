@@ -39,6 +39,8 @@ export interface ResourceResolvers {
   product?(handle: string): Promise<unknown>;
   page?(handle: string): Promise<unknown>;
   blog?(handle: string): Promise<unknown>;
+  /** `shopify://metaobjects/<type>/<handle>` (or `<type>/<handle>`, or a metaobject GID) to an entry. */
+  metaobject?(ref: string): Promise<unknown>;
   linklist?(handle: string): Promise<unknown>;
   /** `shopify://shop_images/x.jpg` style value or URL to an image object. */
   image?(value: string): ImageValue | null;

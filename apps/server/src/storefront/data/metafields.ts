@@ -1,5 +1,5 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import { schema as s, type Db } from '@shopme/core';
+import { schema as s, type Db, type Translator } from '@shopme/core';
 
 /** `resource.metafields.<namespace>.<key>`: an object with `value` (typed), `type`, `namespace`, `key`; printing it prints the value as text. */
 export interface MetafieldObject { id: number; namespace: string; key: string; type: string; value: unknown; list: boolean; toString(): string; toJSON(): unknown }
@@ -59,44 +59,66 @@ export function metafieldText(type: string, value: unknown, raw: string): string
 
 const lastId = (gid: string) => Number(gid.split('/').pop());
 
-/** Metafields of many owners at once: `owner id -> namespace -> key -> metafield`. References (product, collection, page, file) are resolved to light objects. */
+export type RefKind = 'product' | 'collection' | 'page' | 'file' | 'variant' | 'metaobject';
+const REF_KIND: Record<string, RefKind> = { product_reference: 'product', collection_reference: 'collection', page_reference: 'page', file_reference: 'file', variant_reference: 'variant', metaobject_reference: 'metaobject', mixed_reference: 'metaobject' };
+export const refKindOf = (baseType: string): RefKind | undefined => REF_KIND[baseType];
+export type RefLookups = Record<RefKind, Map<number, unknown>>;
+export const emptyRefIds = (): Record<RefKind, Set<number>> => ({ product: new Set(), collection: new Set(), page: new Set(), file: new Set(), variant: new Set(), metaobject: new Set() });
+
+/** Collect the referenced ids of one stored value into `refs`. */
+export function collectRefs(refs: Record<RefKind, Set<number>>, type: string, raw: string): void {
+  const base = type.startsWith('list.') ? type.slice(5) : type;
+  const kind = refKindOf(base);
+  if (!kind) return;
+  const vals = type.startsWith('list.') ? (() => { try { return JSON.parse(raw) as string[]; } catch { return []; } })() : [raw];
+  for (const v of vals) if (typeof v === 'string' && Number.isFinite(lastId(v))) refs[kind].add(lastId(v));
+}
+
+/** Resolve referenced records in one query per kind. Metaobject entries resolve recursively down to `depth` levels (storefront rules: active entries only). */
+export async function loadRefLookups(db: Db, shopId: number, refs: Record<RefKind, Set<number>>, depth: number, tr?: Translator): Promise<RefLookups> {
+  const lookup: RefLookups = { product: new Map(), collection: new Map(), page: new Map(), file: new Map(), variant: new Map(), metaobject: new Map() };
+  const [ps, cs, pgs, fs, vs, mos] = await Promise.all([
+    refs.product.size ? db.select({ id: s.products.id, handle: s.products.handle, title: s.products.title }).from(s.products).where(and(eq(s.products.shopId, shopId), inArray(s.products.id, [...refs.product]))) : [],
+    refs.collection.size ? db.select({ id: s.collections.id, handle: s.collections.handle, title: s.collections.title }).from(s.collections).where(and(eq(s.collections.shopId, shopId), inArray(s.collections.id, [...refs.collection]))) : [],
+    refs.page.size ? db.select({ id: s.pages.id, handle: s.pages.handle, title: s.pages.title }).from(s.pages).where(and(eq(s.pages.shopId, shopId), inArray(s.pages.id, [...refs.page]))) : [],
+    refs.file.size ? db.select().from(s.media).where(and(eq(s.media.shopId, shopId), inArray(s.media.id, [...refs.file]))) : [],
+    refs.variant.size ? db.select({ id: s.productVariants.id, title: s.productVariants.title, sku: s.productVariants.sku }).from(s.productVariants).where(and(eq(s.productVariants.shopId, shopId), inArray(s.productVariants.id, [...refs.variant]))) : [],
+    refs.metaobject.size ? (await import('./metaobjects')).loadEntryDrops(db, shopId, [...refs.metaobject], depth, tr) : new Map<number, unknown>(),
+  ]);
+  for (const p of ps) lookup.product.set(p.id, { id: p.id, handle: p.handle, title: p.title, url: `/products/${p.handle}` });
+  for (const c of cs) lookup.collection.set(c.id, { id: c.id, handle: c.handle, title: c.title, url: `/collections/${c.handle}` });
+  for (const p of pgs) lookup.page.set(p.id, { id: p.id, handle: p.handle, title: p.title, url: `/pages/${p.handle}` });
+  for (const m of fs) lookup.file.set(m.id, { id: m.id, alt: m.alt, src: m.url, url: m.url, width: m.width, height: m.height, media_type: m.type.toLowerCase(), preview_image: { src: m.url, alt: m.alt, width: m.width, height: m.height } });
+  for (const v of vs) lookup.variant.set(v.id, { id: v.id, title: v.title, sku: v.sku });
+  for (const [id, drop] of mos) if (drop) lookup.metaobject.set(id, drop);
+  return lookup;
+}
+
+/** A stored value as the typed object themes read (`value`, `type`, lists, text for printing). */
+export function valueObject(type: string, raw: string, lookup: RefLookups): MetafieldObject {
+  const list = type.startsWith('list.');
+  const base = list ? type.slice(5) : type;
+  const kind = refKindOf(base);
+  const resolve: Resolver = (_t, value) => (kind ? lookup[kind].get(lastId(value)) ?? null : value);
+  let value: unknown;
+  if (list) {
+    try { value = (JSON.parse(raw) as unknown[]).map((v) => scalar(base, typeof v === 'string' ? v : JSON.stringify(v), resolve)).filter((v) => !(kind && v == null)); } catch { value = []; }
+  } else value = scalar(base, raw, resolve);
+  const text = metafieldText(type, value, raw);
+  return { id: 0, namespace: '', key: '', type, value, list, toString: () => text, toJSON: () => value };
+}
+
+/** Metafields of many owners at once: `owner id -> namespace -> key -> metafield`. References (product, collection, page, file, metaobject) are resolved to light objects. */
 export async function loadMetafields(db: Db, shopId: number, ownerType: string, ownerIds: number[]): Promise<Map<number, MetafieldsObject>> {
   const out = new Map<number, MetafieldsObject>();
   if (!ownerIds.length) return out;
   const rows = await db.select().from(s.metafields).where(and(eq(s.metafields.shopId, shopId), eq(s.metafields.ownerType, ownerType), inArray(s.metafields.ownerId, ownerIds)));
   if (!rows.length) return out;
-  // Collect referenced ids per kind, resolve in one query each.
-  const refs: Record<string, Set<number>> = { product: new Set(), collection: new Set(), page: new Set(), file: new Set(), variant: new Set() };
-  const kindOf = (t: string) => ({ product_reference: 'product', collection_reference: 'collection', page_reference: 'page', file_reference: 'file', variant_reference: 'variant' } as Record<string, string>)[t];
+  const refs = emptyRefIds();
+  for (const r of rows) collectRefs(refs, r.type, r.value);
+  const lookup = await loadRefLookups(db, shopId, refs, 5);
   for (const r of rows) {
-    const base = r.type.startsWith('list.') ? r.type.slice(5) : r.type;
-    const kind = kindOf(base);
-    if (!kind) continue;
-    const vals = r.type.startsWith('list.') ? (() => { try { return JSON.parse(r.value) as string[]; } catch { return []; } })() : [r.value];
-    for (const v of vals) if (typeof v === 'string' && Number.isFinite(lastId(v))) refs[kind]!.add(lastId(v));
-  }
-  const lookup: Record<string, Map<number, unknown>> = { product: new Map(), collection: new Map(), page: new Map(), file: new Map(), variant: new Map() };
-  const [ps, cs, pgs, fs, vs] = await Promise.all([
-    refs.product!.size ? db.select({ id: s.products.id, handle: s.products.handle, title: s.products.title }).from(s.products).where(and(eq(s.products.shopId, shopId), inArray(s.products.id, [...refs.product!]))) : [],
-    refs.collection!.size ? db.select({ id: s.collections.id, handle: s.collections.handle, title: s.collections.title }).from(s.collections).where(and(eq(s.collections.shopId, shopId), inArray(s.collections.id, [...refs.collection!]))) : [],
-    refs.page!.size ? db.select({ id: s.pages.id, handle: s.pages.handle, title: s.pages.title }).from(s.pages).where(and(eq(s.pages.shopId, shopId), inArray(s.pages.id, [...refs.page!]))) : [],
-    refs.file!.size ? db.select().from(s.media).where(and(eq(s.media.shopId, shopId), inArray(s.media.id, [...refs.file!]))) : [],
-    refs.variant!.size ? db.select({ id: s.productVariants.id, title: s.productVariants.title, sku: s.productVariants.sku }).from(s.productVariants).where(and(eq(s.productVariants.shopId, shopId), inArray(s.productVariants.id, [...refs.variant!]))) : [],
-  ]);
-  for (const p of ps) lookup.product!.set(p.id, { id: p.id, handle: p.handle, title: p.title, url: `/products/${p.handle}` });
-  for (const c of cs) lookup.collection!.set(c.id, { id: c.id, handle: c.handle, title: c.title, url: `/collections/${c.handle}` });
-  for (const p of pgs) lookup.page!.set(p.id, { id: p.id, handle: p.handle, title: p.title, url: `/pages/${p.handle}` });
-  for (const m of fs) lookup.file!.set(m.id, { id: m.id, alt: m.alt, src: m.url, url: m.url, width: m.width, height: m.height, media_type: m.type.toLowerCase(), preview_image: { src: m.url, alt: m.alt, width: m.width, height: m.height } });
-  for (const v of vs) lookup.variant!.set(v.id, { id: v.id, title: v.title, sku: v.sku });
-  const resolve = (base: string) => (_t: string, value: string) => lookup[kindOf(base) ?? '']?.get(lastId(value)) ?? null;
-  for (const r of rows) {
-    const list = r.type.startsWith('list.');
-    const base = list ? r.type.slice(5) : r.type;
-    let value: unknown;
-    if (list) { try { value = (JSON.parse(r.value) as unknown[]).map((v) => scalar(base, typeof v === 'string' ? v : JSON.stringify(v), resolve(base))); } catch { value = []; } }
-    else value = scalar(base, r.value, resolve(base));
-    const text = metafieldText(r.type, value, r.value);
-    const mf: MetafieldObject = { id: r.id, namespace: r.namespace, key: r.key, type: r.type, value, list, toString: () => text, toJSON: () => value };
+    const mf: MetafieldObject = { ...valueObject(r.type, r.value, lookup), id: r.id, namespace: r.namespace, key: r.key };
     const owner = out.get(r.ownerId) ?? {};
     (owner[r.namespace] ??= {})[r.key] = mf;
     out.set(r.ownerId, owner);

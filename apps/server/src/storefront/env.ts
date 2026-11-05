@@ -7,6 +7,7 @@ import { countryOptions } from '../checkout/geo';
 import { buildBlog, getBlog, getPublishedArticle, listBlogHandles } from './data/blogs';
 import { getPage, listMenus, listPages, type LinklistObject } from './data/content';
 import { loadMetafields } from './data/metafields';
+import { entryFromSetting, metaobjectsGlobal } from './data/metaobjects';
 import { buildCustomer } from './data/customer';
 import type { ProductObject } from './data/types';
 import { lazyMap, liquidCart, localizationObject, requestObject, routesObject, shopObject } from './objects';
@@ -195,11 +196,12 @@ export async function buildGlobals(env: Env, themeId: number, pageType: string):
   for (const m of menus) { linklists[m.handle] = m; linklists[m.handle.replace(/-/g, '_')] = m; }
   const colLight = cols.map((c0) => trCollection(env, c0)).map((c) => ({ id: c.id, handle: c.handle, title: c.title, url: `/collections/${c.handle}`, description: c.description, image: c.image, featured_image: c.image, products_count: c.productsCount, all_products_count: c.productsCount }));
   const collections = lazyMap(['all', ...cols.map((c) => c.handle)], async (h) => { const b = await getCollection(db, shop.id, h); return b ? buildCollection(env, b, { withFacets: false }) : null; }, colLight);
+  const metaobjects = metaobjectsGlobal(db, shop.id, env.tr);
   const origin = env.origin;
   const request = requestObject(shop, origin, env.path, pageType, env.locale, env.prefix);
   const languages = env.ctx.locales.locales.map((l) => ({ locale: l.locale, name: l.name, primary: l.primary, prefix: env.ctx.locales.prefixOf(l.locale) }));
   return {
-    shop: { ...shopObject(shop, origin, { products: 0, collections: cols.length }), metafields: shopMf.get(shop.id) ?? {} }, request, routes: routesObject(env.prefix), localization: localizationObject(shop, env.locale, languages, origin, env.path), cart: liquidCart(env.cart, shop, pricing),
+    shop: { ...shopObject(shop, origin, { products: 0, collections: cols.length }), metafields: shopMf.get(shop.id) ?? {}, metaobjects }, metaobjects, request, routes: routesObject(env.prefix), localization: localizationObject(shop, env.locale, languages, origin, env.path), cart: liquidCart(env.cart, shop, pricing),
     linklists, pages: lazyMap(pages.map((p) => p.handle), async (h) => pages.find((p) => p.handle === h) ?? null), collections,
     all_products: lazyMap(true, async (h) => trProduct(env, await getProductByHandle(db, shop.id, h)), {}), customer, blogs: lazyMap(blogRows.map((b) => b.handle), async (h) => { const b = blogRows.find((x) => x.handle === h); return b ? buildBlog(db, shop.id, b) : null; }),
     articles: lazyMap(true, async (key) => { const [bh, ah] = key.split(/[/.]/); const b = bh ? await getBlog(db, shop.id, bh) : null; const a = b && ah ? await getPublishedArticle(db, shop.id, b, ah) : null; return a ?? null; }, {}),
@@ -215,6 +217,7 @@ export function makeResolvers(env: Env, globals: Record<string, unknown>): Resou
     collection: async (h) => { const b = await getCollection(env.db, env.shop.id, h); return b ? buildCollection(env, { ...b }, { withFacets: false }) : null; },
     product: async (h) => trProduct(env, await getProductByHandle(env.db, env.shop.id, h)),
     page: async (h) => trPage(env, await getPage(env.db, env.shop.id, h)),
+    metaobject: (v) => entryFromSetting(env.db, env.shop.id, v, env.tr),
     linklist: async (h) => (globals.linklists as Record<string, unknown>)[h] ?? null,
     image: (v) => {
       if (!v) return null;

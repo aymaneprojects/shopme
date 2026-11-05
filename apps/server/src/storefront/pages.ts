@@ -7,6 +7,7 @@ import type { AppContext } from '../context';
 import { authenticate } from '../plugins/auth';
 import { getCollection, getProductByHandle, listCollections, listProducts, loadProducts } from './data/catalog';
 import { getPage, listPages, policiesOf } from './data/content';
+import { metaobjectPage } from './data/metaobject-pages';
 import { flashGlobals, takeFlash } from './flash';
 import { collectionAtom } from './seo';
 import type { ProductObject } from './data/types';
@@ -355,7 +356,18 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     app.get('/pages/*', withShop(async (req, reply, shop) => {
       const handle = decodeURIComponent((req.params as { '*': string })['*']);
       const env = await makeEnv(ctx, req, shop);
-      const page = handle.includes('/') ? null : trPage(env, await getPage(db, shop.id, handle));
+      if (handle.includes('/')) {
+        // Published metaobject entries: /pages/<urlHandle>/<entry handle>, rendered with templates/metaobject/<type>.json.
+        const [urlHandle, entryHandle, ...rest] = handle.split('/');
+        const entry = rest.length || !urlHandle || !entryHandle ? null : await metaobjectPage(db, shop.id, urlHandle, entryHandle, env.tr);
+        const loaded = entry && await store.main(shop.id);
+        const suffix = entry ? (first((req.query as Query).view) ?? entry.templateSuffix) : null;
+        if (!entry || !loaded || !loaded.theme.findTemplate(`metaobject/${entry.def.type}`, suffix)) return notFound(req, reply, shop, env);
+        return renderTemplate(req, reply, env, {
+          template: `metaobject/${entry.def.type}`, pageType: 'metaobject', title: entry.title, suffix, description: entry.description, extra: { metaobject: entry.drop },
+        });
+      }
+      const page = trPage(env, await getPage(db, shop.id, handle));
       if (!page) return notFound(req, reply, shop, env);
       const loaded = await store.main(shop.id);
       const suffix = first((req.query as Query).view) ?? (page.template_suffix || (handle === 'contact' && loaded.theme.has('templates/page.contact.json') ? 'contact' : null));
