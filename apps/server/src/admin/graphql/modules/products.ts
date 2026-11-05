@@ -147,6 +147,7 @@ ProductVariant.implement({
     compareAtPrice: t.field({ type: 'Money', nullable: true, resolve: async (v, _a, ctx) => (v.compareAtPrice == null ? null : formatMoney(v.compareAtPrice, (await shopOf(ctx)).currency)) }),
     position: t.exposeInt('position'),
     taxable: t.exposeBoolean('taxable'),
+    shopmeHiddenFromOnlineStore: t.boolean({ description: 'ShopMe extension: hidden from the product page options and refused by the cart, while the product stays published.', resolve: (v) => v.hiddenFromOnlineStore }),
     inventoryPolicy: t.field({ type: ProductVariantInventoryPolicy, resolve: (v) => v.inventoryPolicy as 'DENY' }),
     inventoryQuantity: t.int({ nullable: true, resolve: async (v, _a, ctx) => (await availableByVariant(ctx.db, ctx.shopId, [v.id])).get(v.id) ?? 0 }),
     availableForSale: t.boolean({
@@ -190,7 +191,7 @@ export const ProductVariantsBulkInput = builder.inputType('ProductVariantsBulkIn
     barcode: t.string({ deprecationReason: 'Use `barcodes` instead.' }), barcodes: t.field({ type: [BarcodeInput] }), compareAtPrice: t.field({ type: 'Money' }), id: t.id(),
     inventoryPolicy: t.field({ type: ProductVariantInventoryPolicy }), inventoryQuantities: t.field({ type: [InventoryLevelInput] }), inventoryItem: t.field({ type: InventoryItemInput }),
     mediaId: t.id(), metafields: t.field({ type: [MetafieldInput] }), optionValues: t.field({ type: [VariantOptionValueInput] }), price: t.field({ type: 'Money' }),
-    taxable: t.boolean(), taxCode: t.string(), unitPriceMeasurement: t.field({ type: UnitPriceMeasurementInput }),
+    taxable: t.boolean(), taxCode: t.string(), unitPriceMeasurement: t.field({ type: UnitPriceMeasurementInput }), shopmeHiddenFromOnlineStore: t.boolean(),
   }),
 });
 
@@ -236,7 +237,7 @@ function minor(v: MoneyIn, currency: string): number | null | undefined {
 export interface VariantInputShape {
   unitPriceMeasurement?: { quantityValue: number; quantityUnit: string; referenceValue: number; referenceUnit: string } | null;
   id?: string | number | null; price?: MoneyIn; compareAtPrice?: MoneyIn; barcode?: string | null; barcodes?: { value: string }[] | null; taxable?: boolean | null; taxCode?: string | null;
-  inventoryPolicy?: string | null; mediaId?: string | number | null; optionValues?: { id?: string | number | null; name?: string | null; optionId?: string | number | null; optionName?: string | null }[] | null;
+  shopmeHiddenFromOnlineStore?: boolean | null; inventoryPolicy?: string | null; mediaId?: string | number | null; optionValues?: { id?: string | number | null; name?: string | null; optionId?: string | number | null; optionName?: string | null }[] | null;
   inventoryItem?: Parameters<typeof toItemUpdate>[0]; inventoryQuantities?: { availableQuantity: number; locationId: string | number }[] | null;
   metafields?: { namespace?: string | null; key?: string | null; value?: string | null; type?: string | null }[] | null;
 }
@@ -244,7 +245,7 @@ export function toVariant(v: VariantInputShape, currency: string): VariantInput 
   return {
     id: v.id ? parseId(String(v.id), 'ProductVariant') : null,
     price: minor(v.price, currency), compareAtPrice: minor(v.compareAtPrice, currency),
-    barcode: v.barcodes?.[0]?.value ?? v.barcode, taxable: v.taxable, taxCode: v.taxCode, inventoryPolicy: v.inventoryPolicy,
+    barcode: v.barcodes?.[0]?.value ?? v.barcode, taxable: v.taxable, taxCode: v.taxCode, inventoryPolicy: v.inventoryPolicy, hiddenFromOnlineStore: v.shopmeHiddenFromOnlineStore,
     mediaId: v.mediaId ? parseId(String(v.mediaId), 'MediaImage') : v.mediaId === null ? null : undefined,
     optionValues: v.optionValues?.map((o) => ({ id: o.id ? parseId(String(o.id), 'ProductOptionValue') : null, name: o.name, optionId: o.optionId ? parseId(String(o.optionId), 'ProductOption') : null, optionName: o.optionName })),
     inventoryItem: toItemUpdate(v.inventoryItem, currency),

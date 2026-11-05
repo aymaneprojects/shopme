@@ -12,8 +12,8 @@ const invalidate = (qc: ReturnType<typeof useQueryClient>) => { for (const k of 
 
 /* ------------------------------ edit in bulk ------------------------------ */
 
-interface BulkState { addTags: string[]; removeTags: string[]; tax: '' | 'exempt' | 'collect'; email: '' | 'SUBSCRIBE' | 'UNSUBSCRIBE'; sms: '' | 'SUBSCRIBE' | 'UNSUBSCRIBE'; noteMode: '' | 'APPEND' | 'REPLACE' | 'CLEAR'; note: string }
-const blank: BulkState = { addTags: [], removeTags: [], tax: '', email: '', sms: '', noteMode: '', note: '' };
+interface BulkState { addTags: string[]; removeTags: string[]; tax: '' | 'exempt' | 'collect'; email: '' | 'SUBSCRIBE' | 'UNSUBSCRIBE'; sms: '' | 'SUBSCRIBE' | 'UNSUBSCRIBE'; whatsapp: '' | 'SUBSCRIBE' | 'UNSUBSCRIBE'; noteMode: '' | 'APPEND' | 'REPLACE' | 'CLEAR'; note: string }
+const blank: BulkState = { addTags: [], removeTags: [], tax: '', email: '', sms: '', whatsapp: '', noteMode: '', note: '' };
 
 /** One dialog to change tags, marketing consent, tax exemption and notes of every selected customer. */
 export function BulkEditDialog({ open, ids, onClose, onDone }: { open: boolean; ids: string[]; onClose: () => void; onDone: () => void }) {
@@ -23,14 +23,14 @@ export function BulkEditDialog({ open, ids, onClose, onDone }: { open: boolean; 
   const [s, setS] = useState(blank);
   const [problems, setProblems] = useState<string[]>([]);
   const set = (p: Partial<BulkState>) => setS((x) => ({ ...x, ...p }));
-  const empty = !s.addTags.length && !s.removeTags.length && !s.tax && !s.email && !s.sms && !s.noteMode;
+  const empty = !s.addTags.length && !s.removeTags.length && !s.tax && !s.email && !s.sms && !s.whatsapp && !s.noteMode;
   const needsNote = (s.noteMode === 'APPEND' || s.noteMode === 'REPLACE') && !s.note.trim();
   const close = () => { setS(blank); setProblems([]); onClose(); };
   const save = useMutation({
     mutationFn: () => mutate<{ updatedCount: number; failures: Array<{ customerId: string; message: string }> }>(CUSTOMER_BULK_UPDATE, {
       ids, input: {
         ...(s.addTags.length && { addTags: s.addTags }), ...(s.removeTags.length && { removeTags: s.removeTags }), ...(s.tax && { taxExempt: s.tax === 'exempt' }),
-        ...(s.email && { emailMarketing: s.email }), ...(s.sms && { smsMarketing: s.sms }), ...(s.noteMode && { noteMode: s.noteMode, note: s.note }),
+        ...(s.email && { emailMarketing: s.email }), ...(s.sms && { smsMarketing: s.sms }), ...(s.whatsapp && { whatsappMarketing: s.whatsapp }), ...(s.noteMode && { noteMode: s.noteMode, note: s.note }),
       },
     }, 'shopmeCustomerBulkUpdate'),
     onSuccess: (r) => {
@@ -53,6 +53,9 @@ export function BulkEditDialog({ open, ids, onClose, onDone }: { open: boolean; 
             <option value="">{t('bc.bulk.noChange')}</option><option value="SUBSCRIBE">{t('bc.bulk.subscribe')}</option><option value="UNSUBSCRIBE">{t('bc.bulk.unsubscribe')}</option>
           </Select>
           <Select label={t('bc.bulk.sms')} value={s.sms} onChange={(e) => set({ sms: e.target.value as BulkState['sms'] })}>
+            <option value="">{t('bc.bulk.noChange')}</option><option value="SUBSCRIBE">{t('bc.bulk.subscribe')}</option><option value="UNSUBSCRIBE">{t('bc.bulk.unsubscribe')}</option>
+          </Select>
+          <Select label={t('bc.bulk.whatsapp')} value={s.whatsapp} onChange={(e) => set({ whatsapp: e.target.value as BulkState['whatsapp'] })}>
             <option value="">{t('bc.bulk.noChange')}</option><option value="SUBSCRIBE">{t('bc.bulk.subscribe')}</option><option value="UNSUBSCRIBE">{t('bc.bulk.unsubscribe')}</option>
           </Select>
         </div>

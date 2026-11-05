@@ -84,7 +84,7 @@ const ConsentChange = builder.enumType('ShopmeBulkConsentChange', { values: ['SU
 const NoteMode = builder.enumType('ShopmeBulkNoteMode', { values: ['REPLACE', 'APPEND', 'CLEAR'] as const });
 const BulkInput = builder.inputType('ShopmeCustomerBulkInput', {
   fields: (t) => ({
-    addTags: t.stringList(), removeTags: t.stringList(), taxExempt: t.boolean(), emailMarketing: t.field({ type: ConsentChange }), smsMarketing: t.field({ type: ConsentChange }),
+    addTags: t.stringList(), removeTags: t.stringList(), taxExempt: t.boolean(), emailMarketing: t.field({ type: ConsentChange }), smsMarketing: t.field({ type: ConsentChange }), whatsappMarketing: t.field({ type: ConsentChange }),
     noteMode: t.field({ type: NoteMode }), note: t.string(),
   }),
 });
@@ -153,6 +153,7 @@ builder.mutationFields((t) => ({
       const r = await bulkUpdateCustomers(ctx.db, ctx.shopId, ids, {
         addTags: i.addTags ?? undefined, removeTags: i.removeTags ?? undefined, taxExempt: i.taxExempt,
         emailMarketingState: i.emailMarketing ? (i.emailMarketing === 'SUBSCRIBE' ? 'SUBSCRIBED' : 'UNSUBSCRIBED') : undefined, smsMarketingState: i.smsMarketing ? (i.smsMarketing === 'SUBSCRIBE' ? 'SUBSCRIBED' : 'UNSUBSCRIBED') : undefined,
+        whatsappMarketingState: i.whatsappMarketing ? (i.whatsappMarketing === 'SUBSCRIBE' ? 'SUBSCRIBED' : 'UNSUBSCRIBED') : undefined,
         noteMode: i.noteMode, note: i.note,
       }, staffId(ctx));
       return { updatedCount: r.updated, failures: r.errors, userErrors: [] };

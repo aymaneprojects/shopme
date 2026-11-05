@@ -95,7 +95,7 @@ function cleanProperties(p: unknown): Record<string, string> {
 
 interface VariantInfo { id: number; productTitle: string; /** Infinity when not tracked or oversell allowed. */ limit: number }
 
-/** Sellable variants (active products) by id with their stock limit. */
+/** Sellable variants (active products, not hidden from the Online Store) by id with their stock limit. */
 async function variantInfos(db: Executor, shopId: number, ids: number[]): Promise<Map<number, VariantInfo>> {
   const out = new Map<number, VariantInfo>();
   if (!ids.length) return out;
@@ -104,7 +104,7 @@ async function variantInfos(db: Executor, shopId: number, ids: number[]): Promis
   }).from(s.productVariants)
     .innerJoin(s.products, eq(s.products.id, s.productVariants.productId))
     .leftJoin(s.inventoryItems, eq(s.inventoryItems.variantId, s.productVariants.id))
-    .where(and(eq(s.productVariants.shopId, shopId), inArray(s.productVariants.id, ids), productReachableOnStorefront));
+    .where(and(eq(s.productVariants.shopId, shopId), inArray(s.productVariants.id, ids), eq(s.productVariants.hiddenFromOnlineStore, false), productReachableOnStorefront));
   const itemIds = rows.flatMap((r) => (r.itemId ? [r.itemId] : []));
   const stock = new Map<number, number>();
   if (itemIds.length) {

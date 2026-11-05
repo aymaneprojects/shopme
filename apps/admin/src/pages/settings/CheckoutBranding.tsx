@@ -1,25 +1,30 @@
-import { Banner, Button, Card, Input, Select, Skeleton, Switch } from '@shopme/ui';
+import { Banner, Button, Card, Input, Select, Switch, useToast } from '@shopme/ui';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { UserErrors, mutate } from '../../api';
 import { Section } from '../../components/SettingsKit';
 import { useI18n } from '../../i18n';
-import { useConfig, useSaveConfig } from '../../lib/config';
+import { CHECKOUT_CONFIGURATION_UPDATE } from '../../graphql';
 import type { CheckoutConfig } from '../../lib/config';
 
 const radius = { pill: '999px', rounded: '8px', square: '2px' } as const;
 
 /** Checkout look (colours, logo, button shape, header and footer text) and browser address autofill. Saved on its own, applied to the storefront checkout. */
-export function CheckoutExtras() {
+export function CheckoutExtras({ id, config }: { id: string; config: CheckoutConfig }) {
   const { t } = useI18n();
-  const cfg = useConfig<CheckoutConfig>('CHECKOUT');
-  if (cfg.isLoading) return <Skeleton className="h-48" />;
-  if (cfg.error || !cfg.data) return <Banner>{cfg.error?.message}</Banner>;
-  return <ExtrasForm key={cfg.dataUpdatedAt} initial={cfg.data} t={t} />;
+  return <ExtrasForm key={JSON.stringify(config)} id={id} initial={config} t={t} />;
 }
 
-function ExtrasForm({ initial, t }: { initial: CheckoutConfig; t: ReturnType<typeof useI18n>['t'] }) {
+function ExtrasForm({ id, initial, t }: { id: string; initial: CheckoutConfig; t: ReturnType<typeof useI18n>['t'] }) {
   const [f, setF] = useState(initial);
   const [error, setError] = useState<string | null>(null);
-  const save = useSaveConfig<CheckoutConfig>('CHECKOUT', () => setError(null), setError);
+  const toast = useToast();
+  const qc = useQueryClient();
+  const save = useMutation({
+    mutationFn: (value: CheckoutConfig) => mutate(CHECKOUT_CONFIGURATION_UPDATE, { id, config: value }, 'shopmeCheckoutConfigurationUpdate'),
+    onSuccess: () => { toast(t('settings.saved')); setError(null); void qc.invalidateQueries({ queryKey: ['checkout-configurations'] }); void qc.invalidateQueries({ queryKey: ['config', 'CHECKOUT'] }); },
+    onError: (e) => setError(e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message),
+  });
   const b = f.branding;
   const setB = (p: Partial<CheckoutConfig['branding']>) => setF({ ...f, branding: { ...b, ...p } });
   const dirty = JSON.stringify(f) !== JSON.stringify(initial);

@@ -86,7 +86,7 @@ export interface CustomerObject {
   id: number; email: string; first_name: string; last_name: string; name: string; phone: string; accepts_marketing: boolean; tags: string[]; tax_exempt: boolean; has_account: boolean;
   orders: OrderObject[]; orders_count: number; total_spent: number; last_order: OrderObject | null; addresses: AddressObject[]; addresses_count: number; default_address: AddressObject | null; new_address: AddressObject;
   created_at: string; metafields: Record<string, unknown>;
-  email_marketing_state: string; sms_marketing_state: string; data_sale_opt_out: boolean;
+  email_marketing_state: string; sms_marketing_state: string; whatsapp_marketing_state: string; data_sale_opt_out: boolean;
   /** Store credit balance (minor units) in the shop currency; nil when the feature is off, there is no account or the balance is zero. */
   store_credit_account: { balance: number; currency: string } | null;
 }
@@ -109,7 +109,7 @@ export async function buildCustomer(db: Db, shop: Shop, c: Customer): Promise<Cu
     addresses, addresses_count: addresses.length, default_address: addresses.find((a) => a.id === c.defaultAddressId) ?? addresses[0] ?? null,
     new_address: addressObject({ id: 0, firstName: c.firstName, lastName: c.lastName, company: null, address1: null, address2: null, city: null, province: null, provinceCode: null, zip: null, country: null, countryCode: null, phone: null }, shop),
     created_at: c.createdAt.toISOString(), metafields: mf.get(c.id) ?? {},
-    email_marketing_state: c.emailMarketingState.toLowerCase(), sms_marketing_state: c.smsMarketingState.toLowerCase(), data_sale_opt_out: c.dataSaleOptOut,
+    email_marketing_state: c.emailMarketingState.toLowerCase(), sms_marketing_state: c.smsMarketingState.toLowerCase(), whatsapp_marketing_state: c.whatsappMarketingState.toLowerCase(), data_sale_opt_out: c.dataSaleOptOut,
     store_credit_account: credit > 0 ? { balance: credit, currency: shop.currency } : null,
   };
 }

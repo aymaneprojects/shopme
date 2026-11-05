@@ -7,6 +7,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
 import { DraftCompanySection } from '../../components/CompanyOrderCards';
+import { NoteCard } from '../../components/NoteCard';
 import { PageTitle, SideSection, TopBar } from '../../components/OrderChrome';
 import { ColumnPicker, useColumnVisibility } from '../../components/ColumnPicker';
 import { VariantPicker } from '../../components/Pickers';
@@ -258,7 +259,7 @@ function DraftForm_({ draft, initial }: { draft: DraftData | null; initial: Draf
           </Card></section>
         </fieldset>
         <fieldset disabled={completed} className="flex min-w-0 flex-col">
-          <SideSection title={t('draft.note')}><Textarea aria-label={t('draft.note')} value={form.note} onChange={(e) => set({ note: e.target.value })} placeholder={t('draft.notePlaceholder')} /></SideSection>
+          <NoteCard side title={t('draft.note')} value={form.note} placeholder={t('draft.notePlaceholder')} onSave={(note) => set({ note })} />
           <SideSection title={t('draft.customer')}>
             <CustomerPick label={custLabel} onPick={(c) => { setCustLabel(c.displayName); set({ customerId: c.id, email: c.defaultEmailAddress?.emailAddress ?? form.email }); }} onClear={() => { setCustLabel(''); set({ customerId: '' }); }} onCreate={() => setCustOpen(true)} />
             <Input className="mt-3" label={t('field.email')} type="email" value={form.email} onChange={(e) => set({ email: e.target.value })} />

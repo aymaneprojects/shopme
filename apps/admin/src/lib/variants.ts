@@ -22,6 +22,8 @@ export interface VariantDraft {
   taxable: boolean;
   tracked: boolean;
   continueSelling: boolean;
+  /** Hidden from the Online Store: not offered on the product page and refused by the cart, while the product stays published. */
+  onlineStoreHidden: boolean;
   requiresShipping: boolean;
   weight: string;
   weightUnit: WeightUnit;
@@ -53,7 +55,7 @@ export const newKey = () => `v${Date.now().toString(36)}${(seq++).toString(36)}`
 
 export const blankVariant = (over: Partial<VariantDraft> = {}): VariantDraft => ({
   key: newKey(), optionValues: [], price: '0.00', compareAtPrice: '', cost: '', sku: '', barcode: '',
-  taxable: true, tracked: true, continueSelling: false, requiresShipping: true, weight: '', weightUnit: 'KILOGRAMS', length: '', width: '', height: '', dimensionUnit: 'CENTIMETERS', countryOfOrigin: '', hsCode: '', mediaId: '', unitQuantity: '', unitQuantityUnit: 'L', unitReference: '1', unitReferenceUnit: 'L', quantities: {}, onHand: {}, committed: {}, unavailable: {}, incoming: {}, levelIds: {}, countryHs: [], packageId: '', ...over,
+  taxable: true, tracked: true, continueSelling: false, onlineStoreHidden: false, requiresShipping: true, weight: '', weightUnit: 'KILOGRAMS', length: '', width: '', height: '', dimensionUnit: 'CENTIMETERS', countryOfOrigin: '', hsCode: '', mediaId: '', unitQuantity: '', unitQuantityUnit: 'L', unitReference: '1', unitReferenceUnit: 'L', quantities: {}, onHand: {}, committed: {}, unavailable: {}, incoming: {}, levelIds: {}, countryHs: [], packageId: '', ...over,
 });
 
 /** Options that count: named and with at least one distinct non-empty value. */

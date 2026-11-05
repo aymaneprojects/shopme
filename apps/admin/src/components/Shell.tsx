@@ -188,7 +188,7 @@ function SettingsNavLinks({ onNavigate, collapsed }: { onNavigate: () => void; c
         </>
       )}
       {sections.map((s) => (
-        <NavLink key={s.id} to={`/settings/${s.id}`} onClick={onNavigate} title={collapsed ? t(s.key) : undefined} aria-label={collapsed ? t(s.key) : undefined} className={({ isActive }) => cx('flex min-h-7 items-center gap-2 rounded-lg px-2 py-1 text-[13px] leading-4 transition-colors', collapsed && 'justify-center', isActive ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover')}>
+        <NavLink key={s.id} to={s.to ?? `/settings/${s.id}`} onClick={onNavigate} title={collapsed ? t(s.key) : undefined} aria-label={collapsed ? t(s.key) : undefined} className={({ isActive }) => cx('flex min-h-7 items-center gap-2 rounded-lg px-2 py-1 text-[13px] leading-4 transition-colors', collapsed && 'justify-center', isActive ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover')}>
           <s.icon className="size-4 shrink-0" />{!collapsed && t(s.key)}
         </NavLink>
       ))}

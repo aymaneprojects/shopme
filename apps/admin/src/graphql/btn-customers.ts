@@ -7,6 +7,7 @@ export const CUSTOMER_DETAIL_EXTRAS = /* GraphQL */ `
     customer(id: $id) {
       id canDelete shopmeErasureScheduledAt shopmeErasedAt
       smsMarketingConsent { marketingState }
+      shopmeWhatsappMarketingConsent { marketingState }
       statistics { rfmGroup }
       shopmeCompanies { id title isMainContact company { id name } }
       lastOrder {

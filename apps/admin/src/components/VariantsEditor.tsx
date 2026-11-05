@@ -274,6 +274,7 @@ export function InventoryFields({ v, patch, locations }: { v: VariantDraft; patc
         {!showSku && <AddPill label={t('inventory.sku')} onClick={() => setMore({ ...more, sku: true })} />}
         {!showBarcode && <AddPill label={t('inventory.barcode')} onClick={() => setMore({ ...more, barcode: true })} />}
         <PillSwitch checked={v.continueSelling} onChange={(continueSelling) => patch({ continueSelling })} label={t('inventory.continueSelling')} />
+        <PillSwitch checked={!v.onlineStoreHidden} onChange={(on) => patch({ onlineStoreHidden: !on })} label={t('fin.variant.onlineStore')} />
       </div>
       {choosing && <StockLocationsDialog open v={v} locations={locations} onClose={() => setChoosing(false)} onApply={setStocked} />}
     </div>

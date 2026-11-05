@@ -43,5 +43,5 @@ export interface ResourceResolvers {
   metaobject?(ref: string): Promise<unknown>;
   linklist?(handle: string): Promise<unknown>;
   /** `shopify://shop_images/x.jpg` style value or URL to an image object. */
-  image?(value: string): ImageValue | null;
+  image?(value: string): ImageValue | null | Promise<ImageValue | null>;
 }

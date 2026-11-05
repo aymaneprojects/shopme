@@ -163,7 +163,7 @@ export function CustomerDetailPage() {
 }
 
 interface Extras {
-  id: string; canDelete: boolean; shopmeErasureScheduledAt: string | null; shopmeErasedAt: string | null; smsMarketingConsent: { marketingState: string } | null; statistics: { rfmGroup: string | null };
+  id: string; canDelete: boolean; shopmeErasureScheduledAt: string | null; shopmeErasedAt: string | null; smsMarketingConsent: { marketingState: string } | null; shopmeWhatsappMarketingConsent: { marketingState: string } | null; statistics: { rfmGroup: string | null };
   shopmeCompanies: Array<{ id: string; title: string | null; isMainContact: boolean; company: { id: string; name: string } }>;
   lastOrder: { id: string; lineItems: { nodes: Array<{ id: string; title: string; quantity: number; variant: { image: { url: string } | null } | null }> } } | null;
 }
@@ -303,6 +303,7 @@ function CustomerView({ c }: { c: CustomerData }) {
               <ul className="flex flex-col gap-1">
                 {c.defaultEmailAddress && <li className="flex items-center justify-between gap-2"><span>{t('bc.channel.email')}</span><MarketingBadge state={c.defaultEmailAddress.marketingState} /></li>}
                 {c.defaultPhoneNumber && <li className="flex items-center justify-between gap-2"><span>{t('bc.channel.sms')}</span><MarketingBadge state={x?.smsMarketingConsent?.marketingState} /></li>}
+                {c.defaultPhoneNumber && <li className="flex items-center justify-between gap-2"><span>{t('bc.channel.whatsapp')}</span><MarketingBadge state={x?.shopmeWhatsappMarketingConsent?.marketingState} /></li>}
               </ul>
             )}
           </Section>

@@ -1,16 +1,19 @@
-import { Banner, Card, Input, Select, Skeleton, Switch, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Card, Dropdown, Input, Modal, Select, Skeleton, Switch, useToast } from '@shopme/ui';
+import { MoreHorizontal } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { Link, useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
-import { Section } from '../../components/SettingsKit';
+import { RowCard, Section, SubHeader } from '../../components/SettingsKit';
 import { SaveBar } from '../../components/SaveBar';
-import { CHECKOUT_SETTINGS, CHECKOUT_SETTINGS_UPDATE } from '../../graphql';
+import { CHECKOUT_CONFIGURATIONS, CHECKOUT_CONFIGURATION_ACTIVATE, CHECKOUT_CONFIGURATION_CREATE, CHECKOUT_CONFIGURATION_DELETE, CHECKOUT_CONFIGURATION_RENAME, CHECKOUT_CONFIGURATION_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
+import type { CheckoutConfig } from '../../lib/config';
 import { CheckoutExtras } from './CheckoutBranding';
 
 type Rule = 'hidden' | 'optional' | 'required';
-interface CheckoutForm {
+export interface CheckoutForm {
   contactMethod: 'email' | 'email_or_phone'; accountMode: 'guest' | 'required'; nameMode: 'full' | 'last';
   company: Rule; address2: Rule; phone: Rule; marketing: 'hidden' | 'unchecked' | 'checked';
   tipping: { enabled: boolean; presets: number[] }; orderNotes: boolean;
@@ -29,15 +32,86 @@ function Radios<T extends string>({ name, value, onChange, options }: { name: st
   );
 }
 
-/** Settings > Checkout: what the one-page checkout asks for and requires. */
+export interface CheckoutConfiguration { id: string; name: string; active: boolean; settings: CheckoutForm; config: CheckoutConfig }
+const CONFIGS_KEY = ['checkout-configurations'];
+const useConfigurations = () => useQuery({ queryKey: CONFIGS_KEY, queryFn: async () => (await gql<{ shopmeCheckoutConfigurations: CheckoutConfiguration[] }>(CHECKOUT_CONFIGURATIONS)).shopmeCheckoutConfigurations });
+
+type Dialog = { kind: 'duplicate' | 'rename' | 'delete'; id: string; name: string };
+
+/** Settings > Checkout: the checkout configurations; the active one is what the storefront checkout uses. */
 export function CheckoutSettings() {
-  const q = useQuery({ queryKey: ['checkout-settings'], queryFn: () => gql<{ shopmeCheckoutSettings: CheckoutForm }>(CHECKOUT_SETTINGS) });
-  if (q.isLoading) return <Skeleton className="h-96" />;
+  const { t } = useI18n();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const nav = useNavigate();
+  const q = useConfigurations();
+  const [dialog, setDialog] = useState<Dialog | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const refresh = () => { void qc.invalidateQueries({ queryKey: CONFIGS_KEY }); void qc.invalidateQueries({ queryKey: ['checkout-settings'] }); void qc.invalidateQueries({ queryKey: ['config', 'CHECKOUT'] }); };
+  const run = useMutation({
+    mutationFn: async (a: { kind: Dialog['kind'] | 'activate'; id: string; name?: string }) => {
+      if (a.kind === 'duplicate') return mutate(CHECKOUT_CONFIGURATION_CREATE, { name: a.name, fromId: a.id }, 'shopmeCheckoutConfigurationCreate');
+      if (a.kind === 'rename') return mutate(CHECKOUT_CONFIGURATION_RENAME, { id: a.id, name: a.name }, 'shopmeCheckoutConfigurationRename');
+      if (a.kind === 'activate') return mutate(CHECKOUT_CONFIGURATION_ACTIVATE, { id: a.id }, 'shopmeCheckoutConfigurationActivate');
+      return mutate(CHECKOUT_CONFIGURATION_DELETE, { id: a.id }, 'shopmeCheckoutConfigurationDelete');
+    },
+    onSuccess: (_r, a) => { setDialog(null); setError(null); refresh(); toast(t(a.kind === 'activate' ? 'cfg.activated' : a.kind === 'delete' ? 'cfg.deleted' : 'settings.saved')); },
+    onError: (e) => setError(e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message),
+  });
+  if (q.isLoading) return <Skeleton className="h-64" />;
   if (q.error) return <Banner>{q.error.message}</Banner>;
-  return <div className="flex flex-col gap-6"><CheckoutSettingsForm key={q.dataUpdatedAt} initial={q.data!.shopmeCheckoutSettings} /><CheckoutExtras /></div>;
+  const configs = q.data!;
+  const open = (d: Dialog) => { setError(null); setDialog(d); };
+  return (
+    <div className="flex flex-col gap-6">
+      <Section title={t('cfg.title')} description={t('cfg.desc')}>
+        <RowCard>
+          {configs.map((c) => (
+            <div key={c.id} className="flex items-center gap-3 px-4 py-3 text-[13px]">
+              <Link to={`/settings/checkout/${encodeURIComponent(c.id)}`} className="min-w-0 flex-1 truncate font-medium hover:underline">{c.name}</Link>
+              {c.active && <Badge tone="success">{t('cfg.active')}</Badge>}
+              {!c.active && <Button size="sm" loading={run.isPending && run.variables?.kind === 'activate' && run.variables.id === c.id} onClick={() => run.mutate({ kind: 'activate', id: c.id })}>{t('cfg.setActive')}</Button>}
+              <Button size="sm" onClick={() => nav(`/settings/checkout/${encodeURIComponent(c.id)}`)}>{t('common.edit')}</Button>
+              <Dropdown align="right" icon label={t('common.moreActions')} variant="plain" trigger={<MoreHorizontal className="size-4" />} items={[
+                { key: 'rename', label: t('cfg.rename'), onSelect: () => open({ kind: 'rename', id: c.id, name: c.name }) },
+                { key: 'duplicate', label: t('cfg.duplicate'), onSelect: () => open({ kind: 'duplicate', id: c.id, name: t('cfg.copyName', { name: c.name }) }) },
+                ...(c.active ? [] : [{ key: 'delete', label: t('common.delete'), danger: true, separatorBefore: true, onSelect: () => open({ kind: 'delete', id: c.id, name: c.name }) }]),
+              ]} />
+            </div>
+          ))}
+        </RowCard>
+      </Section>
+      <Modal open={dialog !== null} onClose={() => setDialog(null)} closeLabel={t('common.close')} medium
+        title={dialog?.kind === 'duplicate' ? t('cfg.duplicate') : dialog?.kind === 'rename' ? t('cfg.rename') : t('cfg.deleteTitle')}
+        footer={<><Button onClick={() => setDialog(null)}>{t('common.cancel')}</Button>
+          <Button variant={dialog?.kind === 'delete' ? 'danger' : 'primary'} loading={run.isPending} disabled={!dialog || (dialog.kind !== 'delete' && !dialog.name.trim())} onClick={() => dialog && run.mutate({ kind: dialog.kind, id: dialog.id, name: dialog.name })}>
+            {dialog?.kind === 'delete' ? t('common.delete') : dialog?.kind === 'duplicate' ? t('cfg.duplicate') : t('save.save')}</Button></>}>
+        <div className="flex flex-col gap-3">
+          {error && <Banner>{error}</Banner>}
+          {dialog?.kind === 'delete' ? <p className="text-[13px]">{t('cfg.deleteBody', { name: dialog.name })}</p>
+            : dialog && <Input label={t('cfg.name')} maxLength={60} autoFocus value={dialog.name} onChange={(e) => setDialog({ ...dialog, name: e.target.value })} />}
+        </div>
+      </Modal>
+    </div>
+  );
 }
 
-function CheckoutSettingsForm({ initial }: { initial: CheckoutForm }) {
+/** Editor of one configuration: contact and sign-in rules, address fields, marketing, tipping, notes, then the look. */
+export function CheckoutConfigurationPage() {
+  const { t } = useI18n();
+  const { id = '' } = useParams();
+  const q = useConfigurations();
+  const c = q.data?.find((x) => x.id === id);
+  return (
+    <>
+      <SubHeader back="/settings/checkout" parent={t('checkout.pageTitle')} title={c?.name ?? t('cfg.title')} actions={c?.active ? <Badge tone="success">{t('cfg.active')}</Badge> : undefined} />
+      {q.isLoading ? <Skeleton className="h-96" /> : q.error ? <Banner>{q.error.message}</Banner> : !c ? <Banner>{t('cfg.notFound')}</Banner>
+        : <div className="flex flex-col gap-6"><CheckoutSettingsForm key={`${c.id}-${q.dataUpdatedAt}`} id={c.id} initial={c.settings} /><CheckoutExtras id={c.id} config={c.config} /></div>}
+    </>
+  );
+}
+
+function CheckoutSettingsForm({ id, initial }: { id: string; initial: CheckoutForm }) {
   const { t } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
@@ -49,8 +123,8 @@ function CheckoutSettingsForm({ initial }: { initial: CheckoutForm }) {
   const draft = { ...form, tipping: { ...form.tipping, presets: parsed.every((n) => Number.isInteger(n)) ? parsed : form.tipping.presets } };
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
   const save = useMutation({
-    mutationFn: () => mutate(CHECKOUT_SETTINGS_UPDATE, { input: draft }, 'shopmeCheckoutSettingsUpdate'),
-    onSuccess: () => { toast(t('settings.saved')); setError(null); void qc.invalidateQueries({ queryKey: ['checkout-settings'] }); },
+    mutationFn: () => mutate(CHECKOUT_CONFIGURATION_UPDATE, { id, settings: draft }, 'shopmeCheckoutConfigurationUpdate'),
+    onSuccess: () => { toast(t('settings.saved')); setError(null); void qc.invalidateQueries({ queryKey: CONFIGS_KEY }); void qc.invalidateQueries({ queryKey: ['checkout-settings'] }); },
     onError: (e) => setError(e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message),
   });
   const selCls = 'h-8 rounded-md border border-line bg-canvas px-2 text-[13px] font-medium';

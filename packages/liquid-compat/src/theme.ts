@@ -142,7 +142,7 @@ export async function resolveSettings(defs: SettingDef[] | undefined, values: Re
     v = tr(v);
     const empty = v === '' || v === null || v === undefined;
     switch (d.type) {
-      case 'image_picker': v = empty ? null : (sc.resolvers.image?.(String(v)) ?? null); break;
+      case 'image_picker': v = empty ? null : ((await sc.resolvers.image?.(String(v))) ?? null); break;
       case 'font_picker': v = empty ? null : parseFont(String(v)); break;
       case 'collection': case 'product': case 'page': case 'blog': {
         const fn = sc.resolvers[d.type];

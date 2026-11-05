@@ -1,9 +1,9 @@
-import { ArchiveRestore, Store, Bell, Lock, MousePointerClick, ShoppingBag, UserRound, Braces, CreditCard, Download, Globe, Languages, MapPin, Receipt, ScrollText, Settings, ShieldCheck, Truck, Users, Webhook } from 'lucide-react';
+import { ArchiveRestore, Radio, Store, Bell, Lock, MousePointerClick, ShoppingBag, UserRound, Braces, CreditCard, Download, Globe, Languages, MapPin, Receipt, ScrollText, Settings, ShieldCheck, Truck, Users, Webhook } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { Key } from '../i18n';
 import type { Permission } from './permissions';
 
-export interface SettingsSection { id: string; key: Key; icon: ComponentType<{ className?: string }>; perm?: Permission }
+export interface SettingsSection { id: string; /** Link target when the section is a page outside /settings. */ to?: string; key: Key; icon: ComponentType<{ className?: string }>; perm?: Permission }
 
 /** Sections of the settings area, in the order of the settings sidebar. */
 export const SETTINGS_SECTIONS: SettingsSection[] = [
@@ -16,6 +16,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'taxes', key: 'settings.taxes', icon: Receipt },
   { id: 'locations', key: 'settings.locations', icon: MapPin },
   { id: 'markets', key: 'nav.markets', icon: Store },
+  { id: 'channels', to: '/channels', key: 'nav.salesChannels', icon: Radio },
   { id: 'domains', key: 'settings.domains', icon: Globe },
   { id: 'events', key: 'settings.events', icon: MousePointerClick },
   { id: 'notifications', key: 'settings.notifications', icon: Bell },

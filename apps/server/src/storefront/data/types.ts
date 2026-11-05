@@ -2,6 +2,8 @@
 export interface Image {
   id: number; src: string; url: string; alt: string | null; width: number | null; height: number | null; aspect_ratio: number | null; position: number; product_id: number; media_type: string;
   preview_image: { src: string; width: number | null; height: number | null; aspect_ratio: number | null; alt: string | null };
+  /** `presentation.focal_point` is the `x% y%` string for `object-position`; null until a merchant sets one. */
+  presentation: { focal_point: string } | null;
 }
 
 export interface VariantObject {

@@ -1,4 +1,4 @@
-import { bigint, boolean, check, index, integer, numeric, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { bigint, boolean, check, index, integer, numeric, pgTable, primaryKey, real, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { createdAt, money, oneOf, pk, ref, shopIdCol, tagsCol, timestamps, ts } from './_helpers';
 import { shops, WEIGHT_UNITS } from './shop';
 
@@ -33,6 +33,8 @@ export const media = pgTable('media', {
   fileId: ref('file_id').references(() => files.id, { onDelete: 'set null' }),
   url: text('url'), // external or resolved URL; for local files use /files/<storage key>
   mimeType: text('mime_type'), width: integer('width'), height: integer('height'),
+  /** Focal point of an image in percent of its width and height (0-100); null = centre. Drives `object-position` where the storefront crops the image. */
+  focalX: real('focal_x'), focalY: real('focal_y'),
   folderId: ref('folder_id').references(() => fileFolders.id, { onDelete: 'set null' }),
   ...timestamps(),
 }, (t) => [check('media_type_chk', oneOf(t.type, ['IMAGE', 'VIDEO', 'EXTERNAL_VIDEO', 'MODEL_3D']))]);
@@ -92,6 +94,8 @@ export const productVariants = pgTable('product_variants', {
   taxCode: text('tax_code'),
   inventoryPolicy: text('inventory_policy').notNull().default('DENY'),
   mediaId: ref('media_id').references(() => media.id, { onDelete: 'set null' }),
+  /** Hidden from the Online Store while the product stays published: not offered on the product page and refused by the cart. */
+  hiddenFromOnlineStore: boolean('hidden_from_online_store').notNull().default(false),
   /** Unit price measurement, e.g. 750 ml priced per 100 ml. */
   unitQuantityValue: numeric('unit_quantity_value', { precision: 12, scale: 4, mode: 'number' }), unitQuantityUnit: text('unit_quantity_unit'),
   unitReferenceValue: integer('unit_reference_value'), unitReferenceUnit: text('unit_reference_unit'),

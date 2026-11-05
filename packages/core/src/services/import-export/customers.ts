@@ -10,7 +10,7 @@ import { decimal, lowerKeys, parseBool, splitTags, type CsvRow, type ImportEnv, 
 export const CUSTOMER_COLUMNS = [
   'Customer ID', 'First Name', 'Last Name', 'Email', 'Accepts Email Marketing', 'Default Address Company', 'Default Address Address1', 'Default Address Address2',
   'Default Address City', 'Default Address Province Code', 'Default Address Country Code', 'Default Address Zip', 'Default Address Phone', 'Phone',
-  'Accepts SMS Marketing', 'Total Spent', 'Total Orders', 'Tags', 'Note', 'Tax Exempt',
+  'Accepts SMS Marketing', 'Total Spent', 'Total Orders', 'Tags', 'Note', 'Tax Exempt', 'Accepts WhatsApp Marketing',
 ];
 
 /** Import customers, upserted by email (or phone when there is no email). */
@@ -64,7 +64,7 @@ export async function* exportCustomers(db: Db, shopId: number, ids: number[] | n
       const a = await getDefaultAddress(db, shopId, c);
       yield csvLine([
         c.id, c.firstName ?? '', c.lastName ?? '', c.email ?? '', c.acceptsMarketing ? 'yes' : 'no', a?.company ?? '', a?.address1 ?? '', a?.address2 ?? '', a?.city ?? '', a?.provinceCode ?? '',
-        a?.countryCode ?? '', a?.zip ?? '', a?.phone ?? '', c.phone ?? '', 'no', decimal(c.amountSpent, currency), c.numberOfOrders, c.tags.join(', '), c.note ?? '', c.taxExempt ? 'yes' : 'no',
+        a?.countryCode ?? '', a?.zip ?? '', a?.phone ?? '', c.phone ?? '', c.smsMarketingState === 'SUBSCRIBED' ? 'yes' : 'no', decimal(c.amountSpent, currency), c.numberOfOrders, c.tags.join(', '), c.note ?? '', c.taxExempt ? 'yes' : 'no', c.whatsappMarketingState === 'SUBSCRIBED' ? 'yes' : 'no',
       ]);
     }
   }

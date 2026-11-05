@@ -2,7 +2,7 @@
   <div class="popup {% render 'scheme-class', scheme: section.settings.color_scheme %}" data-popup data-delay="{{ section.settings.delay }}" data-days="{{ section.settings.days }}" data-key="{{ section.id }}-{{ section.settings.heading | handle }}"{% if request.design_mode %} data-preview{% endif %} role="dialog" aria-modal="true" aria-labelledby="Popup-{{ section.id }}" hidden>
     <div class="popup__card">
       <button type="button" class="icon-button popup__close" data-popup-close aria-label="{{ 'popup.close' | t }}">{% render 'icon', name: 'close' %}</button>
-      {%- if section.settings.image -%}<div class="popup__media">{{ section.settings.image | image_url: width: 800 | image_tag: loading: 'lazy', alt: '' }}</div>{%- endif -%}
+      {%- if section.settings.image -%}<div class="popup__media">{%- capture focal -%}{%- if section.settings.image.presentation.focal_point != blank -%}object-position: {{ section.settings.image.presentation.focal_point }}{%- endif -%}{%- endcapture -%}{{ section.settings.image | image_url: width: 800 | image_tag: loading: 'lazy', alt: '', style: focal }}</div>{%- endif -%}
       <div class="popup__body">
         {%- if section.settings.heading != blank -%}<h2 id="Popup-{{ section.id }}" class="section-title">{{ section.settings.heading | escape }}</h2>{%- endif -%}
         {%- if section.settings.text != blank -%}<div class="rte">{{ section.settings.text }}</div>{%- endif -%}

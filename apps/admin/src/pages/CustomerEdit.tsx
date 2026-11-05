@@ -4,6 +4,7 @@ import { Plus, Users } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
+import { NoteCard } from '../components/NoteCard';
 import { PageHeader } from '../components/PageHeader';
 import { SaveBar, guard } from '../components/SaveBar';
 import { gidToNum, numToGid } from '../format';
@@ -13,14 +14,14 @@ import { countryOptions } from '../lib/countries';
 import { DIAL_CODES, joinPhone, splitPhone } from '../lib/dial-codes';
 
 interface CustomerForm {
-  firstName: string; lastName: string; email: string; phone: string; phoneCountry: string; marketing: boolean; sms: boolean; locale: string; taxExempt: boolean; note: string; tags: string[];
+  firstName: string; lastName: string; email: string; phone: string; phoneCountry: string; marketing: boolean; sms: boolean; whatsapp: boolean; locale: string; taxExempt: boolean; note: string; tags: string[];
   address1: string; address2: string; city: string; zip: string; province: string; countryCode: string;
 }
-const blank: CustomerForm = { firstName: '', lastName: '', email: '', phone: '', phoneCountry: '', marketing: false, sms: false, locale: '', taxExempt: false, note: '', tags: [], address1: '', address2: '', city: '', zip: '', province: '', countryCode: '' };
+const blank: CustomerForm = { firstName: '', lastName: '', email: '', phone: '', phoneCountry: '', marketing: false, sms: false, whatsapp: false, locale: '', taxExempt: false, note: '', tags: [], address1: '', address2: '', city: '', zip: '', province: '', countryCode: '' };
 
 interface Api {
   id: string; firstName: string | null; lastName: string | null; note: string | null; tags: string[]; taxExempt?: boolean;
-  defaultEmailAddress: { emailAddress: string; marketingState: string } | null; defaultPhoneNumber: { phoneNumber: string } | null; smsMarketingConsent?: { marketingState: string } | null;
+  defaultEmailAddress: { emailAddress: string; marketingState: string } | null; defaultPhoneNumber: { phoneNumber: string } | null; smsMarketingConsent?: { marketingState: string } | null; shopmeWhatsappMarketingConsent?: { marketingState: string } | null;
 }
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -36,7 +37,7 @@ export function CustomerEditPage() {
   const c = q.data?.customer;
   const initial: CustomerForm = c ? {
     ...blank, firstName: c.firstName ?? '', lastName: c.lastName ?? '', email: c.defaultEmailAddress?.emailAddress ?? '', ...(() => { const p = splitPhone(c.defaultPhoneNumber?.phoneNumber ?? ''); return { phone: p.national, phoneCountry: p.country }; })(),
-    marketing: c.defaultEmailAddress?.marketingState === 'SUBSCRIBED', sms: c.smsMarketingConsent?.marketingState === 'SUBSCRIBED', taxExempt: !!c.taxExempt, note: c.note ?? '', tags: c.tags,
+    marketing: c.defaultEmailAddress?.marketingState === 'SUBSCRIBED', sms: c.smsMarketingConsent?.marketingState === 'SUBSCRIBED', whatsapp: c.shopmeWhatsappMarketingConsent?.marketingState === 'SUBSCRIBED', taxExempt: !!c.taxExempt, note: c.note ?? '', tags: c.tags,
   } : blank;
   return <CustomerFormView key={`${id}:${q.dataUpdatedAt}`} id={isNew ? null : gid} initial={initial} />;
 }
@@ -59,6 +60,7 @@ function CustomerFormView({ id, initial }: { id: string | null; initial: Custome
       if (form.email && !EMAIL.test(form.email)) e.email = t('customer.emailInvalid');
       if (!form.email && !form.firstName && !form.lastName && !form.phone) e.name = t('customer.contactRequired');
       if (form.sms && !form.phone) e.phone = t('bc.sms.needsPhone');
+      if (form.whatsapp && !form.phone) e.phone = t('bc.whatsapp.needsPhone');
       setErrors(e);
       if (Object.keys(e).length) throw new Error('validation');
       setError(null);
@@ -68,6 +70,7 @@ function CustomerFormView({ id, initial }: { id: string | null; initial: Custome
         note: form.note || null, tags: form.tags, ...(!id && { locale: form.locale || lang }), taxExempt: form.taxExempt,
         emailMarketingConsent: { marketingState: form.marketing ? 'SUBSCRIBED' : 'NOT_SUBSCRIBED', marketingOptInLevel: 'SINGLE_OPT_IN' },
         ...((form.phone || initial.sms) && (form.sms !== initial.sms || !id) && { smsMarketingConsent: { marketingState: form.sms ? 'SUBSCRIBED' : initial.sms ? 'UNSUBSCRIBED' : 'NOT_SUBSCRIBED', marketingOptInLevel: 'SINGLE_OPT_IN' } }),
+        ...((form.phone || initial.whatsapp) && (form.whatsapp !== initial.whatsapp || !id) && { shopmeWhatsappMarketingConsent: { marketingState: form.whatsapp ? 'SUBSCRIBED' : initial.whatsapp ? 'UNSUBSCRIBED' : 'NOT_SUBSCRIBED' } }),
         ...(hasAddress && { addresses: [{ address1: form.address1, address2: form.address2, city: form.city, zip: form.zip, province: form.province, countryCode: form.countryCode || null, firstName: form.firstName, lastName: form.lastName }] }),
       };
       const r = id
@@ -106,6 +109,7 @@ function CustomerFormView({ id, initial }: { id: string | null; initial: Custome
             <div className="mt-3 flex flex-col gap-2">
               <Checkbox label={t('customer.marketingConsent')} checked={form.marketing} onChange={(e) => set({ marketing: e.target.checked })} />
               <Checkbox label={t('bc.sms.consent')} checked={form.sms} onChange={(e) => set({ sms: e.target.checked })} />
+              <Checkbox label={t('bc.whatsapp.consent')} checked={form.whatsapp} onChange={(e) => set({ whatsapp: e.target.checked })} />
             </div>
             <p className="-mx-4 -mb-4 mt-4 rounded-b-lg bg-surface px-4 py-3 text-[13px] text-muted">{t('customers.consentNotice')}</p>
           </Card>
@@ -126,7 +130,7 @@ function CustomerFormView({ id, initial }: { id: string | null; initial: Custome
           )}
         </div>
         <div className="flex flex-col gap-4">
-          <Card title={t('order.notes')}><Textarea aria-label={t('order.notes')} value={form.note} onChange={(e) => set({ note: e.target.value })} /></Card>
+          <NoteCard title={t('order.notes')} value={form.note} onSave={(note) => set({ note })} />
           <Card title={t('field.tags')}><TagInput value={form.tags} onChange={(tags) => set({ tags })} removeLabel={t('common.remove')} /></Card>
           <Card title={t('customer.tax')}><Checkbox label={t('customer.taxExempt')} checked={form.taxExempt} onChange={(e) => set({ taxExempt: e.target.checked })} /></Card>
         </div>

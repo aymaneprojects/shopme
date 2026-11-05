@@ -162,6 +162,13 @@
       "when": 1793899009889,
       "tag": "0022_customers_companies_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793901116785,
+      "tag": "0023_focal_whatsapp_variants",
+      "breakpoints": true
     }
   ]
 }

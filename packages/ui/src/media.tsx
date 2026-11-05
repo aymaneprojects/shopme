@@ -49,7 +49,7 @@ export function ImageUploader({ onUploaded, onError, label, multiple = true, com
   );
 }
 
-export interface GalleryItem { key: string; url: string; alt?: string }
+export interface GalleryItem { key: string; url: string; alt?: string; /** Focal point in percent (0-100), used to position the cropped thumbnail. */ focalPoint?: { x: number; y: number } | null }
 
 /** Ordered image grid: first item is the featured image. Reorder by drag and drop or the arrow buttons. */
 export function MediaGallery({ items, onChange, canRemove = () => true, labels, onOpen, openLabel = 'View image', compact }: { /** Small fixed-size tiles in a wrapping row (product page header strip). */ compact?: boolean; /** Called with the index when an image is clicked (opens a viewer). */ onOpen?: (index: number) => void; openLabel?: string; items: GalleryItem[]; onChange: (items: GalleryItem[]) => void; canRemove?: (item: GalleryItem) => boolean; labels: { remove: string; moveLeft: string; moveRight: string; featured: string; alt: string } }) {
@@ -66,8 +66,8 @@ export function MediaGallery({ items, onChange, canRemove = () => true, labels, 
         <li key={it.key} draggable onDragStart={() => setDrag(i)} onDragOver={(e) => e.preventDefault()} onDrop={() => { if (drag !== null) move(drag, i); setDrag(null); }}
           className={cx('group relative overflow-hidden rounded-lg border border-line bg-surface', compact ? 'size-24' : i === 0 && 'col-span-2 row-span-2')}>
           {onOpen
-            ? <button type="button" aria-label={`${openLabel}: ${it.alt ?? ''}`.trim()} onClick={() => onOpen(i)} className="block w-full cursor-zoom-in"><img src={it.url} alt={it.alt ?? ''} className="aspect-square w-full object-cover" /></button>
-            : <img src={it.url} alt={it.alt ?? ''} className="aspect-square w-full object-cover" />}
+            ? <button type="button" aria-label={`${openLabel}: ${it.alt ?? ''}`.trim()} onClick={() => onOpen(i)} className="block w-full cursor-zoom-in"><img src={it.url} alt={it.alt ?? ''} className="aspect-square w-full object-cover" style={it.focalPoint ? { objectPosition: `${it.focalPoint.x}% ${it.focalPoint.y}%` } : undefined} /></button>
+            : <img src={it.url} alt={it.alt ?? ''} className="aspect-square w-full object-cover" style={it.focalPoint ? { objectPosition: `${it.focalPoint.x}% ${it.focalPoint.y}%` } : undefined} />}
           {i === 0 && <span className="absolute left-1 top-1 rounded bg-canvas/90 px-1.5 py-0.5 text-xs">{labels.featured}</span>}
           <div className="absolute inset-x-0 bottom-0 flex justify-center gap-1 bg-canvas/85 p-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
             <button type="button" aria-label={labels.moveLeft} disabled={i === 0} onClick={() => move(i, i - 1)} className="rounded p-1 hover:bg-line disabled:opacity-40"><ArrowLeft className="size-4" /></button>

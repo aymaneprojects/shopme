@@ -6,11 +6,16 @@ import { Node, registerNode } from '../types/node';
 import { File_, Media_, absUrl, defineTypedPayload } from '../types/catalog';
 
 /** Admin image shape. `id` is nullable like the real `Image.id`. */
-interface ImageShape { id: string | null; url: string; altText: string | null; width: number | null; height: number | null }
-export const imageOf = (ctx: GraphQLContext, m: Media): ImageShape => ({ id: `gid://shopify/ImageSource/${m.id}`, url: absUrl(ctx, m.url) ?? '', altText: m.alt, width: m.width, height: m.height });
+interface ImageShape { id: string | null; url: string; altText: string | null; width: number | null; height: number | null; focal?: { x: number; y: number } | null }
+export const imageOf = (ctx: GraphQLContext, m: Media): ImageShape => ({ id: `gid://shopify/ImageSource/${m.id}`, url: absUrl(ctx, m.url) ?? '', altText: m.alt, width: m.width, height: m.height, focal: m.focalX != null && m.focalY != null ? { x: m.focalX, y: m.focalY } : null });
 
 const ImageTransformInput = builder.inputType('ImageTransformInput', {
   fields: (t) => ({ maxWidth: t.int(), maxHeight: t.int(), scale: t.int({ defaultValue: 1 }), preferredContentType: t.string() }),
+});
+const FocalPoint = builder.objectRef<{ x: number; y: number }>('ShopmeFocalPoint').implement({ fields: (t) => ({ x: t.exposeFloat('x'), y: t.exposeFloat('y') }) });
+const ImagePresentation = builder.objectRef<{ x: number; y: number } | null>('ShopmeImagePresentation').implement({
+  description: 'How the storefront crops the image: the focal point (percent of the width and height) becomes its `object-position`.',
+  fields: (t) => ({ focalPoint: t.field({ type: FocalPoint, nullable: true, resolve: (f) => f }) }),
 });
 export const Image = builder.objectRef<ImageShape>('Image').implement({
   fields: (t) => ({
@@ -19,6 +24,7 @@ export const Image = builder.objectRef<ImageShape>('Image').implement({
     altText: t.exposeString('altText', { nullable: true }),
     width: t.exposeInt('width', { nullable: true }),
     height: t.exposeInt('height', { nullable: true }),
+    shopmePresentation: t.field({ type: ImagePresentation, resolve: (i) => i.focal ?? null }),
   }),
 });
 

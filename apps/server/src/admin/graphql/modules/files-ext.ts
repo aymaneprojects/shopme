@@ -9,8 +9,9 @@ import { File_, defineTypedPayload } from '../types/catalog';
 import { FileFolder, cacheFileMeta } from './files';
 
 const FileConnection = defineConnection('File', File_ as never);
+const FocalPointInput = builder.inputType('ShopmeFocalPointInput', { fields: (t) => ({ x: t.float({ required: true }), y: t.float({ required: true }) }) });
 const FileUpdateInput = builder.inputType('FileUpdateInput', {
-  fields: (t) => ({ id: t.id({ required: true }), alt: t.string(), originalSource: t.string(), previewImageSource: t.string(), filename: t.string() }),
+  fields: (t) => ({ id: t.id({ required: true }), alt: t.string(), originalSource: t.string(), previewImageSource: t.string(), filename: t.string(), focalPoint: t.field({ type: FocalPointInput, description: 'ShopMe extension: null clears the focal point.' }) }),
 });
 const FileUpdatePayload = defineTypedPayload<{ files: import('@shopme/core').Media[] | null }>('FileUpdatePayload', 'FilesUserError', (t) => ({
   files: t.field({ type: [File_], nullable: true, resolve: (p) => p.files }),
@@ -117,7 +118,7 @@ builder.mutationFields((t) => ({
       for (const [i, f] of a.files.entries()) {
         const id = mediaId(String(f.id));
         if (!id) return { files: null, userErrors: [{ field: ['files', String(i), 'id'], message: 'File does not exist', code: 'FILE_DOES_NOT_EXIST' }] };
-        updates.push({ id, alt: f.alt, originalSource: f.originalSource });
+        updates.push({ id, alt: f.alt, originalSource: f.originalSource, focalPoint: f.focalPoint });
       }
       const r = await updateFiles(ctx.db, ctx.shopId, updates);
       return r.ok ? { files: r.value, userErrors: [] } : { files: null, userErrors: r.errors };

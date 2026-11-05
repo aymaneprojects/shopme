@@ -119,6 +119,7 @@ const router = createBrowserRouter(
           { path: 'general', element: L(() => import('./pages/settings/General'), 'GeneralSettings') },
           { path: 'payments', element: L(() => import('./pages/settings/Payments'), 'PaymentsSettings') },
           { path: 'checkout', element: L(() => import('./pages/settings/Checkout'), 'CheckoutSettings') },
+          { path: 'checkout/:id', element: L(() => import('./pages/settings/Checkout'), 'CheckoutConfigurationPage') },
           { path: 'shipping', element: L(() => import('./pages/settings/Shipping'), 'ShippingSettings') },
           { path: 'shipping/profiles/:id', element: L(() => import('./pages/settings/ShippingProfile'), 'ShippingProfilePage') },
           { path: 'shipping/documents', element: L(() => import('./pages/settings/Documents'), 'DocumentsSettings') },

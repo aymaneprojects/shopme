@@ -175,17 +175,19 @@ export function QuantityPopover({ value, onApply, trigger, labels, disabled }: {
   );
 }
 
-export interface ViewerImage { key: string; url: string; name: string; alt: string; details?: string; usedIn?: string }
+export interface ViewerImage { key: string; url: string; name: string; alt: string; details?: string; usedIn?: string; /** Focal point in percent of the width and height (0-100). */ focalPoint?: { x: number; y: number } | null }
 
 /** Full-screen media viewer: image on the left, an information panel (name, alt text, details) on the right. */
-export function MediaViewer({ items, index, onIndexChange, onClose, onSave, labels, downloadHref }: {
+export function MediaViewer({ items, index, onIndexChange, onClose, onSave, onFocalPoint, labels, downloadHref }: {
   items: ViewerImage[];
   index: number | null;
   onIndexChange: (i: number) => void;
   onClose: () => void;
   onSave?: (item: ViewerImage, change: { name: string; alt: string }) => void;
+  /** Enables setting a focal point by clicking the image (null clears it). Return nothing; the caller stores it and passes it back in `items`. */
+  onFocalPoint?: (item: ViewerImage, point: { x: number; y: number } | null) => void;
   downloadHref?: (item: ViewerImage) => string;
-  labels: { close: string; info: string; name: string; alt: string; details: string; usedIn: string; save: string; counter: (i: number, n: number) => string; previous: string; next: string; download: string };
+  labels: { close: string; info: string; name: string; alt: string; details: string; usedIn: string; save: string; counter: (i: number, n: number) => string; previous: string; next: string; download: string; focalPoint?: string; focalHint?: string; focalClear?: string };
 }) {
   const item = index === null ? null : items[index];
   const [name, setName] = useState('');
@@ -219,7 +221,14 @@ export function MediaViewer({ items, index, onIndexChange, onClose, onSave, labe
         </div>
       </header>
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <div className="grid min-h-0 flex-1 place-items-center p-6"><img src={item.url} alt={item.alt} className="max-h-full max-w-full object-contain" /></div>
+        <div className="grid min-h-0 flex-1 place-items-center p-6">
+          {onFocalPoint ? (
+            <div className="relative inline-block max-h-full max-w-full">
+              <img src={item.url} alt={item.alt} draggable={false} title={labels.focalHint} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); onFocalPoint(item, { x: Math.round(Math.min(100, Math.max(0, ((e.clientX - r.left) / r.width) * 100)) * 10) / 10, y: Math.round(Math.min(100, Math.max(0, ((e.clientY - r.top) / r.height) * 100)) * 10) / 10 }); }} className="block max-h-[calc(100vh-8rem)] max-w-full cursor-crosshair object-contain" />
+              {item.focalPoint && <span aria-hidden className="pointer-events-none absolute size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-primary-top/70 shadow-[0_0_0_2px_rgb(0_0_0/0.5)]" style={{ left: `${item.focalPoint.x}%`, top: `${item.focalPoint.y}%` }} />}
+            </div>
+          ) : <img src={item.url} alt={item.alt} className="max-h-full max-w-full object-contain" />}
+        </div>
         <aside className="w-full shrink-0 overflow-y-auto p-3 md:w-80">
           <form className="rounded-xl bg-[#1c1c1f] p-3 text-[13px]" onSubmit={(e) => { e.preventDefault(); onSave?.(item, { name, alt }); }}>
             <h2 className="mb-2 font-semibold">{labels.info}</h2>
@@ -227,6 +236,11 @@ export function MediaViewer({ items, index, onIndexChange, onClose, onSave, labe
             <input id="mv-name" value={name} onChange={(e) => setName(e.target.value)} className="mb-2 h-8 w-full rounded-lg border border-white/20 bg-transparent px-2 text-[13px]" />
             <label className="mb-1 block text-xs font-medium text-white/80" htmlFor="mv-alt">{labels.alt}</label>
             <textarea id="mv-alt" rows={5} value={alt} onChange={(e) => setAlt(e.target.value)} className="mb-2 w-full rounded-lg border border-white/20 bg-transparent px-2 py-1.5 text-[13px]" />
+            {onFocalPoint && <>
+              <div className="text-xs font-medium text-white/80">{labels.focalPoint}</div>
+              <p className="mb-1 text-xs text-white/60">{labels.focalHint}</p>
+              <p className="mb-2 flex items-center gap-2 text-xs text-white/80">{item.focalPoint ? `${item.focalPoint.x}% · ${item.focalPoint.y}%` : '—'}{item.focalPoint && labels.focalClear && <button type="button" className="underline hover:text-white" onClick={() => onFocalPoint(item, null)}>{labels.focalClear}</button>}</p>
+            </>}
             {item.details && <><div className="text-xs font-medium text-white/80">{labels.details}</div><p className="mb-2 text-xs text-white/60">{item.details}</p></>}
             {item.usedIn && <><div className="text-xs font-medium text-white/80">{labels.usedIn}</div><p className="mb-2 text-xs text-white/60">{item.usedIn}</p></>}
             {onSave && <Button type="submit" variant="primary" size="sm" disabled={name === item.name && alt === item.alt}>{labels.save}</Button>}

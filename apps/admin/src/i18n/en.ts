@@ -23,6 +23,7 @@ import { enQaFeatures } from './en-qa-features';
 import { enEditor } from './en-editor';
 import { enTimeline } from './en-timeline';
 import { enQaStore } from './en-qa-store';
+import { enFinal } from './en-final';
 import { enQaSettings } from './en-qa-settings';
 import { enQaHome } from './en-qa-home';
 import { enShipping } from './en-shipping';
@@ -138,6 +139,7 @@ export const en = {
   ...enQaFeatures,
   ...enCheckout,
   ...enQaStore,
+  ...enFinal,
   ...enQaSettings,
   ...enQaHome,
   ...enTransfers,

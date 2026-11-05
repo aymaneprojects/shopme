@@ -172,7 +172,7 @@ export function registerFilters(l: Liquid): void {
       srcset = str(widths).split(',').map((x) => x.trim()).filter(Boolean).map((x) => `${withParams(base, { width: x, height: sw && sh && /[?&](crop|pad_color)=/.test(src) ? Math.round((Number(x) * sh) / sw) : undefined })} ${x}w`).join(', ');
     }
     const dataAttrs: Record<string, unknown> = {};
-    for (const [k, val] of Object.entries(rest)) dataAttrs[k.replace(/_/g, '-')] = val;
+    for (const [k, val] of Object.entries(rest)) { if (k === 'style' && !str(val).trim()) continue; dataAttrs[k.replace(/_/g, '-')] = val; }
     return `<img${attrs({ src, alt: alt ?? (typeof v === 'object' ? v?.alt ?? '' : ''), class: cls, srcset, sizes, width: w, height: hgt, loading, ...dataAttrs })}>`;
   };
   reg('image_tag', (v, ...a) => tag(v, a));

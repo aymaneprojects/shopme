@@ -20,6 +20,7 @@ import { configOf } from '../settings/config';
 import { checkoutSettingsOf, isPhone, requiredAddressKeys, stripHiddenAddressFields, tipFor, type CheckoutSettings } from './settings';
 
 export * from './settings';
+export * from './configurations';
 
 /** A checkout is the cart row plus the buyer's details (email, address, chosen shipping rate, discount codes). */
 

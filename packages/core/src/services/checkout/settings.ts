@@ -57,8 +57,8 @@ export function checkoutSettingsOf(shop: Pick<Shop, 'settings'>): CheckoutSettin
 
 export type CheckoutSettingsInput = Partial<Omit<CheckoutSettings, 'tipping'>> & { tipping?: { enabled?: boolean | null; presets?: number[] | null } | null };
 
-export async function updateCheckoutSettings(db: Executor, shop: Shop, input: CheckoutSettingsInput): Promise<Result<CheckoutSettings>> {
-  const cur = checkoutSettingsOf(shop);
+/** Validate an input against the current settings and return the merged result (pure; used by the live settings and by stored configurations). */
+export function mergeCheckoutSettings(cur: CheckoutSettings, input: CheckoutSettingsInput): Result<CheckoutSettings> {
   const check = <T extends string>(v: T | null | undefined, allowed: readonly T[], field: string): Result<null> =>
     v == null || (allowed as readonly string[]).includes(v) ? okR(null) : errR([field], `${field} is invalid`, 'INVALID');
   for (const [field, v, allowed] of [
@@ -76,16 +76,24 @@ export async function updateCheckoutSettings(db: Executor, shop: Shop, input: Ch
   }
   const tipping = { enabled: input.tipping?.enabled ?? cur.tipping.enabled, presets };
   if (tipping.enabled && !presets.length) return errR(['tipping', 'presets'], 'Add at least one tip preset to turn tipping on', 'BLANK');
-  const next: CheckoutSettings = {
+  return okR({
     contactMethod: input.contactMethod ?? cur.contactMethod, accountMode: input.accountMode ?? cur.accountMode, nameMode: input.nameMode ?? cur.nameMode,
     company: input.company ?? cur.company, address2: input.address2 ?? cur.address2, phone: input.phone ?? cur.phone, marketing: input.marketing ?? cur.marketing,
     tipping, orderNotes: input.orderNotes ?? cur.orderNotes,
-  };
-  // The sign-in requirement lives in the customer accounts mode; a switch here keeps a disabled-accounts shop disabled.
+  });
+}
+
+/** The shop settings object with `next` as the live checkout settings; the sign-in requirement lives in the customer accounts mode. */
+export function withCheckoutSettings(shop: Pick<Shop, 'settings'>, next: CheckoutSettings): Shop['settings'] {
   const mode = accountsModeOf(shop);
-  const settings = withAccountsMode({ ...shop.settings, checkout: next }, next.accountMode === 'required' ? 'REQUIRED' : mode === 'DISABLED' ? 'DISABLED' : 'OPTIONAL');
-  await db.update(shops).set({ settings, updatedAt: new Date() }).where(eq(shops.id, shop.id));
-  return okR(next);
+  return withAccountsMode({ ...shop.settings, checkout: next }, next.accountMode === 'required' ? 'REQUIRED' : mode === 'DISABLED' ? 'DISABLED' : 'OPTIONAL');
+}
+
+export async function updateCheckoutSettings(db: Executor, shop: Shop, input: CheckoutSettingsInput): Promise<Result<CheckoutSettings>> {
+  const merged = mergeCheckoutSettings(checkoutSettingsOf(shop), input);
+  if (!merged.ok) return merged;
+  await db.update(shops).set({ settings: withCheckoutSettings(shop, merged.value), updatedAt: new Date() }).where(eq(shops.id, shop.id));
+  return okR(merged.value);
 }
 
 /** Address keys the settings ask for (hidden ones are dropped, required ones are validated). */

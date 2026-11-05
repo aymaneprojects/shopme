@@ -3,6 +3,7 @@
  * and the in-app activity feed (admin bell).
  */
 import {
+  activateCheckoutConfiguration, createCheckoutConfiguration, deleteCheckoutConfiguration, listCheckoutConfigurations, renameCheckoutConfiguration, updateCheckoutConfiguration, type CheckoutConfiguration,
   checkoutSettingsOf, getShop, isNotificationKey, listActivity, markActivityRead, returnRulesOf, setNotificationEnabled, staffOrderRecipientsOf, updateCheckoutSettings, updateReturnRules, updateStaffOrderRecipients,
   type ActivityEntry, type CheckoutSettings, type ReturnRules,
 } from '@shopme/core';
@@ -41,6 +42,18 @@ const CheckoutSettingsInput = builder.inputType('ShopmeCheckoutSettingsInput', {
   }),
 });
 const CheckoutPayload = definePayload<{ settings: CheckoutSettings | null }>('ShopmeCheckoutSettingsUpdatePayload', (t) => ({ settings: t.field({ type: CheckoutSettingsType, nullable: true, resolve: (p) => p.settings }) }));
+
+/* ------------------------------ configurations ------------------------------ */
+
+const ConfigurationType = builder.objectRef<CheckoutConfiguration>('ShopmeCheckoutConfiguration').implement({
+  fields: (t) => ({
+    id: t.exposeString('id'), name: t.exposeString('name'), active: t.exposeBoolean('active'),
+    settings: t.field({ type: CheckoutSettingsType, resolve: (c) => c.settings }),
+    config: t.field({ type: 'JSON', description: 'Look: address autofill and branding.', resolve: (c) => c.config }),
+  }),
+});
+const ConfigurationPayload = definePayload<{ configuration: CheckoutConfiguration | null }>('ShopmeCheckoutConfigurationPayload', (t) => ({ configuration: t.field({ type: ConfigurationType, nullable: true, resolve: (p) => p.configuration }) }));
+const ConfigurationDeletePayload = definePayload<{ deletedId: string | null }>('ShopmeCheckoutConfigurationDeletePayload', (t) => ({ deletedId: t.string({ nullable: true, resolve: (p) => p.deletedId }) }));
 
 /* ------------------------------ return rules ------------------------------ */
 
@@ -93,6 +106,7 @@ const staffOf = (ctx: GraphQLContext) => (ctx.auth.kind === 'session' ? ctx.auth
 const shopOf = async (ctx: GraphQLContext) => (await getShop(ctx.db, ctx.shopId))!;
 
 builder.queryFields((t) => ({
+  shopmeCheckoutConfigurations: t.field({ type: [ConfigurationType], resolve: async (_r, _a, ctx) => { requireScope(ctx, 'read_shop'); return listCheckoutConfigurations(await shopOf(ctx)); } }),
   shopmeCheckoutSettings: t.field({ type: CheckoutSettingsType, resolve: async (_r, _a, ctx) => { requireScope(ctx, 'read_shop'); return checkoutSettingsOf(await shopOf(ctx)); } }),
   shopmeReturnRules: t.field({ type: ReturnRulesType, resolve: async (_r, _a, ctx) => { requireScope(ctx, 'read_shop'); return returnRulesOf(await shopOf(ctx)); } }),
   shopmeStaffOrderRecipients: t.field({ type: Recipients, resolve: async (_r, _a, ctx) => { requireScope(ctx, 'read_shop'); return staffOrderRecipientsOf(await shopOf(ctx)); } }),
@@ -103,6 +117,53 @@ builder.queryFields((t) => ({
 }));
 
 builder.mutationFields((t) => ({
+  shopmeCheckoutConfigurationCreate: t.field({
+    type: ConfigurationPayload, description: 'Create a configuration, copying `fromId` (default: the active one).',
+    args: { name: t.arg.string({ required: true }), fromId: t.arg.string() },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_shop');
+      const r = await createCheckoutConfiguration(ctx.db, await shopOf(ctx), { name: a.name, fromId: a.fromId });
+      return r.ok ? { configuration: r.value, userErrors: [] } : { configuration: null, userErrors: r.errors };
+    },
+  }),
+  shopmeCheckoutConfigurationRename: t.field({
+    type: ConfigurationPayload, args: { id: t.arg.string({ required: true }), name: t.arg.string({ required: true }) },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_shop');
+      const shop = await shopOf(ctx);
+      const r = await renameCheckoutConfiguration(ctx.db, shop, a.id, a.name);
+      return r.ok ? { configuration: listCheckoutConfigurations((await shopOf(ctx))).find((c) => c.id === a.id) ?? null, userErrors: [] } : { configuration: null, userErrors: r.errors };
+    },
+  }),
+  shopmeCheckoutConfigurationUpdate: t.field({
+    type: ConfigurationPayload, args: { id: t.arg.string({ required: true }), settings: t.arg({ type: CheckoutSettingsInput }), config: t.arg({ type: 'JSON' }) },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_shop');
+      const s = a.settings;
+      const r = await updateCheckoutConfiguration(ctx.db, await shopOf(ctx), a.id, {
+        settings: s ? { contactMethod: s.contactMethod ?? undefined, accountMode: s.accountMode ?? undefined, nameMode: s.nameMode ?? undefined, company: s.company ?? undefined, address2: s.address2 ?? undefined,
+          phone: s.phone ?? undefined, marketing: s.marketing ?? undefined, orderNotes: s.orderNotes ?? undefined, tipping: s.tipping ?? undefined } : undefined,
+        config: a.config ?? undefined,
+      });
+      return r.ok ? { configuration: r.value, userErrors: [] } : { configuration: null, userErrors: r.errors };
+    },
+  }),
+  shopmeCheckoutConfigurationActivate: t.field({
+    type: ConfigurationPayload, args: { id: t.arg.string({ required: true }) },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_shop');
+      const r = await activateCheckoutConfiguration(ctx.db, await shopOf(ctx), a.id);
+      return r.ok ? { configuration: r.value, userErrors: [] } : { configuration: null, userErrors: r.errors };
+    },
+  }),
+  shopmeCheckoutConfigurationDelete: t.field({
+    type: ConfigurationDeletePayload, args: { id: t.arg.string({ required: true }) },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_shop');
+      const r = await deleteCheckoutConfiguration(ctx.db, await shopOf(ctx), a.id);
+      return r.ok ? { deletedId: r.value.id, userErrors: [] } : { deletedId: null, userErrors: r.errors };
+    },
+  }),
   shopmeCheckoutSettingsUpdate: t.field({
     type: CheckoutPayload, args: { input: t.arg({ type: CheckoutSettingsInput, required: true }) },
     resolve: async (_r, { input }, ctx) => {
