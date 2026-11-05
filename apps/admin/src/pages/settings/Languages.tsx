@@ -45,7 +45,7 @@ export function LanguagesSettings() {
         <ul className="divide-y divide-line">
           {rows.map((r) => (
             <li key={r.locale} className="grid grid-cols-[1fr_8rem_2.5rem] items-center gap-3 px-4 py-3 text-[13px]">
-              <span><span className="block font-medium">{nameOf(r.locale, lang)}</span><span className="block text-xs text-muted">{r.primary ? t('lang.primary') : r.locale}</span></span>
+              <span><span className="block font-medium first-letter:uppercase">{nameOf(r.locale, lang)}</span><span className="block text-xs text-muted">{r.primary ? t('lang.primary') : r.locale}</span></span>
               <span><Badge tone={r.published || r.primary ? 'success' : 'neutral'}>{t(r.published || r.primary ? 'lang.published' : 'lang.unpublished')}</Badge></span>
               <span>
                 {!r.primary && (

@@ -74,9 +74,8 @@ export function LocationsSettings() {
   const openEdit = (l: Loc) => { setError(null); setEditing({ loc: l, form: formOf(l) }); };
   return (
     <>
-      <SettingsActions><Button variant="primary" onClick={() => { setError(null); setEditing({ loc: null, form: blank(country) }); }}><Plus className="size-4" />{t('loc.add')}</Button></SettingsActions>
       <div className="flex flex-col gap-6">
-        <Section title={t('loc.all')} description={t('loc.activeCount', { n: active.length })}>
+        <Section title={t('loc.all')} description={t('loc.activeCount', { n: active.length })} action={<Button size="sm" aria-label={t('loc.add')} onClick={() => { setError(null); setEditing({ loc: null, form: blank(country) }); }}><Plus className="size-4" />{t('loc.addShort')}</Button>}>
           {q.error && <Banner>{q.error.message}</Banner>}
           {q.isLoading && <Skeleton className="h-24" />}
           {q.data && all.length === 0 && <EmptyState icon={<MapPin className="size-10" />} title={t('loc.emptyTitle')} description={t('loc.emptyBody')} />}
@@ -89,6 +88,7 @@ export function LocationsSettings() {
                 <Search className="size-4 shrink-0 text-muted" aria-hidden />
                 <input type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('loc.search')} aria-label={t('loc.search')} className="h-7 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" />
               </div>
+              <div className="flex items-center gap-3 border-b border-line bg-surface px-4 py-1.5 text-[13px] text-muted"><span className="flex-1">{t('loc.col.location')}</span><span>{t('field.status')}</span><span className="w-[4.5rem]" /></div>
               <ul className="divide-y divide-line">
                 {shown.map((l) => {
                   const pos = active.findIndex((x) => x.id === l.id);

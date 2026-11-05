@@ -1,0 +1,22 @@
+// Revue des réglages : titres de pages et noms de modèles de notification.
+export const frQaSettings = {
+  'checkout.pageTitle': 'Page de paiement', 'notif.customerPageTitle': 'Notifications client', 'notif.staffPageTitle': 'Notifications employés',
+  'delivery.shipping': 'Expédition', 'delivery.profilesCount': '{n} profils', 'delivery.profilesCount.one': '{n} profil',
+  'loc.addShort': 'Emplacement', 'loc.col.location': 'Emplacement',
+  'notif.tpl.order_confirmation.name': 'Confirmation de commande', 'notif.tpl.order_confirmation.desc': 'Envoyée lorsqu’un client passe une commande',
+  'notif.tpl.shipping_confirmation.name': 'Confirmation d’expédition', 'notif.tpl.shipping_confirmation.desc': 'Envoyée lorsque vous marquez une commande comme étant traitée',
+  'notif.tpl.shipping_update.name': 'Mise à jour d’expédition', 'notif.tpl.shipping_update.desc': 'Envoyée lorsque le suivi d’un colis change',
+  'notif.tpl.order_cancelled.name': 'Commande annulée', 'notif.tpl.order_cancelled.desc': 'Envoyée lorsqu’une commande est annulée et que le client est prévenu',
+  'notif.tpl.refund.name': 'Remboursement', 'notif.tpl.refund.desc': 'Envoyée lorsqu’un remboursement est effectué et que le client est prévenu',
+  'notif.tpl.draft_order_invoice.name': 'Facture de commande provisoire', 'notif.tpl.draft_order_invoice.desc': 'Envoyée lorsque vous envoyez la facture d’une commande provisoire',
+  'notif.tpl.customer_account_welcome.name': 'Bienvenue sur le compte client', 'notif.tpl.customer_account_welcome.desc': 'Envoyée à un client après la création de son compte',
+  'notif.tpl.customer_account_invite.name': 'Invitation au compte client', 'notif.tpl.customer_account_invite.desc': 'Invite un client à activer son compte',
+  'notif.tpl.password_reset.name': 'Réinitialisation du mot de passe', 'notif.tpl.password_reset.desc': 'Envoyée lorsqu’un client demande à réinitialiser son mot de passe',
+  'notif.tpl.gift_card_issued.name': 'Carte-cadeau', 'notif.tpl.gift_card_issued.desc': 'Envoyée au destinataire lorsqu’une carte-cadeau est émise',
+  'notif.tpl.store_credit_account_credit.name': 'Crédit en magasin émis', 'notif.tpl.store_credit_account_credit.desc': 'Envoyée lorsque du crédit en magasin est ajouté à un compte',
+  'notif.tpl.abandoned_checkout.name': 'Panier abandonné', 'notif.tpl.abandoned_checkout.desc': 'Envoyée à un client qui a laissé des articles dans son panier',
+  'notif.tpl.staff_new_order.name': 'Nouvelle commande', 'notif.tpl.staff_new_order.desc': 'Envoyée à votre équipe lorsqu’une commande est passée',
+  'notif.tpl.contact_form.name': 'Formulaire de contact', 'notif.tpl.contact_form.desc': 'Envoyée à l’adresse de la boutique lorsqu’un visiteur envoie le formulaire',
+  'notif.tpl.staff_invite.name': 'Invitation du personnel', 'notif.tpl.staff_invite.desc': 'Envoyée lorsque vous invitez quelqu’un dans l’administration',
+  'notif.tpl.staff_login_alert.name': 'Alerte de connexion', 'notif.tpl.staff_login_alert.desc': 'Envoyée à un membre du personnel lorsque son compte se connecte',
+} as const;

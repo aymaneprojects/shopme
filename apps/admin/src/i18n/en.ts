@@ -17,6 +17,7 @@ import { enQaCatalog } from './en-qa-catalog';
 import { enEditor } from './en-editor';
 import { enTimeline } from './en-timeline';
 import { enQaStore } from './en-qa-store';
+import { enQaSettings } from './en-qa-settings';
 import { enShipping } from './en-shipping';
 import { enTransfers } from './en-transfers';
 import { enMetaobjects } from './en-metaobjects';
@@ -127,6 +128,7 @@ export const en = {
   ...enQaCatalog,
   ...enCheckout,
   ...enQaStore,
+  ...enQaSettings,
   ...enTransfers,
   ...enDiscountCodes,
   ...enMarkets,

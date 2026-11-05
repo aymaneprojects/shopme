@@ -46,7 +46,7 @@ export const frPlatform: Record<keyof typeof enPlatform, string> = {
   'backup.saved': 'Réglages enregistrés', 'backup.now': 'Sauvegarder maintenant', 'backup.list': 'Sauvegardes enregistrées', 'backup.empty': 'Aucune sauvegarde automatique pour l’instant.', 'backup.delete': 'Supprimer', 'backup.deleted': 'Sauvegarde supprimée',
 
   'lang.title': 'Langues', 'lang.help': 'Vendez dans plusieurs langues. Chaque langue publiée a sa propre adresse (par exemple /fr) et un sélecteur de langue dans le thème.',
-  'lang.primary': 'Principale', 'lang.published': 'Publiée', 'lang.unpublished': 'Non publiée', 'lang.add': 'Ajouter une langue', 'lang.choose': 'Choisir une langue', 'lang.publish': 'Publier', 'lang.unpublish': 'Dépublier',
+  'lang.primary': 'Par défaut', 'lang.published': 'Publiée', 'lang.unpublished': 'Non publiée', 'lang.add': 'Ajouter une langue', 'lang.choose': 'Choisir une langue', 'lang.publish': 'Publier', 'lang.unpublish': 'Dépublier',
   'lang.remove': 'Retirer', 'lang.removeTitle': 'Retirer {name} ?', 'lang.removeBody': 'Ses traductions sont aussi supprimées.', 'lang.translate': 'Traduire', 'lang.added': 'Langue ajoutée', 'lang.updated': 'Langue mise à jour', 'lang.removed': 'Langue retirée',
 
   'tr.title': 'Traduire le contenu', 'tr.locale': 'Langue', 'tr.noLocales': 'Ajoutez d’abord une langue.', 'tr.addLanguage': 'Aller aux langues', 'tr.resources': 'Ressources', 'tr.source': 'Original ({locale})', 'tr.translation': 'Traduction ({locale})',

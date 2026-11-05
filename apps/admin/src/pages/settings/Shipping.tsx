@@ -4,7 +4,7 @@ import { Box, MapPin, MoreHorizontal, Pencil, Plus, Star, Trash2, Truck } from '
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
-import { ButtonRow, LinkRow, RowCard, Section, SettingsActions, SubHeader } from '../../components/SettingsKit';
+import { ButtonRow, CollapseRow, LinkRow, RowCard, Section, SettingsActions, SubHeader } from '../../components/SettingsKit';
 import { useFormat } from '../../components/shared';
 import {
   DELIVERY_LOCATIONS, DELIVERY_PROFILES, DELIVERY_PROFILE_CREATE, LOCAL_DELIVERY_UPDATE, LOCAL_PICKUP_DISABLE, LOCAL_PICKUP_ENABLE, SHIPPING_PACKAGES, SHIPPING_PACKAGE_CREATE, SHIPPING_PACKAGE_DELETE,
@@ -90,40 +90,43 @@ export function ShippingSettings() {
     <div className="flex flex-col gap-6">
       <SettingsActions><Button variant="primary" onClick={() => { setError(null); setCreating(''); }}><Plus className="size-4" />{t('delivery.createProfile')}</Button></SettingsActions>
 
-      <Section title={t('delivery.profiles')} description={t('delivery.profilesHelp')}>
+      <Section title={t('delivery.shipping')}>
         {profiles.isError && <Banner>{(profiles.error as Error).message}</Banner>}
         {profiles.isLoading && <Skeleton className="h-24" />}
         <RowCard>
-          {rows.map((p) => (
-            <LinkRow key={p.id} to={`/settings/shipping/profiles/${gidToNum(p.id)}`} icon={Truck} title={p.name}
-              description={[p.default ? t('delivery.allOtherProducts') : t('delivery.productsCount', { n: p.productVariantsCount?.count ?? 0 }), t('delivery.originsCount', { n: p.originLocationCount }), t('delivery.countriesCount', { n: p.zoneCountryCount })].join(' · ')}
-              trailing={<>{p.locationsWithoutRatesCount > 0 && <Badge tone="warning">{t('delivery.noRatesBadge')}</Badge>}{p.default && <Badge>{t('delivery.general')}</Badge>}</>} />
-          ))}
+          <CollapseRow defaultOpen title={t('delivery.profiles')} description={t('delivery.profilesHelp')} summary={t('delivery.profilesCount', { n: rows.length })}>
+            <RowCard className="border border-line shadow-none">
+              {rows.map((p) => (
+                <LinkRow key={p.id} to={`/settings/shipping/profiles/${gidToNum(p.id)}`} icon={Truck} title={p.name}
+                  description={[p.default ? t('delivery.allOtherProducts') : t('delivery.productsCount', { n: p.productVariantsCount?.count ?? 0 }), t('delivery.originsCount', { n: p.originLocationCount }), t('delivery.countriesCount', { n: p.zoneCountryCount })].join(' · ')}
+                  trailing={<>{p.locationsWithoutRatesCount > 0 && <Badge tone="warning">{t('delivery.noRatesBadge')}</Badge>}{p.default && <Badge>{t('delivery.general')}</Badge>}</>} />
+              ))}
+            </RowCard>
+          </CollapseRow>
+          <CollapseRow title={t('delivery.packages')} description={t('delivery.packagesHelp')} summary={t('delivery.packagesCount', { n: pkgs.length })}>
+            <RowCard className="border border-line shadow-none">
+              {pkgs.map((p) => (
+                <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+                  <Box className="size-4 shrink-0 text-muted" />
+                  <span className="min-w-0 flex-1 text-[13px]"><span className="block font-medium">{p.name}</span><span className="block text-muted">{pkgText(p)}</span></span>
+                  {p.default && <Badge tone="info">{t('delivery.shopDefault')}</Badge>}
+                  <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
+                    { key: 'edit', icon: <Pencil />, label: t('common.edit'), onSelect: () => { setError(null); setPkg({ id: p.id, name: p.name, type: p.type, length: p.length?.toString() ?? '', width: p.width?.toString() ?? '', height: p.height?.toString() ?? '', dimensionUnit: p.dimensionUnit, weight: p.weight?.value.toString() ?? '', weightUnit: p.weight?.unit ?? shop.weightUnit, makeDefault: p.default }); } },
+                    { key: 'default', icon: <Star />, label: t('delivery.makeDefault'), disabled: p.default, onSelect: () => makeDefault.mutate(p.id) },
+                    { key: 'delete', icon: <Trash2 />, label: t('common.delete'), onSelect: () => setDelPkg(p) },
+                  ]} />
+                </div>
+              ))}
+              <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13px] hover:bg-hover" onClick={() => { setError(null); setPkg(blankPkg(shop.weightUnit)); }}><Plus className="size-4" />{t('delivery.addPackage')}</button>
+            </RowCard>
+          </CollapseRow>
         </RowCard>
       </Section>
 
       <Section title={t('delivery.methods')}>
         <RowCard>
-          <LinkRow to="/settings/shipping/local-delivery" icon={Truck} title={t('delivery.localDelivery')} description={t('delivery.localDeliveryHelp')} trailing={on(locs.filter((l) => l.shopmeLocalDelivery?.enabled).length)} />
-          <LinkRow to="/settings/shipping/pickup" icon={MapPin} title={t('delivery.localPickup')} description={t('delivery.localPickupHelp')} trailing={on(locs.filter((l) => l.localPickupSettings).length)} />
-        </RowCard>
-      </Section>
-
-      <Section title={t('delivery.packages')} description={t('delivery.packagesHelp')} action={<span className="text-[13px] text-muted">{t('delivery.packagesCount', { n: pkgs.length })}</span>}>
-        <RowCard>
-          {pkgs.map((p) => (
-            <div key={p.id} className="flex items-center gap-3 px-4 py-3">
-              <Box className="size-4 shrink-0 text-muted" />
-              <span className="min-w-0 flex-1 text-[13px]"><span className="block font-medium">{p.name}</span><span className="block text-muted">{pkgText(p)}</span></span>
-              {p.default && <Badge tone="info">{t('delivery.shopDefault')}</Badge>}
-              <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
-                { key: 'edit', icon: <Pencil />, label: t('common.edit'), onSelect: () => { setError(null); setPkg({ id: p.id, name: p.name, type: p.type, length: p.length?.toString() ?? '', width: p.width?.toString() ?? '', height: p.height?.toString() ?? '', dimensionUnit: p.dimensionUnit, weight: p.weight?.value.toString() ?? '', weightUnit: p.weight?.unit ?? shop.weightUnit, makeDefault: p.default }); } },
-                { key: 'default', icon: <Star />, label: t('delivery.makeDefault'), disabled: p.default, onSelect: () => makeDefault.mutate(p.id) },
-                { key: 'delete', icon: <Trash2 />, label: t('common.delete'), onSelect: () => setDelPkg(p) },
-              ]} />
-            </div>
-          ))}
-          <div className="px-4 py-3"><Button size="sm" onClick={() => { setError(null); setPkg(blankPkg(shop.weightUnit)); }}><Plus className="size-4" />{t('delivery.addPackage')}</Button></div>
+          <LinkRow to="/settings/shipping/local-delivery" icon={Truck} title={t('delivery.localDelivery')} trailing={on(locs.filter((l) => l.shopmeLocalDelivery?.enabled).length)} />
+          <LinkRow to="/settings/shipping/pickup" icon={MapPin} title={t('delivery.localPickup')} trailing={on(locs.filter((l) => l.localPickupSettings).length)} />
         </RowCard>
       </Section>
 
@@ -185,13 +188,13 @@ export function PickupSettings() {
     <>
       <SubHeader back="/settings/shipping" parent={t('delivery.title')} title={t('delivery.localPickup')} />
       <div className="flex flex-col gap-4">
-        <p className="text-[13px] text-muted">{t('delivery.pickupIntro')}</p>
         <Section title={t('delivery.yourLocations')}>
+          <Banner tone="info">{t('delivery.pickupIntro')}</Banner>
           {q.isLoading && <Skeleton className="h-24" />}
           {q.isError && <Banner>{(q.error as Error).message}</Banner>}
           <RowCard>
             {(q.data ?? []).map((l) => (
-              <ButtonRow key={l.id} icon={MapPin} title={l.name} description={addressLine(l)}
+              <ButtonRow key={l.id} chevron={false} title={l.name} description={addressLine(l)}
                 trailing={l.localPickupSettings ? <Badge tone="success">{t(`delivery.time.${l.localPickupSettings.pickupTime}` as never)}</Badge> : <Badge>{t('delivery.noPickup')}</Badge>}
                 onClick={() => { setError(null); setEdit({ loc: l, time: l.localPickupSettings?.pickupTime ?? 'TWO_TO_FOUR_DAYS', instructions: l.localPickupSettings?.instructions ?? '' }); }} />
             ))}
@@ -257,7 +260,7 @@ export function LocalDeliverySettings() {
         {q.isError && <Banner>{(q.error as Error).message}</Banner>}
         <RowCard>
           {(q.data ?? []).map((l) => (
-            <ButtonRow key={l.id} icon={MapPin} title={l.name} description={addressLine(l)}
+            <ButtonRow key={l.id} chevron={false} title={l.name} description={addressLine(l)}
               trailing={l.shopmeLocalDelivery?.enabled ? <Badge tone="success">{t('delivery.delivers', { price: Number(l.shopmeLocalDelivery.price.amount) ? fmt.money({ amount: l.shopmeLocalDelivery.price.amount, currencyCode: shop.currency }) : t('shipping.free') })}</Badge> : <Badge>{t('delivery.noLocalDelivery')}</Badge>}
               onClick={() => open(l)} />
           ))}

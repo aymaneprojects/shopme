@@ -52,11 +52,12 @@ function CheckoutSettingsForm({ initial }: { initial: CheckoutForm }) {
     onSuccess: () => { toast(t('settings.saved')); setError(null); void qc.invalidateQueries({ queryKey: ['checkout-settings'] }); },
     onError: (e) => setError(e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message),
   });
-  const rule = (label: string, key: 'company' | 'address2' | 'phone') => (
-    <Select label={label} value={form[key]} onChange={(e) => set({ [key]: e.target.value as Rule })}>
+  const selCls = 'h-8 rounded-md border border-line bg-canvas px-2 text-[13px] font-medium';
+  const infoRow = (label: string, control: ReactNode) => <div className="flex items-center justify-between gap-3 py-2.5 text-[13px]"><span>{label}</span>{control}</div>;
+  const rule = (label: string, key: 'company' | 'address2' | 'phone') => infoRow(label,
+    <select aria-label={label} className={selCls} value={form[key]} onChange={(e) => set({ [key]: e.target.value as Rule })}>
       <option value="hidden">{t('checkout.rule.hidden')}</option><option value="optional">{t('checkout.rule.optional')}</option><option value="required">{t('checkout.rule.required')}</option>
-    </Select>
-  );
+    </select>);
   return (
     <div className="flex flex-col gap-6">
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setPresets(initial.tipping.presets.join(', ')); setError(null); }} />
@@ -77,10 +78,10 @@ function CheckoutSettingsForm({ initial }: { initial: CheckoutForm }) {
       </Section>
       <Section title={t('checkout.info')} description={t('checkout.infoDesc')}>
         <Card>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Select label={t('checkout.info.name')} value={form.nameMode} onChange={(e) => set({ nameMode: e.target.value as CheckoutForm['nameMode'] })}>
+          <div className="-my-1 flex flex-col divide-y divide-line">
+            {infoRow(t('checkout.info.name'), <select aria-label={t('checkout.info.name')} className={selCls} value={form.nameMode} onChange={(e) => set({ nameMode: e.target.value as CheckoutForm['nameMode'] })}>
               <option value="full">{t('checkout.info.nameFull')}</option><option value="last">{t('checkout.info.nameLast')}</option>
-            </Select>
+            </select>)}
             {rule(t('checkout.info.company'), 'company')}
             {rule(t('checkout.info.address2'), 'address2')}
             {rule(t('checkout.info.phone'), 'phone')}
@@ -97,13 +98,13 @@ function CheckoutSettingsForm({ initial }: { initial: CheckoutForm }) {
       <Section title={t('checkout.tipping')} description={t('checkout.tippingDesc')}>
         <Card>
           <div className="flex flex-col gap-3">
-            <Switch checked={form.tipping.enabled} onChange={(v) => set({ tipping: { ...form.tipping, enabled: v } })} label={t('checkout.tipping.enable')} />
+            <Switch placement="end" checked={form.tipping.enabled} onChange={(v) => set({ tipping: { ...form.tipping, enabled: v } })} label={t('checkout.tipping.enable')} />
             {form.tipping.enabled && <Input className="max-w-64" label={t('checkout.tipping.presets')} help={t('checkout.tipping.presetsHelp')} value={presets} inputMode="numeric" onChange={(e) => setPresets(e.target.value)} />}
           </div>
         </Card>
       </Section>
       <Section title={t('checkout.notes')} description={t('checkout.notesDesc')}>
-        <Card><Switch checked={form.orderNotes} onChange={(v) => set({ orderNotes: v })} label={t('checkout.notes.enable')} /></Card>
+        <Card><Switch placement="end" checked={form.orderNotes} onChange={(v) => set({ orderNotes: v })} label={t('checkout.notes.enable')} /></Card>
       </Section>
     </div>
   );

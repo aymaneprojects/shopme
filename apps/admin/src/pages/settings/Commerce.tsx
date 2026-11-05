@@ -49,7 +49,7 @@ function PaymentsForm({ data }: { data: Payments }) {
         <Section title={t('payments.stripe')} description={t('payments.cardDesc')} action={<a href="https://docs.stripe.com/payments" target="_blank" rel="noreferrer" className="btn btn-secondary">{t('payments.learnMore')}</a>}>
           <Card>
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-2"><Switch checked={f.stripe} onChange={(v) => setF({ ...f, stripe: v })} label={t('payments.stripeEnable')} /><Badge tone={data.stripe.stripeConfigured ? 'success' : 'warning'}>{data.stripe.stripeConfigured ? t('payments.configured') : t('payments.notConfigured')}</Badge></div>
+              <div className="flex items-center justify-between gap-2"><Switch placement="end" checked={f.stripe} onChange={(v) => setF({ ...f, stripe: v })} label={t('payments.stripeEnable')} /><Badge tone={data.stripe.stripeConfigured ? 'success' : 'warning'}>{data.stripe.stripeConfigured ? t('payments.configured') : t('payments.notConfigured')}</Badge></div>
               {!data.stripe.stripeConfigured && <p className="text-[13px] text-muted">{t('payments.stripeHint')}</p>}
             </div>
           </Card>
@@ -58,10 +58,10 @@ function PaymentsForm({ data }: { data: Payments }) {
           <Card>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-3">
-                <Switch checked={f.bank} onChange={(v) => setF({ ...f, bank: v })} label={t('payments.bankEnable')} />
+                <Switch placement="end" checked={f.bank} onChange={(v) => setF({ ...f, bank: v })} label={t('payments.bankEnable')} />
                 {f.bank && <Textarea label={t('payments.instructions')} help={t('payments.instructionsHelp')} rows={4} value={f.instructions} onChange={(e) => setF({ ...f, instructions: e.target.value })} />}
               </div>
-              <div className="border-t border-line pt-4"><Switch checked={f.cod} onChange={(v) => setF({ ...f, cod: v })} label={t('payments.codEnable')} /></div>
+              <div className="border-t border-line pt-4"><Switch placement="end" checked={f.cod} onChange={(v) => setF({ ...f, cod: v })} label={t('payments.codEnable')} /></div>
             </div>
           </Card>
         </Section>
