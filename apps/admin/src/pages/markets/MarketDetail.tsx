@@ -247,7 +247,7 @@ function CurrencyPopover({ market, shopCurrency, lang, busy, onSave, trigger }: 
     <Popover label={t('markets.currency.title')} align="right" className="w-80 p-3" trigger={trigger}>
       {(close) => (
         <div className="flex flex-col gap-3">
-          <Select label={t('markets.currency.pick')} value={code} onChange={(e) => setCode(e.target.value)}>
+          <Select label={t('markets.currency.pick')} value={code} onChange={(e) => { const next = e.target.value; setCode(next); setRate(next === cur?.baseCurrency.currencyCode && next !== shopCurrency ? cur.baseCurrency.manualRate ?? '' : ''); }}>
             {options.map((c) => <option key={c} value={c}>{c === shopCurrency ? t('markets.currency.shopCurrency', { currency: currencyLabel(c, lang) }) : currencyLabel(c, lang)}</option>)}
           </Select>
           {foreign && (
