@@ -5,7 +5,7 @@ import { Button, ButtonGroup, cx } from './basics';
 import type { ButtonProps } from './basics';
 
 /** Modal built on the native <dialog> element (focus trap, Escape, inert backdrop). Fades and scales in. */
-export function Modal({ open, onClose, title, children, footer, closeLabel = 'Close', wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; closeLabel?: string; wide?: boolean }) {
+export function Modal({ open, onClose, title, children, footer, footerStart, closeLabel = 'Close', wide, plain }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; /** Left-aligned footer content, e.g. a selected count. */ footerStart?: ReactNode; closeLabel?: string; wide?: boolean; /** Compact dialog without divider lines (confirmations). */ plain?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -20,21 +20,27 @@ export function Modal({ open, onClose, title, children, footer, closeLabel = 'Cl
     >
       {open && (
         <div className="flex max-h-[85vh] flex-col">
-          <header className="flex items-center justify-between border-b border-line px-4 py-3">
+          <header className={cx('flex items-center justify-between px-4 py-3', !plain && 'border-b border-line')}>
             <h2 className="text-[13px] font-semibold">{title}</h2>
             <Button variant="plain" size="sm" icon aria-label={closeLabel} onClick={onClose} className="btn-neutral"><X className="size-4" /></Button>
           </header>
-          <div className="overflow-y-auto p-4">{children}</div>
-          {footer && <footer className="flex justify-end gap-2 border-t border-line px-4 py-3">{footer}</footer>}
+          <div className={cx('overflow-y-auto p-4', plain && 'pt-1')}>{children}</div>
+          {(footer || footerStart) && (
+            <footer className={cx('flex items-center gap-2 px-4 py-3', !plain && 'border-t border-line', footerStart ? 'justify-between' : 'justify-end')}>
+              {footerStart && <span className="text-[13px]">{footerStart}</span>}
+              {footer && <span className="flex gap-2">{footer}</span>}
+            </footer>
+          )}
         </div>
       )}
     </dialog>
   );
 }
 
-export function ConfirmDialog({ open, title, message, confirmLabel, cancelLabel, danger, onConfirm, onClose }: { open: boolean; title: string; message: ReactNode; confirmLabel: string; cancelLabel: string; danger?: boolean; onConfirm: () => void; onClose: () => void }) {
+/** Confirmation: compact, no dividers; destructive confirmations (`danger`) use the critical button. */
+export function ConfirmDialog({ open, title, message, confirmLabel, cancelLabel, closeLabel, danger, loading, onConfirm, onClose }: { open: boolean; title: string; message: ReactNode; confirmLabel: string; cancelLabel: string; closeLabel?: string; danger?: boolean; loading?: boolean; onConfirm: () => void; onClose: () => void }) {
   return (
-    <Modal open={open} onClose={onClose} title={title} footer={<><Button onClick={onClose}>{cancelLabel}</Button><Button variant={danger ? 'critical' : 'primary'} onClick={onConfirm}>{confirmLabel}</Button></>}>
+    <Modal open={open} onClose={onClose} title={title} closeLabel={closeLabel} plain footer={<><Button onClick={onClose}>{cancelLabel}</Button><Button variant={danger ? 'critical' : 'primary'} loading={loading} onClick={onConfirm}>{confirmLabel}</Button></>}>
       <div className="text-[13px]">{message}</div>
     </Modal>
   );
@@ -58,7 +64,7 @@ function useDismiss(open: boolean, close: () => void) {
   return ref;
 }
 
-export interface MenuItem { key: string; label: ReactNode; onSelect: () => void; danger?: boolean; disabled?: boolean }
+export interface MenuItem { key: string; label: ReactNode; onSelect: () => void; danger?: boolean; disabled?: boolean; /** Optional leading icon. */ icon?: ReactNode }
 
 /** Button + popup menu with arrow-key navigation. Closes on outside click, Escape and selection. */
 export function Dropdown({ trigger, items, align = 'left', label, variant = 'secondary', size = 'md', icon, chevron }: { trigger: ReactNode; items: MenuItem[]; align?: 'left' | 'right'; label?: string; variant?: ButtonProps['variant']; size?: ButtonProps['size']; icon?: boolean; chevron?: boolean }) {
@@ -87,7 +93,8 @@ export function Dropdown({ trigger, items, align = 'left', label, variant = 'sec
           {items.map((it) => (
             <li key={it.key} role="none">
               <button role="menuitem" type="button" disabled={it.disabled} onClick={() => { setOpen(false); it.onSelect(); }}
-                className={cx('block w-full rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover focus-visible:bg-hover focus-visible:outline-none disabled:opacity-50', it.danger && 'text-critical hover:bg-critical-subtle')}>
+                className={cx('flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover focus-visible:bg-hover focus-visible:outline-none disabled:opacity-50', it.danger && 'text-critical hover:bg-critical-subtle')}>
+                {it.icon && <span className="grid size-4 shrink-0 place-items-center [&_svg]:size-4" aria-hidden>{it.icon}</span>}
                 {it.label}
               </button>
             </li>

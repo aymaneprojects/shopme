@@ -6,7 +6,7 @@ import { useT } from '../i18n';
 /** Set `guard.off = true` right before a programmatic navigation after a successful save. */
 export const guard = { off: false };
 
-/** Contextual save bar: a dark strip that slides over the top bar while the form is dirty, with the unsaved-changes navigation guard. */
+/** Contextual save bar: a dark pill centred in the top bar while the form is dirty, with the unsaved-changes navigation guard. */
 export function SaveBar({ dirty, saving, onSave, onDiscard }: { dirty: boolean; saving?: boolean; onSave: () => void; onDiscard: () => void }) {
   const t = useT();
   const [shake, setShake] = useState(0);
@@ -25,18 +25,17 @@ export function SaveBar({ dirty, saving, onSave, onDiscard }: { dirty: boolean; 
   return (
     <>
       {dirty && (
-        <div role="region" aria-label={t('save.unsaved')} className="anim-bar fixed inset-x-0 top-0 z-50 h-12 overflow-hidden bg-bar text-white shadow-lg border-b border-white/10">
-          <div key={shake} className={`flex h-full items-center gap-3 px-4 ${shake ? 'anim-shake' : ''}`}>
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-center">
+          <div role="region" aria-label={t('save.unsaved')} key={shake} className={`anim-bar pointer-events-auto flex h-9 items-center gap-3 rounded-full border border-white/10 bg-bar py-1 pl-4 pr-1 text-white shadow-lg ${shake ? 'anim-shake' : ''}`}>
             <span className="text-[13px] font-semibold">{t('save.unsaved')}</span>
-            <span className="flex-1" />
-            <Button size="sm" onClick={onDiscard} disabled={saving}>{t('save.discard')}</Button>
-            <Button size="sm" variant="primary" onClick={onSave} loading={saving} className="ring-1 ring-white/25">{t('save.save')}</Button>
+            <Button size="sm" variant="plain" onClick={onDiscard} disabled={saving} className="!rounded-full !text-white hover:!bg-white/15">{t('save.discard')}</Button>
+            <Button size="sm" variant="primary" onClick={onSave} loading={saving} className="!rounded-full">{t('save.save')}</Button>
           </div>
         </div>
       )}
       <ConfirmDialog
         open={blocker.state === 'blocked'} title={t('save.leaveTitle')} message={t('save.leaveBody')}
-        confirmLabel={t('save.leave')} cancelLabel={t('save.stay')} danger
+        confirmLabel={t('save.leave')} cancelLabel={t('save.stay')} closeLabel={t('common.close')} danger
         onConfirm={() => blocker.proceed?.()} onClose={() => blocker.reset?.()}
       />
     </>

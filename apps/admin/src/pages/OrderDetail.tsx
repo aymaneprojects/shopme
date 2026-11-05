@@ -1,6 +1,6 @@
-import { Badge, Banner, Button, Card, Dropdown, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, ButtonGroup, Card, Dropdown, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontal, Truck } from 'lucide-react';
+import { Archive, ArchiveRestore, Ban, ChevronDown, ChevronUp, Copy, CornerUpLeft, MapPin, MoreHorizontal, Truck, User } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -8,11 +8,11 @@ import { AddressBlock, FinancialBadge, FulfillmentBadge, useFormat } from '../co
 import type { Money, MoneySet } from '../components/shared';
 import { PageHeader } from '../components/PageHeader';
 import { gidToNum, numToGid } from '../format';
-import { ORDER, ORDER_CLOSE, ORDER_MARK_AS_PAID, ORDER_OPEN, ORDER_TIMELINE_COMMENT_CREATE, ORDER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
+import { ORDER, ORDERS, ORDER_CLOSE, ORDER_MARK_AS_PAID, ORDER_OPEN, ORDER_TIMELINE_COMMENT_CREATE, ORDER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
 import { useT } from '../i18n';
 import { toCents } from '../lib/refund';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
-import { CancelDialog, FulfillDialog, RefundDialog } from './orders/OrderDialogs';
+import { AddressDialog, CancelDialog, FulfillDialog } from './orders/OrderDialogs';
 import { ReturnDialog, ReturnsCard } from './orders/Returns';
 import type { OrderLine } from './orders/OrderDialogs';
 import { Thumb } from './Products';
@@ -50,7 +50,7 @@ function OrderView({ order: o }: { order: OrderData }) {
   const toast = useToast();
   const qc = useQueryClient();
   const nav = useNavigate();
-  const [dialog, setDialog] = useState<'fulfill' | 'refund' | 'cancel' | 'return' | null>(null);
+  const [dialog, setDialog] = useState<'fulfill' | 'cancel' | 'return' | 'address' | null>(null);
   const [note, setNote] = useState(o.note ?? '');
   const [comment, setComment] = useState('');
   const refresh = () => qc.invalidateQueries({ queryKey: ['order'] }).then(() => qc.invalidateQueries({ queryKey: ['orders'] }));
@@ -94,13 +94,14 @@ function OrderView({ order: o }: { order: OrderData }) {
     <>
       <PageHeader back="/orders" title={<span className="flex flex-wrap items-center gap-2">{o.name}<FinancialBadge status={o.displayFinancialStatus} /><FulfillmentBadge status={o.displayFulfillmentStatus} />{o.cancelledAt && <Badge tone="critical">{t('order.cancelledBadge')}</Badge>}{isClosed && !o.cancelledAt && <Badge>{t('order.archived')}</Badge>}</span>}
         actions={<>
+          <Button disabled={!canRefund} onClick={() => nav(`/orders/${gidToNum(o.id)}/refund`)}>{t('order.refund')}</Button>
           <Button disabled={!!o.cancelledAt} onClick={() => nav(`/orders/${gidToNum(o.id)}/edit`)}>{t('order.edit')}</Button>
-          <Button disabled={!canRefund} onClick={() => setDialog('refund')}>{t('order.refund')}</Button>
-          <Dropdown align="right" label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
-            { key: 'return', label: t('returns.createTitle'), disabled: !!o.cancelledAt || !lines.some((l) => l.quantity > l.unfulfilledQuantity), onSelect: () => setDialog('return') },
-            { key: 'close', label: isClosed ? t('order.reopen') : t('order.archive'), onSelect: () => act.mutate(isClosed ? 'open' : 'close') },
-            { key: 'cancel', label: t('order.cancel'), danger: true, disabled: !!o.cancelledAt, onSelect: () => setDialog('cancel') },
+          <Dropdown align="right" chevron label={t('common.moreActions')} trigger={t('common.moreActions')} items={[
+            { key: 'return', icon: <CornerUpLeft />, label: t('returns.createTitle'), disabled: !!o.cancelledAt || !lines.some((l) => l.quantity > l.unfulfilledQuantity), onSelect: () => setDialog('return') },
+            { key: 'close', icon: isClosed ? <ArchiveRestore /> : <Archive />, label: isClosed ? t('order.reopen') : t('order.archive'), onSelect: () => act.mutate(isClosed ? 'open' : 'close') },
+            { key: 'cancel', icon: <Ban />, label: t('order.cancel'), danger: true, disabled: !!o.cancelledAt, onSelect: () => setDialog('cancel') },
           ]} />
+          <OrderNeighbours id={o.id} />
         </>} />
       <p className="-mt-3 mb-4 text-[13px] text-muted">{fmt.dateTime(o.createdAt)}</p>
       {o.cancelledAt && <div className="mb-4"><Banner tone="warning">{t('order.cancelledOn', { date: fmt.dateTime(o.cancelledAt) })}</Banner></div>}
@@ -125,9 +126,9 @@ function OrderView({ order: o }: { order: OrderData }) {
           <ReturnsCard orderId={o.id} />
 
           <Card title={<span className="flex items-center gap-2"><FinancialBadge status={o.displayFinancialStatus} />{t('order.payment')}</span>}
-            actions={<span className="flex gap-2">{canMarkPaid && <Button size="sm" variant="primary" loading={act.isPending} onClick={() => act.mutate('paid')}>{t('order.markPaid')}</Button>}{canRefund && <Button size="sm" onClick={() => setDialog('refund')}>{t('order.refund')}</Button>}</span>}>
+            actions={<span className="flex gap-2">{canMarkPaid && <Button size="sm" variant="primary" loading={act.isPending} onClick={() => act.mutate('paid')}>{t('order.markPaid')}</Button>}</span>}>
             <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-[13px]">
-              {row(t('order.subtotal'), o.subtotalPriceSet)}
+              <dt className="flex gap-6"><span className="text-muted">{t('order.subtotal')}</span><span>{t('order.itemsCount', { n: lines.reduce((n, l) => n + l.quantity, 0) })}</span></dt><dd className="text-right">{fmt.money(o.subtotalPriceSet)}</dd>
               {toCents(o.totalDiscountsSet.shopMoney.amount) > 0 && <>{row(t('order.discount'), { amount: `-${o.totalDiscountsSet.shopMoney.amount}`, currencyCode: cur })}</>}
               {row(t('order.shipping'), o.totalShippingPriceSet)}
               {row(t('order.taxes'), o.totalTaxSet)}
@@ -155,7 +156,10 @@ function OrderView({ order: o }: { order: OrderData }) {
             <Textarea aria-label={t('order.notes')} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('order.notesPlaceholder')} />
             <div className="mt-2 flex justify-end"><Button size="sm" disabled={note === (o.note ?? '')} loading={saveNote.isPending} onClick={() => saveNote.mutate()}>{t('save.save')}</Button></div>
           </Card>
-          <Card title={t('order.customer')}>
+          <Card title={t('order.customer')} actions={o.customer && <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
+            { key: 'view', icon: <User />, label: t('order.viewCustomer'), onSelect: () => nav(`/customers/${gidToNum(o.customer!.id)}`) },
+            { key: 'copy', icon: <Copy />, label: t('order.copyEmail'), onSelect: () => { void navigator.clipboard?.writeText(o.email ?? o.customer?.defaultEmailAddress?.emailAddress ?? '').then(() => toast(t('abandoned.copied'))); } },
+          ]} />}>
             {o.customer ? (
               <div className="flex flex-col gap-1 text-[13px]">
                 <Link to={`/customers/${gidToNum(o.customer.id)}`} className="font-medium text-accent hover:underline">{o.customer.displayName}</Link>
@@ -164,14 +168,17 @@ function OrderView({ order: o }: { order: OrderData }) {
               </div>
             ) : <p className="text-[13px] text-muted">{o.email ?? t('orders.noCustomer')}</p>}
           </Card>
-          <Card title={t('order.shippingAddress')}><AddressBlock a={o.shippingAddress} /></Card>
+          <Card title={t('order.shippingAddress')} actions={<Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
+            { key: 'edit', icon: <MapPin />, label: t('order.editAddress'), disabled: !!o.cancelledAt, onSelect: () => setDialog('address') },
+            { key: 'copy', icon: <Copy />, label: t('order.copyAddress'), disabled: !o.shippingAddress, onSelect: () => { const a = o.shippingAddress; void navigator.clipboard?.writeText([[a?.firstName, a?.lastName].filter(Boolean).join(' '), a?.address1, a?.address2, [a?.zip, a?.city].filter(Boolean).join(' '), a?.country].filter(Boolean).join('\n')).then(() => toast(t('abandoned.copied'))); } },
+          ]} />}><AddressBlock a={o.shippingAddress} /></Card>
           <Card title={t('order.billingAddress')}><AddressBlock a={o.billingAddress} /></Card>
           <MetafieldsEditor ownerId={o.id} ownerType="ORDER" />
           <Card title={t('field.tags')}><TagInput value={o.tags} onChange={(v) => tags.mutate(v)} removeLabel={t('common.remove')} /></Card>
         </div>
       </div>
       {dialog === 'fulfill' && <FulfillDialog open onClose={() => setDialog(null)} orderId={o.id} lines={unfulfilled} onDone={() => void refresh()} />}
-      {dialog === 'refund' && <RefundDialog open onClose={() => setDialog(null)} orderId={o.id} lines={lines} shipping={o.totalShippingPriceSet} refundableCents={refundableCents} onDone={() => void refresh()} />}
+      {dialog === 'address' && <AddressDialog open onClose={() => setDialog(null)} orderId={o.id} value={o.shippingAddress as never} onDone={() => void refresh()} />}
       {dialog === 'return' && <ReturnDialog open onClose={() => setDialog(null)} orderId={o.id} onDone={() => void refresh()} />}
       {dialog === 'cancel' && <CancelDialog open onClose={() => setDialog(null)} orderId={o.id} onDone={() => void refresh()} />}
     </>
@@ -194,5 +201,21 @@ function LineList({ lines, qty }: { lines: OrderLine[]; qty: (l: OrderLine) => n
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Previous / next order (newest first), taken from the most recent orders. */
+function OrderNeighbours({ id }: { id: string }) {
+  const t = useT();
+  const nav = useNavigate();
+  const q = useQuery({ queryKey: ['orders-neighbours'], staleTime: 30_000, queryFn: () => gql<{ orders: { nodes: Array<{ id: string }> } }>(ORDERS, { query: null, sortKey: 'CREATED_AT', reverse: true, first: 100 }) });
+  const ids = q.data?.orders.nodes.map((n) => n.id) ?? [];
+  const i = ids.indexOf(id);
+  const go = (to?: string) => to && nav(`/orders/${gidToNum(to)}`);
+  return (
+    <ButtonGroup>
+      <Button icon aria-label={t('order.newer')} disabled={i <= 0} onClick={() => go(ids[i - 1])}><ChevronUp className="size-4" /></Button>
+      <Button icon aria-label={t('order.older')} disabled={i < 0 || i >= ids.length - 1} onClick={() => go(ids[i + 1])}><ChevronDown className="size-4" /></Button>
+    </ButtonGroup>
   );
 }

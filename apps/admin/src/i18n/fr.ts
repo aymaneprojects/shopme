@@ -1,5 +1,6 @@
 import { frCatalog } from './fr-catalog';
 import type { Key } from './en';
+import { frOrdersUx } from './fr-orders-ux';
 import { frCommerce } from './fr-commerce';
 import { frExt } from './fr-ext';
 import { frPlatform } from './fr-platform';
@@ -97,4 +98,5 @@ export const fr: Record<Key, string> = {
   ...frPlatform,
   ...frCommerce,
   ...frCatalog,
+  ...frOrdersUx,
 };

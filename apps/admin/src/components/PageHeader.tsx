@@ -1,6 +1,6 @@
 import { Dropdown } from '@shopme/ui';
 import type { MenuItem } from '@shopme/ui';
-import { ArrowLeft, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useT } from '../i18n';
@@ -22,7 +22,7 @@ export function PageHeader({ title, back, actions, badges, more, subtitle }: { t
       </div>
       <div className="ml-auto flex items-center gap-2">
         {actions}
-        {more && more.length > 0 && <Dropdown align="right" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={more} />}
+        {more && more.length > 0 && <Dropdown align="right" chevron label={t('common.moreActions')} trigger={t('common.moreActions')} items={more} />}
       </div>
     </div>
   );
