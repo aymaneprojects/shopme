@@ -57,6 +57,7 @@ export const enSubscriptions = {
   'sub.ev.billingFailed': 'Billing attempt {n} failed', 'sub.ev.paused': 'Subscription paused', 'sub.ev.activated': 'Subscription resumed', 'sub.ev.cancelled': 'Subscription cancelled',
   'sub.ev.skipped': 'Order of {date} skipped', 'sub.ev.expired': 'Subscription ended', 'sub.ev.failed': 'Subscription marked as failed', 'sub.ev.byCustomer': 'by the customer', 'sub.ev.empty': 'No activity yet.',
 
+  'sub.tl.created': 'Started subscription {sub} with order {order}', 'sub.tl.paused': 'Subscription {sub} paused', 'sub.tl.activated': 'Subscription {sub} resumed', 'sub.tl.cancelled': 'Subscription {sub} cancelled',
   'sub.customer.title': 'Subscriptions', 'sub.customer.none': 'No subscriptions', 'sub.customer.viewAll': 'View all', 'sub.customer.next': 'Next order on {date}',
   'sub.order.card': 'Subscription', 'sub.order.line': 'Subscription {name}', 'sub.order.renewalOf': 'Renewal order of subscription {name}', 'sub.order.startedBy': 'This order started subscription {name}',
 

@@ -281,7 +281,11 @@ create table product_media (
 
 Notes: `Product.featuredMedia` = first `product_media` row or `featured_media_id` when explicitly set. Product price
 range and `hasOnlyDefaultVariant`/`hasOutOfStockVariants` are computed from variants (cache columns are allowed later).
-`publishedAt` stands in for "published to the online store" until a publications model exists. Selling plans are not modelled.
+`publishedAt` stands in for "published to the online store" until a publications model exists. Selling plans (purchase
+options) live in `selling_plan_groups` / `selling_plans`, attached to products (`selling_plan_group_products`) or single
+variants (`selling_plan_group_variants`); `products.requires_selling_plan` hides the one-time purchase. Checkouts create
+`subscription_contracts` with their `subscription_contract_lines`; renewals are recorded in `subscription_billing_attempts`
+and point back from `orders.subscription_contract_id`.
 
 ### 5.4 Collections
 

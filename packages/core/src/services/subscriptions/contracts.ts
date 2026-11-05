@@ -173,7 +173,7 @@ export async function createContractsForOrder(db: Db, shopId: number, input: New
       })));
       await tx.update(orderLines).set({ subscriptionContractId: c!.id }).where(and(eq(orderLines.orderId, input.orderId), inArray(orderLines.id, lines.map((l) => l.orderLineId))));
       await addEvent(tx, shopId, { subjectType: CONTRACT_SUBJECT, subjectId: c!.id, verb: 'subscription_contracts/create', message: `Subscription created from order ${order?.name ?? ''}`.trim(), data: { orderId: input.orderId, name: order?.name } });
-      if (input.customerId) await addEvent(tx, shopId, { subjectType: 'customer', subjectId: input.customerId, verb: 'customer.subscription_created', message: `Started subscription #${c!.id} with order ${order?.name ?? ''}`.trim(), data: { contractId: c!.id, orderId: input.orderId } });
+      if (input.customerId) await addEvent(tx, shopId, { subjectType: 'customer', subjectId: input.customerId, verb: 'customer.subscription_created', message: `Started subscription #${c!.id} with order ${order?.name ?? ''}`.trim(), data: { contractId: c!.id, orderId: input.orderId, name: order?.name ?? null } });
       return c!.id;
     });
     ids.push(id);
@@ -233,7 +233,7 @@ export async function changeContractStatus(db: Db, shopId: number, id: number, a
     const by = opts.actor === 'customer' ? ' by the customer' : '';
     const message = action === 'skip' ? `The order of ${c.nextBillingDate.toISOString().slice(0, 10)} was skipped${by}` : `Subscription ${VERB[action]}${by}`;
     await addEvent(tx, shopId, { subjectType: CONTRACT_SUBJECT, subjectId: id, verb: `subscription_contracts/${VERB[action]}`, message, authorStaffUserId: opts.staffId ?? null, data });
-    if (c.customerId && (action === 'cancel' || action === 'pause' || action === 'activate')) await addEvent(tx, shopId, { subjectType: 'customer', subjectId: c.customerId, verb: `customer.subscription_${VERB[action]}`, message: `Subscription #${id} ${VERB[action]}${by}`, data: { contractId: id } });
+    if (c.customerId && (action === 'cancel' || action === 'pause' || action === 'activate')) await addEvent(tx, shopId, { subjectType: 'customer', subjectId: c.customerId, verb: `customer.subscription_${VERB[action]}`, message: `Subscription #${id} ${VERB[action]}${by}`, data: { contractId: id, actor: opts.actor ?? 'staff' } });
     return okR(row!);
   });
 }

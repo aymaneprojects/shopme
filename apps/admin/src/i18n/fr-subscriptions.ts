@@ -58,6 +58,7 @@ export const frSubscriptions: Record<keyof typeof enSubscriptions, string> = {
   'sub.ev.billingFailed': 'La tentative de facturation {n} a échoué', 'sub.ev.paused': 'Abonnement mis en pause', 'sub.ev.activated': 'Abonnement repris', 'sub.ev.cancelled': 'Abonnement résilié',
   'sub.ev.skipped': 'Commande du {date} sautée', 'sub.ev.expired': 'Abonnement terminé', 'sub.ev.failed': 'Abonnement marqué comme échoué', 'sub.ev.byCustomer': 'par le client', 'sub.ev.empty': 'Aucune activité pour le moment.',
 
+  'sub.tl.created': "A démarré l'abonnement {sub} avec la commande {order}", 'sub.tl.paused': 'Abonnement {sub} mis en pause', 'sub.tl.activated': 'Abonnement {sub} repris', 'sub.tl.cancelled': 'Abonnement {sub} résilié',
   'sub.customer.title': 'Abonnements', 'sub.customer.none': 'Aucun abonnement', 'sub.customer.viewAll': 'Tout afficher', 'sub.customer.next': 'Prochaine commande le {date}',
   'sub.order.card': 'Abonnement', 'sub.order.line': 'Abonnement {name}', 'sub.order.renewalOf': "Commande de renouvellement de l'abonnement {name}", 'sub.order.startedBy': "Cette commande a démarré l'abonnement {name}",
 

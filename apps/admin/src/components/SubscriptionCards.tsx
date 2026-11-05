@@ -91,7 +91,8 @@ export function OrderSubscriptionSection({ orderId, info }: { orderId: string; i
         return (
           <div key={c.id} className="flex flex-col gap-0.5">
             <p>{t(started ? 'sub.order.startedBy' : 'sub.order.renewalOf', { name: '' }).replace(/\s+$/, '')} <Link to={`/orders/subscriptions/${gidToNum(c.id)}`} className="text-accent hover:underline">{name}</Link></p>
-            <p className="flex flex-wrap items-center gap-2 text-muted"><SubscriptionBadge status={c.status} /><span>{everyLabel(t, c.billingPolicy)}</span>{c.status === 'ACTIVE' && <span>· {t('sub.customer.next', { date: fmt.date(c.nextBillingDate) })}</span>}</p>
+            <p className="flex flex-wrap items-center gap-2 text-muted"><SubscriptionBadge status={c.status} /><span>{everyLabel(t, c.billingPolicy)}</span></p>
+            {c.status === 'ACTIVE' && <p className="text-muted">{t('sub.customer.next', { date: fmt.date(c.nextBillingDate) })}</p>}
           </div>
         );
       })}
