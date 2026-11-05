@@ -1,12 +1,12 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
-  addCustomerAddress, authenticateCustomer, createCustomerSession, deleteCustomerAddress, destroySession, getCustomerOrder, isCustomerTokenValid, registerCustomer, renderAccountActivation, renderPasswordReset,
+  accountsModeOf, addCustomerAddress, addItems, authenticateCustomer, customerAccountsSettingsOf, customerCancelOrder, customerRequestReturn, getOrCreateCart, orderActionsFor, renderLoginCode, requestLoginCode, returnableQuantities, verifyLoginCode, createCustomerSession, deleteCustomerAddress, destroySession, getCustomerOrder, isCustomerTokenValid, registerCustomer, renderAccountActivation, renderPasswordReset,
   requestPasswordReset, setPasswordWithToken, updateCustomerAddress, type Customer, type CustomerAddressInput, type Mail, type Shop,
 } from '@shopme/core';
 import type { AppContext } from '../context';
 import { countryOptions, PROVINCES } from '../checkout/geo';
 import { FailureLimiter } from '../plugins/rate-limit';
-import { CUSTOMER_COOKIE, customerOf, makeEnv } from './env';
+import { CART_COOKIE, CUSTOMER_COOKIE, customerOf, makeEnv, primaryShop } from './env';
 import { setFlash } from './flash';
 import { crossSite, formBody } from './forms';
 import { messages } from './i18n';
@@ -24,6 +24,17 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
   const loginLimiter = new FailureLimiter(10, 15 * 60 * 1000);
   const recoverLimiter = new FailureLimiter(5, 60 * 60 * 1000);
   const registerLimiter = new FailureLimiter(10, 60 * 60 * 1000);
+
+  const codeLimiter = new FailureLimiter(5, 15 * 60 * 1000);
+  const verifyLimiter = new FailureLimiter(20, 60 * 60 * 1000);
+
+  // Accounts switched off: every account page is a 404 (and the links are gone from the theme).
+  app.addHook('onRequest', async (req, reply) => {
+    const path = req.url.split('?')[0]!;
+    if (path !== '/account' && !path.startsWith('/account/')) return;
+    const shop = await primaryShop(ctx);
+    if (shop && accountsModeOf(shop) === 'DISABLED') return notFound(req, reply, shop);
+  });
 
   const origin = ctx.config.appUrl;
   const html = (reply: FastifyReply) => reply.header('cache-control', 'no-store');
@@ -62,13 +73,17 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
   // --- login / logout
   app.get('/account/login', withShop(async (req, reply, shop) => {
     if (await customerOf(ctx, req, shop)) return reply.redirect(localPath((req.query as Record<string, unknown>).return_url, '/account'), 302);
-    const back = localPath((req.query as Record<string, unknown>).return_url, '');
-    return page('login', titleOf(shop, 'Login', 'Connexion'), back ? { __form_actions: { customer_login: `/account/login?return_url=${encodeURIComponent(back)}` } } : {})(req, reply, shop);
+    const q = req.query as Record<string, unknown>;
+    const back = localPath(q.return_url, '');
+    const step = str(q.step) === 'code' && customerAccountsSettingsOf(shop).signIn.emailCode ? 'code' : 'start';
+    const actions = back ? { customer_login: `/account/login?return_url=${encodeURIComponent(back)}` } : undefined;
+    return page('login', titleOf(shop, 'Login', 'Connexion'), { login_step: step, login_email: str(q.email).slice(0, 254), login_return_url: back, ...(actions && { __form_actions: actions }) })(req, reply, shop);
   }));
   post('/account/login', async (req, reply, shop, body) => {
     const c = (body.customer ?? {}) as Record<string, unknown>;
     const email = str(c.email).toLowerCase();
     const keys = [`ip:${req.ip}`, `email:${email}`];
+    if (!customerAccountsSettingsOf(shop).signIn.password) return back(reply, '/account/login', { type: 'customer_login', errors: { form: messages(shop.locale).t('login_failed') }, values: { email } });
     if (keys.some((k) => loginLimiter.isLimited(k))) return limited(reply, shop, '/account/login', 'customer_login');
     const customer = await authenticateCustomer(db, shop.id, email, String(c.password ?? ''));
     if (!customer) {
@@ -89,6 +104,42 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
   });
   app.get('/account/logout', logout);
   app.post('/account/logout', logout);
+
+  // --- email code sign-in (passwordless)
+  const codeEnabled = (shop: Shop) => customerAccountsSettingsOf(shop).signIn.emailCode;
+  const loginTo = (body: Record<string, any>, step: 'start' | 'code', email = '') => {
+    const ret = localPath(body.return_url, '');
+    const q = new URLSearchParams({ ...(step === 'code' ? { step: 'code', email } : {}), ...(ret ? { return_url: ret } : {}) }).toString();
+    return `/account/login${q ? `?${q}` : ''}#email-code`;
+  };
+  post('/account/login/code', async (req, reply, shop, body) => {
+    if (!codeEnabled(shop)) return notFound(req, reply, shop);
+    const email = str(((body.customer ?? {}) as Record<string, unknown>).email).toLowerCase();
+    const keys = [`ip:${req.ip}`, `email:${email}`];
+    if (keys.some((k) => codeLimiter.isLimited(k))) return limited(reply, shop, loginTo(body, 'start'), 'customer_login_code');
+    keys.forEach((k) => codeLimiter.fail(k));
+    const r = await requestLoginCode(db, shop.id, email);
+    if (!r.ok && r.reason === 'invalid_email') return back(reply, loginTo(body, 'start'), { type: 'customer_login_code', errors: { email: messages(shop.locale).t('email_invalid') }, values: { email } });
+    if (r.ok) enqueueMail(renderLoginCode(shop, r.email, r.code));
+    // The same answer whether or not the address is known (and when a code was just sent).
+    return back(reply, loginTo(body, 'code', email));
+  });
+  post('/account/login/code/verify', async (req, reply, shop, body) => {
+    if (!codeEnabled(shop)) return notFound(req, reply, shop);
+    const c = (body.customer ?? {}) as Record<string, unknown>;
+    const email = str(c.email).toLowerCase();
+    const keys = [`ip:${req.ip}`, `email:${email}`];
+    if (keys.some((k) => verifyLimiter.isLimited(k))) return limited(reply, shop, loginTo(body, 'code', email), 'customer_login_code_verify');
+    const r = await verifyLoginCode(db, shop.id, email, str(c.code));
+    if (!r.ok) {
+      keys.forEach((k) => verifyLimiter.fail(k));
+      const text = messages(shop.locale);
+      return back(reply, loginTo(body, r.reason === 'locked' || r.reason === 'expired' ? 'start' : 'code', email), { type: 'customer_login_code_verify', errors: { form: text.t(r.reason === 'invalid' ? 'code_invalid' : 'code_expired') }, values: { email } });
+    }
+    keys.forEach((k) => verifyLimiter.reset(k));
+    await startSession(req, reply, shop, r.customer);
+    return back(reply, localPath(body.return_url ?? (req.query as Record<string, unknown>).return_url, '/account'));
+  });
 
   // --- registration
   app.get('/account/register', withShop(async (req, reply, shop) => {
@@ -162,8 +213,51 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
     const found = Number.isInteger(id) ? await getCustomerOrder(db, shop.id, customer.id, id) : null;
     if (!found) return notFound(req, reply, shop);
     const { handles } = await productLookups(db, found.detail.lines);
-    return page('order', `${titleOf(shop, 'Order', 'Commande')} ${found.order.name}`, { order: orderObject(found.order, shop, found.detail, handles) })(req, reply, shop);
+    const actions = await orderActionsFor(db, shop, found.order, found.detail);
+    const room = actions.returns ? await returnableQuantities(db, shop.id, found.order.id) : new Map<number, number>();
+    const base = `/account/orders/${found.order.id}`;
+    const order = {
+      ...orderObject(found.order, shop, found.detail, handles),
+      actions: {
+        reorder: actions.reorder, cancel: actions.cancel, return: actions.returns, cancel_until: actions.cancelUntil?.toISOString() ?? null, reorder_url: `${base}/reorder`, cancel_url: `${base}/cancel`, return_url: `${base}/return`,
+        return_lines: found.detail.lines.filter((l) => (room.get(l.id) ?? 0) > 0).map((l) => ({ id: l.id, title: l.title, variant_title: l.variantTitle ?? '', max: room.get(l.id) ?? 0 })),
+      },
+    };
+    return page('order', `${titleOf(shop, 'Order', 'Commande')} ${found.order.name}`, { order, order_notice: str((req.query as Record<string, unknown>).notice) })(req, reply, shop);
   }));
+  const ownOrder = async (req: FastifyRequest, shop: Shop, customer: Customer) => {
+    const id = Number((req.params as { id: string }).id);
+    return Number.isInteger(id) ? getCustomerOrder(db, shop.id, customer.id, id) : null;
+  };
+  post('/account/orders/:id/cancel', async (req, reply, shop) => {
+    const customer = await customerOf(ctx, req, shop);
+    if (!customer) return back(reply, '/account/login');
+    const found = await ownOrder(req, shop, customer);
+    if (!found) return notFound(req, reply, shop);
+    const r = await customerCancelOrder(db, shop, customer.id, found.order.id, found.detail);
+    return back(reply, `/account/orders/${found.order.id}?notice=${r.ok ? 'cancel_ok' : 'cancel_failed'}`);
+  });
+  post('/account/orders/:id/return', async (req, reply, shop, body) => {
+    const customer = await customerOf(ctx, req, shop);
+    if (!customer) return back(reply, '/account/login');
+    const found = await ownOrder(req, shop, customer);
+    if (!found) return notFound(req, reply, shop);
+    const wanted = Object.entries((body.return ?? {}) as Record<string, unknown>).map(([id, q]) => ({ orderLineId: Number(id), quantity: Number(q) })).filter((l) => Number.isInteger(l.orderLineId) && l.quantity > 0);
+    const r = wanted.length ? await customerRequestReturn(db, shop, customer.id, found.order.id, found.detail, wanted.map((l) => ({ ...l, reason: 'UNKNOWN' })), str(body.note)) : null;
+    return back(reply, `/account/orders/${found.order.id}?notice=${r?.ok ? 'return_ok' : 'return_failed'}`);
+  });
+  post('/account/orders/:id/reorder', async (req, reply, shop) => {
+    const customer = await customerOf(ctx, req, shop);
+    if (!customer) return back(reply, '/account/login');
+    const found = await ownOrder(req, shop, customer);
+    if (!found) return notFound(req, reply, shop);
+    if (!customerAccountsSettingsOf(shop).orderActions.reorder) return back(reply, `/account/orders/${found.order.id}`);
+    const token = (req.cookies[CART_COOKIE] ?? '').split('?')[0]!.split('%3F')[0]!;
+    const cart = await getOrCreateCart(db, shop.id, shop.currency, token || null);
+    await addItems(db, shop.id, cart.id, found.detail.lines.filter((l) => l.variantId != null).map((l) => ({ id: l.variantId, quantity: l.currentQuantity || l.quantity, properties: l.properties })));
+    reply.setCookie(CART_COOKIE, cart.token, { path: '/', sameSite: 'lax', httpOnly: false, maxAge: 90 * 24 * 3600, secure });
+    return reply.redirect('/cart', 303);
+  });
 
   // --- address book
   app.get('/account/addresses', signedIn(async (req, reply, shop) => page('addresses', titleOf(shop, 'Addresses', 'Adresses'))(req, reply, shop)));

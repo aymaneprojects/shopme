@@ -126,7 +126,15 @@
       "title": "Connexion",
       "forgot": "Mot de passe oublié ?",
       "submit": "Se connecter",
-      "no_account": "Nouveau client ?"
+      "no_account": "Nouveau client ?",
+      "code_title": "Se connecter avec un code par e-mail",
+      "code_text": "Nous vous envoyons un code à 6 chiffres. Aucun mot de passe nécessaire.",
+      "code_send": "Recevoir un code par e-mail",
+      "code_sent": "Si l'adresse est valide, un code est en route. Il reste valable 10 minutes.",
+      "code_label": "Code à 6 chiffres",
+      "code_submit": "Se connecter avec le code",
+      "code_resend": "Envoyer un nouveau code",
+      "or": "ou"
     },
     "register_page": {
       "title": "Créer un compte",
@@ -162,7 +170,9 @@
       "date": "Date",
       "payment_status": "Paiement",
       "fulfillment_status": "Expédition",
-      "total": "Total"
+      "total": "Total",
+      "store_credit": "Crédit en magasin",
+      "store_credit_balance": "Solde : {{ amount }}"
     },
     "order_page": {
       "title": "Commande {{ name }}",
@@ -182,7 +192,21 @@
       "shipping_address": "Adresse de livraison",
       "shipments": "Expéditions",
       "tracking": "Suivi",
-      "back": "Retour au compte"
+      "back": "Retour au compte",
+      "actions": "Actions sur la commande",
+      "reorder": "Acheter à nouveau",
+      "cancel": "Annuler la commande",
+      "cancel_until": "Vous pouvez annuler cette commande jusqu'au {{ date }}.",
+      "cancel_confirm": "Annuler cette commande ? Les articles retournent en stock et tout paiement est remboursé.",
+      "return_title": "Demander un retour",
+      "return_text": "Choisissez les articles à retourner. Nous examinons chaque demande.",
+      "return_submit": "Demander le retour",
+      "return_note": "Note (facultatif)",
+      "return_max": "sur {{ max }}",
+      "notice_cancel_ok": "Votre commande a été annulée.",
+      "notice_cancel_failed": "Cette commande ne peut plus être annulée.",
+      "notice_return_ok": "Votre demande de retour a été envoyée. Nous revenons vers vous.",
+      "notice_return_failed": "La demande de retour n'a pas pu être créée."
     },
     "addresses": {
       "title": "Adresses",
@@ -259,5 +283,26 @@
     "disabled": "Cette carte cadeau a été désactivée.",
     "shop_now": "Commencer mes achats",
     "how_to": "Saisissez le code dans le champ Carte cadeau lors du paiement. Le solde est utilisé jusqu'au montant de votre commande."
+  },
+  "privacy": {
+    "banner": {
+      "title": "Consentement aux cookies",
+      "accept": "Tout accepter",
+      "reject": "Refuser",
+      "manage": "Gérer les préférences",
+      "save": "Enregistrer les préférences",
+      "preferences_title": "Préférences en matière de cookies",
+      "analytics": "Statistiques",
+      "analytics_help": "Nous aide à comprendre comment la boutique est utilisée.",
+      "marketing": "Marketing",
+      "marketing_help": "Nous permet, ainsi qu'à nos partenaires, de proposer des offres pertinentes.",
+      "preferences": "Préférences",
+      "preferences_help": "Mémorise vos choix, comme la langue ou la région.",
+      "privacy_policy": "Politique de confidentialité"
+    },
+    "footer": {
+      "cookie_preferences": "Préférences cookies",
+      "opt_out": "Ne pas vendre ni partager mes informations personnelles"
+    }
   }
 }

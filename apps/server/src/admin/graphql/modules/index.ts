@@ -43,3 +43,6 @@ import './gift-cards';
 import './abandoned';
 import './order-edit';
 import './checkout-settings';
+import './store-credit';
+import './customer-privacy';
+import './pixels';

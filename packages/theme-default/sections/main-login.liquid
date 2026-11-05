@@ -22,6 +22,7 @@
 
   <section class="customer__login" id="login" aria-labelledby="login-title">
     <h1 class="page-title" id="login-title">{{ 'customer.login_page.title' | t }}</h1>
+    {%- if customer_accounts.password_login -%}
     {%- form 'customer_login', class: 'customer__form' -%}
       {%- if form.errors -%}
         <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
@@ -39,7 +40,48 @@
         <a href="#recover">{{ 'customer.login_page.forgot' | t }}</a>
       </div>
     {%- endform -%}
-    <p class="customer__alt">{{ 'customer.login_page.no_account' | t }} <a href="{{ routes.account_register_url }}">{{ 'customer.register' | t }}</a></p>
+    {%- endif -%}
+
+    {%- if customer_accounts.email_code_login -%}
+      <div id="email-code" class="customer__code">
+        {%- if customer_accounts.password_login -%}<p class="customer__divider">{{ 'customer.login_page.or' | t }}</p>{%- endif -%}
+        <h2>{{ 'customer.login_page.code_title' | t }}</h2>
+        {%- if login_step == 'code' -%}
+          <p class="customer__code-sent" role="status">{{ 'customer.login_page.code_sent' | t }}</p>
+          {%- form 'customer_login_code_verify', class: 'customer__form' -%}
+            {%- if form.errors -%}
+              <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+            {%- endif -%}
+            <input type="hidden" name="customer[email]" value="{{ login_email | escape }}">
+            {%- if login_return_url != blank -%}<input type="hidden" name="return_url" value="{{ login_return_url | escape }}">{%- endif -%}
+            <div class="field">
+              <label for="LoginCode">{{ 'customer.login_page.code_label' | t }}</label>
+              <input id="LoginCode" class="customer__code-input" type="text" name="customer[code]" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+            </div>
+            <div class="customer__actions">
+              <button class="button" type="submit">{{ 'customer.login_page.code_submit' | t }}</button>
+              <a href="{{ routes.account_login_url | default: '/account/login' }}#email-code">{{ 'customer.login_page.code_resend' | t }}</a>
+            </div>
+          {%- endform -%}
+        {%- else -%}
+          <p>{{ 'customer.login_page.code_text' | t }}</p>
+          {%- form 'customer_login_code', class: 'customer__form' -%}
+            {%- if form.errors -%}
+              <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+            {%- endif -%}
+            {%- if login_return_url != blank -%}<input type="hidden" name="return_url" value="{{ login_return_url | escape }}">{%- endif -%}
+            <div class="field">
+              <label for="CodeEmail">{{ 'customer.email' | t }}</label>
+              <input id="CodeEmail" type="email" name="customer[email]" value="{{ form.email | escape }}" autocomplete="email" autocapitalize="off" required>
+            </div>
+            <div class="customer__actions">
+              <button class="button" type="submit">{{ 'customer.login_page.code_send' | t }}</button>
+            </div>
+          {%- endform -%}
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+    <p class="customer__alt">{{ 'customer.login_page.no_account' | t }} <a href="{{ routes.account_register_url | default: '/account/register' }}">{{ 'customer.register' | t }}</a></p>
   </section>
 </div>
 

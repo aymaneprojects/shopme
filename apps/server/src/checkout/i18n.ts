@@ -25,6 +25,7 @@ const EN = {
   codNote: 'You will pay in cash on delivery.', shipTo: 'Shipping address', paymentMethod: 'Payment method', paid: 'Paid', pending: 'Awaiting payment', backToShop: 'Continue shopping', notFound: 'Checkout not found', notFoundText: 'This checkout link is not valid.',
   companyField: 'Company', address2Field: 'Apartment, suite, etc.', phoneField: 'Phone', contactOrPhone: 'Email or mobile phone number',
   err_contact: 'Enter a valid email address or mobile phone number.', err_login: 'Sign in to your customer account to check out.', signInToCheckout: 'Sign in to check out',
+  storeCredit: 'Store credit', store_credit: 'Store credit', useStoreCredit: 'Use store credit', storeCreditBalance: 'Balance: {amount}', err_store_credit: 'Your store credit balance changed. Review the amounts and try again.', signIn: 'Sign in', haveAccount: 'Have an account?', signedInAs: 'Signed in as {email}',
   tipTitle: 'Add a tip', tipNone: 'No tip', tipCustom: 'Custom amount', tipLine: 'Tip', orderNote: 'Order notes (optional)',
   fields: { firstName: 'First name', lastName: 'Last name', address1: 'Address', city: 'City', zip: 'Postal code', countryCode: 'Country' },
 };
@@ -56,6 +57,7 @@ const FR: Dict = {
   codNote: 'Vous paierez en espèces à la livraison.', shipTo: 'Adresse de livraison', paymentMethod: 'Moyen de paiement', paid: 'Payé', pending: 'En attente de paiement', backToShop: 'Continuer mes achats', notFound: 'Paiement introuvable', notFoundText: "Ce lien de paiement n'est pas valide.",
   companyField: 'Société', address2Field: 'Appartement, bâtiment, etc.', phoneField: 'Téléphone', contactOrPhone: 'E-mail ou numéro de mobile',
   err_contact: 'Saisissez une adresse e-mail ou un numéro de mobile valide.', err_login: 'Connectez-vous à votre compte client pour commander.', signInToCheckout: 'Connectez-vous pour commander',
+  storeCredit: 'Crédit en magasin', store_credit: 'Crédit en magasin', useStoreCredit: 'Utiliser mon crédit en magasin', storeCreditBalance: 'Solde : {amount}', err_store_credit: 'Le solde de votre crédit en magasin a changé. Vérifiez les montants et réessayez.', signIn: 'Se connecter', haveAccount: 'Vous avez un compte ?', signedInAs: 'Connecté en tant que {email}',
   tipTitle: 'Ajouter un pourboire', tipNone: 'Aucun pourboire', tipCustom: 'Montant libre', tipLine: 'Pourboire', orderNote: 'Notes de commande (facultatif)',
   fields: { firstName: 'Prénom', lastName: 'Nom', address1: 'Adresse', city: 'Ville', zip: 'Code postal', countryCode: 'Pays' },
 };

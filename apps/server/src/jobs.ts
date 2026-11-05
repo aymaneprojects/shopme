@@ -2,6 +2,7 @@ import { getPrimaryShop, purgeExpiredSessions, purgeOldVisits, recordBackupResul
 import type { AppContext } from './context';
 import { registerCommerceJobs } from './commerce-jobs';
 import { registerOpsJobs } from './ops';
+import { registerPrivacyJobs } from './privacy-jobs';
 
 /**
  * Register background jobs on the in-process queue (ctx.queue). Feature agents add their handlers here,
@@ -27,5 +28,6 @@ export function registerJobs(ctx: AppContext): () => void {
   if (ctx.config.env !== 'test') ctx.queue.enqueue('store.auto-backup', {}, { delayMs: 90_000, maxAttempts: 1 });
   const stopOps = registerOpsJobs(ctx);
   const stopCommerce = registerCommerceJobs(ctx);
-  return () => { stopOps(); stopCommerce(); };
+  const stopPrivacy = registerPrivacyJobs(ctx);
+  return () => { stopOps(); stopCommerce(); stopPrivacy(); };
 }

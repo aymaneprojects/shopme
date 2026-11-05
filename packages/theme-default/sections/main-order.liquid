@@ -7,6 +7,10 @@
     <a class="link-arrow" href="{{ routes.account_url }}">{{ 'customer.order_page.back' | t }}</a>
   </div>
   <p>{{ 'customer.order_page.placed_on' | t: date: placed }}</p>
+  {%- if order_notice != blank -%}
+    {%- assign notice_key = 'customer.order_page.notice_' | append: order_notice -%}
+    <p class="customer__notice" role="status">{{ notice_key | t }}</p>
+  {%- endif -%}
   {%- if order.cancelled -%}
     <p class="form-errors" role="status">{{ 'customer.order_page.cancelled' | t: date: cancelled_on }}{% if order.cancel_reason_label %} ({{ order.cancel_reason_label }}){% endif %}</p>
   {%- endif -%}
@@ -50,6 +54,36 @@
       <tr><th scope="row" colspan="4">{{ 'customer.order_page.order_total' | t }}</th><td class="customer__num"><strong>{{ order.total_price | money_with_currency }}</strong></td></tr>
     </tfoot>
   </table>
+
+  {%- if order.actions.reorder or order.actions.cancel or order.actions.return -%}
+    <section class="customer__order-actions" aria-labelledby="order-actions-title">
+      <h2 id="order-actions-title">{{ 'customer.order_page.actions' | t }}</h2>
+      {%- if order.actions.reorder -%}
+        <form method="post" action="{{ order.actions.reorder_url }}"><button class="button button--outline button--small" type="submit">{{ 'customer.order_page.reorder' | t }}</button></form>
+      {%- endif -%}
+      {%- if order.actions.cancel -%}
+        {%- assign until = order.actions.cancel_until | date: date_format -%}
+        <form method="post" action="{{ order.actions.cancel_url }}">
+          <p class="customer__muted">{{ 'customer.order_page.cancel_until' | t: date: until }}</p>
+          <button class="button button--outline button--small" type="submit" data-confirm="{{ 'customer.order_page.cancel_confirm' | t | escape }}">{{ 'customer.order_page.cancel' | t }}</button>
+        </form>
+      {%- endif -%}
+      {%- if order.actions.return -%}
+        <form method="post" action="{{ order.actions.return_url }}">
+          <h3>{{ 'customer.order_page.return_title' | t }}</h3>
+          <p class="customer__muted">{{ 'customer.order_page.return_text' | t }}</p>
+          {%- for line in order.actions.return_lines -%}
+            <label class="customer__return-line">
+              <input type="number" name="return[{{ line.id }}]" min="0" max="{{ line.max }}" value="0" inputmode="numeric">
+              <span>{{ line.title | escape }}{% if line.variant_title != blank %} ({{ line.variant_title | escape }}){% endif %} <span class="customer__muted">{{ 'customer.order_page.return_max' | t: max: line.max }}</span></span>
+            </label>
+          {%- endfor -%}
+          <label class="field"><span>{{ 'customer.order_page.return_note' | t }}</span><input type="text" name="note" maxlength="500"></label>
+          <button class="button button--small" type="submit">{{ 'customer.order_page.return_submit' | t }}</button>
+        </form>
+      {%- endif -%}
+    </section>
+  {%- endif -%}
 
   <div class="customer__layout">
     {%- if order.shipping_address -%}

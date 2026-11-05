@@ -41,7 +41,15 @@
         <span class="visually-hidden">{{ 'header.search' | t }}</span>
         {% render 'icon', name: 'search' %}
       </a>
-      {%- if shop.customer_accounts_enabled -%}
+      {%- liquid
+        assign show_account = false
+        if shop.customer_accounts_enabled
+          if customer or routes.account_login_url != blank
+            assign show_account = true
+          endif
+        endif
+      -%}
+      {%- if show_account -%}
         <a class="icon-button" href="{{ routes.account_url }}">
           <span class="visually-hidden">{{ 'header.account' | t }}</span>
           {% render 'icon', name: 'user' %}

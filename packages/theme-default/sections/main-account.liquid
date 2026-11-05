@@ -40,6 +40,12 @@
     </section>
 
     <aside aria-labelledby="details-title">
+      {%- if customer.store_credit_account -%}
+        <div class="customer__credit">
+          <h2>{{ 'customer.account_page.store_credit' | t }}</h2>
+          <p><strong>{{ customer.store_credit_account.balance | money }}</strong></p>
+        </div>
+      {%- endif -%}
       <h2 id="details-title">{{ 'customer.account_page.details' | t }}</h2>
       <p><strong>{{ customer.name | escape }}</strong><br>{{ customer.email | escape }}</p>
       {%- if customer.default_address -%}

@@ -6,6 +6,7 @@ import { registerCartRoutes } from './cart-routes';
 import { registerFormRoutes } from './forms';
 import { registerLocalizationRoutes } from './locale';
 import { registerGiftCardRoutes } from './gift-cards';
+import { registerPrivacyRoutes } from './privacy';
 import { registerSeoRoutes } from './seo';
 import { registerVisitTracking } from './visits';
 import { primaryShop } from './env';
@@ -32,6 +33,7 @@ export async function registerStorefront(app: FastifyInstance): Promise<void> {
     registerVisitTracking(scope, ctx);
     registerLocalizationRoutes(scope, ctx);
     registerCartRoutes(scope, ctx, content.renderSections);
+    registerPrivacyRoutes(scope, ctx, content);
     registerAccountRoutes(scope, ctx, content);
     registerBlogRoutes(scope, ctx, content);
     registerFormRoutes(scope, ctx, content);

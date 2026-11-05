@@ -35,6 +35,7 @@
       {{ content_for_layout }}
     </main>
     {% sections 'footer-group' %}
+    {%- render 'cookie-banner' -%}
     <script>
       window.aurora = {
         moneyFormat: {{ shop.money_format | json }},

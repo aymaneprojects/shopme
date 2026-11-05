@@ -1,24 +1,13 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { randomToken, recordVisit, VISIT_SESSION_MS, type Shop } from '@shopme/core';
+import { randomToken, recordVisit, VISIT_SESSION_MS } from '@shopme/core';
 import type { AppContext } from '../context';
 import { primaryShop } from './env';
+import { analyticsAllowed } from './privacy';
 
 export const VISIT_COOKIE = 'shopme_vid';
-/** Value a cookie banner stores in `cookie_consent` once the visitor accepted analytics. */
-const ACCEPTED = new Set(['accepted', 'all', 'analytics', 'true', '1', 'yes']);
 const BOT = /bot|crawl|spider|slurp|preview|monitor|uptime|curl|wget|python|headless|lighthouse|facebookexternalhit/i;
 
 const ids = new WeakMap<FastifyRequest, string>();
-
-/**
- * Consent: with the cookie banner off there is nothing to ask, so visits are counted; with it on, only after the visitor accepted
- * (`cookie_consent` cookie). Do-Not-Track and Global Privacy Control are always honoured.
- */
-export function trackingAllowed(shop: Shop, req: FastifyRequest): boolean {
-  if (req.headers.dnt === '1' || req.headers['sec-gpc'] === '1') return false;
-  const banner = (shop.settings as { cookieBanner?: { enabled?: boolean } }).cookieBanner;
-  return !banner?.enabled || ACCEPTED.has(String(req.cookies.cookie_consent ?? '').toLowerCase());
-}
 
 /**
  * First-party visit tracking for the analytics "Sessions" and conversion numbers: every successful storefront HTML page view is stored
@@ -29,9 +18,10 @@ export function registerVisitTracking(scope: FastifyInstance, ctx: AppContext): 
   scope.addHook('onRequest', async (req, reply) => {
     if (req.method !== 'GET' || BOT.test(req.headers['user-agent'] ?? 'bot') || req.headers.purpose === 'prefetch') return;
     const path = req.url.split('?')[0]!;
-    if (path === '/password' || path.startsWith('/cdn/') || /[?&](sections|section_id)=/.test(req.url)) return;
+    if (path === '/password' || path.startsWith('/cdn/') || path.startsWith('/.shopme/') || /[?&](sections|section_id)=/.test(req.url)) return;
     const shop = await primaryShop(ctx);
-    if (!shop || !trackingAllowed(shop, req)) return;
+    // Consent: counted only where analytics may run (no consent needed in the visitor's region, or given). Do-Not-Track and GPC are always honoured.
+    if (!shop || req.headers.dnt === '1' || req.headers['sec-gpc'] === '1' || !(await analyticsAllowed(ctx, req, shop))) return;
     const given = req.cookies[VISIT_COOKIE];
     const id = given && /^[A-Za-z0-9_-]{16,64}$/.test(given) ? given : randomToken(16);
     reply.setCookie(VISIT_COOKIE, id, { path: '/', httpOnly: true, sameSite: 'lax', maxAge: VISIT_SESSION_MS / 1000 });

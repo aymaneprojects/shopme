@@ -28,7 +28,7 @@
       <button class="button" type="submit">{{ 'customer.register_page.submit' | t }}</button>
     </div>
   {%- endform -%}
-  <p class="customer__alt">{{ 'customer.register_page.have_account' | t }} <a href="{{ routes.account_login_url }}">{{ 'customer.login' | t }}</a></p>
+  <p class="customer__alt">{{ 'customer.register_page.have_account' | t }} <a href="{{ routes.account_login_url | default: '/account/login' }}">{{ 'customer.login' | t }}</a></p>
 </div>
 
 {% schema %}
