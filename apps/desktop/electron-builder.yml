@@ -11,32 +11,24 @@ asar: false
 npmRebuild: false
 nodeGypRebuild: false
 buildDependenciesFromSource: false
+afterPack: scripts/after-pack.cjs
 artifactName: ShopMe-${version}-${os}-${arch}.${ext}
 files:
   - "**/*"
   - "!**/*.map"
   - "!**/node_modules/**/{test,tests,__tests__,docs,*.md}"
-  # Prebuilt binaries for other OSes stay in the staged tree (so one stage works everywhere) but are dropped per platform below.
+  # Prebuilt binaries for other OSes stay in the staged tree; scripts/after-pack.cjs drops them per platform.
 win:
   icon: build/icon.ico
   target:
     - target: nsis
       arch: [x64]
-  files:
-    - "!**/node_modules/@node-rs/argon2-darwin-*/**"
-    - "!**/node_modules/@node-rs/argon2-linux-*/**"
-    - "!**/node_modules/@img/sharp-darwin-*/**"
-    - "!**/node_modules/@img/sharp-libvips-*/**"
-    - "!**/node_modules/@img/sharp-linux-*/**"
 mac:
   icon: build/icon.icns
   category: public.app-category.business
   target:
     - target: dmg
       arch: [x64, arm64]
-  files:
-    - "!**/node_modules/@node-rs/argon2-win32-*/**"
-    - "!**/node_modules/@node-rs/argon2-linux-*/**"
   # Signing and notarization happen only when CSC_LINK / APPLE_* secrets are present (see docs/install/desktop.md).
   hardenedRuntime: true
   gatekeeperAssess: false
@@ -49,9 +41,6 @@ linux:
   target:
     - target: AppImage
       arch: [x64]
-  files:
-    - "!**/node_modules/@node-rs/argon2-win32-*/**"
-    - "!**/node_modules/@node-rs/argon2-darwin-*/**"
 nsis:
   oneClick: false
   perMachine: false
