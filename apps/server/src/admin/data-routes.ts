@@ -6,7 +6,7 @@ import { pipeline } from 'node:stream/promises';
 import multipart from '@fastify/multipart';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
-  buildThemeZip, createJob, createThemeFromZip, exportCustomers, exportInventory, exportOrders, exportProducts, getJob, getTheme, importCustomers, importInventory, importProducts, JobReporter,
+  buildThemeZip, createJob, createThemeFromZip, exportCustomers, exportDraftOrders, exportInventory, exportOrders, exportProducts, getJob, getTheme, importCustomers, importInventory, importProducts, JobReporter,
   MAX_THEME_ZIP_BYTES, parseCsvObjects, randomToken, type Db, type ImportEnv, type Reporter,
 } from '@shopme/core';
 import { importFromShopify, PHASES, ShopifyClient, type Phase } from '@shopme/migrate';
@@ -16,7 +16,7 @@ import type { AuthInfo } from '../context';
 const MAX_CSV_BYTES = 200 * 1024 * 1024;
 const IMPORTS = { products: importProducts, customers: importCustomers, inventory: importInventory } as const;
 type ImportKind = keyof typeof IMPORTS;
-const SCOPE: Record<string, string> = { products: 'products', customers: 'customers', inventory: 'inventory', orders: 'orders' };
+const SCOPE: Record<string, string> = { products: 'products', customers: 'customers', inventory: 'inventory', orders: 'orders', draft_orders: 'orders' };
 
 const allowed = (a: AuthInfo, scope: string) => a.scopes.includes('*') || a.scopes.includes(scope) || (scope.startsWith('read_') && a.scopes.includes(`write_${scope.slice(5)}`));
 
@@ -69,7 +69,7 @@ const publicJob = (j: NonNullable<Awaited<ReturnType<typeof getJob>>>) => ({ id:
 /**
  * CSV import/export, theme zip upload/download, Shopify migration and job status:
  *   POST /admin/api/import/:kind[?dryRun=1]    (products | customers | inventory; multipart field "file") -> 202 { job }
- *   GET  /admin/api/export/:kind.csv           (products | customers | inventory | orders)
+ *   GET  /admin/api/export/:kind.csv           (products | customers | inventory | orders | draft_orders; ?query= and ?ids= narrow the order exports)
  *   POST /admin/api/themes/upload              (multipart zip; optional field "name") -> 201 { theme }
  *   GET  /admin/api/themes/:id/download.zip
  *   POST /admin/api/migrate/shopify            { shop, accessToken | clientId+clientSecret, only? } -> 202 { job }
@@ -151,15 +151,20 @@ export function registerDataRoutes(app: FastifyInstance) {
     return reply.type('application/zip').header('content-disposition', `attachment; filename="${safe}.zip"`).send(Buffer.from(zip));
   });
 
-  const EXPORTS: Record<string, (db: Db, shopId: number, baseUrl: string) => AsyncGenerator<string>> = {
-    products: (d, s, base) => exportProducts(d, s, base), customers: (d, s) => exportCustomers(d, s), inventory: (d, s) => exportInventory(d, s), orders: (d, s) => exportOrders(d, s),
+  type ExportFilter = { query: string | null; ids: number[] | null };
+  const EXPORTS: Record<string, (db: Db, shopId: number, baseUrl: string, f: ExportFilter) => AsyncGenerator<string>> = {
+    products: (d, s, base) => exportProducts(d, s, base), customers: (d, s) => exportCustomers(d, s), inventory: (d, s) => exportInventory(d, s),
+    orders: (d, s, _b, f) => exportOrders(d, s, f), draft_orders: (d, s, _b, f) => exportDraftOrders(d, s, f),
   };
   app.get('/admin/api/export/:file', async (req, reply) => {
-    const m = /^(products|customers|inventory|orders)\.csv$/.exec((req.params as { file: string }).file);
-    if (!m) return reply.code(404).send({ error: 'Unknown export (products.csv, customers.csv, inventory.csv, orders.csv)' });
+    const m = /^(products|customers|inventory|orders|draft_orders)\.csv$/.exec((req.params as { file: string }).file);
+    if (!m) return reply.code(404).send({ error: 'Unknown export (products.csv, customers.csv, inventory.csv, orders.csv, draft_orders.csv)' });
     const auth = await authed(req, reply, `read_${SCOPE[m[1]!]}`);
     if (!auth) return;
     const origin = `${req.protocol}://${req.headers.host ?? new URL(config.appUrl).host}`;
-    return reply.type('text/csv; charset=utf-8').header('content-disposition', `attachment; filename="${m[1]}.csv"`).send(Readable.from(EXPORTS[m[1]!]!(db, auth.shopId, origin)));
+    // `?query=` (the list's search terms) and `?ids=1,2,3` (the selected rows) narrow the order exports.
+    const q = req.query as { query?: string; ids?: string };
+    const ids = q.ids ? q.ids.split(',').map((n) => Number(n.replace(/\D/g, ''))).filter((n) => Number.isSafeInteger(n) && n > 0) : null;
+    return reply.type('text/csv; charset=utf-8').header('content-disposition', `attachment; filename="${m[1]!.replace('_', '-')}.csv"`).send(Readable.from(EXPORTS[m[1]!]!(db, auth.shopId, origin, { query: q.query ?? null, ids })));
   });
 }

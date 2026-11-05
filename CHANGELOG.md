@@ -30,6 +30,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Return rules (Settings, Policies): return window, return shipping cost (free, flat fee, customer pays), restocking fee and final sale products or collections. They are enforced when a return is created, copied onto it, and listed on the refund policy page.
 - Discounts can be limited to customer segments or specific customers (enforced at checkout from the buyer's email), show an Eligibility column in the list, and carry tags with a tag filter.
 - Admin shell: collapsible sidebar (remembered per browser), a notifications bell with an activity feed (new orders, low stock, failed webhook deliveries, backup results) and "Mark all as read", search with type filters and recent searches, and an account menu at the bottom of the sidebar.
+- Timeline on the order and customer pages: staff comment box (plain text, authors can delete their own comments) and system events grouped by day (order created, paid, fulfilled, refunded, edited, address changes, emails sent; customer created, order placed). New `CommentEvent`/`events` fields on `Customer`, `customerTimelineCommentCreate` and `timelineCommentDelete` mutations.
+- Fulfillment actions: "..." menu per fulfillment (edit tracking and notification, cancel fulfillment which puts the items back to unfulfilled and re-commits the stock), "Mark as on hold" / "Release hold" with a reason (`fulfillmentOrderHold`, `fulfillmentOrderReleaseHold`, `fulfillmentCancel`); a held order shows ON_HOLD and cannot be fulfilled.
+- Billing address editing on the order page (`orderUpdate` accepts `billingAddress`).
+- Refunds credit gift cards back: the gateway share is refunded first, the rest goes onto the gift cards that paid the order; the refund page and the timeline show it.
+- Orders export honours the current filter or selection (`/admin/api/export/orders.csv?query=&ids=`); new draft orders export (`draft_orders.csv`).
+- Abandoned checkouts: status filter (open / recovered) with `status:recovered` search.
+- Order "More actions": duplicate (as a draft order), view status page, print order page, packing slips or both; "Create shipping labels" bulk action explaining that no carrier is connected and offering manual tracking; "Request customer data" JSON download on the customer page.
 - The demo store now ships real product, collection, home page, blog and About page photos (CC0, see `packages/core/assets/demo/README.md`).
 - Illustrated empty states in the admin (products, orders, customers, discounts, collections, analytics).
 - `pnpm screenshots` regenerates the README screenshots from a fresh demo store.

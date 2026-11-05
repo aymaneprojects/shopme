@@ -66,7 +66,7 @@ export const ABANDONED_CHECKOUTS = /* GraphQL */ `
   query AbandonedCheckouts($first: Int, $after: String, $last: Int, $before: String, $query: String, $reverse: Boolean) {
     abandonedCheckouts(first: $first, after: $after, last: $last, before: $before, query: $query, reverse: $reverse, sortKey: ID) {
       nodes {
-        id name createdAt updatedAt lineItemsQuantity shopmeEmail shopmeRecoveryEmailsSent shopmeRecoveryEmailSentAt
+        id name createdAt updatedAt completedAt lineItemsQuantity shopmeEmail shopmeRecoveryEmailsSent shopmeRecoveryEmailSentAt
         customer { id displayName defaultEmailAddress { emailAddress } }
         totalPriceSet { ${MONEY} }
       }

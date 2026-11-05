@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import {
-  addOrderComment, cancelOrder, changeOrderTags, closeOrder, countOrders, createFulfillment, getCustomer, getFulfillment, getOrder, getOrderDetail, getProduct, getVariant, listEvents, listOrders,
+  addOrderComment, cancelFulfillment, cancelOrder, deleteComment, getEvent, holdOrder, HOLD_REASONS, releaseOrderHold, changeOrderTags, closeOrder, countOrders, createFulfillment, getCustomer, getFulfillment, getOrder, getOrderDetail, getProduct, getVariant, listEvents, listOrders,
   markOrderAsPaid, openOrder, paidAmounts, refundOrder, updateOrder, updateTracking,
   type Fulfillment as FulfillmentRow, type Order as OrderRow, type OrderDetail, type OrderLine, type OrderTransaction as TxRow, type Refund as RefundRow,
 } from '@shopme/core';
@@ -208,6 +208,12 @@ const FulfillmentLineItem = builder.objectRef<FulfillmentLineShape>('Fulfillment
 });
 const FulfillmentLineItemConnection = defineConnection('FulfillmentLineItem', FulfillmentLineItem);
 
+const HoldReason = builder.enumType('FulfillmentHoldReason', { values: [...HOLD_REASONS, 'ONLINE_STORE_POST_PURCHASE_CROSS_SELL'] as const });
+const FulfillmentHold = builder.objectRef<{ reason: string; note: string | null; heldAt: Date }>('ShopmeFulfillmentHold').implement({
+  fields: (t) => ({
+    reason: t.field({ type: HoldReason, resolve: (h) => h.reason as 'OTHER' }), reasonNotes: t.exposeString('note', { nullable: true }), heldAt: t.field({ type: 'DateTime', resolve: (h) => h.heldAt }),
+  }),
+});
 const Fulfillment = builder.objectRef<FulfillmentShape>('Fulfillment');
 Fulfillment.implement({
   interfaces: [Node],
@@ -218,6 +224,7 @@ Fulfillment.implement({
     createdAt: t.field({ type: 'DateTime', resolve: (f) => f.createdAt }),
     updatedAt: t.field({ type: 'DateTime', resolve: (f) => f.updatedAt }),
     deliveredAt: t.field({ type: 'DateTime', nullable: true, resolve: (f) => f.deliveredAt }),
+    shopmeNotifyCustomer: t.boolean({ description: 'ShopMe extension: whether the customer is notified of tracking changes.', resolve: (f) => f.notifyCustomer }),
     totalQuantity: t.int({ resolve: (f) => f.lines.reduce((s, l) => s + l.quantity, 0) }),
     order: t.field({ type: Order_, resolve: (f) => f.order }),
     trackingInfo: t.field({
@@ -311,7 +318,8 @@ Order_.implement({
       currencyCode: t.field({ type: CurrencyCode, resolve: (o) => o.currency }),
       presentmentCurrencyCode: t.field({ type: CurrencyCode, resolve: (o) => o.presentmentCurrency }),
       displayFinancialStatus: t.field({ type: FinancialStatus, nullable: true, resolve: (o) => o.financialStatus as 'PAID' }),
-      displayFulfillmentStatus: t.field({ type: FulfillmentStatusEnum, resolve: (o) => o.fulfillmentStatus as 'UNFULFILLED' }),
+      displayFulfillmentStatus: t.field({ type: FulfillmentStatusEnum, resolve: (o) => (o.heldAt ? 'ON_HOLD' : o.fulfillmentStatus) as 'UNFULFILLED' }),
+      shopmeFulfillmentHold: t.field({ type: FulfillmentHold, nullable: true, description: 'ShopMe extension: the hold that blocks fulfillment, if any.', resolve: (o) => (o.heldAt ? { reason: o.holdReason ?? 'OTHER', note: o.holdNote, heldAt: o.heldAt } : null) }),
       subtotalPriceSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => money(o, o.subtotal) }),
       totalPriceSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.total) }),
       originalTotalPriceSet: t.field({ type: MoneyBag, resolve: (o) => money(o, o.total) }),
@@ -436,6 +444,7 @@ builder.queryFields((t) => ({
 const OrderInput = builder.inputType('OrderInput', {
   fields: (t) => ({
     id: t.id({ required: true }), email: t.string(), phone: t.string(), note: t.string(), tags: t.stringList(), shippingAddress: t.field({ type: MailingAddressInput }),
+    billingAddress: t.field({ type: MailingAddressInput, description: 'ShopMe extension: the real OrderInput has no billing address.' }),
     poNumber: t.string(),
   }),
 });
@@ -509,6 +518,14 @@ const RefundInput = builder.inputType('RefundInput', {
 const RefundPayload = definePayload<{ order: OrderRow | null; refund: RefundShape | null }>('RefundCreatePayload', (t) => ({
   order: t.field({ type: Order_, nullable: true, resolve: (p) => p.order }), refund: t.field({ type: Refund, nullable: true, resolve: (p) => p.refund }),
 }));
+const FulfillmentOrderHoldInput = builder.inputType('FulfillmentOrderHoldInput', {
+  fields: (t) => ({ reason: t.field({ type: HoldReason, required: true }), reasonNotes: t.string(), notifyMerchant: t.boolean({ defaultValue: false }), externalId: t.string() }),
+});
+const holdTarget = (raw: string | number) => { const n = parseId(String(raw), 'Order') ?? parseId(String(raw), 'FulfillmentOrder'); return n ? toGid('Order', n) : String(raw); };
+const HoldPayload = orderPayload('FulfillmentOrderHoldPayload');
+const HoldReleasePayload = orderPayload('FulfillmentOrderReleaseHoldPayload');
+const FulfillmentCancelPayload = definePayload<{ fulfillment: FulfillmentShape | null }>('FulfillmentCancelPayload', (t) => ({ fulfillment: t.field({ type: Fulfillment, nullable: true, resolve: (p) => p.fulfillment }) }));
+const CommentDeletePayload = definePayload<{ deletedCommentId: string | null }>('TimelineCommentDeletePayload', (t) => ({ deletedCommentId: t.id({ nullable: true, resolve: (p) => p.deletedCommentId }) }));
 const CommentPayload = definePayload<{ event: EventRow | null }>('OrderTimelineCommentCreatePayload', (t) => ({ event: t.field({ type: CommentEvent, nullable: true, resolve: (p) => p.event }) }));
 
 builder.mutationFields((t) => ({
@@ -517,6 +534,7 @@ builder.mutationFields((t) => ({
     resolve: (_r, { input }, ctx) => orderOp(ctx, input.id, ['input', 'id'], (id) => updateOrder(ctx.db, ctx.shopId, id, {
       email: input.email, phone: input.phone, note: input.note, tags: input.tags,
       shippingAddress: input.shippingAddress ? { ...input.shippingAddress, countryCode: input.shippingAddress.countryCode ?? undefined } : undefined,
+      billingAddress: input.billingAddress ? { ...input.billingAddress, countryCode: input.billingAddress.countryCode ?? undefined } : undefined,
     }, staffId(ctx))),
   }),
   orderClose: t.field({ type: ClosePayload, args: { input: t.arg({ type: OrderCloseInput, required: true }) }, resolve: (_r, { input }, ctx) => orderOp(ctx, input.id, ['input', 'id'], (id) => closeOrder(ctx.db, ctx.shopId, id, staffId(ctx))) }),
@@ -567,6 +585,37 @@ builder.mutationFields((t) => ({
       const r = id ? await updateTracking(ctx.db, ctx.shopId, id, { company: i.company, numbers: i.numbers ?? (i.number ? [i.number] : undefined), urls: i.urls ?? (i.url ? [i.url] : undefined) }, a.notifyCustomer ?? undefined) : null;
       if (!r?.ok) return { fulfillment: null, userErrors: r ? r.errors : [{ field: ['fulfillmentId'], message: 'Fulfillment does not exist' }] };
       return { fulfillment: { ...r.value, order: (await getOrder(ctx.db, ctx.shopId, r.value.orderId))! }, userErrors: [] };
+    },
+  }),
+  fulfillmentCancel: t.field({
+    type: FulfillmentCancelPayload, args: { id: t.arg.id({ required: true }) },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_fulfillments');
+      const id = parseId(String(a.id), 'Fulfillment');
+      const r = id ? await cancelFulfillment(ctx.db, ctx.shopId, id, staffId(ctx)) : null;
+      if (!r?.ok) return { fulfillment: null, userErrors: r ? r.errors : [{ field: ['id'], message: 'Fulfillment does not exist' }] };
+      return { fulfillment: { ...r.value.fulfillment, order: r.value.order }, userErrors: [] };
+    },
+  }),
+  /** `id` is an Order or FulfillmentOrder GID: ShopMe has one implicit fulfillment order per order. */
+  fulfillmentOrderHold: t.field({
+    type: HoldPayload, args: { id: t.arg.id({ required: true }), fulfillmentHold: t.arg({ type: FulfillmentOrderHoldInput, required: true }) },
+    resolve: (_r, a, ctx) => orderOp(ctx, holdTarget(a.id), ['id'], (id) => holdOrder(ctx.db, ctx.shopId, id, { reason: a.fulfillmentHold.reason, note: a.fulfillmentHold.reasonNotes, staffId: staffId(ctx) })),
+  }),
+  fulfillmentOrderReleaseHold: t.field({
+    type: HoldReleasePayload, args: { id: t.arg.id({ required: true }) },
+    resolve: (_r, a, ctx) => orderOp(ctx, holdTarget(a.id), ['id'], (id) => releaseOrderHold(ctx.db, ctx.shopId, id, staffId(ctx))),
+  }),
+  /** ShopMe extension: authors delete their own timeline comments. */
+  timelineCommentDelete: t.field({
+    type: CommentDeletePayload, args: { id: t.arg.id({ required: true }) },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_orders');
+      const id = parseId(String(a.id), 'CommentEvent');
+      const ev = id ? await getEvent(ctx.db, ctx.shopId, id) : null;
+      if (ev && ev.subjectType === 'customer') requireScope(ctx, 'write_customers');
+      const r = id ? await deleteComment(ctx.db, ctx.shopId, id, staffId(ctx)) : null;
+      return r?.ok ? { deletedCommentId: toGid('CommentEvent', id!), userErrors: [] } : { deletedCommentId: null, userErrors: r ? r.errors : [{ field: ['id'], message: 'Comment does not exist' }] };
     },
   }),
   refundCreate: t.field({

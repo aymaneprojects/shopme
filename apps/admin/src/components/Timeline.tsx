@@ -1,0 +1,107 @@
+import { Banner, Button, ConfirmDialog, Skeleton, Textarea, useToast } from '@shopme/ui';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { gql, mutate } from '../api';
+import { CUSTOMER_TIMELINE, CUSTOMER_TIMELINE_COMMENT_CREATE, ORDER_TIMELINE, ORDER_TIMELINE_COMMENT_CREATE, TIMELINE_COMMENT_DELETE } from '../graphql';
+import { useI18n } from '../i18n';
+import { dayLabel, eventText, groupByDay, type TimelineEvent } from '../lib/timeline';
+import { useShop } from '../session';
+
+interface Props { kind: 'order' | 'customer'; id: string }
+interface Data { order?: { name: string; currencyCode: string; events: { nodes: TimelineEvent[] } } | null; customer?: { events: { nodes: TimelineEvent[] } } | null }
+
+/**
+ * Activity timeline of an order or a customer: a comment box for staff and the system events (and comments) grouped by day, newest first.
+ * Refetches by itself; `refreshKey` lets the host page force a reload after it changed something.
+ */
+export function Timeline({ kind, id, refreshKey }: Props & { refreshKey?: unknown }) {
+  const { t, lang } = useI18n();
+  const { user } = useShop();
+  const toast = useToast();
+  const qc = useQueryClient();
+  const [text, setText] = useState('');
+  const [removing, setRemoving] = useState<TimelineEvent | null>(null);
+  const key = ['timeline', kind, id, refreshKey];
+  const q = useQuery({ queryKey: key, queryFn: () => gql<Data>(kind === 'order' ? ORDER_TIMELINE : CUSTOMER_TIMELINE, { id }) });
+  const reload = () => qc.invalidateQueries({ queryKey: ['timeline', kind, id] });
+  const fail = (e: Error) => toast(e.message, 'critical');
+
+  const post = useMutation({
+    mutationFn: () => mutate(kind === 'order' ? ORDER_TIMELINE_COMMENT_CREATE : CUSTOMER_TIMELINE_COMMENT_CREATE, { id, message: text.trim() }, kind === 'order' ? 'orderTimelineCommentCreate' : 'customerTimelineCommentCreate'),
+    onSuccess: () => { setText(''); void reload(); }, onError: fail,
+  });
+  const del = useMutation({
+    mutationFn: (eventId: string) => mutate(TIMELINE_COMMENT_DELETE, { id: eventId }, 'timelineCommentDelete'),
+    onSuccess: () => { setRemoving(null); toast(t('timeline.deleted')); void reload(); }, onError: (e) => { setRemoving(null); fail(e); },
+  });
+
+  const owner = kind === 'order' ? q.data?.order : q.data?.customer;
+  const events = owner?.events.nodes ?? [];
+  const order = kind === 'order' ? q.data?.order : null;
+  const initials = ((user.firstName?.[0] ?? '') + (user.lastName?.[0] ?? '') || user.email[0] || '?').toUpperCase();
+  const time = (iso: string) => new Intl.DateTimeFormat(lang, { timeStyle: 'short' }).format(new Date(iso));
+  const dayTitle = (day: string, first: string) => {
+    const rel = dayLabel(day);
+    return rel ? t(`timeline.${rel}`) : new Intl.DateTimeFormat(lang, { dateStyle: 'long' }).format(new Date(first));
+  };
+
+  return (
+    <section aria-label={t('timeline.title')}>
+      <h2 className="mb-2 text-[15px] font-semibold">{t('timeline.title')}</h2>
+      <div className="rounded-lg bg-canvas shadow-card">
+        <div className="flex items-start gap-3 p-3">
+          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-accent-fg">{initials}</span>
+          <Textarea className="min-w-0 flex-1" rows={2} aria-label={t('timeline.commentLabel')} placeholder={t('timeline.placeholder')} value={text} maxLength={5000}
+            onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && text.trim() && !post.isPending) post.mutate(); }} />
+        </div>
+        <div className="flex justify-end border-t border-line px-3 py-2">
+          <Button size="sm" variant="primary" disabled={!text.trim()} loading={post.isPending} onClick={() => post.mutate()}>{t('timeline.post')}</Button>
+        </div>
+      </div>
+      <p className="mt-1.5 text-right text-xs text-muted">{t('timeline.staffOnly')}</p>
+
+      {q.isLoading && <div className="mt-3 grid gap-2"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-4 w-2/3" /></div>}
+      {q.isError && <div className="mt-3"><Banner>{t('timeline.loadFailed')}</Banner></div>}
+      {!q.isLoading && !q.isError && events.length === 0 && <p className="mt-3 text-[13px] text-muted">{t('timeline.empty')}</p>}
+      <div className="ml-4 mt-2 border-l-2 border-line pl-4">
+        {groupByDay(events).map((g) => (
+          <div key={g.day} className="pb-3">
+            <h3 className="py-2 text-xs font-medium text-muted">{dayTitle(g.day, g.events[0]!.createdAt)}</h3>
+            <ol className="flex flex-col gap-3">
+              {g.events.map((e) => {
+                const comment = e.__typename === 'CommentEvent';
+                const who = e.author?.name ?? e.authorEmail;
+                return (
+                  <li key={e.id} data-event={e.action} className="relative flex items-start justify-between gap-3 text-[13px]">
+                    <span aria-hidden className={comment ? 'absolute -left-[25px] top-1.5 size-2.5 rounded-full bg-accent ring-4 ring-[var(--color-bg)]' : 'absolute -left-[24px] top-1.5 size-2 rounded-full bg-muted ring-4 ring-[var(--color-bg)]'} />
+                    {comment ? (
+                      <div className="min-w-0 flex-1 rounded-lg bg-canvas p-3 shadow-card">
+                        <p className="mb-1 text-xs text-muted">{who ?? t('timeline.staff')}</p>
+                        <p className="whitespace-pre-wrap break-words">{e.rawMessage ?? e.message}</p>
+                      </div>
+                    ) : (
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words">{eventText(e, t, lang, order)}</p>
+                        {who && <p className="text-xs text-muted">{who}</p>}
+                      </div>
+                    )}
+                    <span className="flex shrink-0 items-center gap-1 pt-0.5 text-xs text-muted">
+                      {time(e.createdAt)}
+                      {comment && e.canDelete && (
+                        <button type="button" aria-label={t('timeline.deleteComment')} title={t('timeline.deleteComment')} onClick={() => setRemoving(e)}
+                          className="grid size-6 place-items-center rounded-md hover:bg-hover hover:text-critical"><Trash2 className="size-3.5" /></button>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        ))}
+      </div>
+      <ConfirmDialog open={!!removing} danger loading={del.isPending} onClose={() => setRemoving(null)} closeLabel={t('common.close')} title={t('timeline.deleteTitle')}
+        message={t('timeline.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => removing && del.mutate(removing.id)} />
+    </section>
+  );
+}

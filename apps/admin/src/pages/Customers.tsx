@@ -14,6 +14,7 @@ import { gidToNum, numToGid } from '../format';
 import { CUSTOMER, CUSTOMER_IDS, CUSTOMERS, CUSTOMERS_COUNT, CUSTOMER_DELETE, CUSTOMER_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
+import { Timeline } from '../components/Timeline';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
 import { useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
@@ -169,6 +170,7 @@ function CustomerView({ c }: { c: CustomerData }) {
           <Dropdown align="right" label={t('common.moreActions')} trigger={<>{t('common.moreActions')}<ChevronDown className="size-4" /></>} items={[
             { key: 'edit', label: t('customers.edit'), onSelect: () => nav(`/customers/${num}/edit`) },
             { key: 'orders', label: t('customers.viewAllOrders'), disabled: c.numberOfOrders === 0, onSelect: () => nav(`/orders?q=${encodeURIComponent(`customer_id:${num}`)}`) },
+            { key: 'data', label: t('customers.requestData'), onSelect: () => { downloadJson(`customer-${num}.json`, c); toast(t('customers.dataExported')); } },
             { key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirm(true) },
           ]} />
           <span className="inline-flex gap-1">
@@ -185,6 +187,7 @@ function CustomerView({ c }: { c: CustomerData }) {
             </dl>
           </Card>
           <MetafieldsEditor ownerId={c.id} ownerType="CUSTOMER" />
+          <Timeline kind="customer" id={c.id} />
           <Card title={t('customers.recentOrders')} actions={<span className="flex items-center gap-3">{c.numberOfOrders > 0 && <Link className="text-[13px] text-accent hover:underline" to={`/orders?q=${encodeURIComponent(`customer_id:${num}`)}`}>{t('customers.viewAllOrders')}</Link>}<Button size="sm" variant="primary" onClick={() => nav('/orders/drafts/new')}>{t('customers.createOrder')}</Button></span>}>
             {c.orders.nodes.length === 0 ? <p className="text-[13px] text-muted">{t('customers.noOrders')}</p> : (
               <ul className="divide-y divide-line">
@@ -220,4 +223,11 @@ function CustomerView({ c }: { c: CustomerData }) {
       <ConfirmDialog open={confirm} onClose={() => setConfirm(false)} danger title={t('customers.deleteTitle', { n: 1 })} message={t('customers.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { setConfirm(false); del.mutate(); }} />
     </>
   );
+}
+
+function downloadJson(name: string, data: unknown) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

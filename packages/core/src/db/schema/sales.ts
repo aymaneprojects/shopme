@@ -73,6 +73,8 @@ export const orders = pgTable('orders', {
   financialStatus: text('financial_status').notNull().default('PENDING'),
   fulfillmentStatus: text('fulfillment_status').notNull().default('UNFULFILLED'),
   cancelReason: text('cancel_reason'), cancelledAt: ts('cancelled_at'), closedAt: ts('closed_at'),
+  /** Fulfillment hold: while `heldAt` is set the order shows ON_HOLD and cannot be fulfilled. */
+  holdReason: text('hold_reason'), holdNote: text('hold_note'), heldAt: ts('held_at'),
   processedAt: ts('processed_at').notNull().defaultNow(),
   note: text('note'), tags: tagsCol(), sourceName: text('source_name').default('web'),
   cartToken: text('cart_token'),
@@ -153,6 +155,8 @@ export const transactions = pgTable('transactions', {
   test: boolean('test').notNull().default(false),
   errorCode: text('error_code'),
   paymentId: text('payment_id'), // provider reference (e.g. Stripe PaymentIntent id)
+  /** Gift card that paid this transaction (gateway 'gift_card'); refunds credit the balance back. */
+  giftCardId: ref('gift_card_id'),
   processedAt: ts('processed_at'),
   createdAt: createdAt(),
 }, (t) => [index('transactions_order_idx').on(t.orderId), index('transactions_payment_idx').on(t.paymentId),

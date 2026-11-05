@@ -32,6 +32,19 @@ const open = (shopId: number, idleMs: number, now: Date) => and(
   sql`exists (select 1 from cart_lines l where l.cart_id = ${carts.id})`,
 );
 
+/** Carts that were completed after a recovery email went out: the checkouts the emails brought back. */
+const recovered = (shopId: number) => and(
+  eq(carts.shopId, shopId), sql`${carts.completedAt} is not null`, sql`${carts.email} is not null`,
+  sql`exists (select 1 from checkout_meta m where m.cart_id = ${carts.id} and m.recovery_email_count > 0)`,
+);
+
+/** `status:recovered` switches the base set to recovered carts; `status:open` is the default one. Everything else goes to the search. */
+function scope(shopId: number, idleMs: number, now: Date, query: string | null | undefined) {
+  let wantRecovered = false;
+  const rest = (query ?? '').replace(/\bstatus:(open|recovered)\b/gi, (_m, v: string) => { wantRecovered = v.toLowerCase() === 'recovered'; return ''; }).trim();
+  return and(wantRecovered ? recovered(shopId) : open(shopId, idleMs, now), search(rest));
+}
+
 const search = (q: string | null | undefined) => buildSearch(q, {
   fields: {
     email: (_o, v) => likeCi(carts.email, v, true), id: (_o, v) => idTerm(carts.id, v), checkout_id: (_o, v) => idTerm(carts.id, v),
@@ -48,12 +61,12 @@ export async function findAbandonedCheckouts(db: Executor, shop: Shop, o: { quer
   const col = o.sortKey === 'CREATED_AT' ? carts.createdAt : o.sortKey === 'CUSTOMER_NAME' ? carts.email : carts.id;
   const dir = o.reverse ? desc : asc;
   const rows = await db.select({ cart: carts, count: checkoutMeta.recoveryEmailCount, sent: checkoutMeta.recoverySentAt }).from(carts).leftJoin(checkoutMeta, eq(checkoutMeta.cartId, carts.id))
-    .where(and(open(shop.id, idle, o.now ?? new Date()), search(o.query))).orderBy(dir(col), dir(carts.id)).limit(o.limit).offset(o.offset);
+    .where(scope(shop.id, idle, o.now ?? new Date(), o.query)).orderBy(dir(col), dir(carts.id)).limit(o.limit).offset(o.offset);
   return rows.map((r) => ({ ...r.cart, recoveryEmailCount: r.count ?? 0, recoverySentAt: r.sent }));
 }
 
 export async function countAbandonedCheckouts(db: Executor, shop: Shop, query?: string | null, limit = 10000, idleMs?: number, now = new Date()): Promise<{ count: number; precision: 'EXACT' | 'AT_LEAST' }> {
-  const rows = await db.select({ id: carts.id }).from(carts).where(and(open(shop.id, idleMs ?? abandonedSettingsOf(shop).delayHours * 3_600_000, now), search(query))).limit(limit + 1);
+  const rows = await db.select({ id: carts.id }).from(carts).where(scope(shop.id, idleMs ?? abandonedSettingsOf(shop).delayHours * 3_600_000, now, query)).limit(limit + 1);
   return rows.length > limit ? { count: limit, precision: 'AT_LEAST' } : { count: rows.length, precision: 'EXACT' };
 }
 

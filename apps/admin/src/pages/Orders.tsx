@@ -1,14 +1,14 @@
-import { Banner, Button, Card, EmptyState, IndexTable, Modal, Pagination, TagInput, useToast } from '@shopme/ui';
+import { Banner, Button, Card, Dropdown, EmptyState, IndexTable, Modal, Pagination, TagInput, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { Download, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { gql, mutate } from '../api';
 import { FinancialBadge, FulfillmentBadge, searchCls, selectCls, useFormat, useListParams } from '../components/shared';
 import type { MoneySet } from '../components/shared';
 import { PageHeader } from '../components/PageHeader';
-import { ExportButton } from '../components/CsvTools';
+import { exportHref, startDownload } from '../components/CsvTools';
 import { ViewTabs } from '../components/SavedViews';
 import { gidToNum } from '../format';
 import { FULFILLMENT_CREATE, ORDERS, ORDERS_COUNT, ORDER_CLOSE, ORDER_MARK_AS_PAID, ORDER_UNFULFILLED_LINES, TAGS_ADD, TAGS_REMOVE } from '../graphql';
@@ -45,6 +45,7 @@ export function OrdersPage() {
   const urlQ = L.get('q');
   useEffect(() => { setSearch(urlQ); }, [urlQ]); // a saved view changed the search
   const [selected, setSelected] = useState<string[]>([]);
+  const [labels, setLabels] = useState<string[] | null>(null);
   const [tagging, setTagging] = useState<{ ids: string[]; mode: 'add' | 'remove' } | null>(null);
   const [newTags, setNewTags] = useState<string[]>([]);
   const sort = { key: L.get('sort') || 'CREATED_AT', reverse: L.get('dir') !== 'asc' };
@@ -100,7 +101,10 @@ export function OrdersPage() {
 
   return (
     <>
-      <PageHeader title={t('nav.orders')} actions={<>{count.data && <span className="text-[13px] text-muted">{t('orders.count', { n: count.data.ordersCount.count })}</span>}<ExportButton kind="orders" /><Button variant="primary" onClick={() => nav('/orders/drafts/new')}>{t('draft.create')}</Button></>} />
+      <PageHeader title={t('nav.orders')} actions={<>{count.data && <span className="text-[13px] text-muted">{t('orders.count', { n: count.data.ordersCount.count })}</span>}<Dropdown align="right" label={t('orders.exportMenu')} trigger={<><Download className="size-4" />{t('csv.export')}</>} items={[
+          ...(hasFilters && count.data ? [{ key: 'filtered', label: t('orders.exportFiltered', { n: count.data.ordersCount.count }), onSelect: () => startDownload(exportHref('orders', { query: terms })) }] : []),
+          { key: 'all', label: t('orders.exportAll'), onSelect: () => startDownload(exportHref('orders')) },
+        ]} /><Button variant="primary" onClick={() => nav('/orders/drafts/new')}>{t('draft.create')}</Button></>} />
       <Card className="!p-0">
         <div className="px-3 pt-1"><ViewTabs resource="ORDER" query={terms} tabs={TABS.map((id) => ({ id, label: t(`orders.tab.${id}` as Key) }))} value={tab} onTab={(v) => { setSelected([]); L.patch({ tab: v === 'all' ? '' : v, view: '' }); }} /></div>
         <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
@@ -128,6 +132,8 @@ export function OrdersPage() {
             { key: 'fulfilled', label: t('order.markFulfilled'), onRun: (ids) => bulk.mutate({ ids, action: 'fulfilled' }) },
             { key: 'tag', label: t('orders.addTags'), onRun: (ids) => { setNewTags([]); setTagging({ ids, mode: 'add' }); } },
             { key: 'untag', label: t('products.removeTags'), onRun: (ids) => { setNewTags([]); setTagging({ ids, mode: 'remove' }); } },
+            { key: 'labels', label: t('orders.createLabels'), onRun: (ids) => setLabels(ids) },
+            { key: 'export', label: t('orders.exportSelected'), onRun: (ids) => startDownload(exportHref('orders', { ids: ids.map(gidToNum).join(',') })) },
             { key: 'close', label: t('orders.archive'), onRun: (ids) => bulk.mutate({ ids, action: 'close' }) },
           ]}
           empty={list.isError ? null : hasFilters
@@ -138,6 +144,10 @@ export function OrdersPage() {
           previousLabel={t('common.previous')} nextLabel={t('common.next')}
           onPrevious={() => L.patch({ before: pi?.startCursor ?? '', after: '' }, true)} onNext={() => L.patch({ after: pi?.endCursor ?? '', before: '' }, true)} />
       </Card>
+      <Modal open={!!labels} onClose={() => setLabels(null)} title={t('orders.labelsTitle')} closeLabel={t('common.close')}
+        footer={<><Button onClick={() => setLabels(null)}>{t('common.close')}</Button><Button variant="primary" onClick={() => { const id = labels?.[0]; setLabels(null); if (id) nav(`/orders/${gidToNum(id)}`); }}>{t('orders.addTrackingManually')}</Button></>}>
+        <p className="text-[13px]">{t('orders.labelsBody')}</p>
+      </Modal>
       <Modal open={!!tagging} onClose={() => setTagging(null)} title={tagging?.mode === 'remove' ? t('products.removeTags') : t('orders.addTags')} closeLabel={t('common.close')}
         footer={<><Button onClick={() => setTagging(null)}>{t('common.cancel')}</Button><Button variant="primary" disabled={!newTags.length} onClick={() => { if (tagging) bulk.mutate({ ids: tagging.ids, action: tagging.mode === 'add' ? 'tag' : 'untag', tags: newTags }); setTagging(null); }}>{t('common.apply')}</Button></>}>
         <TagInput label={t('field.tags')} value={newTags} onChange={setNewTags} removeLabel={t('common.remove')} />

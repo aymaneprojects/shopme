@@ -6,7 +6,7 @@ import type { Db, Executor } from '../../db/client';
 import { buildSearch, dateCompare, idTerm, likeCi } from '../catalog/search';
 import { errR, normalizeTags, okR, txResult, type Result } from '../catalog/common';
 import { adjustQuantities, defaultLocationId, getInventoryItemForVariant } from '../catalog/inventory';
-import { addEvent } from '../events';
+import { addComment, addEvent } from '../events';
 
 export type Order = typeof orders.$inferSelect;
 export type OrderLine = typeof orderLines.$inferSelect;
@@ -66,14 +66,14 @@ const FULFILLMENT_QUERY: Record<string, string[]> = {
 
 const likeParam = (v: string) => `%${v.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
-const orderSearch = (q: string | null | undefined) => buildSearch(q, {
+export const orderSearch = (q: string | null | undefined) => buildSearch(q, {
   fields: {
     name: (_o, v) => likeCi(orders.name, v.replace(/^#/, '')),
     email: (_o, v) => likeCi(orders.email, v, true),
     id: (_o, v) => idTerm(orders.id, v),
     customer_id: (_o, v) => idTerm(orders.customerId, v),
     financial_status: (_o, v) => sql`${orders.financialStatus} = ${v.toUpperCase()}`,
-    fulfillment_status: (_o, v) => { const s = FULFILLMENT_QUERY[v.toLowerCase()]; return s ? inArray(orders.fulfillmentStatus, s) : null; },
+    fulfillment_status: (_o, v) => { const s = FULFILLMENT_QUERY[v.toLowerCase()]; return v.toLowerCase() === 'on_hold' ? sql`${orders.heldAt} is not null` : s ? inArray(orders.fulfillmentStatus, s) : null; },
     status: (_o, v) => {
       switch (v.toLowerCase()) {
         case 'open': return sql`(${orders.closedAt} is null and ${orders.cancelledAt} is null)`;
@@ -122,7 +122,7 @@ export async function countOrders(db: Executor, shopId: number, query?: string |
 /* ------------------------------ updates ------------------------------ */
 
 export interface AddressInput { firstName?: string | null; lastName?: string | null; company?: string | null; address1?: string | null; address2?: string | null; city?: string | null; provinceCode?: string | null; zip?: string | null; countryCode?: string | null; phone?: string | null }
-export interface OrderUpdateInput { email?: string | null; phone?: string | null; note?: string | null; tags?: string[] | null; shippingAddress?: AddressInput | null }
+export interface OrderUpdateInput { email?: string | null; phone?: string | null; note?: string | null; tags?: string[] | null; shippingAddress?: AddressInput | null; billingAddress?: AddressInput | null }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -147,13 +147,14 @@ export async function updateOrder(db: Db, shopId: number, id: number, input: Ord
       ...(input.email !== undefined && { email: input.email?.toLowerCase() || null }), ...(input.phone !== undefined && { phone: input.phone || null }),
       ...(input.note !== undefined && { note: input.note || null }), ...(tags && { tags }), updatedAt: new Date(),
     }).where(eq(orders.id, id)).returning();
-    if (input.shippingAddress) {
-      const cols = addressColumns(input.shippingAddress);
-      const [exists] = await tx.select({ id: orderAddresses.id }).from(orderAddresses).where(and(eq(orderAddresses.orderId, id), eq(orderAddresses.kind, 'shipping')));
+    for (const [kind, addr] of [['shipping', input.shippingAddress], ['billing', input.billingAddress]] as const) {
+      if (!addr) continue;
+      const cols = addressColumns(addr);
+      const [exists] = await tx.select({ id: orderAddresses.id }).from(orderAddresses).where(and(eq(orderAddresses.orderId, id), eq(orderAddresses.kind, kind)));
       if (exists) await tx.update(orderAddresses).set(cols).where(eq(orderAddresses.id, exists.id));
-      else await tx.insert(orderAddresses).values({ shopId, orderId: id, kind: 'shipping', ...cols });
+      else await tx.insert(orderAddresses).values({ shopId, orderId: id, kind, ...cols });
     }
-    await addEvent(tx, shopId, { subjectType: 'order', subjectId: id, verb: 'order.updated', message: 'Order details were updated', authorStaffUserId: staffId });
+    await addEvent(tx, shopId, { subjectType: 'order', subjectId: id, verb: 'order.updated', message: input.billingAddress && !input.shippingAddress ? 'Billing address was updated' : input.shippingAddress && !input.billingAddress ? 'Shipping address was updated' : 'Order details were updated', authorStaffUserId: staffId });
     return okR(row!);
   });
 }
@@ -223,6 +224,5 @@ export async function markOrderAsPaid(db: Db, shopId: number, id: number, staffI
 
 export async function addOrderComment(db: Db, shopId: number, id: number, message: string, staffId: number | null) {
   if (!(await getOrder(db, shopId, id))) return errR(['id'], 'Order does not exist');
-  if (!message.trim()) return errR(['message'], "Message can't be blank");
-  return okR(await addEvent(db, shopId, { subjectType: 'order', subjectId: id, kind: 'comment', verb: 'order.comment', message: message.trim(), authorStaffUserId: staffId }));
+  return addComment(db, shopId, 'order', id, message, staffId);
 }

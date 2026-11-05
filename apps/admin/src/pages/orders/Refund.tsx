@@ -18,7 +18,7 @@ interface RefundOrder {
   id: string; name: string; cancelledAt: string | null;
   lineItems: { nodes: OrderLine[] };
   totalShippingPriceSet: MoneySet; totalRefundedSet: MoneySet;
-  transactions: Array<{ kind: string; status: string; gateway: string; amountSet: MoneySet }>;
+  transactions: Array<{ kind: string; status: string; gateway: string; formattedGateway: string | null; amountSet: MoneySet }>;
 }
 
 /** Refund page: pick quantities, shipping and a reason on the left; summary, amount and the refund button on the right. */
@@ -53,7 +53,14 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
   const r = calcRefund({ lines: rl, quantities: qty, shippingRefundCents: Math.round((parseDecimal(ship) ?? 0) * 100), shippingCents, refundableCents });
   const money = (c: number) => fmt.money({ amount: fromCents(c), currencyCode: cur });
   const picked = lines.filter((l) => clampQuantity(rl.find((x) => x.id === l.id)!, qty[l.id] ?? 0) > 0);
-  const gateway = o.transactions.find((x) => x.status === 'SUCCESS' && (x.kind === 'SALE' || x.kind === 'CAPTURE'))?.gateway;
+  const gateway = o.transactions.find((x) => x.status === 'SUCCESS' && (x.kind === 'SALE' || x.kind === 'CAPTURE') && x.gateway !== 'gift_card')?.gateway ?? o.transactions.find((x) => x.status === 'SUCCESS' && x.kind === 'SALE')?.gateway;
+  // Where the money goes: the card/gateway payment first, whatever is left is credited back to the gift cards that paid part of the order.
+  const sum = (pred: (x: RefundOrder['transactions'][number]) => boolean) => o.transactions.filter((x) => x.status === 'SUCCESS' && pred(x)).reduce((n, x) => n + toCents(x.amountSet.shopMoney.amount), 0);
+  const giftPaid = sum((x) => x.kind === 'SALE' && x.gateway === 'gift_card');
+  const cashLeft = Math.max(0, sum((x) => (x.kind === 'SALE' || x.kind === 'CAPTURE') && x.gateway !== 'gift_card') - sum((x) => x.kind === 'REFUND' && x.gateway !== 'gift_card'));
+  const giftLeft = Math.max(0, giftPaid - sum((x) => x.kind === 'REFUND' && x.gateway === 'gift_card'));
+  const toCash = Math.min(r.totalCents, cashLeft);
+  const toGift = giftPaid > 0 ? Math.min(giftLeft, r.totalCents - toCash) : 0;
   const back = `/orders/${routeId}`;
   const lineTotal = (id: string) => calcRefund({ lines: [rl.find((x) => x.id === id)!], quantities: { [id]: qty[id] ?? 0 }, shippingRefundCents: 0, shippingCents: 0, refundableCents: Number.MAX_SAFE_INTEGER }).itemsCents;
 
@@ -119,8 +126,17 @@ function RefundForm({ order: o, routeId }: { order: RefundOrder; routeId: string
             </div>
           </Card>
           <Card title={t('order.refundAmountTitle')}>
-            <p className="text-[13px] text-muted">{t('order.refundMethod')}{gateway ? `: ${gateway}` : ''}</p>
+            <p className="text-[13px] text-muted">{t('order.refundMethod')}{gateway && giftPaid === 0 ? `: ${gateway}` : ''}</p>
             <p className="mt-1 text-lg font-semibold">{money(r.totalCents)}</p>
+            {giftPaid > 0 && r.totalCents > 0 && (
+              <>
+                <dl className="mt-2 grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-[13px]">
+                  {toCash > 0 && <><dt className="text-muted">{t('order.refundGateway', { gateway: gateway === 'gift_card' ? '' : gateway ?? '' })}</dt><dd className="text-right">{money(toCash)}</dd></>}
+                  {toGift > 0 && <><dt className="text-muted">{t('order.refundGiftCard')}</dt><dd className="text-right">{money(toGift)}</dd></>}
+                </dl>
+                <p className="mt-1 text-xs text-muted">{t('order.giftCardRefundNote')}</p>
+              </>
+            )}
             <p className="text-xs text-muted">{t('order.availableToRefund', { amount: money(refundableCents) })}</p>
             {r.capped && <p className="mt-1 text-xs text-warning">{t('order.refundCapped', { max: money(refundableCents) })}</p>}
             <Button variant="primary" className="mt-3 w-full" loading={m.isPending} disabled={r.totalCents <= 0} onClick={() => m.mutate()}>{t('order.refundAmount', { amount: money(r.totalCents) })}</Button>

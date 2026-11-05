@@ -11,6 +11,7 @@ import { VariantPicker } from '../../components/Pickers';
 import { SaveBar, guard } from '../../components/SaveBar';
 import { useFormat } from '../../components/shared';
 import type { MoneySet } from '../../components/shared';
+import { ExportButton, exportHref, startDownload } from '../../components/CsvTools';
 import { formatMoney, gidToNum, numToGid } from '../../format';
 import { DRAFT_CUSTOMER_SEARCH, DRAFT_ORDER, DRAFT_ORDERS, DRAFT_ORDER_CALCULATE, DRAFT_ORDER_COMPLETE, DRAFT_ORDER_CREATE, DRAFT_ORDER_DELETE, DRAFT_ORDER_INVOICE_SEND, DRAFT_ORDER_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
@@ -49,10 +50,10 @@ export function DraftsPage() {
   const add = <Button variant="primary" onClick={() => nav('/orders/drafts/new')}>{t('draft.create')}</Button>;
   return (
     <>
-      <PageHeader back="/orders" title={t('draft.title')} actions={add} />
+      <PageHeader back="/orders" title={t('draft.title')} actions={<><ExportButton kind="draft_orders" />{add}</>} />
       <PagedTable<DraftRow> title={t('draft.title')} doc={DRAFT_ORDERS} root="draftOrders" queryKey="drafts" columns={columns} searchLabel={t('draft.search')}
         onRowClick={(r) => nav(`/orders/drafts/${gidToNum(r.id)}`)}
-        bulkActions={[{ key: 'delete', label: t('draft.deleteSelected'), danger: true, onRun: (ids) => setRemoving(ids) }]}
+        bulkActions={[{ key: 'export', label: t('draft.export'), onRun: (ids) => startDownload(exportHref('draft_orders', { ids: ids.map(gidToNum).join(',') })) }, { key: 'delete', label: t('draft.deleteSelected'), danger: true, onRun: (ids) => setRemoving(ids) }]}
         empty={<EmptyState image={emptyOrders} title={t('draft.emptyTitle')} description={t('draft.emptyBody')} action={add} />} />
       <ConfirmDialog open={!!removing} danger loading={del.isPending} onClose={() => setRemoving(null)} closeLabel={t('common.close')}
         title={t('draft.deleteManyTitle', { n: removing?.length ?? 0, $count: removing?.length ?? 0 })} message={t('draft.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')}

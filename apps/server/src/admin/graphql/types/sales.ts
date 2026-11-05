@@ -96,7 +96,7 @@ export const StaffMemberConnection = defineConnection('StaffMember', StaffMember
 
 /* ------------------------------ timeline events ------------------------------ */
 
-export interface EventRow { id: number; subjectType: string; subjectId: number | null; kind: string; verb: string | null; message: string | null; authorStaffUserId: number | null; createdAt: Date }
+export interface EventRow { id: number; subjectType: string; subjectId: number | null; kind: string; verb: string | null; message: string | null; authorStaffUserId: number | null; data?: Record<string, unknown> | null; createdAt: Date }
 
 const SUBJECT_TYPES = ['COMPANY_LOCATION', 'COMPANY', 'CUSTOMER', 'DRAFT_ORDER', 'INVENTORY_TRANSFER', 'COLLECTION', 'PRODUCT', 'PRODUCT_VARIANT', 'ARTICLE', 'BLOG', 'COMMENT', 'PAGE',
   'DISCOUNT_AUTOMATIC_BXGY', 'DISCOUNT_AUTOMATIC_NODE', 'DISCOUNT_CODE_NODE', 'DISCOUNT_NODE', 'PRICE_RULE', 'ORDER', 'UNKNOWN'] as const;
@@ -121,7 +121,7 @@ export const BasicEvent = builder.objectRef<EventRow>('BasicEvent').implement({
     subjectId: t.id({ resolve: (e) => String(e.subjectId ?? 0) }),
     subjectType: t.field({ type: EventSubjectType, resolve: subjectOf }),
     author: t.string({ nullable: true, resolve: async (e, _a, ctx) => (e.authorStaffUserId ? (await getStaff(ctx.db, ctx.shopId, e.authorStaffUserId))?.email ?? null : null) }),
-    arguments: t.field({ type: 'JSON', nullable: true, resolve: () => null }),
+    arguments: t.field({ type: 'JSON', nullable: true, resolve: (e) => e.data ?? null }),
     additionalContent: t.field({ type: 'JSON', nullable: true, resolve: () => null }),
     additionalData: t.field({ type: 'JSON', nullable: true, resolve: () => null }),
     hasAdditionalContent: t.boolean({ resolve: () => false }),
@@ -136,7 +136,7 @@ export const CommentEvent = builder.objectRef<EventRow>('CommentEvent').implemen
       resolve: async (e, _a, ctx) => (e.authorStaffUserId ? await getStaff(ctx.db, ctx.shopId, e.authorStaffUserId) : null) ?? { id: 0, email: '', firstName: 'Staff', lastName: null, role: 'staff', active: false, permissions: [], invitePending: false, lastLoginAt: null },
     }),
     rawMessage: t.string({ resolve: (e) => e.message ?? '' }),
-    canDelete: t.boolean({ resolve: () => false }),
+    canDelete: t.boolean({ resolve: (e, _a, ctx) => ctx.auth.kind === 'session' && e.authorStaffUserId != null && ctx.auth.user.id === e.authorStaffUserId }),
     canEdit: t.boolean({ resolve: () => false }),
     edited: t.boolean({ resolve: () => false }),
     attachments: t.stringList({ resolve: () => [] }),

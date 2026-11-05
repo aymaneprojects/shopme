@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
-import { AddressBlock, searchCls, useFormat, useListParams } from '../../components/shared';
+import { AddressBlock, searchCls, selectCls, useFormat, useListParams } from '../../components/shared';
 import type { Money, MoneySet } from '../../components/shared';
 import { gidToNum, numToGid } from '../../format';
 import { ABANDONED_CHECKOUT, ABANDONED_CHECKOUTS, ABANDONED_SEND_EMAIL, ABANDONED_SETTINGS, ABANDONED_SETTINGS_UPDATE } from '../../graphql';
@@ -17,7 +17,7 @@ import { Thumb } from '../Products';
 import emptyOrders from '../../assets/empty/empty-orders.webp';
 
 interface Row {
-  id: string; name: string; createdAt: string; updatedAt: string; lineItemsQuantity: number; shopmeEmail: string | null; shopmeRecoveryEmailsSent: number; shopmeRecoveryEmailSentAt: string | null;
+  completedAt: string | null; id: string; name: string; createdAt: string; updatedAt: string; lineItemsQuantity: number; shopmeEmail: string | null; shopmeRecoveryEmailsSent: number; shopmeRecoveryEmailSentAt: string | null;
   customer: { id: string; displayName: string; defaultEmailAddress: { emailAddress: string } | null } | null; totalPriceSet: MoneySet;
 }
 interface Detail extends Omit<Row, 'lineItemsQuantity'> {
@@ -63,21 +63,22 @@ export function AbandonedPage() {
   const L = useListParams();
   const [search, setSearch] = useState(L.get('q'));
   const term = useDebounced(search);
+  const status = L.get('status') === 'recovered' ? 'recovered' : 'open';
   const list = useQuery({
-    queryKey: ['abandoned', term, L.get('after'), L.get('before')],
-    queryFn: () => gql<{ abandonedCheckouts: Connection<Row> }>(ABANDONED_CHECKOUTS, { query: term.trim() ? `email:${term.trim()}*` : null, reverse: true, ...L.page(PAGE_SIZE) }),
+    queryKey: ['abandoned', term, status, L.get('after'), L.get('before')],
+    queryFn: () => gql<{ abandonedCheckouts: Connection<Row> }>(ABANDONED_CHECKOUTS, { query: [`status:${status}`, term.trim() && `email:${term.trim()}*`].filter(Boolean).join(' '), reverse: true, ...L.page(PAGE_SIZE) }),
     placeholderData: (p) => p,
   });
   const rows = list.data?.abandonedCheckouts.nodes ?? [];
   const pi = list.data?.abandonedCheckouts.pageInfo;
-  const none = !list.isLoading && !list.isError && rows.length === 0 && !term.trim();
+  const none = !list.isLoading && !list.isError && rows.length === 0 && !term.trim() && status === 'open';
   const columns: Array<Column<Row>> = [
     { key: 'name', header: t('abandoned.checkout'), cell: (r) => <span className="font-medium">{r.name}</span> },
     { key: 'date', header: t('abandoned.date'), cell: (r) => <span className="text-muted">{fmt.dateTime(r.updatedAt)}</span> },
     { key: 'customer', header: t('order.customer'), cell: (r) => <div><p>{r.customer?.displayName ?? emailOf(r)}</p>{r.customer && <p className="text-xs text-muted">{emailOf(r)}</p>}</div> },
     { key: 'items', header: t('abandoned.items'), cell: (r) => r.lineItemsQuantity },
     { key: 'total', header: t('order.total'), cell: (r) => fmt.money(r.totalPriceSet) },
-    { key: 'recovery', header: t('abandoned.recovery'), cell: (r) => (r.shopmeRecoveryEmailsSent ? <Badge tone="info">{t('abandoned.emailSent')}</Badge> : <Badge>{t('abandoned.notSent')}</Badge>) },
+    { key: 'recovery', header: t('abandoned.recovery'), cell: (r) => (r.completedAt ? <Badge tone="success">{t('abandoned.recoveredOn')}</Badge> : r.shopmeRecoveryEmailsSent ? <Badge tone="info">{t('abandoned.emailSent')}</Badge> : <Badge>{t('abandoned.notSent')}</Badge>) },
   ];
   return (
     <>
@@ -92,11 +93,15 @@ export function AbandonedPage() {
       )}
       <div className="mb-4"><RecoverySettings /></div>
       {!none && <Card className="!p-0">
-        <div className="border-b border-line p-3">
+        <div className="flex flex-wrap items-center border-b border-line p-3">
           <div className="relative max-w-md">
             <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => { setSearch(e.target.value); L.patch({ q: e.target.value }); }} placeholder={t('abandoned.search')} aria-label={t('abandoned.search')} className={searchCls} />
           </div>
+          <select aria-label={t('abandoned.status')} value={status} onChange={(e) => L.patch({ status: e.target.value === 'open' ? '' : e.target.value })} className={`${selectCls} ml-2`}>
+            <option value="open">{t('abandoned.tab.open')}</option>
+            <option value="recovered">{t('abandoned.tab.recovered')}</option>
+          </select>
         </div>
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
         <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/orders/abandoned/${gidToNum(r.id)}`)}

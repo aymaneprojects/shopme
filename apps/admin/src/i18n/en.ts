@@ -11,6 +11,7 @@ import { enSettings } from './en-settings';
 import { enUx } from './en-ux';
 import { enViews } from './en-views';
 import { enEditor } from './en-editor';
+import { enTimeline } from './en-timeline';
 export const en = {
   'common.back': 'Back', 'common.cancel': 'Cancel', 'common.close': 'Close', 'common.delete': 'Delete', 'common.loading': 'Loading…',
   'common.moreActions': 'More actions', 'common.next': 'Next', 'common.previous': 'Previous', 'common.remove': 'Remove',
@@ -107,6 +108,7 @@ export const en = {
   ...enSettings,
   ...enUx,
   ...enEditor,
+  ...enTimeline,
   ...enContent,
   ...enPublishing,
   ...enViews,

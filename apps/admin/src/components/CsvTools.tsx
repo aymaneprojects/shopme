@@ -12,7 +12,17 @@ import type { Job } from '../lib/jobs';
 
 const linkCls = 'btn btn-secondary';
 
-export function ExportButton({ kind }: { kind: ImportKind | 'orders' }) {
+/** Export URL for a kind; `query` and `ids` narrow the order exports to a filter or a selection. */
+export const exportHref = (kind: ImportKind | 'orders' | 'draft_orders', params: { query?: string; ids?: string } = {}) => {
+  const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+  return `/admin/api/export/${kind}.csv${qs ? `?${qs}` : ''}`;
+};
+export function startDownload(href: string) {
+  const a = document.createElement('a');
+  a.href = href; a.download = ''; document.body.appendChild(a); a.click(); a.remove();
+}
+
+export function ExportButton({ kind }: { kind: ImportKind | 'orders' | 'draft_orders' }) {
   const { t } = useI18n();
   return <a href={`/admin/api/export/${kind}.csv`} download className={linkCls}><Download className="size-4" />{t('csv.export')}</a>;
 }
