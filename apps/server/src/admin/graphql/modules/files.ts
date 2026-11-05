@@ -80,7 +80,7 @@ File_.implement({
 const OriginalSource = builder.objectRef<{ url: string; fileSize: number | null }>('MediaImageOriginalSource').implement({
   fields: (t) => ({ url: t.field({ type: 'URL', resolve: (o) => o.url }), fileSize: t.int({ nullable: true, resolve: (o) => o.fileSize }) }),
 });
-builder.objectRef<Media>('MediaImage').implement({
+export const MediaImage = builder.objectRef<Media>('MediaImage').implement({
   interfaces: [Media_, File_, Node],
   fields: (t) => ({
     createdAt: t.field({ type: 'DateTime', resolve: (m) => m.createdAt }),

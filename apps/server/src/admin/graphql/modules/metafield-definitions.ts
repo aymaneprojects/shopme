@@ -16,7 +16,7 @@ const CATEGORY: Record<string, string> = {
   metaobject_reference: 'REFERENCE', mixed_reference: 'REFERENCE',
 };
 
-const DefinitionType = builder.objectRef<{ name: string }>('MetafieldDefinitionType').implement({
+export const DefinitionType = builder.objectRef<{ name: string }>('MetafieldDefinitionType').implement({
   fields: (t) => ({
     name: t.exposeString('name'), category: t.string({ resolve: (x) => CATEGORY[x.name.replace(/^list\./, '')] ?? 'TEXT' }),
     supportedValidations: t.field({ type: [SupportedValidation], resolve: () => [] }), supportsDefinitionMigrations: t.boolean({ resolve: () => false }),
@@ -24,10 +24,10 @@ const DefinitionType = builder.objectRef<{ name: string }>('MetafieldDefinitionT
   }),
 });
 const SupportedValidation = builder.objectRef<{ name: string; type: string }>('MetafieldDefinitionSupportedValidation').implement({ fields: (t) => ({ name: t.exposeString('name'), type: t.exposeString('type') }) });
-const Validation = builder.objectRef<{ name: string; value: string | null }>('MetafieldDefinitionValidation').implement({
+export const Validation = builder.objectRef<{ name: string; value: string | null }>('MetafieldDefinitionValidation').implement({
   fields: (t) => ({ name: t.exposeString('name'), type: t.string({ resolve: () => 'single_line_text_field' }), value: t.exposeString('value', { nullable: true }) }),
 });
-const ValidationInput = builder.inputType('MetafieldDefinitionValidationInput', { fields: (t) => ({ name: t.string({ required: true }), value: t.string({ required: true }) }) });
+export const ValidationInput = builder.inputType('MetafieldDefinitionValidationInput', { fields: (t) => ({ name: t.string({ required: true }), value: t.string({ required: true }) }) });
 const AccessInput = builder.inputType('MetafieldAccessInput', { fields: (t) => ({ admin: t.string(), storefront: t.string(), customerAccount: t.string() }) });
 const AccessUpdateInput = builder.inputType('MetafieldAccessUpdateInput', { fields: (t) => ({ admin: t.string(), storefront: t.string(), customerAccount: t.string() }) });
 const Access = builder.objectRef<{ storefront: string }>('MetafieldAccess').implement({

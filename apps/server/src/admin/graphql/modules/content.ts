@@ -21,7 +21,7 @@ const fail = (field: string[], message: string, code = 'NOT_FOUND'): UserError[]
 const PageSortKeys = builder.enumType('PageSortKeys', { values: ['CREATED_AT', 'ID', 'PUBLISHED_AT', 'TITLE', 'UPDATED_AT'] as const });
 const stripHtml = (h: string) => h.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
-const Page = builder.objectRef<PageRow>('Page');
+export const Page = builder.objectRef<PageRow>('Page');
 Page.implement({
   interfaces: [Node],
   fields: (t) => ({

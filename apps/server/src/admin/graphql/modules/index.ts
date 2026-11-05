@@ -20,6 +20,7 @@ import './product-set';
 import './catalog-ext';
 import './files-ext';
 import './metafield-definitions';
+import './metaobjects';
 
 import './orders';
 import './customers';

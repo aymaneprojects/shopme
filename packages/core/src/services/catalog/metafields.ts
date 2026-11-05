@@ -4,6 +4,7 @@ import type { UserError } from '@shopme/shopify-compat';
 import { collections, customers, locations, metafieldDefinitions, metafields, orders, productVariants, products, shops } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { emit, txResult, type Result } from './common';
+import { checkReferenceTargets, dropMetafieldReferences, isMetaobjectRefType, metaobjectTargets, syncReferences } from '../metaobjects/refs';
 
 export type Metafield = typeof metafields.$inferSelect;
 export const DEFAULT_NAMESPACE = 'custom';
@@ -80,17 +81,22 @@ export async function setMetafieldsTx(tx: Executor, shopId: number, inputs: Meta
     if (!/^[A-Za-z0-9_-]{2,64}$/.test(m.key)) { errors.push({ field: at('key'), message: 'Key is invalid (2-64 letters, digits, - and _).', code: 'INVALID' }); continue; }
     if (!(await ownerExists(tx, shopId, m.ownerType, m.ownerId))) { errors.push({ field: at('ownerId'), message: 'Owner does not exist.', code: 'INVALID' }); continue; }
     const [cur] = await tx.select().from(metafields).where(and(eq(metafields.shopId, shopId), eq(metafields.ownerType, m.ownerType), eq(metafields.ownerId, m.ownerId), eq(metafields.namespace, namespace), eq(metafields.key, m.key)));
-    const [def] = await tx.select({ type: metafieldDefinitions.type }).from(metafieldDefinitions).where(and(eq(metafieldDefinitions.shopId, shopId), eq(metafieldDefinitions.ownerType, m.ownerType), eq(metafieldDefinitions.namespace, namespace), eq(metafieldDefinitions.key, m.key)));
+    const [def] = await tx.select({ type: metafieldDefinitions.type, validations: metafieldDefinitions.validations }).from(metafieldDefinitions).where(and(eq(metafieldDefinitions.shopId, shopId), eq(metafieldDefinitions.ownerType, m.ownerType), eq(metafieldDefinitions.namespace, namespace), eq(metafieldDefinitions.key, m.key)));
     const type = m.type || cur?.type || def?.type;
     if (def && type !== def.type) { errors.push({ field: at('type'), message: `Type must be ${def.type} to match the metafield definition.`, code: 'INVALID_TYPE' }); continue; }
     if (!type) { errors.push({ field: at('type'), message: 'Type must be specified.', code: 'INVALID_TYPE' }); continue; }
     const bad = validateMetafieldValue(type, m.value);
     if (bad) { errors.push({ field: at('value'), message: bad, code: bad.startsWith('Type') ? 'INVALID_TYPE' : 'INVALID_VALUE' }); continue; }
+    if (isMetaobjectRefType(type)) {
+      const refBad = await checkReferenceTargets(tx, shopId, type, m.value, (def?.validations as { name: string; value: string }[] | undefined) ?? []);
+      if (refBad) { errors.push({ field: at('value'), message: refBad, code: 'INVALID_VALUE' }); continue; }
+    }
     if (m.compareDigest && cur && m.compareDigest !== digest(cur)) { errors.push({ field: at('compareDigest'), message: 'The resource has been modified since the digest was computed.', code: 'STALE_OBJECT' }); continue; }
     const [row] = cur
       ? await tx.update(metafields).set({ type, value: m.value }).where(eq(metafields.id, cur.id)).returning()
       : await tx.insert(metafields).values({ shopId, ownerType: m.ownerType, ownerId: m.ownerId, namespace, key: m.key, type, value: m.value }).returning();
     out.push(row!);
+    if (isMetaobjectRefType(type)) await syncReferences(tx, shopId, 'METAFIELD', row!.id, [{ fieldKey: `${namespace}.${m.key}`, targetIds: metaobjectTargets(type, m.value) }]);
   }
   if (errors.length) return { ok: false, errors };
   for (const m of out) await emit(tx, shopId, 'metafield', m.id, 'metafields/update', { ownerType: m.ownerType, ownerId: m.ownerId });
@@ -118,5 +124,7 @@ export function listMetafields(db: Executor, shopId: number, ownerType: string, 
 /** Remove all metafields of deleted owners. */
 export async function deleteMetafieldsFor(db: Executor, shopId: number, ownerType: string, ownerIds: number[]): Promise<void> {
   if (!ownerIds.length) return;
+  const gone = await db.select({ id: metafields.id }).from(metafields).where(and(eq(metafields.shopId, shopId), eq(metafields.ownerType, ownerType), inArray(metafields.ownerId, ownerIds)));
+  await dropMetafieldReferences(db, shopId, gone.map((g) => g.id));
   await db.delete(metafields).where(and(eq(metafields.shopId, shopId), eq(metafields.ownerType, ownerType), inArray(metafields.ownerId, ownerIds)));
 }
