@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Theme editor: click-to-select in the preview (hover outline with the element's name, mini toolbar to move, duplicate, hide and delete, insert handles between sections), with an Inspector toggle; editor attributes are rendered only in the signed-in preview, never on the live storefront.
+- Theme editor: live preview that follows unsaved changes (debounced, scroll position kept), also for themes that are not live.
+- Theme editor: section and block settings panel with back/close and a "..." menu, section menu in the tree (copy, paste, duplicate, rename, hide, add before/after, remove) and keyboard shortcuts.
+- Theme editor: one undo/redo history shared by sections and theme settings, and theme settings grouped with search.
+- Theme editor: "Add section" picker with categories, search and a live preview on hover; desktop, tablet, mobile and full-screen preview modes.
 - The demo store now ships real product, collection, home page, blog and About page photos (CC0, see `packages/core/assets/demo/README.md`).
 - Illustrated empty states in the admin (products, orders, customers, discounts, collections, analytics).
 - `pnpm screenshots` regenerates the README screenshots from a fresh demo store.

@@ -28,6 +28,8 @@ export interface Runtime {
   stack: Frame[];
   sectionCounter: number;
   errors: string[];
+  /** Theme editor preview: wrappers carry `data-shopify-editor-*` attributes so the editor can map the page to sections and blocks. Never set on the live storefront. */
+  designMode: boolean;
   assetUrl(name: string): string;
   fileUrl(name: string): string;
 }

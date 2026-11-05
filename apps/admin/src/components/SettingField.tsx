@@ -3,6 +3,9 @@ import { useI18n } from '../i18n';
 import { FONT_OPTIONS } from '../lib/settings-schema';
 import type { SettingDef, SettingValue } from '../lib/settings-schema';
 
+/** `shopify://shop_images/x.png` references point at the store's files. */
+const fileSrc = (v: string) => v.replace(/^shopify:\/\/shop_images\//, '/files/');
+
 /** One theme setting rendered as the matching form control (shared by theme settings and section/block settings). */
 export function SettingField({ def, label, info, value, optionLabel, onChange }: { def: SettingDef & { id: string }; label: string; info?: string; value: SettingValue; optionLabel: (l?: string) => string; onChange: (v: SettingValue) => void }) {
   const { t } = useI18n();
@@ -37,7 +40,7 @@ export function SettingField({ def, label, info, value, optionLabel, onChange }:
     case 'image_picker':
       return (
         <div className="flex flex-col gap-2"><span className="text-[13px] font-medium">{label}</span>
-          {str && <img src={str} alt="" className="max-h-24 w-fit rounded-md border border-line object-contain" />}
+          {str && <img src={fileSrc(str)} alt="" className="max-h-24 w-fit rounded-md border border-line object-contain" />}
           <ImageUploader multiple={false} compact label={t('media.upload')} onUploaded={(f) => onChange(f[0]!.url)} onError={(m) => toast(m, 'critical')} />
           {str && <Button size="sm" onClick={() => onChange('')}>{t('common.remove')}</Button>}</div>
       );

@@ -9,7 +9,7 @@ import { useT } from '../../i18n';
 import type { Key } from '../../i18n';
 
 /** Theme status, Publish and the "more" menu shown in the header of both theme editor tabs. */
-export function ThemeToolbar({ themeId, name, role, dirty, previewUrl }: { themeId: string; name: string; role?: string; dirty: boolean; previewUrl: string }) {
+export function ThemeToolbar({ themeId, name, role, dirty, previewUrl, onShortcuts }: { themeId: string; name: string; role?: string; dirty: boolean; previewUrl: string; onShortcuts?: () => void }) {
   const t = useT();
   const toast = useToast();
   const qc = useQueryClient();
@@ -33,7 +33,9 @@ export function ThemeToolbar({ themeId, name, role, dirty, previewUrl }: { theme
         { key: 'preview', label: t('editor.openPreview'), onSelect: () => { window.open(previewUrl, '_blank', 'noopener'); } },
         { key: 'duplicate', label: t('themes.duplicate'), onSelect: () => duplicate.mutate() },
         { key: 'download', label: t('themes.download'), onSelect: () => { window.location.href = `/admin/api/themes/${gidToNum(themeId)}/download.zip`; } },
+        ...(onShortcuts ? [{ key: 'shortcuts', label: t('editor.shortcuts'), onSelect: onShortcuts }] : []),
         { key: 'all', label: t('editor.allThemes'), onSelect: () => nav('/online-store') },
+        { key: 'info', label: t('editor.themeInfo', { name, role: role ? t(`themes.role.${role}` as Key) : '' }), disabled: true, onSelect: () => {} },
       ]} />
       <Button variant="primary" disabled={live || dirty} loading={publish.isPending} title={dirty ? t('editor.saveFirst') : undefined} onClick={() => publish.mutate()}>{t('themes.publish')}</Button>
     </>

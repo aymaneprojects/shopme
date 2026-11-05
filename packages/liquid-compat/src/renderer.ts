@@ -18,6 +18,8 @@ export interface PageInput {
   money: Runtime['money'];
   /** Per-request data lookups for typed settings; overrides the renderer default. */
   resolvers?: ResourceResolvers;
+  /** Emit editor attributes on section and block wrappers (theme editor preview only). */
+  designMode?: boolean;
 }
 
 export interface RendererOptions { resolvers?: ResourceResolvers }
@@ -38,7 +40,7 @@ export class ThemeRenderer {
     const theme = this.theme;
     const rt: Runtime = {
       theme, engine: this.engine, resolvers: input.resolvers ?? this.resolvers, locale: input.locale, defaultLocale: theme.defaultLocale(), money: input.money, request: input.request,
-      stylesheets: new Map(), javascripts: new Map(), layout: undefined, stack: [], sectionCounter: 0, errors: [],
+      stylesheets: new Map(), javascripts: new Map(), layout: undefined, stack: [], sectionCounter: 0, errors: [], designMode: !!input.designMode,
       assetUrl: (n) => `/cdn/shop/t/${theme.id}/assets/${n}?v=${theme.version}`,
       fileUrl: (n) => `/files/${n}`,
     };

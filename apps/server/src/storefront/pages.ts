@@ -41,13 +41,29 @@ function passwordOf(shop: Shop): { enabled: boolean; password: string; message: 
 
 const unlockToken = (ctx: AppContext, password: string) => sha256(`${ctx.config.sessionSecret}:storefront:${password}`);
 
+/**
+ * Theme editor preview: a signed-in staff request carrying `preview_theme_id` (and optionally `_draft`, the token of the unsaved
+ * changes) renders that theme in design mode. Anyone else, and every other request, gets the live theme without editor markup.
+ */
+async function editorPreview(req: FastifyRequest, env: Env, store: ThemeStore) {
+  const q = req.query as Query;
+  const id = Number(first(q.preview_theme_id));
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
+  const auth = await authenticate(req);
+  if (!auth || auth.shopId !== env.shop.id) return null;
+  const loaded = await store.preview(env.shop.id, id, first(q._draft) || undefined);
+  return loaded ? { loaded } : null;
+}
+
 export function createContent(ctx: AppContext, store: ThemeStore) {
   const { db } = ctx;
 
   /** Render a template with all request globals; `sections`/`section_id` query params switch to the Section Rendering API. */
   async function renderTemplate(req: FastifyRequest, reply: FastifyReply, env: Env, spec: PageSpec) {
-    const loaded = await store.main(env.shop.id, env.locale === env.shop.locale ? undefined : env.locale);
+    const editor = await editorPreview(req, env, store);
+    const loaded = editor?.loaded ?? await store.main(env.shop.id, env.locale === env.shop.locale ? undefined : env.locale);
     const globals = await buildGlobals(env, loaded.themeId, spec.pageType);
+    if (editor) (globals.request as Record<string, unknown>).design_mode = true;
     const query0 = req.query as Query;
     const fromQuery: Record<string, unknown> = query0.contact_posted === 'true' || query0.customer_posted === 'true'
       ? { __form_success: { contact: query0.contact_posted === 'true', customer: query0.customer_posted === 'true' } } : {};
@@ -58,7 +74,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     });
     const query = req.query as Query;
     const suffix = spec.suffix ?? first(query.view) ?? null;
-    const input = { ...pageInput(env, spec.template, suffix, globals), resolvers: makeResolvers(env, globals) };
+    const input = { ...pageInput(env, spec.template, suffix, globals), resolvers: makeResolvers(env, globals), designMode: !!editor };
 
     const sectionsParam = first(query.sections);
     if (sectionsParam !== undefined) {
@@ -371,6 +387,20 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       }
       return (passwordPage(['Wrong password']) as (r: FastifyRequest, p: FastifyReply) => Promise<unknown>)(req, reply);
     }));
+
+    // --- theme editor: unsaved changes for the live preview (kept in memory, per editing session)
+    app.post('/admin/api/themes/:id/preview-draft', { bodyLimit: 10 * 1024 * 1024 }, async (req, reply) => {
+      const auth = await authenticate(req);
+      if (!auth) return reply.code(401).send({ error: 'Not authenticated' });
+      if (!auth.scopes.includes('*') && !auth.scopes.includes('write_themes')) return reply.code(403).send({ error: 'Access denied. Required access: write_themes' });
+      const themeId = Number((req.params as { id: string }).id);
+      const [row] = Number.isSafeInteger(themeId) ? await db.select({ id: s.themes.id }).from(s.themes).where(and(eq(s.themes.id, themeId), eq(s.themes.shopId, auth.shopId))).limit(1) : [];
+      if (!row) return reply.code(404).send({ error: 'Theme not found' });
+      const b = (req.body ?? {}) as { token?: unknown; files?: unknown };
+      if (!b.files || typeof b.files !== 'object') return reply.code(400).send({ error: 'files is required' });
+      const token = store.putDraft(auth.shopId, themeId, b.files as Record<string, string>, typeof b.token === 'string' ? b.token : undefined);
+      return token ? { token } : reply.code(413).send({ error: 'Draft too large' });
+    });
 
     // --- theme assets
     app.get('/cdn/shop/t/:themeId/assets/*', async (req, reply) => {
