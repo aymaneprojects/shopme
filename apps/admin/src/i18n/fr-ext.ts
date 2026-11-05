@@ -41,13 +41,13 @@ export const frExt: Record<keyof typeof enExt, string> = {
   'csv.help.products': 'Importez un fichier CSV de produits. Nous le vérifions d’abord et affichons les problèmes avant toute modification.', 'csv.help.customers': 'Importez un fichier CSV de clients. Nous le vérifions d’abord et affichons les problèmes avant toute modification.',
   'csv.help.inventory': 'Importez un fichier CSV de quantités en stock. Nous le vérifions d’abord et affichons les problèmes avant toute modification.',
   'csv.checking': 'Vérification de {name}…', 'csv.previewTitle': 'Résultat de la vérification de {name}', 'csv.confirm': 'Importer', 'csv.importing': 'Importation en cours…', 'csv.done': 'Importation terminée.', 'csv.nothing': 'Aucune ligne ne peut être importée. Corrigez le fichier et choisissez-le à nouveau.',
-  'csv.chooseAnother': 'Choisir un autre fichier', 'csv.errors': '{n} lignes avec des problèmes', 'csv.row': 'Ligne {n}',
+  'csv.chooseAnother': 'Choisir un autre fichier', 'csv.errors': '{n} lignes avec des problèmes', 'csv.errors.one': '{n} ligne avec des problèmes', 'csv.row': 'Ligne {n}',
   'csv.count.created': 'Créés', 'csv.count.updated': 'Mis à jour', 'csv.count.skipped': 'Ignorés', 'csv.count.errors': 'Erreurs', 'csv.count.imported': 'Importés', 'csv.count.failed': 'Échecs',
 
   'users.intro': 'Invitez des personnes à gérer votre boutique et choisissez ce à quoi elles ont accès.', 'users.invite': 'Inviter un utilisateur', 'users.sendInvite': 'Envoyer l’invitation', 'users.invited': 'Invitation envoyée', 'users.edit': 'Modifier l’utilisateur', 'users.saved': 'Utilisateur mis à jour',
   'users.role.owner': 'Propriétaire', 'users.role.admin': 'Administrateur', 'users.role.staff': 'Équipe', 'users.roleLabel': 'Rôle', 'users.adminHelp': 'Les administrateurs ont accès à tout, sauf à la propriété de la boutique.', 'users.permissions': 'Permissions',
   'users.perm.products': 'Produits, collections et inventaire', 'users.perm.orders': 'Commandes', 'users.perm.customers': 'Clients', 'users.perm.discounts': 'Réductions', 'users.perm.online_store': 'Boutique en ligne', 'users.perm.settings': 'Paramètres', 'users.perm.staff': 'Utilisateurs et permissions',
-  'users.areas': '{n} domaines', 'users.inactive': 'Désactivé', 'users.deactivate': 'Désactiver', 'users.deactivated': 'Utilisateur désactivé', 'users.deactivateTitle': 'Désactiver cet utilisateur ?', 'users.deactivateBody': '{email} ne pourra plus se connecter.',
+  'users.areas': '{n} domaines', 'users.areas.one': '{n} domaine', 'users.inactive': 'Désactivé', 'users.deactivate': 'Désactiver', 'users.deactivated': 'Utilisateur désactivé', 'users.deactivateTitle': 'Désactiver cet utilisateur ?', 'users.deactivateBody': '{email} ne pourra plus se connecter.',
   'users.deleteTitle': 'Supprimer cet utilisateur ?', 'users.deleteBody': '{email} est supprimé définitivement.', 'users.deleted': 'Utilisateur supprimé',
 
   'notif.intro': 'Personnalisez les e-mails reçus par vos clients.', 'notif.customized': 'Personnalisé', 'notif.notFound': 'Modèle introuvable.', 'notif.template': 'Modèle', 'notif.subject': 'Objet', 'notif.body': 'Corps de l’e-mail (HTML et Liquid)',

@@ -4,7 +4,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq, gt } from 'drizzle-orm';
 import { attemptDelivery, cancelOrder, createFulfillment, createLocalStorage, getPrimaryShop, refundOrder, schema as s, seedDemo, type Mail } from '@shopme/core';
 import { createTestApp, setupAndLogin, type TestApp } from './test-utils';
 
@@ -60,6 +60,7 @@ describe('outbound webhooks', () => {
   let status = 200;
 
   beforeAll(async () => {
+    process.env.WEBHOOKS_ALLOW_PRIVATE = '1'; // the receiver below listens on loopback
     server = createServer((req, res) => {
       let body = '';
       req.on('data', (c) => { body += c; });
@@ -68,7 +69,7 @@ describe('outbound webhooks', () => {
     await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
     url = `http://127.0.0.1:${(server.address() as { port: number }).port}/hook`;
   });
-  afterAll(async () => { await new Promise((r) => server.close(r)); });
+  afterAll(async () => { delete process.env.WEBHOOKS_ALLOW_PRIVATE; await new Promise((r) => server.close(r)); });
 
   it('manages subscriptions', async () => {
     const c = await gql(`mutation($u: URL!) { webhookSubscriptionCreate(topic: CUSTOMERS_CREATE, webhookSubscription: { callbackUrl: $u, format: JSON }) { webhookSubscription { id topic format endpoint { ... on WebhookHttpEndpoint { callbackUrl } } } userErrors { field message } } }`, { u: url });
@@ -115,6 +116,47 @@ describe('outbound webhooks', () => {
     const next = await attemptDelivery(t.dbHandle.db, shop, d!.id, { shopDomain: 'x', now: new Date(Date.now() + 3600_000) });
     expect(next).toBeNull();
     expect((await t.dbHandle.db.select().from(s.webhookDeliveries).where(eq(s.webhookDeliveries.id, d!.id)))[0]).toMatchObject({ status: 'SUCCESS', attempts: 2 });
+  });
+
+  it('refuses private and loopback targets at create and update unless WEBHOOKS_ALLOW_PRIVATE=1', async () => {
+    delete process.env.WEBHOOKS_ALLOW_PRIVATE;
+    try {
+      const priv = async (u: string) => (await gql(`mutation($u: URL!) { webhookSubscriptionCreate(topic: ORDERS_PAID, webhookSubscription: { callbackUrl: $u }) { webhookSubscription { id } userErrors { message } } }`, { u })).data.webhookSubscriptionCreate;
+      for (const u of ['http://127.0.0.1:9/hook', 'http://169.254.169.254/latest/meta-data', 'http://[::ffff:7f00:1]/hook', 'http://localhost:9/hook', 'http://[fd00::1]/hook']) {
+        const r = await priv(u);
+        expect(r.webhookSubscription, u).toBeNull();
+        expect(r.userErrors[0].message, u).toMatch(/private or loopback/);
+      }
+      const existing = (await gql('{ webhookSubscriptions(first: 1) { nodes { id } } }')).data.webhookSubscriptions.nodes;
+      if (existing.length) {
+        const up = await gql(`mutation($id: ID!, $u: URL!) { webhookSubscriptionUpdate(id: $id, webhookSubscription: { callbackUrl: $u }) { userErrors { message } } }`, { id: existing[0].id, u: 'http://10.0.0.5/x' });
+        expect(up.data.webhookSubscriptionUpdate.userErrors[0].message).toMatch(/private or loopback/);
+      }
+    } finally {
+      process.env.WEBHOOKS_ALLOW_PRIVATE = '1';
+    }
+  });
+
+  it('blocks delivery to an address that became private after subscribing', async () => {
+    const [sub] = await t.dbHandle.db.select().from(s.webhookSubscriptions).limit(1);
+    await t.dbHandle.db.update(s.webhookSubscriptions).set({ endpointUrl: 'http://10.1.2.3/hook' }).where(eq(s.webhookSubscriptions.id, sub!.id));
+    const [last] = await t.dbHandle.db.select({ id: s.webhookDeliveries.id }).from(s.webhookDeliveries).orderBy(desc(s.webhookDeliveries.id)).limit(1);
+    delete process.env.WEBHOOKS_ALLOW_PRIVATE; // dispatch happens with the guard on, so nothing connects to 10.1.2.3
+    try {
+      await gql(`mutation { customerCreate(input: { email: "ssrf@example.com" }) { userErrors { message } } }`);
+      let d: typeof s.webhookDeliveries.$inferSelect | undefined;
+      await vi.waitFor(async () => {
+        [d] = await t.dbHandle.db.select().from(s.webhookDeliveries).where(and(eq(s.webhookDeliveries.subscriptionId, sub!.id), gt(s.webhookDeliveries.id, last?.id ?? 0))).orderBy(desc(s.webhookDeliveries.id)).limit(1);
+        expect(d).toBeTruthy();
+      }, { timeout: 8000 });
+      const shop = (await getPrimaryShop(t.dbHandle.db))!;
+      await attemptDelivery(t.dbHandle.db, shop, d!.id, { shopDomain: 'x', now: new Date(Date.now() + 3600_000) });
+      const [row] = await t.dbHandle.db.select().from(s.webhookDeliveries).where(eq(s.webhookDeliveries.id, d!.id));
+      expect(row!.lastError).toMatch(/private or loopback/);
+      expect(row!.responseCode).toBeNull();
+    } finally {
+      process.env.WEBHOOKS_ALLOW_PRIVATE = '1';
+    }
   });
 
   it('removes subscriptions', async () => {

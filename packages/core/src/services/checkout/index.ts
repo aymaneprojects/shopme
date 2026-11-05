@@ -3,6 +3,7 @@ import type { Db, Executor } from '../../db/client';
 import * as s from '../../db/schema';
 import type { Shop } from '../shops';
 import { loadCartView, type CartLineView, type CartView } from '../cart/service';
+import { completeDraftFromCheckout } from '../draft-orders';
 import { createOrder, type CheckoutAddressInput, type CreateOrderResult } from '../orders/create';
 import {
   matchShippingRates, priceCheckout, type DiscountApplication, type PricingDiscount, type PricingInput, type PricingLine, type PricingResult, type PricingShippingRate, type PricingTaxRate,
@@ -338,6 +339,7 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
     if (res.error === 'discount_unavailable') return { ok: false, errors: [{ code: 'discount' }] };
     return { ok: false, errors: [{ code: 'completed' }] };
   }
+  if (row.draftOrderId) await completeDraftFromCheckout(db, shop.id, row.draftOrderId, res.orderId);
   return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.pricing.total, currency: cart.currency, paid: free, needsOnlinePayment: online, paymentId, email: row.email!, checkout };
 }
 

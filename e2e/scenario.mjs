@@ -248,6 +248,8 @@ export async function runScenario({ baseUrl, root }) {
       await page.goto(`${baseUrl}/admin/online-store`);
       await vis(page.getByText('Aurora'));
       await page.getByRole('button', { name: 'Customize' }).click();
+      // the editor opens on the Sections tab; colours live under "Theme settings"
+      await page.getByRole('tab', { name: 'Theme settings' }).click();
       await vis(page.getByLabel('Primary color (hex)'));
       await page.getByLabel('Primary color (hex)').fill(PRIMARY);
       await shot('05-theme-editor');

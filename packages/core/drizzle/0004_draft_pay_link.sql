@@ -1,0 +1,1 @@
+ALTER TABLE "carts" ADD COLUMN "draft_order_id" bigint;

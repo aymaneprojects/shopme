@@ -10,6 +10,7 @@ import { getPage, listPages, policiesOf } from './data/content';
 import { flashGlobals, takeFlash } from './flash';
 import type { ProductObject } from './data/types';
 import { buildCollection, buildGlobals, buildSearch, makeEnv, makeResolvers, pageInput, primaryShop, type Env, type Query } from './env';
+import { CONSENT_COOKIE, cookieBannerHtml, injectCookieBanner } from './cookie-banner';
 import type { ThemeStore } from './theme-store';
 
 export type SectionRenderer = (req: FastifyRequest, shop: Shop, url: string, names: string[], cart?: CartView | null) => Promise<Record<string, string>>;
@@ -70,8 +71,9 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       const html = (await loaded.renderer.renderSections(input, [sectionId]))[sectionId];
       return html == null ? reply.code(404).type('text/html; charset=utf-8').send('') : reply.code(200).type('text/html; charset=utf-8').send(html);
     }
-    const { html, errors } = await loaded.renderer.renderPage(input);
+    const { html: page, errors } = await loaded.renderer.renderPage(input);
     for (const e of errors) req.log.warn({ liquid: e }, 'liquid error');
+    const html = injectCookieBanner(page, cookieBannerHtml(env.shop, req.cookies?.[CONSENT_COOKIE]));
     return reply.code(spec.status ?? 200).header('cache-control', 'no-cache').type('text/html; charset=utf-8').send(html);
   }
 

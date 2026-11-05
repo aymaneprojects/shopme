@@ -42,6 +42,8 @@ export const carts = pgTable('carts', {
   discountCodes: text('discount_codes').array().notNull().default([]),
   shippingAddress: jsonb('shipping_address'), billingAddress: jsonb('billing_address'),
   shippingRateId: ref('shipping_rate_id'),
+  /** Set when the cart was opened from a draft order's pay link; the draft is completed by that checkout. No FK: draft_orders is defined later (ops.ts imports this file). */
+  draftOrderId: ref('draft_order_id'),
   completedAt: ts('completed_at'),
   ...timestamps(),
 });

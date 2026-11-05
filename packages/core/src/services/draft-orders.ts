@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { customers, draftOrders, inventoryItems, media, orders, productMedia, productVariants, products, taxRates, type DraftAddress, type DraftCalc, type DraftDiscount, type DraftLine } from '../db/schema';
 import type { Db, Executor } from '../db/client';
 import { listNotificationTemplates, moneyOf, renderNotification, senderOf, shopUrl } from '../mail/notifications';
@@ -239,6 +239,14 @@ export async function completeDraftOrder(db: Db, shop: Shop, id: number, o: { pa
     .where(eq(draftOrders.id, id)).returning();
   await addEvent(db, shop.id, { subjectType: 'draft_order', subjectId: id, verb: 'draft_orders/update', message: `Draft order ${d.name} was completed as ${res.name}`, authorStaffUserId: o.staffId });
   return okR({ draft: row!, orderId: res.orderId });
+}
+
+/** A cart opened from a draft's pay link was checked out: the draft is completed and linked to the order it produced. */
+export async function completeDraftFromCheckout(db: Executor, shopId: number, draftId: number, orderId: number): Promise<void> {
+  const now = new Date();
+  const [row] = await db.update(draftOrders).set({ status: 'COMPLETED', completedAt: now, orderId, updatedAt: now })
+    .where(and(eq(draftOrders.id, draftId), eq(draftOrders.shopId, shopId), ne(draftOrders.status, 'COMPLETED'))).returning({ name: draftOrders.name });
+  if (row) await addEvent(db, shopId, { subjectType: 'draft_order', subjectId: draftId, verb: 'draft_orders/update', message: `Draft order ${row.name} was paid through its pay link` });
 }
 
 export const draftOrderOf = async (db: Executor, shopId: number, d: DraftOrder) => (d.orderId ? getOrder(db, shopId, d.orderId) : null);

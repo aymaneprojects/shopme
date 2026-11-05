@@ -5,6 +5,7 @@ import { customers, draftOrders, fulfillments, orderLines, orders, productVarian
 import type { Db, Executor } from '../db/client';
 import { errR, okR, type Result } from './catalog/common';
 import { randomToken } from './crypto';
+import { postGuarded, resolvesToPrivate, webhooksAllowPrivate } from './net-guard';
 import type { EventRow } from './events';
 import { getOrderSummary } from './orders/create';
 import type { Shop } from './shops';
@@ -54,12 +55,14 @@ export const signBody = (secret: string, body: string) => createHmac('sha256', s
 
 export interface SubscriptionInput { callbackUrl?: string | null; format?: string | null }
 
-function validate(i: SubscriptionInput): string | null {
+async function validate(i: SubscriptionInput): Promise<string | null> {
   if (i.callbackUrl != null) {
     let u: URL;
     try { u = new URL(i.callbackUrl); } catch { return 'Address is invalid'; }
     if (!['http:', 'https:'].includes(u.protocol) || i.callbackUrl.length > 2000) return 'Address must be an http(s) URL';
     if (u.username || u.password) return 'Address must not contain credentials';
+    // SSRF: checked again at delivery, after DNS resolution, so a name that later points inward is still refused.
+    if (!webhooksAllowPrivate() && (await resolvesToPrivate(u.hostname))) return 'Address must not point to a private or loopback network';
   }
   if (i.format != null && i.format !== 'JSON') return 'Only the JSON format is supported';
   return null;
@@ -68,7 +71,7 @@ function validate(i: SubscriptionInput): string | null {
 export async function createSubscription(db: Executor, shopId: number, topic: string, i: SubscriptionInput): Promise<Result<WebhookSubscription>> {
   if (!(WEBHOOK_TOPICS as readonly string[]).includes(topic)) return errR(['topic'], 'Topic is not supported', 'INVALID');
   if (!i.callbackUrl) return errR(['webhookSubscription', 'callbackUrl'], "Address can't be blank", 'BLANK');
-  const bad = validate(i);
+  const bad = await validate(i);
   if (bad) return errR(['webhookSubscription', 'callbackUrl'], bad, 'INVALID');
   const [dup] = await db.select({ id: webhookSubscriptions.id }).from(webhookSubscriptions)
     .where(and(eq(webhookSubscriptions.shopId, shopId), eq(webhookSubscriptions.topic, topic), eq(webhookSubscriptions.endpointUrl, i.callbackUrl))).limit(1);
@@ -80,7 +83,7 @@ export async function createSubscription(db: Executor, shopId: number, topic: st
 export async function updateSubscription(db: Executor, shopId: number, id: number, i: SubscriptionInput): Promise<Result<WebhookSubscription>> {
   const cur = await getSubscription(db, shopId, id);
   if (!cur) return errR(['id'], 'Webhook subscription does not exist', 'NOT_FOUND');
-  const bad = validate(i);
+  const bad = await validate(i);
   if (bad) return errR(['webhookSubscription', 'callbackUrl'], bad, 'INVALID');
   const [row] = await db.update(webhookSubscriptions).set({ ...(i.callbackUrl && { endpointUrl: i.callbackUrl }), updatedAt: new Date() }).where(eq(webhookSubscriptions.id, id)).returning();
   return okR(row!);
@@ -229,7 +232,7 @@ export async function recordDeliveries(db: Executor, shopId: number, e: Pick<Eve
 export const RETRY_DELAYS_MS = [10_000, 60_000, 5 * 60_000, 30 * 60_000, 2 * 3600_000, 6 * 3600_000];
 const LEASE_MS = 2 * 60_000;
 
-export interface DeliveryDeps { shopDomain: string; fetch?: typeof fetch; timeoutMs?: number; now?: Date }
+export interface DeliveryDeps { shopDomain: string; timeoutMs?: number; now?: Date }
 
 /** Attempt one delivery. Returns the delay until the next attempt, or null when it is finished (SUCCESS or FAILED) or not claimable. */
 export async function attemptDelivery(db: Db, shop: Shop, id: number, deps: DeliveryDeps): Promise<number | null> {
@@ -245,15 +248,14 @@ export async function attemptDelivery(db: Db, shop: Shop, id: number, deps: Deli
   const secret = await getWebhookSecret(db, shop);
   let code: number | null = null; let error: string | null = null;
   try {
-    const res = await (deps.fetch ?? fetch)(sub.endpointUrl, {
-      method: 'POST', redirect: 'manual', signal: AbortSignal.timeout(deps.timeoutMs ?? 10_000), body,
+    code = await postGuarded(new URL(sub.endpointUrl), {
+      timeoutMs: deps.timeoutMs ?? 10_000, allowPrivate: webhooksAllowPrivate(), body,
       headers: {
         'content-type': 'application/json', 'user-agent': 'ShopMe-Hookshot', 'x-shopify-topic': d.topic, 'x-shopify-hmac-sha256': signBody(secret, body), 'x-shopify-shop-domain': deps.shopDomain,
         'x-shopify-webhook-id': String(d.id), 'x-shopify-api-version': sub.apiVersion, 'x-shopify-triggered-at': d.createdAt.toISOString(),
       },
     });
-    code = res.status;
-    if (!res.ok) error = `HTTP ${res.status}`;
+    if (code < 200 || code >= 300) error = `HTTP ${code}`;
   } catch (e) { error = e instanceof Error ? e.message.slice(0, 500) : 'Request failed'; }
 
   const attempts = d.attempts + 1;

@@ -73,10 +73,10 @@ export async function registerOpsRoutes(app: FastifyInstance): Promise<void> {
     if (!shop || !d || d.shopId !== shop.id) return reply.code(404).send('Not found');
     if (d.status === 'COMPLETED') return page(reply, shop, `<p>${fr(shop) ? 'Cette commande est déjà finalisée.' : 'This order has already been completed.'}</p><p><a href="/">${fr(shop) ? 'Retour à la boutique' : 'Back to the shop'}</a></p>`);
     if (await checkoutCompatible(shop.id, d)) {
-      // Pre-fill a cart (lines, email, addresses) and hand over to the normal checkout.
+      // Pre-fill a cart (lines, email, addresses) and hand over to the normal checkout; submitting it completes the draft.
       const cart = await createCart(db, shop.id, d.currency);
       await db.insert(s.cartLines).values(d.lines.map((l, i) => ({ shopId: shop.id, cartId: cart.id, variantId: l.variantId!, quantity: l.quantity, properties: l.properties, position: i })));
-      await db.update(s.carts).set({ email: d.email, shippingAddress: d.shippingAddress, billingAddress: d.billingAddress ?? d.shippingAddress, note: d.note }).where(eq(s.carts.id, cart.id));
+      await db.update(s.carts).set({ email: d.email, shippingAddress: d.shippingAddress, billingAddress: d.billingAddress ?? d.shippingAddress, note: d.note, draftOrderId: d.id }).where(eq(s.carts.id, cart.id));
       reply.setCookie(CART_COOKIE, cart.token, { path: '/', sameSite: 'lax', httpOnly: false, maxAge: 90 * 24 * 3600, secure: config.appUrl.startsWith('https://') });
       return reply.redirect(`/checkouts/${cart.token}`, 303);
     }

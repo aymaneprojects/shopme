@@ -211,5 +211,18 @@
     "label": "Adresse e-mail",
     "submit": "S'abonner",
     "success": "Merci pour votre inscription !"
+  },
+  "seed_defaults": {
+    "Free shipping on orders over 50": "Livraison offerte dès 50 €",
+    "Welcome to our store": "Bienvenue dans notre boutique",
+    "Discover what is new": "Découvrez les nouveautés",
+    "Hand-picked products, delivered to your door.": "Une sélection de produits, livrée chez vous.",
+    "Shop now": "Acheter maintenant",
+    "Learn more": "En savoir plus",
+    "Featured products": "Produits phares",
+    "Made with care": "Fait avec soin",
+    "Shop by collection": "Acheter par collection",
+    "<p>Pair an image with a short story about your products, your craft or your team.</p>": "<p>Associez une image à une courte histoire sur vos produits, votre savoir-faire ou votre équipe.</p>",
+    "<p>Tell your story.</p>": "<p>Racontez votre histoire.</p>"
   }
 }

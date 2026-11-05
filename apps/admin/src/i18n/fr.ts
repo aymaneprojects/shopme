@@ -5,7 +5,7 @@ import { frShop } from './fr-shop';
 export const fr: Record<Key, string> = {
   'common.back': 'Retour', 'common.cancel': 'Annuler', 'common.close': 'Fermer', 'common.delete': 'Supprimer', 'common.loading': 'Chargement…',
   'common.moreActions': 'Plus d’actions', 'common.next': 'Suivant', 'common.previous': 'Précédent', 'common.remove': 'Retirer',
-  'common.selectAll': 'Tout sélectionner', 'common.selected': '{n} sélectionné(s)', 'common.sort': 'Trier',
+  'common.selectAll': 'Tout sélectionner', 'common.selected': '{n} sélectionnés', 'common.selected.one': '{n} sélectionné', 'common.sort': 'Trier',
 
   'field.description': 'Description', 'field.email': 'E-mail', 'field.firstName': 'Prénom', 'field.lastName': 'Nom', 'field.password': 'Mot de passe',
   'field.productType': 'Type', 'field.status': 'Statut', 'field.tags': 'Balises', 'field.title': 'Titre', 'field.vendor': 'Fournisseur',
@@ -30,12 +30,12 @@ export const fr: Record<Key, string> = {
   'sort.TITLE': 'Titre', 'sort.CREATED_AT': 'Création', 'sort.UPDATED_AT': 'Mise à jour', 'sort.INVENTORY_TOTAL': 'Stock', 'sort.PRODUCT_TYPE': 'Type', 'sort.VENDOR': 'Fournisseur',
 
   'products.add': 'Ajouter un produit', 'products.tabAll': 'Tous', 'products.product': 'Produit', 'products.inventory': 'Stock',
-  'products.inStock': '{n} en stock pour {v} variantes', 'products.notTracked': 'Stock non suivi', 'products.search': 'Rechercher des produits',
-  'products.stockIn': 'En stock', 'products.stockOut': 'En rupture', 'products.count': '{n} produits',
+  'products.inStock': '{n} en stock pour {v} variantes', 'products.inStock.one': '{n} en stock pour {v} variante', 'products.notTracked': 'Stock non suivi', 'products.search': 'Rechercher des produits',
+  'products.stockIn': 'En stock', 'products.stockOut': 'En rupture', 'products.count': '{n} produits', 'products.count.one': '{n} produit',
   'products.emptyTitle': 'Ajoutez votre premier produit', 'products.emptyBody': 'Les produits que vous ajoutez apparaîtront ici. Commencez par un titre, un prix et une photo.',
   'products.noResults': 'Aucun produit trouvé', 'products.noResultsBody': 'Essayez de modifier la recherche ou les filtres.', 'products.clearFilters': 'Effacer les filtres',
   'products.setActive': 'Passer en actif', 'products.setDraft': 'Passer en brouillon', 'products.setArchived': 'Archiver',
-  'products.updated': '{n} produits mis à jour', 'products.deleted': '{n} produits supprimés', 'products.deleteTitle': 'Supprimer {n} produit(s) ?',
+  'products.updated': '{n} produits mis à jour', 'products.updated.one': '{n} produit mis à jour', 'products.deleted': '{n} produits supprimés', 'products.deleted.one': '{n} produit supprimé', 'products.deleteTitle': 'Supprimer {n} produits ?', 'products.deleteTitle.one': 'Supprimer {n} produit ?',
   'products.deleteBody': 'Cette action est irréversible.',
 
   'product.addTitle': 'Ajouter un produit', 'product.untitled': 'Produit sans titre', 'product.notFound': 'Produit introuvable.', 'product.titlePlaceholder': 'T-shirt à manches courtes',
@@ -53,19 +53,19 @@ export const fr: Record<Key, string> = {
   'inventory.track': 'Suivre la quantité', 'inventory.available': 'Disponible', 'inventory.sku': 'UGS', 'inventory.barcode': 'Code-barres (ISBN, UPC, GTIN)',
   'inventory.continueSelling': 'Continuer à vendre en cas de rupture de stock', 'inventory.committed': 'Engagé', 'inventory.onHand': 'En stock', 'inventory.noSku': 'Pas d’UGS',
   'inventory.location': 'Emplacement', 'inventory.allLocations': 'Tous les emplacements', 'inventory.search': 'Rechercher par produit ou UGS',
-  'inventory.pickLocation': 'Choisissez un emplacement pour modifier les quantités disponibles.', 'inventory.saveN': 'Enregistrer {n} modification(s)', 'inventory.saved': 'Stock mis à jour',
+  'inventory.pickLocation': 'Choisissez un emplacement pour modifier les quantités disponibles.', 'inventory.saveN': 'Enregistrer {n} modifications', 'inventory.saveN.one': 'Enregistrer {n} modification', 'inventory.saved': 'Stock mis à jour',
   'inventory.emptyTitle': 'Aucun stock suivi', 'inventory.emptyBody': 'Les produits dont la quantité est suivie seront listés ici.',
   'shipping.physical': 'Il s’agit d’un produit physique', 'shipping.weight': 'Poids', 'shipping.unit': 'Unité',
   'unit.KILOGRAMS': 'kg', 'unit.GRAMS': 'g', 'unit.POUNDS': 'lb', 'unit.OUNCES': 'oz',
 
   'variants.addOptions': 'Ajouter des options comme la taille ou la couleur', 'variants.addAnotherOption': 'Ajouter une autre option', 'variants.optionName': 'Nom de l’option',
   'variants.optionNamePlaceholder': 'Taille', 'variants.optionValues': 'Valeurs de l’option', 'variants.valuesPlaceholder': 'Saisissez une valeur puis appuyez sur Entrée',
-  'variants.removeOption': 'Retirer l’option', 'variants.count': '{n} variantes', 'variants.variant': 'Variante', 'variants.details': 'Afficher les détails',
+  'variants.removeOption': 'Retirer l’option', 'variants.count': '{n} variantes', 'variants.count.one': '{n} variante', 'variants.variant': 'Variante', 'variants.details': 'Afficher les détails',
   'variants.default': 'Par défaut', 'variants.remove': 'Retirer la variante',
 
   'collections.add': 'Ajouter une collection', 'collections.search': 'Rechercher des collections', 'collections.type': 'Type', 'collections.manual': 'Manuelle', 'collections.automated': 'Automatisée',
   'collections.conditions': 'Conditions', 'collections.emptyTitle': 'Créez votre première collection', 'collections.emptyBody': 'Regroupez des produits pour que vos clients les parcourent ensemble.',
-  'collections.deleted': '{n} collections supprimées', 'collections.deleteTitle': 'Supprimer {n} collection(s) ?', 'collections.deleteBody': 'Les produits ne sont pas supprimés. Cette action est irréversible.',
+  'collections.deleted': '{n} collections supprimées', 'collections.deleted.one': '{n} collection supprimée', 'collections.deleteTitle': 'Supprimer {n} collections ?', 'collections.deleteTitle.one': 'Supprimer {n} collection ?', 'collections.deleteBody': 'Les produits ne sont pas supprimés. Cette action est irréversible.',
   'collections.notFound': 'Collection introuvable.',
   'collection.addTitle': 'Ajouter une collection', 'collection.untitled': 'Collection sans titre', 'collection.titleRequired': 'Le titre est obligatoire.',
   'collection.rulesInvalid': 'Ajoutez au moins une condition complète.', 'collection.saved': 'Collection enregistrée', 'collection.type': 'Type de collection',

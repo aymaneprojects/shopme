@@ -58,7 +58,7 @@ function CookieBanner() {
   const { t } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: ['cookie-banner'], retry: false, queryFn: () => gql<{ shop: { cookieBannerEnabled: boolean } }>(COOKIE_BANNER) });
+  const q = useQuery({ queryKey: ['cookie-banner'], retry: false, queryFn: () => gql<{ shop: { cookieBanner: { enabled: boolean; message: string } } }>(COOKIE_BANNER) });
   const toggle = useMutation({
     mutationFn: (v: boolean) => mutate(COOKIE_BANNER_UPDATE, { input: { cookieBannerEnabled: v } }, 'shopmeShopUpdate'),
     onSuccess: () => { toast(t('settings.saved')); void qc.invalidateQueries({ queryKey: ['cookie-banner'] }); }, onError: (e) => toast(e.message, 'critical'),
@@ -67,7 +67,7 @@ function CookieBanner() {
     <Card title={t('policies.cookies')}>
       <div className="flex flex-col gap-2">
         <p className="text-sm text-muted">{t('policies.cookiesHelp')}</p>
-        {q.error ? <Banner>{q.error.message}</Banner> : <Switch checked={toggle.isPending ? !!toggle.variables : !!q.data?.shop.cookieBannerEnabled} onChange={(v) => toggle.mutate(v)} label={t('policies.cookiesEnable')} />}
+        {q.error ? <Banner>{q.error.message}</Banner> : <Switch checked={toggle.isPending ? !!toggle.variables : !!q.data?.shop.cookieBanner.enabled} onChange={(v) => toggle.mutate(v)} label={t('policies.cookiesEnable')} />}
       </div>
     </Card>
   );

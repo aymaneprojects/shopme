@@ -40,13 +40,13 @@ export const enExt = {
   'csv.help.products': 'Upload a CSV file of products. We check it first and show any problems before anything changes.', 'csv.help.customers': 'Upload a CSV file of customers. We check it first and show any problems before anything changes.',
   'csv.help.inventory': 'Upload a CSV file of inventory quantities. We check it first and show any problems before anything changes.',
   'csv.checking': 'Checking {name}…', 'csv.previewTitle': 'Check result for {name}', 'csv.confirm': 'Import', 'csv.importing': 'Importing…', 'csv.done': 'Import finished.', 'csv.nothing': 'No rows can be imported. Fix the file and choose it again.',
-  'csv.chooseAnother': 'Choose another file', 'csv.errors': '{n} rows with problems', 'csv.row': 'Row {n}',
+  'csv.chooseAnother': 'Choose another file', 'csv.errors': '{n} rows with problems', 'csv.errors.one': '{n} row with problems', 'csv.row': 'Row {n}',
   'csv.count.created': 'Created', 'csv.count.updated': 'Updated', 'csv.count.skipped': 'Skipped', 'csv.count.errors': 'Errors', 'csv.count.imported': 'Imported', 'csv.count.failed': 'Failed',
 
   'users.intro': 'Invite people to help run your store and choose what they can access.', 'users.invite': 'Invite user', 'users.sendInvite': 'Send invitation', 'users.invited': 'Invitation sent', 'users.edit': 'Edit user', 'users.saved': 'User updated',
   'users.role.owner': 'Owner', 'users.role.admin': 'Administrator', 'users.role.staff': 'Staff', 'users.roleLabel': 'Role', 'users.adminHelp': 'Administrators can access everything except ownership.', 'users.permissions': 'Permissions',
   'users.perm.products': 'Products, collections and inventory', 'users.perm.orders': 'Orders', 'users.perm.customers': 'Customers', 'users.perm.discounts': 'Discounts', 'users.perm.online_store': 'Online Store', 'users.perm.settings': 'Settings', 'users.perm.staff': 'Users and permissions',
-  'users.areas': '{n} areas', 'users.inactive': 'Deactivated', 'users.deactivate': 'Deactivate', 'users.deactivated': 'User deactivated', 'users.deactivateTitle': 'Deactivate this user?', 'users.deactivateBody': '{email} will no longer be able to sign in.',
+  'users.areas': '{n} areas', 'users.areas.one': '{n} area', 'users.inactive': 'Deactivated', 'users.deactivate': 'Deactivate', 'users.deactivated': 'User deactivated', 'users.deactivateTitle': 'Deactivate this user?', 'users.deactivateBody': '{email} will no longer be able to sign in.',
   'users.deleteTitle': 'Delete this user?', 'users.deleteBody': '{email} is removed permanently.', 'users.deleted': 'User deleted',
 
   'notif.intro': 'Customize the emails your customers receive.', 'notif.customized': 'Customized', 'notif.notFound': 'Template not found.', 'notif.template': 'Template', 'notif.subject': 'Subject', 'notif.body': 'Email body (HTML and Liquid)',

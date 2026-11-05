@@ -3,7 +3,7 @@ import { enShop } from './en-shop';
 export const en = {
   'common.back': 'Back', 'common.cancel': 'Cancel', 'common.close': 'Close', 'common.delete': 'Delete', 'common.loading': 'Loading…',
   'common.moreActions': 'More actions', 'common.next': 'Next', 'common.previous': 'Previous', 'common.remove': 'Remove',
-  'common.selectAll': 'Select all', 'common.selected': '{n} selected', 'common.sort': 'Sort',
+  'common.selectAll': 'Select all', 'common.selected': '{n} selected', 'common.selected.one': '{n} selected', 'common.sort': 'Sort',
 
   'field.description': 'Description', 'field.email': 'Email', 'field.firstName': 'First name', 'field.lastName': 'Last name', 'field.password': 'Password',
   'field.productType': 'Type', 'field.status': 'Status', 'field.tags': 'Tags', 'field.title': 'Title', 'field.vendor': 'Vendor',
@@ -28,12 +28,12 @@ export const en = {
   'sort.TITLE': 'Title', 'sort.CREATED_AT': 'Created', 'sort.UPDATED_AT': 'Updated', 'sort.INVENTORY_TOTAL': 'Inventory', 'sort.PRODUCT_TYPE': 'Type', 'sort.VENDOR': 'Vendor',
 
   'products.add': 'Add product', 'products.tabAll': 'All', 'products.product': 'Product', 'products.inventory': 'Inventory',
-  'products.inStock': '{n} in stock for {v} variants', 'products.notTracked': 'Inventory not tracked', 'products.search': 'Search products',
-  'products.stockIn': 'In stock', 'products.stockOut': 'Out of stock', 'products.count': '{n} products',
+  'products.inStock': '{n} in stock for {v} variants', 'products.inStock.one': '{n} in stock for {v} variant', 'products.notTracked': 'Inventory not tracked', 'products.search': 'Search products',
+  'products.stockIn': 'In stock', 'products.stockOut': 'Out of stock', 'products.count': '{n} products', 'products.count.one': '{n} product',
   'products.emptyTitle': 'Add your first product', 'products.emptyBody': 'Products you add will appear here. Start with a title, a price and a photo.',
   'products.noResults': 'No products found', 'products.noResultsBody': 'Try changing the search or the filters.', 'products.clearFilters': 'Clear filters',
   'products.setActive': 'Set as active', 'products.setDraft': 'Set as draft', 'products.setArchived': 'Archive',
-  'products.updated': '{n} products updated', 'products.deleted': '{n} products deleted', 'products.deleteTitle': 'Delete {n} product(s)?',
+  'products.updated': '{n} products updated', 'products.updated.one': '{n} product updated', 'products.deleted': '{n} products deleted', 'products.deleted.one': '{n} product deleted', 'products.deleteTitle': 'Delete {n} products?', 'products.deleteTitle.one': 'Delete {n} product?',
   'products.deleteBody': 'This cannot be undone.',
 
   'product.addTitle': 'Add product', 'product.untitled': 'Untitled product', 'product.notFound': 'Product not found.', 'product.titlePlaceholder': 'Short sleeve t-shirt',
@@ -51,19 +51,19 @@ export const en = {
   'inventory.track': 'Track quantity', 'inventory.available': 'Available', 'inventory.sku': 'SKU', 'inventory.barcode': 'Barcode (ISBN, UPC, GTIN)',
   'inventory.continueSelling': 'Continue selling when out of stock', 'inventory.committed': 'Committed', 'inventory.onHand': 'On hand', 'inventory.noSku': 'No SKU',
   'inventory.location': 'Location', 'inventory.allLocations': 'All locations', 'inventory.search': 'Search by product or SKU',
-  'inventory.pickLocation': 'Choose a location to edit available quantities.', 'inventory.saveN': 'Save {n} change(s)', 'inventory.saved': 'Inventory updated',
+  'inventory.pickLocation': 'Choose a location to edit available quantities.', 'inventory.saveN': 'Save {n} changes', 'inventory.saveN.one': 'Save {n} change', 'inventory.saved': 'Inventory updated',
   'inventory.emptyTitle': 'No tracked inventory', 'inventory.emptyBody': 'Products with quantity tracking will be listed here.',
   'shipping.physical': 'This is a physical product', 'shipping.weight': 'Weight', 'shipping.unit': 'Unit',
   'unit.KILOGRAMS': 'kg', 'unit.GRAMS': 'g', 'unit.POUNDS': 'lb', 'unit.OUNCES': 'oz',
 
   'variants.addOptions': 'Add options like size or color', 'variants.addAnotherOption': 'Add another option', 'variants.optionName': 'Option name',
   'variants.optionNamePlaceholder': 'Size', 'variants.optionValues': 'Option values', 'variants.valuesPlaceholder': 'Type a value and press Enter',
-  'variants.removeOption': 'Remove option', 'variants.count': '{n} variants', 'variants.variant': 'Variant', 'variants.details': 'Show details',
+  'variants.removeOption': 'Remove option', 'variants.count': '{n} variants', 'variants.count.one': '{n} variant', 'variants.variant': 'Variant', 'variants.details': 'Show details',
   'variants.default': 'Default', 'variants.remove': 'Remove variant',
 
   'collections.add': 'Add collection', 'collections.search': 'Search collections', 'collections.type': 'Type', 'collections.manual': 'Manual', 'collections.automated': 'Automated',
   'collections.conditions': 'Conditions', 'collections.emptyTitle': 'Create your first collection', 'collections.emptyBody': 'Group products so customers can browse them together.',
-  'collections.deleted': '{n} collections deleted', 'collections.deleteTitle': 'Delete {n} collection(s)?', 'collections.deleteBody': 'Products are not deleted. This cannot be undone.',
+  'collections.deleted': '{n} collections deleted', 'collections.deleted.one': '{n} collection deleted', 'collections.deleteTitle': 'Delete {n} collections?', 'collections.deleteTitle.one': 'Delete {n} collection?', 'collections.deleteBody': 'Products are not deleted. This cannot be undone.',
   'collections.notFound': 'Collection not found.',
   'collection.addTitle': 'Add collection', 'collection.untitled': 'Untitled collection', 'collection.titleRequired': 'Title is required.',
   'collection.rulesInvalid': 'Add at least one complete condition.', 'collection.saved': 'Collection saved', 'collection.type': 'Collection type',

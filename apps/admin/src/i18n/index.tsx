@@ -19,8 +19,15 @@ export function detectLang(): Lang {
 
 interface I18n { lang: Lang; setLang: (l: Lang) => void; t: (key: Key, vars?: Record<string, string | number>) => string }
 
-export const translate = (lang: Lang, key: Key, vars?: Record<string, string | number>) =>
-  (dicts[lang][key] ?? en[key]).replace(/\{(\w+)\}/g, (_, k: string) => String(vars?.[k] ?? ''));
+/**
+ * Plural forms: a count key (`n`, or `$count` when the number is another variable) uses `<key>.one` when the language's
+ * plural rule selects "one" (1 in English, 0 and 1 in French); otherwise the base key, which holds the plural text.
+ */
+export const translate = (lang: Lang, key: Key, vars?: Record<string, string | number>) => {
+  const count = Number(vars?.$count ?? vars?.n);
+  const singular = Number.isFinite(count) && new Intl.PluralRules(lang).select(count) === 'one' ? (dicts[lang] as Record<string, string | undefined>)[`${key}.one`] : undefined;
+  return (singular ?? dicts[lang][key] ?? en[key]).replace(/\{(\w+)\}/g, (_, k: string) => String(vars?.[k] ?? ''));
+};
 
 const Ctx = createContext<I18n>({ lang: 'en', setLang: () => {}, t: (k, v) => translate('en', k, v) });
 export const useI18n = () => useContext(Ctx);

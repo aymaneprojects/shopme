@@ -5,6 +5,7 @@ import { currencyExponent } from '@shopme/shopify-compat';
 import type { Db } from '../../db/client';
 import { saveUpload, MAX_UPLOAD_BYTES } from '../uploads';
 import type { Storage } from '../storage';
+import { isPrivateAddress } from '../net-guard';
 
 /** What importers need from a job: counters, row errors and progress. `JobReporter` implements it. */
 export interface Reporter {
@@ -44,16 +45,6 @@ export function parseBool(v: string | undefined): boolean | undefined {
 
 export const splitTags = (v: string | undefined): string[] => (v ?? '').split(',').map((t) => t.trim()).filter(Boolean);
 
-function isPrivateIp(ip: string): boolean {
-  if (ip.includes(':')) {
-    const l = ip.toLowerCase();
-    if (l.startsWith('::ffff:')) return isPrivateIp(l.slice(7));
-    return l === '::1' || l === '::' || l.startsWith('fc') || l.startsWith('fd') || l.startsWith('fe80');
-  }
-  const [a = 0, b = 0] = ip.split('.').map(Number);
-  return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
-}
-
 /** Download a URL over http(s). Refuses private/loopback addresses (SSRF), follows up to 3 redirects, `maxBytes` and 20s max. */
 export async function fetchSafely(url: string, maxBytes = MAX_UPLOAD_BYTES): Promise<{ data: Buffer; mimeType?: string } | null> {
   let current = url;
@@ -61,7 +52,7 @@ export async function fetchSafely(url: string, maxBytes = MAX_UPLOAD_BYTES): Pro
     const u = new URL(current);
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
     const addrs = isIP(u.hostname) ? [{ address: u.hostname }] : await lookup(u.hostname, { all: true });
-    if (!addrs.length || addrs.some((a) => isPrivateIp(a.address))) return null;
+    if (!addrs.length || addrs.some((a) => isPrivateAddress(a.address))) return null;
     const res = await fetch(u, { redirect: 'manual', signal: AbortSignal.timeout(20_000) });
     if (res.status >= 300 && res.status < 400 && res.headers.get('location')) { current = new URL(res.headers.get('location')!, u).toString(); continue; }
     if (!res.ok) return null;

@@ -95,7 +95,7 @@ export function ProductsPage() {
     {
       key: 'inv', header: t('products.inventory'), sortKey: 'INVENTORY_TOTAL',
       cell: (p) => p.tracksInventory
-        ? <span className={p.totalInventory <= 0 ? 'text-critical' : ''}>{t('products.inStock', { n: p.totalInventory, v: p.variantsCount?.count ?? 1 })}</span>
+        ? <span className={p.totalInventory <= 0 ? 'text-critical' : ''}>{t('products.inStock', { n: p.totalInventory, v: p.variantsCount?.count ?? 1, $count: p.variantsCount?.count ?? 1 })}</span>
         : <span className="text-muted">{t('products.notTracked')}</span>,
     },
     { key: 'type', header: t('field.productType'), sortKey: 'PRODUCT_TYPE', cell: (p) => p.productType || <span className="text-muted">—</span> },
