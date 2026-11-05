@@ -44,7 +44,7 @@ The policy is in [../legal/clean-room.md](../legal/clean-room.md). In short:
 2. **Our words.** Specs are written in English in our own words. We list names that interoperability requires (types,
    fields, enums, tags, filters, objects, file paths, JSON keys). We do not copy source code, markup, stylesheet rules,
    schema descriptions, or documentation prose. Examples in specs are written from scratch.
-3. **Private captures.** Raw captures live outside the repository (default `~/shopme-re`) and are never committed.
+3. **Private captures.** Raw captures live outside the repository and are never committed.
    Specs contain numbers and structure derived from them (counts, key sets, type/field names), not the captures themselves.
 4. **Derived counts.** Counts in `theme-format.md` and `liquid-compat.md` come from throwaway analysis scripts run over the
    private theme downloads (a tokenizer for Liquid tags/outputs, a JSON walker for templates, schemas and settings) and from a

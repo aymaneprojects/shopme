@@ -95,7 +95,7 @@ Anything not implemented must fail in a predictable way (a standard GraphQL vali
 
 ### 1.6 Rate limiting (cost-based throttling)
 
-Observed behavior, confirmed on our store:
+Observed behavior, confirmed on a reference store:
 
 - The response carries `extensions.cost = { requestedQueryCost, actualQueryCost, throttleStatus { maximumAvailable, currentlyAvailable, restoreRate } }`.
 - **Bucket**: capacity 2000 points (`maximumAvailable`), refilling at **100 points per second** (`restoreRate`). A single
@@ -235,7 +235,7 @@ Returned by `Shop.billingAddress` (deprecated name) and `Shop.shopAddress`.
 
 ### CurrencyFormats
 
-Format templates with an `{{amount}}` placeholder (observed value for the dev store: a dollar sign followed by the placeholder).
+Format templates with an `{{amount}}` placeholder (observed value for a reference store: a dollar sign followed by the placeholder).
 
 | Field | GraphQL type | Source | Notes |
 |---|---|---|---|

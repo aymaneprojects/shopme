@@ -543,7 +543,7 @@ transactional outbox feeds webhooks (separate spec) and search/membership refres
 - `FulfillmentOrder`: smallest model that lets `fulfillmentCreate` work; richer behavior (holds, requests, moves) later.
 - Publication to sales channels is reduced to `published_at`; a `publications` table can be introduced without changing ids.
 - Whether a smart collection matches a product when *any* or *all* variants satisfy variant-level rules must be checked
-  on our dev store and then encoded in a conformance test.
+  on a reference store and then encoded in a conformance test.
 - `inventoryQuantity` semantics for untracked items (observed 0 but sellable) should be reproduced exactly.
 - Search (`query:` argument): start with SQL predicates and the `search_vector` column; consider an external index only if needed.
 - Carts/checkouts (`carts`, `cart_lines`, `checkouts`), discounts, payments (`payment_intents`, provider references),

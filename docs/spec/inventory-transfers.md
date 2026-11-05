@@ -238,7 +238,7 @@ Observed: empty list, create page. Remaining:
    timeline.
 2. **Receive items** screen: per-line inputs for accepted, rejected and the reason or "cancel" option, "receive all" button.
 3. **List with data**: columns, tabs, bulk actions, filters.
-4. What happens to **rejected** and **canceled** units on the books (back to origin? flagged in a log?) via an API probe on the dev store:
+4. What happens to **rejected** and **canceled** units on the books (back to origin? flagged in a log?) via an API probe on a reference store:
    read `inventoryLevel.quantities` before/after receiving with a rejected quantity.
 5. Draft with quantity above stock: warning text in the lines table.
 6. Link-a-purchase-order picker (see purchase-orders.md).

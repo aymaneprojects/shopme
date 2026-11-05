@@ -290,5 +290,5 @@ Observed: Customer accounts page, Customer privacy page, Customer events empty s
 5. **Email and SMS marketing at checkout** and **double opt-in** detail pages.
 6. **Add custom pixel** form (fields, privacy/permission section, code editor, connect step) and a **pixel list with one pixel**
    (columns, statuses, row menu).
-7. A storefront capture with the banner shown (position, buttons, manage dialog) if our dev store can show one in an EU region.
-8. API probe: `consentPolicyRegions` and `consentPolicy` output on the dev store to seed the built-in region table.
+7. A storefront capture with the banner shown (position, buttons, manage dialog) if a reference store can show one in an EU region.
+8. API probe: `consentPolicyRegions` and `consentPolicy` output on a reference store to seed the built-in region table.

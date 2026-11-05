@@ -112,7 +112,7 @@ Notes for implementers:
 
 ## Filters, Shopify-specific (to implement)
 
-Sorted by priority then use. Behavior notes are our summary of intended output, to be confirmed against our own dev store
+Sorted by priority then use. Behavior notes are our summary of intended output, to be confirmed against a reference store
 before implementation.
 
 | Filter | Uses | Files | Prio | Notes |
