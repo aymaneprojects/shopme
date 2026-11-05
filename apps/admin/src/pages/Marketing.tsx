@@ -130,12 +130,16 @@ export function MarketingPage() {
         <Card title={t('btn.mkt.attributedOrders')}><p className="text-2xl font-semibold">{d ? `${d.shopmeAttribution.attributedOrders} / ${d.shopmeAttribution.totalOrders}` : '…'}</p><p className="mt-1 text-xs text-muted">{t('btn.mkt.attributedHelp')}</p></Card>
         <Card title={t('btn.mkt.totalSales')}><p className="text-2xl font-semibold">{d ? money(d.shopmeAttribution.totalSales) : '…'}</p></Card>
       </div>
-      <Card className="!p-0" title={t('btn.mkt.campaigns')}>
+      <Card className="!p-0">
+        <h2 className="px-4 pb-1 pt-3 text-[13px] font-semibold">{t('btn.mkt.campaigns')}</h2>
         <IndexTable rows={campaigns} rowId={(c) => c.id} columns={campaignCols} loading={q.isLoading} onRowClick={(c) => setDialog(c)}
           empty={q.isError ? null : <EmptyState icon={<Megaphone className="size-10" />} title={t('btn.mkt.emptyTitle')} description={t('btn.mkt.emptyBody')} action={<Button variant="primary" onClick={() => setDialog('new')}>{t('btn.mkt.create')}</Button>} />} />
       </Card>
-      <Card className="mt-4 !p-0" title={t('btn.mkt.attribution')} actions={
-        <div className="flex gap-1" role="group" aria-label={t('btn.mkt.period')}>{DAYS.map((n) => <Button key={n} size="sm" variant={n === days ? 'primary' : 'secondary'} aria-pressed={n === days} onClick={() => setDays(n)}>{t('btn.mkt.days', { n })}</Button>)}</div>}>
+      <Card className="mt-4 !p-0">
+        <div className="flex items-center justify-between gap-2 px-4 pb-1 pt-3">
+          <h2 className="text-[13px] font-semibold">{t('btn.mkt.attribution')}</h2>
+          <div className="flex gap-1" role="group" aria-label={t('btn.mkt.period')}>{DAYS.map((n) => <Button key={n} size="sm" variant={n === days ? 'primary' : 'secondary'} aria-pressed={n === days} onClick={() => setDays(n)}>{t('btn.mkt.days', { n })}</Button>)}</div>
+        </div>
         <IndexTable rows={d?.shopmeAttribution.rows ?? []} rowId={(r) => `${r.source}|${r.medium}|${r.campaign}`} columns={attrCols} loading={q.isLoading}
           empty={q.isError ? null : <p className="px-4 py-8 text-center text-[13px] text-muted">{t('btn.mkt.attributionEmpty')}</p>} />
       </Card>

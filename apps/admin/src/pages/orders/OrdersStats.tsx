@@ -45,14 +45,12 @@ export function OrdersStats({ range, onRange, locationId }: { range: StatRange; 
         const change = m ? changeOf(m.value, m.previous) : null;
         const good = key === 'fulfillmentHours' ? (change ?? 0) <= 0 : (change ?? 0) >= 0;
         return (
-          <div key={key} data-stat={key} className="min-w-36 flex-1 border-r border-line px-4 py-2 last:border-r-0">
+          <div key={key} data-stat={key} className="min-w-32 flex-1 border-r border-line px-4 py-2 last:border-r-0">
             <p className="w-fit border-b border-dashed border-muted text-xs font-semibold leading-5">{t(LABEL[key])}</p>
-            <div className="mt-0.5 flex items-end justify-between gap-2">
-              <div>
-                <p className="text-[15px] font-semibold tabular-nums">{m ? show(key, m.value) : '…'}</p>
-                <p className={`text-xs tabular-nums ${change == null ? 'text-muted' : good ? 'text-success' : 'text-critical'}`}>{change == null ? '—' : pct.format(change)}</p>
-              </div>
-              <Sparkline values={m?.series ?? []} className="shrink-0 text-muted" />
+            <p className="mt-0.5 text-[15px] font-semibold tabular-nums">{m ? show(key, m.value) : '…'}</p>
+            <div className="flex items-center justify-between gap-2">
+              <span className={`text-xs tabular-nums ${change == null ? 'text-muted' : good ? 'text-success' : 'text-critical'}`}>{change == null ? '—' : pct.format(change)}</span>
+              <Sparkline values={m?.series ?? []} className="h-5 w-14 shrink-0 text-muted" />
             </div>
           </div>
         );

@@ -43,7 +43,7 @@ const CHANNELS = ['web', 'draft', 'manual', 'pos'];
 const MARK_AS = ['UNFULFILLED', 'IN_PROGRESS', 'FULFILLED', 'ON_HOLD', 'DELIVERED'] as const;
 const SORTS = ['CREATED_AT', 'ORDER_NUMBER', 'TOTAL_PRICE', 'CUSTOMER_NAME', 'FINANCIAL_STATUS', 'FULFILLMENT_STATUS'];
 /** Columns that are off until the user turns them on from the column chooser. */
-const DEFAULT_HIDDEN = ['tags', 'location', 'batch', 'po', 'method'];
+const DEFAULT_HIDDEN = ['fulfillBy', 'channel', 'delivery', 'method', 'location', 'batch', 'po', 'tags'];
 
 interface BulkResult { succeeded: number; results: Array<{ orderId: string; ok: boolean; message: string | null }> }
 
