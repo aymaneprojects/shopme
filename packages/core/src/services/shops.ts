@@ -1,3 +1,4 @@
+import { ensureOnlineStore } from './catalog/publications';
 import { ensurePrimaryMarket } from './markets/service';
 import { eq, sql } from 'drizzle-orm';
 import { defaultMoneyFormats } from '@shopme/shopify-compat';
@@ -56,6 +57,7 @@ export async function setupStore(db: Db, input: SetupInput) {
     await tx.insert(locations).values({ shopId: shop!.id, name: 'Shop location', countryCode: shop!.country });
     // Every shop has one primary market (its own settings) and a currency setting for its currency.
     await ensurePrimaryMarket(tx, { id: shop!.id, name: shop!.name, currency, country: shop!.country });
+    await ensureOnlineStore(tx, shop!.id);
     // Placeholder row; the storefront agent installs the default theme files into it.
     await tx.insert(themes).values({ shopId: shop!.id, name: 'Default', role: 'MAIN' });
     // Default menus (the theme header and footer read these handles); they cannot be deleted later.

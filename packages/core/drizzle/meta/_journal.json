@@ -134,6 +134,13 @@
       "when": 1793894143433,
       "tag": "0018_orders_buttons",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793897968055,
+      "tag": "0019_products_channels",
+      "breakpoints": true
     }
   ]
 }

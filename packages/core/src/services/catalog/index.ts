@@ -11,3 +11,4 @@ export * from './collections';
 export * from './products';
 export * from './saved-searches';
 export * from './reorder';
+export * from './publications';

@@ -4,6 +4,7 @@
  */
 import {
   activateLevel, countLocations, countVariants, deactivateLevel, getCategory, getInventoryItem, getInventoryLevel, getLocation, listInventoryLevels, listVariants,
+  ensureOnlineStore, getCollection, getProduct, getPublication, getResourcePublications, isLive, listPublications, publicationCounts, publishResource, unpublishResource, type Publication as PublicationRow,
   defaultLocationId, getInventoryItemForVariant, listLocations, moveQuantities, reorderLocations, searchCategories, setCollectionPublished, setLocationActive, updateProduct, type Location, type TaxonomyCategory,
 } from '@shopme/core';
 import { parseId } from '@shopme/shopify-compat';
@@ -11,7 +12,7 @@ import { builder } from '../builder';
 import { requireScope } from '../context';
 import { ConnectionArgs, defineConnection, paginateArray } from '../types/connection';
 import { Count, MoneyV2, moneyV2 } from '../types/money';
-import { Node } from '../types/node';
+import { Node, registerNode } from '../types/node';
 import { Collection_, InventoryItem_, InventoryLevel_, Location_, Product_, ProductVariant, defineTypedPayload, shopOf, typedError } from '../types/catalog';
 import { definePayload } from '../types/errors';
 import { InventoryAdjustmentGroup } from './inventory';
@@ -41,58 +42,101 @@ const Taxonomy = builder.objectRef<Record<string, never>>('Taxonomy').implement(
 });
 builder.queryFields((t) => ({ taxonomy: t.field({ type: Taxonomy, nullable: true, resolve: () => ({}) }) }));
 
-/* ------------------------------ publications (one channel: Online Store) ------------------------------ */
+/* ------------------------------ publications (sales channels) ------------------------------ */
 
-export const ONLINE_STORE = { id: 1, name: 'Online Store' };
-export const Publication = builder.objectRef<typeof ONLINE_STORE>('Publication').implement({
+export const Publication = builder.objectRef<PublicationRow>('Publication').implement({
   interfaces: [Node],
   fields: (t) => ({
-    name: t.exposeString('name'), supportsFuturePublishing: t.boolean({ resolve: () => false }), autoPublish: t.boolean({ resolve: () => true }),
-    hasCollection: t.boolean({ args: { id: t.arg.id({ required: true }) }, resolve: () => true }),
+    name: t.exposeString('name'), supportsFuturePublishing: t.boolean({ resolve: () => true }), autoPublish: t.boolean({ resolve: (p) => p.kind === 'ONLINE_STORE' }),
+    hasCollection: t.boolean({ args: { id: t.arg.id({ required: true }) }, resolve: async (p, a, ctx) => {
+      const id = parseId(String(a.id), 'Collection');
+      return !!id && (await getResourcePublications(ctx.db, ctx.shopId, 'COLLECTION', [id])).get(id)!.some((r) => r.publicationId === p.id);
+    } }),
     app: t.string({ nullable: true, resolve: () => null }),
+    shopmeKind: t.string({ resolve: (p) => p.kind }),
+    shopmeProductsCount: t.int({ resolve: async (p, _a, ctx) => (await publicationCounts(ctx.db, ctx.shopId)).get(p.id)?.products ?? 0 }),
+    shopmeCollectionsCount: t.int({ resolve: async (p, _a, ctx) => (await publicationCounts(ctx.db, ctx.shopId)).get(p.id)?.collections ?? 0 }),
   }),
 });
 const PublicationConnection = defineConnection('Publication', Publication);
 const PublicationInput = builder.inputType('PublicationInput', { fields: (t) => ({ publicationId: t.id(), publishDate: t.field({ type: 'DateTime' }) }) });
-const isOnline = (id: unknown) => id == null || parseId(String(id), 'Publication') === ONLINE_STORE.id;
+registerNode('Publication', (ctx, id) => getPublication(ctx.db, ctx.shopId, id));
+
+type PublishableRow = { id: number; __typename?: string };
+type ResourcePub = { publication: PublicationRow; published: boolean; publishDate: Date | null; publishable: PublishableRow };
+const ResourcePublicationV2 = builder.objectRef<ResourcePub>('ResourcePublicationV2').implement({
+  fields: (t) => ({
+    isPublished: t.boolean({ resolve: (r) => r.published }), publication: t.field({ type: Publication, resolve: (r) => r.publication }),
+    publishDate: t.field({ type: 'DateTime', nullable: true, resolve: (r) => r.publishDate }), publishable: t.field({ type: Node, resolve: (r) => r.publishable as never }),
+  }),
+});
+const ResourcePublicationV2Connection = defineConnection('ResourcePublicationV2', ResourcePublicationV2);
+const ResourcePublication = builder.objectRef<ResourcePub>('ResourcePublication').implement({
+  fields: (t) => ({
+    isPublished: t.boolean({ resolve: (r) => r.published }), publication: t.field({ type: Publication, resolve: (r) => r.publication }),
+    publishDate: t.field({ type: 'DateTime', resolve: (r) => r.publishDate ?? new Date(0) }), publishable: t.field({ type: Node, resolve: (r) => r.publishable as never }),
+  }),
+});
+const ResourcePublicationConnection = defineConnection('ResourcePublication', ResourcePublication);
+
+async function resourcePubs(ctx: Parameters<typeof requireScope>[0], type: 'Product' | 'Collection', id: number, onlyPublished: boolean): Promise<ResourcePub[]> {
+  const pubs = await listPublications(ctx.db, ctx.shopId);
+  const own = (await getResourcePublications(ctx.db, ctx.shopId, type === 'Product' ? 'PRODUCT' : 'COLLECTION', [id])).get(id) ?? [];
+  const out: ResourcePub[] = [];
+  for (const p of pubs) {
+    const r = own.find((x) => x.publicationId === p.id);
+    if (r || !onlyPublished) out.push({ publication: p, published: !!r, publishDate: r?.publishedAt ?? null, publishable: { id, __typename: type } });
+  }
+  return onlyPublished ? out.filter((r) => r.publishDate && r.publishDate <= new Date()) : out;
+}
 
 builder.queryFields((t) => ({
-  publications: t.field({ type: PublicationConnection, args: { ...ConnectionArgs, catalogType: t.arg.string() }, resolve: (_r, a) => paginateArray(a, [ONLINE_STORE]) }),
-  publication: t.field({ type: Publication, nullable: true, args: { id: t.arg.id({ required: true }) }, resolve: (_r, a) => (isOnline(a.id) ? ONLINE_STORE : null) }),
-  publicationsCount: t.field({ type: Count, nullable: true, args: { catalogType: t.arg.string(), limit: t.arg.int() }, resolve: () => ({ count: 1, precision: 'EXACT' as const }) }),
+  publications: t.field({ type: PublicationConnection, args: { ...ConnectionArgs, catalogType: t.arg.string() }, resolve: async (_r, a, ctx) => paginateArray(a, await listPublications(ctx.db, ctx.shopId)) }),
+  publication: t.field({ type: Publication, nullable: true, args: { id: t.arg.id({ required: true }) }, resolve: async (_r, a, ctx) => { const id = parseId(String(a.id), 'Publication'); return id ? getPublication(ctx.db, ctx.shopId, id) : null; } }),
+  publicationsCount: t.field({ type: Count, nullable: true, args: { catalogType: t.arg.string(), limit: t.arg.int() }, resolve: async (_r, _a, ctx) => ({ count: (await listPublications(ctx.db, ctx.shopId)).length, precision: 'EXACT' as const }) }),
   locationsCount: t.field({
     type: Count, nullable: true, args: { query: t.arg.string(), limit: t.arg.int() },
     resolve: async (_r, a, ctx) => { requireScope(ctx, 'read_locations'); return { count: await countLocations(ctx.db, ctx.shopId, /active:false|active:\s*\*/.test(a.query ?? '')), precision: 'EXACT' as const }; },
   }),
 }));
 
-const isPublished = (r: { status?: string; publishedAt: Date | null }) => !!r.publishedAt && (r.status === undefined || r.status === 'ACTIVE');
-builder.objectFields(Product_, (t) => ({
-  publishedOnCurrentPublication: t.boolean({ resolve: (p) => isPublished(p) }),
-  publishedOnPublication: t.boolean({ args: { publicationId: t.arg.id({ required: true }) }, resolve: (p, a) => isOnline(a.publicationId) && isPublished(p) }),
-  availablePublicationsCount: t.field({ type: Count, nullable: true, resolve: () => ({ count: 1, precision: 'EXACT' as const }) }),
-  resourcePublicationsCount: t.field({ type: Count, nullable: true, resolve: (p) => ({ count: isPublished(p) ? 1 : 0, precision: 'EXACT' as const }) }),
-}));
-builder.objectFields(Collection_, (t) => ({
-  publishedOnCurrentPublication: t.boolean({ resolve: (c) => isPublished(c) }),
-  publishedOnPublication: t.boolean({ args: { publicationId: t.arg.id({ required: true }) }, resolve: (c, a) => isOnline(a.publicationId) && isPublished(c) }),
-  availablePublicationsCount: t.field({ type: Count, nullable: true, resolve: () => ({ count: 1, precision: 'EXACT' as const }) }),
-  resourcePublicationsCount: t.field({ type: Count, nullable: true, resolve: (c) => ({ count: isPublished(c) ? 1 : 0, precision: 'EXACT' as const }) }),
-}));
+const livePubs = async (ctx: Parameters<typeof requireScope>[0], type: 'PRODUCT' | 'COLLECTION', id: number) => (await getResourcePublications(ctx.db, ctx.shopId, type, [id])).get(id)!.filter((r) => isLive(r));
+const pubFields = (type: 'PRODUCT' | 'COLLECTION') => (t: any) => ({
+  publishedOnCurrentPublication: t.boolean({ resolve: async (p: { id: number }, _a: unknown, ctx: Parameters<typeof requireScope>[0]) => { const os = await ensureOnlineStore(ctx.db, ctx.shopId); return (await livePubs(ctx, type, p.id)).some((r) => r.publicationId === os.id); } }),
+  publishedOnPublication: t.boolean({ args: { publicationId: t.arg.id({ required: true }) }, resolve: async (p: { id: number }, a: { publicationId: string }, ctx: Parameters<typeof requireScope>[0]) => (await livePubs(ctx, type, p.id)).some((r) => r.publicationId === parseId(String(a.publicationId), 'Publication')) }),
+  availablePublicationsCount: t.field({ type: Count, nullable: true, resolve: async (_p: unknown, _a: unknown, ctx: Parameters<typeof requireScope>[0]) => ({ count: (await listPublications(ctx.db, ctx.shopId)).length, precision: 'EXACT' as const }) }),
+  resourcePublicationsCount: t.field({ type: Count, nullable: true, resolve: async (p: { id: number }, _a: unknown, ctx: Parameters<typeof requireScope>[0]) => ({ count: (await livePubs(ctx, type, p.id)).length, precision: 'EXACT' as const }) }),
+  resourcePublicationsV2: t.field({
+    type: ResourcePublicationV2Connection, args: { ...ConnectionArgs, onlyPublished: t.arg.boolean({ defaultValue: true }), catalogType: t.arg.string() },
+    resolve: async (p: { id: number }, a: { onlyPublished?: boolean | null }, ctx: Parameters<typeof requireScope>[0]) => paginateArray(a as never, await resourcePubs(ctx, type === 'PRODUCT' ? 'Product' : 'Collection', p.id, a.onlyPublished !== false)),
+  }),
+  resourcePublications: t.field({
+    type: ResourcePublicationConnection, args: { ...ConnectionArgs, onlyPublished: t.arg.boolean({ defaultValue: true }) },
+    resolve: async (p: { id: number }, a: { onlyPublished?: boolean | null }, ctx: Parameters<typeof requireScope>[0]) => paginateArray(a as never, await resourcePubs(ctx, type === 'PRODUCT' ? 'Product' : 'Collection', p.id, a.onlyPublished !== false)),
+  }),
+});
+builder.objectFields(Product_, pubFields('PRODUCT'));
+builder.objectFields(Collection_, pubFields('COLLECTION'));
 
-/** Publish / unpublish a product or collection on the Online Store. A product has no separate publication state: it is published while ACTIVE. */
-export async function setPublished(ctx: Parameters<typeof requireScope>[0], rawId: string, input: { publicationId?: string | number | null }[], publish: boolean) {
+/** Publish / unpublish a product or collection on one or more channels. Without a publication id the Online Store is used. */
+export async function setPublished(ctx: Parameters<typeof requireScope>[0], rawId: string, input: { publicationId?: string | number | null; publishDate?: Date | string | null }[], publish: boolean) {
   requireScope(ctx, 'write_publications');
-  if (input.some((i) => !isOnline(i.publicationId))) return { publishable: null, userErrors: [{ field: ['input'], message: 'Publication does not exist' }] };
   const ref = rawId.startsWith('gid://') ? rawId.split('/')[3] : undefined;
   const id = parseId(rawId, ref ?? 'Product');
   if (!id || !ref || !['Product', 'Collection'].includes(ref)) return { publishable: null, userErrors: [{ field: ['id'], message: 'Publishable does not exist' }] };
-  if (ref === 'Product') {
-    const r = await updateProduct(ctx.db, ctx.shopId, id, { status: publish ? 'ACTIVE' : 'DRAFT' });
-    return r.ok ? { publishable: { ...r.value, __typename: 'Product' }, userErrors: [] } : { publishable: null, userErrors: r.errors };
+  const type = ref === 'Product' ? 'PRODUCT' as const : 'COLLECTION' as const;
+  const store = await ensureOnlineStore(ctx.db, ctx.shopId);
+  for (const i of input.length ? input : [{}]) {
+    const pubId = (i as { publicationId?: string | number | null }).publicationId;
+    const pid = pubId == null ? store.id : parseId(String(pubId), 'Publication');
+    if (!pid) return { publishable: null, userErrors: [{ field: ['input', 'publicationId'], message: 'Publication does not exist' }] };
+    const when = (i as { publishDate?: Date | string | null }).publishDate;
+    const r = publish ? await publishResource(ctx.db, ctx.shopId, type, id, pid, when ? new Date(when) : null) : await unpublishResource(ctx.db, ctx.shopId, type, id, pid);
+    if (!r.ok) return { publishable: null, userErrors: r.errors };
   }
-  const r = await setCollectionPublished(ctx.db, ctx.shopId, id, publish);
-  return r.ok ? { publishable: { ...r.value, __typename: 'Collection' }, userErrors: [] } : { publishable: null, userErrors: r.errors };
+  if (ref === 'Product') { const p = await getProduct(ctx.db, ctx.shopId, id); return { publishable: { ...p!, __typename: 'Product' }, userErrors: [] }; }
+  const c = await getCollection(ctx.db, ctx.shopId, id);
+  return { publishable: { ...c!, __typename: 'Collection' }, userErrors: [] };
 }
 const PublishPayload = (name: string) => definePayload<{ publishable: unknown }>(name, (t) => ({
   publishable: t.field({ type: Node, nullable: true, resolve: (p) => p.publishable as never }),

@@ -7,6 +7,7 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
 import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
 import { PageHeader } from '../components/PageHeader';
+import { ChannelsPopover } from '../components/ChannelsPopover';
 import { gidToNum } from '../format';
 import { COLLECTIONS, COLLECTION_DELETE } from '../graphql';
 import { useT } from '../i18n';
@@ -17,7 +18,7 @@ import type { Rule, RuleSet } from '../lib/collection-rules';
 import { Thumb } from './Products';
 import emptyCollections from '../assets/empty/empty-collections.webp';
 
-interface CollectionRow { id: string; title: string; handle: string; productsCount: { count: number } | null; image: { url: string } | null; ruleSet: RuleSet | null }
+interface CollectionRow { id: string; title: string; handle: string; productsCount: { count: number } | null; image: { url: string } | null; ruleSet: RuleSet | null; resourcePublicationsCount?: { count: number } | null }
 const PAGE_SIZE = 25;
 
 export function useRuleSummary() {
@@ -62,6 +63,7 @@ export function CollectionsPage() {
     { key: 'img', header: '', className: 'w-14', cell: (c) => <Thumb url={c.image?.url} /> },
     { key: 'title', header: t('field.title'), cell: (c) => <span className="font-medium">{c.title}</span> },
     { key: 'count', header: t('nav.products'), cell: (c) => c.productsCount?.count ?? 0 },
+    { key: 'channels', header: t('bp.col.salesChannels'), className: 'text-right', cell: (c) => <ChannelsPopover kind="collection" id={c.id} count={c.resourcePublicationsCount?.count ?? 0} /> },
     { key: 'cond', header: t('collections.conditions'), cell: (c) => (c.ruleSet ? <span className="text-[13px] text-muted">{summarize(c.ruleSet)}</span> : <Badge>{t('collections.manual')}</Badge>) },
   ];
   const hasFilters = !!query;

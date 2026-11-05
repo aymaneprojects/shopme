@@ -1,8 +1,11 @@
-import { Button, Input, Select, TagInput, cx } from '@shopme/ui';
-import { Plus, Trash2 } from 'lucide-react';
+import { Button, Checkbox, Input, Modal, Popover, Select, TagInput, Tooltip, cx } from '@shopme/ui';
+import { useQuery } from '@tanstack/react-query';
+import { History, HelpCircle, Pencil, Plus, Trash2 } from 'lucide-react';
 import type { ButtonHTMLAttributes } from 'react';
 import { useId, useState } from 'react';
+import { gql } from '../api';
 import { formatMoney, parseDecimal } from '../format';
+import { INVENTORY_ITEM_HISTORY, SHIPPING_PACKAGES } from '../graphql';
 import { useI18n, useT } from '../i18n';
 import { countryOptions } from '../lib/countries';
 import { LENGTH_UNITS, MAX_OPTIONS, WEIGHT_UNITS, generateVariants } from '../lib/variants';
@@ -157,25 +160,110 @@ export function VariantMediaPicker({ v, patch, media }: { v: VariantDraft; patch
   );
 }
 
+const num = (x: string | undefined) => Math.max(0, Math.trunc(Number(x)) || 0);
+
+/** Small "?" next to a column title that explains it on hover and focus. */
+function Hint({ text }: { text: string }) {
+  return <Tooltip content={text}><span tabIndex={0} aria-label={text} className="inline-grid size-4 place-items-center text-muted"><HelpCircle className="size-3.5" /></span></Tooltip>;
+}
+
+/** Quantity changes of one inventory item, newest first. */
+function InventoryHistory({ itemId }: { itemId: string }) {
+  const t = useT();
+  const { lang } = useI18n();
+  const q = useQuery({ queryKey: ['inventory-history', itemId], queryFn: () => gql<{ inventoryItem: { shopmeHistory: Array<{ id: string; name: string; delta: number; quantityAfter: number; reason: string; createdAt: string; locationName: string }> } | null }>(INVENTORY_ITEM_HISTORY, { id: itemId }) });
+  const rows = q.data?.inventoryItem?.shopmeHistory ?? [];
+  return (
+    <div className="max-h-72 w-80 overflow-y-auto text-[13px]">
+      {q.isLoading && <p className="text-muted">{t('common.loading')}</p>}
+      {!q.isLoading && rows.length === 0 && <p className="text-muted">{t('bp.history.none')}</p>}
+      <ul className="flex flex-col divide-y divide-line">
+        {rows.map((r) => (
+          <li key={r.id} className="flex items-center justify-between gap-3 py-1.5">
+            <span className="min-w-0"><span className="block truncate font-medium">{t(`bp.qty.${r.name}` as 'bp.qty.available')} · {r.locationName}</span><span className="block truncate text-xs text-muted">{t(`bp.reason.${r.reason}` as 'bp.reason.correction')} · {new Intl.DateTimeFormat(lang, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(r.createdAt))}</span></span>
+            <span className="shrink-0 text-right"><span className={cx('block font-medium tabular-nums', r.delta < 0 && 'text-critical')}>{r.delta > 0 ? `+${r.delta}` : r.delta}</span><span className="block text-xs text-muted tabular-nums">{r.quantityAfter}</span></span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Choose the locations a variant is stocked at (the pencil next to the quantities). */
+function StockLocationsDialog({ open, v, locations, onClose, onApply }: { open: boolean; v: VariantDraft; locations: LocationRef[]; onClose: () => void; onApply: (ids: string[]) => void }) {
+  const t = useT();
+  const [ids, setIds] = useState(() => locations.filter((l) => l.id in v.quantities).map((l) => l.id));
+  return (
+    <Modal open={open} onClose={onClose} closeLabel={t('common.close')} title={t('bp.stock.editLocations')} medium
+      footer={<><Button onClick={onClose}>{t('common.cancel')}</Button><Button variant="primary" onClick={() => onApply(ids)}>{t('common.apply')}</Button></>}>
+      <div className="flex flex-col gap-2">
+        <p className="text-[13px] text-muted">{t('bp.stock.locationsHelp')}</p>
+        {locations.map((l) => <Checkbox key={l.id} label={l.name} checked={ids.includes(l.id)} onChange={(e) => setIds(e.target.checked ? [...ids, l.id] : ids.filter((x) => x !== l.id))} />)}
+      </div>
+    </Modal>
+  );
+}
+
 /** Inventory tracking and quantities per location; SKU and barcode on demand; continue selling switch. */
 export function InventoryFields({ v, patch, locations }: { v: VariantDraft; patch: Patch; locations: LocationRef[] }) {
   const t = useT();
   const [more, setMore] = useState({ sku: false, barcode: false });
+  const [state, setState] = useState<'available' | 'on_hand'>('available');
+  const [choosing, setChoosing] = useState(false);
   const showSku = more.sku || !!v.sku, showBarcode = more.barcode || !!v.barcode;
+  const stocked = locations.filter((l) => l.id in v.quantities);
+  const setStocked = (ids: string[]) => {
+    const pick = (src: Record<string, string>) => Object.fromEntries(ids.map((id) => [id, src[id] ?? '0']));
+    patch({ quantities: pick(v.quantities), onHand: pick(v.onHand) });
+    setChoosing(false);
+  };
+  const edit = (l: LocationRef, value: string) => (state === 'available' ? patch({ quantities: { ...v.quantities, [l.id]: value } }) : patch({ onHand: { ...v.onHand, [l.id]: value } }));
+  const total = (key: 'committed' | 'unavailable' | 'incoming', id: string) => v[key][id] ?? 0;
   return (
     <div className="flex flex-col gap-3">
       <SectionHead title={t('product.inventory')} toggle={{ checked: v.tracked, onChange: (tracked) => patch({ tracked }), label: t('inventory.track') }} />
       {v.tracked && (locations.length > 0 ? (
-        <div className="overflow-hidden rounded-md border border-line text-[13px]">
-          <div className="flex items-center justify-between bg-surface px-3 py-1.5 text-xs font-medium text-muted"><span>{t('pv.location')}</span><span>{t('pv.quantity')}</span></div>
-          {locations.map((l) => (
+        <div className="overflow-x-auto rounded-md border border-line text-[13px]">
+          <div className="flex items-center justify-between gap-3 bg-surface px-3 py-1.5 text-xs font-medium text-muted">
+            <span className="inline-flex items-center gap-1.5">{t('pv.location')}
+              <button type="button" aria-label={t('bp.stock.editLocations')} title={t('bp.stock.editLocations')} onClick={() => setChoosing(true)} className="grid size-5 place-items-center rounded text-muted hover:bg-hover hover:text-fg"><Pencil className="size-3.5" /></button>
+            </span>
+            <span className="flex items-center gap-3">
+              <span className="inline-flex w-20 items-center justify-end gap-1">{t('bp.stock.unavailable')}<Hint text={t('bp.stock.unavailableHelp')} /></span>
+              <span className="inline-flex w-20 items-center justify-end gap-1">{t('bp.stock.committed')}<Hint text={t('bp.stock.committedHelp')} /></span>
+              <span className="inline-flex w-24 items-center justify-end gap-1">
+                <select aria-label={t('bp.stock.state')} value={state} onChange={(e) => setState(e.target.value as 'available' | 'on_hand')} className="bg-transparent text-right text-xs font-medium outline-none">
+                  <option value="available">{t('inventory.available')}</option><option value="on_hand">{t('bp.stock.onHand')}</option>
+                </select>
+              </span>
+              {v.inventoryItemId && (
+                <Popover label={t('bp.history.title')} align="right" triggerVariant="plain" triggerClassName="btn-neutral !h-6 !px-1.5" trigger={<History className="size-3.5" />}>
+                  {() => <InventoryHistory itemId={v.inventoryItemId!} />}
+                </Popover>
+              )}
+            </span>
+          </div>
+          {stocked.length === 0 && <p className="border-t border-line px-3 py-2 text-muted">{t('bp.stock.noneStocked')}</p>}
+          {stocked.map((l) => (
             <div key={l.id} className="flex items-center justify-between gap-3 border-t border-line px-3 py-1.5">
               <span className="min-w-0 truncate">{l.name}</span>
-              <input type="number" min={0} aria-label={`${t('inventory.available')} — ${l.name}`} className="field-control w-24 text-right" value={v.quantities[l.id] ?? '0'} onChange={(e) => patch({ quantities: { ...v.quantities, [l.id]: e.target.value } })} />
+              <span className="flex items-center gap-3">
+                <span className="w-20 text-right tabular-nums text-muted">
+                  {total('unavailable', l.id) + total('incoming', l.id) > 0 ? (
+                    <Popover label={t('bp.stock.breakdown')} align="right" triggerVariant="plain" triggerClassName="btn-neutral !h-6 !px-1.5 tabular-nums" trigger={total('unavailable', l.id)}>
+                      {() => <dl className="grid w-48 grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-[13px]"><dt>{t('bp.stock.reserved')}</dt><dd className="tabular-nums">{total('unavailable', l.id)}</dd><dt>{t('bp.stock.incoming')}</dt><dd className="tabular-nums">{total('incoming', l.id)}</dd></dl>}
+                    </Popover>
+                  ) : 0}
+                </span>
+                <span className="w-20 text-right tabular-nums text-muted">{total('committed', l.id)}</span>
+                <input type="number" min={0} aria-label={`${state === 'available' ? t('inventory.available') : t('bp.stock.onHand')} — ${l.name}`} className="field-control w-24 text-right"
+                  value={(state === 'available' ? v.quantities[l.id] : v.onHand[l.id]) ?? '0'} onChange={(e) => edit(l, e.target.value)} />
+              </span>
             </div>
           ))}
         </div>
       ) : <p className="text-[13px] text-muted">{t('pv.noLocations')}</p>)}
+      {stocked.length > 0 && v.tracked && state === 'on_hand' && <p className="text-xs text-muted">{t('bp.stock.onHandHelp', { n: stocked.reduce((n, l) => n + num(v.onHand[l.id]), 0) })}</p>}
       {(showSku || showBarcode) && (
         <div className="grid gap-3 sm:grid-cols-2">
           {showSku && <Input label={t('inventory.sku')} value={v.sku} onChange={(e) => patch({ sku: e.target.value })} />}
@@ -187,6 +275,7 @@ export function InventoryFields({ v, patch, locations }: { v: VariantDraft; patc
         {!showBarcode && <AddPill label={t('inventory.barcode')} onClick={() => setMore({ ...more, barcode: true })} />}
         <PillSwitch checked={v.continueSelling} onChange={(continueSelling) => patch({ continueSelling })} label={t('inventory.continueSelling')} />
       </div>
+      {choosing && <StockLocationsDialog open v={v} locations={locations} onClose={() => setChoosing(false)} onApply={setStocked} />}
     </div>
   );
 }
@@ -197,8 +286,10 @@ const BARE = 'w-0 min-w-0 flex-1 bg-transparent outline-none';
 export function ShippingFields({ v, patch }: { v: VariantDraft; patch: Patch }) {
   const { t, lang } = useI18n();
   const weightId = useId();
-  const [more, setMore] = useState({ origin: false, hs: false });
-  const showOrigin = more.origin || !!v.countryOfOrigin, showHs = more.hs || !!v.hsCode;
+  const [more, setMore] = useState({ origin: false, hs: false, ship: false });
+  const showOrigin = more.origin || !!v.countryOfOrigin, showHs = more.hs || !!v.hsCode, showShip = more.ship || v.countryHs.length > 0;
+  const packages = useQuery({ queryKey: ['shipping-packages'], staleTime: 60_000, queryFn: async () => (await gql<{ shopmeShippingPackages: Array<{ id: string; name: string }> }>(SHIPPING_PACKAGES)).shopmeShippingPackages });
+  const countries = countryOptions(lang);
   return (
     <div className="flex flex-col gap-3">
       <SectionHead title={t('product.shipping')} toggle={{ checked: v.requiresShipping, onChange: (requiresShipping) => patch({ requiresShipping }), label: t('shipping.physical') }} />
@@ -230,6 +321,10 @@ export function ShippingFields({ v, patch }: { v: VariantDraft; patch: Patch }) 
               </div>
             </fieldset>
           </div>
+          <Select label={t('bp.ship.package')} help={t('bp.ship.packageHelp')} value={v.packageId} onChange={(e) => patch({ packageId: e.target.value })}>
+            <option value="">{t('bp.ship.noPackage')}</option>
+            {(packages.data ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </Select>
           {(showOrigin || showHs) && (
             <div className="grid gap-3 sm:grid-cols-2">
               {showOrigin && (
@@ -244,7 +339,25 @@ export function ShippingFields({ v, patch }: { v: VariantDraft; patch: Patch }) 
           <div className="flex flex-wrap gap-2">
             {!showOrigin && <AddPill label={t('shipping.origin')} onClick={() => setMore({ ...more, origin: true })} />}
             {!showHs && <AddPill label={t('shipping.hsCode')} onClick={() => setMore({ ...more, hs: true })} />}
+            {!showShip && <AddPill label={t('bp.ship.shipTo')} onClick={() => { setMore({ ...more, ship: true }); patch({ countryHs: [...v.countryHs, { countryCode: '', code: '' }] }); }} />}
           </div>
+          {showShip && (
+            <fieldset className="flex flex-col gap-2 rounded-md border border-line p-3">
+              <legend className="px-1 text-[13px] font-medium">{t('bp.ship.shipTo')}</legend>
+              <p className="text-xs text-muted">{t('bp.ship.shipToHelp')}</p>
+              {v.countryHs.map((row, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <select aria-label={t('bp.ship.country')} className="field-control min-w-0 flex-1" value={row.countryCode} onChange={(e) => patch({ countryHs: v.countryHs.map((r, j) => (j === i ? { ...r, countryCode: e.target.value } : r)) })}>
+                    <option value="">{t('bp.ship.country')}</option>
+                    {countries.map((c) => <option key={c.code} value={c.code} disabled={v.countryHs.some((r, j) => j !== i && r.countryCode === c.code)}>{c.name}</option>)}
+                  </select>
+                  <input aria-label={t('shipping.hsCode')} placeholder={t('shipping.hsCode')} maxLength={14} className="field-control w-36" value={row.code} onChange={(e) => patch({ countryHs: v.countryHs.map((r, j) => (j === i ? { ...r, code: e.target.value } : r)) })} />
+                  <Button variant="plain" size="sm" icon aria-label={t('common.remove')} onClick={() => patch({ countryHs: v.countryHs.filter((_, j) => j !== i) })}><Trash2 className="size-4" /></Button>
+                </div>
+              ))}
+              <div><Button size="sm" onClick={() => patch({ countryHs: [...v.countryHs, { countryCode: '', code: '' }] })}><Plus className="size-4" />{t('bp.ship.addCountry')}</Button></div>
+            </fieldset>
+          )}
         </>
       )}
     </div>

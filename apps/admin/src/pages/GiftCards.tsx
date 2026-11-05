@@ -1,11 +1,12 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Input, ListToolbar, Modal, Pagination, Select, Skeleton, Textarea, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Input, ListToolbar, Modal, Pagination, Select, Skeleton, Textarea, Tooltip, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Gift, MoreHorizontal, Plus, Search } from 'lucide-react';
+import { Gift, MoreHorizontal, Plus, Search, StickyNote } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { SaveBar, guard } from '../components/SaveBar';
 import { UserErrors, gql, mutate } from '../api';
+import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
 import { PageHeader } from '../components/PageHeader';
 import { searchCls, useFormat, useListParams } from '../components/shared';
 import type { Money } from '../components/shared';
@@ -43,6 +44,7 @@ export function GiftCardsPage() {
   const nav = useNavigate();
   const fmt = useFormat();
   const L = useListParams();
+  const cols = useColumnVisibility('gift-cards');
   const tab = (TABS.includes(L.get('tab') as Tab) ? L.get('tab') : 'all') as Tab;
   const [search, setSearch] = useState(L.get('q'));
   const term = useDebounced(search);
@@ -56,7 +58,7 @@ export function GiftCardsPage() {
   const pi = list.data?.giftCards.pageInfo;
   const create = <Button variant="primary" onClick={() => nav('/gift-cards/new')}>{t('giftCards.create')}</Button>;
   const columns: Array<Column<Card_>> = [
-    { key: 'code', header: t('giftCards.codeEnding'), cell: (c) => <div><p className="font-medium">{c.lastCharacters}</p>{c.note && <p className="text-xs text-muted">{c.note}</p>}</div> },
+    { key: 'code', header: t('giftCards.codeEnding'), cell: (c) => <div><p className="flex items-center gap-1.5 font-medium">{c.lastCharacters}{c.note && <Tooltip content={c.note}><span tabIndex={0} aria-label={`${t('bp.giftCards.note')}: ${c.note}`} className="inline-grid size-5 place-items-center text-muted"><StickyNote className="size-3.5" /></span></Tooltip>}</p>{c.note && <p className="max-w-xs truncate text-xs text-muted">{c.note}</p>}</div> },
     { key: 'status', header: t('field.status'), cell: (c) => <Badge tone={tone[stateOf(c)]}>{t(`giftCards.state.${stateOf(c)}` as Key)}</Badge> },
     { key: 'customer', header: t('order.customer'), cell: (c) => c.customer?.displayName ?? <span className="text-muted">{c.order ? c.order.name : '—'}</span> },
     { key: 'recipient', header: t('giftCards.recipient'), cell: (c) => c.recipientAttributes?.recipient.displayName ?? <span className="text-muted">{t('giftCards.noRecipient')}</span> },
@@ -86,9 +88,10 @@ export function GiftCardsPage() {
           className="!rounded-b-none !shadow-none border-b border-line" viewsLabel={t('list.views')}
           views={TABS.map((id) => ({ id, label: t(`giftCards.tab.${id}` as Key) }))} view={tab} onView={(v) => L.patch({ tab: v === 'all' ? '' : v })}
           query={search} onQuery={(v) => { setSearch(v); L.patch({ q: v }); }} placeholder={t('list.searchAndFilter')}
+          trailing={<ColumnPicker locked={['code']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />}
         />
         {list.isError && <div className="p-3"><Banner>{(list.error as Error).message}</Banner></div>}
-        <IndexTable rows={rows} rowId={(r) => r.id} columns={columns} loading={list.isLoading} onRowClick={(r) => nav(`/gift-cards/${gidToNum(r.id)}`)}
+        <IndexTable rows={rows} rowId={(r) => r.id} columns={cols.filter(columns)} loading={list.isLoading} onRowClick={(r) => nav(`/gift-cards/${gidToNum(r.id)}`)}
           selected={[]} onSelectedChange={() => {}} selectedLabel={(n) => t('common.selected', { n })} selectAllLabel={t('common.selectAll')}
           empty={list.isError ? null : terms
             ? <EmptyState icon={<Search className="size-10" />} title={t('products.noResults')} description={t('products.noResultsBody')} />

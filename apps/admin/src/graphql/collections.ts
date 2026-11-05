@@ -5,7 +5,7 @@ export const COLLECTIONS = /* GraphQL */ `
     collections(first: $first, after: $after, last: $last, before: $before, query: $query, sortKey: $sortKey, reverse: $reverse) {
       nodes {
         id title handle updatedAt
-        productsCount { count }
+        productsCount { count } resourcePublicationsCount { count }
         image { url }
         ruleSet { appliedDisjunctively rules { column relation condition } }
       }
@@ -21,6 +21,7 @@ export const COLLECTION = /* GraphQL */ `
       image { url altText }
       seo { title description }
       productsCount { count }
+      resourcePublicationsV2(first: 50, onlyPublished: false) { nodes { isPublished publishDate publication { id name } } }
       ruleSet { appliedDisjunctively rules { column relation condition } }
       products(first: 100) { nodes { id title status featuredMedia { id ... on MediaImage { image { url } } } } }
     }

@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
-import { inventoryAdjustments, inventoryItems, inventoryLevels, locations, productVariants } from '../../db/schema';
+import { inventoryAdjustments, inventoryItemCountryHs, inventoryItems, inventoryLevels, locations, productVariants } from '../../db/schema';
 import type { Db, Executor } from '../../db/client';
 import { LENGTH_UNITS } from '../../db/schema/catalog';
 import { WEIGHT_UNITS } from '../../db/schema/shop';
@@ -153,6 +153,10 @@ export async function availableByVariant(db: Executor, shopId: number, variantId
 export interface InventoryItemUpdate {
   sku?: string | null; cost?: number | null; tracked?: boolean | null; countryCodeOfOrigin?: string | null; harmonizedSystemCode?: string | null;
   requiresShipping?: boolean | null; weight?: { value: number; unit: WeightUnit } | null;
+  /** Package from Settings > Shipping > Packaging; null clears it. */
+  shippingPackageId?: number | null;
+  /** Replaces the per destination country Harmonized System codes. */
+  countryHarmonizedSystemCodes?: { countryCode: string; harmonizedSystemCode: string }[] | null;
   /** Package size (ShopMe extension); null values clear a side. */
   dimensions?: { length?: number | null; width?: number | null; height?: number | null; unit?: LengthUnit | null } | null;
 }
@@ -165,6 +169,7 @@ export function inventoryItemPatch(input: InventoryItemUpdate) {
     ...(input.countryCodeOfOrigin !== undefined && { countryCodeOfOrigin: input.countryCodeOfOrigin }),
     ...(input.harmonizedSystemCode !== undefined && { harmonizedSystemCode: input.harmonizedSystemCode }),
     ...(input.requiresShipping != null && { requiresShipping: input.requiresShipping }),
+    ...(input.shippingPackageId !== undefined && { shippingPackageId: input.shippingPackageId }),
     ...(input.weight && { weightValue: input.weight.value, weightUnit: input.weight.unit }),
     ...(input.dimensions && {
       ...(input.dimensions.length !== undefined && { lengthValue: input.dimensions.length }),
@@ -173,6 +178,23 @@ export function inventoryItemPatch(input: InventoryItemUpdate) {
       ...(input.dimensions.unit && { dimensionUnit: input.dimensions.unit }),
     }),
   };
+}
+
+/** Replace the per country HS codes of an item (blank codes and duplicate countries are dropped). */
+export async function setCountryHsCodes(tx: Executor, shopId: number, itemId: number, codes: { countryCode: string; harmonizedSystemCode: string }[]) {
+  const rows = new Map(codes.map((c) => [c.countryCode.trim().toUpperCase(), c.harmonizedSystemCode.trim()] as const).filter(([k, v]) => k && v));
+  await tx.delete(inventoryItemCountryHs).where(eq(inventoryItemCountryHs.inventoryItemId, itemId));
+  if (rows.size) await tx.insert(inventoryItemCountryHs).values([...rows].map(([countryCode, harmonizedSystemCode]) => ({ shopId, inventoryItemId: itemId, countryCode, harmonizedSystemCode })));
+}
+
+export async function listCountryHsCodes(db: Executor, shopId: number, itemId: number) {
+  return db.select({ countryCode: inventoryItemCountryHs.countryCode, harmonizedSystemCode: inventoryItemCountryHs.harmonizedSystemCode }).from(inventoryItemCountryHs)
+    .where(and(eq(inventoryItemCountryHs.shopId, shopId), eq(inventoryItemCountryHs.inventoryItemId, itemId))).orderBy(asc(inventoryItemCountryHs.countryCode));
+}
+
+/** Newest first quantity changes of an item (the inventory history). */
+export async function listItemAdjustments(db: Executor, shopId: number, itemId: number, limit = 20) {
+  return db.select().from(inventoryAdjustments).where(and(eq(inventoryAdjustments.shopId, shopId), eq(inventoryAdjustments.inventoryItemId, itemId))).orderBy(desc(inventoryAdjustments.createdAt), desc(inventoryAdjustments.id)).limit(limit);
 }
 
 export async function updateInventoryItem(db: Db, shopId: number, id: number, input: InventoryItemUpdate): Promise<Result<InventoryItem>> {
@@ -184,8 +206,9 @@ export async function updateInventoryItem(db: Db, shopId: number, id: number, in
   if (input.cost != null && input.cost < 0) return errR(['input', 'cost'], 'Cost must be greater than or equal to 0');
   const patch = inventoryItemPatch(input);
   const row = await db.transaction(async (tx) => {
-    const [r] = await tx.update(inventoryItems).set(patch).where(and(eq(inventoryItems.shopId, shopId), eq(inventoryItems.id, id))).returning();
+    const [r] = Object.keys(patch).length ? await tx.update(inventoryItems).set(patch).where(and(eq(inventoryItems.shopId, shopId), eq(inventoryItems.id, id))).returning() : [cur];
     if (input.sku !== undefined) await tx.update(productVariants).set({ sku: input.sku || null }).where(eq(productVariants.id, cur.variantId));
+    if (input.countryHarmonizedSystemCodes) await setCountryHsCodes(tx, shopId, id, input.countryHarmonizedSystemCodes);
     await emit(tx, shopId, 'inventory_item', id, 'inventory_items/update');
     return r!;
   });

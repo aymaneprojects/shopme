@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { and, eq, ne } from 'drizzle-orm';
-import { findRedirect, returnRulesHtml, safeEqual, searchArticles, searchPages, searchProducts, suggestQueries, tokenize, schema as s, sha256, type CartView, type MarketContext, type Shop } from '@shopme/core';
+import { findRedirect, productListedOnStorefront, returnRulesHtml, safeEqual, searchArticles, searchPages, searchProducts, suggestQueries, tokenize, schema as s, sha256, type CartView, type MarketContext, type Shop } from '@shopme/core';
 import { formatMoney } from '@shopme/shopify-compat';
 import type { AppContext } from '../context';
 import { authenticate } from '../plugins/auth';
@@ -179,7 +179,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
 
   async function relatedProducts(shop: Shop, source: ProductObject, limit: number, pricing: MarketContext): Promise<ProductObject[]> {
     const rows = await db.select({ id: s.products.id, type: s.products.productType, tags: s.products.tags }).from(s.products)
-      .where(and(eq(s.products.shopId, shop.id), eq(s.products.status, 'ACTIVE'), ne(s.products.id, source.id)));
+      .where(and(eq(s.products.shopId, shop.id), productListedOnStorefront, ne(s.products.id, source.id)));
     const score = (r: (typeof rows)[number]) => (r.type && r.type === source.type ? 2 : 0) + r.tags.filter((t) => source.tags.includes(t)).length;
     const ids = rows.sort((a, b) => score(b) - score(a) || a.id - b.id).slice(0, limit).map((r) => r.id);
     return loadProducts(db, shop.id, ids, { pricing });

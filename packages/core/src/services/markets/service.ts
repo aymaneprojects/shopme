@@ -2,8 +2,9 @@ import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client';
 import * as s from '../../db/schema';
 import { errR, okR, txResult, type Result } from '../catalog/common';
+import { productListedOnStorefront } from '../catalog/publications';
 import { slugify } from '../handle';
-import { rulesOf, type MarketContext } from './context';
+import { activateDueMarkets, rulesOf, type MarketContext } from './context';
 import { COUNTRY_CURRENCY, countryName, isCountryCode, SUPPORTED_CURRENCIES } from './reference';
 import { convertMinor, resolvePrice } from './money';
 
@@ -29,7 +30,20 @@ const HANDLE_RE = /^[a-z0-9][a-z0-9-]*$/;
 // ---------------------------------------------------------------------------------------------------------------------
 
 /** The shop's primary market, created on first use (new shops and shops that predate markets). */
+/** Plan (or clear, with null) the launch of a draft market. A time in the past launches it now. */
+export async function scheduleMarketLaunch(db: Db, shop: ShopInfo, id: number, launchAt: Date | null): Promise<Result<MarketView>> {
+  await ensurePrimaryMarket(db, shop);
+  const [m] = await db.select().from(s.markets).where(and(eq(s.markets.shopId, shop.id), eq(s.markets.id, id))).limit(1);
+  if (!m) return errR(['id'], 'Market does not exist', 'MARKET_NOT_FOUND');
+  if (m.isPrimary) return errR(['id'], 'The primary market is always live', 'INVALID');
+  if (m.status === 'ACTIVE' && launchAt) return errR(['launchAt'], 'The market is already live', 'INVALID');
+  const due = !!launchAt && launchAt.getTime() <= Date.now();
+  await db.update(s.markets).set({ launchAt: due ? null : launchAt, ...(due && { status: 'ACTIVE' }), updatedAt: new Date() }).where(eq(s.markets.id, id));
+  return okR((await getMarket(db, shop, id))!);
+}
+
 export async function ensurePrimaryMarket(db: Executor, shop: ShopInfo): Promise<MarketRow> {
+  await activateDueMarkets(db, shop.id);
   const [existing] = await db.select().from(s.markets).where(and(eq(s.markets.shopId, shop.id), eq(s.markets.isPrimary, true))).limit(1);
   if (existing) {
     if (!existing.name) {
@@ -461,7 +475,7 @@ export async function listPriceListPrices(db: Executor, shop: ShopInfo, priceLis
   if (!pl) return { rows: [], total: 0 };
   const fixedRows = await db.select().from(s.priceListPrices).where(eq(s.priceListPrices.priceListId, priceListId));
   const fixed = new Map(fixedRows.map((f) => [f.variantId, f]));
-  const conds = [eq(s.productVariants.shopId, shop.id), eq(s.products.status, 'ACTIVE')];
+  const conds = [eq(s.productVariants.shopId, shop.id), productListedOnStorefront];
   if (o.query?.trim()) {
     const like = `%${o.query.trim().replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
     conds.push(or(ilike(s.products.title, like), ilike(s.productVariants.title, like), ilike(s.productVariants.sku, like))!);

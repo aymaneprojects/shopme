@@ -5,7 +5,7 @@ import { shops, WEIGHT_UNITS } from './shop';
 const shopFk = () => shopIdCol().references(() => shops.id, { onDelete: 'cascade' });
 
 export const LENGTH_UNITS = ['MILLIMETERS', 'CENTIMETERS', 'METERS', 'INCHES', 'FEET', 'YARDS'] as const;
-export const PRODUCT_STATUSES = ['ACTIVE', 'ARCHIVED', 'DRAFT'] as const;
+export const PRODUCT_STATUSES = ['ACTIVE', 'ARCHIVED', 'DRAFT', 'UNLISTED'] as const;
 export const COLLECTION_SORT_ORDERS = ['ALPHA_ASC', 'ALPHA_DESC', 'BEST_SELLING', 'CREATED', 'CREATED_DESC', 'MANUAL', 'PRICE_ASC', 'PRICE_DESC'] as const;
 
 /** Uploaded files (any kind). Bytes live in storage under `storageKey`. */
@@ -49,6 +49,8 @@ export const products = pgTable('products', {
   templateSuffix: text('template_suffix'),
   seoTitle: text('seo_title'), seoDescription: text('seo_description'),
   publishedAt: ts('published_at'),
+  /** Online Store publication: null = not published, a future date = scheduled. New products are published to the Online Store. */
+  onlineStorePublishedAt: ts('online_store_published_at').defaultNow(),
   isGiftCard: boolean('is_gift_card').notNull().default(false),
   /** Taxonomy category id (see services/catalog/taxonomy). */
   category: text('category'),
@@ -130,6 +132,8 @@ export const inventoryItems = pgTable('inventory_items', {
   lengthValue: numeric('length_value', { precision: 12, scale: 4, mode: 'number' }), widthValue: numeric('width_value', { precision: 12, scale: 4, mode: 'number' }), heightValue: numeric('height_value', { precision: 12, scale: 4, mode: 'number' }),
   dimensionUnit: text('dimension_unit').default('CENTIMETERS'),
   unitCost: money('unit_cost'),
+  /** Shipping package chosen from Settings > Shipping > Packaging. */
+  shippingPackageId: ref('shipping_package_id'),
   ...timestamps(),
 }, (t) => [check('inventory_items_weight_chk', oneOf(t.weightUnit, WEIGHT_UNITS)), check('inventory_items_dimension_chk', oneOf(t.dimensionUnit, LENGTH_UNITS))]);
 

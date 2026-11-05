@@ -10,6 +10,7 @@ import {
 } from '../pricing';
 import { quoteShipping, recordOrderDelivery } from '../shipping';
 import { discountEligibleFor } from '../discounts/eligibility';
+import { ensureOnlineStore } from '../catalog/publications';
 import { toPresentment } from '../markets/context';
 import { allocateGiftCards, getGiftCardByCode, giftCardRejection, normalizeGiftCardCode, type GiftCardRejection } from '../gift-cards';
 import { subscribeEmail } from '../privacy/marketing';
@@ -85,6 +86,7 @@ export async function evaluateDiscounts(
   const auto = await db.select().from(s.discounts).where(and(eq(s.discounts.shopId, shopId), eq(s.discounts.kind, 'AUTOMATIC'), eq(s.discounts.status, 'ACTIVE')));
   for (const d of auto) rows.push({ d, code: null, requested: null });
 
+  let storeChannel: { id: number } | undefined;
   const exts = rows.length ? await db.select().from(s.discountExtensions).where(inArray(s.discountExtensions.discountId, rows.map((r) => r.d.id))) : [];
   const email = lc(ctx.email);
   const conv = ctx.convert ?? ((n: number) => n);
@@ -96,6 +98,8 @@ export async function evaluateDiscounts(
       combinesWith: ext?.combinesWith, ...(ext?.bxgy && { bxgy: ext.bxgy }),
     };
     if (d.status === 'DISABLED') { reject('disabled'); continue; }
+    // The storefront checkout is the Online Store channel: a discount limited to other channels does not apply here.
+    if (d.publicationIds.length && !d.publicationIds.includes((storeChannel ??= await ensureOnlineStore(db, shopId)).id)) { reject('not_applicable'); continue; }
     if (d.startsAt && d.startsAt > now) { reject('not_started'); continue; }
     if (d.endsAt && d.endsAt < now) { reject('expired'); continue; }
     if (d.usageLimit !== null && d.usageCount >= d.usageLimit) { reject('usage_limit'); continue; }

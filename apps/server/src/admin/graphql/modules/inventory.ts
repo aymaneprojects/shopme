@@ -20,20 +20,23 @@ const DimensionsInput = builder.inputType('InventoryItemDimensionsInput', {
   fields: (t) => ({ length: t.float(), width: t.float(), height: t.float(), unit: t.field({ type: LengthUnit }) }),
 });
 const InventoryItemMeasurementInput = builder.inputType('InventoryItemMeasurementInput', { fields: (t) => ({ weight: t.field({ type: WeightInput }), shippingPackageId: t.id(), dimensions: t.field({ type: DimensionsInput }) }) });
+const CountryHsInput = builder.inputType('CountryHarmonizedSystemCodeInput', { fields: (t) => ({ countryCode: t.string({ required: true }), harmonizedSystemCode: t.string({ required: true }) }) });
 export const InventoryItemInput = builder.inputType('InventoryItemInput', {
   fields: (t) => ({
     sku: t.string(), cost: t.field({ type: 'Decimal' }), tracked: t.boolean(), countryCodeOfOrigin: t.string(), harmonizedSystemCode: t.string(),
     provinceCodeOfOrigin: t.string(), measurement: t.field({ type: InventoryItemMeasurementInput }), requiresShipping: t.boolean(),
+    countryHarmonizedSystemCodes: t.field({ type: [CountryHsInput] }),
   }),
 });
 
-interface ItemInputShape { sku?: string | null; cost?: string | null; tracked?: boolean | null; countryCodeOfOrigin?: string | null; harmonizedSystemCode?: string | null; requiresShipping?: boolean | null; measurement?: { weight?: { value: number; unit: unknown } | null; dimensions?: { length?: number | null; width?: number | null; height?: number | null; unit?: unknown } | null } | null }
+interface ItemInputShape { sku?: string | null; cost?: string | null; tracked?: boolean | null; countryCodeOfOrigin?: string | null; harmonizedSystemCode?: string | null; requiresShipping?: boolean | null; countryHarmonizedSystemCodes?: { countryCode: string; harmonizedSystemCode: string }[] | null; measurement?: { shippingPackageId?: string | number | null; weight?: { value: number; unit: unknown } | null; dimensions?: { length?: number | null; width?: number | null; height?: number | null; unit?: unknown } | null } | null }
 /** GraphQL InventoryItemInput -> service update (cost converted to minor units). */
 export function toItemUpdate(i: ItemInputShape | null | undefined, currency: string): InventoryItemUpdate | null {
   if (!i) return null;
   return {
     sku: i.sku, cost: i.cost == null ? (i.cost as null | undefined) : parseMoney(i.cost, currency), tracked: i.tracked, countryCodeOfOrigin: i.countryCodeOfOrigin,
-    harmonizedSystemCode: i.harmonizedSystemCode, requiresShipping: i.requiresShipping,
+    harmonizedSystemCode: i.harmonizedSystemCode, requiresShipping: i.requiresShipping, countryHarmonizedSystemCodes: i.countryHarmonizedSystemCodes,
+    shippingPackageId: i.measurement?.shippingPackageId === undefined ? undefined : i.measurement.shippingPackageId == null ? null : Number(String(i.measurement.shippingPackageId).split('/').pop()) || null,
     weight: i.measurement?.weight ? { value: i.measurement.weight.value, unit: i.measurement.weight.unit as WeightUnit } : undefined,
     dimensions: i.measurement?.dimensions ? { ...i.measurement.dimensions, unit: i.measurement.dimensions.unit as LengthUnitT | null | undefined } : undefined,
   };

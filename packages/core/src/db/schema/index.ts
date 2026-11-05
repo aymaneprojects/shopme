@@ -17,3 +17,4 @@ export * from './markets';
 export * from './privacy';
 export * from './store-credit';
 export * from './orders-ops';
+export * from './channels';

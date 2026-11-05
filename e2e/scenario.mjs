@@ -841,9 +841,10 @@ export async function runScenario({ baseUrl, root }) {
       await page.getByRole('dialog').getByRole('button', { name: 'Save', exact: true }).click();
       await vis(page.getByText('custom.matiere'));
       await page.goto(`${baseUrl}/admin/products/${sku.id}`);
+      await page.getByText('Matière', { exact: true }).locator('xpath=..').getByRole('button', { name: 'Add' }).click();
       await page.getByLabel('Matière').fill('Cire de soja');
-      await page.getByRole('button', { name: 'Save metafields' }).click();
-      await vis(page.getByText('Metafields saved'));
+      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await vis(page.getByText('Product saved'));
       await shop.goto(`${baseUrl}/products/bougie-parfumee`);
       assert.match(await text(shop.locator('.product__details')), /Cire de soja/);
     });

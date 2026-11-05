@@ -1,7 +1,7 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, ListToolbar, Pagination, TagPickerDialog, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, ArrowUpDown, Check, CircleCheck, ImageIcon, Plus, Search, Tag, Trash2 } from 'lucide-react';
+import { Archive, ArrowUpDown, Check, CircleCheck, Eye, EyeOff, ImageIcon, Plus, Search, Tag, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { gql, mutate } from '../api';
@@ -12,8 +12,10 @@ import { CollectionPicker } from '../components/Pickers';
 import { ViewTabs } from '../components/SavedViews';
 import { ProductMetricsStrip } from '../components/ProductMetrics';
 import { ExportButton, ImportButton } from '../components/CsvTools';
+import { CatalogPickerDialog, ChannelPickerDialog, useCatalogOptions, usePublications } from '../components/Channels';
+import { ChannelsPopover } from '../components/ChannelsPopover';
 import { gidToNum } from '../format';
-import { COLLECTION_ADD_PRODUCTS, COLLECTION_REMOVE_PRODUCTS, PRODUCTS, PRODUCTS_COUNT, PRODUCT_DELETE, PRODUCT_FILTER_OPTIONS, PRODUCT_UPDATE, TAGS_ADD, TAGS_REMOVE } from '../graphql';
+import { CATALOG_PRODUCTS_UPDATE, COLLECTIONS_PICKER_OPTIONS, COLLECTION_ADD_PRODUCTS, COLLECTION_REMOVE_PRODUCTS, PRODUCTS, PRODUCTS_COUNT, PRODUCT_DELETE, PRODUCT_FILTER_OPTIONS, PRODUCT_UPDATE, PUBLISHABLE_PUBLISH, PUBLISHABLE_UNPUBLISH, TAGS_ADD, TAGS_REMOVE, TAXONOMY_ROOT_CATEGORIES } from '../graphql';
 import { useT } from '../i18n';
 import { flattenStrings, q, useDebounced } from '../lib/hooks';
 import type { Connection } from '../lib/hooks';
@@ -24,6 +26,7 @@ export interface ProductRow {
   totalInventory: number; tracksInventory: boolean; variantsCount: { count: number } | null;
   featuredMedia: { image?: { url: string } } | null;
   publishedAt?: string | null; category?: { name: string } | null;
+  onlineStorePreviewUrl?: string | null; resourcePublicationsCount?: { count: number } | null; shopmeCatalogsCount?: number;
 }
 
 type StringConn = { edges: Array<{ node: string }> };
@@ -59,6 +62,12 @@ export function ProductsPage() {
   const cols = useColumnVisibility('products');
   const [tagging, setTagging] = useState<{ ids: string[]; mode: 'add' | 'remove' } | null>(null);
   const [collecting, setCollecting] = useState<{ ids: string[]; mode: 'add' | 'remove' } | null>(null);
+  const [channeling, setChanneling] = useState<{ ids: string[]; mode: 'include' | 'exclude' } | null>(null);
+  const [cataloging, setCataloging] = useState<{ ids: string[]; mode: 'include' | 'exclude' } | null>(null);
+  const pubs = usePublications();
+  const catalogOptions = useCatalogOptions();
+  const categories = useQuery({ queryKey: ['taxonomy-roots'], staleTime: 600_000, queryFn: () => gql<{ taxonomy: { categories: { nodes: Array<{ id: string; fullName: string }> } } | null }>(TAXONOMY_ROOT_CATEGORIES) });
+  const collectionOptions = useQuery({ queryKey: ['collection-filter-options'], staleTime: 60_000, queryFn: () => gql<{ collections: { nodes: Array<{ id: string; title: string }> } }>(COLLECTIONS_PICKER_OPTIONS) });
 
   const terms = [
     debounced.trim() && debounced.trim(),
@@ -66,6 +75,10 @@ export function ProductsPage() {
     get('vendor') && `vendor:${q(get('vendor'))}`,
     get('type') && `product_type:${q(get('type'))}`,
     get('tag') && `tag:${q(get('tag'))}`,
+    get('category') && `category_id:${q(get('category'))}`,
+    get('channel') && `publication_ids:${get('channel')}`,
+    get('catalog') && `catalog_id:${get('catalog')}`,
+    get('collection') && `collection_id:${get('collection')}`,
     get('stock') === 'in' && 'inventory_total:>0',
     get('stock') === 'out' && 'inventory_total:<=0',
   ].filter(Boolean).join(' ');
@@ -105,6 +118,20 @@ export function ProductsPage() {
     onSuccess: (_d, v) => { done(v.ids.length); void qc.invalidateQueries({ queryKey: ['product-filter-options'] }); },
     onError: (e) => toast(e.message, 'critical'),
   });
+  const channelBulk = useMutation({
+    mutationFn: async ({ ids, mode, channels }: { ids: string[]; mode: 'include' | 'exclude'; channels: string[] }) => {
+      const input = channels.map((publicationId) => ({ publicationId }));
+      for (const id of ids) await mutate(mode === 'include' ? PUBLISHABLE_PUBLISH : PUBLISHABLE_UNPUBLISH, { id, input }, mode === 'include' ? 'publishablePublish' : 'publishableUnpublish');
+    },
+    onSuccess: (_d, v) => { done(v.ids.length); void qc.invalidateQueries({ queryKey: ['publications'] }); },
+    onError: (e) => toast(e.message, 'critical'),
+  });
+  const catalogBulk = useMutation({
+    mutationFn: ({ ids, mode, catalogs }: { ids: string[]; mode: 'include' | 'exclude'; catalogs: string[] }) =>
+      mutate(CATALOG_PRODUCTS_UPDATE, { productIds: ids, ...(mode === 'include' ? { include: catalogs } : { exclude: catalogs }) }, 'shopmeCatalogProductsUpdate'),
+    onSuccess: (_d, v) => done(v.ids.length),
+    onError: (e) => toast(e.message, 'critical'),
+  });
   const collectionBulk = useMutation({
     mutationFn: async ({ ids, mode, collections }: { ids: string[]; mode: 'add' | 'remove'; collections: string[] }) => {
       for (const id of collections) await mutate(mode === 'add' ? COLLECTION_ADD_PRODUCTS : COLLECTION_REMOVE_PRODUCTS, { id, productIds: ids }, mode === 'add' ? 'collectionAddProductsV2' : 'collectionRemoveProducts');
@@ -118,7 +145,12 @@ export function ProductsPage() {
   const label = (s: string) => t(`status.${s}` as 'status.ACTIVE');
   const columns: Array<Column<ProductRow>> = [
     { key: 'img', header: '', className: 'w-14', cell: (p) => <Thumb url={p.featuredMedia?.image?.url} /> },
-    { key: 'title', header: t('products.product'), sortKey: 'TITLE', cell: (p) => <span className="font-medium">{p.title}</span> },
+    { key: 'title', header: t('products.product'), sortKey: 'TITLE', cell: (p) => (
+      <span className="flex items-center gap-2">
+        <span className="font-medium">{p.title}</span>
+        {p.onlineStorePreviewUrl && <a href={p.onlineStorePreviewUrl} target="_blank" rel="noreferrer" aria-label={`${t('bp.row.preview')}: ${p.title}`} title={t('bp.row.preview')} onClick={(e) => e.stopPropagation()} className="grid size-6 place-items-center rounded-md text-muted opacity-0 hover:bg-hover hover:text-fg focus-visible:opacity-100 [tr:hover_&]:opacity-100"><Eye className="size-4" /></a>}
+      </span>
+    ) },
     { key: 'status', header: t('field.status'), cell: (p) => <Badge tone={statusTone[p.status]}>{label(p.status)}</Badge> },
     {
       key: 'inv', header: t('products.inventory'), sortKey: 'INVENTORY_TOTAL',
@@ -127,7 +159,8 @@ export function ProductsPage() {
         : <span className="text-muted">{t('products.notTracked')}</span>,
     },
     { key: 'category', header: t('qa.products.category'), cell: (p) => p.category?.name || <span className="text-muted">—</span> },
-    { key: 'channels', header: t('qa.products.channels'), className: 'text-right', cell: (p) => <span className="tabular-nums">{p.publishedAt ? 1 : 0}</span> },
+    { key: 'channels', header: t('qa.products.channels'), className: 'text-right', cell: (p) => <ChannelsPopover id={p.id} count={p.resourcePublicationsCount?.count ?? 0} /> },
+    { key: 'catalogs', header: t('bp.col.catalogs'), className: 'text-right', cell: (p) => <span className="tabular-nums">{p.shopmeCatalogsCount ?? 0}</span> },
     { key: 'type', header: t('qa.products.productType'), sortKey: 'PRODUCT_TYPE', cell: (p) => p.productType || <span className="text-muted">—</span> },
     { key: 'vendor', header: t('field.vendor'), sortKey: 'VENDOR', cell: (p) => p.vendor || <span className="text-muted">—</span> },
   ];
@@ -135,6 +168,11 @@ export function ProductsPage() {
   const opt = options.data;
   const toOptions = (items: string[]) => items.map((i) => ({ value: i, label: i }));
   const filters = [
+    { key: 'status', label: t('field.status'), options: (['ACTIVE', 'DRAFT', 'UNLISTED', 'ARCHIVED'] as const).map((s) => ({ value: s.toLowerCase(), label: label(s) })) },
+    { key: 'category', label: t('product.category'), options: (categories.data?.taxonomy?.categories.nodes ?? []).map((c) => ({ value: c.id, label: c.fullName })) },
+    { key: 'channel', label: t('bp.filter.channel'), options: (pubs.data ?? []).map((p) => ({ value: gidToNum(p.id), label: p.name })) },
+    { key: 'catalog', label: t('bp.filter.catalog'), options: [{ value: 'none', label: t('bp.filter.noCatalog') }, ...(catalogOptions.data ?? []).map((c) => ({ value: gidToNum(c.id), label: c.title }))] },
+    { key: 'collection', label: t('nav.collections'), options: (collectionOptions.data?.collections.nodes ?? []).map((c) => ({ value: gidToNum(c.id), label: c.title })) },
     { key: 'vendor', label: t('filter.vendor'), options: toOptions(flattenStrings(opt?.productVendors)) },
     { key: 'type', label: t('filter.type'), options: toOptions(flattenStrings(opt?.productTypes)) },
     { key: 'tag', label: t('filter.tag'), options: toOptions(flattenStrings(opt?.productTags)) },
@@ -147,17 +185,17 @@ export function ProductsPage() {
 
   return (
     <>
-      <PageHeader icon={<Tag className="size-4" />} title={t('nav.products')} actions={<><ViewAs /><ImportButton kind="products" invalidate={['products', 'products-count']} /><ExportButton kind="products" currentIds={rows.map((r) => r.id)} selectedIds={selected} /><Button variant="primary" onClick={() => nav('/products/new')}>{t('products.add')}</Button></>} />
+      <PageHeader icon={<Tag className="size-4" />} title={t('nav.products')} actions={<><ViewAs /><ImportButton kind="products" invalidate={['products', 'products-count']} /><ExportButton kind="products" currentIds={rows.map((r) => r.id)} selectedIds={selected} query={terms} /><Button variant="primary" onClick={() => nav('/products/new')}>{t('products.add')}</Button></>} />
       <ProductMetricsStrip />
       <Card className="!p-0">
         <ListToolbar
           className="!rounded-b-none !shadow-none border-b border-line"
           leading={<ViewTabs
             resource="PRODUCT" query={terms} value={status} onTab={(v) => { setSelected([]); patch({ status: v === 'all' ? '' : v, view: '' }); }}
-            tabs={[{ id: 'all', label: t('products.tabAll') }, { id: 'active', label: label('ACTIVE') }, { id: 'draft', label: label('DRAFT') }, { id: 'archived', label: label('ARCHIVED') }]}
+            tabs={[{ id: 'all', label: t('products.tabAll') }, { id: 'active', label: label('ACTIVE') }, { id: 'draft', label: label('DRAFT') }, { id: 'unlisted', label: label('UNLISTED') }, { id: 'archived', label: label('ARCHIVED') }]}
           />}
           query={search} onQuery={(v) => { setSearch(v); patch({ q: v }); }} placeholder={t('list.searchAndFilter')}
-          filters={filters} values={{ vendor: get('vendor'), type: get('type'), tag: get('tag'), stock: get('stock') }} onFilter={(k, v) => patch({ [k]: v })} removeFilterLabel={t('list.removeFilter')}
+          filters={filters} values={{ status: status === 'all' ? '' : status, category: get('category'), channel: get('channel'), catalog: get('catalog'), collection: get('collection'), vendor: get('vendor'), type: get('type'), tag: get('tag'), stock: get('stock') }} onFilter={(k, v) => patch({ [k]: v })} removeFilterLabel={t('list.removeFilter')}
           trailing={<>
             <Dropdown align="right" variant="plain" size="sm" icon className="btn-neutral" label={t('common.sort')} trigger={<ArrowUpDown className="size-4" />}
               items={Object.keys(SORTS).map((k) => ({ key: k, label: t(`sort.${k}` as 'sort.TITLE'), icon: sort.key === k ? <Check className="size-4" /> : undefined, onSelect: () => patch({ sort: k }) }))} />
@@ -177,6 +215,11 @@ export function ProductsPage() {
             { key: 'archive', label: t('bulk.archive'), icon: <Archive className="size-4" />, onRun: (ids) => bulk.mutate({ ids, action: 'ARCHIVED' }) },
             { key: 'active', label: t('products.setActive'), icon: <CircleCheck className="size-4" />, onRun: (ids) => bulk.mutate({ ids, action: 'ACTIVE' }) },
             { key: 'delete', label: t('bulk.deleteProducts'), icon: <Trash2 className="size-4" />, danger: true, onRun: (ids) => setConfirmDelete(ids) },
+            { key: 'unpublish', label: t('bp.bulk.unpublish'), icon: <EyeOff className="size-4" />, onRun: (ids) => channelBulk.mutate({ ids, mode: 'exclude', channels: (pubs.data ?? []).map((p) => p.id) }) },
+            { key: 'includeChannels', label: t('bp.bulk.includeChannels'), separatorBefore: true, onRun: (ids) => setChanneling({ ids, mode: 'include' }) },
+            { key: 'excludeChannels', label: t('bp.bulk.excludeChannels'), onRun: (ids) => setChanneling({ ids, mode: 'exclude' }) },
+            { key: 'includeCatalogs', label: t('bp.bulk.includeCatalogs'), onRun: (ids) => setCataloging({ ids, mode: 'include' }) },
+            { key: 'excludeCatalogs', label: t('bp.bulk.excludeCatalogs'), onRun: (ids) => setCataloging({ ids, mode: 'exclude' }) },
             { key: 'addTags', label: t('products.addTags'), separatorBefore: true, onRun: (ids) => setTagging({ ids, mode: 'add' }) },
             { key: 'removeTags', label: t('products.removeTags'), onRun: (ids) => setTagging({ ids, mode: 'remove' }) },
             { key: 'addColl', label: t('products.addToCollections'), separatorBefore: true, onRun: (ids) => setCollecting({ ids, mode: 'add' }) },
@@ -195,6 +238,8 @@ export function ProductsPage() {
       <TagPickerDialog open={!!tagging} onClose={() => setTagging(null)} title={t(tagging?.mode === 'remove' ? 'products.removeTags' : 'products.addTags')} suggestions={flattenStrings(opt?.productTags)}
         onSave={(list) => { if (tagging) tagBulk.mutate({ ...tagging, tags: list }); setTagging(null); }}
         labels={{ search: t('tagpicker.search'), available: t('tagpicker.available'), save: t('save.save'), cancel: t('common.cancel'), close: t('common.close'), create: (x) => t('tagpicker.create', { tag: x }) }} />
+      {channeling && <ChannelPickerDialog open title={t(channeling.mode === 'include' ? 'bp.bulk.includeChannels' : 'bp.bulk.excludeChannels')} confirmLabel={t(channeling.mode === 'include' ? 'bp.bulk.include' : 'bp.bulk.exclude')} onClose={() => setChanneling(null)} onApply={(channels) => { channelBulk.mutate({ ...channeling, channels }); setChanneling(null); }} />}
+      {cataloging && <CatalogPickerDialog open title={t(cataloging.mode === 'include' ? 'bp.bulk.includeCatalogs' : 'bp.bulk.excludeCatalogs')} confirmLabel={t(cataloging.mode === 'include' ? 'bp.bulk.include' : 'bp.bulk.exclude')} options={catalogOptions.data ?? []} onClose={() => setCataloging(null)} onApply={(catalogs) => { catalogBulk.mutate({ ...cataloging, catalogs }); setCataloging(null); }} />}
       <CollectionPicker open={!!collecting} onClose={() => setCollecting(null)} onConfirm={(c) => { if (collecting) collectionBulk.mutate({ ...collecting, collections: c.map((x) => x.id) }); setCollecting(null); }} />
       <ConfirmDialog
         open={!!confirmDelete} onClose={() => setConfirmDelete(null)} danger

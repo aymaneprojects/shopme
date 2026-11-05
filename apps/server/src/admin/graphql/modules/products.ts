@@ -23,7 +23,7 @@ import { InventoryItemInput, toItemUpdate } from './inventory';
 import { JOB_TYPE_DUPLICATE, ProductDuplicateOperation, type JobRow } from './product-operations';
 import { Shop } from './shop';
 
-export const ProductStatus = builder.enumType('ProductStatus', { values: ['ACTIVE', 'ARCHIVED', 'DRAFT'] as const });
+export const ProductStatus = builder.enumType('ProductStatus', { values: ['ACTIVE', 'ARCHIVED', 'DRAFT', 'UNLISTED'] as const });
 const ProductSortKeys = builder.enumType('ProductSortKeys', { values: ['CREATED_AT', 'ID', 'INVENTORY_TOTAL', 'PRODUCT_TYPE', 'PUBLISHED_AT', 'RELEVANCE', 'TITLE', 'UPDATED_AT', 'VENDOR'] as const });
 const ProductVariantSortKeys = builder.enumType('ProductVariantSortKeys', {
   values: ['CREATED_AT', 'FULL_TITLE', 'ID', 'INVENTORY_LEVELS_AVAILABLE', 'INVENTORY_MANAGEMENT', 'INVENTORY_POLICY', 'INVENTORY_QUANTITY', 'NAME', 'POPULAR', 'POSITION', 'RELEVANCE', 'SKU', 'TITLE'] as const,
@@ -403,12 +403,12 @@ builder.mutationFields((t) => ({
   }),
   productDuplicate: t.field({
     type: ProductDuplicatePayload,
-    args: { productId: t.arg.id({ required: true }), newTitle: t.arg.string({ required: true }), newStatus: t.arg({ type: ProductStatus }), includeImages: t.arg.boolean({ defaultValue: false }), includeTranslations: t.arg.boolean({ defaultValue: false }), synchronous: t.arg.boolean({ defaultValue: true }) },
+    args: { productId: t.arg.id({ required: true }), newTitle: t.arg.string({ required: true }), newStatus: t.arg({ type: ProductStatus }), includeImages: t.arg.boolean({ defaultValue: false }), includeTranslations: t.arg.boolean({ defaultValue: false }), shopmeIncludeInventory: t.arg.boolean({ defaultValue: false }), shopmeIncludeSkus: t.arg.boolean({ defaultValue: true }), synchronous: t.arg.boolean({ defaultValue: true }) },
     resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'write_products');
       const id = parsePid(a.productId);
       if (!id) return { newProduct: null, userErrors: [{ field: ['productId'], message: 'Product does not exist' }] };
-      const o = { newTitle: a.newTitle, newStatus: a.newStatus, includeImages: a.includeImages };
+      const o = { newTitle: a.newTitle, newStatus: a.newStatus, includeImages: a.includeImages, includeTranslations: a.includeTranslations, includeInventory: a.shopmeIncludeInventory, includeSkus: a.shopmeIncludeSkus };
       if (a.synchronous === false) {
         // Validate up front (like the real thing), then run in the background: poll `productOperation` / `productDuplicateJob`.
         if (!(await getProduct(ctx.db, ctx.shopId, id))) return { newProduct: null, userErrors: [{ field: ['productId'], message: 'Product does not exist' }] };

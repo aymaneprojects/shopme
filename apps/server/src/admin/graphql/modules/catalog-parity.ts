@@ -1,4 +1,4 @@
-import { getCollection, getProduct, reorderCollectionProducts, reorderOptions, reorderVariants, type Collection, type Product } from '@shopme/core';
+import { ensureOnlineStore, getCollection, getProduct, reorderCollectionProducts, reorderOptions, reorderVariants, type Collection, type Product } from '@shopme/core';
 import { fromGid, parseId, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
@@ -8,7 +8,7 @@ import { Collection_, Job, Product_, shopOf } from '../types/catalog';
 import { typedUserError, payloadWith } from '../types/sales';
 import { Shop } from './shop';
 import { MoveInput } from './products';
-import { ONLINE_STORE, Publication, setPublished } from './catalog-ext';
+import { Publication, setPublished } from './catalog-ext';
 import { completedJob } from './jobs';
 
 /** Catalog parity: manual collection order, variant and option reordering, and the legacy publish mutations on the single Online Store channel. */
@@ -82,13 +82,13 @@ const ProductUnpublishInput = builder.inputType('ProductUnpublishInput', { field
 const CollectionPublication = builder.objectRef<{ collection: Collection; published: boolean }>('CollectionPublication').implement({
   fields: (t) => ({
     collection: t.field({ type: Collection_, resolve: (p) => p.collection }), isPublished: t.boolean({ resolve: (p) => p.published }),
-    publication: t.field({ type: Publication, resolve: () => ONLINE_STORE }), publishDate: t.field({ type: 'DateTime', resolve: (p) => p.collection.publishedAt ?? p.collection.updatedAt }),
+    publication: t.field({ type: Publication, resolve: (_p, _a, ctx) => ensureOnlineStore(ctx.db, ctx.shopId) }), publishDate: t.field({ type: 'DateTime', resolve: (p) => p.collection.publishedAt ?? p.collection.updatedAt }),
   }),
 });
 const ProductPublication = builder.objectRef<{ product: Product; published: boolean }>('ProductPublication').implement({
   fields: (t) => ({
     product: t.field({ type: Product_, resolve: (p) => p.product }), isPublished: t.boolean({ resolve: (p) => p.published }),
-    publishDate: t.field({ type: 'DateTime', nullable: true, resolve: (p) => p.product.publishedAt }),
+    publishDate: t.field({ type: 'DateTime', nullable: true, resolve: (p) => p.product.onlineStorePublishedAt }),
   }),
 });
 type WithShop = { userErrors: UserError[] };

@@ -1,4 +1,5 @@
 import { Banner, Button, Card, Checkbox, Input, Select, Skeleton, Textarea, useToast } from '@shopme/ui';
+import { Plus } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { UserErrors, gql, mutate } from '../api';
@@ -13,7 +14,7 @@ interface Field { namespace: string; key: string; type: string; value: string; l
 const idOf = (ns: string, key: string) => `${ns}.${key}`;
 
 /** One editor widget per metafield type. */
-function FieldInput({ f, onChange }: { f: Field; onChange: (value: string) => void }) {
+export function FieldInput({ f, onChange }: { f: Field; onChange: (value: string) => void }) {
   const { t } = useI18n();
   const [labels, setLabels] = useState<Labels>({});
   if (/^(list\.)?metaobject_reference$/.test(f.type)) {
@@ -109,6 +110,60 @@ export function MetafieldsEditor({ ownerId, ownerType, title }: { ownerId: strin
           </div>
         </details>
         <div><Button variant="primary" loading={save.isPending} disabled={!inputs.length} onClick={() => save.mutate()}>{t('mf.save')}</Button></div>
+      </div>
+    </Card>
+  );
+}
+
+export type MetafieldEdits = Record<string, { namespace: string; key: string; type: string; value: string }>;
+
+/**
+ * Metafields card of the product page: one row per definition, saved with the product. An empty definition is an "Add" chip that opens its input;
+ * only the first rows show until "Show all". Works before the first save too (`ownerId` null): the values are saved with the new product.
+ */
+export function ProductMetafields({ ownerId, edits, onChange }: { ownerId: string | null; edits: MetafieldEdits; onChange: (next: MetafieldEdits) => void }) {
+  const { t } = useI18n();
+  const defs = useQuery({ queryKey: ['metafield-definitions', 'PRODUCT'], queryFn: () => gql<{ metafieldDefinitions: { nodes: MetafieldDefinitionRow[] } }>(METAFIELD_DEFINITIONS, { ownerType: 'PRODUCT' }) });
+  const vals = useQuery({ queryKey: ['owner-metafields', ownerId], enabled: !!ownerId, queryFn: () => gql<{ node: { metafields?: { nodes: MetafieldValue[] } } | null }>(OWNER_METAFIELDS, { id: ownerId }) });
+  const [opened, setOpened] = useState<string[]>([]);
+  const [all, setAll] = useState(false);
+  const stored = vals.data?.node?.metafields?.nodes;
+  const rows = useMemo(() => {
+    const current = new Map((stored ?? []).map((m) => [idOf(m.namespace, m.key), m]));
+    const out: Field[] = [];
+    const sorted = [...(defs.data?.metafieldDefinitions.nodes ?? [])].sort((a, b) => Number(!!b.pinnedPosition) - Number(!!a.pinnedPosition));
+    for (const d of sorted) out.push({ namespace: d.namespace, key: d.key, type: d.type.name, value: toField(d.type.name, current.get(idOf(d.namespace, d.key))?.value ?? ''), label: d.name, description: d.description, defined: true, validations: d.validations });
+    for (const m of stored ?? []) if (!out.some((f) => idOf(f.namespace, f.key) === idOf(m.namespace, m.key))) out.push({ namespace: m.namespace, key: m.key, type: m.type, value: toField(m.type, m.value), label: idOf(m.namespace, m.key), defined: false });
+    return out;
+  }, [defs.data, stored]);
+  const LIMIT = 4;
+  const shown = all ? rows : rows.slice(0, LIMIT);
+  const set = (f: Field, value: string) => {
+    const id = idOf(f.namespace, f.key);
+    const next = { ...edits };
+    if (value === f.value) delete next[id]; else next[id] = { namespace: f.namespace, key: f.key, type: f.type, value };
+    onChange(next);
+  };
+  if (defs.isLoading || (ownerId && vals.isLoading)) return <Card title={t('mf.title')}><Skeleton className="h-16" /></Card>;
+  return (
+    <Card title={t('mf.title')} actions={rows.length > LIMIT ? <Button variant="plain" size="sm" onClick={() => setAll((x) => !x)}>{all ? t('bp.mf.showLess') : t('bp.mf.showAll', { n: rows.length })}</Button> : undefined}>
+      {rows.length === 0 && <p className="text-[13px] text-muted">{t('mf.none')}</p>}
+      <div className="flex flex-col divide-y divide-line">
+        {shown.map((f) => {
+          const id = idOf(f.namespace, f.key);
+          const value = edits[id]?.value ?? f.value;
+          const open = !!value || !!edits[id] || opened.includes(id);
+          return (
+            <div key={id} className="py-2.5 first:pt-0 last:pb-0">
+              {open ? <FieldInput f={{ ...f, value }} onChange={(v) => set(f, v)} /> : (
+                <div className="flex items-center justify-between gap-3 text-[13px]">
+                  <span className="min-w-0 truncate">{f.label}</span>
+                  <button type="button" onClick={() => setOpened([...opened, id])} className="inline-flex h-7 items-center gap-1.5 rounded-lg bg-surface px-2.5 text-[13px] font-medium hover:bg-hover"><Plus className="size-3.5 text-muted" />{t('bp.mf.add')}</button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </Card>
   );

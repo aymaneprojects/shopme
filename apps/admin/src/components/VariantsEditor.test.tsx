@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
@@ -48,7 +49,8 @@ describe('generateVariants', () => {
 
 function Harness() {
   const [state, setState] = useState<{ options: OptionDef[]; variants: VariantDraft[] }>({ options: [], variants: [blankVariant()] });
-  return <VariantsManager {...state} locations={[]} currency="EUR" onChange={(p) => setState({ ...state, ...p })} />;
+  const [client] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false } } }));
+  return <QueryClientProvider client={client}><VariantsManager {...state} locations={[]} currency="EUR" onChange={(p) => setState({ ...state, ...p })} /></QueryClientProvider>;
 }
 
 const listItems = () => within(screen.getByRole('group', { name: 'Variants' })).getAllByRole('listitem');

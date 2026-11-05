@@ -26,14 +26,14 @@ export function useColumnVisibility(storageKey: string, defaultHidden: string[] 
 }
 
 /** "Edit columns" button at the end of a list toolbar. Columns without a text header (thumbnails) are always shown. */
-export function ColumnPicker<T>({ columns, hidden, onToggle, locked = [] }: { columns: Array<Column<T>>; hidden: string[]; onToggle: (key: string) => void; locked?: string[] }) {
+export function ColumnPicker<T>({ columns, hidden, onToggle, locked = [], labels = {} }: { columns: Array<Column<T>>; hidden: string[]; onToggle: (key: string) => void; locked?: string[]; /** Text for columns whose header is not a plain string (a header with a help tooltip). */ labels?: Record<string, string> }) {
   const t = useT();
-  const choices = columns.filter((c) => typeof c.header === 'string' && c.header && !locked.includes(c.key));
+  const choices = columns.filter((c) => ((typeof c.header === 'string' && c.header) || labels[c.key]) && !locked.includes(c.key));
   return (
     <Popover label={t('columns.edit')} align="right" className="w-56" trigger={<Columns3 className="size-4" />}>
       <p className="mb-2 text-[13px] font-semibold">{t('columns.title')}</p>
       <ul className="flex flex-col gap-1.5">
-        {choices.map((c) => <li key={c.key}><Checkbox label={c.header} checked={!hidden.includes(c.key)} onChange={() => onToggle(c.key)} /></li>)}
+        {choices.map((c) => <li key={c.key}><Checkbox label={labels[c.key] ?? c.header} checked={!hidden.includes(c.key)} onChange={() => onToggle(c.key)} /></li>)}
       </ul>
     </Popover>
   );

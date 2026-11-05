@@ -21,6 +21,8 @@ export const markets = pgTable('markets', {
   taxPricingStrategy: text('tax_pricing_strategy'), // null: inherit the shop setting
   dutiesPricingStrategy: text('duties_pricing_strategy'),
   settings: jsonb('settings').$type<Record<string, unknown>>().notNull().default({}),
+  /** Rollout plan: a draft market goes live by itself at this time. */
+  launchAt: ts('launch_at'),
   ...timestamps(),
 }, (t) => [
   uniqueIndex('markets_handle_uq').on(t.shopId, t.handle),

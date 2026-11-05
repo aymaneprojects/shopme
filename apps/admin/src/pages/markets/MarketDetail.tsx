@@ -1,13 +1,13 @@
 import { Badge, Banner, Button, Card, ConfirmDialog, Dropdown, Input, Popover, Select, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, ChevronRight, Globe, Coins, Minus, Monitor, Pencil, Percent, Plus, Receipt, ShoppingBag, Store, Undo2, WalletCards } from 'lucide-react';
+import { BookOpen, ChevronRight, Globe, Coins, Minus, Monitor, Pencil, Percent, Plus, Receipt, ShoppingBag, Store, Truck, Undo2, WalletCards } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
 import { SaveBar, guard } from '../../components/SaveBar';
 import { numToGid } from '../../format';
-import { MARKET_DELETE, MARKET_DETAIL, MARKET_UPDATE } from '../../graphql';
+import { DELIVERY_PROFILE, DELIVERY_PROFILES, MARKET_DELETE, MARKET_DETAIL, MARKET_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 import { countryName } from '../../lib/countries';
@@ -47,6 +47,52 @@ function SettingRow({ icon: Icon, label, children, trailing }: { icon: typeof Co
 }
 const Inherited = ({ children }: { children: React.ReactNode }) => <span className="flex min-w-0 items-center gap-2 text-muted"><Store className="size-3.5 shrink-0" aria-hidden /><span aria-hidden>→</span><span className="truncate text-fg">{children}</span></span>;
 const iconBtn = 'btn btn-plain btn-icon btn-sm';
+
+/** "+" that opens the page where the customization of a market area is managed. */
+function CustomizeLink({ to, label }: { to: string; label: string }) {
+  return <Link to={to} aria-label={label} title={label} className={iconBtn}><Plus className="size-4" /></Link>;
+}
+
+interface ProfileDetail {
+  deliveryProfile: { id: string; name: string; profileLocationGroups: Array<{ locationGroupZones: { nodes: Array<{
+    zone: { id: string; name: string; countries: Array<{ code: { countryCode: string | null; restOfWorld: boolean } }> };
+    methodDefinitions: { nodes: Array<{ id: string; name: string; active: boolean; rateProvider: { __typename: string; price?: { amount: string } } | null }> };
+  }> } }> } | null;
+}
+
+/** Shipping options a market's countries get: the rates of the delivery profile zones that cover them. */
+function MarketShipping({ codes }: { codes: string[] }) {
+  const { t } = useI18n();
+  const { shop } = useShop();
+  const profiles = useQuery({ queryKey: ['delivery-profiles'], queryFn: () => gql<{ deliveryProfiles: { nodes: Array<{ id: string; name: string }> } }>(DELIVERY_PROFILES) });
+  const ids = profiles.data?.deliveryProfiles.nodes.map((p) => p.id) ?? [];
+  const details = useQuery({
+    queryKey: ['delivery-profile-details', ids], enabled: ids.length > 0,
+    queryFn: () => Promise.all(ids.map((id) => gql<ProfileDetail>(DELIVERY_PROFILE, { id }))),
+  });
+  const set = new Set(codes);
+  const rows = (details.data ?? []).flatMap((d) => {
+    const p = d.deliveryProfile;
+    if (!p) return [];
+    return p.profileLocationGroups.flatMap((g) => g.locationGroupZones.nodes
+      .filter((z) => z.zone.countries.some((c) => (c.code.countryCode && set.has(c.code.countryCode)) || c.code.restOfWorld))
+      .flatMap((z) => z.methodDefinitions.nodes.filter((m) => m.active).map((m) => ({ key: `${p.id}-${z.zone.id}-${m.id}`, profile: p.name, zone: z.zone.name, name: m.name, price: m.rateProvider?.price?.amount ?? null }))));
+  });
+  return (
+    <section>
+      <div className="mb-2 flex items-center justify-between"><h2 className="text-sm font-semibold">{t('bp.markets.shipping')}</h2><Link to="/settings/shipping" className="text-[13px] text-accent hover:underline">{t('bp.markets.manageShipping')}</Link></div>
+      <Card className="divide-y divide-line !p-0">
+        {profiles.isLoading || details.isLoading ? <p className="p-3 text-[13px] text-muted">{t('common.loading')}</p> : rows.length === 0 ? <p className="p-3 text-[13px] text-muted">{t('bp.markets.noShipping')}</p> : rows.map((r) => (
+          <div key={r.key} className="flex items-center gap-3 px-3 py-2 text-[13px]">
+            <Truck className="size-4 shrink-0 text-muted" aria-hidden />
+            <span className="min-w-0 flex-1"><span className="block truncate font-medium">{r.name}</span><span className="block truncate text-xs text-muted">{r.profile} · {r.zone}</span></span>
+            <span className="tabular-nums">{r.price == null ? '—' : Number(r.price) === 0 ? t('bp.markets.free') : `${r.price} ${shop.currency}`}</span>
+          </div>
+        ))}
+      </Card>
+    </section>
+  );
+}
 
 function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
   const { t, lang } = useI18n();
@@ -151,6 +197,8 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
             </section>
           )}
 
+          <MarketShipping codes={cs.map((c) => c.code)} />
+
           <section>
             <h2 className="mb-2 text-sm font-semibold">{t('markets.inherited')}</h2>
             <div>
@@ -178,8 +226,8 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
                   <Inherited>{t('markets.allProducts')}</Inherited>
                 </SettingRow>
               )}
-              <SettingRow icon={Percent} label={t('markets.discounts')}><Inherited>{t('markets.allDiscounts')}</Inherited></SettingRow>
-              <SettingRow icon={Monitor} label={t('markets.domain')}><Inherited>{shop.name} · {new Intl.DisplayNames([lang], { type: 'language' }).of(shop.locale) ?? shop.locale}</Inherited></SettingRow>
+              <SettingRow icon={Percent} label={t('markets.discounts')} trailing={<CustomizeLink to="/discounts" label={t('bp.markets.customize')} />}><Inherited>{t('markets.allDiscounts')}</Inherited></SettingRow>
+              <SettingRow icon={Monitor} label={t('markets.domain')} trailing={<CustomizeLink to="/settings/domains" label={t('bp.markets.customize')} />}><Inherited>{shop.name} · {new Intl.DisplayNames([lang], { type: 'language' }).of(shop.locale) ?? shop.locale}</Inherited></SettingRow>
               {!taxOverridden && (
                 <SettingRow icon={Receipt} label={t('markets.taxes')} trailing={primary ? undefined : (
                   <Popover label={t('markets.add')} align="right" className="w-72 p-3" triggerVariant="plain" triggerClassName="btn-icon btn-sm" trigger={<Plus className="size-4" />}>
@@ -193,9 +241,10 @@ function MarketView({ data }: { data: Detail & { market: MarketRow } }) {
                   <Inherited>{shopInfo.taxesIncluded ? t('markets.taxesIncluded') : t('markets.taxesCollected')}</Inherited>
                 </SettingRow>
               )}
-              <SettingRow icon={Undo2} label={t('markets.returns')}><Inherited>{t('markets.noRule')}</Inherited></SettingRow>
-              <SettingRow icon={ShoppingBag} label={t('markets.onlineStore')}><Inherited>{shop.name}</Inherited></SettingRow>
-              <SettingRow icon={WalletCards} label={t('markets.payment')}><Inherited>{t('markets.checkoutConfig', { name: shop.name })}</Inherited></SettingRow>
+              <SettingRow icon={Truck} label={t('bp.markets.shipping')} trailing={<CustomizeLink to="/settings/shipping" label={t('bp.markets.customize')} />}><Inherited>{t('bp.markets.shippingInherited')}</Inherited></SettingRow>
+              <SettingRow icon={Undo2} label={t('markets.returns')} trailing={<CustomizeLink to="/settings/policies" label={t('bp.markets.customize')} />}><Inherited>{t('markets.noRule')}</Inherited></SettingRow>
+              <SettingRow icon={ShoppingBag} label={t('markets.onlineStore')} trailing={<CustomizeLink to="/online-store/preferences" label={t('bp.markets.customize')} />}><Inherited>{shop.name}</Inherited></SettingRow>
+              <SettingRow icon={WalletCards} label={t('markets.payment')} trailing={<CustomizeLink to="/settings/payments" label={t('bp.markets.customize')} />}><Inherited>{t('markets.checkoutConfig', { name: shop.name })}</Inherited></SettingRow>
             </div>
           </section>
         </div>

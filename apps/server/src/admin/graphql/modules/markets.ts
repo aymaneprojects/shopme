@@ -1,7 +1,7 @@
 import {
   addFixedPrices, catalogContextUpdate, catalogForMarket, COUNTRY_CURRENCY, countCatalogs, createCatalog, createMarket, createPriceList, currencyName, deleteCatalog, deleteFixedPrices, deleteMarket, deleteMarketRegion,
   deletePriceList, enabledPresentmentCurrencies, ensurePrimaryMarket, getCatalog, getCurrencySetting, getMarket, getMarketRegion, getPriceList, getProduct, getVariant, listCatalogs, listVariants, listCurrencySettings, listMarkets, listPriceLists,
-  listPriceListPrices, priceVariants, regionIdsOf, resolveMarketContext, updateCatalog, updateMarket, updatePriceList, countryName,
+  listPriceListPrices, priceVariants, scheduleMarketLaunch, regionIdsOf, resolveMarketContext, updateCatalog, updateMarket, updatePriceList, countryName,
   type CatalogView, type CurrencySettingRow, type MarketContext, type MarketInput, type MarketSortKey, type MarketView, type PriceListPriceRow, type PriceListView, type Variant,
 } from '@shopme/core';
 import type { ObjectRef } from '@pothos/core';
@@ -138,6 +138,8 @@ Market.implement({
     handle: t.exposeString('handle'),
     status: t.field({ type: MarketStatus, resolve: (m) => m.status as 'ACTIVE' }),
     enabled: t.boolean({ deprecationReason: 'Use `status` instead.', resolve: (m) => m.status === 'ACTIVE' }),
+    /** ShopMe extension: when set, the draft market goes live by itself at that time (rollout plan). */
+    shopmeLaunchAt: t.field({ type: 'DateTime', nullable: true, resolve: (m) => m.launchAt }),
     primary: t.exposeBoolean('isPrimary', { deprecationReason: 'This field is deprecated and will be removed in the future.' }),
     type: t.field({ type: MarketType, resolve: (m) => m.type }),
     createdAt: t.field({ type: 'DateTime', resolve: (m) => m.createdAt }),
@@ -174,7 +176,7 @@ const Catalog = builder.interfaceRef<CatalogView>('Catalog').implement({
   }),
   resolveType: () => 'MarketCatalog',
 });
-const MarketCatalog = builder.objectRef<CatalogView>('MarketCatalog');
+export const MarketCatalog = builder.objectRef<CatalogView>('MarketCatalog');
 const MarketCatalogConnection = defineConnection('MarketCatalog', MarketCatalog);
 const CatalogConnection = defineConnection('Catalog', Catalog as unknown as ObjectRef<any, CatalogView>);
 
@@ -474,6 +476,17 @@ builder.mutationFields((t) => ({
         removeCurrencySettings: input.removeCurrencySettings, catalogsToAdd: ids(input.catalogsToAdd, cid), catalogsToDelete: ids(input.catalogsToDelete, cid), ...priceInclusion(input.priceInclusions, input.removePriceInclusions),
       });
       return r.ok ? { market: r.value, userErrors: [] } : { market: null, userErrors: r.errors.map((e) => (e.field?.[0] === 'id' ? e : { ...e, field: e.field?.[0] === 'input' ? e.field : ['input', ...(e.field ?? [])] })) };
+    },
+  }),
+  /** ShopMe extension: plan or clear the launch time of a draft market. */
+  shopmeMarketLaunchSchedule: t.field({
+    type: MarketUpdatePayload, args: { id: t.arg.id({ required: true }), launchAt: t.arg({ type: 'DateTime' }) },
+    resolve: async (_r, { id, launchAt }, ctx) => {
+      requireScope(ctx, 'write_markets');
+      const marketId = mid(id);
+      if (!marketId) return { market: null, userErrors: fail(['id'], 'Market does not exist', 'MARKET_NOT_FOUND') };
+      const r = await scheduleMarketLaunch(ctx.db, await shopOf(ctx), marketId, launchAt ?? null);
+      return r.ok ? { market: r.value, userErrors: [] } : { market: null, userErrors: r.errors };
     },
   }),
   marketDelete: t.field({

@@ -4,7 +4,8 @@ export const PRODUCTS = /* GraphQL */ `
   query Products($first: Int, $after: String, $last: Int, $before: String, $query: String, $sortKey: ProductSortKeys, $reverse: Boolean) {
     products(first: $first, after: $after, last: $last, before: $before, query: $query, sortKey: $sortKey, reverse: $reverse) {
       nodes {
-        id title handle status vendor productType totalInventory tracksInventory publishedAt
+        id title handle status vendor productType totalInventory tracksInventory publishedAt onlineStorePreviewUrl
+        resourcePublicationsCount { count } shopmeCatalogsCount
         category { name }
         variantsCount { count }
         featuredMedia { id ... on MediaImage { image { url } } }
@@ -34,11 +35,12 @@ const VARIANT_FIELDS = /* GraphQL */ `
   media(first: 1) { nodes { id } }
   unitPriceMeasurement { quantityValue quantityUnit referenceValue referenceUnit }
   inventoryItem {
-    id tracked requiresShipping countryCodeOfOrigin harmonizedSystemCode
+    id tracked requiresShipping countryCodeOfOrigin harmonizedSystemCode shopmeShippingPackageId
+    countryHarmonizedSystemCodes { countryCode harmonizedSystemCode }
     unitCost { amount }
     measurement { weight { unit value } dimensions { length width height unit } }
     inventoryLevels(first: 50) {
-      nodes { location { id name } quantities(names: ["available", "committed"]) { name quantity } }
+      nodes { id location { id name } quantities(names: ["available", "on_hand", "committed", "reserved", "incoming"]) { name quantity } }
     }
   }
 `;
@@ -52,6 +54,8 @@ export const PRODUCT = /* GraphQL */ `
       options { id name position values }
       media(first: 100) { nodes { id alt mediaContentType ... on MediaImage { image { url } } } }
       collections(first: 100) { nodes { id title ruleSet { appliedDisjunctively } } }
+      resourcePublicationsV2(first: 50, onlyPublished: false) { nodes { isPublished publishDate publication { id name } } }
+      shopmeCatalogs { id title status }
       variants(first: 250) { nodes { ${VARIANT_FIELDS} } }
     }
   }

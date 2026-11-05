@@ -2,7 +2,7 @@
  * Buyer pricing context: which market a buyer is in and how a variant's shop-currency price turns into the presentment price.
  * This is the one place cart, checkout, storefront objects and the Admin API ask for market pricing.
  */
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { Executor } from '../../db/client';
 import * as s from '../../db/schema';
 import { adjustMinor, convertMinor, resolvePrice, type FixedPrice, type PriceAdjustment, type PriceRules } from './money';
@@ -42,8 +42,19 @@ export async function currencyRate(db: Executor, shopId: number, shopCurrency: s
   return row?.manualRate && row.manualRate > 0 ? row.manualRate : null;
 }
 
+const lastDueCheck = new Map<number, number>();
+/** Put the draft markets whose planned launch time has come live. Cheap enough for hot paths: at most one query per shop every 20 seconds. */
+export async function activateDueMarkets(db: Executor, shopId: number, force = false): Promise<void> {
+  const now = Date.now();
+  if (!force && now - (lastDueCheck.get(shopId) ?? 0) < 20_000) return;
+  lastDueCheck.set(shopId, now);
+  await db.update(s.markets).set({ status: 'ACTIVE', launchAt: null, updatedAt: new Date() })
+    .where(and(eq(s.markets.shopId, shopId), eq(s.markets.status, 'DRAFT'), sql`${s.markets.launchAt} <= now()`));
+}
+
 /** Market a country buys from: the active market listing it, else the primary market (null when the shop has none yet). */
 export async function marketForCountry(db: Executor, shopId: number, countryCode: string): Promise<typeof s.markets.$inferSelect | null> {
+  await activateDueMarkets(db, shopId);
   const [hit] = await db.select({ m: s.markets }).from(s.marketRegions)
     .innerJoin(s.markets, eq(s.markets.id, s.marketRegions.marketId))
     .where(and(eq(s.marketRegions.shopId, shopId), eq(s.marketRegions.countryCode, countryCode.toUpperCase()), eq(s.markets.status, 'ACTIVE'))).limit(1);
@@ -120,6 +131,7 @@ export interface BuyerCountry { code: string; name: string; currency: string; ma
 
 /** Countries a buyer can pick: those of the active markets plus the shop country (the primary market), sorted by name. */
 export async function listBuyerCountries(db: Executor, shop: ShopBasics, locale = 'en'): Promise<BuyerCountry[]> {
+  await activateDueMarkets(db, shop.id);
   const [ms, regions, rates] = await Promise.all([
     db.select().from(s.markets).where(eq(s.markets.shopId, shop.id)),
     db.select().from(s.marketRegions).where(eq(s.marketRegions.shopId, shop.id)),
