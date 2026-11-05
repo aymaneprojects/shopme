@@ -35,15 +35,15 @@ P0 result: 13 Done, 2 Partial, 0 Not done.
 | P1-1 | Gift cards | Done | Issue, balance, checkout redemption, public page, admin page |
 | P1-2 | Abandoned checkouts and recovery | Done | List, recovery emails, recovery link |
 | P1-3 | Order editing, returns and exchanges | Partial | Order editing and returns are done; exchanges are not built |
-| P1-4 | Automatic discounts, BXGY, order-level and bulk codes | Partial | Automatic, BXGY and order-level discounts are done; bulk code generation is absent |
+| P1-4 | Automatic discounts, BXGY, order-level and bulk codes | Done | Automatic, BXGY and order-level discounts; many codes per discount (`discountRedeemCodeBulkAdd`, "Generate codes" on the discount page, CSV export), bulk activate, deactivate, delete and tags |
 | P1-5 | Sitemap index, feeds, `search.json`, `meta.json`, `x-robots-tag` | Done | Blog Atom feeds included |
 | P1-6 | Storefront metafields and definitions UI | Partial | Product, variant, collection, customer and order owners are done; article, page and blog owners and `metafieldsDelete` are missing |
 | P1-7 | Search upgrade | Done | Ranking, typo tolerance, prefix option, pages and articles, predictive queries |
 | P1-8 | Multi-location inventory and transfers | Partial | Locations, activation, priority allocation and fulfillment location are done; inventory transfers and purchase orders are not built (P2-3) |
 | P1-9 | Shipping labels, carrier rates, packages, local pickup | Not done | No label purchase, carrier integration, packages or local pickup |
 | P1-10 | Product page admin gaps | Partial | Variant image, unit price, category, duplicate, preview, metafields and bulk editor are done; `productVariantAppendMedia` and a share link are missing |
-| P1-11 | Admin API completeness | Partial | `productSet`, `productChangeStatus`, publications, `customerAddress*`, files, staged uploads, `staffMember` are done; saved searches and `productPublish` are missing |
-| P1-12 | Bulk operations | Not done | No `bulkOperation*` roots or JSONL support |
+| P1-11 | Admin API completeness | Partial | `productSet`, `productChangeStatus`, publications, `customerAddress*`, files, staged uploads, `staffMember`, saved searches, `productPublish`/`Unpublish` and `collectionPublish`/`Unpublish` are done; other roots remain (see section 2) |
+| P1-12 | Bulk operations | Done | `bulkOperationRunQuery` (JSONL with `__parentId`), `bulkOperationRunMutation` (staged JSONL variables), `bulkOperationCancel`, `bulkOperation`, `bulkOperations`, `currentBulkOperation`, `bulk_operations/finish` webhook; one run per type, results kept 7 days |
 | P1-13 | Core type fields | Partial | Most listed fields are added; `Order.fulfillmentOrders` and `suggestedRefund` are missing |
 | P1-14 | Analytics reports | Done | Twelve reports, comparison, CSV export |
 | P1-15 | Staff 2FA, session list, login alerts | Done | TOTP, recovery codes, session revoke, sign-in alert email |
@@ -51,7 +51,7 @@ P0 result: 13 Done, 2 Partial, 0 Not done.
 | P1-17 | Store export/import and scheduled backups | Done | `.shopme` archive, backup settings, retention |
 | P1-18 | Languages and translations | Done | Locale prefixes, translatable resources, `/localization`; checkout and policy pages are not translated yet |
 
-P1 result: 9 Done, 7 Partial, 2 Not done.
+P1 result: 11 Done, 6 Partial, 1 Not done (P1-9, shipping labels, carrier rates, packages and local pickup).
 
 ---
 
@@ -74,10 +74,10 @@ Percentages are measured where a count exists (API, Liquid, routes) and are judg
 
 | Area | Coverage | Basis |
 |---|---:|---|
-| Admin API, root queries (all) | 14% (43 of 298) | Shopify roots we also expose; we have 5 extra ShopMe-only roots |
-| Admin API, root queries (single-shop scope) | ~29% (43 of ~147) | After excluding B2B, markets, subscriptions, apps/billing, POS, fulfillment/carrier services, payments disputes, marketing, segments |
-| Admin API, mutations (all) | 9.5% (51 of 537) | We have 12 extra ShopMe-only mutations |
-| Admin API, mutations (single-shop scope) | ~20% (51 of ~260) | Same exclusions |
+| Admin API, root queries (all) | 32% (96 of 298) | Shopify roots we also expose, re-measured 2026-11-05 by comparing the SDL of both schemas (81 before the bulk operations, discounts, drafts, catalog and webhooks work) |
+| Admin API, root queries (single-shop scope) | not recomputed (was ~29% of ~147 in the 2026-11-04 audit) | After excluding B2B, markets, subscriptions, apps/billing, POS, fulfillment/carrier services, payments disputes, marketing, segments |
+| Admin API, mutations (all) | 29.6% (159 of 537) | Re-measured 2026-11-05 the same way (133 before this work); `productPublish`, `bulkOperation*`, bulk discount and draft mutations are now counted |
+| Admin API, mutations (single-shop scope) | not recomputed (was ~20% of ~260 in the 2026-11-04 audit) | Same exclusions |
 | Admin API, fields on 20 core types | 55% (330 of 601 non-deprecated fields) | Product 49%, Variant 49%, Collection 55%, Order 53%, LineItem 77%, Customer 51%, DiscountCodeNode 40%, Shop 26% |
 | Admin UI (39 screenshots) | ~55% weighted | 10 covered, 24 partial, 5 missing (covered = 1, partial = 0.5) |
 | Storefront routes and endpoints | ~64% weighted | 53 route patterns: 30 implemented, 8 partial, 15 missing |
