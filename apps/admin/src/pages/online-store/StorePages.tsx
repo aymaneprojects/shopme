@@ -48,7 +48,7 @@ export function PagesListPage() {
     <div className="flex flex-col gap-4">
       <StoreActions>{add}</StoreActions>
       <RestrictedAccess />
-      <VisibilityList<PageRow> queryKey="pages" doc={PAGES} root="pages" columns={columns} searchLabel={t('pages.search')}
+      <VisibilityList<PageRow> viewResource="PAGE" queryKey="pages" doc={PAGES} root="pages" columns={columns} searchLabel={t('pages.search')}
         sorts={[{ key: 'UPDATED_AT', label: t('pages.updated') }, { key: 'TITLE', label: t('field.title') }]}
         onRowClick={(r) => nav(`/online-store/pages/${gidToNum(r.id)}`)}
         setVisible={{ doc: PAGE_UPDATE, field: 'pageUpdate', vars: (id, v) => ({ id, page: { isPublished: v } }) }}
@@ -126,7 +126,7 @@ function PageFormView({ id, initial }: { id: string | null; initial: PageForm })
         </div>
         <div className="flex flex-col gap-4">
           <VisibilityCard value={form} onChange={(v) => set(v)} />
-          <TemplateCard kind="page" value={form.templateSuffix} onChange={(templateSuffix) => set({ templateSuffix })} />
+          <TemplateCard kind="page" value={form.templateSuffix} onChange={(templateSuffix) => set({ templateSuffix })} previewPath={id && form.handle ? `/pages/${form.handle}` : null} />
         </div>
       </div>
       <ConfirmDialog open={confirm} onClose={() => setConfirm(false)} danger title={t('pages.deleteTitle')} message={t('pages.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { setConfirm(false); del.mutate(); }} />

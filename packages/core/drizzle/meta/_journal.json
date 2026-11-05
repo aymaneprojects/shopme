@@ -155,6 +155,13 @@
       "when": 1793898357497,
       "tag": "0021_settings_roles_rates",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793899009889,
+      "tag": "0022_customers_companies_analytics",
+      "breakpoints": true
     }
   ]
 }

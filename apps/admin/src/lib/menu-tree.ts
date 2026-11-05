@@ -48,3 +48,35 @@ export function outdent(items: MenuItem[], path: Path): MenuItem[] {
 export const toInput = (items: MenuItem[], withIds: boolean): unknown[] => items.map((it) => ({
   ...(withIds && it.id && { id: it.id }), title: it.title.trim(), type: it.type, url: it.type === 'HTTP' ? it.url.trim() : it.url || null, resourceId: it.resourceId, items: toInput(it.items, withIds),
 }));
+
+/* ------------------------------ drag and drop ------------------------------ */
+
+export type DropPlace = 'before' | 'after' | 'inside';
+const samePrefix = (a: Path, b: Path, n: number) => a.slice(0, n).every((x, i) => x === b[i]);
+
+/** Where the target path ends up once the dragged item is taken out of the tree. */
+function shiftedTarget(from: Path, to: Path): Path {
+  const d = from.length - 1;
+  if (to.length > d && samePrefix(from, to, d) && from[d]! < to[d]!) { const n = [...to]; n[d] = to[d]! - 1; return n; }
+  return to;
+}
+
+/** Whether the item at `from` may be dropped before, after or inside the item at `to` (not onto itself or its children, and not deeper than MAX_DEPTH). */
+export function canMoveTo(items: MenuItem[], from: Path, to: Path, place: DropPlace): boolean {
+  const it = getItem(items, from);
+  if (!it || !getItem(items, to)) return false;
+  if (to.length >= from.length && samePrefix(from, to, from.length)) return false; // onto itself or one of its own children
+  const newDepth = place === 'inside' ? to.length + 1 : to.length;
+  return newDepth + depthOf(it) - 1 <= MAX_DEPTH;
+}
+
+/** Drag and drop: move the item at `from` before/after the item at `to`, or make it the last child of that item. */
+export function moveTo(items: MenuItem[], from: Path, to: Path, place: DropPlace): MenuItem[] {
+  if (!canMoveTo(items, from, to, place)) return items;
+  const it = getItem(items, from)!;
+  const target = shiftedTarget(from, to);
+  const removed = removeItem(items, from);
+  if (place === 'inside') return edit(removed, target, (l) => [...l, it]);
+  const at = target[target.length - 1]! + (place === 'after' ? 1 : 0);
+  return edit(removed, target.slice(0, -1), (l) => [...l.slice(0, at), it, ...l.slice(at)]);
+}

@@ -18,3 +18,5 @@ export * from './privacy';
 export * from './store-credit';
 export * from './orders-ops';
 export * from './channels';
+export * from './b2b';
+export * from './analytics';

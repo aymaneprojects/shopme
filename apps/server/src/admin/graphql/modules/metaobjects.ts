@@ -135,6 +135,8 @@ Definition_.implement({
     access: t.field({ type: Access, resolve: (d) => d }), capabilities: t.field({ type: Capabilities, resolve: (d) => d }),
     hasThumbnailField: t.boolean({ resolve: (d) => d.fieldDefinitions.some((f) => f.type === 'file_reference' || f.type === 'color') }),
     metaobjectsCount: t.int({ resolve: (d) => d.entryCount }),
+    /** ShopMe: definitions created by the platform or an app (reserved type prefixes), hidden from the list by default. */
+    shopmeSystem: t.boolean({ resolve: (d) => !!d.ownerApp || /^(shopify--|app--)/.test(d.type) }),
     metaobjects: t.field({
       type: MetaobjectConnection, args: ConnectionArgs,
       resolve: (d, a, ctx) => {
@@ -234,7 +236,7 @@ async function relations(ctx: GraphQLContext, e: Row) {
 Metaobject_.implement({
   interfaces: [Node],
   fields: (t) => ({
-    type: t.exposeString('type'), handle: t.exposeString('handle'), displayName: t.exposeString('displayName'),
+    type: t.exposeString('type'), handle: t.exposeString('handle'), displayName: t.exposeString('displayName'), shopmeExternalId: t.exposeString('externalId', { nullable: true }),
     fields: t.field({ type: [Field_], resolve: async (e, _a, ctx) => fieldsOf(e, await defOf(ctx, e)) }),
     field: t.field({ type: Field_, nullable: true, args: { key: t.arg.string({ required: true }) }, resolve: async (e, a, ctx) => fieldsOf(e, await defOf(ctx, e)).find((f) => f.def.key === a.key) ?? null }),
     values: t.field({ type: 'JSON', resolve: (e) => e.values }),
@@ -315,10 +317,10 @@ const PublishableDataInput = builder.inputType('MetaobjectCapabilityDataPublisha
 const OnlineStoreEntryInput = builder.inputType('MetaobjectCapabilityDataOnlineStoreInput', { fields: (t) => ({ templateSuffix: t.string() }) });
 const EntryCapsInput = builder.inputType('MetaobjectCapabilityDataInput', { fields: (t) => ({ publishable: t.field({ type: PublishableDataInput }), onlineStore: t.field({ type: OnlineStoreEntryInput }) }) });
 const CreateInput = builder.inputType('MetaobjectCreateInput', {
-  fields: (t) => ({ type: t.string({ required: true }), handle: t.string(), fields: t.field({ type: [FieldInput] }), capabilities: t.field({ type: EntryCapsInput }), values: t.field({ type: 'JSON' }) }),
+  fields: (t) => ({ type: t.string({ required: true }), handle: t.string(), shopmeExternalId: t.string(), fields: t.field({ type: [FieldInput] }), capabilities: t.field({ type: EntryCapsInput }), values: t.field({ type: 'JSON' }) }),
 });
 const UpdateInput = builder.inputType('MetaobjectUpdateInput', {
-  fields: (t) => ({ handle: t.string(), fields: t.field({ type: [FieldInput] }), capabilities: t.field({ type: EntryCapsInput }), redirectNewHandle: t.boolean({ defaultValue: false }), values: t.field({ type: 'JSON' }) }),
+  fields: (t) => ({ handle: t.string(), shopmeExternalId: t.string(), fields: t.field({ type: [FieldInput] }), capabilities: t.field({ type: EntryCapsInput }), redirectNewHandle: t.boolean({ defaultValue: false }), values: t.field({ type: 'JSON' }) }),
 });
 const UpsertInput = builder.inputType('MetaobjectUpsertInput', { fields: (t) => ({ handle: t.string(), fields: t.field({ type: [FieldInput] }), capabilities: t.field({ type: EntryCapsInput }) }) });
 const HandleInput = builder.inputType('MetaobjectHandleInput', { fields: (t) => ({ type: t.string({ required: true }), handle: t.string({ required: true }) }) });
@@ -428,7 +430,7 @@ builder.mutationFields((t) => ({
     type: CreatePayload, args: { metaobject: t.arg({ type: CreateInput, required: true }) },
     resolve: async (_r, { metaobject: m }, ctx) => {
       requireScope(ctx, 'write_metaobjects');
-      const r = await createMetaobject(ctx.db, ctx.shopId, { type: m.type, handle: m.handle, fields: m.fields, values: m.values as Record<string, unknown> | null, capabilities: caps(m.capabilities) }, staffOf(ctx));
+      const r = await createMetaobject(ctx.db, ctx.shopId, { type: m.type, handle: m.handle, externalId: m.shopmeExternalId, fields: m.fields, values: m.values as Record<string, unknown> | null, capabilities: caps(m.capabilities) }, staffOf(ctx));
       return r.ok ? { metaobject: r.value, userErrors: [] } : { metaobject: null, userErrors: r.errors };
     },
   }),
@@ -438,7 +440,7 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_metaobjects');
       const id = gidId(a.id, 'Metaobject');
       const m = a.metaobject;
-      const r = id ? await updateMetaobject(ctx.db, ctx.shopId, id, { handle: m.handle, fields: m.fields, values: m.values as Record<string, unknown> | null, capabilities: caps(m.capabilities), redirectNewHandle: m.redirectNewHandle })
+      const r = id ? await updateMetaobject(ctx.db, ctx.shopId, id, { handle: m.handle, externalId: m.shopmeExternalId, fields: m.fields, values: m.values as Record<string, unknown> | null, capabilities: caps(m.capabilities), redirectNewHandle: m.redirectNewHandle })
         : { ok: false as const, errors: [{ field: ['id'], message: 'Record not found.', code: 'RECORD_NOT_FOUND' }] };
       return r.ok ? { metaobject: r.value, userErrors: [] } : { metaobject: null, userErrors: r.errors };
     },

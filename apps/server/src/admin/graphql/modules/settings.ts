@@ -39,8 +39,11 @@ export const ShopAddress = builder.objectRef<AddressShape>('ShopAddress').implem
   }),
 });
 
-const Storefront = builder.objectRef<{ passwordEnabled: boolean; password: string; message: string }>('ShopmeStorefrontSettings').implement({
-  fields: (t) => ({ passwordEnabled: t.exposeBoolean('passwordEnabled'), password: t.exposeString('password'), passwordMessage: t.string({ resolve: (s) => s.message }) }),
+const Storefront = builder.objectRef<{ passwordEnabled: boolean; password: string; message: string; b2bOnly: boolean; homepageTitle: string; socialSharingImage: string }>('ShopmeStorefrontSettings').implement({
+  fields: (t) => ({
+    passwordEnabled: t.exposeBoolean('passwordEnabled'), password: t.exposeString('password'), passwordMessage: t.string({ resolve: (s) => s.message }),
+    b2bOnly: t.exposeBoolean('b2bOnly'), homepageTitle: t.exposeString('homepageTitle'), socialSharingImage: t.exposeString('socialSharingImage'),
+  }),
 });
 
 const UnitSystem = builder.enumType('UnitSystem', { values: ['IMPERIAL_SYSTEM', 'METRIC_SYSTEM'] as const });
@@ -59,6 +62,7 @@ const ShopInput = builder.inputType('ShopmeShopInput', {
     name: t.string(), email: t.string(), description: t.string(), currencyCode: t.field({ type: CurrencyCode }), ianaTimezone: t.string(), weightUnit: t.field({ type: 'WeightUnit' as never }),
     locale: t.string(), address: t.field({ type: MailingAddressInput }), moneyFormat: t.string(), moneyWithCurrencyFormat: t.string(), taxesIncluded: t.boolean(), taxShipping: t.boolean(),
     storefrontPasswordEnabled: t.boolean(), storefrontPassword: t.string(), storefrontPasswordMessage: t.string(),
+    b2bOnly: t.boolean(), homepageTitle: t.string(), socialSharingImage: t.string(),
     primaryDomain: t.string({ description: 'Hostname without scheme, e.g. shop.example.com; empty string clears it.' }),
   }),
 });
@@ -206,6 +210,7 @@ builder.mutationFields((t) => ({
         address: i.address ? { ...i.address, countryCode: i.address.countryCode ?? undefined } : undefined, moneyFormat: i.moneyFormat, moneyWithCurrencyFormat: i.moneyWithCurrencyFormat,
         taxesIncluded: i.taxesIncluded, taxShipping: i.taxShipping, storefrontPasswordEnabled: i.storefrontPasswordEnabled, storefrontPassword: i.storefrontPassword,
         storefrontPasswordMessage: i.storefrontPasswordMessage, primaryDomain: i.primaryDomain,
+        b2bOnly: i.b2bOnly, homepageTitle: i.homepageTitle, socialSharingImage: i.socialSharingImage,
       }, staffId(ctx));
       return r.ok ? { shop: r.value, userErrors: [] } : { shop: null, userErrors: r.errors.map((e) => ({ ...e, field: ['input', ...(e.field ?? [])] })) };
     },

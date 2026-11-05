@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { and, eq, ne } from 'drizzle-orm';
-import { findRedirect, productListedOnStorefront, returnRulesHtml, safeEqual, searchArticles, searchPages, searchProducts, suggestQueries, tokenize, schema as s, sha256, type CartView, type MarketContext, type Shop } from '@shopme/core';
+import { companiesOfCustomer, findRedirect, productListedOnStorefront, returnRulesHtml, safeEqual, searchArticles, searchPages, searchProducts, suggestQueries, tokenize, schema as s, sha256, type CartView, type MarketContext, type Shop } from '@shopme/core';
 import { formatMoney } from '@shopme/shopify-compat';
 import type { AppContext } from '../context';
 import { authenticate } from '../plugins/auth';
@@ -11,7 +11,7 @@ import { metaobjectPage } from './data/metaobject-pages';
 import { flashGlobals, takeFlash } from './flash';
 import { collectionAtom } from './seo';
 import type { ProductObject } from './data/types';
-import { buildCollection, buildGlobals, buildSearch, makeEnv, makeResolvers, pageInput, primaryShop, trPage, trProduct, type Env, type Query } from './env';
+import { buildCollection, buildGlobals, buildSearch, customerOf, makeEnv, makeResolvers, pageInput, primaryShop, trPage, trProduct, type Env, type Query } from './env';
 import { injectHead, pageDescriptor, privacyHead } from './privacy';
 import { buyerContext, injectShopifyGlobals } from './market';
 import { localizeHtml } from './locale';
@@ -70,7 +70,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     const fromQuery: Record<string, unknown> = query0.contact_posted === 'true' || query0.customer_posted === 'true'
       ? { __form_success: { contact: query0.contact_posted === 'true', customer: query0.customer_posted === 'true' } } : {};
     Object.assign(globals, fromQuery, flashGlobals(takeFlash(req, reply)), spec.extra ?? {}, {
-      page_title: escapeHtml(spec.title ? `${spec.title}${spec.title === env.shop.name ? '' : ` - ${env.shop.name}`}` : env.shop.name),
+      page_title: escapeHtml(spec.pageType === 'index' && spec.title ? spec.title : spec.title ? `${spec.title}${spec.title === env.shop.name ? '' : ` - ${env.shop.name}`}` : env.shop.name),
       page_description: spec.description ?? String((env.shop.settings as Record<string, unknown>).description ?? ''),
       handle: spec.pageType,
     });
@@ -95,7 +95,9 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     for (const e of errors) req.log.warn({ liquid: e }, 'liquid error');
     // Consent runtime, customer events and sandboxed pixels (not in the theme editor preview).
     const withPrivacy = editor ? page : injectHead(page, privacyHead(env.shop, env.privacy, pageDescriptor(spec.pageType, spec.extra, env.shop.currency), env.customer, env.locale));
-    const html = localizeHtml(injectShopifyGlobals(withPrivacy, env.market, env.locale), env.prefix);
+    const share = String((env.shop.settings as Record<string, unknown>).socialSharingImage ?? '');
+    const withShare = share && !editor && spec.pageType === 'index' && !/property=["']og:image["']/i.test(withPrivacy) ? injectHead(withPrivacy, `<meta property="og:image" content="${escapeHtml(share)}">`) : withPrivacy;
+    const html = localizeHtml(injectShopifyGlobals(withShare, env.market, env.locale), env.prefix);
     return reply.code(spec.status ?? 200).header('cache-control', 'no-cache').type('text/html; charset=utf-8').send(html);
   }
 
@@ -209,7 +211,19 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       return reply.redirect('/password', 302);
     });
 
-    app.get('/', withShop(async (req, reply, shop) => renderTemplate(req, reply, await makeEnv(ctx, req, shop), { template: 'index', pageType: 'index', title: shop.name })));
+    // B2B-only storefront: only signed-in customers who are contacts of a company get past the account pages.
+    app.addHook('onRequest', async (req, reply) => {
+      const path = req.url.split('?')[0]!;
+      if (path === '/password' || path === '/robots.txt' || path.startsWith('/cdn/') || path.startsWith('/account') || path.startsWith('/admin')) return;
+      const shop = await primaryShop(ctx);
+      if (!shop || (shop.settings as Record<string, unknown>).b2bOnly !== true) return;
+      if (await authenticate(req)) return;
+      const customer = await customerOf(ctx, req, shop);
+      if (customer && (await companiesOfCustomer(db, shop.id, customer.id)).length > 0) return;
+      return reply.redirect('/account/login', 302);
+    });
+
+    app.get('/', withShop(async (req, reply, shop) => renderTemplate(req, reply, await makeEnv(ctx, req, shop), { template: 'index', pageType: 'index', title: String((shop.settings as Record<string, unknown>).homepageTitle ?? '').trim() || shop.name })));
 
     const collectionsList = withShop(async (req, reply, shop) => renderTemplate(req, reply, await makeEnv(ctx, req, shop), { template: 'list-collections', pageType: 'list-collections', title: 'Collections' }));
     app.get('/collections', collectionsList);

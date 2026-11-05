@@ -245,7 +245,7 @@ export async function completeDraftOrder(db: Db, shop: Shop, id: number, o: { pa
     return res.error === 'out_of_stock' ? errR(['lineItems'], 'Not enough stock for one or more items', 'OUT_OF_STOCK') : errR(['id'], 'Draft order could not be completed', 'INVALID');
   }
   const now = new Date();
-  await db.update(orders).set({ tags: d.tags, poNumber: d.poNumber }).where(and(eq(orders.id, res.orderId), eq(orders.shopId, shop.id)));
+  await db.update(orders).set({ tags: d.tags, poNumber: d.poNumber, companyId: d.companyId, companyContactId: d.companyContactId, companyLocationId: d.companyLocationId }).where(and(eq(orders.id, res.orderId), eq(orders.shopId, shop.id)));
   await addEvent(db, shop.id, { subjectType: 'order', subjectId: res.orderId, verb: 'order.from_draft', message: `Created from draft order ${d.name}` });
   const [row] = await db.update(draftOrders).set({ status: 'COMPLETED', completedAt: now, orderId: res.orderId, updatedAt: now, subtotal: pricing.subtotal, totalDiscounts: pricing.totalDiscounts, totalShipping: pricing.totalShipping, totalTax: pricing.totalTax, total: pricing.total })
     .where(eq(draftOrders.id, id)).returning();

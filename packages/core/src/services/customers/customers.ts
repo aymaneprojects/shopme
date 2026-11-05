@@ -15,9 +15,11 @@ export async function getCustomer(db: Executor, shopId: number, id: number): Pro
   return r ?? null;
 }
 
-export async function addCustomerComment(db: Db, shopId: number, id: number, message: string, staffId: number | null) {
+export async function addCustomerComment(db: Db, shopId: number, id: number, message: string, staffId: number | null, attachments: string[] = []) {
   if (!(await getCustomer(db, shopId, id))) return errR(['id'], 'Customer does not exist');
-  return addComment(db, shopId, 'customer', id, message, staffId);
+  // Customer comments quietly drop anything that is not a file link (order comments reject it instead).
+  const links = attachments.map((u) => u.trim()).filter((u) => u.length <= 1000 && /^(\/|https?:\/\/)/i.test(u)).slice(0, 10);
+  return addComment(db, shopId, 'customer', id, message, staffId, links);
 }
 
 export function listCustomerAddresses(db: Executor, shopId: number, customerId: number, o: { reverse?: boolean; offset: number; limit: number }): Promise<CustomerAddress[]> {
@@ -55,6 +57,19 @@ const customerSearch = (q: string | null | undefined) => buildSearch(q, {
     verified_email: (_o, v) => sql`${customers.verifiedEmail} = ${v === 'true'}`,
     orders_count: (op, v) => (Number.isFinite(Number(v)) ? compare(sql`(select count(*) from orders o where o.customer_id = ${customers.id})`, op, Number(v)) : null),
     country: (_o, v) => sql`exists (select 1 from customer_addresses a where a.customer_id = ${customers.id} and (a.country_code ilike ${v} or a.country ilike ${v}))`,
+    amount_spent: (op, v) => (Number.isFinite(Number(v)) ? compare(sql`(select coalesce(sum(o.total - o.total_refunded), 0) from orders o where o.customer_id = ${customers.id} and o.cancelled_at is null)`, op, Math.round(Number(v) * 100)) : null),
+    tax_exempt: (_o, v) => sql`${customers.taxExempt} = ${v === 'true'}`,
+    language: (_o, v) => sql`${customers.locale} ilike ${`${v}%`}`,
+    email_subscription: (_o, v) => sql`${customers.emailMarketingState} = ${v.toUpperCase()}`,
+    sms_subscription: (_o, v) => sql`${customers.smsMarketingState} = ${v.toUpperCase()}`,
+    last_order_at: (op, v) => dateCompare(sql`(select max(o.processed_at) from orders o where o.customer_id = ${customers.id})`, op, v),
+    company: (_o, v) => (v === 'true' || v === 'false' ? sql`${v === 'true' ? sql`` : sql`not `}exists (select 1 from company_contacts cc where cc.customer_id = ${customers.id})` : sql`exists (select 1 from company_contacts cc join companies co on co.id = cc.company_id where cc.customer_id = ${customers.id} and co.name ilike ${`%${v}%`})`),
+    company_id: (_o, v) => sql`exists (select 1 from company_contacts cc where cc.customer_id = ${customers.id} and cc.company_id::text = ${v})`,
+    erasure: (_o, v) => (v === 'scheduled' ? sql`${customers.erasureScheduledAt} is not null` : v === 'erased' ? sql`${customers.erasedAt} is not null` : null),
+    abandoned_checkout_in_last: (_o, v) => {
+      const m = /^(\d{1,4})d?$/.exec(v);
+      return m ? sql`exists (select 1 from carts c where c.shop_id = ${customers.shopId} and c.email = ${customers.email} and c.completed_at is null and c.updated_at >= now() - (${Number(m[1])} * interval '1 day') and exists (select 1 from cart_lines l where l.cart_id = c.id))` : null;
+    },
     created_at: (op, v) => dateCompare(customers.createdAt, op, v),
     updated_at: (op, v) => dateCompare(customers.updatedAt, op, v),
   },

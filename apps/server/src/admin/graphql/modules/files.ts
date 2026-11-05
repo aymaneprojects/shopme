@@ -65,6 +65,9 @@ File_.implement({
   interfaces: [Node],
   resolveType,
   fields: (t) => ({
+    /** ShopMe: the public URL of any kind of file (images, videos, 3D models). */
+    shopmeUrl: t.field({ type: 'URL', nullable: true, resolve: (m, _a, ctx) => absUrl(ctx, m.url) }),
+    shopmeMimeType: t.string({ nullable: true, resolve: (m) => m.mimeType ?? null }),
     shopmeFilename: t.string({ nullable: true, resolve: async (m, _a, ctx) => (await metaOf(ctx, m)).filename }),
     shopmeFileSize: t.int({ nullable: true, resolve: async (m, _a, ctx) => (await metaOf(ctx, m)).byteSize }),
     shopmeReferences: t.field({ type: [FileReference], resolve: async (m, _a, ctx) => (await metaOf(ctx, m)).references }),

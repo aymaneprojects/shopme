@@ -82,10 +82,10 @@ const ReportRef = builder.objectRef<Report>('ShopmeReport').implement({
 builder.queryFields((t) => ({
   shopmeReport: t.field({
     type: ReportRef,
-    args: { name: t.arg({ type: ReportName, required: true }), from: t.arg.string({ required: true, description: 'YYYY-MM-DD, shop time zone.' }), to: t.arg.string({ required: true, description: 'YYYY-MM-DD, inclusive.' }), groupBy: t.arg({ type: GroupBy, defaultValue: 'DAY' }) },
+    args: { name: t.arg({ type: ReportName, required: true }), from: t.arg.string({ required: true, description: 'YYYY-MM-DD, shop time zone.' }), to: t.arg.string({ required: true, description: 'YYYY-MM-DD, inclusive.' }), groupBy: t.arg({ type: GroupBy, defaultValue: 'DAY' }), currency: t.arg.string({ description: 'Show money in this currency (shop currency or an enabled presentment currency with a rate).' }) },
     resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'read_reports');
-      const r = await shopmeReport(ctx.db, ctx.shopId, a.name, a.from, a.to, a.groupBy ?? 'DAY');
+      const r = await shopmeReport(ctx.db, ctx.shopId, a.name, a.from, a.to, a.groupBy ?? 'DAY', a.currency);
       if (!r) throw new GraphQLError('from and to must be YYYY-MM-DD dates with from <= to', { extensions: { code: 'BAD_USER_INPUT' } });
       return r;
     },

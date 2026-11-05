@@ -199,9 +199,10 @@ describe('timeline: attachments and emails', () => {
       if (Date.now() > end) throw new Error('no email event');
       await new Promise((r) => setTimeout(r, 50));
     }
-    const read = await g(`query($id: ID!) { order(id: $id) { events(first: 50) { nodes { ... on BasicEvent { action arguments } } } } }`, { id: oid });
+    const read = await g(`query($id: ID!) { order(id: $id) { events(first: 50) { nodes { ... on BasicEvent { action arguments shopmeEmailHtml } } } } }`, { id: oid });
     const mail = read.order.events.nodes.find((e: { action: string }) => e.action === 'order.email_sent');
-    expect(mail.arguments.html).toBeTruthy();
+    expect(mail.shopmeEmailHtml).toContain('<');
+    expect(mail.arguments.html).toBeUndefined();
   });
 });
 

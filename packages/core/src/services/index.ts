@@ -56,3 +56,4 @@ export * from './sms';
 export * from './delivery-ext';
 export * from './staff-roles';
 export * from './policy-templates';
+export * from './companies';

@@ -1,6 +1,6 @@
 import { Button, Card, Input, Select } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarClock } from 'lucide-react';
+import { CalendarClock, Eye } from 'lucide-react';
 import { gql } from '../api';
 import { TEMPLATE_SUFFIXES } from '../graphql';
 import { useI18n } from '../i18n';
@@ -62,12 +62,12 @@ export function VisibilityCard({ value, onChange }: { value: Visibility; onChang
 }
 
 /** Theme template select: the alternate templates the live theme provides for this kind of content. */
-export function TemplateCard({ kind, value, onChange }: { kind: 'page' | 'article' | 'blog'; value: string; onChange: (v: string) => void }) {
+export function TemplateCard({ kind, value, onChange, previewPath }: { kind: 'page' | 'article' | 'blog'; value: string; onChange: (v: string) => void; /** Storefront path of the saved item: the eye icon opens it with the chosen template. */ previewPath?: string | null }) {
   const { t } = useI18n();
   const q = useQuery({ queryKey: ['template-suffixes', kind], queryFn: async () => (await gql<{ shopmeTemplateSuffixes: string[] }>(TEMPLATE_SUFFIXES, { kind })).shopmeTemplateSuffixes });
   const list = q.data ?? [];
   return (
-    <Card title={t('template.title')}>
+    <Card title={t('template.title')} actions={previewPath ? <a href={`${previewPath}${previewPath.includes('?') ? '&' : '?'}view=${encodeURIComponent(value)}`} target="_blank" rel="noreferrer" className="btn btn-plain btn-icon btn-sm" aria-label={t('bc.template.preview')} title={t('bc.template.preview')}><Eye className="size-4" /></a> : undefined}>
       <Select aria-label={t('template.title')} help={t('template.help')} value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">{t('template.default')}</option>
         {list.map((s) => <option key={s} value={s}>{`${kind}.${s}`}</option>)}

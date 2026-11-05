@@ -1,5 +1,5 @@
 import {
-  attemptDelivery, dueDeliveries, getShop, onEvent, orderEventMail, recordOrderEmail, ORDER_EMAIL_VERBS, AUTOMATIC_EMAIL_VERBS, sendSms, purgeOldDeliveries, recordDeliveries, recordLowStockForOrder, sendNotification, shopUrl, topicsForVerb,
+  attemptDelivery, dueDeliveries, processDueCustomerErasures, getShop, onEvent, orderEventMail, recordOrderEmail, ORDER_EMAIL_VERBS, AUTOMATIC_EMAIL_VERBS, sendSms, purgeOldDeliveries, recordDeliveries, recordLowStockForOrder, sendNotification, shopUrl, topicsForVerb,
   type EventRow,
 } from '@shopme/core';
 import type { AppContext } from './context';
@@ -37,6 +37,7 @@ export function registerOpsJobs(ctx: AppContext): () => void {
     for (const d of await dueDeliveries(db)) queue.enqueue('webhook.deliver', { shopId: d.shopId, id: d.id });
   });
   queue.every('webhook-purge', 6 * 3600_000, async () => { await purgeOldDeliveries(db); });
+  queue.every('customer-erasure', 3600_000, async () => { await processDueCustomerErasures(db); });
 
   return onEvent((shopId: number, ev: EventRow) => {
     const job: EventJob = { shopId, verb: ev.verb, subjectId: ev.subjectId, data: ev.data };

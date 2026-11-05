@@ -1,10 +1,12 @@
-import { Badge, Banner, Card, ConfirmDialog, EmptyState, IndexTable, Pagination, Skeleton, Tabs, useToast } from '@shopme/ui';
+import { Badge, Banner, Card, ConfirmDialog, Dropdown, EmptyState, IndexTable, Pagination, Skeleton, Tabs, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Boxes, Search } from 'lucide-react';
+import { Boxes, Check, ChevronsUpDown, Eye, EyeOff, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { gql, mutate } from '../api';
+import { ColumnPicker, useColumnVisibility } from '../components/ColumnPicker';
+import { ContentTabs } from '../components/ContentTabs';
 import { LearnMore } from '../components/LearnMore';
 import { PageHeader } from '../components/PageHeader';
 import { searchCls, selectCls, useFormat, useListParams } from '../components/shared';
@@ -19,9 +21,10 @@ import type { Connection } from '../lib/hooks';
 import { previewValues } from '../lib/metaobjects';
 import type { EntryField } from '../lib/metaobjects';
 
-interface DefinitionRow { id: string; type: string; name: string; description: string | null; metaobjectsCount: number; updatedAt: string; capabilities: { publishable: { enabled: boolean }; onlineStore: { enabled: boolean } | null }; fieldDefinitions: Array<{ key: string }> }
+interface DefinitionRow { id: string; type: string; name: string; description: string | null; metaobjectsCount: number; updatedAt: string; shopmeSystem: boolean; capabilities: { publishable: { enabled: boolean }; onlineStore: { enabled: boolean } | null }; fieldDefinitions: Array<{ key: string }> }
 interface Summary { activeCount: number; draftCount: number; webPageCount: number; webPageEntryCount: number; totalCount: number; recent: Array<{ id: string; displayName: string; definition: { id: string; name: string } }> }
 
+const VIEWS = ['all', 'web', 'entries', 'empty'] as const;
 const entryPath = (type: string, id: string) => `/content/metaobjects/${encodeURIComponent(type)}/${gidToNum(id)}`;
 
 function Tile({ title, count, to }: { title: string; count: number; to: string }) {
@@ -41,9 +44,14 @@ export function MetaobjectsPage() {
   const fmt = useFormat();
   const [search, setSearch] = useState('');
   const term = useDebounced(search).trim();
+  const L = useListParams();
+  const cols = useColumnVisibility('metaobject-definitions');
+  const view = (VIEWS as readonly string[]).includes(L.get('view')) ? (L.get('view') as (typeof VIEWS)[number]) : 'all';
+  const showSystem = L.get('system') === '1';
   const summary = useQuery({ queryKey: ['mo-summary'], queryFn: async () => (await gql<{ shopmeMetaobjectsSummary: Summary }>(METAOBJECTS_SUMMARY)).shopmeMetaobjectsSummary });
   const defs = useQuery({ queryKey: ['mo-definitions', term], queryFn: async () => (await gql<{ metaobjectDefinitions: { nodes: DefinitionRow[] } }>(METAOBJECT_DEFINITIONS, { query: term || null })).metaobjectDefinitions.nodes, placeholderData: (p) => p });
   const s = summary.data;
+  const shown = (defs.data ?? []).filter((d) => (showSystem || !d.shopmeSystem) && (view === 'all' || (view === 'web' ? d.capabilities.onlineStore?.enabled : view === 'entries' ? d.metaobjectsCount > 0 : d.metaobjectsCount === 0)));
   const columns: Array<Column<DefinitionRow>> = [
     { key: 'name', header: t('mo.col.name'), cell: (d) => <div><span className="font-medium">{d.name}</span><p className="font-mono text-xs text-muted">{d.type}</p></div> },
     { key: 'count', header: t('mo.col.entries'), cell: (d) => d.metaobjectsCount },
@@ -53,6 +61,7 @@ export function MetaobjectsPage() {
   ];
   return (
     <>
+      <ContentTabs />
       <PageHeader icon={<Boxes className="size-4" />} title={t('mo.title')} actions={<>
         <Link to="/settings/metafields/metaobjects" className="btn btn-secondary">{t('mo.manage')}</Link>
         <Link to="/settings/metafields/metaobjects/new" className="btn btn-primary">{t('mo.addDefinition')}</Link>
@@ -81,10 +90,14 @@ export function MetaobjectsPage() {
             <Search className="pointer-events-none absolute left-2.5 top-2 size-4 text-muted" />
             <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('mo.searchDefinitions')} aria-label={t('mo.searchDefinitions')} className={searchCls} />
           </div>
+          <Dropdown align="right" variant="secondary" size="sm" label={t('bc.mo.view')} trigger={<>{t(`bc.mo.view.${view}` as Key)}<ChevronsUpDown className="size-3.5 text-muted" /></>}
+            items={VIEWS.map((v) => ({ key: v, label: t(`bc.mo.view.${v}` as Key), icon: view === v ? <Check className="size-4" /> : undefined, onSelect: () => L.patch({ view: v === 'all' ? '' : v }) }))} />
+          <ColumnPicker locked={['name']} columns={columns} hidden={cols.hidden} onToggle={cols.toggle} />
+          <button type="button" className="btn btn-secondary btn-icon btn-sm" aria-pressed={showSystem} aria-label={t(showSystem ? 'bc.mo.hideSystem' : 'bc.mo.showSystem')} title={t(showSystem ? 'bc.mo.hideSystem' : 'bc.mo.showSystem')} onClick={() => L.patch({ system: showSystem ? '' : '1' })}>{showSystem ? <Eye className="size-4" /> : <EyeOff className="size-4" />}</button>
         </div>
         {defs.isError && <div className="p-3"><Banner>{(defs.error as Error).message}</Banner></div>}
-        <IndexTable rows={defs.data ?? []} rowId={(d) => d.id} columns={columns} loading={defs.isLoading} onRowClick={(d) => nav(`/content/metaobjects/${encodeURIComponent(d.type)}`)}
-          empty={term ? <EmptyState icon={<Search className="size-10" />} title={t('mo.noDefinitionFound')} description={t('content.noResultsBody')} />
+        <IndexTable rows={shown} rowId={(d) => d.id} columns={cols.filter(columns)} loading={defs.isLoading} onRowClick={(d) => nav(`/content/metaobjects/${encodeURIComponent(d.type)}`)}
+          empty={term || view !== 'all' ? <EmptyState icon={<Search className="size-10" />} title={t('mo.noDefinitionFound')} description={t('content.noResultsBody')} />
             : <EmptyState icon={<Boxes className="size-10" />} title={t('mo.emptyTitle')} description={t('mo.emptyBody')} action={<Link to="/settings/metafields/metaobjects/new" className="btn btn-primary">{t('mo.addDefinition')}</Link>} />} />
       </Card>
       <LearnMore topic={t('qaf.learn.metaobjects')} />

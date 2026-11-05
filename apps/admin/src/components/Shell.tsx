@@ -1,5 +1,5 @@
 import { Dropdown, Skeleton, cx, useToast } from '@shopme/ui';
-import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
+import { BarChart3, Check, Gift, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Building2, Activity, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -34,11 +34,16 @@ export const NAV: NavItem[] = [
       { id: 'gift-cards', labelKey: 'nav.giftCards', to: '/gift-cards', icon: Gift },
     ],
   },
-  { id: 'customers', labelKey: 'nav.customers', to: '/customers', icon: Users, children: [{ id: 'segments', labelKey: 'nav.segments', to: '/customers/segments', icon: Users }] },
+  { id: 'customers', labelKey: 'nav.customers', to: '/customers', icon: Users, children: [{ id: 'segments', labelKey: 'nav.segments', to: '/customers/segments', icon: Users }, { id: 'companies', labelKey: 'bc.companies', to: '/customers/companies', icon: Building2 }] },
   { id: 'discounts', labelKey: 'nav.discounts', to: '/discounts', icon: Percent },
-  { id: 'content', labelKey: 'nav.content', to: '/content', icon: Boxes, children: [{ id: 'metaobjects', labelKey: 'nav.metaobjects', to: '/content/metaobjects', icon: Boxes }] },
+  { id: 'content', labelKey: 'nav.content', to: '/content', icon: Boxes, children: [
+    { id: 'metaobjects', labelKey: 'nav.metaobjects', to: '/content/metaobjects', icon: Boxes },
+    { id: 'content-files', labelKey: 'store.files', to: '/content/files', icon: FileText },
+    { id: 'content-menus', labelKey: 'nav.contentMenus', to: '/content/navigation', icon: Menu },
+    { id: 'content-blog-posts', labelKey: 'store.blogPosts', to: '/content/blog-posts', icon: FileText },
+  ] },
   { id: 'markets', labelKey: 'nav.markets', to: '/markets', icon: Globe, children: [{ id: 'catalogs', labelKey: 'nav.catalogs', to: '/markets/catalogs', icon: BookOpen }] },
-  { id: 'analytics', labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, children: [{ id: 'reports', labelKey: 'nav.reports', to: '/analytics/reports', icon: FileText }] },
+  { id: 'analytics', labelKey: 'nav.analytics', to: '/analytics', icon: BarChart3, children: [{ id: 'reports', labelKey: 'nav.reports', to: '/analytics/reports', icon: FileText }, { id: 'live-view', labelKey: 'bc.analytics.live', to: '/analytics/live', icon: Activity }] },
   { id: 'marketing', labelKey: 'nav.growth', to: '/marketing', icon: Megaphone },
   {
     id: 'online-store', labelKey: 'nav.onlineStore', to: '/online-store', icon: Store,

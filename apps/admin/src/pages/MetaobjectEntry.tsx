@@ -22,7 +22,7 @@ interface DefinitionData {
   fieldDefinitions: Array<Omit<FieldSpec, 'type'> & { type: { name: string } }>;
 }
 interface EntryData {
-  id: string; handle: string; displayName: string; type: string; updatedAt: string; createdAt: string;
+  id: string; handle: string; shopmeExternalId: string | null; displayName: string; type: string; updatedAt: string; createdAt: string;
   capabilities: { publishable: { status: string } | null; onlineStore: { templateSuffix: string | null } | null };
   definition: DefinitionData; fields: FieldData[];
   referencedBy: { nodes: Array<{ key: string; name: string; namespace: string; referencer: { __typename: string; id: string; displayName?: string; title?: string } }> };
@@ -69,7 +69,7 @@ function EntryForm({ entry, definition: raw }: { entry: EntryData | null; defini
   const online = definition.capabilities.onlineStore;
   const initial = useMemo(() => ({
     values: Object.fromEntries(definition.fieldDefinitions.map((f) => [f.key, entry?.fields.find((x) => x.key === f.key)?.value ?? ''])) as Record<string, string>,
-    handle: entry?.handle ?? '', status: entry?.capabilities.publishable?.status ?? 'ACTIVE', templateSuffix: entry?.capabilities.onlineStore?.templateSuffix ?? '', redirect: false,
+    handle: entry?.handle ?? '', externalId: entry?.shopmeExternalId ?? '', status: entry?.capabilities.publishable?.status ?? 'ACTIVE', templateSuffix: entry?.capabilities.onlineStore?.templateSuffix ?? '', redirect: false,
   }), [definition, entry]);
   const [form, setForm] = useState(initial);
   const [labels, setLabels] = useState<Labels>(() => {
@@ -93,10 +93,10 @@ function EntryForm({ entry, definition: raw }: { entry: EntryData | null; defini
       setErrors({}); setBanner(null);
       const capabilities = { ...(publishable && { publishable: { status: form.status } }), ...(online?.enabled && { onlineStore: { templateSuffix: form.templateSuffix || null } }) };
       if (entry) {
-        await mutate(METAOBJECT_UPDATE, { id: entry.id, metaobject: { fields: fieldsInput(), handle: form.handle.trim() || undefined, redirectNewHandle: form.redirect, capabilities } }, 'metaobjectUpdate');
+        await mutate(METAOBJECT_UPDATE, { id: entry.id, metaobject: { fields: fieldsInput(), handle: form.handle.trim() || undefined, shopmeExternalId: form.externalId.trim(), redirectNewHandle: form.redirect, capabilities } }, 'metaobjectUpdate');
         return entry.id;
       }
-      return (await mutate<{ metaobject: { id: string } }>(METAOBJECT_CREATE, { metaobject: { type: definition.type, fields: fieldsInput(), handle: form.handle.trim() || undefined, capabilities } }, 'metaobjectCreate')).metaobject.id;
+      return (await mutate<{ metaobject: { id: string } }>(METAOBJECT_CREATE, { metaobject: { type: definition.type, fields: fieldsInput(), handle: form.handle.trim() || undefined, shopmeExternalId: form.externalId.trim() || undefined, capabilities } }, 'metaobjectCreate')).metaobject.id;
     },
     onSuccess: (id) => {
       toast(t('mo.entrySaved'));
@@ -184,6 +184,7 @@ function EntryForm({ entry, definition: raw }: { entry: EntryData | null; defini
               <Input label={t('mo.handle')} className="flex-1" value={form.handle} placeholder={entry ? undefined : t('mo.handleAuto')} onChange={(e) => set({ handle: e.target.value.toLowerCase() })} help={t('mo.handleHelp')} />
               {entry && <Button icon aria-label={t('mo.copyHandle')} onClick={() => { void navigator.clipboard?.writeText(form.handle).then(() => toast(t('mo.copied'))); }}><Copy className="size-4" /></Button>}
             </div>
+            <Input className="mt-3" label={t('bc.mo.externalId')} help={t('bc.mo.externalIdHelp')} value={form.externalId} onChange={(e) => set({ externalId: e.target.value })} />
             {entry && online?.enabled && form.handle !== initial.handle && <label className="mt-2 flex items-center gap-2 text-[13px]"><input type="checkbox" checked={form.redirect} onChange={(e) => set({ redirect: e.target.checked })} />{t('mo.redirectHandle')}</label>}
           </Card>
           {online?.enabled && (

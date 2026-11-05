@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
+import { DraftCompanySection } from '../../components/CompanyOrderCards';
 import { PageTitle, SideSection, TopBar } from '../../components/OrderChrome';
 import { ColumnPicker, useColumnVisibility } from '../../components/ColumnPicker';
 import { VariantPicker } from '../../components/Pickers';
@@ -270,6 +271,7 @@ function DraftForm_({ draft, initial }: { draft: DraftData | null; initial: Draf
             </Select>
             <p className="mt-1 text-xs text-muted">{t('btn.draft.marketHelp', { currency: currency })}</p>
           </SideSection>
+          {draft && <DraftCompanySection draftId={draft.id} locked={completed} />}
           <SideSection title={t('field.tags')}><TagInput value={form.tags} onChange={(tags) => set({ tags })} removeLabel={t('common.remove')} /></SideSection>
         </fieldset>
       </div>

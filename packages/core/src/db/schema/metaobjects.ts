@@ -41,9 +41,11 @@ export const metaobjects = pgTable('metaobjects', {
   displayName: text('display_name').notNull().default(''),
   values: jsonb('values').$type<Record<string, string>>().notNull().default({}),
   templateSuffix: text('template_suffix'),
+  /** ShopMe: the entry's id in another system (unique per type) for imports and syncs. */
+  externalId: text('external_id'),
   createdByStaffId: ref('created_by_staff_id'), createdByApp: text('created_by_app'),
   ...timestamps(),
-}, (t) => [uniqueIndex('metaobjects_handle_uq').on(t.shopId, t.type, t.handle), index('metaobjects_def_idx').on(t.definitionId, t.updatedAt)]);
+}, (t) => [uniqueIndex('metaobjects_handle_uq').on(t.shopId, t.type, t.handle), uniqueIndex('metaobjects_external_uq').on(t.shopId, t.type, t.externalId), index('metaobjects_def_idx').on(t.definitionId, t.updatedAt)]);
 
 /** Reverse index: which entry fields and metafields point at an entry (referencedBy, delete checks). */
 export const metaobjectReferences = pgTable('metaobject_references', {

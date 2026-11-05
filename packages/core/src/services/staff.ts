@@ -14,7 +14,7 @@ export const INVITE_TTL_MS = 7 * 24 * 3600 * 1000;
 const AREA_SCOPES: Record<PermissionArea, string[]> = {
   products: ['products', 'inventory', 'locations', 'files'],
   orders: ['orders', 'fulfillments', 'draft_orders', 'reports'],
-  customers: ['customers'],
+  customers: ['customers', 'companies'],
   discounts: ['discounts'],
   online_store: ['themes', 'online_store_pages', 'online_store_navigation', 'translations'],
   settings: ['shop', 'shipping', 'webhooks', 'locales'],

@@ -15,6 +15,7 @@ import { SaveBar, guard } from '../../components/SaveBar';
 import { useFormat } from '../../components/shared';
 import { gidToNum, numToGid } from '../../format';
 import { ARTICLE, ARTICLES, ARTICLE_CREATE, ARTICLE_DELETE, ARTICLE_UPDATE, BLOGS, BLOG_CREATE, BLOG_DELETE, BLOG_UPDATE } from '../../graphql';
+import { useStoreBase } from '../../lib/hooks';
 import { useI18n } from '../../i18n';
 import { useShop } from '../../session';
 
@@ -25,6 +26,7 @@ const errText = (e: unknown) => (e instanceof UserErrors ? e.errors.map((x) => x
 interface ArticleRow { id: string; title: string; isPublished: boolean; updatedAt: string; tags: string[]; author: { name: string } | null; blog: { id: string; title: string } | null }
 
 export function BlogPostsPage() {
+  const base = useStoreBase();
   const { t } = useI18n();
   const nav = useNavigate();
   const fmt = useFormat();
@@ -35,13 +37,13 @@ export function BlogPostsPage() {
     { key: 'status', header: t('pages.visibility'), cell: (a) => <Badge tone={a.isPublished ? 'success' : 'neutral'}>{t(a.isPublished ? 'pages.visible' : 'pages.hidden')}</Badge> },
     { key: 'updated', header: t('pages.updated'), cell: (a) => fmt.dateTime(a.updatedAt) },
   ];
-  const add = <Button variant="primary" onClick={() => nav('/online-store/blog-posts/new')}>{t('blogs.addPost')}</Button>;
+  const add = <Button variant="primary" onClick={() => nav(`${base}/blog-posts/new`)}>{t('blogs.addPost')}</Button>;
   return (
     <div className="flex flex-col gap-4">
       <StoreActions><Link to="/online-store/blogs" className="btn btn-secondary"><Pencil className="size-4" />{t('blogs.manage')}</Link>{add}</StoreActions>
-      <VisibilityList<ArticleRow> queryKey="articles" doc={ARTICLES} root="articles" columns={columns} searchLabel={t('blogs.searchPosts')}
+      <VisibilityList<ArticleRow> viewResource="ARTICLE" queryKey="articles" doc={ARTICLES} root="articles" columns={columns} searchLabel={t('blogs.searchPosts')}
         sorts={[{ key: 'UPDATED_AT', label: t('pages.updated') }, { key: 'TITLE', label: t('field.title') }, { key: 'AUTHOR', label: t('blogs.author') }, { key: 'BLOG_TITLE', label: t('blogs.blog') }]}
-        onRowClick={(r) => nav(`/online-store/blog-posts/${gidToNum(r.id)}`)}
+        onRowClick={(r) => nav(`${base}/blog-posts/${gidToNum(r.id)}`)}
         setVisible={{ doc: ARTICLE_UPDATE, field: 'articleUpdate', vars: (id, v) => ({ id, article: { isPublished: v } }) }}
         remove={{ doc: ARTICLE_DELETE, field: 'articleDelete', vars: (id) => ({ id }) }}
         deleteTitle={(n) => t('blogs.deleteManyTitle', { n })} deleteBody={t('blogs.deletePostBody')}
@@ -74,6 +76,7 @@ export function BlogPostEditPage() {
 }
 
 function PostForm({ id, initial, blogs }: { id: string | null; initial: ArticleForm; blogs: Blog[] }) {
+  const base = useStoreBase();
   const { t } = useI18n();
   const nav = useNavigate();
   const toast = useToast();
@@ -95,14 +98,14 @@ function PostForm({ id, initial, blogs }: { id: string | null; initial: ArticleF
       if (id) { await mutate(ARTICLE_UPDATE, { id, article }, 'articleUpdate'); return id; }
       return (await mutate<{ article: { id: string } }>(ARTICLE_CREATE, { article }, 'articleCreate')).article.id;
     },
-    onSuccess: (aid) => { toast(t('blogs.saved')); void qc.invalidateQueries({ queryKey: ['articles'] }); void qc.invalidateQueries({ queryKey: ['article'] }); if (!id) { guard.off = true; nav(`/online-store/blog-posts/${gidToNum(aid)}`, { replace: true }); } },
+    onSuccess: (aid) => { toast(t('blogs.saved')); void qc.invalidateQueries({ queryKey: ['articles'] }); void qc.invalidateQueries({ queryKey: ['article'] }); if (!id) { guard.off = true; nav(`${base}/blog-posts/${gidToNum(aid)}`, { replace: true }); } },
     onError: (e) => { if (e.message !== 'validation') setError(errText(e)); },
   });
-  const del = useMutation({ mutationFn: () => mutate(ARTICLE_DELETE, { id }, 'articleDelete'), onSuccess: () => { void qc.invalidateQueries({ queryKey: ['articles'] }); guard.off = true; nav('/online-store/blog-posts'); }, onError: (e) => toast(e.message, 'critical') });
+  const del = useMutation({ mutationFn: () => mutate(ARTICLE_DELETE, { id }, 'articleDelete'), onSuccess: () => { void qc.invalidateQueries({ queryKey: ['articles'] }); guard.off = true; nav(`${base}/blog-posts`); }, onError: (e) => toast(e.message, 'critical') });
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setError(null); }} />
-      <PageHeader back="/online-store/blog-posts" title={id ? form.title || t('pages.untitled') : t('blogs.addPost')}
+      <PageHeader back={`${base}/blog-posts`} title={id ? form.title || t('pages.untitled') : t('blogs.addPost')}
         more={id ? [{ key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirm(true) }] : undefined} />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
@@ -117,7 +120,7 @@ function PostForm({ id, initial, blogs }: { id: string | null; initial: ArticleF
         </div>
         <div className="flex flex-col gap-4">
           <VisibilityCard value={form} onChange={(v) => set(v)} />
-          <TemplateCard kind="article" value={form.templateSuffix} onChange={(templateSuffix) => set({ templateSuffix })} />
+          <TemplateCard kind="article" value={form.templateSuffix} onChange={(templateSuffix) => set({ templateSuffix })} previewPath={id && form.handle ? `/blogs/${blogs.find((b) => b.id === form.blogId)?.handle ?? ''}/${form.handle}` : null} />
           <Card title={t('blogs.image')}>
             <div className="flex flex-col gap-3">
               {form.imageUrl && <img src={form.imageUrl} alt={form.imageAlt} className="max-h-48 w-fit rounded-md border border-line object-contain" />}

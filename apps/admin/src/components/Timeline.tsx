@@ -1,9 +1,9 @@
 import { Banner, Button, ConfirmDialog, Modal, Skeleton, uploadFile, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AtSign, ChevronDown, Hash, Paperclip, Smile, Trash2, X } from 'lucide-react';
+import { AtSign, ChevronDown, Hash, Mail, Paperclip, Smile, Trash2, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { gql, mutate } from '../api';
-import { CUSTOMER_TIMELINE, CUSTOMER_TIMELINE_COMMENT_CREATE, ORDER_COMMENT_CREATE, ORDER_TIMELINE, TIMELINE_COMMENT_DELETE } from '../graphql';
+import { CUSTOMER_TIMELINE, CUSTOMER_TIMELINE_COMMENT_CREATE, EMAIL_EVENT_BODY, ORDER_COMMENT_CREATE, ORDER_TIMELINE, TIMELINE_COMMENT_DELETE } from '../graphql';
 import { useI18n } from '../i18n';
 import type { Key } from '../i18n';
 import { dayLabel, eventText, groupByDay, type TimelineEvent } from '../lib/timeline';
@@ -29,10 +29,10 @@ export function Timeline({ kind, id, refreshKey, confirmationNumber, transaction
   const [text, setText] = useState('');
   const [files, setFiles] = useState<Array<{ url: string; name: string }>>([]);
   const [uploading, setUploading] = useState(false);
-  const [email, setEmail] = useState<{ subject: string; html: string; to: string } | null>(null);
   const [open, setOpen] = useState<string[]>([]);
   const picker = useRef<HTMLInputElement>(null);
   const [removing, setRemoving] = useState<TimelineEvent | null>(null);
+  const [emailEvent, setEmailEvent] = useState<TimelineEvent | null>(null);
   const key = ['timeline', kind, id, refreshKey];
   const q = useQuery({ queryKey: key, queryFn: () => gql<Data>(kind === 'order' ? ORDER_TIMELINE : CUSTOMER_TIMELINE, { id }) });
   const reload = () => qc.invalidateQueries({ queryKey: ['timeline', kind, id] });
@@ -41,7 +41,7 @@ export function Timeline({ kind, id, refreshKey, confirmationNumber, transaction
   const post = useMutation({
     mutationFn: () => (kind === 'order'
       ? mutate(ORDER_COMMENT_CREATE, { id, message: text.trim(), attachments: files.map((f) => f.url) }, 'orderTimelineCommentCreate')
-      : mutate(CUSTOMER_TIMELINE_COMMENT_CREATE, { id, message: text.trim() }, 'customerTimelineCommentCreate')),
+      : mutate(CUSTOMER_TIMELINE_COMMENT_CREATE, { id, message: text.trim(), attachments: files.map((f) => f.url) }, 'customerTimelineCommentCreate')),
     onSuccess: () => { setText(''); setFiles([]); void reload(); }, onError: fail,
   });
   const del = useMutation({
@@ -81,12 +81,8 @@ export function Timeline({ kind, id, refreshKey, confirmationNumber, transaction
             onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && text.trim() && !post.isPending) post.mutate(); }} />
         </div>
         <div className="flex items-center gap-1 bg-surface px-3 py-2">
-          {kind === 'order' && (
-            <>
-              <input ref={picker} type="file" multiple hidden aria-hidden tabIndex={-1} onChange={(e) => void attach(e.target.files)} />
-              <button type="button" aria-label={t('btn.timeline.attach')} title={t('btn.timeline.attach')} disabled={uploading || files.length >= 10} onClick={() => picker.current?.click()} className="grid size-7 place-items-center rounded-md text-muted hover:bg-hover hover:text-fg disabled:opacity-50"><Paperclip className="size-4" /></button>
-            </>
-          )}
+          <input ref={picker} type="file" multiple hidden aria-hidden tabIndex={-1} onChange={(e) => void attach(e.target.files)} />
+          <button type="button" aria-label={t('btn.timeline.attach')} title={t('btn.timeline.attach')} disabled={uploading || files.length >= 10} onClick={() => picker.current?.click()} className="grid size-7 place-items-center rounded-md text-muted hover:bg-hover hover:text-fg disabled:opacity-50"><Paperclip className="size-4" /></button>
           {([[Smile, '🙂'], [AtSign, '@'], [Hash, '#']] as const).map(([Icon, ch], i) => (
             <button key={i} type="button" aria-label={ch} onClick={() => setText((v) => v + ch)} className="grid size-7 place-items-center rounded-md text-muted hover:bg-hover hover:text-fg"><Icon className="size-4" /></button>
           ))}
@@ -118,7 +114,11 @@ export function Timeline({ kind, id, refreshKey, confirmationNumber, transaction
                       <div className="min-w-0 flex-1 rounded-lg bg-canvas p-3 shadow-card">
                         <p className="mb-1 text-xs text-muted">{who ?? t('timeline.staff')}</p>
                         {(e.rawMessage ?? e.message) && <p className="whitespace-pre-wrap break-words">{e.rawMessage ?? e.message}</p>}
-                        {!!e.attachments?.length && <ul className="mt-1 flex flex-wrap gap-1.5">{e.attachments.map((u) => <li key={u}><a href={u} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md bg-surface px-2 py-0.5 text-xs text-accent underline"><Paperclip className="size-3" aria-hidden />{fileName(u)}</a></li>)}</ul>}
+                        {!!e.attachments?.length && (
+                          <ul className="mt-1 flex flex-wrap gap-2">
+                            {e.attachments.map((u) => <li key={u}>{/\.(png|jpe?g|gif|webp|avif|svg)(\?|$)/i.test(u) ? <a href={u} target="_blank" rel="noreferrer"><img src={u} alt="" className="h-16 rounded-md border border-line object-cover" /></a> : <a href={u} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-md bg-surface px-2 py-0.5 text-xs text-accent underline"><Paperclip className="size-3" aria-hidden />{fileName(u)}</a>}</li>)}
+                          </ul>
+                        )}
                       </div>
                     ) : (
                       <div className="min-w-0 flex-1">
@@ -129,15 +129,14 @@ export function Timeline({ kind, id, refreshKey, confirmationNumber, transaction
                               className="ml-1 inline-grid size-5 place-items-center rounded align-middle text-muted hover:bg-hover"><ChevronDown className={`size-3.5 transition-transform ${open.includes(e.id) ? 'rotate-180' : ''}`} /></button>
                           )}
                         </p>
+                        {e.action === 'customers/email_sent' && <button type="button" onClick={() => setEmailEvent(e)} className="mt-0.5 inline-flex items-center gap-1 text-xs text-accent hover:underline"><Mail className="size-3" />{t('bc.timeline.showEmail')}</button>}
                         {who && <p className="text-xs text-muted">{who}</p>}
                         {open.includes(e.id) && (
                           <ul className="mt-1.5 flex flex-col gap-1 rounded-lg bg-surface p-2 text-xs">
                             {transactions.map((x) => <li key={x.id} className="flex flex-wrap justify-between gap-x-3"><span>{t(`btn.timeline.tx.${x.kind}` as Key)} · {x.gateway.replace(/[_-]/g, ' ')}{x.status !== 'SUCCESS' ? ` · ${x.status.toLowerCase()}` : ''}</span><span className="tabular-nums">{fmt.money(x.amountSet)} · {fmt.dateTime(x.createdAt)}</span></li>)}
                           </ul>
                         )}
-                        {e.action === 'order.email_sent' && typeof e.arguments?.html === 'string' && (
-                          <Button size="sm" className="mt-1.5" onClick={() => setEmail({ subject: String(e.arguments?.subject ?? ''), html: String(e.arguments?.html), to: String(e.arguments?.to ?? '') })}>{t('btn.timeline.showEmail')}</Button>
-                        )}
+                        {e.action === 'order.email_sent' && <Button size="sm" className="mt-1.5" onClick={() => setEmailEvent(e)}>{t('btn.timeline.showEmail')}</Button>}
                       </div>
                     )}
                     <span className="flex shrink-0 items-center gap-1 pt-0.5 text-xs text-muted">
@@ -154,16 +153,22 @@ export function Timeline({ kind, id, refreshKey, confirmationNumber, transaction
           </div>
         ))}
       </div>
-      <Modal open={!!email} onClose={() => setEmail(null)} title={email?.subject || t('btn.timeline.emailTitle')} closeLabel={t('common.close')} wide footer={<Button onClick={() => setEmail(null)}>{t('common.close')}</Button>}>
-        {email && (
-          <>
-            <p className="mb-2 text-[13px] text-muted">{t('btn.timeline.emailTo', { to: email.to })}</p>
-            <iframe title={email.subject || t('btn.timeline.emailTitle')} sandbox="" srcDoc={email.html} className="h-[60vh] w-full rounded-lg border border-line bg-white" />
-          </>
-        )}
-      </Modal>
+      <EmailDialog event={emailEvent} onClose={() => setEmailEvent(null)} />
       <ConfirmDialog open={!!removing} danger loading={del.isPending} onClose={() => setRemoving(null)} closeLabel={t('common.close')} title={t('timeline.deleteTitle')}
         message={t('timeline.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => removing && del.mutate(removing.id)} />
     </section>
+  );
+}
+
+/** The body of an email the store sent to the customer, in a sandboxed frame so its markup cannot touch the admin. */
+function EmailDialog({ event, onClose }: { event: TimelineEvent | null; onClose: () => void }) {
+  const { t } = useI18n();
+  const q = useQuery({ queryKey: ['email-event', event?.id], enabled: !!event, queryFn: async () => (await gql<{ node: { shopmeEmailHtml: string | null } | null }>(EMAIL_EVENT_BODY, { id: event!.id })).node?.shopmeEmailHtml ?? null });
+  const args = event?.arguments ?? {};
+  return (
+    <Modal open={!!event} onClose={onClose} wide title={String(args.subject ?? t('bc.timeline.email'))} closeLabel={t('common.close')} footer={<Button onClick={onClose}>{t('common.close')}</Button>}>
+      <p className="mb-2 text-[13px] text-muted">{t('bc.timeline.emailTo', { to: String(args.to ?? '') })}</p>
+      {q.isLoading ? <Skeleton className="h-64" /> : q.data ? <iframe title={String(args.subject ?? t('bc.timeline.email'))} sandbox="" srcDoc={q.data} className="h-[28rem] w-full rounded-md border border-line bg-white" /> : <p className="text-[13px] text-muted">{t('bc.timeline.emailGone')}</p>}
+    </Modal>
   );
 }
