@@ -16,12 +16,15 @@ const HANDLE_RE = /^[a-z0-9][a-z0-9_-]{0,254}$/;
 
 export interface EntryFieldInput { key: string; value: string }
 export interface EntryCapabilitiesInput { publishable?: { status: string } | null; onlineStore?: { templateSuffix?: string | null } | null }
-export interface EntryCreateInput { type: string; handle?: string | null; fields?: EntryFieldInput[] | null; values?: Record<string, unknown> | null; capabilities?: EntryCapabilitiesInput | null }
-export interface EntryUpdateInput { handle?: string | null; fields?: EntryFieldInput[] | null; values?: Record<string, unknown> | null; capabilities?: EntryCapabilitiesInput | null; redirectNewHandle?: boolean | null }
+export interface EntryCreateInput { type: string; handle?: string | null; externalId?: string | null; fields?: EntryFieldInput[] | null; values?: Record<string, unknown> | null; capabilities?: EntryCapabilitiesInput | null }
+export interface EntryUpdateInput { handle?: string | null; externalId?: string | null; fields?: EntryFieldInput[] | null; values?: Record<string, unknown> | null; capabilities?: EntryCapabilitiesInput | null; redirectNewHandle?: boolean | null }
 export interface Actor { staffId?: number | null; app?: string | null }
 
 export async function getMetaobject(db: Executor, shopId: number, id: number): Promise<Metaobject | null> {
   return (await db.select().from(metaobjects).where(and(eq(metaobjects.shopId, shopId), eq(metaobjects.id, id))))[0] ?? null;
+}
+async function externalTaken(db: Executor, shopId: number, type: string, externalId: string): Promise<boolean> {
+  return !!(await db.select({ id: metaobjects.id }).from(metaobjects).where(and(eq(metaobjects.shopId, shopId), eq(metaobjects.type, type), eq(metaobjects.externalId, externalId))))[0];
 }
 export async function getMetaobjectByHandle(db: Executor, shopId: number, type: string, handle: string): Promise<Metaobject | null> {
   return (await db.select().from(metaobjects).where(and(eq(metaobjects.shopId, shopId), eq(metaobjects.type, type), sql`lower(${metaobjects.handle}) = ${handle.toLowerCase()}`)))[0] ?? null;
@@ -156,6 +159,8 @@ export async function createMetaobject(db: Db, shopId: number, i: EntryCreateInp
     if (def.entryCount >= MAX_ENTRIES) return moFail(moErr(['metaobject'], 'The maximum number of entries was reached.', 'MAX_OBJECTS_EXCEEDED'));
     const vals = await applyFields(tx, shopId, def, {}, inp.value);
     if (!vals.ok) return vals;
+    const ext = i.externalId?.trim() || null;
+    if (ext && (await externalTaken(tx, shopId, def.type, ext))) return moFail(moErr(['metaobject', 'externalId'], 'External ID has already been taken.', 'TAKEN'));
     let handle: string;
     if (handleIn) {
       if (await getMetaobjectByHandle(tx, shopId, def.type, handleIn)) return moFail(moErr(['metaobject', 'handle'], 'Handle has already been taken.', 'TAKEN'));
@@ -163,7 +168,7 @@ export async function createMetaobject(db: Db, shopId: number, i: EntryCreateInp
     } else handle = await freeHandle(tx, shopId, def.type, entryDisplayName(def, vals.value, '') || def.type);
     const [row] = await tx.insert(metaobjects).values({
       shopId, definitionId: def.id, type: def.type, handle, status: def.capPublishable ? (i.capabilities?.publishable?.status ?? 'ACTIVE') : 'ACTIVE', displayName: entryDisplayName(def, vals.value, handle), values: vals.value,
-      templateSuffix: i.capabilities?.onlineStore?.templateSuffix || null, createdByStaffId: actor.staffId ?? null, createdByApp: actor.app ?? null,
+      templateSuffix: i.capabilities?.onlineStore?.templateSuffix || null, externalId: ext, createdByStaffId: actor.staffId ?? null, createdByApp: actor.app ?? null,
     }).returning();
     await writeRefs(tx, shopId, def, row!.id, vals.value);
     await recount(tx, def.id);
@@ -185,6 +190,8 @@ export async function updateMetaobject(db: Db, shopId: number, id: number, i: En
   return txResult(db, async (tx) => {
     const vals = await applyFields(tx, shopId, def, cur.values, inp.value);
     if (!vals.ok) return vals;
+    const ext = i.externalId === undefined ? undefined : i.externalId?.trim() || null;
+    if (ext && ext !== cur.externalId && (await externalTaken(tx, shopId, def.type, ext))) return moFail(moErr(['metaobject', 'externalId'], 'External ID has already been taken.', 'TAKEN'));
     let handle = cur.handle;
     if (handleIn && handleIn !== cur.handle.toLowerCase()) {
       if (await getMetaobjectByHandle(tx, shopId, def.type, handleIn)) return moFail(moErr(['metaobject', 'handle'], 'Handle has already been taken.', 'TAKEN'));
@@ -195,7 +202,7 @@ export async function updateMetaobject(db: Db, shopId: number, id: number, i: En
       }
     }
     const [row] = await tx.update(metaobjects).set({
-      handle, values: vals.value, displayName: entryDisplayName(def, vals.value, handle), updatedAt: new Date(),
+      handle, values: vals.value, displayName: entryDisplayName(def, vals.value, handle), updatedAt: new Date(), ...(ext !== undefined && { externalId: ext }),
       ...(i.capabilities?.publishable && def.capPublishable && { status: i.capabilities.publishable.status }),
       ...(i.capabilities?.onlineStore && { templateSuffix: i.capabilities.onlineStore.templateSuffix || null }),
     }).where(eq(metaobjects.id, id)).returning();

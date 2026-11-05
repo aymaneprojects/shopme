@@ -134,6 +134,13 @@
       "when": 1793894282895,
       "tag": "0018_customers_companies_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793895145589,
+      "tag": "0019_metaobject_external_id",
+      "breakpoints": true
     }
   ]
 }

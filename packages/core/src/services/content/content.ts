@@ -85,7 +85,14 @@ export async function deletePage(db: Db, shopId: number, id: number): Promise<Re
 
 export type Menu = typeof menus.$inferSelect;
 export interface MenuItemNode { id: number; title: string; type: string; resourceId: number | null; url: string | null; tags: string[]; items: MenuItemNode[] }
-export const DEFAULT_MENU_HANDLES = ['main-menu', 'footer'];
+export const CUSTOMER_ACCOUNT_MENU = 'customer-account-main-menu';
+export const DEFAULT_MENU_HANDLES = ['main-menu', 'footer', CUSTOMER_ACCOUNT_MENU];
+
+/** The menu of the customer account pages exists in every store; it is created the first time it is needed. */
+export async function ensureCustomerAccountMenu(db: Db, shopId: number): Promise<void> {
+  const [have] = await db.select({ id: menus.id }).from(menus).where(and(eq(menus.shopId, shopId), eq(menus.handle, CUSTOMER_ACCOUNT_MENU)));
+  if (!have) await createMenu(db, shopId, { title: 'Customer account menu', handle: CUSTOMER_ACCOUNT_MENU, items: [{ title: 'Orders', type: 'HTTP', url: '/account' }] });
+}
 
 export async function getMenu(db: Executor, shopId: number, id: number): Promise<Menu | null> {
   return (await db.select().from(menus).where(and(eq(menus.shopId, shopId), eq(menus.id, id))))[0] ?? null;

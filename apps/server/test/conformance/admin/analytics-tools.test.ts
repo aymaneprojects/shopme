@@ -57,7 +57,7 @@ describe('reports', () => {
     const abc = (await ok(REPORT, { n: 'ABC_ANALYSIS', f: day(-60), t: day(1) })).shopmeReport;
     expect(abc.rows[0][4]).toBe('A');
     const rfm = (await ok(REPORT, { n: 'RFM_SEGMENTS', f: day(-1), t: day(0) })).shopmeReport;
-    expect(rfm.rows.reduce((s: number, r: number[]) => s + r[1], 0)).toBeGreaterThanOrEqual(1);
+    expect(rfm.rows.reduce((s: number, r: number[]) => s + r[1]!, 0)).toBeGreaterThanOrEqual(1);
   });
 
   it('converts money into an enabled presentment currency with a rate', async () => {

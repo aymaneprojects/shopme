@@ -1,6 +1,6 @@
 import {
   countPages, createMenu, listTemplateSuffixes, createPage, deleteMenu, deletePage, getMenu, getMenuItems, getPage, getTheme, listMenus, listPages, listThemeFiles, listThemes, publishTheme, updateMenu, updatePage,
-  upsertThemeFiles, DEFAULT_MENU_HANDLES, type Menu as MenuRow, type MenuItemInput, type MenuItemNode, type Page as PageRow, type Theme as ThemeRow, type ThemeFile,
+  upsertThemeFiles, DEFAULT_MENU_HANDLES, ensureCustomerAccountMenu, type Menu as MenuRow, type MenuItemInput, type MenuItemNode, type Page as PageRow, type Theme as ThemeRow, type ThemeFile,
 } from '@shopme/core';
 import { parseId, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
@@ -212,8 +212,9 @@ builder.queryFields((t) => ({
   }),
   menus: t.field({
     type: MenuConnection, args: { ...ConnectionArgs, sortKey: t.arg({ type: MenuSortKeys, defaultValue: 'ID' }), query: t.arg.string() },
-    resolve: (_r, a, ctx) => {
+    resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'read_online_store_navigation');
+      await ensureCustomerAccountMenu(ctx.db, ctx.shopId);
       return paginate(a, {
         fetch: ({ offset, limit }) => listMenus(ctx.db, ctx.shopId, { query: a.query, sortKey: a.sortKey ?? 'ID', reverse: !!a.reverse, offset, limit }),
         total: async () => (await listMenus(ctx.db, ctx.shopId, { query: a.query, offset: 0, limit: 10000 })).length,
