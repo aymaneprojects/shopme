@@ -229,7 +229,7 @@ function CustomerView({ c }: { c: CustomerData }) {
       <PageHeader large back="/customers" breadcrumb={{ icon: <Users className="size-4" />, label: t('nav.customers'), to: '/customers' }} title={c.displayName}
         actions={<>
           <Dropdown align="right" menuClassName="min-w-64" label={t('common.moreActions')} trigger={<>{t('common.moreActions')}<ChevronDown className="size-4" /></>} items={[
-            { key: 'credit', icon: <Wallet className="size-4" />, label: t('credit.assign'), onSelect: () => setCreditOpen(true) },
+            { key: 'credit', icon: <Wallet className="size-4" />, label: t('bc.grantCredit'), onSelect: () => setCreditOpen(true) },
             { key: 'edit', icon: <Pencil className="size-4" />, label: t('customers.edit'), onSelect: () => nav(`/customers/${num}/edit`) },
             { key: 'orders', icon: <ShoppingCart className="size-4" />, label: t('customers.viewAllOrders'), disabled: c.numberOfOrders === 0, onSelect: () => nav(`/orders?q=${encodeURIComponent(`customer_id:${num}`)}`) },
             { key: 'merge', icon: <GitMerge className="size-4" />, label: t('bc.mergeCustomer'), onSelect: () => setMergeWith('pick') },

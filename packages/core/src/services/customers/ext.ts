@@ -120,6 +120,7 @@ export async function mergeCustomers(db: Db, shopId: number, oneId: number, twoI
       createdAt: keep.createdAt < drop.createdAt ? keep.createdAt : drop.createdAt, updatedAt: new Date(),
     }).where(eq(customers.id, keep.id));
     await tx.delete(customers).where(eq(customers.id, drop.id));
+    await addEvent(tx, shopId, { subjectType: 'customer', subjectId: drop.id, verb: 'customers/delete', message: 'Customer was merged into another customer and deleted', data: { mergedInto: keep.id } });
     const name = [drop.firstName, drop.lastName].filter(Boolean).join(' ') || drop.email || `#${drop.id}`;
     await addEvent(tx, shopId, { subjectType: 'customer', subjectId: keep.id, verb: 'customers/merge', message: `Customer ${name} was merged into this customer`, authorStaffUserId: staffId ?? null, data: { mergedCustomerId: drop.id, mergedName: name } });
     return okR((await getCustomer(tx, shopId, keep.id))!);

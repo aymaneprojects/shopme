@@ -2,7 +2,7 @@ import type { enBtnCustomers } from './en-btn-customers';
 
 export const frBtnCustomers: Record<keyof typeof enBtnCustomers, string> = {
   // clients : liste et fiche
-  'bc.companies': 'Sociétés', 'bc.editInBulk': 'Modifier en masse', 'bc.merge': 'Fusionner les clients', 'bc.mergeCustomer': 'Fusionner le client', 'bc.addToCompany': 'Ajouter à une société',
+  'bc.companies': 'Sociétés', 'bc.editInBulk': 'Modifier en masse', 'bc.grantCredit': 'Accorder du crédit en magasin', 'bc.merge': 'Fusionner les clients', 'bc.mergeCustomer': 'Fusionner le client', 'bc.addToCompany': 'Ajouter à une société',
   'bc.help.subscription': 'Indique si le client a accepté de recevoir des e-mails marketing.', 'bc.help.location': 'La ville et le pays de l’adresse par défaut.', 'bc.help.spent': 'Ce que le client a payé, remboursements déduits. Les commandes annulées ne comptent pas.',
   'bc.group': 'Groupe de clients', 'bc.group.customer': 'Client', 'bc.group.prospect': 'Prospect',
   'bc.rfm.CHAMPIONS': 'Champions', 'bc.rfm.LOYAL': 'Fidèles', 'bc.rfm.ACTIVE': 'Actifs', 'bc.rfm.NEW': 'Nouveaux', 'bc.rfm.PROMISING': 'Prometteurs', 'bc.rfm.NEEDS_ATTENTION': 'À surveiller',

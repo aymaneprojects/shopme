@@ -1,7 +1,7 @@
 // Customers, content and analytics: merge, bulk edit, erasure, companies, query bar, explorations, goals, live view.
 export const enBtnCustomers = {
   // customers list and page
-  'bc.companies': 'Companies', 'bc.editInBulk': 'Edit in bulk', 'bc.merge': 'Merge customers', 'bc.mergeCustomer': 'Merge customer', 'bc.addToCompany': 'Add to company',
+  'bc.companies': 'Companies', 'bc.editInBulk': 'Edit in bulk', 'bc.grantCredit': 'Grant store credit', 'bc.merge': 'Merge customers', 'bc.mergeCustomer': 'Merge customer', 'bc.addToCompany': 'Add to company',
   'bc.help.subscription': 'Whether the customer agreed to receive marketing emails.', 'bc.help.location': 'The city and country of the default address.', 'bc.help.spent': 'What the customer paid, minus refunds. Cancelled orders do not count.',
   'bc.group': 'Customer group', 'bc.group.customer': 'Customer', 'bc.group.prospect': 'Prospect',
   'bc.rfm.CHAMPIONS': 'Champions', 'bc.rfm.LOYAL': 'Loyal', 'bc.rfm.ACTIVE': 'Active', 'bc.rfm.NEW': 'New', 'bc.rfm.PROMISING': 'Promising', 'bc.rfm.NEEDS_ATTENTION': 'Needs attention',

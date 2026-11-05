@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { eraseCustomerPersonalData, processDueCustomerErasures, schema } from '@shopme/core';
+import { eraseCustomerPersonalData, getShop, processDueCustomerErasures, sampleVars, schema, sendNotification } from '@shopme/core';
 import { eq } from 'drizzle-orm';
 import { createTestApp, SETUP_BODY, type TestApp } from '../../../src/test-utils';
 import { makeGql } from '../helpers';
@@ -155,5 +155,35 @@ describe('segments search', () => {
     expect(r.a.count).toBe(0);
     expect(r.b.count).toBeGreaterThanOrEqual(1);
     expect(r.c.count).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('emails on the customer timeline', () => {
+  it('records the emails sent to a customer with their subject and body, and serves the body on demand', async () => {
+    const db = t.dbHandle.db;
+    const c = await seedCustomer(db, shopId, { email: 'mailed@example.com', firstName: 'Mia' });
+    const shop = (await getShop(db, shopId))!;
+    expect(await sendNotification(db, t.app.ctx.mailer, shop, 'https://shop.test', 'order_confirmation', 'mailed@example.com', sampleVars(shop, 'https://shop.test'), { force: true })).toBe(true);
+    const id = gid('Customer', c.id);
+    const events = (await ok(`query($id: ID!) { customer(id: $id) { events(first: 10, reverse: true) { nodes { __typename action ... on BasicEvent { arguments } } } } }`, { id })).customer.events.nodes;
+    const mail = events.find((e: { action: string }) => e.action === 'customers/email_sent');
+    expect(mail.arguments).toMatchObject({ template: 'order_confirmation', to: 'mailed@example.com' });
+    expect(mail.arguments.subject).toBeTruthy();
+    expect(mail.arguments.html).toBeUndefined(); // the body is not part of the timeline list
+    const row = (await db.select().from(schema.events).where(eq(schema.events.verb, 'customers/email_sent')))[0]!;
+    const body = (await ok(`query($id: ID!) { node(id: $id) { ... on BasicEvent { shopmeEmailHtml } } }`, { id: gid('BasicEvent', row.id) })).node;
+    expect(body.shopmeEmailHtml).toContain('<');
+  });
+
+  it('keeps attachments on a staff comment', async () => {
+    const c = await seedCustomer(t.dbHandle.db, shopId, { email: 'attach@example.com' });
+    const id = gid('Customer', c.id);
+    const r = (await ok(`mutation($id: ID!) { customerTimelineCommentCreate(id: $id, message: "See file", attachments: ["/files/a/b.pdf", "javascript:alert(1)"]) { event { ... on CommentEvent { attachments } } userErrors { message } } }`, { id })).customerTimelineCommentCreate;
+    expect(r.userErrors).toEqual([]);
+    expect(r.event.attachments).toEqual(['/files/a/b.pdf']);
+    const onlyFile = (await ok(`mutation($id: ID!) { customerTimelineCommentCreate(id: $id, message: "", attachments: ["/files/c.png"]) { event { ... on CommentEvent { attachments rawMessage } } userErrors { message } } }`, { id })).customerTimelineCommentCreate;
+    expect(onlyFile.event.attachments).toEqual(['/files/c.png']);
+    const none = (await ok(`mutation($id: ID!) { customerTimelineCommentCreate(id: $id, message: " ") { event { ... on CommentEvent { rawMessage } } userErrors { message } } }`, { id })).customerTimelineCommentCreate;
+    expect(none.userErrors[0].message).toBe("Message can't be blank");
   });
 });
