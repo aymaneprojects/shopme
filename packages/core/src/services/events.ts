@@ -39,11 +39,14 @@ export async function getEvent(db: Executor, shopId: number, id: number): Promis
 }
 
 /** Staff comments on a resource timeline (order, customer): plain text, one author each. */
-export async function addComment(db: Executor, shopId: number, subjectType: 'order' | 'customer', subjectId: number, message: string, staffId: number | null) {
+export async function addComment(db: Executor, shopId: number, subjectType: 'order' | 'customer', subjectId: number, message: string, staffId: number | null, attachments: string[] = []) {
   const text = message.trim();
-  if (!text) return errR(['message'], "Message can't be blank");
+  const files = attachments.map((u) => u.trim()).filter(Boolean);
+  if (!text && !files.length) return errR(['message'], "Message can't be blank");
   if (text.length > 5000) return errR(['message'], 'Message is too long (maximum is 5000 characters)');
-  return okR(await addEvent(db, shopId, { subjectType, subjectId, kind: 'comment', verb: `${subjectType}.comment`, message: text, authorStaffUserId: staffId }));
+  if (files.length > 10) return errR(['attachments'], 'Too many attachments (maximum is 10)');
+  if (files.some((u) => u.length > 1000 || !/^(\/|https?:\/\/)/i.test(u))) return errR(['attachments'], 'Attachment is not a file link');
+  return okR(await addEvent(db, shopId, { subjectType, subjectId, kind: 'comment', verb: `${subjectType}.comment`, message: text, authorStaffUserId: staffId, ...(files.length && { data: { attachments: files } }) }));
 }
 
 /** A comment can only be deleted by its author. System events are part of the audit trail and never deletable. */
@@ -56,8 +59,9 @@ export async function deleteComment(db: Executor, shopId: number, id: number, st
 }
 
 /** Timeline entry for a transactional email sent to the customer (best effort, never throws). */
-export async function recordOrderEmail(db: Executor, shopId: number, orderId: number, template: string, to: string): Promise<void> {
-  try { await addEvent(db, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.email_sent', message: `Email "${template.replace(/_/g, ' ')}" sent to ${to}`, data: { template, to } }); } catch { /* timeline only */ }
+export async function recordOrderEmail(db: Executor, shopId: number, orderId: number, template: string, to: string, content?: { subject: string; html: string }): Promise<void> {
+  // The rendered email is kept with the event so the timeline can show exactly what the customer received.
+  try { await addEvent(db, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.email_sent', message: `Email "${template.replace(/_/g, ' ')}" sent to ${to}`, data: { template, to, ...(content && { subject: content.subject.slice(0, 500), html: content.html.slice(0, 200_000) }) } }); } catch { /* timeline only */ }
 }
 
 export function listEvents(db: Executor, shopId: number, subjectType: string, subjectId: number, limit = 100) {

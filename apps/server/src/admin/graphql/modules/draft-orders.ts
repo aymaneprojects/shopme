@@ -1,7 +1,9 @@
 import {
-  calculateDraftOrder, completeDraftOrder, countDraftOrders, createDraftOrder, deleteDraftOrder, draftInvoiceUrl, getCustomer, getDraftOrder, getOrder, getProduct, getShop, getVariant,
+  calculateDraftOrder, completeDraftOrder, convertMinor, currencyRate, countDraftOrders, createDraftOrder, deleteDraftOrder, draftInvoiceUrl, getCustomer, getDraftOrder, getOrder, getProduct, getShop, getVariant,
   listDraftOrders, sendDraftInvoice, updateDraftOrder, type DraftCalc, type DraftInput, type DraftLine, type DraftLineInput, type DraftOrder as DraftRow, type PricingResult, type Shop as ShopRow,
 } from '@shopme/core';
+import { and, eq } from 'drizzle-orm';
+import { schema } from '@shopme/core';
 import { parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
@@ -29,6 +31,7 @@ const DiscountType = builder.enumType('DraftOrderAppliedDiscountType', { values:
 interface View {
   id: number; name: string; status: 'OPEN' | 'INVOICE_SENT' | 'COMPLETED'; email: string | null; phone: string | null; note: string | null; tags: string[]; taxExempt: boolean; taxesIncluded: boolean; currency: string;
   lines: DraftLine[]; calc: DraftCalc; appliedDiscount: DraftRow['appliedDiscount']; shippingLine: DraftRow['shippingLine']; shippingAddress: DraftRow['shippingAddress']; billingAddress: DraftRow['billingAddress'];
+  poNumber: string | null; marketId: number | null; presentmentCurrency: string | null;
   customerId: number | null; orderId: number | null; createdAt: Date; updatedAt: Date; completedAt: Date | null; invoiceSentAt: Date | null; invoiceUrl: string | null;
   totals: { subtotal: number; totalDiscounts: number; totalShipping: number; totalTax: number; total: number };
 }
@@ -38,12 +41,14 @@ const emptyCalc: DraftCalc = { lines: [], orderDiscount: 0, taxLines: [] };
 const viewOf = (shop: ShopRow, appUrl: string, d: DraftRow): View => ({
   id: d.id, name: d.name, status: d.status as View['status'], email: d.email, phone: d.phone, note: d.note, tags: d.tags, taxExempt: d.taxExempt, taxesIncluded: shop.taxesIncluded, currency: d.currency,
   lines: d.lines, calc: d.calc ?? emptyCalc, appliedDiscount: d.appliedDiscount, shippingLine: d.shippingLine, shippingAddress: d.shippingAddress, billingAddress: d.billingAddress,
+  poNumber: d.poNumber, marketId: d.marketId, presentmentCurrency: d.presentmentCurrency,
   customerId: d.customerId, orderId: d.orderId, createdAt: d.createdAt, updatedAt: d.updatedAt, completedAt: d.completedAt, invoiceSentAt: d.invoiceSentAt, invoiceUrl: d.status === 'COMPLETED' ? null : draftInvoiceUrl(shop, appUrl, d),
   totals: { subtotal: d.subtotal, totalDiscounts: d.totalDiscounts, totalShipping: d.totalShipping, totalTax: d.totalTax, total: d.total },
 });
 const calcViewOf = (shop: ShopRow, draft: Omit<DraftInput, 'lines'> & { lines: DraftLine[]; currency: string }, pricing: PricingResult, calc: DraftCalc): View => ({
   id: 0, name: '', status: 'OPEN', email: draft.email ?? null, phone: draft.phone ?? null, note: draft.note ?? null, tags: draft.tags ?? [], taxExempt: !!draft.taxExempt, taxesIncluded: shop.taxesIncluded, currency: draft.currency,
   lines: draft.lines, calc, appliedDiscount: draft.appliedDiscount ?? null, shippingLine: draft.shippingLine ?? null, shippingAddress: draft.shippingAddress ?? null, billingAddress: draft.billingAddress ?? null,
+  poNumber: draft.poNumber ?? null, marketId: draft.marketId ?? null, presentmentCurrency: null,
   customerId: draft.customerId ?? null, orderId: null, createdAt: new Date(), updatedAt: new Date(), completedAt: null, invoiceSentAt: null, invoiceUrl: null,
   totals: { subtotal: pricing.subtotal, totalDiscounts: pricing.totalDiscounts, totalShipping: pricing.totalShipping, totalTax: pricing.totalTax, total: pricing.total },
 });
@@ -114,7 +119,24 @@ const viewFields = (t: PothosSchemaTypes.ObjectFieldBuilder<PothosSchemaTypes.Ex
   const m = (pick: (v: View) => number) => (v: View) => bag(pick(v), v.currency);
   return {
     currencyCode: t.field({ type: CurrencyCode, resolve: (v) => v.currency }),
-    presentmentCurrencyCode: t.field({ type: CurrencyCode, resolve: (v) => v.currency }),
+    presentmentCurrencyCode: t.field({ type: CurrencyCode, resolve: (v) => v.presentmentCurrency ?? v.currency }),
+    poNumber: t.string({ nullable: true, resolve: (v) => v.poNumber }),
+    shopmeMarket: t.field({
+      type: DraftMarket, nullable: true, description: 'ShopMe extension: the market the draft is sold in.',
+      resolve: async (v, _a, ctx) => {
+        if (!v.marketId) return null;
+        const [m] = await ctx.db.select().from(schema.markets).where(and(eq(schema.markets.shopId, ctx.shopId), eq(schema.markets.id, v.marketId))).limit(1);
+        return m ? { id: m.id, name: m.name, currency: v.presentmentCurrency ?? v.currency } : null;
+      },
+    }),
+    shopmePresentmentTotalSet: t.field({
+      type: MoneyBag, nullable: true, description: 'ShopMe extension: the total converted to the currency of the draft market (for quoting; the order itself is created in the shop currency).',
+      resolve: async (v, _a, ctx) => {
+        if (!v.presentmentCurrency || v.presentmentCurrency === v.currency) return null;
+        const rate = await currencyRate(ctx.db, ctx.shopId, v.currency, v.presentmentCurrency);
+        return rate ? moneyBag(convertMinor(v.totals.total, v.currency, v.presentmentCurrency, rate), v.presentmentCurrency) : null;
+      },
+    }),
     email: t.string({ nullable: true, resolve: (v) => v.email }),
     phone: t.string({ nullable: true, resolve: (v) => v.phone }),
     taxExempt: t.boolean({ resolve: (v) => v.taxExempt }),
@@ -138,6 +160,7 @@ const viewFields = (t: PothosSchemaTypes.ObjectFieldBuilder<PothosSchemaTypes.Ex
   };
 };
 
+const DraftMarket = builder.objectRef<{ id: number; name: string; currency: string }>('ShopmeDraftMarket').implement({ fields: (t) => ({ id: t.id({ resolve: (m) => toGid('Market', m.id) }), name: t.exposeString('name'), currencyCode: t.field({ type: CurrencyCode, resolve: (m) => m.currency }) }) });
 export const DraftOrder = builder.objectRef<View>('DraftOrder');
 DraftOrder.implement({
   interfaces: [Node],
@@ -182,6 +205,7 @@ const DraftOrderInput = builder.inputType('DraftOrderInput', {
     email: t.string(), phone: t.string(), note: t.string(), tags: t.stringList(), customerId: t.id(), purchasingEntity: t.field({ type: PurchasingEntityInput }), taxExempt: t.boolean(),
     lineItems: t.field({ type: [LineItemInput] }), appliedDiscount: t.field({ type: AppliedDiscountInput }), shippingLine: t.field({ type: ShippingLineInput }),
     shippingAddress: t.field({ type: MailingAddressInput }), billingAddress: t.field({ type: MailingAddressInput }), discountCodes: t.stringList(), customAttributes: t.field({ type: [AttributeInput] }),
+    poNumber: t.string(), shopmeMarketId: t.id({ description: 'ShopMe extension: market the draft is sold in (null clears it).' }),
   }),
 });
 const DeleteInput = builder.inputType('DraftOrderDeleteInput', { fields: (t) => ({ id: t.id({ required: true }) }) });
@@ -207,7 +231,8 @@ function toInput(i: Input, currency: string): DraftInput {
   const customerId = customerRaw == null ? undefined : parseId(String(customerRaw), 'Customer');
   if (customerRaw != null && !customerId) throw new BadInput({ field: ['customerId'], message: 'Customer does not exist' });
   return {
-    email: i.email, phone: i.phone, note: i.note, tags: i.tags, taxExempt: i.taxExempt, customerId,
+    email: i.email, phone: i.phone, note: i.note, tags: i.tags, taxExempt: i.taxExempt, customerId, poNumber: i.poNumber,
+    marketId: i.shopmeMarketId === undefined ? undefined : i.shopmeMarketId === null ? null : parseId(String(i.shopmeMarketId), 'Market'),
     appliedDiscount: i.appliedDiscount === undefined ? undefined : discountOf(i.appliedDiscount, currency, ['appliedDiscount']),
     shippingLine: i.shippingLine === undefined ? undefined : i.shippingLine === null ? null : { title: i.shippingLine.title?.trim() || 'Shipping', price: i.shippingLine.price ? money(i.shippingLine.price, currency, ['shippingLine', 'price']) : 0 },
     shippingAddress: addr(i.shippingAddress), billingAddress: addr(i.billingAddress),

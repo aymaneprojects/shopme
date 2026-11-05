@@ -4,7 +4,7 @@ import {
   markOrderAsPaid, openOrder, paidAmounts, refundOrder, updateOrder, updateTracking,
   type Fulfillment as FulfillmentRow, type Order as OrderRow, type OrderDetail, type OrderLine, type OrderTransaction as TxRow, type Refund as RefundRow,
 } from '@shopme/core';
-import { lineMoney, orderMoney, presentmentShare } from '@shopme/core';
+import { capturableOf, lineMoney, orderMoney, presentmentShare } from '@shopme/core';
 import { formatMoney, parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
@@ -344,7 +344,7 @@ Order_.implement({
       currentShippingPriceSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'shipping') }),
       cartDiscountAmountSet: t.field({ type: MoneyBag, nullable: true, resolve: (o) => orderBag(o, 'discounts') }),
       currentCartDiscountAmountSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'discounts') }),
-      totalCapturableSet: t.field({ type: MoneyBag, resolve: (o) => money(o, 0) }),
+      totalCapturableSet: t.field({ type: MoneyBag, resolve: async (o, _a, ctx) => money(o, o.cancelledAt ? 0 : capturableOf((await detailOf(ctx, o)).transactions).reduce((n, c) => n + c.remaining, 0)) }),
       totalTipReceivedSet: t.field({ type: MoneyBag, resolve: (o) => orderBag(o, 'tip') }),
       totalRefundedShippingSet: t.field({ type: MoneyBag, resolve: (o) => money(o, 0) }),
       // Deprecated shop-currency scalars, kept because many clients still select them.
@@ -362,7 +362,7 @@ Order_.implement({
       merchantEditable: t.boolean({ resolve: (o) => !o.cancelledAt }),
       edited: t.boolean({ resolve: () => false }),
       canNotifyCustomer: t.boolean({ resolve: (o) => !!o.email }),
-      poNumber: t.string({ nullable: true, resolve: () => null }),
+      poNumber: t.string({ nullable: true, resolve: (o) => o.poNumber }),
       checkoutToken: t.string({ nullable: true, resolve: (o) => o.cartToken }),
       sourceIdentifier: t.string({ nullable: true, resolve: () => null }),
       statusPageUrl: t.field({ type: 'URL', resolve: (o, _a, ctx) => `${ctx.app.config.appUrl}/account/orders/${o.id}` }),
@@ -376,7 +376,7 @@ Order_.implement({
       fullyPaid: t.boolean({ resolve: async (o, _a, ctx) => outstanding(o, await detailOf(ctx, o)) === 0 && o.total > 0 }),
       unpaid: t.boolean({ resolve: async (o, _a, ctx) => paidAmounts((await detailOf(ctx, o)).transactions).received === 0 }),
       refundable: t.boolean({ resolve: async (o, _a, ctx) => { const p = paidAmounts((await detailOf(ctx, o)).transactions); return p.received - p.refunded > 0; } }),
-      capturable: t.boolean({ resolve: () => false }),
+      capturable: t.boolean({ resolve: async (o, _a, ctx) => !o.cancelledAt && capturableOf((await detailOf(ctx, o)).transactions).length > 0 }),
       fulfillable: t.boolean({ resolve: async (o, _a, ctx) => !o.cancelledAt && (await detailOf(ctx, o)).lines.some((l) => l.currentQuantity > l.fulfilledQuantity) }),
       discountCode: t.string({ nullable: true, resolve: async (o, _a, ctx) => (await detailOf(ctx, o)).discounts.find((x) => x.code)?.code ?? null }),
       discountCodes: t.stringList({ resolve: async (o, _a, ctx) => (await detailOf(ctx, o)).discounts.flatMap((x) => (x.code ? [x.code] : [])) }),
@@ -455,7 +455,7 @@ const OrderInput = builder.inputType('OrderInput', {
   fields: (t) => ({
     id: t.id({ required: true }), email: t.string(), phone: t.string(), note: t.string(), tags: t.stringList(), shippingAddress: t.field({ type: MailingAddressInput }),
     billingAddress: t.field({ type: MailingAddressInput, description: 'ShopMe extension: the real OrderInput has no billing address.' }),
-    poNumber: t.string(),
+    poNumber: t.string(), shopmeFulfillBy: t.field({ type: 'DateTime', description: 'ShopMe extension: date the order should ship by (null clears it).' }),
   }),
 });
 const IdInput = (name: string) => builder.inputType(name, { fields: (t) => ({ id: t.id({ required: true }) }) });
@@ -545,7 +545,7 @@ builder.mutationFields((t) => ({
   orderUpdate: t.field({
     type: UpdatePayload, args: { input: t.arg({ type: OrderInput, required: true }) },
     resolve: (_r, { input }, ctx) => orderOp(ctx, input.id, ['input', 'id'], (id) => updateOrder(ctx.db, ctx.shopId, id, {
-      email: input.email, phone: input.phone, note: input.note, tags: input.tags,
+      email: input.email, phone: input.phone, note: input.note, tags: input.tags, poNumber: input.poNumber, fulfillBy: input.shopmeFulfillBy,
       shippingAddress: input.shippingAddress ? { ...input.shippingAddress, countryCode: input.shippingAddress.countryCode ?? undefined } : undefined,
       billingAddress: input.billingAddress ? { ...input.billingAddress, countryCode: input.billingAddress.countryCode ?? undefined } : undefined,
     }, staffId(ctx))),
@@ -656,12 +656,12 @@ builder.mutationFields((t) => ({
   }),
   /** ShopMe extension: Shopify has no public API for staff timeline comments. */
   orderTimelineCommentCreate: t.field({
-    type: CommentPayload, args: { id: t.arg.id({ required: true }), message: t.arg.string({ required: true }) },
+    type: CommentPayload, args: { id: t.arg.id({ required: true }), message: t.arg.string({ required: true }), attachments: t.arg.stringList({ description: 'ShopMe extension: links of uploaded files (see POST /admin/api/files).' }) },
     resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'write_orders');
       const id = oid(a.id);
       if (!id) return { event: null, userErrors: noOrder(['id']) };
-      const r = await addOrderComment(ctx.db, ctx.shopId, id, a.message, staffId(ctx));
+      const r = await addOrderComment(ctx.db, ctx.shopId, id, a.message, staffId(ctx), a.attachments ?? []);
       return r.ok ? { event: r.value as EventRow, userErrors: [] } : { event: null, userErrors: r.errors };
     },
   }),

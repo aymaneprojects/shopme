@@ -10,6 +10,7 @@ export const visits = pgTable('visits', {
   sessionId: text('session_id').notNull(),
   path: text('path').notNull(),
   referrer: text('referrer'),
+  utmSource: text('utm_source'), utmMedium: text('utm_medium'), utmCampaign: text('utm_campaign'),
   createdAt: createdAt(),
 }, (t) => [index('visits_shop_created_idx').on(t.shopId, t.createdAt)]);
 

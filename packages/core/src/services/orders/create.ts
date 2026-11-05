@@ -44,6 +44,8 @@ export interface CreateOrderInput {
   storeCredit?: { accountId: number; amount: number; /** Debit in shop money when `amount` is in the presentment currency. */ shopAmount?: number } | null;
   /** Checkout (cart) token: stored on the order and used to complete the cart exactly once. */
   cartToken?: string | null;
+  /** Visit session id of the buyer (see `orders.visit_session_id`). */
+  visitSessionId?: string | null;
   note?: string | null;
   sourceName?: string;
   /** Tip added by the buyer (minor units), on top of `pricing.total`. */
@@ -154,7 +156,7 @@ export async function createOrder(db: Db, shopId: number, input: CreateOrderInpu
       const [order] = await tx.insert(s.orders).values({
         shopId, orderNumber, name: `#${orderNumber}`, customerId: customer!.id, email, phone: input.phone ?? ship?.phone ?? null,
         currency: input.currency, presentmentCurrency: pm?.currency ?? input.currency, currencyRate: pm?.rate ?? 1, taxesIncluded: input.taxesIncluded, test: !!input.payment.test,
-        financialStatus: paid ? 'PAID' : 'PENDING', fulfillmentStatus: 'UNFULFILLED', note: input.note ?? null, sourceName: input.sourceName ?? 'web', cartToken: input.cartToken ?? null,
+        financialStatus: paid ? 'PAID' : 'PENDING', fulfillmentStatus: 'UNFULFILLED', note: input.note ?? null, sourceName: input.sourceName ?? 'web', cartToken: input.cartToken ?? null, visitSessionId: input.visitSessionId?.slice(0, 64) ?? null,
         subtotal: shopSubtotal, totalShipping: shopShipping, totalTax: shopTax, totalDiscounts: shopDiscounts, total: shopTotal, totalTip: shopTip,
         ...(pm ? { presentmentMoney: { subtotal: pricing.subtotal, shipping: pricing.totalShipping, tax: pricing.totalTax, discounts: pricing.totalDiscounts, tip, total: pricing.total + tip } } : {}),
       }).returning();

@@ -262,11 +262,12 @@ export async function updateStaffOrderRecipients(db: Executor, shop: Shop, email
 }
 
 /** Send one email. A switched-off notification is skipped (returns false) unless `force` (test emails, explicit staff actions). */
-export async function sendNotification(db: Executor, mailer: Mailer, shop: Shop, appUrl: string, key: NotificationKey, to: string, vars: Record<string, unknown>, opts: { force?: boolean } = {}): Promise<boolean> {
+export async function sendNotification(db: Executor, mailer: Mailer, shop: Shop, appUrl: string, key: NotificationKey, to: string, vars: Record<string, unknown>, opts: { force?: boolean; /** Called after the email was handed to the mailer (the order timeline keeps a copy). */ onSent?: (mail: Mail) => Promise<void> } = {}): Promise<boolean> {
   if (!opts.force && !notificationEnabled(shop, key)) return false;
   const r = await renderNotification(db, shop, appUrl, key, vars);
   const mail: Mail = { to, subject: r.subject, html: r.html, text: r.text, from: senderOf(shop), replyTo: DEFS[key].audience === 'customer' ? shop.email : undefined };
   await mailer.send(mail);
+  if (opts.onSent) { try { await opts.onSent(mail); } catch { /* the copy is a convenience */ } }
   return true;
 }
 

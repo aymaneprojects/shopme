@@ -139,7 +139,7 @@ export const CommentEvent = builder.objectRef<EventRow>('CommentEvent').implemen
     canDelete: t.boolean({ resolve: (e, _a, ctx) => ctx.auth.kind === 'session' && e.authorStaffUserId != null && ctx.auth.user.id === e.authorStaffUserId }),
     canEdit: t.boolean({ resolve: () => false }),
     edited: t.boolean({ resolve: () => false }),
-    attachments: t.stringList({ resolve: () => [] }),
+    attachments: t.stringList({ resolve: (e) => (Array.isArray(e.data?.attachments) ? (e.data!.attachments as unknown[]).filter((u): u is string => typeof u === 'string') : []) }),
   }),
 });
 export const EventConnection = defineConnection<EventRow>('Event', Event as never);

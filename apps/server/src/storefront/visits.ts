@@ -34,6 +34,7 @@ export function registerVisitTracking(scope: FastifyInstance, ctx: AppContext): 
     if (!shop) return;
     let referrer: string | null = null;
     try { const u = new URL(String(req.headers.referer ?? '')); if (u.host !== req.headers.host) referrer = u.host; } catch { /* none */ }
-    await recordVisit(ctx.db, shop.id, { sessionId: id, path: req.url.split('?')[0]!, referrer }).catch((err) => req.log.warn({ err }, 'visit not recorded'));
+    const q = new URL(req.url, 'http://x').searchParams;
+    await recordVisit(ctx.db, shop.id, { sessionId: id, path: req.url.split('?')[0]!, referrer, utmSource: q.get('utm_source'), utmMedium: q.get('utm_medium'), utmCampaign: q.get('utm_campaign') }).catch((err) => req.log.warn({ err }, 'visit not recorded'));
   });
 }

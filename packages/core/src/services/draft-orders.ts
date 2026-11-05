@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
-import { customers, draftOrders, inventoryItems, media, orders, productMedia, productVariants, products, taxRates, type DraftAddress, type DraftCalc, type DraftDiscount, type DraftLine } from '../db/schema';
+import { customers, draftOrders, inventoryItems, markets, media, orders, productMedia, productVariants, products, taxRates, type DraftAddress, type DraftCalc, type DraftDiscount, type DraftLine } from '../db/schema';
 import type { Db, Executor } from '../db/client';
 import { listNotificationTemplates, moneyOf, renderNotification, senderOf, shopUrl } from '../mail/notifications';
 import type { Mailer } from '../mail';
@@ -25,6 +25,7 @@ export interface DraftInput {
   email?: string | null; phone?: string | null; note?: string | null; tags?: string[] | null; customerId?: number | null; taxExempt?: boolean | null;
   lines?: DraftLineInput[] | null; appliedDiscount?: DraftDiscount | null; shippingLine?: { title: string; price: number } | null;
   shippingAddress?: DraftAddress | null; billingAddress?: DraftAddress | null;
+  poNumber?: string | null; /** Market the draft is sold in (null: none). */ marketId?: number | null;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -128,7 +129,16 @@ async function build(db: Executor, shop: Shop, input: DraftInput, cur?: DraftOrd
   if (!dd.ok) return dd;
   const shippingLine = input.shippingLine !== undefined ? input.shippingLine : cur?.shippingLine ?? null;
   if (shippingLine && !(shippingLine.price >= 0)) return errR(['shippingLine', 'price'], 'Shipping price is invalid', 'INVALID');
+  const marketId = input.marketId !== undefined ? input.marketId : cur?.marketId ?? null;
+  let presentmentCurrency: string | null = null;
+  if (marketId != null) {
+    const [m] = await db.select().from(markets).where(and(eq(markets.shopId, shop.id), eq(markets.id, marketId))).limit(1);
+    if (!m) return errR(['marketId'], 'Market does not exist', 'NOT_FOUND');
+    presentmentCurrency = m.currencyCode ?? shop.currency;
+  }
+  const poNumber = input.poNumber !== undefined ? input.poNumber?.trim().slice(0, 100) || null : cur?.poNumber ?? null;
   const f = {
+    marketId, presentmentCurrency, poNumber,
     email: resolvedEmail, customerId, lines, appliedDiscount: applied, shippingLine,
     phone: input.phone !== undefined ? input.phone : cur?.phone ?? null, note: input.note !== undefined ? input.note : cur?.note ?? null,
     tags: input.tags != null ? normalizeTags(input.tags) : cur?.tags ?? [], taxExempt: input.taxExempt ?? cur?.taxExempt ?? false,
@@ -196,8 +206,9 @@ export const draftSearch = (q: string | null | undefined) => buildSearch(q, {
     status: (_o, v) => sql`${draftOrders.status} = ${v.toUpperCase()}`,
     tag: (_o, v) => sql`exists (select 1 from unnest(${draftOrders.tags}) t where lower(t) = ${v.toLowerCase()})`,
     customer_id: (_o, v) => idTerm(draftOrders.customerId, v),
+    po_number: (_o, v) => likeCi(draftOrders.poNumber, v, true),
   },
-  text: (v) => sql`(${draftOrders.name} ilike ${`%${v}%`} or ${draftOrders.email} ilike ${`%${v}%`})`,
+  text: (v) => sql`(${draftOrders.name} ilike ${`%${v}%`} or ${draftOrders.email} ilike ${`%${v}%`} or ${draftOrders.poNumber} ilike ${`%${v}%`})`,
 });
 
 export function listDraftOrders(db: Executor, shopId: number, o: { query?: string | null; reverse?: boolean; offset: number; limit: number }) {
@@ -233,7 +244,7 @@ export async function completeDraftOrder(db: Db, shop: Shop, id: number, o: { pa
     return res.error === 'out_of_stock' ? errR(['lineItems'], 'Not enough stock for one or more items', 'OUT_OF_STOCK') : errR(['id'], 'Draft order could not be completed', 'INVALID');
   }
   const now = new Date();
-  await db.update(orders).set({ tags: d.tags }).where(and(eq(orders.id, res.orderId), eq(orders.shopId, shop.id)));
+  await db.update(orders).set({ tags: d.tags, poNumber: d.poNumber }).where(and(eq(orders.id, res.orderId), eq(orders.shopId, shop.id)));
   await addEvent(db, shop.id, { subjectType: 'order', subjectId: res.orderId, verb: 'order.from_draft', message: `Created from draft order ${d.name}` });
   const [row] = await db.update(draftOrders).set({ status: 'COMPLETED', completedAt: now, orderId: res.orderId, updatedAt: now, subtotal: pricing.subtotal, totalDiscounts: pricing.totalDiscounts, totalShipping: pricing.totalShipping, totalTax: pricing.totalTax, total: pricing.total })
     .where(eq(draftOrders.id, id)).returning();

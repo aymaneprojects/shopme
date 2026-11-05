@@ -37,6 +37,9 @@ export const draftOrders = pgTable('draft_orders', {
   totalShipping: money('total_shipping').notNull().default(0), totalTax: money('total_tax').notNull().default(0), total: money('total').notNull().default(0),
   /** Per-line priced values and tax lines of the last calculation. */
   calc: jsonb('calc').$type<DraftCalc | null>(),
+  poNumber: text('po_number'),
+  /** Market the draft is sold in; `presentmentCurrency` is the currency of that market (informational: the order is created in the shop currency). */
+  marketId: ref('market_id'), presentmentCurrency: text('presentment_currency'),
   invoiceSentAt: ts('invoice_sent_at'), completedAt: ts('completed_at'),
   orderId: ref('order_id').references(() => orders.id, { onDelete: 'set null' }),
   ...timestamps(),

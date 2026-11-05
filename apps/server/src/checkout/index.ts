@@ -78,8 +78,8 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
   ctx.queue.register<{ shopId: number; orderId: number }>('order.confirmation-email', async ({ shopId, orderId }) => {
     const [shop, order] = await Promise.all([getShop(db, shopId), getOrderSummary(db, shopId, orderId)]);
     if (shop && order?.order.email) {
-      await sendNotification(db, ctx.mailer, shop, config.appUrl, 'order_confirmation', order.order.email, orderVars(order, shop));
-      await recordOrderEmail(db, shopId, orderId, 'order_confirmation', order.order.email);
+      const to = order.order.email;
+      await sendNotification(db, ctx.mailer, shop, config.appUrl, 'order_confirmation', to, orderVars(order, shop), { onSent: (m) => recordOrderEmail(db, shopId, orderId, 'order_confirmation', to, { subject: m.subject, html: m.html ?? m.text }) });
     }
   });
   ctx.queue.register<{ shopId: number; orderId: number }>('order.staff-email', async ({ shopId, orderId }) => {
@@ -289,7 +289,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       const methods = availablePaymentMethods(shop.settings, { stripeConfigured: !!stripe });
       let paymentError = false;
       const res = await submitCheckout(db, shop, token, {
-        customerId: buyer?.id ?? null, doubleOptIn: privacySettingsOf(shop).doubleOptIn,
+        customerId: buyer?.id ?? null, doubleOptIn: privacySettingsOf(shop).doubleOptIn, visitSessionId: req.cookies.shopme_vid ?? null,
         paymentMethod: str(b.paymentMethod), allowedMethods: methods.map((m) => m.id), acceptsMarketing: settings.marketing !== 'hidden' && !!b.acceptsMarketing, note: settings.orderNotes ? str(b.note).trim().slice(0, 5000) || null : undefined,
         shippingRateId: Number.isFinite(rate) && rate !== 0 ? rate : null,
         startOnlinePayment: async (view) => {

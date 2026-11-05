@@ -61,7 +61,7 @@ export async function getOrderDetail(db: Executor, shopId: number, orderId: numb
 
 const FULFILLMENT_QUERY: Record<string, string[]> = {
   shipped: ['FULFILLED'], fulfilled: ['FULFILLED'], partial: ['PARTIALLY_FULFILLED'], unshipped: ['UNFULFILLED'],
-  unfulfilled: ['UNFULFILLED', 'PARTIALLY_FULFILLED'], restocked: ['RESTOCKED'], on_hold: ['ON_HOLD'],
+  unfulfilled: ['UNFULFILLED', 'PARTIALLY_FULFILLED', 'IN_PROGRESS'], restocked: ['RESTOCKED'], on_hold: ['ON_HOLD'], in_progress: ['IN_PROGRESS'],
 };
 
 const likeParam = (v: string) => `%${v.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
@@ -84,6 +84,31 @@ export const orderSearch = (q: string | null | undefined) => buildSearch(q, {
     },
     tag: (_o, v) => sql`exists (select 1 from unnest(${orders.tags}) t where lower(t) = ${v.toLowerCase()})`,
     test: (_o, v) => sql`${orders.test} = ${v === 'true'}`,
+    // Orders fulfilled from a location, or still waiting to ship while that location is the default one (where stock is allocated first).
+    location_id: (_o, v) => {
+      const id = Number(v);
+      if (!Number.isInteger(id)) return null;
+      return sql`(exists (select 1 from fulfillments f where f.order_id = ${orders.id} and f.status <> 'CANCELLED' and f.location_id = ${id})
+        or (not exists (select 1 from fulfillments f where f.order_id = ${orders.id} and f.status <> 'CANCELLED')
+          and ${id} = (select l.id from locations l where l.shop_id = ${orders.shopId} and l.is_active order by l.priority, l.id limit 1)))`;
+    },
+    batch_id: (_o, v) => (v === 'none' ? sql`${orders.batchId} is null` : idTerm(orders.batchId, v)),
+    channel: (_o, v) => {
+      const c = v.toLowerCase();
+      return c === 'draft' ? sql`${orders.sourceName} in ('draft', 'draft_order', 'shopify_draft_order')` : sql`${orders.sourceName} = ${c}`;
+    },
+    po_number: (_o, v) => likeCi(orders.poNumber, v, true),
+    delivery_method: (_o, v) => sql`exists (select 1 from order_shipping_lines s where s.order_id = ${orders.id} and s.title ilike ${likeParam(v)})`,
+    delivery_status: (_o, v) => {
+      const live = sql`from fulfillments f where f.order_id = ${orders.id} and f.status <> 'CANCELLED'`;
+      switch (v.toLowerCase()) {
+        case 'not_fulfilled': return sql`not exists (select 1 ${live})`;
+        case 'in_transit': return sql`exists (select 1 ${live} and f.delivered_at is null)`;
+        case 'delivered': return sql`(exists (select 1 ${live}) and not exists (select 1 ${live} and f.delivered_at is null))`;
+        default: return null;
+      }
+    },
+    fulfill_by: (op, v) => dateCompare(orders.fulfillBy, op, v),
     created_at: (op, v) => dateCompare(orders.createdAt, op, v),
     processed_at: (op, v) => dateCompare(orders.processedAt, op, v),
     updated_at: (op, v) => dateCompare(orders.updatedAt, op, v),
@@ -98,11 +123,12 @@ export const orderSearch = (q: string | null | undefined) => buildSearch(q, {
   },
 });
 
-export type OrderSortKey = 'CREATED_AT' | 'CURRENT_TOTAL_PRICE' | 'CUSTOMER_NAME' | 'DESTINATION' | 'FINANCIAL_STATUS' | 'FULFILLMENT_STATUS' | 'ID' | 'ORDER_NUMBER' | 'PO_NUMBER' | 'PROCESSED_AT' | 'RELEVANCE' | 'TOTAL_ITEMS_QUANTITY' | 'TOTAL_PRICE' | 'UPDATED_AT';
+export type OrderSortKey = 'FULFILL_BY' | 'CREATED_AT' | 'CURRENT_TOTAL_PRICE' | 'CUSTOMER_NAME' | 'DESTINATION' | 'FINANCIAL_STATUS' | 'FULFILLMENT_STATUS' | 'ID' | 'ORDER_NUMBER' | 'PO_NUMBER' | 'PROCESSED_AT' | 'RELEVANCE' | 'TOTAL_ITEMS_QUANTITY' | 'TOTAL_PRICE' | 'UPDATED_AT';
 
 export async function listOrders(db: Executor, shopId: number, o: { query?: string | null; sortKey?: OrderSortKey; reverse?: boolean; offset: number; limit: number }): Promise<Order[]> {
   const cols: Record<string, unknown> = {
     CREATED_AT: orders.createdAt, PROCESSED_AT: orders.processedAt, UPDATED_AT: orders.updatedAt, ID: orders.id, ORDER_NUMBER: orders.orderNumber,
+    FULFILL_BY: sql`coalesce(${orders.fulfillBy}, ${orders.createdAt})`, PO_NUMBER: orders.poNumber,
     TOTAL_PRICE: orders.total, CURRENT_TOTAL_PRICE: sql`${orders.total} - ${orders.totalRefunded}`, FINANCIAL_STATUS: orders.financialStatus, FULFILLMENT_STATUS: orders.fulfillmentStatus,
     CUSTOMER_NAME: sql`(select lower(concat_ws(' ', c.first_name, c.last_name)) from ${customers} c where c.id = ${orders.customerId})`,
     DESTINATION: sql`(select a.country from order_addresses a where a.order_id = ${orders.id} and a.kind = 'shipping')`,
@@ -122,7 +148,7 @@ export async function countOrders(db: Executor, shopId: number, query?: string |
 /* ------------------------------ updates ------------------------------ */
 
 export interface AddressInput { firstName?: string | null; lastName?: string | null; company?: string | null; address1?: string | null; address2?: string | null; city?: string | null; provinceCode?: string | null; zip?: string | null; countryCode?: string | null; phone?: string | null }
-export interface OrderUpdateInput { email?: string | null; phone?: string | null; note?: string | null; tags?: string[] | null; shippingAddress?: AddressInput | null; billingAddress?: AddressInput | null }
+export interface OrderUpdateInput { poNumber?: string | null; fulfillBy?: Date | null; email?: string | null; phone?: string | null; note?: string | null; tags?: string[] | null; shippingAddress?: AddressInput | null; billingAddress?: AddressInput | null }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -145,7 +171,8 @@ export async function updateOrder(db: Db, shopId: number, id: number, input: Ord
   return txResult(db, async (tx) => {
     const [row] = await tx.update(orders).set({
       ...(input.email !== undefined && { email: input.email?.toLowerCase() || null }), ...(input.phone !== undefined && { phone: input.phone || null }),
-      ...(input.note !== undefined && { note: input.note || null }), ...(tags && { tags }), updatedAt: new Date(),
+      ...(input.note !== undefined && { note: input.note || null }), ...(tags && { tags }),
+      ...(input.poNumber !== undefined && { poNumber: input.poNumber?.trim().slice(0, 100) || null }), ...(input.fulfillBy !== undefined && { fulfillBy: input.fulfillBy }), updatedAt: new Date(),
     }).where(eq(orders.id, id)).returning();
     for (const [kind, addr] of [['shipping', input.shippingAddress], ['billing', input.billingAddress]] as const) {
       if (!addr) continue;
@@ -222,7 +249,7 @@ export async function markOrderAsPaid(db: Db, shopId: number, id: number, staffI
 
 /* ------------------------------ timeline ------------------------------ */
 
-export async function addOrderComment(db: Db, shopId: number, id: number, message: string, staffId: number | null) {
+export async function addOrderComment(db: Db, shopId: number, id: number, message: string, staffId: number | null, attachments: string[] = []) {
   if (!(await getOrder(db, shopId, id))) return errR(['id'], 'Order does not exist');
-  return addComment(db, shopId, 'order', id, message, staffId);
+  return addComment(db, shopId, 'order', id, message, staffId, attachments);
 }

@@ -1,5 +1,5 @@
 import {
-  addEditDiscount, addVariantToEdit, approveReturn, beginOrderEdit, calculateOrderEdit, closeReturn, commitOrderEdit, createReturn, discardOrderEdit, getOrder, getOrderEdit, getReturn, getVariant, listReturns,
+  addCustomItemToEdit, addEditDiscount, addVariantToEdit, setEditOrderDiscount, setEditShippingFee, approveReturn, beginOrderEdit, calculateOrderEdit, closeReturn, commitOrderEdit, createReturn, discardOrderEdit, getOrder, getOrderEdit, getReturn, getVariant, listReturns,
   returnableQuantities, schema, setEditQuantity, RETURN_REASONS, type CalculatedLine, type CalculatedOrder, type Order as OrderRow, type ReturnLine, type ReturnWithLines,
 } from '@shopme/core';
 import { presentmentShare } from '@shopme/core';
@@ -62,7 +62,11 @@ const CalculatedOrder_ = builder.objectRef<CO>('CalculatedOrder').implement({
     subtotalPriceSet: t.field({ type: MoneyBag, nullable: true, resolve: (c) => bag(c.order, c.lines.reduce((n, l) => n + l.discountedTotal, 0)) }),
     totalPriceSet: t.field({ type: MoneyBag, resolve: (c) => bag(c.order, c.total) }),
     totalOutstandingSet: t.field({ type: MoneyBag, description: 'Payment due when positive, refund owed when negative.', resolve: (c) => bag(c.order, c.outstanding) }),
-    cartDiscountAmountSet: t.field({ type: MoneyBag, nullable: true, resolve: () => null }),
+    cartDiscountAmountSet: t.field({ type: MoneyBag, nullable: true, resolve: (c) => (c.orderDiscount > 0 ? bag(c.order, c.orderDiscount) : null) }),
+    shopmeShippingFeeSet: t.field({ type: MoneyBag, description: 'ShopMe extension: extra shipping fee staged by the session.', resolve: (c) => bag(c.order, c.shippingFee) }),
+    shopmeOrderDiscountSet: t.field({ type: MoneyBag, description: 'ShopMe extension: amount taken off by the order-level discount.', resolve: (c) => bag(c.order, c.orderDiscount) }),
+    shopmeShippingFeeTitle: t.string({ nullable: true, resolve: (c) => c.edit.shippingFee?.title ?? null }),
+    shopmeOrderDiscountDescription: t.string({ nullable: true, resolve: (c) => c.edit.orderDiscount?.description ?? null }),
   }),
 });
 registerNode('CalculatedOrder', async (ctx, id) => { const e = await getOrderEdit(ctx.db, ctx.shopId, id); return e ? withId(await calculateOrderEdit(ctx.db, ctx.shopId, e)) : null; });
@@ -165,6 +169,66 @@ builder.mutationFields((t) => ({
   shopmeOrderEditDiscard: t.field({
     type: definePayload<{ discarded: boolean }>('ShopmeOrderEditDiscardPayload', (u) => ({ discarded: u.boolean({ resolve: (p) => p.discarded }) })), args: { id: t.arg.id({ required: true }) },
     resolve: async (_r, a, ctx) => { requireScope(ctx, 'write_order_edits'); const id = editId(a.id); if (id) await discardOrderEdit(ctx.db, ctx.shopId, id); return { discarded: !!id, userErrors: [] }; },
+  }),
+}));
+
+const OrderEditShippingInput = builder.inputType('OrderEditAddShippingLineInput', { fields: (t) => ({ title: t.string({ required: true }), price: t.field({ type: MoneyInput, required: true }) }) });
+const EditCalcPayload = (name: string) => definePayload<{ calc: CO | null }>(name, (t) => ({
+  calculatedOrder: t.field({ type: CalculatedOrder_, nullable: true, resolve: (p) => p.calc }),
+  orderEditSession: t.field({ type: Session, nullable: true, resolve: (p) => (p.calc ? { id: p.calc.edit.id } : null) }),
+}));
+const CustomItemPayload = editPayload('OrderEditAddCustomItemPayload');
+const ShippingLinePayload = EditCalcPayload('OrderEditAddShippingLinePayload');
+const OrderDiscountPayload = EditCalcPayload('ShopmeOrderEditSetOrderDiscountPayload');
+
+builder.mutationFields((t) => ({
+  orderEditAddCustomItem: t.field({
+    type: CustomItemPayload, description: 'Adds a line that is not in the catalog to the edit.',
+    args: { id: t.arg.id({ required: true }), title: t.arg.string({ required: true }), price: t.arg({ type: MoneyInput, required: true }), quantity: t.arg.int({ required: true }), locationId: t.arg.id(), requiresShipping: t.arg.boolean(), taxable: t.arg.boolean() },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_order_edits');
+      const id = editId(a.id);
+      if (!id) return { calc: null, line: null, discount: null, userErrors: noEdit() };
+      const cur = await calcOf(ctx, id);
+      if (!cur) return { calc: null, line: null, discount: null, userErrors: noEdit() };
+      let unitPrice: number;
+      try { unitPrice = parseMoney(a.price.amount, cur.order.currency); } catch { return { calc: null, line: null, discount: null, userErrors: fail(['price'], 'Price is invalid') }; }
+      const r = await addCustomItemToEdit(ctx.db, ctx.shopId, id, { title: a.title, unitPrice, quantity: a.quantity, taxable: a.taxable ?? true, requiresShipping: a.requiresShipping ?? false });
+      if (!r.ok) return { calc: null, line: null, discount: null, userErrors: r.errors };
+      const calc = (await calcOf(ctx, id))!;
+      return { calc, line: calc.lines.find((l) => l.id === r.value.lineId) ?? null, discount: null, userErrors: [] };
+    },
+  }),
+  orderEditAddShippingLine: t.field({
+    type: ShippingLinePayload, description: 'Stages an extra shipping fee on the edit. A zero price clears it.',
+    args: { id: t.arg.id({ required: true }), shippingLine: t.arg({ type: OrderEditShippingInput, required: true }) },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_order_edits');
+      const id = editId(a.id);
+      const cur = id ? await calcOf(ctx, id) : null;
+      if (!id || !cur) return { calc: null, userErrors: noEdit() };
+      let price: number;
+      try { price = parseMoney(a.shippingLine.price.amount, cur.order.currency); } catch { return { calc: null, userErrors: fail(['shippingLine', 'price'], 'Price is invalid') }; }
+      const r = await setEditShippingFee(ctx.db, ctx.shopId, id, { title: a.shippingLine.title, price });
+      return r.ok ? { calc: await calcOf(ctx, id), userErrors: [] } : { calc: null, userErrors: r.errors };
+    },
+  }),
+  shopmeOrderEditSetOrderDiscount: t.field({
+    type: OrderDiscountPayload, description: 'ShopMe extension: a discount on the whole order (percent or fixed amount). Send neither value to clear it.',
+    args: { id: t.arg.id({ required: true }), discount: t.arg({ type: DiscountInput }) },
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_order_edits');
+      const id = editId(a.id);
+      const cur = id ? await calcOf(ctx, id) : null;
+      if (!id || !cur) return { calc: null, userErrors: noEdit() };
+      const d = a.discount;
+      if (!d || (d.fixedValue == null && d.percentValue == null)) { const r = await setEditOrderDiscount(ctx.db, ctx.shopId, id, null); return r.ok ? { calc: await calcOf(ctx, id), userErrors: [] } : { calc: null, userErrors: r.errors }; }
+      if ((d.fixedValue == null) === (d.percentValue == null)) return { calc: null, userErrors: fail(['discount'], 'Specify either a fixed value or a percent value') };
+      let value: number;
+      try { value = d.fixedValue ? parseMoney(d.fixedValue.amount, cur.order.currency) : d.percentValue!; } catch { return { calc: null, userErrors: fail(['discount', 'fixedValue'], 'Amount is invalid') }; }
+      const r = await setEditOrderDiscount(ctx.db, ctx.shopId, id, { valueType: d.fixedValue ? 'FIXED_AMOUNT' : 'PERCENTAGE', value, description: d.description ?? null });
+      return r.ok ? { calc: await calcOf(ctx, id), userErrors: [] } : { calc: null, userErrors: r.errors };
+    },
   }),
 }));
 
