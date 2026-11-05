@@ -10,6 +10,8 @@ import {
 } from '../pricing';
 import { discountEligibleFor } from '../discounts/eligibility';
 import { allocateGiftCards, getGiftCardByCode, giftCardRejection, normalizeGiftCardCode, type GiftCardRejection } from '../gift-cards';
+import { subscribeEmail } from '../privacy/marketing';
+import { planStoreCredit, setUseStoreCredit, storeCreditEnabled, NO_STORE_CREDIT, type StoreCreditTender } from '../store-credit';
 import { checkoutSettingsOf, isPhone, requiredAddressKeys, stripHiddenAddressFields, tipFor, type CheckoutSettings } from './settings';
 
 export * from './settings';
@@ -40,7 +42,9 @@ export interface CheckoutView {
   /** Gift cards entered by the buyer and what each one pays. */
   giftCards: { id: number; code: string; lastCharacters: string; applied: number; balance: number }[];
   giftCardTotal: number;
-  /** Total after gift cards: what the payment method has to collect. */
+  /** Store credit of the signed-in buyer (tender after gift cards): balance, the checkbox and the amount applied. */
+  storeCredit: StoreCreditTender;
+  /** Total after gift cards and store credit: what the payment method has to collect. */
   amountDue: number;
   /** Variants whose stock is below the quantity in the cart. */
   stockIssues: { variantId: number; title: string; available: number }[];
@@ -208,7 +212,7 @@ export async function priceCartDiscounts(db: Executor, shopId: number, cart: Car
 }
 
 /** Everything the checkout page needs, priced. Null when the token is unknown. */
-export async function loadCheckout(db: Executor, shop: Shop, token: string, now = new Date()): Promise<CheckoutView | null> {
+export async function loadCheckout(db: Executor, shop: Shop, token: string, now = new Date(), opts: { customerId?: number | null } = {}): Promise<CheckoutView | null> {
   const row = await cartRowByToken(db, shop.id, token);
   if (!row) return null;
   const cart = (await loadCartView(db, shop.id, row.id))!;
@@ -236,11 +240,16 @@ export async function loadCheckout(db: Executor, shop: Shop, token: string, now 
   const settings = checkoutSettingsOf(shop);
   const tipChoice = { percent: meta?.tipPercent ?? null, amount: meta?.tipAmount ?? 0 };
   const tip = settings.tipping.enabled ? tipFor(Math.max(0, pricing.subtotal - pricing.totalDiscounts), tipChoice) : 0;
+  const dueAfterGift = pricing.total - gift.total + tip;
+  const giftProductTotal = pricing.lines.filter((l) => cart.lines.some((c) => c.lineId === l.id && c.product.isGiftCard)).reduce((n, l) => n + l.total, 0);
+  const credit = storeCreditEnabled(shop) && opts.customerId
+    ? await planStoreCredit(db, shop, { customerId: opts.customerId, currency: cart.currency, payable: Math.max(0, dueAfterGift - giftProductTotal), use: meta?.useStoreCredit !== false, now })
+    : NO_STORE_CREDIT;
   return {
     token, currency: cart.currency, taxesIncluded: shop.taxesIncluded, email: row.email, address, note: row.note, settings, tip, tipChoice, lines: cart.lines, requiresShipping,
     shippingOptions: options, shippingRateId: chosen?.id ?? null,
     appliedDiscounts: applied.map((d) => ({ code: d.code, title: d.title })), rejectedCodes: rejected,
-    giftCards: gift.cards, giftCardTotal: gift.total, amountDue: pricing.total - gift.total + tip, stockIssues: await stockIssuesFor(db, shop.id, cart.lines), pricing, completed: !!row.completedAt,
+    giftCards: gift.cards, giftCardTotal: gift.total, storeCredit: credit, amountDue: dueAfterGift - credit.applied, stockIssues: await stockIssuesFor(db, shop.id, cart.lines), pricing, completed: !!row.completedAt,
   };
 }
 
@@ -281,6 +290,8 @@ export interface CheckoutPatch {
   /** Tip choice: a preset percentage, or a custom amount (minor units). Either clears the other. */
   tipPercent?: number | null;
   tipAmount?: number;
+  /** The buyer's "use store credit" checkbox. */
+  useStoreCredit?: boolean;
 }
 
 const ADDRESS_KEYS = ['firstName', 'lastName', 'company', 'address1', 'address2', 'city', 'province', 'provinceCode', 'zip', 'country', 'countryCode', 'phone'] as const;
@@ -339,6 +350,7 @@ export async function updateCheckout(db: Db, shop: Shop, token: string, patch: C
     const amount = percent ? 0 : Math.max(0, Math.min(Math.trunc(patch.tipAmount ?? 0), 100_000_000));
     await db.insert(s.checkoutMeta).values({ cartId: row.id, shopId: shop.id, tipPercent: percent, tipAmount: amount }).onConflictDoUpdate({ target: s.checkoutMeta.cartId, set: { tipPercent: percent, tipAmount: amount } });
   }
+  if (patch.useStoreCredit !== undefined) await setUseStoreCredit(db, shop.id, row.id, patch.useStoreCredit);
   if (Object.keys(set).length) await db.update(s.carts).set(set).where(eq(s.carts.id, row.id));
   return { ok: true };
 }
@@ -348,7 +360,7 @@ export async function updateCheckout(db: Db, shop: Shop, token: string, patch: C
 // ---------------------------------------------------------------------------------------------------------------------
 
 export type CheckoutError =
-  | { code: 'not_found' | 'completed' | 'empty' | 'email' | 'contact' | 'shipping_method' | 'payment_method' | 'discount' | 'gift_card' }
+  | { code: 'not_found' | 'completed' | 'empty' | 'email' | 'contact' | 'shipping_method' | 'payment_method' | 'discount' | 'gift_card' | 'store_credit' }
   | { code: 'address'; fields: string[] }
   | { code: 'stock'; issues: CheckoutView['stockIssues'] };
 
@@ -360,12 +372,16 @@ export interface SubmitInput {
   note?: string | null;
   /** Shipping rate the buyer saw selected; must still be offered. */
   shippingRateId?: number | null;
+  /** The signed-in customer (store credit is only offered to them). */
+  customerId?: number | null;
+  /** Double opt-in is on: the marketing checkbox creates a pending subscription (confirmed by email) instead of a subscribed one. */
+  doubleOptIn?: boolean;
   /** Starts an online payment for the final total and returns its provider reference (called after validation, before the order exists). */
   startOnlinePayment?: (checkout: CheckoutView) => Promise<string>;
 }
 
 export type SubmitResult =
-  | { ok: true; orderId: number; orderNumber: number; name: string; total: number; currency: string; paid: boolean; needsOnlinePayment: boolean; paymentId: string | null; email: string; checkout: CheckoutView }
+  | { ok: true; orderId: number; orderNumber: number; name: string; total: number; currency: string; paid: boolean; needsOnlinePayment: boolean; paymentId: string | null; email: string; checkout: CheckoutView; marketingConfirmation: { customerId: number; email: string; token: string } | null }
   | { ok: false; errors: CheckoutError[] };
 
 
@@ -374,7 +390,7 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
   const row = await cartRowByToken(db, shop.id, token);
   if (!row) return { ok: false, errors: [{ code: 'not_found' }] };
   if (row.completedAt) return { ok: false, errors: [{ code: 'completed' }] };
-  const view = (await loadCheckout(db, shop, token))!;
+  const view = (await loadCheckout(db, shop, token, new Date(), { customerId: input.customerId }))!;
   const errors: CheckoutError[] = [];
   if (!view.lines.length) return { ok: false, errors: [{ code: 'empty' }] };
   const settings = view.settings;
@@ -396,16 +412,17 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
   let checkout = view;
   if (view.requiresShipping && input.shippingRateId && input.shippingRateId !== view.shippingRateId) {
     await db.update(s.carts).set({ shippingRateId: input.shippingRateId }).where(eq(s.carts.id, row.id));
-    checkout = (await loadCheckout(db, shop, token))!;
+    checkout = (await loadCheckout(db, shop, token, new Date(), { customerId: input.customerId }))!;
   }
   const cart = (await loadCartView(db, shop.id, row.id)) as CartView;
   const byId = new Map(cart.lines.map((l) => [l.lineId, l]));
   const online = !free && input.paymentMethod === 'stripe';
   const giftCards = checkout.giftCards.filter((g) => g.applied > 0).map((g) => ({ giftCardId: g.id, amount: g.applied }));
-  const gateway = free ? (giftCards.length ? 'gift_card' : 'free') : input.paymentMethod;
+  const credit = checkout.storeCredit.applied > 0 && checkout.storeCredit.accountId ? { accountId: checkout.storeCredit.accountId, amount: checkout.storeCredit.applied } : null;
+  const gateway = free ? (giftCards.length ? 'gift_card' : credit ? 'store_credit' : 'free') : input.paymentMethod;
   const paymentId = online && input.startOnlinePayment ? await input.startOnlinePayment(checkout) : null;
   const res: CreateOrderResult = await createOrder(db, shop.id, {
-    email: row.email, phone: checkout.address?.phone ?? null, acceptsMarketing: settings.marketing !== 'hidden' && input.acceptsMarketing, tip: checkout.tip, currency: cart.currency, taxesIncluded: shop.taxesIncluded,
+    email: row.email, phone: checkout.address?.phone ?? null, acceptsMarketing: settings.marketing !== 'hidden' && input.acceptsMarketing && !input.doubleOptIn, tip: checkout.tip, currency: cart.currency, taxesIncluded: shop.taxesIncluded,
     lines: checkout.pricing.lines.map((p) => {
       const l = byId.get(p.id)!;
       return {
@@ -414,17 +431,23 @@ export async function submitCheckout(db: Db, shop: Shop, token: string, input: S
         imageUrl: l.image?.url ?? null, isGiftCard: l.product.isGiftCard, properties: l.properties,
       };
     }),
-    pricing: checkout.pricing, giftCards,
+    pricing: checkout.pricing, giftCards, storeCredit: credit,
     shippingAddress: checkout.requiresShipping ? checkout.address : null, billingAddress: checkout.address,
     payment: { gateway, status: free ? 'PAID' : 'PENDING', paymentId },
     cartToken: token, note: settings.orderNotes ? (input.note ?? row.note) : row.note,
   });
   if (!res.ok) {
-    if (res.error === 'out_of_stock') return { ok: false, errors: [{ code: 'stock', issues: (await loadCheckout(db, shop, token))!.stockIssues }] };
+    if (res.error === 'out_of_stock') return { ok: false, errors: [{ code: 'stock', issues: (await loadCheckout(db, shop, token, new Date(), { customerId: input.customerId }))!.stockIssues }] };
     if (res.error === 'discount_unavailable') return { ok: false, errors: [{ code: 'discount' }] };
     if (res.error === 'gift_card_unavailable') return { ok: false, errors: [{ code: 'gift_card' }] };
+    if (res.error === 'store_credit_unavailable') return { ok: false, errors: [{ code: 'store_credit' }] };
     return { ok: false, errors: [{ code: 'completed' }] };
   }
   if (row.draftOrderId) await completeDraftFromCheckout(db, shop.id, row.draftOrderId, res.orderId);
-  return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.amountDue, currency: cart.currency, paid: free, needsOnlinePayment: online, paymentId, email: row.email ?? '', checkout };
+  let marketingConfirmation: { customerId: number; email: string; token: string } | null = null;
+  if (input.doubleOptIn && input.acceptsMarketing && settings.marketing !== 'hidden' && row.email) {
+    const sub = await subscribeEmail(db, shop.id, { email: row.email, tags: [], doubleOptIn: true });
+    if (sub.ok && sub.value.confirmToken) marketingConfirmation = { customerId: sub.value.customer.id, email: row.email, token: sub.value.confirmToken };
+  }
+  return { ok: true, orderId: res.orderId, orderNumber: res.orderNumber, name: res.name, total: checkout.amountDue, currency: cart.currency, paid: free, needsOnlinePayment: online, paymentId, email: row.email ?? '', checkout, marketingConfirmation };
 }

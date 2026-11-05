@@ -3,6 +3,8 @@ import { manualProviders, parsePaymentSettings, type PaymentProvider } from '@sh
 import type { Executor } from '../../db/client';
 import * as s from '../../db/schema';
 import { addEvent } from '../events';
+import { revertOrderStoreCredit } from '../store-credit';
+import type { Db } from '../../db/client';
 
 /** Payment methods offered at checkout: enabled manual methods, plus Stripe when configured (env) and not switched off in settings. */
 export function availablePaymentMethods(settings: Record<string, unknown>, opts: { stripeConfigured: boolean }): PaymentProvider[] {
@@ -44,4 +46,7 @@ export async function recordPaymentFailure(db: Executor, shopId: number, orderId
   if (!o) return;
   await db.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'FAILURE', gateway: info.gateway, amount: o.total, currency: o.currency, paymentId: info.paymentId ?? null, errorCode: info.message?.slice(0, 200) ?? null });
   await addEvent(db, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.payment_failed', message: `Payment failed (${info.gateway})${info.message ? `: ${info.message}` : ''}` });
+  // Store credit the order already spent goes back to the buyer (the payment for the rest did not go through).
+  const back = await revertOrderStoreCredit(db as unknown as Db, shopId, orderId);
+  if (back > 0) await addEvent(db, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.store_credit_restored', message: 'Store credit was restored after the payment failed', data: { amount: back } });
 }

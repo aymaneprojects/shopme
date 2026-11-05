@@ -3,6 +3,7 @@ import { shops } from '../../db/schema';
 import type { Executor } from '../../db/client';
 import { errR, okR, type Result } from '../catalog/common';
 import type { Shop } from '../shops';
+import { accountsModeOf, withAccountsMode } from '../accounts/settings';
 
 /**
  * Checkout settings (Settings > Checkout), stored in `shops.settings.checkout`. The storefront checkout renders and validates
@@ -42,7 +43,8 @@ export function checkoutSettingsOf(shop: Pick<Shop, 'settings'>): CheckoutSettin
   const presets = Array.isArray(c.tipping?.presets) ? (c.tipping.presets as unknown[]).filter((n): n is number => Number.isInteger(n) && (n as number) > 0 && (n as number) <= 100) : d.tipping.presets;
   return {
     contactMethod: pick(c.contactMethod, ['email', 'email_or_phone'], d.contactMethod),
-    accountMode: pick(c.accountMode, ['guest', 'required'], d.accountMode),
+    // One source of truth: the customer accounts mode (Settings > Customer accounts); `required` here means `REQUIRED` there.
+    accountMode: accountsModeOf(shop) === 'REQUIRED' ? 'required' : 'guest',
     nameMode: pick(c.nameMode, ['full', 'last'], d.nameMode),
     company: pick(c.company, FIELD_RULES, d.company),
     address2: pick(c.address2, FIELD_RULES, d.address2),
@@ -79,7 +81,10 @@ export async function updateCheckoutSettings(db: Executor, shop: Shop, input: Ch
     company: input.company ?? cur.company, address2: input.address2 ?? cur.address2, phone: input.phone ?? cur.phone, marketing: input.marketing ?? cur.marketing,
     tipping, orderNotes: input.orderNotes ?? cur.orderNotes,
   };
-  await db.update(shops).set({ settings: { ...shop.settings, checkout: next }, updatedAt: new Date() }).where(eq(shops.id, shop.id));
+  // The sign-in requirement lives in the customer accounts mode; a switch here keeps a disabled-accounts shop disabled.
+  const mode = accountsModeOf(shop);
+  const settings = withAccountsMode({ ...shop.settings, checkout: next }, next.accountMode === 'required' ? 'REQUIRED' : mode === 'DISABLED' ? 'DISABLED' : 'OPTIONAL');
+  await db.update(shops).set({ settings, updatedAt: new Date() }).where(eq(shops.id, shop.id));
   return okR(next);
 }
 

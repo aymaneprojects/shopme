@@ -9,3 +9,5 @@ export * from './migrate';
 export * from './platform';
 export * from './wave7a';
 export * from './saved-views';
+export * from './privacy';
+export * from './store-credit';

@@ -4,6 +4,7 @@ import type { Db } from '../../db/client';
 import { decimal } from '../import-export/common';
 import { errR, okR, txResult, type Result } from '../catalog/common';
 import { addEvent } from '../events';
+import { creditStoreCredit, type StoreCreditEvent } from '../store-credit';
 import { getOrder, getOrderDetail, paidAmounts, restockVariant, type Order, type Refund } from './orders';
 
 export interface RefundLineInput { orderLineId: number; quantity: number; restockType?: 'RETURN' | 'CANCEL' | 'LEGACY_RESTOCK' | 'NO_RESTOCK' | null; locationId?: number | null }
@@ -19,6 +20,10 @@ export interface RefundInput {
   /** Refund transactions to record (amounts in minor units). Defaults to one transaction for the refund total. */
   transactions?: { amount: number; gateway?: string | null; parentId?: number | null }[] | null;
   allowOverRefunding?: boolean;
+  /** Refund part of the amount as store credit for the order's customer (the "Store credit" refund destination). */
+  storeCredit?: { amount: number; expiresAt?: Date | null } | null;
+  /** Why store credit is issued by this refund (cancelling an order restores the credit it spent). */
+  storeCreditEvent?: StoreCreditEvent;
   /** Send the refund notification email. */
   notifyCustomer?: boolean;
   processedAt?: Date | null;
@@ -53,25 +58,37 @@ export async function refundOrder(db: Db, shopId: number, orderId: number, input
     computed += shipping;
 
     const given = input.transactions?.reduce((s, t) => s + t.amount, 0);
-    const total = input.amount ?? given ?? computed;
+    const toCreditPre = input.storeCredit?.amount ?? 0;
+    // Explicit transactions describe the non-credit part of the refund; the store credit part is on top of them.
+    const total = input.amount ?? (given != null ? given + toCreditPre : Math.max(computed, toCreditPre));
     if (total <= 0 && !lineRows.length) return errR(['refundLineItems'], 'Nothing to refund');
     if (total < 0) return errR(['transactions'], 'Refund amount must be positive');
+    if (input.storeCredit) {
+      if (!order.customerId) return errR(['refundMethods'], 'A store credit refund needs a customer on the order', 'STORE_CREDIT_REFUND_MISSING_CUSTOMER');
+      if (!Number.isInteger(toCreditPre) || toCreditPre <= 0 || toCreditPre > total) return errR(['refundMethods'], 'The store credit amount must be positive and not above the refund', 'INVALID');
+      if (input.storeCredit.expiresAt && input.storeCredit.expiresAt.getTime() <= Date.now()) return errR(['refundMethods'], 'The expiration date must be in the future', 'STORE_CREDIT_REFUND_EXPIRATION_IN_PAST');
+    }
     const { received, refunded } = paidAmounts(d.transactions);
     if (!input.allowOverRefunding && total > received - refunded) return errR(['transactions'], `Refund amount exceeds the refundable amount (${received - refunded} minor units)`);
 
     const now = new Date();
     const [refund] = await tx.insert(refunds).values({ shopId, orderId, note: input.note ?? null, total, processedAt: input.processedAt ?? now, createdAt: now }).returning();
     const insertedLines = lineRows.length ? await tx.insert(refundLines).values(lineRows.map((r) => ({ ...r, refundId: refund!.id }))).returning() : [];
-    const sale = d.transactions.find((t) => ['SALE', 'CAPTURE'].includes(t.kind) && t.status === 'SUCCESS' && t.gateway !== 'gift_card')
+    const sale = d.transactions.find((t) => ['SALE', 'CAPTURE'].includes(t.kind) && t.status === 'SUCCESS' && !nonCash(t.gateway))
       ?? d.transactions.find((t) => ['SALE', 'CAPTURE'].includes(t.kind) && t.status === 'SUCCESS');
-    const txInputs: { amount: number; gateway?: string | null; parentId?: number | null }[] = input.transactions?.length ? input.transactions : total > 0 ? allocateRefund(d.transactions, total, sale) : [];
+    const toCredit = toCreditPre;
+    const rest = total - toCredit;
+    const txInputs: { amount: number; gateway?: string | null; parentId?: number | null }[] = [
+      ...(input.transactions?.length ? input.transactions : rest > 0 ? allocateRefund(d.transactions, rest, sale) : []),
+      ...(toCredit > 0 ? [{ amount: toCredit, gateway: 'store_credit', parentId: null }] : []),
+    ];
     const txRows = txInputs.length
       ? await tx.insert(transactions).values(txInputs.map((t) => {
         const parent = d.transactions.find((x) => x.id === (t.parentId ?? -1));
         const gateway = t.gateway ?? parent?.gateway ?? sale?.gateway ?? 'manual';
         return {
           shopId, orderId, kind: 'REFUND', status: 'SUCCESS', gateway, amount: t.amount, currency: order.currency, test: order.test,
-          parentId: t.parentId ?? (gateway === 'gift_card' ? null : sale?.id ?? null), giftCardId: gateway === 'gift_card' ? parent?.giftCardId ?? null : null, processedAt: now, createdAt: now,
+          parentId: t.parentId ?? (nonCash(gateway) ? null : sale?.id ?? null), giftCardId: gateway === 'gift_card' ? parent?.giftCardId ?? null : null, processedAt: now, createdAt: now,
         };
       })).returning()
       : [];
@@ -86,6 +103,16 @@ export async function refundOrder(db: Db, shopId: number, orderId: number, input
       row.giftCardId = cardId;
     }
 
+    // Store credit payments (and refunds to credit) are paid back as credit: spending is restored, a refund destination is issued with its expiry.
+    for (const row of txRows.filter((r) => r.gateway === 'store_credit')) {
+      const explicit = row.parentId === null && toCredit > 0 && row.amount === toCredit;
+      const r = await creditStoreCredit(tx as unknown as Db, shopId, {
+        customerId: order.customerId, amount: row.amount, currency: order.currency, event: explicit ? 'ORDER_REFUND' : input.storeCreditEvent ?? 'ORDER_REFUND',
+        expiresAt: explicit ? input.storeCredit?.expiresAt ?? null : null, orderId, staffUserId: input.staffId, skipLimit: true, note: `Refund ${order.name}`,
+      });
+      if (!r.ok) return errR(['refundMethods'], r.errors[0]?.message ?? 'The store credit could not be issued', 'INVALID');
+    }
+
     for (const r of insertedLines) {
       const line = byId.get(r.orderLineId)!;
       await tx.update(orderLines).set({ currentQuantity: line.currentQuantity - r.quantity }).where(eq(orderLines.id, line.id));
@@ -96,10 +123,14 @@ export async function refundOrder(db: Db, shopId: number, orderId: number, input
       totalRefunded, updatedAt: now,
       ...(received > 0 && { financialStatus: totalRefunded >= order.total ? 'REFUNDED' : 'PARTIALLY_REFUNDED' }),
     }).where(eq(orders.id, orderId)).returning();
-    await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.refunded', message: `Refunded ${decimal(total, order.currency)} ${order.currency}${input.note ? `: ${input.note}` : ''}`, authorStaffUserId: input.staffId, data: { refundId: refund!.id, total, currency: order.currency, note: input.note ?? null, giftCard: txRows.filter((r) => r.gateway === 'gift_card').reduce((n, r) => n + r.amount, 0), notify: !!input.notifyCustomer } });
+    await addEvent(tx, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.refunded', message: `Refunded ${decimal(total, order.currency)} ${order.currency}${input.note ? `: ${input.note}` : ''}`, authorStaffUserId: input.staffId, data: { refundId: refund!.id, total, currency: order.currency, note: input.note ?? null, giftCard: txRows.filter((r) => r.gateway === 'gift_card').reduce((n, r) => n + r.amount, 0), storeCredit: txRows.filter((r) => r.gateway === 'store_credit').reduce((n, r) => n + r.amount, 0), notify: !!input.notifyCustomer } });
     return okR({ order: updated!, refund: { ...refund!, lines: insertedLines, transactions: txRows } });
   });
 }
+
+/** Tenders that are not cash: they are paid back onto the gift card balance or as store credit. */
+const NON_CASH = ['gift_card', 'store_credit'];
+const nonCash = (g: string | null | undefined) => !!g && NON_CASH.includes(g);
 
 /**
  * Split a refund over the payment methods that took the money: the card/gateway payment first (up to what is still refundable on it), whatever
@@ -108,17 +139,17 @@ export async function refundOrder(db: Db, shopId: number, orderId: number, input
 function allocateRefund(txs: (typeof transactions.$inferSelect)[], total: number, sale: (typeof transactions.$inferSelect) | undefined) {
   const ok = (t: typeof transactions.$inferSelect) => t.status === 'SUCCESS';
   const refundedOn = (pred: (t: typeof transactions.$inferSelect) => boolean) => txs.filter((t) => ok(t) && t.kind === 'REFUND' && pred(t)).reduce((n, t) => n + t.amount, 0);
-  const gifts = txs.filter((t) => ok(t) && t.kind === 'SALE' && t.gateway === 'gift_card');
-  if (!gifts.length) return [{ amount: total, gateway: sale?.gateway ?? 'manual', parentId: sale?.id ?? null }];
-  const cashPaid = txs.filter((t) => ok(t) && ['SALE', 'CAPTURE'].includes(t.kind) && t.gateway !== 'gift_card').reduce((n, t) => n + t.amount, 0);
-  const cash = Math.max(0, Math.min(total, cashPaid - refundedOn((t) => t.gateway !== 'gift_card')));
-  const out: { amount: number; gateway?: string | null; parentId?: number | null }[] = cash > 0 ? [{ amount: cash, gateway: sale?.gateway ?? 'manual', parentId: sale?.gateway !== 'gift_card' ? sale?.id ?? null : null }] : [];
+  const prepaid = txs.filter((t) => ok(t) && t.kind === 'SALE' && nonCash(t.gateway));
+  if (!prepaid.length) return [{ amount: total, gateway: sale?.gateway ?? 'manual', parentId: sale?.id ?? null }];
+  const cashPaid = txs.filter((t) => ok(t) && ['SALE', 'CAPTURE'].includes(t.kind) && !nonCash(t.gateway)).reduce((n, t) => n + t.amount, 0);
+  const cash = Math.max(0, Math.min(total, cashPaid - refundedOn((t) => !nonCash(t.gateway))));
+  const out: { amount: number; gateway?: string | null; parentId?: number | null }[] = cash > 0 ? [{ amount: cash, gateway: sale?.gateway ?? 'manual', parentId: sale && !nonCash(sale.gateway) ? sale.id : null }] : [];
   let left = total - cash;
-  for (const g of gifts) {
+  for (const g of prepaid) {
     if (left <= 0) break;
     const room = g.amount - refundedOn((t) => t.parentId === g.id);
     const n = Math.min(left, Math.max(0, room));
-    if (n > 0) { out.push({ amount: n, gateway: 'gift_card', parentId: g.id }); left -= n; }
+    if (n > 0) { out.push({ amount: n, gateway: g.gateway, parentId: g.id }); left -= n; }
   }
   if (left > 0) out.push({ amount: left, gateway: sale?.gateway ?? 'manual', parentId: sale?.id ?? null }); // over-refunding: nothing else to credit
   return out;
@@ -146,7 +177,7 @@ export async function cancelOrder(
     if (o.refund) {
       const { received, refunded } = paidAmounts(d.transactions);
       if (received - refunded > 0) {
-        const r = await refundOrder(tx as unknown as Db, shopId, id, { note: o.staffNote ?? 'Order cancelled', amount: received - refunded, staffId: o.staffId });
+        const r = await refundOrder(tx as unknown as Db, shopId, id, { note: o.staffNote ?? 'Order cancelled', amount: received - refunded, staffId: o.staffId, storeCreditEvent: 'ORDER_CANCELLATION' });
         if (!r.ok) return r;
       }
     }

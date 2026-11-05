@@ -12,7 +12,7 @@ import { assertSafeKey, type Storage } from './storage';
 export const EXPORT_FORMAT = 'shopme-export';
 export const EXPORT_FORMAT_VERSION = 1;
 /** Rows of these tables are not exported: credentials, sessions, transient and rebuildable data. */
-const EXCLUDED = new Set(['sessions', 'staff_users', 'staff_two_factor', 'api_tokens', 'customer_tokens', 'jobs', 'webhook_deliveries', 'visits']);
+const EXCLUDED = new Set(['sessions', 'staff_users', 'staff_two_factor', 'api_tokens', 'customer_tokens', 'jobs', 'webhook_deliveries', 'visits', 'customer_login_codes', 'storefront_events']);
 
 export interface ExportManifest {
   format: typeof EXPORT_FORMAT; formatVersion: number; appVersion: string; schemaVersion: number; createdAt: string;

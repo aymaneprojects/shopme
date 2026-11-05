@@ -102,7 +102,7 @@ class LayoutTag extends Tag {
 const FORM_ACTIONS: Record<string, string> = {
   product: '/cart/add', cart: '/cart', contact: '/contact#contact_form', customer: '/contact#contact_form', localization: '/localization',
   storefront_password: '/password', customer_login: '/account/login', create_customer: '/account', recover_customer_password: '/account/recover',
-  guest_login: '/account/login', reset_customer_password: '/account/reset', activate_customer_password: '/account/activate',
+  guest_login: '/account/login', customer_login_code: '/account/login/code', customer_login_code_verify: '/account/login/code/verify', data_sale_opt_out: '/pages/data-sale-opt-out', reset_customer_password: '/account/reset', activate_customer_password: '/account/activate',
   customer_address: '/account/addresses', new_comment: '', currency: '/cart/update',
 };
 

@@ -8,12 +8,16 @@ const STRINGS: Record<string, Dict> = {
     resetIgnore: 'If you did not ask for this, you can ignore this email: your password stays the same. The link expires in 24 hours.',
     activateSubject: 'Activate your account', activateIntro: 'Create a password to activate your {shop} account.', activateAction: 'Activate account', activateIgnore: 'The link expires in 7 days.',
     contactSubject: '[{shop}] New message from {name}', contactIntro: 'New message sent through the contact form.', from: 'From', phone: 'Phone', message: 'Message',
+    codeSubject: 'Your {shop} sign-in code: {code}', codeIntro: 'Your sign-in code for {shop} is {code}. Enter it on the sign-in page to continue.', codeIgnore: 'The code expires in 10 minutes. If you did not ask for it, you can ignore this email.',
+    subscribeSubject: 'Confirm your subscription to {shop}', subscribeIntro: 'Please confirm that you want to receive marketing emails from {shop}.', subscribeAction: 'Confirm my subscription', subscribeIgnore: 'If you did not ask for this, ignore this email and you will not be subscribed.',
   },
   fr: {
     resetSubject: 'Réinitialisez votre mot de passe', resetIntro: 'Nous avons reçu une demande de réinitialisation du mot de passe de votre compte {shop}.', resetAction: 'Réinitialiser le mot de passe',
     resetIgnore: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : votre mot de passe reste inchangé. Le lien expire dans 24 heures.",
     activateSubject: 'Activez votre compte', activateIntro: 'Créez un mot de passe pour activer votre compte {shop}.', activateAction: 'Activer le compte', activateIgnore: 'Le lien expire dans 7 jours.',
     contactSubject: '[{shop}] Nouveau message de {name}', contactIntro: 'Nouveau message envoyé via le formulaire de contact.', from: 'De', phone: 'Téléphone', message: 'Message',
+    codeSubject: 'Votre code de connexion {shop} : {code}', codeIntro: 'Votre code de connexion pour {shop} est {code}. Saisissez-le sur la page de connexion pour continuer.', codeIgnore: "Le code expire dans 10 minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.",
+    subscribeSubject: 'Confirmez votre inscription à {shop}', subscribeIntro: 'Merci de confirmer que vous souhaitez recevoir les e-mails marketing de {shop}.', subscribeAction: 'Confirmer mon inscription', subscribeIgnore: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail : vous ne serez pas inscrit.",
   },
 };
 
@@ -38,6 +42,18 @@ export function renderPasswordReset(shop: Shop, to: string, url: string): Mail {
 export function renderAccountActivation(shop: Shop, to: string, url: string): Mail {
   const t = dict(shop.locale);
   return { to, subject: t('activateSubject'), ...layout(shop, t('activateIntro', { shop: shop.name }), { label: t('activateAction'), url }, t('activateIgnore')) };
+}
+
+/** Passwordless sign-in: the one-time code. */
+export function renderLoginCode(shop: Shop, to: string, code: string): Mail {
+  const t = dict(shop.locale);
+  return { to, subject: t('codeSubject', { shop: shop.name, code }), ...layout(shop, t('codeIntro', { shop: shop.name, code }), null, t('codeIgnore')) };
+}
+
+/** Double opt-in: the link that turns a pending marketing subscription into a confirmed one. */
+export function renderSubscriptionConfirmation(shop: Shop, to: string, url: string): Mail {
+  const t = dict(shop.locale);
+  return { to, subject: t('subscribeSubject', { shop: shop.name }), ...layout(shop, t('subscribeIntro', { shop: shop.name }), { label: t('subscribeAction'), url }, t('subscribeIgnore')) };
 }
 
 /** Contact form submission, addressed to the shop owner; the sender is the Reply-To. */

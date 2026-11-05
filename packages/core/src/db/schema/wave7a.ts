@@ -53,6 +53,8 @@ export const checkoutMeta = pgTable('checkout_meta', {
   /** Tip chosen at checkout: a percentage of the subtotal (preset) or a fixed amount in minor units. */
   tipPercent: integer('tip_percent'),
   tipAmount: integer('tip_amount').notNull().default(0),
+  /** The buyer's "use store credit" checkbox (checked by default; only matters when the signed-in customer has credit). */
+  useStoreCredit: boolean('use_store_credit').notNull().default(true),
 });
 
 /** Ids of staged additions start at 900000000 so they never collide with order line ids (`quantities` keys are `String(id)` of either). */

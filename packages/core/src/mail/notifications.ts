@@ -9,7 +9,7 @@ import type { Mail, Mailer } from '../mail';
 
 export const NOTIFICATION_KEYS = [
   'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund',
-  'customer_account_welcome', 'customer_account_invite', 'password_reset', 'draft_order_invoice', 'contact_form', 'staff_invite', 'staff_login_alert', 'gift_card_issued', 'abandoned_checkout',
+  'customer_account_welcome', 'customer_account_invite', 'password_reset', 'draft_order_invoice', 'contact_form', 'staff_invite', 'staff_login_alert', 'gift_card_issued', 'abandoned_checkout', 'store_credit_account_credit',
 ] as const;
 export type NotificationKey = (typeof NOTIFICATION_KEYS)[number];
 export const isNotificationKey = (k: string): k is NotificationKey => (NOTIFICATION_KEYS as readonly string[]).includes(k);
@@ -114,6 +114,12 @@ const DEFS: Record<NotificationKey, Def> = {
     en: { subject: 'Your {{ shop.name }} gift card', body: `<p style="margin-top:0">{% if gift_card.recipient_name %}Hi {{ gift_card.recipient_name }}, {% endif %}you received a gift card for <strong>{{ gift_card.initial_value }}</strong>{% if gift_card.sender_email %} from {{ gift_card.sender_email }}{% endif %}.</p>{% if gift_card.message %}<blockquote style="margin:16px 0;padding:8px 16px;border-left:3px solid #cbd5e1">{{ gift_card.message }}</blockquote>{% endif %}<p style="font-size:20px;letter-spacing:2px;font-weight:bold">{{ gift_card.code }}</p>{% if gift_card.expires_on %}<p>Valid until {{ gift_card.expires_on }}.</p>{% endif %}${button('gift_card.url', 'View your gift card')}${questionsEn}` },
     fr: { subject: 'Votre carte cadeau {{ shop.name }}', body: `<p style="margin-top:0">{% if gift_card.recipient_name %}Bonjour {{ gift_card.recipient_name }}, {% endif %}vous avez reçu une carte cadeau de <strong>{{ gift_card.initial_value }}</strong>{% if gift_card.sender_email %} de la part de {{ gift_card.sender_email }}{% endif %}.</p>{% if gift_card.message %}<blockquote style="margin:16px 0;padding:8px 16px;border-left:3px solid #cbd5e1">{{ gift_card.message }}</blockquote>{% endif %}<p style="font-size:20px;letter-spacing:2px;font-weight:bold">{{ gift_card.code }}</p>{% if gift_card.expires_on %}<p>Valable jusqu'au {{ gift_card.expires_on }}.</p>{% endif %}${button('gift_card.url', 'Voir ma carte cadeau')}${questionsFr}` },
   },
+  store_credit_account_credit: {
+    name: 'Store credit issued', description: 'Sent to a customer when store credit is added to their account with "notify customer".', audience: 'customer',
+    variables: ['shop.name', 'customer.first_name', 'store_credit.amount', 'store_credit.balance', 'store_credit.expires_on', 'account_url'],
+    en: { subject: 'You received {{ store_credit.amount }} of store credit', body: `<p style="margin-top:0">Hi{% if customer.first_name %} {{ customer.first_name }}{% endif %}, <strong>{{ store_credit.amount }}</strong> of store credit was added to your {{ shop.name }} account.</p><p>Your balance is now <strong>{{ store_credit.balance }}</strong>.{% if store_credit.expires_on %} This credit expires on {{ store_credit.expires_on }}.{% endif %}</p>${button('account_url', 'Visit your account')}${questionsEn}` },
+    fr: { subject: 'Vous avez reçu {{ store_credit.amount }} de crédit en magasin', body: `<p style="margin-top:0">Bonjour{% if customer.first_name %} {{ customer.first_name }}{% endif %}, <strong>{{ store_credit.amount }}</strong> de crédit en magasin ont été ajoutés à votre compte {{ shop.name }}.</p><p>Votre solde est maintenant de <strong>{{ store_credit.balance }}</strong>.{% if store_credit.expires_on %} Ce crédit expire le {{ store_credit.expires_on }}.{% endif %}</p>${button('account_url', 'Accéder à mon compte')}${questionsFr}` },
+  },
   abandoned_checkout: {
     name: 'Abandoned checkout', description: 'Sent to a customer who left items in their checkout, with a link that restores the cart.', audience: 'customer',
     variables: ['shop.name', 'checkout.customer_first_name', 'checkout.line_items', 'checkout.subtotal', 'checkout.recovery_url'],
@@ -217,7 +223,7 @@ export function senderOf(shop: Shop): string | undefined {
 
 /** Notifications the merchant can switch off. The others (password reset, invitations, sign-in alerts, invoices...) are transactional and always sent. */
 export const TOGGLEABLE_NOTIFICATIONS: readonly NotificationKey[] = [
-  'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund', 'abandoned_checkout', 'gift_card_issued',
+  'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund', 'abandoned_checkout', 'gift_card_issued', 'store_credit_account_credit',
 ];
 export const isToggleable = (key: NotificationKey) => TOGGLEABLE_NOTIFICATIONS.includes(key);
 
@@ -273,8 +279,8 @@ export async function sendStaffNewOrder(db: Executor, mailer: Mailer, shop: Shop
 // ---- Liquid variables -------------------------------------------------------------------------------------------------------
 
 const GATEWAYS: Record<string, Record<string, string>> = {
-  en: { bank_transfer: 'Bank transfer', cod: 'Cash on delivery', stripe: 'Card', free: 'No payment due', manual: 'Manual', paid: 'Paid', pending: 'Awaiting payment', gift_card: 'Gift card' },
-  fr: { bank_transfer: 'Virement bancaire', cod: 'Paiement à la livraison', stripe: 'Carte bancaire', free: 'Aucun paiement dû', manual: 'Manuel', paid: 'Payé', pending: 'En attente de paiement', gift_card: 'Carte cadeau' },
+  en: { bank_transfer: 'Bank transfer', cod: 'Cash on delivery', stripe: 'Card', free: 'No payment due', manual: 'Manual', paid: 'Paid', pending: 'Awaiting payment', gift_card: 'Gift card', store_credit: 'Store credit' },
+  fr: { bank_transfer: 'Virement bancaire', cod: 'Paiement à la livraison', stripe: 'Carte bancaire', free: 'Aucun paiement dû', manual: 'Manuel', paid: 'Payé', pending: 'En attente de paiement', gift_card: 'Carte cadeau', store_credit: 'Crédit en magasin' },
 };
 
 export const moneyOf = (shop: Shop, minor: number, currency = shop.currency) => renderMoneyFormat(shop.moneyFormat, minor, currency);
@@ -327,6 +333,7 @@ export function sampleVars(shop: Shop, appUrl: string): Record<string, unknown> 
     contact: { name: 'Ada Lovelace', email: 'ada@example.com', phone: '+33 1 23 45 67 89', message: 'Hello, do you ship to Canada?' },
     invite: { url: `${base}/admin/invite/sample-token`, email: 'new.staff@example.com', role: 'staff', inviter: 'The owner' },
     gift_card: { balance: money(5000), initial_value: money(5000), code: 'ABCD-EFGH-JKLM-NPQR', last_characters: 'npqr', url: `${base}/gift_cards/sample-token`, message: 'Happy birthday!', recipient_name: 'Ada', sender_email: 'friend@example.com', expires_on: null },
+    store_credit: { amount: money(2000), balance: money(3500), expires_on: null },
     checkout: { customer_first_name: 'Ada', line_items: items, subtotal: money(5500), recovery_url: `${base}/checkouts/sample-token/recover` },
   };
 }
