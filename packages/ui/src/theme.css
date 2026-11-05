@@ -68,7 +68,7 @@
   .btn-icon.btn-sm { width: var(--h-btn-sm); }
   .btn-icon.btn-lg { width: var(--h-btn-lg); }
   .btn:active:not(:disabled) { transform: translateY(1px); }
-  .btn:disabled { cursor: not-allowed; opacity: 0.5; box-shadow: none; }
+  .btn:disabled { cursor: not-allowed; opacity: 0.62; box-shadow: none; }
   .btn[data-loading="true"] { cursor: progress; }
   .btn[data-loading="true"] > .btn-label { visibility: hidden; }
   .btn > .btn-spinner { position: absolute; inset: 0; display: grid; place-items: center; }
