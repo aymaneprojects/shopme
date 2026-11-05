@@ -1,5 +1,5 @@
 import {
-  countPages, createMenu, createPage, deleteMenu, deletePage, getMenu, getMenuItems, getPage, getTheme, listMenus, listPages, listThemeFiles, listThemes, publishTheme, updateMenu, updatePage,
+  countPages, createMenu, listTemplateSuffixes, createPage, deleteMenu, deletePage, getMenu, getMenuItems, getPage, getTheme, listMenus, listPages, listThemeFiles, listThemes, publishTheme, updateMenu, updatePage,
   upsertThemeFiles, DEFAULT_MENU_HANDLES, type Menu as MenuRow, type MenuItemInput, type MenuItemNode, type Page as PageRow, type Theme as ThemeRow, type ThemeFile,
 } from '@shopme/core';
 import { parseId, toGid, type UserError } from '@shopme/shopify-compat';
@@ -9,7 +9,7 @@ import { ConnectionArgs, defineConnection, paginate, paginateArray } from '../ty
 import { DisplayableError } from '../types/errors';
 import { Count } from '../types/money';
 import { Node, legacyId, registerNode } from '../types/node';
-import { Job } from '../types/catalog';
+import { Job, SEO, SEOInput } from '../types/catalog';
 import { payloadWith, typedUserError } from '../types/sales';
 
 const staffId = (ctx: { auth: { kind: string; user?: { id: number } } }) => (ctx.auth.kind === 'session' ? ctx.auth.user!.id : null);
@@ -33,6 +33,7 @@ Page.implement({
     isPublished: t.boolean({ resolve: (p) => p.publishedAt != null && p.publishedAt <= new Date() }),
     publishedAt: t.field({ type: 'DateTime', nullable: true, resolve: (p) => p.publishedAt }),
     templateSuffix: t.exposeString('templateSuffix', { nullable: true }),
+    seo: t.field({ type: SEO, resolve: (p) => ({ title: p.seoTitle, description: p.seoDescription }) }),
     createdAt: t.field({ type: 'DateTime', resolve: (p) => p.createdAt }),
     updatedAt: t.field({ type: 'DateTime', resolve: (p) => p.updatedAt }),
   }),
@@ -45,10 +46,10 @@ const PageCreateError = typedUserError('PageCreateUserError', PAGE_CODES);
 const PageUpdateError = typedUserError('PageUpdateUserError', PAGE_CODES);
 const PageDeleteError = typedUserError('PageDeleteUserError', PAGE_CODES);
 const PageCreateInput = builder.inputType('PageCreateInput', {
-  fields: (t) => ({ handle: t.string(), body: t.string(), isPublished: t.boolean(), publishDate: t.field({ type: 'DateTime' }), templateSuffix: t.string(), title: t.string({ required: true }) }),
+  fields: (t) => ({ handle: t.string(), body: t.string(), isPublished: t.boolean(), publishDate: t.field({ type: 'DateTime' }), templateSuffix: t.string(), seo: t.field({ type: SEOInput }), title: t.string({ required: true }) }),
 });
 const PageUpdateInput = builder.inputType('PageUpdateInput', {
-  fields: (t) => ({ handle: t.string(), body: t.string(), isPublished: t.boolean(), publishDate: t.field({ type: 'DateTime' }), templateSuffix: t.string(), title: t.string(), redirectNewHandle: t.boolean({ defaultValue: false }) }),
+  fields: (t) => ({ handle: t.string(), body: t.string(), isPublished: t.boolean(), publishDate: t.field({ type: 'DateTime' }), templateSuffix: t.string(), seo: t.field({ type: SEOInput }), title: t.string(), redirectNewHandle: t.boolean({ defaultValue: false }) }),
 });
 const PageCreatePayload = payloadWith<{ page: PageRow | null }>('PageCreatePayload', PageCreateError, (t) => ({ page: t.field({ type: Page, nullable: true, resolve: (p) => p.page }) }));
 const PageUpdatePayload = payloadWith<{ page: PageRow | null }>('PageUpdatePayload', PageUpdateError, (t) => ({ page: t.field({ type: Page, nullable: true, resolve: (p) => p.page }) }));
@@ -235,12 +236,20 @@ builder.queryFields((t) => ({
   }),
 }));
 
+builder.queryFields((t) => ({
+  /** ShopMe extension: alternate template suffixes the live theme provides for a resource kind (page, article, blog, product, collection). */
+  shopmeTemplateSuffixes: t.stringList({
+    args: { kind: t.arg.string({ required: true }) },
+    resolve: (_r, a, ctx) => { requireScope(ctx, 'read_themes'); return listTemplateSuffixes(ctx.db, ctx.shopId, a.kind); },
+  }),
+}));
+
 builder.mutationFields((t) => ({
   pageCreate: t.field({
     type: PageCreatePayload, args: { page: t.arg({ type: PageCreateInput, required: true }) },
     resolve: async (_r, { page }, ctx) => {
       requireScope(ctx, 'write_online_store_pages');
-      const r = await createPage(ctx.db, ctx.shopId, page);
+      const r = await createPage(ctx.db, ctx.shopId, { ...page, seoTitle: page.seo?.title, seoDescription: page.seo?.description });
       return r.ok ? { page: r.value, userErrors: [] } : { page: null, userErrors: r.errors.map((e) => ({ ...e, field: ['page', ...(e.field ?? [])] })) };
     },
   }),
@@ -249,7 +258,7 @@ builder.mutationFields((t) => ({
     resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'write_online_store_pages');
       const id = gidId(a.id, 'Page');
-      const r = id ? await updatePage(ctx.db, ctx.shopId, id, a.page) : null;
+      const r = id ? await updatePage(ctx.db, ctx.shopId, id, { ...a.page, ...(a.page.seo && { seoTitle: a.page.seo.title ?? null, seoDescription: a.page.seo.description ?? null }) }) : null;
       if (!r) return { page: null, userErrors: fail(['id'], 'Page does not exist') };
       return r.ok ? { page: r.value, userErrors: [] } : { page: null, userErrors: r.errors.map((e) => ({ ...e, field: e.field?.[0] === 'id' ? e.field : ['page', ...(e.field ?? [])] })) };
     },

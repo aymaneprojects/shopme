@@ -76,7 +76,7 @@ export const PAGES = /* GraphQL */ `
   }
 `;
 export const PAGE = /* GraphQL */ `
-  query Page($id: ID!) { page(id: $id) { id title handle body isPublished updatedAt } }
+  query Page($id: ID!) { page(id: $id) { id title handle body isPublished publishedAt templateSuffix seo { title description } updatedAt } }
 `;
 export const PAGE_CREATE = /* GraphQL */ `
   mutation PageCreate($page: PageCreateInput!) { pageCreate(page: $page) { page { id } userErrors { field message } } }
@@ -105,4 +105,8 @@ export const MENU_UPDATE = /* GraphQL */ `
 `;
 export const MENU_DELETE = /* GraphQL */ `
   mutation MenuDelete($id: ID!) { menuDelete(id: $id) { deletedMenuId userErrors { field message } } }
+`;
+
+export const TEMPLATE_SUFFIXES = /* GraphQL */ `
+  query TemplateSuffixes($kind: String!) { shopmeTemplateSuffixes(kind: $kind) }
 `;

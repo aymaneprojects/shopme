@@ -23,7 +23,7 @@ export const ARTICLES = /* GraphQL */ `
 `;
 export const ARTICLE = /* GraphQL */ `
   query Article($id: ID!) {
-    article(id: $id) { id title handle body summary tags isPublished publishedAt author { name } image { url altText } blog { id title } }
+    article(id: $id) { id title handle body summary tags isPublished publishedAt templateSuffix seo { title description } author { name } image { url altText } blog { id title } }
   }
 `;
 export const ARTICLE_CREATE = /* GraphQL */ `

@@ -1,4 +1,4 @@
-import { Banner, Button, Card, ConfirmDialog, Dropdown, ImageUploader, Input, MediaGallery, Modal, RichTextEditor, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
+import { Banner, Button, Card, ConfirmDialog, Dropdown, ImageUploader, Input, MediaGallery, Modal, Select, Skeleton, TagInput, Textarea, useToast } from '@shopme/ui';
 import type { GalleryItem } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, Plus, X } from 'lucide-react';
@@ -7,6 +7,7 @@ import { useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../api';
 import { MetafieldsEditor } from '../components/MetafieldsEditor';
 import { CollectionPicker } from '../components/Pickers';
+import { RichText } from '../components/RichText';
 import { PageHeader } from '../components/PageHeader';
 import { PrevNext } from '../components/PrevNext';
 import { ViewAs } from '../components/ViewAs';
@@ -127,8 +128,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
               <Input label={t('field.title')} required placeholder={t('product.titlePlaceholder')} value={form.title} error={errors.title} onChange={(e) => set({ title: e.target.value })} />
               <div className="flex flex-col gap-1">
                 <span className="text-[13px] font-medium">{t('field.description')}</span>
-                <RichTextEditor value={form.descriptionHtml} onChange={(descriptionHtml) => set({ descriptionHtml })}
-                  labels={{ bold: t('rte.bold'), italic: t('rte.italic'), underline: t('rte.underline'), list: t('rte.list'), orderedList: t('rte.orderedList'), link: t('rte.link'), source: t('rte.source'), paragraph: t('rte.paragraph'), heading: t('rte.heading'), subheading: t('rte.subheading'), linkPrompt: t('rte.linkPrompt') }} />
+                <RichText value={form.descriptionHtml} onChange={(descriptionHtml) => set({ descriptionHtml })} />
               </div>
             </div>
           </Card>

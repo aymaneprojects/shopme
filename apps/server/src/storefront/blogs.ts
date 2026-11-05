@@ -66,8 +66,8 @@ export function registerBlogRoutes(app: FastifyInstance, ctx: AppContext, conten
     blog.next_article = next;
     blog.previous_article = previous;
     return renderTemplate(req, reply, env, {
-      template: 'article', pageType: 'article', title: article.title, suffix: first((req.query as Query).view) ?? (article.template_suffix || null), extra: { article, blog },
-      description: plain(article.excerpt || article.content).slice(0, 320),
+      template: 'article', pageType: 'article', title: article.seo.title || article.title, suffix: first((req.query as Query).view) ?? (article.template_suffix || null), extra: { article, blog },
+      description: article.seo.description || plain(article.excerpt || article.content).slice(0, 320),
     });
   }));
 }

@@ -6,7 +6,7 @@ export interface ImageObject { src: string; url: string; alt: string | null; wid
 
 export interface ArticleObject {
   id: number; handle: string; title: string; url: string; author: string; content: string; excerpt: string; excerpt_or_content: string; tags: string[];
-  image: ImageObject | null; published_at: string | null; created_at: string; updated_at: string; template_suffix: string;
+  image: ImageObject | null; published_at: string | null; created_at: string; updated_at: string; template_suffix: string; seo: { title: string | null; description: string | null };
   comments: unknown[]; comments_count: number; 'comments_enabled?': boolean; 'moderated?': boolean; metafields: Record<string, unknown>; user: null; blog: BlogBase;
 }
 export interface BlogBase {
@@ -29,7 +29,7 @@ export function articleObject(a: ArticleWithImage, blog: Blog): ArticleObject {
     id: a.id, handle: a.handle, title: a.title, url: `/blogs/${blog.handle}/${a.handle}`, author: a.author ?? '', content: a.bodyHtml,
     excerpt: a.summaryHtml ?? '', excerpt_or_content: a.summaryHtml || a.bodyHtml, tags: a.tags,
     image: a.image ? { src: a.image.url, url: a.image.url, alt: a.image.alt, width: null, height: null, aspect_ratio: null } : null,
-    published_at: a.publishedAt?.toISOString() ?? null, created_at: a.createdAt.toISOString(), updated_at: a.updatedAt.toISOString(), template_suffix: a.templateSuffix ?? '',
+    published_at: a.publishedAt?.toISOString() ?? null, created_at: a.createdAt.toISOString(), updated_at: a.updatedAt.toISOString(), template_suffix: a.templateSuffix ?? '', seo: { title: a.seoTitle, description: a.seoDescription },
     comments: [], comments_count: 0, 'comments_enabled?': base['comments_enabled?'], 'moderated?': base['moderated?'], metafields: {}, user: null, blog: base,
   };
 }

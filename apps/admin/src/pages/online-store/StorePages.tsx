@@ -1,4 +1,4 @@
-import { Badge, Banner, Button, ConfirmDialog, EmptyState, Input, RichTextEditor, Skeleton, Card, useToast } from '@shopme/ui';
+import { Badge, Banner, Button, ConfirmDialog, EmptyState, Input, Skeleton, Card, useToast } from '@shopme/ui';
 import type { Column } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileText, Plus, Search } from 'lucide-react';
@@ -7,7 +7,9 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
 import { SaveBar, guard } from '../../components/SaveBar';
+import { RichText } from '../../components/RichText';
 import { SeoListing } from '../../components/SeoListing';
+import { TemplateCard, VisibilityCard, toLocalInput, visibilityInput } from '../../components/PublishCards';
 import { VisibilityList } from '../../components/VisibilityList';
 import { useFormat } from '../../components/shared';
 import { gidToNum, numToGid } from '../../format';
@@ -58,20 +60,24 @@ export function PagesListPage() {
   );
 }
 
-interface PageForm { title: string; handle: string; body: string; isPublished: boolean }
-const blank: PageForm = { title: '', handle: '', body: '', isPublished: false };
+interface PageForm { title: string; handle: string; body: string; isPublished: boolean; publishDate: string; publishedAt: string | null; templateSuffix: string; seoTitle: string; seoDescription: string }
+interface PageData { id: string; title: string; handle: string; body: string; isPublished: boolean; publishedAt: string | null; templateSuffix: string | null; seo: { title: string | null; description: string | null } }
+const blank: PageForm = { title: '', handle: '', body: '', isPublished: false, publishDate: '', publishedAt: null, templateSuffix: '', seoTitle: '', seoDescription: '' };
 
 export function PageEditPage() {
   const { id = 'new' } = useParams();
   const isNew = id === 'new';
   const { t } = useI18n();
   const gid = numToGid('Page', id);
-  const q = useQuery({ queryKey: ['page', gid], enabled: !isNew, queryFn: () => gql<{ page: (PageForm & { id: string }) | null }>(PAGE, { id: gid }) });
+  const q = useQuery({ queryKey: ['page', gid], enabled: !isNew, queryFn: () => gql<{ page: PageData | null }>(PAGE, { id: gid }) });
   if (!isNew && q.isLoading) return <Skeleton className="h-64" />;
   if (q.error) return <Banner>{q.error.message}</Banner>;
   if (!isNew && !q.data?.page) return <Banner>{t('pages.notFound')}</Banner>;
   const p = q.data?.page;
-  return <PageFormView key={`${id}:${q.dataUpdatedAt}`} id={p ? gid : null} initial={p ? { title: p.title, handle: p.handle, body: p.body, isPublished: p.isPublished } : blank} />;
+  return <PageFormView key={`${id}:${q.dataUpdatedAt}`} id={p ? gid : null} initial={p ? {
+    title: p.title, handle: p.handle, body: p.body, isPublished: p.publishedAt != null, publishDate: p.publishedAt && new Date(p.publishedAt) > new Date() ? toLocalInput(p.publishedAt) : '', publishedAt: p.publishedAt,
+    templateSuffix: p.templateSuffix ?? '', seoTitle: p.seo.title ?? '', seoDescription: p.seo.description ?? '',
+  } : blank} />;
 }
 
 function PageFormView({ id, initial }: { id: string | null; initial: PageForm }) {
@@ -89,7 +95,10 @@ function PageFormView({ id, initial }: { id: string | null; initial: PageForm })
     mutationFn: async () => {
       if (!form.title.trim()) { setTitleErr(t('collection.titleRequired')); throw new Error('validation'); }
       setTitleErr(null); setError(null);
-      const page = { title: form.title.trim(), body: form.body, isPublished: form.isPublished, ...(form.handle.trim() && { handle: form.handle.trim() }) };
+      const page = {
+        title: form.title.trim(), body: form.body, ...visibilityInput(form, initial), templateSuffix: form.templateSuffix || null, seo: { title: form.seoTitle.trim() || null, description: form.seoDescription.trim() || null },
+        ...(form.handle.trim() && { handle: form.handle.trim() }),
+      };
       if (id) { await mutate(PAGE_UPDATE, { id, page }, 'pageUpdate'); return id; }
       return (await mutate<{ page: { id: string } }>(PAGE_CREATE, { page }, 'pageCreate')).page.id;
     },
@@ -109,19 +118,15 @@ function PageFormView({ id, initial }: { id: string | null; initial: PageForm })
             <div className="flex flex-col gap-3">
               <Input label={t('field.title')} required placeholder={t('pages.titlePlaceholder')} value={form.title} error={titleErr} onChange={(e) => set({ title: e.target.value })} />
               <div className="flex flex-col gap-1"><span className="text-[13px] font-medium">{t('pages.content')}</span>
-                <RichTextEditor value={form.body} onChange={(body) => set({ body })}
-                  labels={{ bold: t('rte.bold'), italic: t('rte.italic'), underline: t('rte.underline'), list: t('rte.list'), orderedList: t('rte.orderedList'), link: t('rte.link'), source: t('rte.source'), paragraph: t('rte.paragraph'), heading: t('rte.heading'), subheading: t('rte.subheading'), linkPrompt: t('rte.linkPrompt') }} /></div>
+                <RichText value={form.body} onChange={(body) => set({ body })} /></div>
             </div>
           </Card>
-          <SeoListing title={form.title} prefix="/pages/" handle={form.handle} onHandle={(handle) => set({ handle })} description={form.body} />
+          <SeoListing title={form.title} prefix="/pages/" handle={form.handle} onHandle={(handle) => set({ handle })} description={form.body}
+            seoTitle={form.seoTitle} onSeoTitle={(seoTitle) => set({ seoTitle })} seoDescription={form.seoDescription} onSeoDescription={(seoDescription) => set({ seoDescription })} />
         </div>
         <div className="flex flex-col gap-4">
-          <Card title={t('pages.visibility')}>
-            <div role="radiogroup" aria-label={t('pages.visibility')} className="flex flex-col gap-2 text-[13px]">
-              <label className="inline-flex items-center gap-2"><input type="radio" name="visibility" checked={form.isPublished} onChange={() => set({ isPublished: true })} />{t('pages.visible')}</label>
-              <label className="inline-flex items-center gap-2"><input type="radio" name="visibility" checked={!form.isPublished} onChange={() => set({ isPublished: false })} />{t('pages.hidden')}</label>
-            </div>
-          </Card>
+          <VisibilityCard value={form} onChange={(v) => set(v)} />
+          <TemplateCard kind="page" value={form.templateSuffix} onChange={(templateSuffix) => set({ templateSuffix })} />
         </div>
       </div>
       <ConfirmDialog open={confirm} onClose={() => setConfirm(false)} danger title={t('pages.deleteTitle')} message={t('pages.deleteBody')} confirmLabel={t('common.delete')} cancelLabel={t('common.cancel')} onConfirm={() => { setConfirm(false); del.mutate(); }} />

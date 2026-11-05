@@ -18,6 +18,11 @@ export const files = pgTable('files', {
   createdAt: createdAt(),
 }, (t) => [uniqueIndex('files_storage_key_uq').on(t.shopId, t.storageKey)]);
 
+/** Folders of the Files library (flat). */
+export const fileFolders = pgTable('file_folders', {
+  id: pk(), shopId: shopFk(), name: text('name').notNull(), createdAt: createdAt(),
+}, (t) => [uniqueIndex('file_folders_shop_name_uq').on(t.shopId, t.name)]);
+
 /** Images/videos attached to products, collections, articles. */
 export const media = pgTable('media', {
   id: pk(), shopId: shopFk(),
@@ -27,6 +32,7 @@ export const media = pgTable('media', {
   fileId: ref('file_id').references(() => files.id, { onDelete: 'set null' }),
   url: text('url'), // external or resolved URL; for local files use /files/<storage key>
   mimeType: text('mime_type'), width: integer('width'), height: integer('height'),
+  folderId: ref('folder_id').references(() => fileFolders.id, { onDelete: 'set null' }),
   ...timestamps(),
 }, (t) => [check('media_type_chk', oneOf(t.type, ['IMAGE', 'VIDEO', 'EXTERNAL_VIDEO', 'MODEL_3D']))]);
 

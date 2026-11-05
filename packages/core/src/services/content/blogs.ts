@@ -5,6 +5,7 @@ import { buildSearch, dateCompare, idTerm, likeCi } from '../catalog/search';
 import { errR, normalizeTags, okR, txResult, type Result } from '../catalog/common';
 import { slugify, uniqueHandle } from '../handle';
 import { redirectPathChange } from './redirects';
+import { cleanHtml } from './html-sanitize';
 
 export type Blog = typeof blogs.$inferSelect;
 export type Article = typeof articles.$inferSelect;
@@ -143,7 +144,7 @@ export async function articleTags(db: Executor, shopId: number, o: { blogId?: nu
 export interface ArticleInput {
   blogId?: number | null; /** Create the blog on the fly (Shopify `ArticleBlogInput`). */ blogTitle?: string | null;
   title?: string | null; handle?: string | null; author?: string | null; body?: string | null; summary?: string | null; tags?: string[] | null;
-  isPublished?: boolean | null; publishDate?: Date | null; templateSuffix?: string | null; image?: { url?: string | null; altText?: string | null } | null;
+  isPublished?: boolean | null; publishDate?: Date | null; templateSuffix?: string | null; seoTitle?: string | null; seoDescription?: string | null; image?: { url?: string | null; altText?: string | null } | null;
 }
 
 const publishedAt = (i: ArticleInput, cur?: Date | null): Date | null | undefined => {
@@ -177,7 +178,7 @@ export async function createArticle(db: Db, shopId: number, i: ArticleInput): Pr
     const handle = i.handle?.trim() ? slugify(i.handle) : await uniqueHandle(i.title!, taken);
     const imageMediaId = i.image ? await setImage(tx, shopId, i.image) : null;
     const [row] = await tx.insert(articles).values({
-      shopId, blogId: blog.id, handle, title: i.title!.trim(), author: i.author!.trim(), bodyHtml: i.body ?? '', summaryHtml: i.summary ?? null, tags: normalizeTags(i.tags ?? []),
+      shopId, blogId: blog.id, handle, title: i.title!.trim(), author: i.author!.trim(), bodyHtml: cleanHtml(i.body) ?? '', summaryHtml: cleanHtml(i.summary) ?? null, seoTitle: i.seoTitle?.trim() || null, seoDescription: i.seoDescription?.trim() || null, tags: normalizeTags(i.tags ?? []),
       imageMediaId, templateSuffix: i.templateSuffix || null, publishedAt: publishedAt({ isPublished: true, ...i }) ?? null,
     }).returning();
     return okR((await getArticle(tx, shopId, row!.id))!);
@@ -200,8 +201,9 @@ export async function updateArticle(db: Db, shopId: number, id: number, i: Artic
     const pub = publishedAt(i, cur.publishedAt);
     const imageMediaId = i.image === undefined ? undefined : i.image ? await setImage(tx, shopId, i.image) : null;
     await tx.update(articles).set({
-      blogId, handle: wanted, ...(i.title && { title: i.title.trim() }), ...(i.author && { author: i.author.trim() }), ...(i.body != null && { bodyHtml: i.body }),
-      ...(i.summary !== undefined && { summaryHtml: i.summary }), ...(i.tags && { tags: normalizeTags(i.tags) }), ...(i.templateSuffix !== undefined && { templateSuffix: i.templateSuffix || null }),
+      blogId, handle: wanted, ...(i.title && { title: i.title.trim() }), ...(i.author && { author: i.author.trim() }), ...(i.body != null && { bodyHtml: cleanHtml(i.body) }),
+      ...(i.summary !== undefined && { summaryHtml: cleanHtml(i.summary) }),
+      ...(i.seoTitle !== undefined && { seoTitle: i.seoTitle?.trim() || null }), ...(i.seoDescription !== undefined && { seoDescription: i.seoDescription?.trim() || null }), ...(i.tags && { tags: normalizeTags(i.tags) }), ...(i.templateSuffix !== undefined && { templateSuffix: i.templateSuffix || null }),
       ...(pub !== undefined && { publishedAt: pub }), ...(imageMediaId !== undefined && { imageMediaId }), updatedAt: new Date(),
     }).where(eq(articles.id, id));
     if (wanted !== cur.handle || blogId !== cur.blogId) await redirectPathChange(tx, shopId, `/blogs/${oldBlog!.handle}/${cur.handle}`, `/blogs/${blog.handle}/${wanted}`);

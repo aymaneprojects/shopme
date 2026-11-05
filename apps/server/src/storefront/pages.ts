@@ -343,7 +343,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
       if (!page) return notFound(req, reply, shop, env);
       const loaded = await store.main(shop.id);
       const suffix = first((req.query as Query).view) ?? (page.template_suffix || (handle === 'contact' && loaded.theme.has('templates/page.contact.json') ? 'contact' : null));
-      return renderTemplate(req, reply, env, { template: 'page', pageType: 'page', title: page.title, suffix, extra: { page } });
+      return renderTemplate(req, reply, env, { template: 'page', pageType: 'page', title: page.seo.title || page.title, suffix, extra: { page }, ...(page.seo.description && { description: page.seo.description }) });
     }));
 
     app.get('/policies/*', withShop(async (req, reply, shop) => {

@@ -1,4 +1,5 @@
-import { Button, Checkbox, ImageUploader, Input, RichTextEditor, Select, Textarea, useToast } from '@shopme/ui';
+import { Button, Checkbox, ImageUploader, Input, Select, Textarea, useToast } from '@shopme/ui';
+import { RichText } from './RichText';
 import { useI18n } from '../i18n';
 import { FONT_OPTIONS } from '../lib/settings-schema';
 import type { SettingDef, SettingValue } from '../lib/settings-schema';
@@ -42,7 +43,7 @@ export function SettingField({ def, label, info, value, optionLabel, onChange }:
           {str && <Button size="sm" onClick={() => onChange('')}>{t('common.remove')}</Button>}</div>
       );
     case 'richtext':
-      return <div className="flex flex-col gap-1"><span className="text-[13px] font-medium">{label}</span><RichTextEditor value={str} onChange={onChange} /></div>;
+      return <div className="flex flex-col gap-1"><span className="text-[13px] font-medium">{label}</span><RichText value={str} onChange={onChange} /></div>;
     case 'html': case 'liquid': return <Textarea label={label} help={info} className="font-mono" value={str} onChange={(e) => onChange(e.target.value)} />;
     default:
       return <Input label={label} help={info} type={def.type === 'url' ? 'url' : 'text'} value={str} onChange={(e) => onChange(e.target.value)} />;

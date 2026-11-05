@@ -28,7 +28,7 @@ export const STORE_ACCESS_UPDATE = /* GraphQL */ `
 export const FILES = /* GraphQL */ `
   query Files($first: Int, $after: String, $last: Int, $before: String, $query: String) {
     files(first: $first, after: $after, last: $last, before: $before, query: $query) {
-      nodes { id alt createdAt ... on MediaImage { mimeType image { url width height } } }
+      nodes { id alt createdAt shopmeFilename shopmeFileSize shopmeReferences { type id title } shopmeFolder { id name } ... on MediaImage { mimeType image { url width height } } }
       pageInfo { hasNextPage hasPreviousPage startCursor endCursor }
     }
   }
@@ -41,4 +41,25 @@ export const FILE_UPDATE = /* GraphQL */ `
 `;
 export const FILE_DELETE = /* GraphQL */ `
   mutation FileDelete($fileIds: [ID!]!) { fileDelete(fileIds: $fileIds) { deletedFileIds userErrors { field message } } }
+`;
+
+export const FILE_FOLDERS = /* GraphQL */ `
+  query FileFolders { shopmeFileFolders { id name fileCount } }
+`;
+export const FILE_FOLDER_CREATE = /* GraphQL */ `
+  mutation FileFolderCreate($name: String!) { shopmeFileFolderCreate(name: $name) { folder { id name } userErrors { field message } } }
+`;
+export const FILE_FOLDER_RENAME = /* GraphQL */ `
+  mutation FileFolderRename($id: ID!, $name: String!) { shopmeFileFolderRename(id: $id, name: $name) { folder { id name } userErrors { field message } } }
+`;
+export const FILE_FOLDER_DELETE = /* GraphQL */ `
+  mutation FileFolderDelete($id: ID!) { shopmeFileFolderDelete(id: $id) { deletedFolderId userErrors { field message } } }
+`;
+export const FILES_MOVE = /* GraphQL */ `
+  mutation FilesMove($fileIds: [ID!]!, $folderId: ID) { shopmeFilesMove(fileIds: $fileIds, folderId: $folderId) { files { id } userErrors { field message } } }
+`;
+export const PICKER_IMAGES = /* GraphQL */ `
+  query PickerImages($first: Int, $query: String) {
+    files(first: $first, query: $query) { nodes { id alt ... on MediaImage { image { url } } } }
+  }
 `;

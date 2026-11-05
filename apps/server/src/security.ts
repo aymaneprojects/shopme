@@ -4,7 +4,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 /** Strict policy for the admin SPA: only own scripts, no framing, no plugins. Inline styles are needed by the UI kit. */
 export const ADMIN_CSP = [
   "default-src 'self'", "script-src 'self'", "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob: https:", "font-src 'self' data:",
-  "connect-src 'self'", "frame-src 'self'", "media-src 'self' https:", "object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'",
+  "connect-src 'self'", "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com", "media-src 'self' https:", "object-src 'none'", "base-uri 'self'", "form-action 'self'", "frame-ancestors 'none'",
 ].join('; ');
 
 /** Report-only policy for themes (merchants add arbitrary scripts, so it only reports): same-origin framing is enforced separately. */

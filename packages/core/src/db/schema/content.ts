@@ -8,7 +8,7 @@ const shopFk = () => shopIdCol().references(() => shops.id, { onDelete: 'cascade
 export const pages = pgTable('pages', {
   id: pk(), shopId: shopFk(),
   handle: text('handle').notNull(), title: text('title').notNull(), bodyHtml: text('body_html').notNull().default(''),
-  templateSuffix: text('template_suffix'), publishedAt: ts('published_at'), ...timestamps(),
+  templateSuffix: text('template_suffix'), seoTitle: text('seo_title'), seoDescription: text('seo_description'), publishedAt: ts('published_at'), ...timestamps(),
 }, (t) => [uniqueIndex('pages_shop_handle_uq').on(t.shopId, t.handle)]);
 
 export const blogs = pgTable('blogs', {
@@ -24,7 +24,7 @@ export const articles = pgTable('articles', {
   handle: text('handle').notNull(), title: text('title').notNull(), author: text('author'),
   bodyHtml: text('body_html').notNull().default(''), summaryHtml: text('summary_html'), tags: tagsCol(),
   imageMediaId: ref('image_media_id').references(() => media.id, { onDelete: 'set null' }),
-  templateSuffix: text('template_suffix'), publishedAt: ts('published_at'), ...timestamps(),
+  templateSuffix: text('template_suffix'), seoTitle: text('seo_title'), seoDescription: text('seo_description'), publishedAt: ts('published_at'), ...timestamps(),
 }, (t) => [uniqueIndex('articles_blog_handle_uq').on(t.blogId, t.handle)]);
 
 /** Navigation menus (theme "linklists"). */

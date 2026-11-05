@@ -1,13 +1,14 @@
 import { and, asc, eq } from 'drizzle-orm';
 import { schema as s, type Db, type Translator } from '@shopme/core';
 
-export interface PageObject { id: number; handle: string; title: string; content: string; url: string; author: string; template_suffix: string; published_at: string | null; created_at: string; updated_at: string }
+export interface PageObject { id: number; handle: string; title: string; content: string; url: string; author: string; template_suffix: string; published_at: string | null; created_at: string; updated_at: string; seo: { title: string | null; description: string | null } }
 
 const visible = (p: { publishedAt: Date | null }) => !!p.publishedAt && p.publishedAt <= new Date();
 
 const toPage = (p: typeof s.pages.$inferSelect): PageObject => ({
   id: p.id, handle: p.handle, title: p.title, content: p.bodyHtml, url: `/pages/${p.handle}`, author: '', template_suffix: p.templateSuffix ?? '',
   published_at: p.publishedAt?.toISOString() ?? null, created_at: p.createdAt.toISOString(), updated_at: p.updatedAt.toISOString(),
+  seo: { title: p.seoTitle, description: p.seoDescription },
 });
 
 export async function getPage(db: Db, shopId: number, handle: string): Promise<PageObject | null> {
