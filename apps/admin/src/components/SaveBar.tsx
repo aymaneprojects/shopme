@@ -7,7 +7,7 @@ import { useT } from '../i18n';
 export const guard = { off: false };
 
 /** Contextual save bar: a dark pill centred in the top bar while the form is dirty, with the unsaved-changes navigation guard. */
-export function SaveBar({ dirty, saving, onSave, onDiscard }: { dirty: boolean; saving?: boolean; onSave: () => void; onDiscard: () => void }) {
+export function SaveBar({ dirty, saving, saveDisabled, onSave, onDiscard }: { dirty: boolean; saving?: boolean; saveDisabled?: boolean; onSave: () => void; onDiscard: () => void }) {
   const t = useT();
   const [shake, setShake] = useState(0);
   const blocker = useBlocker(({ currentLocation, nextLocation }) => dirty && !guard.off && currentLocation.pathname !== nextLocation.pathname);
@@ -29,7 +29,7 @@ export function SaveBar({ dirty, saving, onSave, onDiscard }: { dirty: boolean; 
           <div role="region" aria-label={t('save.unsaved')} key={shake} className={`anim-bar pointer-events-auto flex h-9 items-center gap-3 rounded-full border border-white/10 bg-bar py-1 pl-4 pr-1 text-white shadow-lg ${shake ? 'anim-shake' : ''}`}>
             <span className="text-[13px] font-semibold">{t('save.unsaved')}</span>
             <Button size="sm" variant="plain" onClick={onDiscard} disabled={saving} className="!rounded-full !text-white hover:!bg-white/15">{t('save.discard')}</Button>
-            <Button size="sm" variant="primary" onClick={onSave} loading={saving} className="!rounded-full">{t('save.save')}</Button>
+            <Button size="sm" variant="primary" onClick={onSave} loading={saving} disabled={saveDisabled} className="!rounded-full">{t('save.save')}</Button>
           </div>
         </div>
       )}

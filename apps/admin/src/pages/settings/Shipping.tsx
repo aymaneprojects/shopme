@@ -1,10 +1,10 @@
 import { Badge, Banner, Button, ConfirmDialog, Dropdown, Input, Modal, Select, Skeleton, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Box, MapPin, MoreHorizontal, Pencil, Plus, Star, Trash2, Truck } from 'lucide-react';
+import { Box, MapPin, MoreHorizontal, Pencil, PlusCircle, Star, Trash2, Truck } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
-import { ButtonRow, CollapseRow, LinkRow, RowCard, Section, SettingsActions, SubHeader } from '../../components/SettingsKit';
+import { ButtonRow, CollapseRow, LinkRow, RowCard, Section, SubHeader } from '../../components/SettingsKit';
 import { useFormat } from '../../components/shared';
 import {
   DELIVERY_LOCATIONS, DELIVERY_PROFILES, DELIVERY_PROFILE_CREATE, LOCAL_DELIVERY_UPDATE, LOCAL_PICKUP_DISABLE, LOCAL_PICKUP_ENABLE, SHIPPING_PACKAGES, SHIPPING_PACKAGE_CREATE, SHIPPING_PACKAGE_DELETE,
@@ -88,8 +88,6 @@ export function ShippingSettings() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SettingsActions><Button variant="primary" onClick={() => { setError(null); setCreating(''); }}><Plus className="size-4" />{t('delivery.createProfile')}</Button></SettingsActions>
-
       <Section title={t('delivery.shipping')}>
         {profiles.isError && <Banner>{(profiles.error as Error).message}</Banner>}
         {profiles.isLoading && <Skeleton className="h-24" />}
@@ -101,6 +99,7 @@ export function ShippingSettings() {
                   description={[p.default ? t('delivery.allOtherProducts') : t('delivery.productsCount', { n: p.productVariantsCount?.count ?? 0 }), t('delivery.originsCount', { n: p.originLocationCount }), t('delivery.countriesCount', { n: p.zoneCountryCount })].join(' · ')}
                   trailing={<>{p.locationsWithoutRatesCount > 0 && <Badge tone="warning">{t('delivery.noRatesBadge')}</Badge>}{p.default && <Badge>{t('delivery.general')}</Badge>}</>} />
               ))}
+              <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13px] hover:bg-hover" onClick={() => { setError(null); setCreating(''); }}><PlusCircle className="size-4" />{t('delivery.createProfileRow')}</button>
             </RowCard>
           </CollapseRow>
           <CollapseRow title={t('delivery.packages')} description={t('delivery.packagesHelp')} summary={t('delivery.packagesCount', { n: pkgs.length })}>
@@ -109,7 +108,7 @@ export function ShippingSettings() {
                 <div key={p.id} className="flex items-center gap-3 px-4 py-3">
                   <Box className="size-4 shrink-0 text-muted" />
                   <span className="min-w-0 flex-1 text-[13px]"><span className="block font-medium">{p.name}</span><span className="block text-muted">{pkgText(p)}</span></span>
-                  {p.default && <Badge tone="info">{t('delivery.shopDefault')}</Badge>}
+                  {p.default && <Badge>{t('delivery.shopDefault')}</Badge>}
                   <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
                     { key: 'edit', icon: <Pencil />, label: t('common.edit'), onSelect: () => { setError(null); setPkg({ id: p.id, name: p.name, type: p.type, length: p.length?.toString() ?? '', width: p.width?.toString() ?? '', height: p.height?.toString() ?? '', dimensionUnit: p.dimensionUnit, weight: p.weight?.value.toString() ?? '', weightUnit: p.weight?.unit ?? shop.weightUnit, makeDefault: p.default }); } },
                     { key: 'default', icon: <Star />, label: t('delivery.makeDefault'), disabled: p.default, onSelect: () => makeDefault.mutate(p.id) },
@@ -117,7 +116,7 @@ export function ShippingSettings() {
                   ]} />
                 </div>
               ))}
-              <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13px] hover:bg-hover" onClick={() => { setError(null); setPkg(blankPkg(shop.weightUnit)); }}><Plus className="size-4" />{t('delivery.addPackage')}</button>
+              <button type="button" className="flex w-full items-center gap-2 px-4 py-3 text-left text-[13px] hover:bg-hover" onClick={() => { setError(null); setPkg(blankPkg(shop.weightUnit)); }}><PlusCircle className="size-4" />{t('delivery.addPackage')}</button>
             </RowCard>
           </CollapseRow>
         </RowCard>

@@ -1,6 +1,7 @@
 // Settings review: page titles and localized notification template names.
 export const enQaSettings = {
   'checkout.pageTitle': 'Checkout', 'notif.customerPageTitle': 'Customer notifications', 'notif.staffPageTitle': 'Staff notifications',
+  'delivery.optionName': 'Option name', 'delivery.addOptionTitle': 'Add a shipping option', 'delivery.editOptionTitle': 'Edit shipping option', 'delivery.rate': 'Rate', 'delivery.status': 'Status', 'delivery.active': 'Active', 'delivery.createProfileRow': 'Create a custom profile', 'settings.nav.users': 'Users',
   'delivery.shipping': 'Shipping', 'delivery.profilesCount': '{n} profiles', 'delivery.profilesCount.one': '{n} profile',
   'loc.addShort': 'Location', 'loc.col.location': 'Location',
   'notif.tpl.order_confirmation.name': 'Order confirmation', 'notif.tpl.order_confirmation.desc': 'Sent when a customer places an order',
