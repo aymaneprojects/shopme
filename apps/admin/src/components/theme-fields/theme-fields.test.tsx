@@ -13,7 +13,7 @@ const def: SettingDef & { id: string } = {
   type: 'color_scheme_group', id: 'color_schemes',
   definition: [{ type: 'text', id: 'name', label: 'Name', default: 'Scheme' }, { type: 'color', id: 'background', label: 'Background', default: '#ffffff' }, { type: 'color', id: 'button', label: 'Button', default: '#1E40AF' }],
 };
-const id = (x: string) => x;
+const id = (x?: string) => x ?? '';
 
 function Schemes({ start }: { start: SchemeSet }) {
   const [v, setV] = useState(start);
