@@ -67,7 +67,7 @@ export default {
     { id: 'plants', type: 'featured-collection', settings: { eyebrow: t('This week', 'Cette semaine'), heading: t('Fresh from the greenhouse', 'Tout frais de la serre'), text: t('Six things to grow, water and prune.', 'Six choses à cultiver, arroser et tailler.'), collection: 'all', products_to_show: 6, columns: '3', show_view_all: true, color_scheme: 'scheme-1' } },
     {
       id: 'care', type: 'care-levels',
-      settings: { eyebrow: t('Easy to live with', 'Facile à vivre'), heading: t('How much care does it need?', 'Quel entretien demande-t-elle ?'), light_label: t('Light', 'Lumière'), water_label: t('Water', 'Arrosage'), color_scheme: 'scheme-2' },
+      settings: { eyebrow: t('Easy to live with', 'Facile à vivre'), heading: t('How much care does it need?', 'Quel entretien demande-t-elle ?'), light_label: t('Light', 'Lumière'), water_label: t('Water', 'Arrosage'), color_scheme: 'scheme-4' },
       blocks: [
         { type: 'plant', settings: { product: 'potted-monstera', light: 2, water: 2, note: t('Likes a bright spot out of the midday sun. Water when the top soil is dry.', 'Aime une place lumineuse à l’abri du soleil de midi. Arrosez quand la terre est sèche en surface.') } },
         { type: 'plant', settings: { product: 'terracotta-cactus', light: 3, water: 1, note: t('Full sun and a drink once a fortnight in summer, less in winter.', 'Plein soleil et un verre d’eau tous les quinze jours l’été, moins l’hiver.') } },
@@ -93,7 +93,7 @@ export default {
         { type: 'season', settings: { title: t('Winter', 'Hiver'), months: t('December to February', 'De décembre à février'), icon: 'moon', task_1: t('Water less, keep the light', 'Moins d’eau, mais de la lumière'), task_2: t('Clean dusty leaves', 'Dépoussiérer les feuilles'), task_3: t('Plan next year’s beds', 'Préparer les massifs de l’an prochain'), link: '/collections/shady-corner' } },
       ],
     },
-    { id: 'categories', type: 'collection-list', settings: { eyebrow: t('Browse', 'Parcourir'), heading: t('Shop by corner of the garden', 'Acheter par coin de jardin'), columns: '4', collections: [], color_scheme: 'scheme-1' } },
+    { id: 'categories', type: 'collection-list', settings: { eyebrow: t('Browse', 'Parcourir'), heading: t('Shop by corner of the garden', 'Acheter par coin de jardin'), columns: '3', collections: [], color_scheme: 'scheme-1' } },
     {
       id: 'reviews', type: 'testimonials',
       settings: { heading: t('Grown with Serre', 'Cultivé avec Serre'), color_scheme: 'scheme-4' },
@@ -124,6 +124,11 @@ export default {
 .k-logo__name { font: italic 600 clamp(1.6rem, 3vw, 2.1rem)/1 var(--f-heading); letter-spacing: -.01em; }
 .k-footer__brand { font: italic 600 1.8rem/1 var(--f-heading); }
 .k-chips li { border-radius: var(--pill); }
+.k-hero--center .k-hero__visual { display: block; width: min(100%, 1000px); margin-top: 44px; }
+.k-hero--center .k-arch { aspect-ratio: 21 / 9; border-radius: 999px 999px var(--round) var(--round); }
+.k-hero--center .k-arch img { width: 100%; height: 100%; object-fit: cover; object-position: 70% 40%; }
+.k-hero--center .k-hero__product { display: none; }
+@media (max-width: 699px) { .k-hero--center .k-arch { aspect-ratio: 4 / 3; border-radius: 999px 999px var(--round) var(--round); } }
 .k-announce { font-size: .86rem; letter-spacing: .02em; }
 .k-pdp--rail .k-info__title { font-style: italic; font-weight: 500; }
 .k-listing__title { font-style: italic; font-weight: 500; }
