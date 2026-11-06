@@ -97,9 +97,10 @@ function CurrentThemeCard({ theme, preview, onAction }: { theme: Theme; preview:
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[12px] opacity-80">
             {bundled?.installedVersion && <span>{t('themes.update.version', { version: bundled.installedVersion })}</span>}
             {added && <span>{t('themes.addedOn', { date: added })}</span>}
-            {bundled?.updateAvailable && <button type="button" className="underline" onClick={() => onAction('update', theme)}>{t('themes.update.available', { version: bundled.bundledVersion })}</button>}
+            {bundled?.updateAvailable && <span>{t('themes.update.available', { version: bundled.bundledVersion })}</span>}
           </p>
         </div>
+        {bundled?.updateAvailable && <Button size="sm" className="!border-transparent !bg-canvas !text-fg" onClick={() => onAction('update', theme)}>{t('themes.update.button')}</Button>}
         <Button size="sm" className="!border-transparent !bg-canvas !text-fg" onClick={() => onAction('customize', theme)}>{t('themes.customize')}</Button>
         <span className="[&_.btn]:!border-transparent [&_.btn]:!bg-transparent [&_.btn]:!text-ink-text"><ThemeMenu theme={theme} live onAction={onAction} /></span>
       </div>

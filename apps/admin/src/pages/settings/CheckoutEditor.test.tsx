@@ -122,7 +122,7 @@ describe('checkout and accounts editor', () => {
 
 describe('draft values', () => {
   it('sends the tip presets as typed once they are whole numbers, and keeps the last good ones otherwise', () => {
-    const d = draftOf({ settings: settings as never, config });
+    const d = draftOf({ settings: settings as never, config: config as never });
     expect(d.presets).toBe('5, 10, 15');
     expect(payloadOf({ ...d, presets: '20 25,30' }).settings.tipping.presets).toEqual([20, 25, 30]);
     expect(payloadOf({ ...d, presets: '12, x' }).settings.tipping.presets).toEqual([5, 10, 15]);
