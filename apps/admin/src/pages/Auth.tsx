@@ -68,7 +68,7 @@ export function LoginPage() {
 
   if (stage.kind === 'twofactor') return <TwoFactorStep challenge={stage.challenge} onBack={() => { setStage({ kind: 'form' }); setPassword(''); }} onDone={(r) => finish(r, 'password')} />;
   if (stage.kind === 'code') return <EmailCodeStep challenge={stage.challenge} email={stage.email} canPasskey={canPasskey} onPasskey={switchToPasskey} onBack={() => { setStage({ kind: 'form' }); setPassword(''); }} onDone={(r) => finish(r, 'password')} />;
-  if (stage.kind === 'forgot') return <ForgotPassword initialEmail={email} onBack={(msg) => { setStage({ kind: 'form' }); setNotice(msg ?? null); setStep('password'); setPassword(''); }} />;
+  if (stage.kind === 'forgot') return <ForgotPassword initialEmail={email} onBack={(msg, resetEmail) => { setStage({ kind: 'form' }); setNotice(msg ?? null); setStep('password'); setPassword(''); setEmail(resetEmail ?? email); passwordLogin.setError(null); passkey.setError(null); }} />;
 
   const err = (passkey.error ? t('login.passkeyFailed') : null) ?? passwordLogin.error;
   return (
@@ -82,7 +82,7 @@ export function LoginPage() {
             <AuthButton type="submit">{t('login.continueEmail')}</AuthButton>
           </form>
         ) : (
-          <form onSubmit={passwordLogin.submit} className="flex flex-col gap-4">
+          <form onSubmit={(e) => { setNotice(null); void passwordLogin.submit(e); }} className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-3 rounded-[10px] bg-surface px-3 py-2.5 text-[14px]">
               <span className="min-w-0 truncate font-medium" data-testid="login-email">{email}</span>
               <button type="button" className="auth-link shrink-0 text-[13px]" onClick={() => { setStep('email'); setPassword(''); passwordLogin.setError(null); }}>{t('login.change')}</button>
@@ -211,14 +211,14 @@ function TwoFactorStep({ challenge, onBack, onDone }: { challenge: string; onBac
 }
 
 /** Forgotten password: the e-mail, then the mailed code with the new password. */
-function ForgotPassword({ initialEmail, onBack }: { initialEmail: string; onBack: (message?: string) => void }) {
+function ForgotPassword({ initialEmail, onBack }: { initialEmail: string; onBack: (message?: string, email?: string) => void }) {
   const { t } = useI18n();
   const [email, setEmail] = useState(initialEmail);
   const [sent, setSent] = useState(false);
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const ask = useSubmit(() => rest('/auth/password/forgot', { body: { email } }), () => setSent(true));
-  const reset = useSubmit(() => rest('/auth/password/reset', { body: { email, code, password } }), () => onBack(t('forgot.done')), (err) => (err.status === 401 ? t('forgot.invalid') : null));
+  const reset = useSubmit(() => rest('/auth/password/reset', { body: { email, code, password } }), () => onBack(t('forgot.done'), email), (err) => (err.status === 401 ? t('forgot.invalid') : null));
   return (
     <AuthShell variant="signup" title={t('forgot.title')} subtitle={sent ? t('forgot.sent', { email }) : t('forgot.subtitle')}>
       {!sent ? (
