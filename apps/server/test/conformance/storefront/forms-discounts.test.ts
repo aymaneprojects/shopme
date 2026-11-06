@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { createCustomer, getPrimaryShop, schema as s, seedDemo, type Mail } from '@shopme/core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createTestApp, SETUP_BODY, type TestApp } from '../../../src/test-utils';
+import { createTestApp, SETUP_BODY, type TestApp, storeHostOr } from '../../../src/test-utils';
 
 let t: TestApp;
 let shopId = 0;
@@ -46,7 +46,7 @@ describe('contact form', () => {
 
   it('returns to the page the form was on (Referer) and keeps what was typed when validation fails', async () => {
     sent = [];
-    const bad = await post('/contact', { form_type: 'contact', 'contact[email]': 'not-an-email', 'contact[body]': 'Keep this text' }, { host: 'shop.test', referer: 'https://shop.test/pages/contact' });
+    const bad = await post('/contact', { form_type: 'contact', 'contact[email]': 'not-an-email', 'contact[body]': 'Keep this text' }, { host: storeHostOr(t.app, 'shop.test'), referer: `https://${storeHostOr(t.app, 'shop.test')}/pages/contact` });
     expect(bad.headers.location).toBe('/pages/contact#contact_form');
     const page = await get('/pages/contact', { shopme_flash: cookieOf(bad, 'shopme_flash')! });
     expect(page.body).toMatch(/Email is invalid/);

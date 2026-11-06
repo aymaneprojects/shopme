@@ -78,7 +78,7 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
   /** Common wrapper: resolve shop, cart (created if needed), run the mutation, answer in the Ajax format or redirect. */
   const mutation = (handler: (c: { req: FastifyRequest; reply: FastifyReply; shop: Shop; cart: CartView; params: Record<string, any> }) => Promise<unknown>, opts: { redirect?: string } = {}) =>
     async (req: FastifyRequest, reply: FastifyReply) => {
-      const shop = await primaryShop(ctx);
+      const shop = await primaryShop(ctx, req);
       if (!shop) return reply.code(503).send({ status: 503, message: 'Store is not set up', description: 'Store is not set up' });
       const cart = await cartFor(req, reply, shop);
       const params = readParams(req);
@@ -90,7 +90,7 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
 
   // --- GET /cart.js, /cart.json
   const getCart = async (req: FastifyRequest, reply: FastifyReply) => {
-    const shop = await primaryShop(ctx);
+    const shop = await primaryShop(ctx, req);
     if (!shop) return reply.code(503).send({ error: 'Store is not set up' });
     const raw = req.cookies[CART_COOKIE];
     const found = raw ? await getCartByToken(db, shop.id, raw.split('?')[0]!.split('%3F')[0]!) : null;
@@ -155,7 +155,7 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
 
   // --- /discount/<code>: remembers the code (cookie + the current cart) and redirects; `?redirect=/path` picks the landing page
   app.get('/discount/:code', async (req, reply) => {
-    const shop = await primaryShop(ctx);
+    const shop = await primaryShop(ctx, req);
     if (!shop) return reply.callNotFound();
     const code = decodeURIComponent((req.params as { code: string }).code).trim().slice(0, 255);
     const target = String((req.query as Record<string, unknown>).redirect ?? '/');
@@ -177,7 +177,7 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
     return null;
   };
   const shippingRates = async (req: FastifyRequest, reply: FastifyReply) => {
-    const shop = await primaryShop(ctx);
+    const shop = await primaryShop(ctx, req);
     if (!shop) return reply.code(503).send({ error: 'Store is not set up' });
     const raw = req.cookies[CART_COOKIE];
     const cart = raw ? await getCartByToken(db, shop.id, raw.split('?')[0]!.split('%3F')[0]!) : null;
@@ -198,7 +198,7 @@ export function registerCartRoutes(app: FastifyInstance, ctx: AppContext, render
   app.get('/cart/:permalink', async (req, reply) => {
     const spec = (req.params as { permalink: string }).permalink;
     if (!/^\d+(:\d+)?(,\d+(:\d+)?)*$/.test(spec)) return reply.callNotFound();
-    const shop = await primaryShop(ctx);
+    const shop = await primaryShop(ctx, req);
     if (!shop) return reply.callNotFound();
     const cart = await cartFor(req, reply, shop);
     const items = spec.split(',').map((p) => { const [id, q] = p.split(':'); return { id, quantity: q ?? 1 }; });

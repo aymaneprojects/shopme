@@ -21,7 +21,7 @@ const MutationErrorCode = builder.enumType('BulkMutationErrorCode', {
   values: ['OPERATION_IN_PROGRESS', 'INVALID_MUTATION', 'INVALID_STAGED_UPLOAD_FILE', 'NO_SUCH_FILE', 'INTERNAL_FILE_SERVER_ERROR', 'LIMIT_REACHED'] as const,
 });
 
-const fileUrl = (ctx: GraphQLContext, key: string | null) => (key ? `${ctx.app.config.appUrl}${ctx.app.storage.url(key)}` : null);
+const fileUrl = (ctx: GraphQLContext, key: string | null) => (key ? `${ctx.storeUrl}${ctx.app.storageFor(ctx.shopId).url(key)}` : null);
 
 export const BulkOperation = builder.objectRef<Row>('BulkOperation');
 BulkOperation.implement({
@@ -114,7 +114,7 @@ builder.mutationFields((t) => ({
       const problem = checkBulkMutation(info.schema, a.mutation);
       if (problem) return bad(['mutation'], problem, 'INVALID_MUTATION');
       const key = stagedKey(a.stagedUploadPath, ctx.shopId);
-      const stream = key ? await ctx.app.storage.open(key) : null;
+      const stream = key ? await ctx.app.storageFor(ctx.shopId).open(key) : null;
       if (!key || !stream) return bad(['stagedUploadPath'], 'The file could not be found at the staged upload path. Upload the variables with stagedUploadsCreate (resource BULK_MUTATION_VARIABLES) first.', 'NO_SUCH_FILE');
       const chunks: Buffer[] = [];
       let size = 0;

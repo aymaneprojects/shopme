@@ -63,7 +63,7 @@ builder.mutationFields((t) => ({
       const inviteUrl = `${ctx.app.config.appUrl.replace(/\/$/, '')}/admin/invite/${r.value.token}`;
       const me = actor(ctx);
       try {
-        await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.app.config.appUrl, 'staff_invite', r.value.staff.email, {
+        await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.storeUrl, 'staff_invite', r.value.staff.email, {
           invite: { url: inviteUrl, email: r.value.staff.email, role: r.value.staff.role, inviter: me ? [me.firstName, me.lastName].filter(Boolean).join(' ') || me.email : null },
         });
       } catch (e) {

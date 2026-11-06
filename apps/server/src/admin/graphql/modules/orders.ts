@@ -365,7 +365,7 @@ Order_.implement({
       poNumber: t.string({ nullable: true, resolve: (o) => o.poNumber }),
       checkoutToken: t.string({ nullable: true, resolve: (o) => o.cartToken }),
       sourceIdentifier: t.string({ nullable: true, resolve: () => null }),
-      statusPageUrl: t.field({ type: 'URL', resolve: (o, _a, ctx) => `${ctx.app.config.appUrl}/account/orders/${o.id}` }),
+      statusPageUrl: t.field({ type: 'URL', resolve: (o, _a, ctx) => `${ctx.storeUrl}/account/orders/${o.id}` }),
       totalReceivedSet: t.field(set('totalReceivedSet', (_o, d) => paidAmounts(d.transactions).received)),
       netPaymentSet: t.field(set('netPaymentSet', (_o, d) => { const p = paidAmounts(d.transactions); return p.received - p.refunded; })),
       totalOutstandingSet: t.field(set('totalOutstandingSet', outstanding)),

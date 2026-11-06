@@ -76,6 +76,10 @@ export const MailingAddressInput = builder.inputType('MailingAddressInput', {
 
 /* ------------------------------ staff members ------------------------------ */
 
+/** Interoperable account types; ShopMe uses REGULAR, RESTRICTED (deactivated), INVITED and INVITED_STORE_OWNER. */
+export const AccountType = builder.enumType('AccountType', { values: ['REGULAR', 'RESTRICTED', 'INVITED', 'REQUESTED', 'COLLABORATOR', 'COLLABORATOR_TEAM_MEMBER', 'SAML', 'INVITED_STORE_OWNER'] as const });
+const accountTypeOf = (s: StaffMemberRow) => (s.invitePending ? (s.role === 'owner' ? 'INVITED_STORE_OWNER' : 'INVITED') : s.active ? 'REGULAR' : 'RESTRICTED');
+
 export const StaffMember = builder.objectRef<StaffMemberRow>('StaffMember').implement({
   interfaces: [Node],
   fields: (t) => ({
@@ -87,6 +91,7 @@ export const StaffMember = builder.objectRef<StaffMemberRow>('StaffMember').impl
     active: t.exposeBoolean('active'),
     exists: t.boolean({ resolve: () => true }),
     isShopOwner: t.boolean({ resolve: (s) => s.role === 'owner' }),
+    accountType: t.field({ type: AccountType, nullable: true, description: 'The kind of account of the member in this store (one sign-in account can be staff of several stores).', resolve: accountTypeOf }),
     locale: t.string({ resolve: () => 'en' }),
     phone: t.string({ nullable: true, resolve: () => null }),
   }),

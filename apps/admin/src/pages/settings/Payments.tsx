@@ -13,6 +13,7 @@ import { errText, major, minor, newId, useConfig, useSaveConfig } from '../../li
 import type { GiftCardsConfig, PaymentRule, PaymentsConfig } from '../../lib/config';
 import { useShop } from '../../session';
 import { PaymentLogos } from '../../components/PaymentLogos';
+import { StripeKeys } from '../../components/StripeKeys';
 
 interface Payments { bankTransfer: { enabled: boolean; instructions: string }; cod: { enabled: boolean }; stripe: { enabled: boolean; stripeConfigured: boolean } }
 const BRANDS: Array<[string, string]> = [['visa', 'Visa'], ['mastercard', 'Mastercard'], ['amex', 'American Express'], ['discover', 'Discover'], ['diners', 'Diners Club'], ['jcb', 'JCB'], ['unionpay', 'UnionPay'], ['cartes_bancaires', 'Cartes Bancaires']];
@@ -72,6 +73,7 @@ function PaymentsForm({ data, cfg, gift }: { data: Payments; cfg: PaymentsConfig
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between gap-2"><Switch placement="end" checked={f.stripe} onChange={(v) => setF({ ...f, stripe: v })} label={t('payments.stripeEnable')} /><Badge tone={data.stripe.stripeConfigured ? 'success' : 'warning'}>{data.stripe.stripeConfigured ? t('payments.configured') : t('payments.notConfigured')}</Badge></div>
               {!data.stripe.stripeConfigured && <p className="text-[13px] text-muted">{t('payments.stripeHint')}</p>}
+              <StripeKeys canEdit />
               <fieldset className="border-t border-line pt-3">
                 <legend className="mb-2 text-[13px] font-medium">{t('bs.cardBrands')}</legend>
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5">

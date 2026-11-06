@@ -22,8 +22,22 @@ const set = (reply: FastifyReply, name: string, value: string) => { if (!reply.h
  * CSP in report-only mode (reports go to `POST /csp-report`, logged). `/files/*` keeps its own sandboxing CSP.
  * HSTS only with `HSTS=true` and an https APP_URL.
  */
+/**
+ * Multi-store: the admin also shows styles, images and fonts of the stores' own hosts (the home page thumbnail of a storefront that
+ * lives on `<handle>.<STORE_BASE_DOMAIN>`).
+ */
+export function adminCspFor(config: { multiStore: boolean; appUrl: string; storeBaseDomain: string }): string {
+  if (!config.multiStore) return ADMIN_CSP;
+  const u = new URL(config.appUrl);
+  const stores = `${u.protocol}//*.${config.storeBaseDomain}${u.port ? `:${u.port}` : ''}`;
+  return ADMIN_CSP.replace("style-src 'self' 'unsafe-inline'", `style-src 'self' 'unsafe-inline' ${stores}`)
+    .replace("img-src 'self' data: blob: https:", `img-src 'self' data: blob: https: ${stores}`)
+    .replace("font-src 'self' data:", `font-src 'self' data: ${stores}`);
+}
+
 export function registerSecurity(app: FastifyInstance): void {
   const hsts = app.ctx.config.hsts && app.ctx.config.appUrl.startsWith('https://');
+  const adminCsp = adminCspFor(app.ctx.config);
   app.addContentTypeParser('application/csp-report', { parseAs: 'string' }, (_r, body, done) => { try { done(null, JSON.parse(body as string)); } catch { done(null, {}); } });
   app.post('/csp-report', async (req, reply) => {
     req.log.warn({ csp: req.body }, 'csp violation (report-only)');
@@ -37,7 +51,7 @@ export function registerSecurity(app: FastifyInstance): void {
     if (hsts) set(reply, 'strict-transport-security', `max-age=${MAX_AGE}; includeSubDomains`);
     if (path === '/admin' || path.startsWith('/admin/')) {
       reply.header('x-frame-options', 'DENY');
-      set(reply, 'content-security-policy', ADMIN_CSP);
+      set(reply, 'content-security-policy', adminCsp);
       set(reply, 'permissions-policy', 'camera=(), microphone=(), geolocation=()');
     } else if (!path.startsWith('/files/')) {
       reply.header('x-frame-options', 'SAMEORIGIN');

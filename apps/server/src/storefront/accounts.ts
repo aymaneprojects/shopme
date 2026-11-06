@@ -33,11 +33,10 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
   app.addHook('onRequest', async (req, reply) => {
     const path = req.url.split('?')[0]!;
     if (path !== '/account' && !path.startsWith('/account/')) return;
-    const shop = await primaryShop(ctx);
+    const shop = await primaryShop(ctx, req);
     if (shop && accountsModeOf(shop) === 'DISABLED') return notFound(req, reply, shop);
   });
 
-  const origin = ctx.config.appUrl;
   const html = (reply: FastifyReply) => reply.header('cache-control', 'no-store');
   const enqueueMail = (mail: Mail) => ctx.queue.enqueue<Mail>('mail.send', mail);
 
@@ -177,7 +176,7 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
     if (!r.ok) return back(reply, '/account/register', { type: 'create_customer', errors: messages(shop.locale).fieldErrors(r.errors), values: { email: str(c.email), first_name: str(c.first_name), last_name: str(c.last_name) } });
     if (r.value.activationToken) {
       // The email belongs to a guest customer: ownership must be proven by email, so an activation link is sent instead of an account.
-      enqueueMail(renderAccountActivation(shop, r.value.customer.email!, `${origin}/account/activate/${r.value.customer.id}/${r.value.activationToken}`));
+      enqueueMail(renderAccountActivation(shop, r.value.customer.email!, `${ctx.stores.publicOrigin(shop.id)}/account/activate/${r.value.customer.id}/${r.value.activationToken}`));
       return back(reply, '/account/login', { type: 'recover_customer_password', success: true });
     }
     await startSession(req, reply, shop, r.value.customer);
@@ -194,7 +193,7 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
     if (keys.some((k) => recoverLimiter.isLimited(k))) return limited(reply, shop, '/account/login#recover', 'recover_customer_password');
     keys.forEach((k) => recoverLimiter.fail(k));
     const r = email ? await requestPasswordReset(db, shop.id, email) : null;
-    if (r) enqueueMail(renderPasswordReset(shop, r.customer.email!, `${origin}/account/reset/${r.customer.id}/${r.token}`));
+    if (r) enqueueMail(renderPasswordReset(shop, r.customer.email!, `${ctx.stores.publicOrigin(shop.id)}/account/reset/${r.customer.id}/${r.token}`));
     // Same answer whether or not the address has an account.
     return back(reply, '/account/login#recover', { type: 'recover_customer_password', success: true });
   });

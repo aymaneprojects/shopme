@@ -253,7 +253,7 @@ function toInput(i: Input, currency: string): DraftInput {
 
 export const staffId = (ctx: GraphQLContext) => (ctx.auth.kind === 'session' ? ctx.auth.user.id : null);
 export const shopFor = async (ctx: GraphQLContext) => (await getShop(ctx.db, ctx.shopId))!;
-export const asView = async (ctx: GraphQLContext, d: DraftRow) => viewOf(await shopFor(ctx), ctx.app.config.appUrl, d);
+export const asView = async (ctx: GraphQLContext, d: DraftRow) => viewOf(await shopFor(ctx), ctx.storeUrl, d);
 const noDraft: UserError[] = [{ field: ['id'], message: 'Draft order does not exist' }];
 
 const Create = definePayload<{ draftOrder: View | null }>('DraftOrderCreatePayload', (t) => ({ draftOrder: t.field({ type: DraftOrder, nullable: true, resolve: (p) => p.draftOrder }) }));
@@ -282,7 +282,7 @@ builder.queryFields((t) => ({
       requireScope(ctx, 'read_draft_orders');
       const shop = await shopFor(ctx);
       return paginate(a, {
-        fetch: async ({ offset, limit }) => (await listDraftOrders(ctx.db, ctx.shopId, { query: a.query, reverse: !!a.reverse, offset, limit })).map((d) => viewOf(shop, ctx.app.config.appUrl, d)),
+        fetch: async ({ offset, limit }) => (await listDraftOrders(ctx.db, ctx.shopId, { query: a.query, reverse: !!a.reverse, offset, limit })).map((d) => viewOf(shop, ctx.storeUrl, d)),
         total: () => countDraftOrders(ctx.db, ctx.shopId, a.query),
       });
     },
@@ -349,7 +349,7 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_draft_orders');
       const id = did(a.id);
       if (!id) return { draftOrder: null, userErrors: noDraft };
-      const r = await sendDraftInvoice(ctx.db, ctx.app.mailer, await shopFor(ctx), ctx.app.config.appUrl, id, { to: a.email?.to, subject: a.email?.subject, customMessage: a.email?.customMessage, staffId: staffId(ctx) });
+      const r = await sendDraftInvoice(ctx.db, ctx.app.mailer, await shopFor(ctx), ctx.storeUrl, id, { to: a.email?.to, subject: a.email?.subject, customMessage: a.email?.customMessage, staffId: staffId(ctx) });
       return r.ok ? { draftOrder: await asView(ctx, r.value), userErrors: [] } : { draftOrder: null, userErrors: r.errors };
     },
   }),

@@ -23,6 +23,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo run lint typecheck test build
+      # The server suite again with the installation in multi-store mode (the isolation suite runs in both passes).
+      - run: pnpm --filter @shopme/server test:multi
 
   e2e:
     runs-on: ubuntu-latest

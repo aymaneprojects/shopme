@@ -178,7 +178,8 @@ export async function createMediaRows(tx: Executor, shopId: number, inputs: Medi
   }
   const out: Media[] = [];
   for (const m of inputs) {
-    const key = /\/files\/(.+?)(?:[?#].*)?$/.exec(m.originalSource)?.[1];
+    // `/files/<key>`, or `/files/shops/<this shop>/<key>` (multi-store layout); another store's folder never matches.
+    const key = /\/files\/(.+?)(?:[?#].*)?$/.exec(m.originalSource)?.[1]?.replace(new RegExp(`^shops/${shopId}/`), '');
     const [file] = key ? await tx.select().from(files).where(and(eq(files.shopId, shopId), eq(files.storageKey, key))).limit(1) : [];
     const [row] = await tx.insert(media).values({ shopId, type: m.mediaContentType, alt: m.alt ?? null, url: m.originalSource, fileId: file?.id ?? null, mimeType: file?.mimeType ?? null }).returning();
     out.push(row!);

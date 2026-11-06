@@ -2,7 +2,7 @@ import { Banner, Button, Card, Checkbox, Input, Skeleton, Switch, useToast } fro
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, Upload } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { ApiError, rest } from '../../api';
+import { ApiError, apiUrl, rest } from '../../api';
 import { useFormat } from '../../components/shared';
 import { useI18n } from '../../i18n';
 
@@ -42,7 +42,7 @@ function ExportCard() {
         {done && (
           <div className="flex flex-wrap items-center gap-3">
             <p className="text-[13px]">{t('backup.ready', { size: mb(job.result?.details?.bytes ?? 0) })}</p>
-            <a href={`/admin/api/store/export/${jobId}/download`} className="btn btn-primary"><Download className="size-4" />{t('backup.download')}</a>
+            <a href={apiUrl(`/store/export/${jobId}/download`)} className="btn btn-primary"><Download className="size-4" />{t('backup.download')}</a>
           </div>
         )}
         <div><Button variant="primary" loading={start.isPending || (jobId !== null && !job?.done)} onClick={() => { setJobId(null); start.mutate(); }}>{t('backup.exportStart')}</Button></div>
@@ -64,7 +64,7 @@ function ImportCard() {
       const body = new FormData();
       if (confirm) body.append('confirm', 'replace'); // fields must precede the file
       body.append('file', file!);
-      const res = await fetch('/admin/api/store/import', { method: 'POST', credentials: 'same-origin', body });
+      const res = await fetch(apiUrl('/store/import'), { method: 'POST', credentials: 'same-origin', body });
       const json = (await res.json().catch(() => ({}))) as { error?: string; needsConfirm?: boolean; job?: { id: number } };
       if (!res.ok) { setNeedsConfirm(!!json.needsConfirm); throw new ApiError(json.error ?? `HTTP ${res.status}`, res.status); }
       return json.job!.id;
@@ -128,7 +128,7 @@ function AutoCard() {
               {q.data.backups.map((b) => (
                 <li key={b.name} className="flex flex-wrap items-center gap-2 py-2 text-[13px]">
                   <span className="min-w-0 flex-1 truncate font-mono text-xs">{b.name}</span><span className="text-muted">{fmt.dateTime(b.createdAt)} · {mb(b.bytes)}</span>
-                  <a href={`/admin/api/store/backups/${encodeURIComponent(b.name)}`} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-surface">{t('backup.download')}</a>
+                  <a href={apiUrl(`/store/backups/${encodeURIComponent(b.name)}`)} className="rounded-md border border-line px-2 py-1 text-xs hover:bg-surface">{t('backup.download')}</a>
                   <Button size="sm" variant="danger" onClick={() => del.mutate(b.name)}>{t('backup.delete')}</Button>
                 </li>
               ))}

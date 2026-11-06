@@ -85,7 +85,7 @@ builder.mutationFields((t) => ({
       const { shop, view } = await templateOf(ctx, a.key);
       const subject = a.subject ?? view.subject; const body = a.body ?? view.body;
       for (const src of [subject, body]) { const err = liquidError(src); if (err) return { preview: null, userErrors: [{ field: null, message: `Liquid syntax error: ${err}` }] }; }
-      return { preview: await renderNotification(ctx.db, shop, ctx.app.config.appUrl, a.key, sampleVars(shop, ctx.app.config.appUrl), { subject, body }), userErrors: [] };
+      return { preview: await renderNotification(ctx.db, shop, ctx.storeUrl, a.key, sampleVars(shop, ctx.storeUrl), { subject, body }), userErrors: [] };
     },
   }),
   shopmeNotificationSendTest: t.field({
@@ -97,8 +97,8 @@ builder.mutationFields((t) => ({
       const { shop } = await templateOf(ctx, a.key);
       const to = (a.to ?? shop.email ?? '').trim();
       if (!/^[^@\s]+@[^@\s]+$/.test(to)) return { preview: null, userErrors: [{ field: ['to'], message: 'Enter a valid email address.' }] };
-      await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.app.config.appUrl, a.key, to, sampleVars(shop, ctx.app.config.appUrl), { force: true });
-      return { preview: await renderNotification(ctx.db, shop, ctx.app.config.appUrl, a.key, sampleVars(shop, ctx.app.config.appUrl)), userErrors: [] };
+      await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.storeUrl, a.key, to, sampleVars(shop, ctx.storeUrl), { force: true });
+      return { preview: await renderNotification(ctx.db, shop, ctx.storeUrl, a.key, sampleVars(shop, ctx.storeUrl)), userErrors: [] };
     },
   }),
   shopmeNotificationSettingsUpdate: t.field({

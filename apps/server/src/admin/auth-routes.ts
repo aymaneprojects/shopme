@@ -1,8 +1,11 @@
 import type { FastifyInstance } from 'fastify';
-import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { schema, authenticateStaff, createSession, destroySession, ensureDefaultTheme, getShop, isTwoFactorEnabled, listStaffSessions, needsSetup, publicStaff, sendNotification, setupStore, twoFactorEnrolmentRequired, SetupError, signChallenge, verifyChallenge, verifySecondFactor, type Shop, type StaffUser } from '@shopme/core';
-import { authenticate, clearSessionCookie, sessionToken, setSessionCookie } from '../plugins/auth';
+import {
+  accountCount, authenticateAccount, canCreateStores, createSession, destroySession, ensureDefaultTheme, getAccount, getShop, handleOf, isTwoFactorEnabled, listAccountStores, listStaffSessions, needsSetup, publicAccount, publicStaff,
+  sendNotification, setSessionShop, setupStore, staffOfAccount, twoFactorEnrolmentRequired, SetupError, signChallenge, verifyChallenge, verifySecondFactor, schema, type Account, type Shop, type StaffUser,
+} from '@shopme/core';
+import { eq } from 'drizzle-orm';
+import { accountOf, authenticate, clearSessionCookie, requestedShopId, sessionToken, setSessionCookie } from '../plugins/auth';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { FailureLimiter } from '../plugins/rate-limit';
 
@@ -30,19 +33,25 @@ export function registerAuthRoutes(app: FastifyInstance) {
   const { db } = app.ctx;
   const limiter = new FailureLimiter(10, 15 * 60 * 1000);
 
-  app.get('/admin/api/setup/status', async () => ({ needsSetup: await needsSetup(db) }));
+  const multi = app.ctx.config.multiStore;
+  // Multi-store: the installation is set up once its first account exists (stores can then be created and deleted freely).
+  const setupNeeded = async () => (multi ? (await accountCount(db)) === 0 && (await needsSetup(db)) : needsSetup(db));
+  app.get('/admin/api/setup/status', async () => ({ needsSetup: await setupNeeded() }));
 
   app.post('/admin/api/setup', async (req, reply) => {
     const body = setupBody.safeParse(req.body);
     if (!body.success) return reply.code(422).send({ error: 'Invalid input', issues: body.error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })) });
     try {
-      const { shop, owner } = await setupStore(db, body.data);
+      if (multi && !(await setupNeeded())) throw new SetupError('Store is already set up');
+      const { shop, owner } = await setupStore(db, { ...body.data, ...(multi && { perStoreStorage: true, platformOwner: true }) });
       await app.ctx.locales.refresh(db);
+      await app.ctx.stores.refresh(db);
       // Install Aurora now so the admin theme editor works before the storefront is ever visited.
-      await ensureDefaultTheme(db, shop.id, app.ctx.paths.themeDefaultDir, app.ctx.storage);
-      const session = await createSession(db, { shopId: shop.id, staffUserId: owner.id, ip: req.ip, userAgent: req.headers['user-agent'] });
+      await ensureDefaultTheme(db, shop.id, app.ctx.paths.themeDefaultDir, app.ctx.storageFor(shop.id));
+      const session = await createSession(db, { shopId: shop.id, staffUserId: owner.id, accountId: owner.accountId, ip: req.ip, userAgent: req.headers['user-agent'] });
       setSessionCookie(app, reply, session.token, session.expiresAt);
-      return reply.code(201).send({ user: publicStaff(owner), shop: publicShop(shop) });
+      const account = multi && owner.accountId != null ? await getAccount(db, owner.accountId) : null;
+      return reply.code(201).send({ user: publicStaff(owner), shop: publicShop(shop), ...(multi && { storeHandle: handleOf(shop), ...(account && { account: publicAccount(account) }) }) });
     } catch (e) {
       if (e instanceof SetupError) return reply.code(409).send({ error: e.message });
       throw e;
@@ -55,33 +64,36 @@ export function registerAuthRoutes(app: FastifyInstance) {
     const keys = [`ip:${req.ip}`, `email:${body.data.email.toLowerCase()}`];
     const limited = keys.find((k) => limiter.isLimited(k));
     if (limited) return reply.code(429).header('retry-after', String(limiter.retryAfter(limited))).send({ error: 'Too many failed attempts. Try again later.' });
-    const user = await authenticateStaff(db, body.data.email, body.data.password);
-    if (!user) {
+    const account = await authenticateAccount(db, body.data.email, body.data.password);
+    const user = account ? await memberFor(req, account) : null;
+    // An account without an active membership cannot sign in, except (multi-store) one allowed to create its first store.
+    if (!account || (!user && !(multi && (await canCreateStores(db, account))))) {
       keys.forEach((k) => limiter.fail(k));
       return reply.code(401).send({ error: 'Invalid email or password' });
     }
     keys.forEach((k) => limiter.reset(k));
-    if (await isTwoFactorEnabled(db, user.id)) return { twoFactorRequired: true, challenge: signChallenge(app.ctx.config.sessionSecret, user.id) };
-    return finishLogin(app, req, reply, user);
+    if (await isTwoFactorEnabled(db, account.id)) return { twoFactorRequired: true, challenge: signChallenge(app.ctx.config.sessionSecret, account.id) };
+    return finishLogin(app, req, reply, account, user);
   });
 
   /** Second login step: the signed challenge from the password step plus a TOTP or recovery code. */
   app.post('/admin/api/auth/login/2fa', async (req, reply) => {
     const body = challengeBody.safeParse(req.body);
     if (!body.success) return reply.code(422).send({ error: 'A code is required' });
-    const userId = verifyChallenge(app.ctx.config.sessionSecret, body.data.challenge);
-    if (!userId) return reply.code(401).send({ error: 'The sign-in expired. Enter your password again.', expired: true });
-    const keys = [`ip:${req.ip}`, `2fa:${userId}`];
+    const accountId = verifyChallenge(app.ctx.config.sessionSecret, body.data.challenge);
+    if (!accountId) return reply.code(401).send({ error: 'The sign-in expired. Enter your password again.', expired: true });
+    const keys = [`ip:${req.ip}`, `2fa:${accountId}`];
     const limited = keys.find((k) => limiter.isLimited(k));
     if (limited) return reply.code(429).header('retry-after', String(limiter.retryAfter(limited))).send({ error: 'Too many failed attempts. Try again later.' });
-    if (!(await verifySecondFactor(db, app.ctx.config.sessionSecret, userId, body.data.code))) {
+    if (!(await verifySecondFactor(db, app.ctx.config.sessionSecret, accountId, body.data.code))) {
       keys.forEach((k) => limiter.fail(k));
       return reply.code(401).send({ error: 'Invalid code' });
     }
     keys.forEach((k) => limiter.reset(k));
-    const user = (await db.select().from(schema.staffUsers).where(and(eq(schema.staffUsers.id, userId), eq(schema.staffUsers.active, true))))[0];
-    if (!user) return reply.code(401).send({ error: 'Invalid code' });
-    return finishLogin(app, req, reply, user);
+    const account = await getAccount(db, accountId);
+    const user = account?.active ? await memberFor(req, account) : null;
+    if (!account?.active || (!user && !(multi && (await canCreateStores(db, account))))) return reply.code(401).send({ error: 'Invalid code' });
+    return finishLogin(app, req, reply, account, user);
   });
 
   app.post('/admin/api/auth/logout', async (req, reply) => {
@@ -92,6 +104,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
   });
 
   app.get('/admin/api/auth/me', async (req, reply) => {
+    if (multi) return accountMe(app, req, reply);
     const auth = await authenticate(req);
     if (!auth || auth.kind !== 'session') return reply.code(401).send({ error: 'Not authenticated' });
     const shop = await getShop(db, auth.shopId);
@@ -99,20 +112,57 @@ export function registerAuthRoutes(app: FastifyInstance) {
   });
 }
 
+/**
+ * The staff membership a sign-in opens: single-store, the account's (only) store; multi-store, the store the request names
+ * (its own host or admin URL) when the account works there, else its first store, else none.
+ */
+async function memberFor(req: FastifyRequest, account: Account): Promise<StaffUser | null> {
+  const members = await staffOfAccount(req.server.ctx.db, account.id);
+  if (!req.server.ctx.config.multiStore) return members[0] ?? null;
+  const wanted = await requestedShopId(req);
+  return members.find((m) => m.shopId === wanted) ?? members[0] ?? null;
+}
+
+/** Multi-store `GET /admin/api/auth/me`: the account, its stores, and the store this request names (or the session's last one). */
+async function accountMe(app: FastifyInstance, req: FastifyRequest, reply: FastifyReply) {
+  const { db, config, stores } = app.ctx;
+  const sess = await accountOf(req);
+  if (!sess) return reply.code(401).send({ error: 'Not authenticated' });
+  const auth = await authenticate(req);
+  const list = await listAccountStores(db, sess.account.id, config.stripe.publishableKey);
+  const base = {
+    multiStore: true, account: publicAccount(sess.account), canCreateStores: await canCreateStores(db, sess.account),
+    stores: list.map((x) => ({ ...x, host: stores.platformHost(x.handle), url: stores.publicOrigin(x.id) })),
+  };
+  if (!auth || auth.kind !== 'session') {
+    if (req.authDenied) return reply.code(403).send({ error: 'You do not have access to this store', ...base });
+    return { ...base, user: null, shop: null, twoFactorSetupRequired: false };
+  }
+  const token = sessionToken(req);
+  if (token && sess.shopId !== auth.shopId) await setSessionShop(db, token, auth.shopId, auth.user.id);
+  const shop = await getShop(db, auth.shopId);
+  return {
+    ...base, user: publicStaff(auth.user), shop: shop ? { ...publicShop(shop), handle: handleOf(shop), status: shop.status, url: stores.publicOrigin(shop.id) } : null,
+    storeHandle: shop ? handleOf(shop) : null, suspended: shop?.status === 'SUSPENDED', twoFactorSetupRequired: auth.needs2fa === true,
+  };
+}
+
 const deviceOf = (ua: string | undefined) => (ua ?? 'unknown').slice(0, 120);
 
 /** Create the session after the password (and second factor); mail a sign-in alert when it comes from a device with no active session. */
-export async function finishLogin(app: FastifyInstance, req: FastifyRequest, reply: FastifyReply, user: StaffUser) {
+export async function finishLogin(app: FastifyInstance, req: FastifyRequest, reply: FastifyReply, account: Account, user: StaffUser | null) {
   const { db } = app.ctx;
   const ua = req.headers['user-agent'];
-  const known = (await listStaffSessions(db, user.id, null)).some((x) => x.ip === req.ip && x.userAgent === (ua ?? '').slice(0, 255));
-  const session = await createSession(db, { shopId: user.shopId, staffUserId: user.id, ip: req.ip, userAgent: ua });
+  const known = (await listStaffSessions(db, account.id, null)).some((x) => x.ip === req.ip && x.userAgent === (ua ?? '').slice(0, 255));
+  const session = await createSession(db, { shopId: user?.shopId ?? null, staffUserId: user?.id ?? null, accountId: account.id, ip: req.ip, userAgent: ua });
   setSessionCookie(app, reply, session.token, session.expiresAt);
-  const shop = await getShop(db, user.shopId);
-  if (shop && !known && user.lastLoginAt) {
+  const shop = user ? await getShop(db, user.shopId) : null;
+  if (user) await db.update(schema.staffUsers).set({ lastLoginAt: new Date() }).where(eq(schema.staffUsers.id, user.id));
+  if (shop && user && !known && user.lastLoginAt) {
     const time = new Date().toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
-    sendNotification(db, app.ctx.mailer, shop, app.ctx.config.appUrl, 'staff_login_alert', user.email, { login: { email: user.email, ip: req.ip, device: deviceOf(ua), time } })
+    sendNotification(db, app.ctx.mailer, shop, app.ctx.stores.storefrontBase(shop.id), 'staff_login_alert', account.email, { login: { email: account.email, ip: req.ip, device: deviceOf(ua), time } })
       .catch((err) => req.log.warn({ err }, 'login alert failed'));
   }
-  return { user: publicStaff(user), shop: shop ? publicShop(shop) : null, twoFactorSetupRequired: await twoFactorEnrolmentRequired(db, user.shopId, user.id) };
+  const out = { user: user ? publicStaff(user) : null, shop: shop ? publicShop(shop) : null, twoFactorSetupRequired: user ? await twoFactorEnrolmentRequired(db, user.shopId, account.id) : false };
+  return app.ctx.config.multiStore ? { ...out, account: publicAccount(account), storeHandle: shop ? handleOf(shop) : null } : out;
 }

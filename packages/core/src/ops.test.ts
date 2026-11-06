@@ -9,7 +9,7 @@ import type { Shop } from './services/shops';
 
 const shop = (locale: string): Shop => ({
   id: 1, name: 'Boutique <Test>', email: 'shop@example.com', currency: 'EUR', country: 'FR', locale, timezone: 'UTC', weightUnit: 'KILOGRAMS', moneyFormat: '{{amount}} €', moneyWithCurrencyFormat: '{{amount}} EUR',
-  taxesIncluded: false, primaryDomain: null, settings: {}, createdAt: new Date(), updatedAt: new Date(),
+  taxesIncluded: false, primaryDomain: null, handle: 'boutique-test', status: 'ACTIVE', storagePrefix: null, settings: {}, createdAt: new Date(), updatedAt: new Date(),
 });
 
 describe('notification templates', () => {

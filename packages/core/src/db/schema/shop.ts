@@ -2,6 +2,7 @@ import { boolean, check, index, jsonb, pgTable, text, uniqueIndex, bigint, prima
 import { sql } from 'drizzle-orm';
 import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { createdAt, oneOf, pk, ref, shopIdCol, timestamps, ts } from './_helpers';
+import { platformAccounts } from './multistore';
 
 export const WEIGHT_UNITS = ['KILOGRAMS', 'GRAMS', 'POUNDS', 'OUNCES'] as const;
 export const STAFF_ROLES = ['owner', 'admin', 'staff'] as const;
@@ -21,10 +22,16 @@ export const shops = pgTable('shops', {
   moneyWithCurrencyFormat: text('money_with_currency_format').notNull().default('${{amount}} USD'),
   taxesIncluded: boolean('taxes_included').notNull().default(false),
   primaryDomain: text('primary_domain'),
+  /** Permanent store handle (slug of the name at creation): `<handle>.<STORE_BASE_DOMAIN>` and `/admin/store/<handle>` in multi-store mode. */
+  handle: text('handle'),
+  /** ACTIVE or SUSPENDED (multi-store mode: a suspended store shows an "unavailable" page and its admin is read-only). */
+  status: text('status').notNull().default('ACTIVE'),
+  /** Folder of the store's uploads inside the storage root (`shops/<id>`); null keeps them at the root (single-store layout). */
+  storagePrefix: text('storage_prefix'),
   /** Free-form settings (address, checkout options, theme-facing flags, ...). */
   settings: jsonb('settings').$type<Record<string, unknown>>().notNull().default({}),
   ...timestamps(),
-}, (t) => [check('shops_weight_unit_chk', oneOf(t.weightUnit, WEIGHT_UNITS))]);
+}, (t) => [check('shops_weight_unit_chk', oneOf(t.weightUnit, WEIGHT_UNITS)), check('shops_status_chk', oneOf(t.status, ['ACTIVE', 'SUSPENDED'])), uniqueIndex('shops_handle_uq').on(t.handle)]);
 
 /** Custom staff roles: a named set of permission areas assigned to staff members. */
 export const staffRoles = pgTable('staff_roles', {
@@ -40,7 +47,10 @@ export const staffUsers = pgTable('staff_users', {
   id: pk(),
   shopId: shopIdCol().references(() => shops.id, { onDelete: 'cascade' }),
   email: text('email').notNull(), // stored lower-cased
-  passwordHash: text('password_hash').notNull(),
+  /** Legacy credential column: passwords live on the account (`account_id`) since multi-store support. */
+  passwordHash: text('password_hash'),
+  /** The sign-in identity of this member (null while an invitation is pending). */
+  accountId: ref('account_id').references((): AnyPgColumn => platformAccounts.id, { onDelete: 'set null' }),
   firstName: text('first_name'),
   lastName: text('last_name'),
   role: text('role').notNull().default('staff'),
@@ -56,14 +66,17 @@ export const staffUsers = pgTable('staff_users', {
   /** Activity feed (bell): entries newer than this are unread. */
   activityReadAt: ts('activity_read_at'),
   ...timestamps(),
-}, (t) => [uniqueIndex('staff_users_shop_email_uq').on(t.shopId, t.email), check('staff_users_role_chk', oneOf(t.role, STAFF_ROLES))]);
+}, (t) => [uniqueIndex('staff_users_shop_email_uq').on(t.shopId, t.email), index('staff_users_account_idx').on(t.accountId), check('staff_users_role_chk', oneOf(t.role, STAFF_ROLES))]);
 
 /** Browser sessions. `id` is the SHA-256 of the cookie token. Exactly one of staff_user_id / customer_id is set. */
 export const sessions = pgTable('sessions', {
   id: text('id').primaryKey(),
-  shopId: shopIdCol().references(() => shops.id, { onDelete: 'cascade' }),
+  /** Store of a customer session; for a staff session the store it was opened in (multi-store: the default store of the account). */
+  shopId: ref('shop_id').references(() => shops.id, { onDelete: 'set null' }),
   kind: text('kind').notNull().default('staff'),
   staffUserId: ref('staff_user_id').references(() => staffUsers.id, { onDelete: 'cascade' }),
+  /** Account of a staff session: one sign-in reaches every store where the account is staff. */
+  accountId: ref('account_id').references((): AnyPgColumn => platformAccounts.id, { onDelete: 'cascade' }),
   customerId: ref('customer_id'),
   expiresAt: ts('expires_at').notNull(),
   ip: text('ip'),

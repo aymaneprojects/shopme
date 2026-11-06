@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { privacyEnvFor, privacyLiquid, type PrivacyEnv } from './privacy';
 import { lazyList, type PageInput, type ResourceResolvers } from '@shopme/liquid-compat';
-import { accountUrlOf, customerAccountsSettingsOf, enabledPresentmentCurrencies, getPrimaryShop, getCartByToken, listBuyerCountries, loadTranslator, moneyFormatsFor, NO_TRANSLATOR, searchArticles, schema as s, searchPages, priceCartDiscounts, resolveCustomerSession, type CartView, type Customer, type Db, type MarketContext, type Shop, type Translator } from '@shopme/core';
+import { accountUrlOf, customerAccountsSettingsOf, enabledPresentmentCurrencies, getPrimaryShop, getShop, getCartByToken, listBuyerCountries, loadTranslator, moneyFormatsFor, NO_TRANSLATOR, searchArticles, schema as s, searchPages, priceCartDiscounts, resolveCustomerSession, type CartView, type Customer, type Db, type MarketContext, type Shop, type Translator } from '@shopme/core';
 import type { FastifyRequest } from 'fastify';
 import type { AppContext } from '../context';
 import { buyerContext, syncCartToBuyer } from './market';
@@ -59,10 +59,14 @@ export async function makeEnv(ctx: AppContext, req: FastifyRequest, shop: Shop, 
   const locale = ctx.locales.localeOf(req.raw) ?? shop.locale;
   const tr = locale === shop.locale ? NO_TRANSLATOR : await loadTranslator(ctx.db, shop.id, locale);
   const customer = await customerOf(ctx, req, shop);
-  return { ctx, db: ctx.db, shop, origin: ctx.config.appUrl, path: path ?? req.url.split('?')[0]!, query: req.query as Query, cart, market, customer, privacy: await privacyEnvFor(ctx, req, shop, customer), locale, prefix: locale === shop.locale ? '' : ctx.locales.prefixOf(locale), tr };
+  return { ctx, db: ctx.db, shop, origin: ctx.stores.publicOrigin(shop.id), path: path ?? req.url.split('?')[0]!, query: req.query as Query, cart, market, customer, privacy: await privacyEnvFor(ctx, req, shop, customer), locale, prefix: locale === shop.locale ? '' : ctx.locales.of(shop.id).prefixOf(locale), tr };
 }
 
-export async function primaryShop(ctx: AppContext): Promise<Shop | null> { return getPrimaryShop(ctx.db); }
+/** The store of a storefront request: the store of the installation, or (multi-store mode) the store of the request host. */
+export async function primaryShop(ctx: AppContext, req: FastifyRequest): Promise<Shop | null> {
+  if (!ctx.config.multiStore) return getPrimaryShop(ctx.db);
+  return req.hostShopId == null ? null : getShop(ctx.db, req.hostShopId);
+}
 
 const first = (v: string | string[] | undefined): string | undefined => (Array.isArray(v) ? v[0] : v);
 
@@ -212,7 +216,8 @@ export async function buildGlobals(env: Env, themeId: number, pageType: string):
   const metaobjects = metaobjectsGlobal(db, shop.id, env.tr);
   const origin = env.origin;
   const request = requestObject(shop, origin, env.path, pageType, env.locale, env.prefix);
-  const languages = env.ctx.locales.locales.map((l) => ({ locale: l.locale, name: l.name, primary: l.primary, prefix: env.ctx.locales.prefixOf(l.locale) }));
+  const shopLocales = env.ctx.locales.of(shop.id);
+  const languages = shopLocales.locales.map((l) => ({ locale: l.locale, name: l.name, primary: l.primary, prefix: shopLocales.prefixOf(l.locale) }));
   return {
     shop: { ...shopObject(shop, origin, { products: 0, collections: cols.length }, currencies), metafields: shopMf.get(shop.id) ?? {}, metaobjects }, metaobjects, request, routes: routesObject(env.prefix, shop), privacy: privacyLiquid(shop, env.privacy), customer_accounts: customerAccountsObject(shop), localization: localizationObject(shop, env.locale, languages, origin, env.path, env.market, countries), cart: liquidCart(env.cart, shop, pricing, env.market.currency),
     linklists, pages: lazyMap(pages.map((p) => p.handle), async (h) => pages.find((p) => p.handle === h) ?? null), collections,
@@ -235,7 +240,9 @@ export function makeResolvers(env: Env, globals: Record<string, unknown>): Resou
     image: async (v) => {
       if (!v) return null;
       const m = /^shopify:\/\/shop_images\/(.+)$/.exec(v);
-      const src = m ? `/files/${m[1]}` : v;
+      // The store's files: the storage root, or its own folder (multi-store layout).
+      const prefix = env.ctx.stores.info(env.shop.id)?.storagePrefix;
+      const src = m ? `/files/${prefix ? `${prefix}/` : ''}${m[1]}` : v;
       // The focal point and size live on the library entry of the file, when there is one.
       const [row] = await env.db.select({ focalX: s.media.focalX, focalY: s.media.focalY, width: s.media.width, height: s.media.height }).from(s.media).where(and(eq(s.media.shopId, env.shop.id), eq(s.media.url, src))).limit(1);
       const presentation = row?.focalX != null && row.focalY != null ? { focal_point: `${+row.focalX.toFixed(1)}% ${+row.focalY.toFixed(1)}%` } : null;

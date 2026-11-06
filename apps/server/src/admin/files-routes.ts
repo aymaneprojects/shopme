@@ -15,7 +15,7 @@ export function registerFileUploadRoute(app: FastifyInstance) {
       if (!part) return reply.code(400).send({ error: 'No file uploaded' });
       const data = await part.toBuffer();
       if (part.file.truncated) return reply.code(413).send({ error: 'File too large' });
-      const row = await saveUpload(app.ctx.db, app.ctx.storage, auth.shopId, { filename: part.filename || 'upload', data, mimeType: part.mimetype });
+      const row = await saveUpload(app.ctx.db, app.ctx.storageFor(auth.shopId), auth.shopId, { filename: part.filename || 'upload', data, mimeType: part.mimetype });
       return reply.code(201).send({ file: { id: row.id, filename: row.filename, url: row.url, mimeType: row.mimeType, byteSize: row.byteSize } });
     });
 
@@ -31,11 +31,11 @@ export function registerFileUploadRoute(app: FastifyInstance) {
       let data: Buffer;
       if (req.isMultipart()) { const part = await req.file(); if (!part) return reply.code(400).send({ error: 'No file uploaded' }); data = await part.toBuffer(); } else data = req.body as Buffer;
       if (!Buffer.isBuffer(data) || !data.length) return reply.code(400).send({ error: 'Empty upload' });
-      await app.ctx.storage.put(p.k, data);
+      await app.ctx.storageFor(p.s).put(p.k, data);
       // Private staging area (bulk mutation variables): stored but not registered as a file of the shop.
-      if (p.k.startsWith('tmp/')) return reply.code(201).send({ file: { id: null, filename: p.f, url: app.ctx.storage.url(p.k), mimeType: p.m, byteSize: data.length } });
+      if (p.k.startsWith('tmp/')) return reply.code(201).send({ file: { id: null, filename: p.f, url: app.ctx.storageFor(p.s).url(p.k), mimeType: p.m, byteSize: data.length } });
       const [row] = await app.ctx.db.insert(schema.files).values({ shopId: p.s, filename: p.f.slice(0, 255), storageKey: p.k, mimeType: p.m, byteSize: data.length }).onConflictDoNothing().returning();
-      return reply.code(201).send({ file: { id: row?.id ?? null, filename: p.f, url: app.ctx.storage.url(p.k), mimeType: p.m, byteSize: data.length } });
+      return reply.code(201).send({ file: { id: row?.id ?? null, filename: p.f, url: app.ctx.storageFor(p.s).url(p.k), mimeType: p.m, byteSize: data.length } });
     };
     scope.put('/admin/api/staged/:token', staged);
     scope.post('/admin/api/staged/:token', staged);

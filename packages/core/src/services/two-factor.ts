@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes } from 'node:crypto';
 import { and, eq, ne } from 'drizzle-orm';
-import { sessions, shops, staffTwoFactor } from '../db/schema';
+import { accountTwoFactor, sessions, shops } from '../db/schema';
 import type { Executor } from '../db/client';
 import { safeEqual, sha256 } from './crypto';
 
@@ -64,56 +64,57 @@ export function decryptSecret(blob: string, key: string): string | null {
 
 // ---- enrolment ---------------------------------------------------------------------------------------------------------------------
 
-export interface TwoFactorUser { id: number; shopId: number }
+/** Two-step verification belongs to the sign-in account (`platform_accounts`), so it covers every store of that account. */
 const RECOVERY_COUNT = 10;
 const newRecoveryCodes = () => Array.from({ length: RECOVERY_COUNT }, () => { const r = randomBytes(5).toString('hex'); return `${r.slice(0, 5)}-${r.slice(5)}`; });
 const normCode = (c: string) => c.trim().toLowerCase().replace(/\s/g, '');
 
-export async function twoFactorStatus(db: Executor, userId: number): Promise<{ enabled: boolean; recoveryCodesLeft: number }> {
-  const [r] = await db.select().from(staffTwoFactor).where(eq(staffTwoFactor.staffUserId, userId));
+export async function twoFactorStatus(db: Executor, accountId: number | null): Promise<{ enabled: boolean; recoveryCodesLeft: number }> {
+  if (accountId == null) return { enabled: false, recoveryCodesLeft: 0 };
+  const [r] = await db.select().from(accountTwoFactor).where(eq(accountTwoFactor.accountId, accountId));
   return { enabled: !!r?.enabled, recoveryCodesLeft: r?.enabled ? r.recoveryCodes.length : 0 };
 }
-export const isTwoFactorEnabled = async (db: Executor, userId: number) => (await twoFactorStatus(db, userId)).enabled;
+export const isTwoFactorEnabled = async (db: Executor, accountId: number | null) => (await twoFactorStatus(db, accountId)).enabled;
 
 /** Start (or restart) enrolment: stores a fresh, not yet enabled secret. Returns the plaintext secret to show once. */
-export async function beginTwoFactorSetup(db: Executor, key: string, user: TwoFactorUser): Promise<{ secret: string } | null> {
-  if (await isTwoFactorEnabled(db, user.id)) return null;
+export async function beginTwoFactorSetup(db: Executor, key: string, accountId: number): Promise<{ secret: string } | null> {
+  if (await isTwoFactorEnabled(db, accountId)) return null;
   const secret = newTotpSecret();
-  await db.insert(staffTwoFactor).values({ staffUserId: user.id, shopId: user.shopId, secret: encryptSecret(secret, key) })
-    .onConflictDoUpdate({ target: staffTwoFactor.staffUserId, set: { secret: encryptSecret(secret, key), enabled: false, recoveryCodes: [], enabledAt: null } });
+  await db.insert(accountTwoFactor).values({ accountId, secret: encryptSecret(secret, key) })
+    .onConflictDoUpdate({ target: accountTwoFactor.accountId, set: { secret: encryptSecret(secret, key), enabled: false, recoveryCodes: [], enabledAt: null } });
   return { secret };
 }
 
 /** Confirm enrolment with a code from the authenticator app. Returns the recovery codes (shown once) or null when the code is wrong. */
-export async function confirmTwoFactor(db: Executor, key: string, userId: number, code: string): Promise<{ recoveryCodes: string[] } | null> {
-  const [r] = await db.select().from(staffTwoFactor).where(eq(staffTwoFactor.staffUserId, userId));
+export async function confirmTwoFactor(db: Executor, key: string, accountId: number, code: string): Promise<{ recoveryCodes: string[] } | null> {
+  const [r] = await db.select().from(accountTwoFactor).where(eq(accountTwoFactor.accountId, accountId));
   const secret = r && !r.enabled ? decryptSecret(r.secret, key) : null;
   if (!r || !secret || !verifyTotp(secret, code)) return null;
   const codes = newRecoveryCodes();
-  await db.update(staffTwoFactor).set({ enabled: true, enabledAt: new Date(), recoveryCodes: codes.map((c) => sha256(c)) }).where(eq(staffTwoFactor.staffUserId, userId));
+  await db.update(accountTwoFactor).set({ enabled: true, enabledAt: new Date(), recoveryCodes: codes.map((c) => sha256(c)) }).where(eq(accountTwoFactor.accountId, accountId));
   return { recoveryCodes: codes };
 }
 
 /** Check a login code: a TOTP code, or an unused recovery code (which is consumed). */
-export async function verifySecondFactor(db: Executor, key: string, userId: number, code: string): Promise<boolean> {
-  const [r] = await db.select().from(staffTwoFactor).where(and(eq(staffTwoFactor.staffUserId, userId), eq(staffTwoFactor.enabled, true)));
+export async function verifySecondFactor(db: Executor, key: string, accountId: number, code: string): Promise<boolean> {
+  const [r] = await db.select().from(accountTwoFactor).where(and(eq(accountTwoFactor.accountId, accountId), eq(accountTwoFactor.enabled, true)));
   if (!r) return false;
   const secret = decryptSecret(r.secret, key);
   if (secret && verifyTotp(secret, code)) return true;
   const hash = sha256(normCode(code));
   if (!r.recoveryCodes.includes(hash)) return false;
-  await db.update(staffTwoFactor).set({ recoveryCodes: r.recoveryCodes.filter((h) => h !== hash) }).where(eq(staffTwoFactor.staffUserId, userId));
+  await db.update(accountTwoFactor).set({ recoveryCodes: r.recoveryCodes.filter((h) => h !== hash) }).where(eq(accountTwoFactor.accountId, accountId));
   return true;
 }
 
-export async function regenerateRecoveryCodes(db: Executor, userId: number): Promise<string[] | null> {
-  if (!(await isTwoFactorEnabled(db, userId))) return null;
+export async function regenerateRecoveryCodes(db: Executor, accountId: number): Promise<string[] | null> {
+  if (!(await isTwoFactorEnabled(db, accountId))) return null;
   const codes = newRecoveryCodes();
-  await db.update(staffTwoFactor).set({ recoveryCodes: codes.map((c) => sha256(c)) }).where(eq(staffTwoFactor.staffUserId, userId));
+  await db.update(accountTwoFactor).set({ recoveryCodes: codes.map((c) => sha256(c)) }).where(eq(accountTwoFactor.accountId, accountId));
   return codes;
 }
 
-export const disableTwoFactor = (db: Executor, userId: number) => db.delete(staffTwoFactor).where(eq(staffTwoFactor.staffUserId, userId));
+export const disableTwoFactor = (db: Executor, accountId: number) => db.delete(accountTwoFactor).where(eq(accountTwoFactor.accountId, accountId));
 
 // ---- login challenge (signed, stateless, 5 minutes) ------------------------------------------------------------------------------------
 
@@ -140,21 +141,23 @@ export async function setRequireTwoFactor(db: Executor, shopId: number, require2
   const settings = { ...(s?.settings ?? {}), security: { ...((s?.settings as { security?: object } | undefined)?.security ?? {}), require2fa } };
   await db.update(shops).set({ settings }).where(eq(shops.id, shopId));
 }
-/** True when the shop requires 2FA and this staff member has not enrolled yet. */
-export async function twoFactorEnrolmentRequired(db: Executor, shopId: number, userId: number): Promise<boolean> {
-  return (await getSecuritySettings(db, shopId)).require2fa && !(await isTwoFactorEnabled(db, userId));
+/** True when the shop requires 2FA and this account has not enrolled yet. */
+export async function twoFactorEnrolmentRequired(db: Executor, shopId: number, accountId: number | null): Promise<boolean> {
+  return (await getSecuritySettings(db, shopId)).require2fa && !(await isTwoFactorEnabled(db, accountId));
 }
 
 export interface StaffSessionRow { id: string; ip: string | null; userAgent: string | null; createdAt: Date; expiresAt: Date; current: boolean }
-export async function listStaffSessions(db: Executor, userId: number, currentToken: string | null): Promise<StaffSessionRow[]> {
+/** Sessions of an account (every store it signs in to). */
+export async function listStaffSessions(db: Executor, accountId: number | null, currentToken: string | null): Promise<StaffSessionRow[]> {
+  if (accountId == null) return [];
   const cur = currentToken ? sha256(currentToken) : null;
-  const rows = await db.select().from(sessions).where(and(eq(sessions.staffUserId, userId), eq(sessions.kind, 'staff'))).orderBy(sessions.createdAt);
+  const rows = await db.select().from(sessions).where(and(eq(sessions.accountId, accountId), eq(sessions.kind, 'staff'))).orderBy(sessions.createdAt);
   return rows.filter((r) => r.expiresAt > new Date()).reverse().map((r) => ({ id: r.id, ip: r.ip, userAgent: r.userAgent, createdAt: r.createdAt, expiresAt: r.expiresAt, current: r.id === cur }));
 }
-export async function revokeStaffSession(db: Executor, userId: number, id: string): Promise<boolean> {
-  return (await db.delete(sessions).where(and(eq(sessions.staffUserId, userId), eq(sessions.id, id))).returning({ id: sessions.id })).length > 0;
+export async function revokeStaffSession(db: Executor, accountId: number, id: string): Promise<boolean> {
+  return (await db.delete(sessions).where(and(eq(sessions.accountId, accountId), eq(sessions.id, id))).returning({ id: sessions.id })).length > 0;
 }
-export async function revokeOtherStaffSessions(db: Executor, userId: number, currentToken: string | null): Promise<number> {
-  const where = currentToken ? and(eq(sessions.staffUserId, userId), ne(sessions.id, sha256(currentToken))) : eq(sessions.staffUserId, userId);
+export async function revokeOtherStaffSessions(db: Executor, accountId: number, currentToken: string | null): Promise<number> {
+  const where = currentToken ? and(eq(sessions.accountId, accountId), ne(sessions.id, sha256(currentToken))) : eq(sessions.accountId, accountId);
   return (await db.delete(sessions).where(where).returning({ id: sessions.id })).length;
 }

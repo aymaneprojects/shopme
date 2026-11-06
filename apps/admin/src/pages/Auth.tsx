@@ -1,6 +1,7 @@
 import { Banner, Button, Card, Input, Select } from '@shopme/ui';
 import { Boxes } from 'lucide-react';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { FormEvent, ReactNode } from 'react';
 import { ApiError, rest } from '../api';
 import { LANGS, useI18n } from '../i18n';
@@ -111,6 +112,38 @@ export function SetupPage() {
           <Select label={t('setup.country')} value={f.country} onChange={set('country')}>{COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}</Select>
         </div>
         <Button type="submit" variant="primary" loading={busy}>{t('setup.submit')}</Button>
+      </form>
+    </AuthLayout>
+  );
+}
+
+/** Staff invitation link (`/admin/invite/<token>`): set a password, or (multi-store) join with the account the person already has. */
+export function InvitePage({ token }: { token: string }) {
+  const { t } = useI18n();
+  const { signedIn } = useSession();
+  const info = useQuery({ queryKey: ['invite', token], retry: false, queryFn: () => rest<{ email: string; firstName: string | null; shopName: string; accountExists?: boolean }>(`/staff/invite/${encodeURIComponent(token)}`) });
+  const [f, setF] = useState({ firstName: '', lastName: '', password: '' });
+  const existing = !!info.data?.accountExists;
+  const { error, busy, submit } = useSubmit(
+    () => rest<{ user: User; shop: Shop; storeHandle?: string }>('/staff/accept-invite', { body: { token, password: f.password, ...(!existing && { firstName: f.firstName || undefined, lastName: f.lastName || undefined }) } }),
+    // Multi-store: open the store's admin (a fresh page picks up the store from its URL); single-store: the admin home.
+    (r) => { if (r.storeHandle) { window.location.assign(`/admin/store/${r.storeHandle}/`); return; } window.history.replaceState(null, '', '/admin/'); signedIn(r); },
+  );
+  if (info.isLoading) return <AuthLayout title={t('invite.title')}><p className="text-[13px] text-muted">{t('common.loading')}</p></AuthLayout>;
+  if (!info.data) return <AuthLayout title={t('invite.title')}><Banner>{t('invite.invalid')}</Banner></AuthLayout>;
+  return (
+    <AuthLayout title={t('invite.join', { shop: info.data.shopName })} subtitle={t(existing ? 'invite.existing' : 'invite.subtitle', { email: info.data.email })}>
+      <form onSubmit={submit} className="flex flex-col gap-3">
+        {error && <Banner>{error}</Banner>}
+        <Input label={t('field.email')} type="email" autoComplete="username" value={info.data.email} readOnly />
+        {!existing && (
+          <div className="grid grid-cols-2 gap-3">
+            <Input label={t('field.firstName')} autoComplete="given-name" value={f.firstName} placeholder={info.data.firstName ?? ''} onChange={(e) => setF({ ...f, firstName: e.target.value })} />
+            <Input label={t('field.lastName')} autoComplete="family-name" value={f.lastName} onChange={(e) => setF({ ...f, lastName: e.target.value })} />
+          </div>
+        )}
+        <Input label={t(existing ? 'invite.accountPassword' : 'invite.newPassword')} type="password" autoComplete={existing ? 'current-password' : 'new-password'} required minLength={8} help={existing ? undefined : t('setup.passwordHelp')} value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
+        <Button type="submit" variant="primary" loading={busy}>{t('invite.submit')}</Button>
       </form>
     </AuthLayout>
   );

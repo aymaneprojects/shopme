@@ -1,6 +1,6 @@
 import { boolean, index, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { createdAt, pk, ref, shopIdCol, timestamps, ts } from './_helpers';
-import { shops, staffUsers } from './shop';
+import { shops } from './shop';
 
 const shopFk = () => shopIdCol().references(() => shops.id, { onDelete: 'cascade' });
 
@@ -15,17 +15,6 @@ export const visits = pgTable('visits', {
   countryCode: text('country_code'),
   createdAt: createdAt(),
 }, (t) => [index('visits_shop_created_idx').on(t.shopId, t.createdAt), index('visits_session_idx').on(t.shopId, t.sessionId)]);
-
-/** TOTP second factor of a staff member. `secret` is AES-GCM encrypted; `recoveryCodes` hold SHA-256 hashes of unused codes. */
-export const staffTwoFactor = pgTable('staff_two_factor', {
-  staffUserId: ref('staff_user_id').primaryKey().references(() => staffUsers.id, { onDelete: 'cascade' }),
-  shopId: shopFk(),
-  secret: text('secret').notNull(),
-  enabled: boolean('enabled').notNull().default(false),
-  recoveryCodes: text('recovery_codes').array().notNull().default([]),
-  enabledAt: ts('enabled_at'),
-  createdAt: createdAt(),
-});
 
 /** Additional storefront languages (the primary one is `shops.locale`). */
 export const shopLocales = pgTable('shop_locales', {

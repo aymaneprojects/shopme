@@ -38,6 +38,7 @@ import { frLiveMap } from './fr-live-map';
 import { frAccountPages } from './fr-account-pages';
 import { frThemeUpdate } from './fr-theme-update';
 
+import { frMultistore } from './fr-multistore';
 export const fr: Record<Key, string> = {
   'common.back': 'Retour', 'common.cancel': 'Annuler', 'common.close': 'Fermer', 'common.delete': 'Supprimer', 'common.loading': 'Chargement…',
   'common.moreActions': 'Autres actions', 'common.next': 'Suivant', 'common.previous': 'Précédent', 'common.remove': 'Retirer',
@@ -163,4 +164,5 @@ export const fr: Record<Key, string> = {
   ...frAccountPages,
   ...frSubscriptions,
   ...frThemeUpdate,
+  ...frMultistore,
 };

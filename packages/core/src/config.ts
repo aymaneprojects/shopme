@@ -27,6 +27,12 @@ const schema = z.object({
   /** Send Strict-Transport-Security (only when APP_URL is https). */
   HSTS: z.preprocess(emptyToUndef, z.enum(['true', 'false']).default('false')),
   LOG_LEVEL: z.preprocess(emptyToUndef, z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info')),
+  /** Several stores on one installation (accounts, store switcher, stores resolved by host). Off: one store per installation. */
+  MULTI_STORE: z.preprocess(emptyToUndef, z.enum(['true', 'false', '1', '0']).default('false')),
+  /** Multi-store: each store answers on `<handle>.<STORE_BASE_DOMAIN>` (wildcard DNS). */
+  STORE_BASE_DOMAIN: opt(z.string().regex(/^[a-z0-9.-]+$/i, 'must be a host name such as shops.example.com')),
+  /** Multi-store: host of the platform admin (default: the host of APP_URL). Comma separated for several. */
+  ADMIN_HOST: opt(z.string()),
 });
 
 export interface AppConfig {
@@ -46,13 +52,19 @@ export interface AppConfig {
   trustProxy: boolean;
   hsts: boolean;
   logLevel: string;
+  /** Multi-store mode (MULTI_STORE=true). */
+  multiStore: boolean;
+  /** Multi-store: base domain of the stores' permanent hosts (lower-cased, default `localhost`). */
+  storeBaseDomain: string;
+  /** Multi-store: host names of the platform admin (lower-cased, without port). */
+  adminHosts: string[];
 }
 
 export interface LoadConfigOptions {
   /** Base for relative DATA_DIR/STORAGE_DIR. Defaults to INIT_CWD (set by pnpm) or process.cwd(). */
   baseDir?: string;
   /** Overrides applied after env parsing (programmatic embedding, e.g. desktop app). */
-  overrides?: Partial<Pick<AppConfig, 'host' | 'port' | 'appUrl' | 'dataDir' | 'storageDir' | 'databaseUrl' | 'sessionSecret'>>;
+  overrides?: Partial<Pick<AppConfig, 'host' | 'port' | 'appUrl' | 'dataDir' | 'storageDir' | 'databaseUrl' | 'sessionSecret' | 'multiStore'>>;
   warn?: (msg: string) => void;
 }
 
@@ -70,11 +82,12 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   const port = o.port ?? e.PORT;
   const warn = opts.warn ?? ((m: string) => console.warn(`[shopme] ${m}`));
   const sessionSecret = o.sessionSecret ?? e.SESSION_SECRET ?? loadOrCreateSecret(dataDir, warn);
+  const appUrl = (o.appUrl ?? e.APP_URL ?? `http://localhost:${port}`).replace(/\/+$/, '');
   return {
     env: e.NODE_ENV,
     host: o.host ?? e.HOST,
     port,
-    appUrl: (o.appUrl ?? e.APP_URL ?? `http://localhost:${port}`).replace(/\/+$/, ''),
+    appUrl,
     databaseUrl: o.databaseUrl ?? e.DATABASE_URL,
     dataDir,
     storageDir,
@@ -86,6 +99,9 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     trustProxy: e.TRUST_PROXY === 'true',
     hsts: e.HSTS === 'true',
     logLevel: e.LOG_LEVEL,
+    multiStore: o.multiStore ?? (e.MULTI_STORE === 'true' || e.MULTI_STORE === '1'),
+    storeBaseDomain: (e.STORE_BASE_DOMAIN ?? 'localhost').toLowerCase().replace(/^\.+|\.+$/g, ''),
+    adminHosts: (e.ADMIN_HOST ?? new URL(appUrl).hostname).split(',').map((h) => h.trim().toLowerCase().replace(/:\d+$/, '')).filter(Boolean),
   };
 }
 

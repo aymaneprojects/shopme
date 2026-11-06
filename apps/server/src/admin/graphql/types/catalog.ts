@@ -72,7 +72,7 @@ export function shopOf(ctx: GraphQLContext): Promise<Shop> {
 }
 
 /** Make a stored `/files/...` path absolute. */
-export const absUrl = (ctx: GraphQLContext, url: string | null): string | null => (url && url.startsWith('/') ? ctx.app.config.appUrl + url : url);
+export const absUrl = (ctx: GraphQLContext, url: string | null): string | null => (url && url.startsWith('/') ? ctx.storeUrl + url : url);
 
 /** Offset/limit for connection resolvers that page with the shared `paginate` helper. */
 export const asId = (value: string, type: string): number | null => parseId(value, type);

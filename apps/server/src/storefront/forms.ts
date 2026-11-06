@@ -60,7 +60,7 @@ export function registerFormRoutes(app: FastifyInstance, ctx: AppContext, conten
       const r = await subscribeEmail(db, shop.id, { email, tags: tags.length ? tags : undefined, doubleOptIn: privacySettingsOf(shop).doubleOptIn });
       if (!r.ok) return fail(fieldErrors(r.errors));
       // Double opt-in: the subscription stays pending until the link in this email is opened.
-      if (r.value.confirmToken) ctx.queue.enqueue<Mail>('mail.send', renderSubscriptionConfirmation(shop, email.toLowerCase(), `${ctx.config.appUrl}/account/subscribe/confirm/${r.value.customer.id}/${r.value.confirmToken}`));
+      if (r.value.confirmToken) ctx.queue.enqueue<Mail>('mail.send', renderSubscriptionConfirmation(shop, email.toLowerCase(), `${ctx.stores.publicOrigin(shop.id)}/account/subscribe/confirm/${r.value.customer.id}/${r.value.confirmToken}`));
       setFlash(reply, { type, success: true }, secure);
       return reply.redirect(`${back}${back.includes('?') ? '&' : '?'}customer_posted=true#contact_form`, 303);
     }

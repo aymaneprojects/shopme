@@ -1,14 +1,14 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import {
-  acceptInvite, completeDraftOrder, createCart, createSession, exportCustomerData, getDraftOrderByToken, getInvite, getPrimaryShop, getShop, publicStaff, schema as s, type DraftOrder, type Shop,
+  acceptInvite, completeDraftOrder, createCart, createSession, exportCustomerData, getDraftOrderByToken, getInvite, getShop, handleOf, publicStaff, schema as s, type DraftOrder, type Shop,
 } from '@shopme/core';
 import { and, eq, inArray } from 'drizzle-orm';
 import { renderMoneyFormat } from '@shopme/shopify-compat';
 import { publicShop } from './admin/auth-routes';
 import { authenticate, setSessionCookie } from './plugins/auth';
 import { FailureLimiter } from './plugins/rate-limit';
-import { CART_COOKIE } from './storefront/env';
+import { CART_COOKIE, primaryShop } from './storefront/env';
 
 const esc = (v: unknown) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const acceptBody = z.object({ token: z.string().min(10).max(200), password: z.string().min(8).max(200), firstName: z.string().trim().max(100).optional(), lastName: z.string().trim().max(100).optional() });
@@ -21,19 +21,25 @@ export async function registerOpsRoutes(app: FastifyInstance): Promise<void> {
   // --- staff invitation (public, the token is the capability) ---
   app.get('/admin/api/staff/invite/:token', async (req, reply) => {
     const info = await getInvite(db, (req.params as { token: string }).token);
-    return info ?? reply.code(404).send({ error: 'This invitation is invalid or has expired' });
+    if (!info) return reply.code(404).send({ error: 'This invitation is invalid or has expired' });
+    // Multi-store: tell the invited person to use the password of the account they already have (the token is the capability).
+    if (config.multiStore) {
+      const existing = await db.select({ id: s.platformAccounts.id }).from(s.platformAccounts).where(and(eq(s.platformAccounts.email, info.email), eq(s.platformAccounts.active, true))).limit(1);
+      return { ...info, accountExists: existing.length > 0 };
+    }
+    return info;
   });
 
   app.post('/admin/api/staff/accept-invite', async (req, reply) => {
     const body = acceptBody.safeParse(req.body);
     if (!body.success) return reply.code(422).send({ error: 'Invalid input', issues: body.error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })) });
     if (limiter.isLimited(`ip:${req.ip}`)) return reply.code(429).send({ error: 'Too many attempts. Try again later.' });
-    const r = await acceptInvite(db, body.data.token, body.data);
+    const r = await acceptInvite(db, body.data.token, { ...body.data, linkExisting: config.multiStore });
     if (!r.ok) { limiter.fail(`ip:${req.ip}`); return reply.code(422).send({ error: r.errors[0]!.message, issues: r.errors }); }
-    const session = await createSession(db, { shopId: r.value.shopId, staffUserId: r.value.id, ip: req.ip, userAgent: req.headers['user-agent'] });
+    const session = await createSession(db, { shopId: r.value.shopId, staffUserId: r.value.id, accountId: r.value.accountId, ip: req.ip, userAgent: req.headers['user-agent'] });
     setSessionCookie(app, reply, session.token, session.expiresAt);
     const shop = await getShop(db, r.value.shopId);
-    return { user: publicStaff(r.value), shop: shop ? publicShop(shop) : null };
+    return { user: publicStaff(r.value), shop: shop ? publicShop(shop) : null, ...(config.multiStore && shop && { storeHandle: handleOf(shop) }) };
   });
 
   // --- GDPR data export ---
@@ -68,7 +74,7 @@ export async function registerOpsRoutes(app: FastifyInstance): Promise<void> {
   await app.register(async (scope) => {
   scope.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_req, body, done) => done(null, Object.fromEntries(new URLSearchParams(body as string))));
   scope.get('/draft_orders/:token/pay', async (req, reply) => {
-    const shop = await getPrimaryShop(db);
+    const shop = await primaryShop(app.ctx, req);
     const d = shop ? await getDraftOrderByToken(db, (req.params as { token: string }).token) : null;
     if (!shop || !d || d.shopId !== shop.id) return reply.code(404).send('Not found');
     if (d.status === 'COMPLETED') return page(reply, shop, `<p>${fr(shop) ? 'Cette commande est déjà finalisée.' : 'This order has already been completed.'}</p><p><a href="/">${fr(shop) ? 'Retour à la boutique' : 'Back to the shop'}</a></p>`);
@@ -89,7 +95,7 @@ export async function registerOpsRoutes(app: FastifyInstance): Promise<void> {
   });
 
   scope.post('/draft_orders/:token/pay', async (req, reply) => {
-    const shop = await getPrimaryShop(db);
+    const shop = await primaryShop(app.ctx, req);
     const d = shop ? await getDraftOrderByToken(db, (req.params as { token: string }).token) : null;
     if (!shop || !d || d.shopId !== shop.id) return reply.code(404).send('Not found');
     const f = fr(shop);

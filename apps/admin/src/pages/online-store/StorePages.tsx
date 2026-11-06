@@ -16,6 +16,7 @@ import { gidToNum, numToGid } from '../../format';
 import { PAGE, PAGES, PAGE_CREATE, PAGE_DELETE, PAGE_UPDATE, STORE_ACCESS } from '../../graphql';
 import { useI18n } from '../../i18n';
 import { StoreActions } from './Themes';
+import { useStorefrontUrl } from '../../lib/storefront-url';
 
 interface PageRow { id: string; title: string; handle: string; body: string; isPublished: boolean; updatedAt: string }
 const excerpt = (html: string) => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -81,6 +82,7 @@ export function PageEditPage() {
 }
 
 function PageFormView({ id, initial }: { id: string | null; initial: PageForm }) {
+  const storefront = useStorefrontUrl();
   const { t } = useI18n();
   const nav = useNavigate();
   const toast = useToast();
@@ -110,7 +112,7 @@ function PageFormView({ id, initial }: { id: string | null; initial: PageForm })
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setTitleErr(null); }} />
       <PageHeader back="/online-store/pages" title={id ? form.title || t('pages.untitled') : t('pages.addTitle')}
-        more={id ? [{ key: 'view', label: t('pages.viewOnStore'), onSelect: () => window.open(`/pages/${form.handle}`, '_blank', 'noopener') }, { key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirm(true) }] : undefined} />
+        more={id ? [{ key: 'view', label: t('pages.viewOnStore'), onSelect: () => window.open(storefront(`/pages/${form.handle}`), '_blank', 'noopener') }, { key: 'delete', label: t('common.delete'), danger: true, onSelect: () => setConfirm(true) }] : undefined} />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-4">

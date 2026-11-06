@@ -303,7 +303,7 @@ export const frShop: Record<keyof typeof enShop, string> = {
   "payments.notConfigured": "Non configuré",
   "payments.stripe": "Stripe",
   "payments.stripeEnable": "Accepter les paiements par carte avec Stripe",
-  "payments.stripeHint": "Configurez les clés Stripe dans l’environnement du serveur, puis redémarrez le serveur.",
+  "payments.stripeHint": "Ajoutez ci-dessous les clés du compte Stripe de la boutique, ou configurez les variables STRIPE_* du serveur.",
   "settings.contactEmail": "E-mail de contact",
   "settings.defaultDomain": "Domaine par défaut",
   "settings.dns1": "Ouvrez la zone DNS de votre domaine chez votre registrar.",

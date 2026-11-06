@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { count, eq } from 'drizzle-orm';
 import { createStaffUser, createSession, getPrimaryShop, runScheduledBackup, schema as s, seedDemo, totpCode, createLocalStorage, type Mail } from '@shopme/core';
 import { seedCustomer, seedOrder } from '../test/conformance/seed-sales';
-import { createTestApp, setupAndLogin, type TestApp } from './test-utils';
+import { createTestApp, setupAndLogin, type TestApp, storeHostOr } from './test-utils';
 
 let t: TestApp;
 let owner: string;
@@ -312,9 +312,10 @@ describe('languages and translations', () => {
     expect(fr.statusCode).toBe(200);
     expect(fr.body).toContain('Titre traduit');
     expect(fr.body).toContain('<html lang="fr"');
-    expect(fr.body).toContain(`hreflang="fr" href="http://localhost:3000/fr/products/${handle}"`);
-    expect(fr.body).toContain(`hreflang="en" href="http://localhost:3000/products/${handle}"`);
-    expect(fr.body).toContain('rel="canonical" href="http://localhost:3000/fr/products/' + handle);
+    const origin = `http://${storeHostOr(t.app, 'localhost')}:3000`; // the store's own host in multi-store runs
+    expect(fr.body).toContain(`hreflang="fr" href="${origin}/fr/products/${handle}"`);
+    expect(fr.body).toContain(`hreflang="en" href="${origin}/products/${handle}"`);
+    expect(fr.body).toContain(`rel="canonical" href="${origin}/fr/products/` + handle);
     expect(fr.body).toContain('href="/fr/cart"'); // theme links keep the prefix
     expect(fr.body).toContain('href="/fr"');
     expect(fr.body).not.toContain('href="/cdn/shop/t/' + '/fr/'); // assets stay unprefixed
@@ -455,7 +456,7 @@ describe('store export, import and backups', () => {
     await call(owner, 'PUT', '/admin/api/store/backups/settings', { enabled: true, intervalHours: 1, keep: 2 });
     const { db } = t.dbHandle;
     const storage = t.app.ctx.storage;
-    const dir = t.app.ctx.config.dataDir;
+    const dir = t.app.ctx.stores.dataDirFor(shopId); // DATA_DIR (single-store) or the store's own folder (multi-store)
     const mk = (at: Date) => runScheduledBackup(db, storage, shopId, dir, '0.1.0', at);
     const bdir = path.join(dir, 'backups');
     const age = () => { const f = readdirSync(bdir).filter((n) => n.startsWith('backup-')).map((n) => path.join(bdir, n)); const old = new Date(Date.now() - 3 * 3600_000); f.forEach((x) => utimesSync(x, old, old)); };

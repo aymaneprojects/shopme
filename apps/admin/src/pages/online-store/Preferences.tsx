@@ -8,6 +8,7 @@ import { SaveBar } from '../../components/SaveBar';
 import { STORE_ACCESS_UPDATE, STORE_PREFERENCES } from '../../graphql';
 import { useI18n } from '../../i18n';
 import { StoreActions } from './Themes';
+import { useStorefrontUrl } from '../../lib/storefront-url';
 
 interface Access { shop: { id: string; name: string; description: string | null; shopmeStorefront: { passwordEnabled: boolean; password: string; passwordMessage: string | null; b2bOnly: boolean; homepageTitle: string; socialSharingImage: string } } }
 interface Form { enabled: boolean; password: string; message: string; description: string; homepageTitle: string; socialImage: string; b2bOnly: boolean }
@@ -23,6 +24,7 @@ export function PreferencesPage() {
 
 function PreferencesForm({ initial, shopName }: { initial: Form; shopName: string }) {
   const { t } = useI18n();
+  const storefront = useStorefrontUrl();
   const toast = useToast();
   const qc = useQueryClient();
   const [f, setF] = useState(initial);
@@ -36,12 +38,12 @@ function PreferencesForm({ initial, shopName }: { initial: Form; shopName: strin
     onSuccess: () => { toast(t('prefs.saved')); setError(null); void qc.invalidateQueries({ queryKey: ['store-preferences'] }); void qc.invalidateQueries({ queryKey: ['store-access'] }); void qc.invalidateQueries({ queryKey: ['shop'] }); },
     onError: (e) => setError(e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message),
   });
-  const storeUrl = location.origin;
+  const storeUrl = storefront('/').replace(/\/$/, '') || location.origin;
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <StoreActions>
         <Dropdown align="right" variant="secondary" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
-          { key: 'view', label: t('bc.prefs.viewStore'), icon: <ExternalLink className="size-4" />, onSelect: () => window.open('/', '_blank', 'noopener') },
+          { key: 'view', label: t('bc.prefs.viewStore'), icon: <ExternalLink className="size-4" />, onSelect: () => window.open(storefront('/'), '_blank', 'noopener') },
           { key: 'copy', label: t('bc.prefs.copyUrl'), icon: <Copy className="size-4" />, onSelect: () => { void navigator.clipboard?.writeText(storeUrl); toast(t('bc.prefs.copied')); } },
           { key: 'password', label: t(initial.enabled ? 'bc.prefs.passwordOff' : 'bc.prefs.passwordOn'), icon: <KeyRound className="size-4" />, separatorBefore: true, disabled: !initial.enabled && !f.password, onSelect: () => { set({ enabled: !f.enabled }); } },
         ]} />

@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-export interface Mail { to: string; subject: string; text: string; html?: string; from?: string; replyTo?: string }
+export interface Mail { to: string; subject: string; text: string; html?: string; from?: string; replyTo?: string; /** Display name to use when `from` is empty (the store name; multi-store mailer). */ fromName?: string }
 export interface Mailer { send(mail: Mail): Promise<void> }
 interface Logger { info(obj: unknown, msg?: string): void }
 
@@ -15,5 +15,5 @@ export function createMailer(opts: { smtpUrl?: string; from: string; logger?: Lo
     };
   }
   const transport = nodemailer.createTransport(opts.smtpUrl);
-  return { async send(m) { await transport.sendMail({ from: opts.from, ...m }); } };
+  return { async send({ fromName: _n, ...m }) { void _n; await transport.sendMail({ from: opts.from, ...m }); } };
 }

@@ -25,11 +25,11 @@ interface MigrateJob { jobId: number; shopId: number; shop: string; auth: Constr
 
 /** Register the job handlers (`csv.import`, `migrate.shopify`) on the in-process queue. */
 export function registerDataJobs(app: FastifyInstance) {
-  const { queue, db, storage } = app.ctx;
+  const { queue, db } = app.ctx;
   queue.register<CsvJob>('csv.import', async (j) => {
     const rep = new JobReporter(db, j.jobId, j.dryRun);
     try {
-      const env: ImportEnv = { db, shopId: j.shopId, storage, dryRun: j.dryRun };
+      const env: ImportEnv = { db, shopId: j.shopId, storage: app.ctx.storageFor(j.shopId), dryRun: j.dryRun };
       await IMPORTS[j.kind](env, parseCsvObjects(createReadStream(j.file)), rep as Reporter);
       await rep.finish();
     } catch (e) { rep.error(e instanceof Error ? e.message : String(e)); await rep.finish(e instanceof Error ? e.message : 'Import failed'); }
@@ -40,7 +40,7 @@ export function registerDataJobs(app: FastifyInstance) {
     try {
       const client = new ShopifyClient({ shop: j.shop, auth: j.auth, apiVersion: j.apiVersion });
       const summary = await importFromShopify({
-        db, shopId: j.shopId, storage, client, only: j.only,
+        db, shopId: j.shopId, storage: app.ctx.storageFor(j.shopId), client, only: j.only,
         onProgress: async (e) => {
           rep.result.details = { ...rep.result.details, [e.phase]: { created: e.summary.created, updated: e.summary.updated, skipped: e.summary.skipped, failed: e.summary.failed } };
           await rep.progress(e.processed, e.total, e.phase);
@@ -77,7 +77,7 @@ const publicJob = (j: NonNullable<Awaited<ReturnType<typeof getJob>>>) => ({ id:
  */
 export function registerDataRoutes(app: FastifyInstance) {
   registerDataJobs(app);
-  const { db, config, storage, queue } = app.ctx;
+  const { db, config, queue } = app.ctx;
 
   app.get('/admin/api/jobs/:id', async (req, reply) => {
     const auth = await authed(req, reply, 'read_products');
@@ -133,7 +133,7 @@ export function registerDataRoutes(app: FastifyInstance) {
       if (!data || part.file.truncated) return reply.code(413).send({ error: 'File too large (maximum is 50MB)' });
       const field = part.fields['name'] as { value?: unknown } | undefined;
       const name = typeof field?.value === 'string' && field.value.trim() ? field.value : part.filename.replace(/\.zip$/i, '');
-      const r = await createThemeFromZip(db, storage, auth.shopId, data, { name, role: 'UNPUBLISHED' });
+      const r = await createThemeFromZip(db, app.ctx.storageFor(auth.shopId), auth.shopId, data, { name, role: 'UNPUBLISHED' });
       if (!r.ok) return reply.code(422).send({ errors: r.errors });
       const t = r.value.theme;
       return reply.code(201).send({ theme: { id: t.id, name: t.name, role: t.role }, files: r.value.files, ignored: r.value.ignored });
@@ -145,7 +145,7 @@ export function registerDataRoutes(app: FastifyInstance) {
     if (!auth) return;
     const id = Number((req.params as { id: string }).id);
     const theme = Number.isSafeInteger(id) ? await getTheme(db, auth.shopId, id) : null;
-    const zip = theme ? await buildThemeZip(db, storage, auth.shopId, theme.id) : null;
+    const zip = theme ? await buildThemeZip(db, app.ctx.storageFor(auth.shopId), auth.shopId, theme.id) : null;
     if (!theme || !zip) return reply.code(404).send({ error: 'Theme not found' });
     const safe = theme.name.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'theme';
     return reply.type('application/zip').header('content-disposition', `attachment; filename="${safe}.zip"`).send(Buffer.from(zip));

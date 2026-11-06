@@ -143,9 +143,10 @@ builder.mutationFields((t) => ({
       let amount: number | null = null;
       try { amount = parseMoney(String(input.amount), order[0].currency); } catch { /* invalid */ }
       if (amount == null) return { transaction: null, userErrors: [{ field: ['input', 'amount'], message: 'Amount is invalid' }] };
+      // The store's gateway is looked up before the capture runs (the capture holds a database transaction).
+      const stripe = await (ctx.request.server as unknown as { checkoutPayments?: { forShop(shopId: number): Promise<{ capture(id: string, amount: number, key: string): Promise<void> } | null> } }).checkoutPayments?.forShop(ctx.shopId);
       const r = await captureTransaction(ctx.db, ctx.shopId, { orderId, parentTransactionId: parentId, amount, currency: input.currency, finalCapture: input.finalCapture, staffId: staffId(ctx),
         collect: async (parent, amt) => {
-          const stripe = (ctx.request.server as unknown as { checkoutPayments?: { stripe: { capture(id: string, amount: number, key: string): Promise<void> } | null } }).checkoutPayments?.stripe;
           if (parent.gateway === 'stripe' && parent.paymentId && stripe) await stripe.capture(parent.paymentId, amt, `capture-${parent.id}-${amt}`);
         } });
       if (!r.ok) return { transaction: null, userErrors: r.errors };
@@ -168,7 +169,7 @@ const Abandonment = builder.objectRef<AbandonmentShape>('Abandonment').implement
     abandonmentType: t.field({ type: AbandonmentType, resolve: () => 'CHECKOUT' as const }),
     mostRecentStep: t.field({ type: AbandonmentType, resolve: () => 'CHECKOUT' as const }),
     abandonedCheckoutPayload: t.field({ type: AbandonedCheckout, nullable: true, resolve: (a) => a.checkout }),
-    cartUrl: t.field({ type: 'URL', nullable: true, resolve: (a, _x, ctx) => recoveryUrl(a.checkout.shop, ctx.app.config.appUrl, a.checkout.row.token) }),
+    cartUrl: t.field({ type: 'URL', nullable: true, resolve: (a, _x, ctx) => recoveryUrl(a.checkout.shop, ctx.storeUrl, a.checkout.row.token) }),
     createdAt: t.field({ type: 'DateTime', resolve: (a) => a.checkout.row.createdAt }),
     customer: t.field({ type: Customer_, resolve: async (a, _x, ctx) => (await getCustomer(ctx.db, ctx.shopId, a.customerId))! }),
     emailState: t.field({ type: EmailState, nullable: true, resolve: (a) => (a.checkout.row.recoverySentAt ? 'SENT' : 'NOT_SENT') }),

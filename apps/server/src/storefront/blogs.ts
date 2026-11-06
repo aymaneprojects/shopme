@@ -15,7 +15,7 @@ export function registerBlogRoutes(app: FastifyInstance, ctx: AppContext, conten
   const { withShop, renderTemplate, notFound } = content;
 
   async function atom(req: FastifyRequest, reply: FastifyReply, shop: Shop, blog: Blog) {
-    const origin = ctx.config.appUrl;
+    const origin = ctx.stores.publicOrigin(shop.id);
     const items = await listArticles(db, shop.id, { blogId: blog.id, publishedOnly: true, offset: 0, limit: 25 });
     const url = `${origin}/blogs/${blog.handle}`;
     const updated = items[0]?.updatedAt ?? blog.updatedAt;

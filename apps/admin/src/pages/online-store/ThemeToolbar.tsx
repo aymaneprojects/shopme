@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Code, CopyPlus, Download, Eye, Keyboard, LayoutGrid, Languages, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { mutate } from '../../api';
+import { apiUrl, mutate } from '../../api';
 import { gidToNum } from '../../format';
 import { THEME_DUPLICATE, THEME_PUBLISH } from '../../graphql';
 import { useT } from '../../i18n';
@@ -40,7 +40,7 @@ export function ThemeToolbar({ themeId, name, role, dirty, previewUrl, onShortcu
             { key: 'content', label: t('bs.editContent'), icon: <Languages />, onSelect: () => nav(`/online-store/themes/${gidToNum(themeId)}/content`) },
             { key: 'preview', label: t('editor.openPreview'), icon: <Eye />, onSelect: () => { window.open(previewUrl, '_blank', 'noopener'); } },
             { key: 'duplicate', label: t('themes.duplicate'), icon: <CopyPlus />, onSelect: () => duplicate.mutate() },
-            { key: 'download', label: t('themes.download'), icon: <Download />, onSelect: () => { window.location.href = `/admin/api/themes/${gidToNum(themeId)}/download.zip`; } },
+            { key: 'download', label: t('themes.download'), icon: <Download />, onSelect: () => { window.location.href = apiUrl(`/themes/${gidToNum(themeId)}/download.zip`); } },
             ...(docsUrl ? [{ key: 'docs', label: t('bs.docs'), icon: <BookOpen />, onSelect: () => { window.open(docsUrl, '_blank', 'noopener,noreferrer'); } }] : []),
             ...(onShortcuts ? [{ key: 'shortcuts', label: t('editor.shortcuts'), icon: <Keyboard />, onSelect: onShortcuts }] : []),
             { key: 'all', label: t('editor.allThemes'), icon: <LayoutGrid />, separator: true, onSelect: () => nav('/online-store') },

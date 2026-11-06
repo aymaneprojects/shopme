@@ -63,6 +63,12 @@ export async function findOrderIdByPayment(db: Executor, shopId: number, payment
   return t?.orderId ?? null;
 }
 
+/** The store that owns a payment (multi-store, shared installation Stripe keys: the event names no store). */
+export async function shopOfPayment(db: Executor, paymentId: string): Promise<typeof s.shops.$inferSelect | null> {
+  const [t] = await db.select({ shop: s.shops }).from(s.transactions).innerJoin(s.shops, eq(s.shops.id, s.transactions.shopId)).where(eq(s.transactions.paymentId, paymentId)).limit(1);
+  return t?.shop ?? null;
+}
+
 /** Mark a PENDING order paid (idempotent). Returns true only on the transition, so callers send emails once. */
 export async function markOrderPaid(db: Executor, shopId: number, orderId: number, info: { gateway: string; paymentId?: string | null }): Promise<boolean> {
   const upd = await db.update(s.orders).set({ financialStatus: 'PAID' })

@@ -10,6 +10,8 @@
     "start": "node dist/main.js",
     "lint": "echo \"no lint yet\"",
     "test": "vitest run",
+    "test:multi": "vitest run --config vitest.multistore.config.ts",
+    "test:isolation": "vitest run src/multistore.test.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

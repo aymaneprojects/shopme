@@ -1,0 +1,56 @@
+import type { enMultistore } from './en-multistore';
+
+export const frMultistore: Record<keyof typeof enMultistore, string> = {
+  'ms.badge.suspended': 'Suspendue', 'ms.badge.test': 'Test', 'ms.badge.testHint': 'Cette boutique n’accepte que des paiements de test',
+  'ms.switchTo': 'Passer à {name}', 'ms.allStores': 'Toutes les boutiques', 'ms.createStore': 'Créer une boutique', 'ms.platform': 'Plateforme',
+  'ms.language': 'Langue', 'ms.appearance': 'Apparence',
+  'ms.suspendedBanner': 'Cette boutique a été suspendue par le propriétaire de la plateforme. Sa vitrine affiche une page « indisponible » et son administration est en lecture seule.',
+  'ms.nav.stores': 'Boutiques', 'ms.nav.account': 'Compte', 'ms.forbidden': 'Votre compte n’a pas accès à la boutique « {handle} ». Choisissez l’une de vos boutiques.',
+
+  'ms.stores.title': 'Boutiques', 'ms.stores.emptyTitle': 'Aucune boutique pour l’instant', 'ms.stores.emptyCreate': 'Créez votre première boutique pour commencer à vendre.',
+  'ms.stores.emptyAsk': 'Demandez au propriétaire d’une boutique de vous inviter, ou au propriétaire de la plateforme de vous autoriser à créer des boutiques.', 'ms.stores.viewStore': 'Voir la vitrine de {name}', 'ms.stores.open': 'Ouvrir l’administration',
+  'ms.role.owner': 'Propriétaire', 'ms.role.admin': 'Administrateur', 'ms.role.staff': 'Collaborateur',
+
+  'ms.create.denied': 'Seul le propriétaire de la plateforme peut créer des boutiques sur cette installation.', 'ms.create.name': 'Nom de la boutique', 'ms.create.handle': 'Identifiant de la boutique',
+  'ms.create.handleHelp': 'Lettres minuscules, chiffres et tirets.', 'ms.create.address': 'Adresse de la boutique :', 'ms.create.addressHint': 'L’adresse s’affiche pendant que vous saisissez le nom.',
+  'ms.create.editHandle': 'Modifier', 'ms.create.handleNote': 'L’identifiant est définitif. Vous pourrez connecter votre propre domaine plus tard dans Paramètres > Domaines.',
+  'ms.create.handleTaken': 'Cet identifiant est déjà utilisé par une autre boutique.', 'ms.create.handleReserved': 'Cet identifiant est réservé.', 'ms.create.handleInvalid': 'Utilisez de 1 à 40 lettres minuscules, chiffres ou tirets, en commençant et en terminant par une lettre ou un chiffre.',
+  'ms.create.regional': 'Région', 'ms.create.language': 'Langue de la boutique', 'ms.create.starter': 'La boutique démarre avec le thème Aurora, un menu principal et un menu de pied de page. Vous en êtes le propriétaire.',
+  'ms.create.submit': 'Créer la boutique',
+
+  'ms.platform.subtitle': 'Toutes les boutiques de cette installation', 'ms.platform.ownerOnly': 'Seul le propriétaire de la plateforme peut ouvrir cet espace.', 'ms.platform.storesCaption': 'Boutiques de cette installation',
+  'ms.platform.col.store': 'Boutique', 'ms.platform.col.owner': 'Propriétaire', 'ms.platform.col.staff': 'Équipe', 'ms.platform.col.created': 'Créée le', 'ms.platform.active': 'Active',
+  'ms.platform.actionsFor': 'Actions pour {name}', 'ms.platform.viewStorefront': 'Voir la vitrine', 'ms.platform.suspend': 'Suspendre', 'ms.platform.resume': 'Réactiver', 'ms.platform.delete': 'Supprimer la boutique',
+  'ms.platform.suspended': 'Boutique suspendue', 'ms.platform.resumed': 'Boutique réactivée', 'ms.platform.deleted': 'Boutique supprimée', 'ms.platform.settingsSaved': 'Paramètres de la plateforme enregistrés',
+  'ms.platform.creationTitle': 'Création de boutiques', 'ms.platform.creationHelp': 'Qui peut créer des boutiques sur cette installation ?',
+  'ms.platform.creation.OWNER': 'Seulement le propriétaire de la plateforme', 'ms.platform.creation.EVERYONE': 'Tous les comptes connectés',
+  'ms.platform.deleteTitle': 'Supprimer {name} ?', 'ms.platform.deleteConfirm': 'Supprimer définitivement',
+  'ms.platform.deleteWarning': 'Tous les produits, commandes, clients, fichiers et réglages de cette boutique sont supprimés. Les comptes de l’équipe sont conservés, avec leurs autres boutiques. Cette action est irréversible.',
+  'ms.platform.deleteType': 'Saisissez l’identifiant de la boutique ({handle}) pour confirmer',
+
+  'stripeKeys.title': 'Compte Stripe de cette boutique', 'stripeKeys.test': 'Mode test', 'stripeKeys.live': 'En production', 'stripeKeys.add': 'Ajouter les clés', 'stripeKeys.replace': 'Remplacer les clés', 'stripeKeys.remove': 'Retirer les clés',
+  'stripeKeys.own': 'Cette boutique utilise son propre compte Stripe ({key}, clé secrète se terminant par {last4}).',
+  'stripeKeys.fallback': 'Cette boutique utilise le compte Stripe configuré pour toute l’installation. Ajoutez les clés de la boutique pour encaisser ses paiements sur son propre compte.',
+  'stripeKeys.none': 'Aucun compte Stripe n’est encore configuré. Ajoutez les clés du compte Stripe de la boutique pour accepter les cartes.',
+  'stripeKeys.webhook': 'Point de terminaison du webhook :', 'stripeKeys.copy': 'Copier le point de terminaison du webhook', 'stripeKeys.copied': 'Point de terminaison copié',
+  'stripeKeys.modalTitle': 'Clés Stripe de cette boutique', 'stripeKeys.modalHelp': 'Les clés se trouvent dans le tableau de bord Stripe, rubrique Développeurs. Utilisez des clés de test ou des clés de production pour les deux. Les secrets sont chiffrés et ne sont plus jamais affichés.',
+  'stripeKeys.publishable': 'Clé publiable', 'stripeKeys.secret': 'Clé secrète', 'stripeKeys.signing': 'Secret de signature du webhook',
+  'stripeKeys.signingHelp': 'Créez dans Stripe un webhook qui envoie les événements payment_intent à {url}, puis collez son secret de signature.',
+  'stripeKeys.save': 'Enregistrer les clés', 'stripeKeys.saved': 'Clés Stripe enregistrées', 'stripeKeys.removed': 'Clés Stripe retirées', 'stripeKeys.removeTitle': 'Retirer les clés Stripe de la boutique ?',
+  'stripeKeys.removeFallback': 'La boutique utilisera de nouveau le compte Stripe de l’installation.', 'stripeKeys.removeNone': 'Les paiements par carte s’arrêtent jusqu’à l’ajout de nouvelles clés.',
+
+  'domains.add': 'Ajouter un domaine', 'domains.addSubmit': 'Ajouter', 'domains.addHelp': 'Utilisez un domaine ou un sous-domaine qui vous appartient. Vous le confirmerez par un enregistrement DNS à l’étape suivante.',
+  'domains.added': 'Domaine ajouté', 'domains.verified': 'Domaine vérifié', 'domains.primarySet': 'Domaine principal mis à jour', 'domains.removed': 'Domaine retiré', 'domains.copied': 'Copié',
+  'domains.permanent': 'Adresse permanente', 'domains.makePrimary': 'Définir comme principal', 'domains.statusVerified': 'Vérifié', 'domains.statusPending': 'Vérification en attente',
+  'domains.actionsFor': 'Actions pour {host}', 'domains.verify': 'Vérifier', 'domains.connectTitle': 'Connecter {host}',
+  'domains.step1': 'Chez votre fournisseur DNS, faites pointer le domaine vers ce serveur : un enregistrement CNAME vers {target}, ou des enregistrements A/AAAA vers l’adresse du serveur.',
+  'domains.step2': 'Ajoutez cet enregistrement TXT pour prouver que le domaine vous appartient :', 'domains.recordName': 'Nom', 'domains.recordValue': 'Valeur',
+  'domains.copyName': 'Copier le nom de l’enregistrement', 'domains.copyValue': 'Copier la valeur de l’enregistrement',
+  'domains.step3': 'La propagation DNS peut prendre du temps. Cliquez sur Vérifier une fois les enregistrements publiés.',
+  'domains.help': 'Les visiteurs des autres adresses de la boutique sont redirigés vers le domaine principal.',
+  'domains.removeTitle': 'Retirer {host} ?', 'domains.removeBody': 'Le domaine ne sert plus cette boutique. S’il était principal, l’adresse permanente redevient le domaine principal.',
+
+  'invite.title': 'Invitation', 'invite.join': 'Rejoindre {shop}', 'invite.subtitle': 'Une invitation a été envoyée à {email}. Choisissez un mot de passe pour terminer.',
+  'invite.existing': 'Vous avez déjà un compte avec l’adresse {email}. Saisissez son mot de passe pour y ajouter cette boutique.', 'invite.newPassword': 'Choisissez un mot de passe',
+  'invite.accountPassword': 'Mot de passe de votre compte', 'invite.submit': 'Accepter l’invitation', 'invite.invalid': 'Cette invitation n’est pas valide ou a expiré. Demandez-en une nouvelle.',
+};

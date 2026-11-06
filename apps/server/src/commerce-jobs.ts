@@ -2,6 +2,7 @@ import {
   autoFulfillGiftCardLines, dueGiftCardNotifications, getShop, giftCardAddressees, giftCardMailVars, issueGiftCardsForOrder, markGiftCardNotified, onEvent, recoverAbandonedCheckouts, schema, sendNotification,
   type Shop,
 } from '@shopme/core';
+import { eq } from 'drizzle-orm';
 import type { AppContext } from './context';
 import { EVENT_SETTLE_MS } from './ops';
 
@@ -10,13 +11,14 @@ import { EVENT_SETTLE_MS } from './ops';
  * Returns the unsubscribe function of the event listener.
  */
 export function registerCommerceJobs(ctx: AppContext): () => void {
-  const { db, queue, config } = ctx;
+  const { db, queue } = ctx;
 
   /** Email every card that is due (bought online, or issued with a recipient), once. */
   async function sendGiftCardEmails(shop: Shop): Promise<void> {
     for (const card of await dueGiftCardNotifications(db, shop.id)) {
       const { to, from } = await giftCardAddressees(db, card);
-      if (to) await sendNotification(db, ctx.mailer, shop, config.appUrl, 'gift_card_issued', to, giftCardMailVars(shop, config.appUrl, card, from));
+      const base = ctx.stores.storefrontBase(shop.id);
+      if (to) await sendNotification(db, ctx.mailer, shop, base, 'gift_card_issued', to, giftCardMailVars(shop, base, card, from));
       await markGiftCardNotified(db, card.id);
     }
   }
@@ -28,14 +30,13 @@ export function registerCommerceJobs(ctx: AppContext): () => void {
     await autoFulfillGiftCardLines(db, shopId, orderId);
     await sendGiftCardEmails(shop);
   });
+  // Every store that is not suspended (multi-store), each with its own links and sender.
+  const activeShops = async () => (await db.select().from(schema.shops).where(eq(schema.shops.status, 'ACTIVE')).orderBy(schema.shops.id)) as Shop[];
   queue.every('gift-card-notifications', 60_000, async () => {
-    for (const row of await db.select({ id: schema.shops.id }).from(schema.shops)) { const shop = await getShop(db, row.id); if (shop) await sendGiftCardEmails(shop); }
+    for (const shop of await activeShops()) await sendGiftCardEmails(shop);
   });
   queue.every('abandoned-checkout-recovery', 10 * 60_000, async () => {
-    for (const row of await db.select({ id: schema.shops.id }).from(schema.shops)) {
-      const shop = await getShop(db, row.id);
-      if (shop) await recoverAbandonedCheckouts(db, ctx.mailer, shop, config.appUrl);
-    }
+    for (const shop of await activeShops()) await recoverAbandonedCheckouts(db, ctx.mailer, shop, ctx.stores.storefrontBase(shop.id));
   });
 
   return onEvent((shopId, ev) => {

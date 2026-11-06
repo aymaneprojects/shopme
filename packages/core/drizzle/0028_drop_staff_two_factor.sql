@@ -1,0 +1,1 @@
+DROP TABLE "staff_two_factor" CASCADE;

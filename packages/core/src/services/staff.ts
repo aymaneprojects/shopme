@@ -1,8 +1,8 @@
 import { and, eq, gt, sql } from 'drizzle-orm';
-import { PERMISSION_AREAS, sessions, shops, staffRoles, staffUsers } from '../db/schema';
+import { PERMISSION_AREAS, platformAccounts, sessions, shops, staffRoles, staffUsers } from '../db/schema';
 import type { Db, Executor } from '../db/client';
 import { errR, okR, type Result } from './catalog/common';
-import { hashPassword, MIN_PASSWORD_LENGTH, type StaffUser } from './auth';
+import { createAccount, MIN_PASSWORD_LENGTH, verifyPassword, type StaffUser } from './auth';
 import { randomToken, sha256 } from './crypto';
 
 export { PERMISSION_AREAS };
@@ -36,7 +36,7 @@ export function scopesFor(u: Pick<StaffUser, 'role' | 'permissions'>): string[] 
 
 // ---- reading ----------------------------------------------------------------------------------------------------------------
 
-const cols = { twoFactor: sql<boolean>`exists (select 1 from staff_two_factor tf where tf.staff_user_id = staff_users.id and tf.enabled)`, roleId: staffUsers.roleId, roleName: sql<string | null>`(select sr.name from staff_roles sr where sr.id = staff_users.role_id)`, id: staffUsers.id, email: staffUsers.email, firstName: staffUsers.firstName, lastName: staffUsers.lastName, role: staffUsers.role, active: staffUsers.active, permissions: staffUsers.permissions, invitePending: staffUsers.inviteTokenHash, lastLoginAt: staffUsers.lastLoginAt };
+const cols = { twoFactor: sql<boolean>`exists (select 1 from account_two_factor tf where tf.account_id = staff_users.account_id and tf.enabled)`, roleId: staffUsers.roleId, roleName: sql<string | null>`(select sr.name from staff_roles sr where sr.id = staff_users.role_id)`, id: staffUsers.id, email: staffUsers.email, firstName: staffUsers.firstName, lastName: staffUsers.lastName, role: staffUsers.role, active: staffUsers.active, permissions: staffUsers.permissions, invitePending: staffUsers.inviteTokenHash, lastLoginAt: staffUsers.lastLoginAt };
 type Row = Pick<StaffUser, 'id' | 'email' | 'firstName' | 'lastName' | 'role' | 'active' | 'permissions' | 'lastLoginAt'> & { invitePending: string | null; twoFactor?: boolean; roleId?: number | null; roleName?: string | null };
 export type StaffMemberRow = Omit<Row, 'invitePending' | 'permissions'> & { invitePending: boolean; permissions: PermissionArea[] };
 const shape = (r: Row): StaffMemberRow => ({ ...r, invitePending: !!r.invitePending, permissions: permissionsOf(r) });
@@ -93,15 +93,34 @@ export async function getInvite(db: Executor, token: string): Promise<InviteInfo
   return r ?? null;
 }
 
-/** Set the password for a pending invitation (single use). Returns the activated user. */
-export async function acceptInvite(db: Db, token: string, input: { password: string; firstName?: string | null; lastName?: string | null }): Promise<Result<StaffUser>> {
+/**
+ * Accept a pending invitation (single use). The member gets a new account with `password`, unless `linkExisting` is set
+ * (multi-store mode) and an account with the invited e-mail exists: then `password` must be that account's password, and the
+ * member joins it, so one sign-in reaches every store of the person.
+ */
+export async function acceptInvite(db: Db, token: string, input: { password: string; firstName?: string | null; lastName?: string | null; linkExisting?: boolean }): Promise<Result<StaffUser>> {
   if (input.password.length < MIN_PASSWORD_LENGTH) return errR(['password'], `Password must be at least ${MIN_PASSWORD_LENGTH} characters`, 'TOO_SHORT');
-  const passwordHash = await hashPassword(input.password);
-  const [u] = await db.update(staffUsers).set({
-    passwordHash, inviteTokenHash: null, inviteExpiresAt: null, updatedAt: new Date(),
-    ...(input.firstName?.trim() && { firstName: input.firstName.trim() }), ...(input.lastName?.trim() && { lastName: input.lastName.trim() }),
-  }).where(and(eq(staffUsers.inviteTokenHash, sha256(token)), eq(staffUsers.active, true), gt(staffUsers.inviteExpiresAt, new Date()))).returning();
-  return u ? okR(u) : errR(['token'], 'This invitation is invalid or has expired', 'INVALID_TOKEN');
+  const valid = and(eq(staffUsers.inviteTokenHash, sha256(token)), eq(staffUsers.active, true), gt(staffUsers.inviteExpiresAt, new Date()));
+  const [pending] = await db.select().from(staffUsers).where(valid).limit(1);
+  if (!pending) return errR(['token'], 'This invitation is invalid or has expired', 'INVALID_TOKEN');
+  const firstName = input.firstName?.trim() || pending.firstName;
+  const lastName = input.lastName?.trim() || pending.lastName;
+  let accountId: number | null = null;
+  if (input.linkExisting) {
+    const existing = await db.select().from(platformAccounts).where(and(eq(platformAccounts.email, pending.email), eq(platformAccounts.active, true)));
+    if (existing.length) {
+      for (const a of existing) if (await verifyPassword(a.passwordHash, input.password)) { accountId = a.id; break; }
+      if (accountId == null) return errR(['password'], 'An account already uses this e-mail: enter its password to join this store', 'ACCOUNT_EXISTS');
+    }
+  }
+  return db.transaction(async (tx) => {
+    accountId ??= (await createAccount(tx, { email: pending.email, password: input.password, firstName, lastName })).id;
+    const [u] = await tx.update(staffUsers).set({
+      accountId, passwordHash: null, inviteTokenHash: null, inviteExpiresAt: null, updatedAt: new Date(),
+      ...(input.firstName?.trim() && { firstName: input.firstName.trim() }), ...(input.lastName?.trim() && { lastName: input.lastName.trim() }),
+    }).where(and(eq(staffUsers.id, pending.id), valid)).returning();
+    return u ? okR(u) : errR(['token'], 'This invitation is invalid or has expired', 'INVALID_TOKEN');
+  });
 }
 
 // ---- updates ----------------------------------------------------------------------------------------------------------------
