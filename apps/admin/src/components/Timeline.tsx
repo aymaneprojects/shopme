@@ -10,6 +10,7 @@ import { dayLabel, eventText, groupByDay, type TimelineEvent } from '../lib/time
 import { useFormat } from './shared';
 import type { MoneySet } from './shared';
 import { useShop } from '../session';
+import { inertHtml } from '../lib/inert-html';
 
 type Tx = { id: string; kind: string; status: string; gateway: string; createdAt: string; amountSet: MoneySet };
 interface Props { kind: 'order' | 'customer'; id: string; /** Order pages: the confirmation number shown as its own entry. */ confirmationNumber?: string | null; /** Order pages: payments, shown under the payment entries. */ transactions?: Tx[] }
@@ -168,7 +169,7 @@ function EmailDialog({ event, onClose }: { event: TimelineEvent | null; onClose:
   return (
     <Modal open={!!event} onClose={onClose} wide title={String(args.subject ?? t('bc.timeline.email'))} closeLabel={t('common.close')} footer={<Button onClick={onClose}>{t('common.close')}</Button>}>
       <p className="mb-2 text-[13px] text-muted">{t('bc.timeline.emailTo', { to: String(args.to ?? '') })}</p>
-      {q.isLoading ? <Skeleton className="h-64" /> : q.data ? <iframe title={String(args.subject ?? t('bc.timeline.email'))} sandbox="" srcDoc={q.data} className="h-[28rem] w-full rounded-md border border-line bg-white" /> : <p className="text-[13px] text-muted">{t('bc.timeline.emailGone')}</p>}
+      {q.isLoading ? <Skeleton className="h-64" /> : q.data ? <iframe title={String(args.subject ?? t('bc.timeline.email'))} sandbox="" srcDoc={inertHtml(q.data)} className="h-[28rem] w-full rounded-md border border-line bg-white" /> : <p className="text-[13px] text-muted">{t('bc.timeline.emailGone')}</p>}
     </Modal>
   );
 }

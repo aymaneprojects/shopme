@@ -137,7 +137,7 @@ export async function ordersStats(db: Executor, shopId: number, o: { from: Date;
   }).from(orders).where(and(eq(orders.shopId, shopId), gte(orders.createdAt, prevFrom), lt(orders.createdAt, o.to), sql`${orders.cancelledAt} is null`, loc));
   const inCur = (d: Date) => d >= o.from && d < o.to;
   const fulfilledNow = await db.select({ at: fulfillments.createdAt, deliveredAt: fulfillments.deliveredAt }).from(fulfillments)
-    .where(and(eq(fulfillments.shopId, shopId), sql`${fulfillments.status} <> 'CANCELLED'`, sql`(${fulfillments.createdAt} >= ${prevFrom} or ${fulfillments.deliveredAt} >= ${prevFrom})`));
+    .where(and(eq(fulfillments.shopId, shopId), sql`${fulfillments.status} <> 'CANCELLED'`, sql`(${fulfillments.createdAt} >= ${prevFrom.toISOString()}::timestamptz or ${fulfillments.deliveredAt} >= ${prevFrom.toISOString()}::timestamptz)`));
   const ret = await db.select({ at: returns.createdAt }).from(returns).where(and(eq(returns.shopId, shopId), gte(returns.createdAt, prevFrom), lt(returns.createdAt, o.to)));
 
   const mk = (key: StatsMetric['key']): StatsMetric => ({ key, value: 0, previous: 0, series: Array.from({ length: n }, () => 0) });
@@ -404,7 +404,7 @@ export async function attributionReport(db: Executor, shopId: number, from: Date
         (array_agg(x.utm_campaign order by (x.utm_campaign is null), x.created_at))[1] as utm_campaign, (array_agg(x.referrer order by (x.referrer is null), x.created_at))[1] as referrer, count(*) as n
       from visits x where x.shop_id = o.shop_id and x.session_id = o.visit_session_id and x.created_at <= o.created_at + interval '1 minute'
     ) v on true
-    where o.shop_id = ${shopId} and o.created_at >= ${from} and o.created_at < ${to} and o.cancelled_at is null and o.visit_session_id is not null
+    where o.shop_id = ${shopId} and o.created_at >= ${from.toISOString()}::timestamptz and o.created_at < ${to.toISOString()}::timestamptz and o.cancelled_at is null and o.visit_session_id is not null
     group by 1, 2, 3 order by sales desc, orders desc limit 100`);
   const rows = rowsOf(res).map((r) => ({ source: String(r.source), medium: String(r.medium), campaign: String(r.campaign), orders: Number(r.orders), sales: Number(r.sales), visits: Number(r.visits) }));
   const [tot] = await db.select({ n: sql<number>`count(*)::int`, s: sql<number>`coalesce(sum(${orders.total}), 0)::float`, c: sql<string | null>`max(${orders.currency})` }).from(orders)
@@ -421,7 +421,7 @@ export async function campaignResults(db: Executor, shopId: number): Promise<Arr
     const res = await db.execute(sql`
       select count(*)::int as orders, coalesce(sum(o.total), 0)::bigint as sales from orders o
       where o.shop_id = ${shopId} and o.cancelled_at is null and o.visit_session_id is not null
-        ${c.startsAt ? sql`and o.created_at >= ${c.startsAt}` : sql``} ${c.endsAt ? sql`and o.created_at <= ${c.endsAt}` : sql``}
+        ${c.startsAt ? sql`and o.created_at >= ${c.startsAt.toISOString()}::timestamptz` : sql``} ${c.endsAt ? sql`and o.created_at <= ${c.endsAt.toISOString()}::timestamptz` : sql``}
         and exists (select 1 from visits x where x.shop_id = o.shop_id and x.session_id = o.visit_session_id and x.created_at <= o.created_at + interval '1 minute'
           ${c.utmCampaign ? sql`and lower(x.utm_campaign) = ${c.utmCampaign.toLowerCase()}` : sql``} ${c.utmSource ? sql`and lower(x.utm_source) = ${c.utmSource.toLowerCase()}` : sql``} ${c.utmMedium ? sql`and lower(x.utm_medium) = ${c.utmMedium.toLowerCase()}` : sql``})`);
     const r = rowsOf(res)[0] ?? {};

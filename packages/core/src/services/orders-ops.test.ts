@@ -1,5 +1,7 @@
+import { PgDialect } from 'drizzle-orm/pg-core';
+import type { SQL } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
-import { addressProblems, capturableOf, deliveryStatusOf, riskLevelOf, scoreRisk } from './orders-ops';
+import { addressProblems, attributionReport, campaignResults, capturableOf, deliveryStatusOf, riskLevelOf, scoreRisk } from './orders-ops';
 
 type Tx = Parameters<typeof capturableOf>[0][number];
 const tx = (p: Partial<Tx>): Tx => ({ id: 1, kind: 'SALE', status: 'SUCCESS', amount: 100, parentId: null, errorCode: null, ...p }) as Tx;
@@ -52,5 +54,35 @@ describe('deliveryStatusOf', () => {
     expect(deliveryStatusOf({ fulfillments: [f({}), f({ deliveredAt: new Date() })] })).toBe('IN_TRANSIT');
     expect(deliveryStatusOf({ fulfillments: [f({ deliveredAt: new Date() }), f({ status: 'CANCELLED' })] })).toBe('DELIVERED');
     expect(deliveryStatusOf({ fulfillments: [f({ status: 'CANCELLED' })] })).toBe('NOT_FULFILLED');
+  });
+});
+
+/**
+ * Raw `sql` templates bypass drizzle's column encoders, and postgres.js cannot serialise a `Date` parameter: on a real PostgreSQL the
+ * Marketing page failed with "Unexpected error." while PGlite (which accepts Dates) passed. Dates must reach raw SQL as ISO strings.
+ */
+describe('marketing queries on a Date-intolerant driver', () => {
+  const seen: unknown[][] = [];
+  const chain: Record<string, unknown> = {};
+  for (const m of ['from', 'where', 'orderBy', 'limit', 'groupBy']) chain[m] = () => chain;
+  chain.then = (res: (v: unknown) => void) => res([{ n: 0, s: 0, c: null }]);
+  const fake = {
+    execute: async (q: SQL) => { seen.push(new PgDialect().sqlToQuery(q).params); return []; },
+    select: () => chain,
+  } as unknown as Parameters<typeof attributionReport>[0];
+  it('passes no Date parameter to raw SQL', async () => {
+    await attributionReport(fake, 1, new Date('2026-10-01T00:00:00Z'), new Date('2026-11-01T00:00:00Z'));
+    expect(seen).toHaveLength(1);
+    for (const params of seen) for (const p of params) expect(p instanceof Date).toBe(false);
+    expect(seen[0]).toContain('2026-10-01T00:00:00.000Z');
+  });
+  it('passes no Date parameter for campaign dates', async () => {
+    seen.length = 0;
+    const camp = { id: 1, shopId: 1, name: 'c', utmCampaign: 'spring', utmSource: null, utmMedium: null, startsAt: new Date('2026-01-01T00:00:00Z'), endsAt: new Date('2026-02-01T00:00:00Z') };
+    const list = { ...chain, from: () => ({ where: () => ({ orderBy: async () => [camp] }) }) };
+    const db = { ...fake, select: () => list } as unknown as Parameters<typeof campaignResults>[0];
+    await campaignResults(db, 1);
+    expect(seen).toHaveLength(1);
+    for (const p of seen[0]!) expect(p instanceof Date).toBe(false);
   });
 });

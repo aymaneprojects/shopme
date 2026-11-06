@@ -90,7 +90,7 @@ export const enBtnOrders = {
   'btn.mkt.deleteTitle': 'Delete {name}?', 'btn.mkt.deleteBody': 'Orders keep their attribution; only the campaign entry is removed.',
   'btn.mkt.emptyTitle': 'No campaigns yet', 'btn.mkt.emptyBody': 'Create a campaign, share its tagged link and see the orders it brings.',
   'btn.mkt.activeCampaigns': 'Active campaigns', 'btn.mkt.attributedOrders': 'Orders with a known source', 'btn.mkt.attributedHelp': 'Orders placed after a tracked storefront visit.', 'btn.mkt.totalSales': 'Sales in the period',
-  'btn.mkt.attributionEmpty': 'No attributed orders in this period.', 'btn.mkt.source': 'Source', 'btn.mkt.pageViews': 'Page views', 'btn.mkt.period': 'Period', 'btn.mkt.days': '{n} days',
+  'btn.mkt.loadError': 'The marketing data could not be loaded. Try again in a moment.', 'btn.mkt.attributionEmpty': 'No attributed orders in this period.', 'btn.mkt.source': 'Source', 'btn.mkt.pageViews': 'Page views', 'btn.mkt.period': 'Period', 'btn.mkt.days': '{n} days',
   'btn.mkt.channel.email': 'Email', 'btn.mkt.channel.social': 'Social media', 'btn.mkt.channel.search': 'Search ads', 'btn.mkt.channel.display': 'Display ads', 'btn.mkt.channel.affiliate': 'Affiliate',
   'btn.mkt.channel.influencer': 'Influencer', 'btn.mkt.channel.other': 'Other',
   'btn.mkt.status.DRAFT': 'Draft', 'btn.mkt.status.ACTIVE': 'Active', 'btn.mkt.status.ENDED': 'Ended',

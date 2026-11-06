@@ -19,6 +19,7 @@ import { fetchEmailHealth } from '../lib/emailApi';
 import { detectTasks, greetingPart } from '../lib/home';
 import { offsiteApi } from '../lib/offsiteApi';
 import { useMulti, useShop } from '../session';
+import { inertHtml } from '../lib/inert-html';
 
 interface Dash { totalSales: Money; ordersCount: number; averageOrderValue: Money; salesByDay: Array<{ date: string; sales: { amount: string } }>; topProducts: Array<{ title: string; quantity: number }> }
 const RANGES = ['TODAY', 'LAST_7_DAYS', 'LAST_30_DAYS'];
@@ -55,7 +56,7 @@ function StorePreview({ protectedStore }: { protectedStore: boolean }) {
   const page = useQuery({ queryKey: ['store-preview'], staleTime: 60_000, retry: false, queryFn: async () => {
     // Multi-store: the storefront lives on the store's own host; the admin API renders its home page for the thumbnail.
     const html = await (await fetch(multi ? apiUrl('/store/home-preview') : '/', { credentials: 'same-origin' })).text();
-    const page = html.replace(/<script\b[\s\S]*?<\/script>/gi, '');
+    const page = inertHtml(html);
     return multi ? page : page.replace(/<head([^>]*)>/i, '<head$1><base href="/">');
   } });
   return (

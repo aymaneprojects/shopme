@@ -13,6 +13,7 @@ import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 import { ShopPanel, useShopSettings } from './Settings';
 import { FulfillmentRequestRow, SmsGatewayCard, SmsPane } from './NotificationSms';
+import { inertHtml } from '../../lib/inert-html';
 
 interface Template { key: string; name: string; description: string; audience: 'customer' | 'staff'; subject: string; body: string; customized: boolean; enabled: boolean; toggleable: boolean }
 const useTemplates = () => useQuery({ queryKey: ['notification-templates'], queryFn: () => gql<{ shopmeNotificationTemplates: Template[] }>(NOTIFICATION_TEMPLATES) });
@@ -232,7 +233,7 @@ function TemplateForm({ tpl }: { tpl: Template }) {
     onSuccess: () => { toast(t('notif.testSent', { to: test ?? '' })); setTest(null); }, onError: (e) => toast(errText(e), 'critical'),
   });
   const p = preview.data?.shopmeNotificationPreview.preview;
-  const frame = (h: string) => <iframe title={t('notif.preview')} sandbox="" srcDoc={p?.html} className={`${h} w-full rounded-md border border-line bg-white`} />;
+  const frame = (h: string) => <iframe title={t('notif.preview')} sandbox="" srcDoc={p?.html ? inertHtml(p.html) : undefined} className={`${h} w-full rounded-md border border-line bg-white`} />;
   return (
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm({ subject: tpl.subject, body: tpl.body }); setError(null); }} />

@@ -1,5 +1,5 @@
-import { Banner, Dropdown, Skeleton, cx, useToast } from '@shopme/ui';
-import { BarChart3, Rocket, Gift, Repeat, ShoppingBasket, Home, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Building2, Activity, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
+import { Banner, Dropdown, Skeleton, Tooltip, cx, useToast } from '@shopme/ui';
+import { BarChart3, Rocket, Gift, Repeat, ShoppingBasket, Home, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ChevronLeft, FileText, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Building2, Activity, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
 import { Fragment, Suspense, useEffect, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -163,8 +163,8 @@ function SettingsNavLinks({ onNavigate, collapsed }: { onNavigate: () => void; c
   const copy = () => { void navigator.clipboard?.writeText(store.url || location.origin).then(() => toast(t('settings.nav.copied'))).catch(() => undefined); };
   return (
     <nav aria-label={t('nav.settings')} className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
-      <NavLink to="/" onClick={onNavigate} title={collapsed ? t('nav.settings') : undefined} aria-label={collapsed ? t('nav.settings') : undefined} className={cx('mb-2 flex h-8 items-center gap-2 rounded-lg px-2 text-[13px] font-semibold text-white hover:bg-frame-hover', collapsed && 'justify-center')}>
-        <ArrowLeft className="size-4 shrink-0" />{!collapsed && t('nav.settings')}
+      <NavLink to="/" onClick={onNavigate} title={collapsed ? t('nav.settings') : undefined} aria-label={collapsed ? t('nav.settings') : undefined} className={cx('mb-2 flex h-9 items-center gap-1.5 rounded-lg px-2 text-[14px] font-semibold text-white hover:bg-frame-hover focus-visible:bg-frame-hover', collapsed && 'justify-center')}>
+        <ChevronLeft className="size-5 shrink-0" />{!collapsed && t('nav.settings')}
       </NavLink>
       {!collapsed && (
         <>
@@ -172,9 +172,9 @@ function SettingsNavLinks({ onNavigate, collapsed }: { onNavigate: () => void; c
             <span className="sr-only">{t('settings.nav.search')}</span>
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-frame-muted" aria-hidden />
             <input type="search" value={term} onChange={(e) => setTerm(e.target.value)} placeholder={t('settings.nav.search')} autoComplete="off"
-              className="h-8 w-full rounded-lg border-0 bg-white/10 pl-8 pr-2 text-[13px] text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] outline-none placeholder:text-frame-muted focus:bg-white/15 focus-visible:shadow-[0_0_0_2px_var(--color-focus-ring)]" />
+              className="h-9 w-full rounded-xl border-0 bg-white/10 pl-8 pr-2 text-[13px] text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] outline-none placeholder:text-frame-muted focus:bg-white/15 focus-visible:shadow-[0_0_0_2px_var(--color-focus-ring)]" />
           </label>
-          <div className="mb-1 flex items-center gap-2 rounded-lg bg-white/10 py-1.5 pl-2 pr-1 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]">
+          <div className="mb-2 flex items-center gap-2 rounded-xl bg-white/10 py-1.5 pl-2 pr-1 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]">
             <StoreAvatar name={shop.name} handle={shop.handle} />
             <span className="min-w-0 flex-1 leading-4"><span className="block truncate text-[13px] font-semibold text-white">{shop.name}</span><span className="block truncate text-[11px] text-frame-muted">{host}</span></span>
             <Dropdown align="right" icon variant="plain" label={t('settings.nav.storeMenu')} menuClassName="!text-fg" className="!size-6 !min-h-0 shrink-0 !text-frame-text hover:!bg-frame-hover" trigger={<MoreHorizontal className="size-4" />}
@@ -229,6 +229,14 @@ function SuspendedBanner() {
   return <div className="mb-4"><Banner tone="warning" role="status">{t('ms.suspendedBanner')}</Banner></div>;
 }
 
+/** A tooltip with the label and the shortcut keycaps, only while `on` (an icon-only control); otherwise the control as it is. */
+function Tip({ on, label, keys, children }: { on: boolean; label: string; keys?: string[]; children: ReactNode }) {
+  return on ? <Tooltip side="right" delay={350} content={label} shortcut={keys}>{children}</Tooltip> : <>{children}</>;
+}
+
+const MAC = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.platform);
+const mod = MAC ? '⌘' : 'Ctrl';
+
 export function Shell() {
   const { t } = useI18n();
   const { pathname } = useLocation();
@@ -239,6 +247,7 @@ export function Shell() {
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette((p) => !p); }
+      else if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'b' && !(e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable="true"], .ProseMirror'))) { e.preventDefault(); setCollapsedState((c) => { const v = !c; try { localStorage.setItem(COLLAPSE_KEY, v ? '1' : '0'); } catch { /* storage unavailable */ } return v; }); }
     };
     const openIt = () => setPalette(true);
     window.addEventListener('keydown', h);
@@ -256,25 +265,26 @@ export function Shell() {
     );
   }
   const inSettings = pathname.startsWith('/settings');
-  const mac = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.platform);
   return (
     <div className="flex h-screen flex-col bg-frame text-frame-text" style={collapsed ? ({ '--w-sidebar': '3.5rem' } as React.CSSProperties) : inSettings ? ({ '--w-sidebar': '16rem' } as React.CSSProperties) : undefined}>
       <RouteProgress />
       <header className="flex h-12 shrink-0 items-center gap-2 px-3">
-        <button type="button" className="btn btn-plain btn-icon !text-frame-text hover:!bg-frame-hover md:hidden" aria-label={t('nav.menu')} onClick={() => setOpen(true)}><Menu className="size-5" /></button>
+        <span className="md:hidden"><Tooltip content={t('nav.menu')}><button type="button" className="btn btn-plain btn-icon !text-frame-text hover:!bg-frame-hover" aria-label={t('nav.menu')} onClick={() => setOpen(true)}><Menu className="size-5" /></button></Tooltip></span>
         <div className="flex items-center gap-2">
           <Logo className="size-6" />
           <span className="hidden text-[13px] font-semibold text-white sm:inline">ShopMe</span>
         </div>
-        <button type="button" className="btn btn-plain btn-icon !hidden !text-frame-text hover:!bg-frame-hover md:!inline-flex" aria-label={collapsed ? t('shell.expand') : t('shell.collapse')} aria-pressed={collapsed} onClick={() => setCollapsed(!collapsed)}><PanelLeft className="size-[18px]" /></button>
+        <span className="hidden md:inline-flex"><Tooltip side="right" delay={350} content={collapsed ? t('shell.expand') : t('shell.collapse')} shortcut={[mod, 'B']}>
+          <button type="button" className="btn btn-plain btn-icon !text-frame-text hover:!bg-frame-hover" aria-label={collapsed ? t('shell.expand') : t('shell.collapse')} aria-keyshortcuts="Control+B Meta+B" aria-pressed={collapsed} onClick={() => setCollapsed(!collapsed)}><PanelLeft className="size-[18px]" /></button>
+        </Tooltip></span>
               </header>
       <div className="flex min-h-0 flex-1">
         <aside className={cx('fixed inset-y-0 left-0 z-40 flex w-[var(--w-sidebar)] flex-col bg-frame px-2 pb-3 pt-14 transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 md:pt-1', open ? 'translate-x-0' : '-translate-x-full')}>
-          {!inSettings && <button type="button" onClick={() => { setOpen(false); setPalette(true); }} aria-label={t('shell.search')} aria-keyshortcuts="Control+K Meta+K" title={collapsed ? t('shell.search') : undefined}
+          {!inSettings && <Tip on={collapsed} label={t('shell.search')} keys={[mod, 'K']}><button type="button" onClick={() => { setOpen(false); setPalette(true); }} aria-label={t('shell.search')} aria-keyshortcuts="Control+K Meta+K"
             className={cx('mb-2 flex h-8 w-full items-center gap-2 rounded-lg bg-white/10 px-2.5 text-[13px] text-frame-muted shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:bg-white/15', collapsed && 'justify-center px-0')}>
             <Search className="size-4 shrink-0" />
-            {!collapsed && <><span className="flex-1 text-left">{t('shell.searchPlaceholder')}</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-medium">{mac ? '⌘' : 'Ctrl'} K</kbd></>}
-          </button>}
+            {!collapsed && <><span className="flex-1 text-left">{t('shell.searchPlaceholder')}</span><kbd className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] font-medium">{mod} K</kbd></>}
+          </button></Tip>}
           {inSettings ? <SettingsNavLinks onNavigate={() => setOpen(false)} collapsed={collapsed} /> : <NavLinks onNavigate={() => setOpen(false)} collapsed={collapsed} />}
           <AccountMenu collapsed={collapsed} userBlock={inSettings} />
         </aside>
