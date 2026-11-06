@@ -20,14 +20,14 @@ export function SettingsLayout() {
   const { t } = useI18n();
   const { pathname } = useLocation();
   const [slot, setSlot] = useState<HTMLElement | null>(null);
-  const section = SETTINGS_SECTIONS.find((s) => pathname === `/settings/${s.id}` || (s.id === 'users' && pathname === '/settings/users/roles'));
+  const section = SETTINGS_SECTIONS.find((s) => pathname === `/settings/${s.id}`);
   const wide = /^\/settings\/(notifications\/(?!customer$|staff$)[^/]+|languages\/translate)$/.test(pathname);
   return (
     <SettingsSlot.Provider value={slot}>
       <div className={cx('mx-auto w-full', wide ? 'max-w-[900px]' : 'max-w-[680px]')}>
         {section && (
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-xl font-semibold leading-8">{section.id === 'users' ? t(pathname.endsWith('/roles') ? 'bs.roles' : 'users.title') : section.id === 'checkout' ? t('checkout.pageTitle') : t(section.key)}</h1>
+            <h1 className="text-xl font-semibold leading-8">{section.id === 'users' ? t('users.title') : section.id === 'checkout' ? t('checkout.pageTitle') : t(section.key)}</h1>
             <div ref={setSlot} className="flex items-center gap-2" />
           </div>
         )}

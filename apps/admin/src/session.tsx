@@ -34,7 +34,7 @@ interface SessionApi {
 /** Staff invitation links: answered without a session. */
 export const INVITE_PATH_RE = /^\/admin\/invite\/([^/?#]+)/;
 /** Admin paths that belong to the account rather than to a store (multi-store mode). */
-export const ACCOUNT_PATH_RE = /^\/admin\/(stores|platform)(\/|$)/;
+export const ACCOUNT_PATH_RE = /^\/admin\/(stores|platform|account)(\/|$)/;
 
 const Ctx = createContext<SessionApi | null>(null);
 export const useSession = () => {

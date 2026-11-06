@@ -97,11 +97,14 @@ export function AccountMenu({ collapsed, userBlock }: { collapsed: boolean; user
               <StoreAvatar name={s.name} handle={s.handle} /><span className="min-w-0 flex-1 truncate">{s.name}</span><StoreBadge store={s} />
             </a>
           ))}
-          {multi && <a role="menuitem" href="/admin/stores" className={row}><LayoutGrid className="size-4 text-muted" />{t('ms.allStores')}</a>}
+          {multi && others.length > shown.length && <a role="menuitem" href="/admin/stores" className={row}><LayoutGrid className="size-4 text-muted" />{t('ms.allStores')}</a>}
           {!multi && shop && <button type="button" role="menuitem" className={row} onClick={() => { setOpen(false); setSingleInfo(true); }}><PlusCircle className="size-4 text-muted" />{t('ms.createStore')}</button>}
           {multi?.canCreateStores && <a role="menuitem" href="/admin/stores/new" className={row}><PlusCircle className="size-4 text-muted" />{t('ms.createStore')}</a>}
           {(shop || multi) && <div className="my-1.5 border-t border-line" role="separator" />}
-          <div className="flex items-center gap-2.5 px-2 py-1.5 text-[13px]"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold text-on-primary" aria-hidden>{personInitials(person)}</span><span className="min-w-0 flex-1 truncate">{person.email}</span></div>
+          <a role="menuitem" href="/admin/account" className={cx(row, 'items-center')} title={t('acc.title')}>
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold text-on-primary" aria-hidden>{personInitials(person)}</span>
+            <span className="min-w-0 flex-1 leading-4"><span className="block truncate font-medium">{[person.firstName, person.lastName].filter(Boolean).join(' ') || person.email}</span><span className="block truncate text-xs text-muted">{person.email}</span></span>
+          </a>
           {multi?.account.platformOwner && <a role="menuitem" href="/admin/platform" className={row}><Server className="size-4 text-muted" />{t('ms.platform')}</a>}
           <a role="menuitem" href={HELP_URL} target="_blank" rel="noreferrer" className={row}><CircleHelp className="size-4 text-muted" />{t('shell.help')}</a>
           <button type="button" role="menuitem" className={row} onClick={() => void logout()}><LogOut className="size-4 text-muted" />{t('shell.logout')}</button>
