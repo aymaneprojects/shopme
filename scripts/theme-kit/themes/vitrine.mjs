@@ -65,7 +65,7 @@ export default {
     { id: 'colours', type: 'colour-showcase', settings: { product: 'the-bottle', eyebrow: t('Six colours', 'Six coloris'), heading: t('Pick the one that feels like you', 'Choisissez celle qui vous ressemble'), button_label: t('Choose', 'Choisir'), color_scheme: 'scheme-1' } },
     {
       id: 'how', type: 'craft-steps',
-      settings: { eyebrow: t('How it is made', 'Comment elle est faite'), heading: t('Four steps, no shortcuts', 'Quatre étapes, aucun raccourci'), layout: 'right', color_scheme: 'scheme-4' },
+      settings: { eyebrow: t('Inside the bottle', 'À l’intérieur de la gourde'), heading: t('Four steps, no shortcuts', 'Quatre étapes, aucun raccourci'), layout: 'right', color_scheme: 'scheme-4' },
       blocks: [
         { type: 'step', settings: { title: t('Pressed from one sheet', 'Emboutie dans une seule feuille'), text: t('Food-grade stainless steel is drawn into shape, with no seam on the body.', 'L’acier inoxydable alimentaire est embouti sans aucune soudure sur le corps.') } },
         { type: 'step', settings: { title: t('Vacuum sealed', 'Scellée sous vide'), text: t('Two walls with the air pumped out between them: that is what keeps drinks cold or hot.', 'Deux parois avec l’air aspiré entre elles : c’est ce qui garde les boissons fraîches ou chaudes.') } },
