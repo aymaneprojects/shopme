@@ -9,10 +9,10 @@ function header(path: string, props: React.ComponentProps<typeof PageHeader>) {
 }
 
 describe('page header navigation', () => {
-  it('keeps top-level lists focused on the section title without an unrelated home back link', () => {
+  it('gives top-level lists a back link to Home, as in the reference', () => {
     header('/products', { title: 'Products' });
     expect(screen.getByRole('heading', { name: 'Products' })).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Back' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Back' })).toHaveAttribute('href', '/');
   });
 
   it('keeps the parent back link on nested lists', () => {

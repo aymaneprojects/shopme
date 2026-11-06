@@ -6,12 +6,12 @@ import { Link, useLocation } from 'react-router';
 import { useT } from '../i18n';
 import { NAV } from './Shell';
 
-/** Top-level lists show their section icon; nested lists retain a back link to their parent section. */
+/** Index pages of the navigation (Orders, Drafts, Customers...): the arrow goes to the parent section (Home for top-level lists) and the section icon sits before the title, as in the reference. */
 function indexPage(pathname: string): { to?: string; icon: ReactNode } | null {
   const path = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
   for (const item of NAV) {
     if (item.id === 'home' || item.id === 'settings') continue;
-    if (item.to === path) return { icon: <item.icon className="size-4" /> };
+    if (item.to === path) return { to: '/', icon: <item.icon className="size-4" /> };
     const child = item.children?.find((c) => c.to === path);
     if (child) return { to: item.to, icon: <item.icon className="size-4" /> };
   }
