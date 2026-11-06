@@ -1,0 +1,96 @@
+{%- assign s = section.settings -%}
+<div class="k-section k-promise {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width k-promise__inner">
+    <div class="k-promise__copy">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="k-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.text != blank -%}<p class="k-promise__text">{{ s.text | escape }}</p>{%- endif -%}
+      {%- if s.button_label != blank -%}<a class="button" href="{{ s.button_link | default: routes.all_products_collection_url }}">{{ s.button_label | escape }}</a>{%- endif -%}
+    </div>
+    <ul class="k-promise__stats" role="list">
+      {%- for block in section.blocks -%}
+        <li class="k-stat" {{ block.shopify_attributes }}><span class="k-stat__value">{{ block.settings.value | escape }}</span><span class="k-stat__label">{{ block.settings.label | escape }}</span></li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.trail_promise.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.trail_promise.settings.eyebrow",
+      "default": "Trail tested"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.trail_promise.settings.heading",
+      "default": "Tested where it counts"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.trail_promise.settings.text",
+      "default": "Every piece goes through a season of real use before it reaches the shop."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.trail_promise.settings.button_label",
+      "default": "Our promise"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:sections.trail_promise.settings.button_link"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.trail_promise.settings.color_scheme"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "stat",
+      "name": "t:sections.trail_promise.blocks.stat.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "value",
+          "label": "t:sections.trail_promise.blocks.stat.settings.value",
+          "default": "500 km"
+        },
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:sections.trail_promise.blocks.stat.settings.label",
+          "default": "walked by every prototype"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "t:sections.trail_promise.presets.trail_promise",
+      "blocks": [
+        {
+          "type": "stat"
+        },
+        {
+          "type": "stat"
+        },
+        {
+          "type": "stat"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

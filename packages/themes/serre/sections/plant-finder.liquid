@@ -1,0 +1,135 @@
+{%- assign s = section.settings -%}
+<div class="k-section k-finder {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width k-finder__inner">
+    <div class="k-finder__intro">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="k-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.text != blank -%}<p class="k-finder__text">{{ s.text | escape }}</p>{%- endif -%}
+    </div>
+    <ul class="k-finder__rooms" role="list">
+      {%- for block in section.blocks -%}
+        {%- assign r = block.settings -%}
+        {%- assign pic = r.image | default: r.product.featured_image -%}
+        <li {{ block.shopify_attributes }}>
+          <a class="k-spot" href="{{ r.link | default: r.product.url | default: routes.all_products_collection_url }}">
+            <span class="k-spot__pic">{%- if pic != blank -%}{{ pic | image_url: width: 240 | image_tag: loading: 'lazy', alt: '' }}{%- endif -%}</span>
+            <span class="k-spot__text"><span class="k-spot__title">{{ r.title | escape }}</span><span class="k-spot__light">{% render 'icon', name: r.icon, size: 14 %} {{ r.light | escape }}</span></span>
+            <span class="k-spot__arrow">{% render 'icon', name: 'arrow-right', size: 16 %}</span>
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.plant_finder.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.plant_finder.settings.eyebrow",
+      "default": "Plant finder"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.plant_finder.settings.heading",
+      "default": "Which room are you planting for?"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.plant_finder.settings.text",
+      "default": "Pick a spot and we will show you what thrives there."
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.plant_finder.settings.color_scheme"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "room",
+      "name": "t:sections.plant_finder.blocks.room.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.plant_finder.blocks.room.settings.title",
+          "default": "Bright living room"
+        },
+        {
+          "type": "text",
+          "id": "light",
+          "label": "t:sections.plant_finder.blocks.room.settings.light",
+          "default": "Bright, indirect light"
+        },
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:sections.plant_finder.blocks.room.settings.icon",
+          "options": [
+            {
+              "value": "sun",
+              "label": "t:sections.plant_finder.blocks.room.options.icon.sun"
+            },
+            {
+              "value": "moon",
+              "label": "t:sections.plant_finder.blocks.room.options.icon.moon"
+            },
+            {
+              "value": "drop",
+              "label": "t:sections.plant_finder.blocks.room.options.icon.drop"
+            },
+            {
+              "value": "home",
+              "label": "t:sections.plant_finder.blocks.room.options.icon.home"
+            },
+            {
+              "value": "leaf",
+              "label": "t:sections.plant_finder.blocks.room.options.icon.leaf"
+            }
+          ],
+          "default": "sun"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:sections.plant_finder.blocks.room.settings.image"
+        },
+        {
+          "type": "product",
+          "id": "product",
+          "label": "t:sections.plant_finder.blocks.room.settings.product"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:sections.plant_finder.blocks.room.settings.link"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 6,
+  "presets": [
+    {
+      "name": "t:sections.plant_finder.presets.plant_finder",
+      "blocks": [
+        {
+          "type": "room"
+        },
+        {
+          "type": "room"
+        },
+        {
+          "type": "room"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

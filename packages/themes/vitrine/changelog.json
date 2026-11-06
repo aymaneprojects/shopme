@@ -1,0 +1,31 @@
+{
+  "about": "What changed in each version of Vitrine, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release of Vitrine, a one-product landing page theme.",
+          "Buy box on the home page: gallery, colour swatches, quantity, add to cart and subscriptions.",
+          "Sticky add to cart bar that appears once the buy button scrolls out of view.",
+          "New sections: buy box, benefits, colour showcase, craft steps and a countdown timer.",
+          "Header with the menu split on both sides of the logo, framed product cards and a collection page with a filter bar.",
+          "Product page with thumbnails under the photo, options, subscriptions and a low stock message.",
+          "Breadcrumbs, back to top button and an optional age check.",
+          "Section names, settings and storefront texts are translated to English and French."
+        ],
+        "fr": [
+          "Première version de Vitrine, un thème de page d’atterrissage pour un produit unique.",
+          "Bloc d’achat sur la page d’accueil : galerie, coloris, quantité, ajout au panier et abonnements.",
+          "Barre d’ajout au panier fixe qui apparaît quand le bouton d’achat sort de l’écran.",
+          "Nouvelles sections : bloc d’achat, avantages, vitrine des coloris, étapes de fabrication et compte à rebours.",
+          "En-tête avec le menu de part et d’autre du logo, cartes produit encadrées et page collection avec barre de filtres.",
+          "Page produit avec miniatures sous la photo, options, abonnements et message de stock faible.",
+          "Fil d’Ariane, bouton retour en haut et vérification d’âge facultative.",
+          "Les noms des sections, les réglages et les textes de la boutique sont traduits en anglais et en français."
+        ]
+      }
+    }
+  ]
+}

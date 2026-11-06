@@ -1,0 +1,27 @@
+{%- doc -%}
+  Cookie consent banner driven by the visitor's region policy (`privacy` object). It starts hidden: the consent runtime
+  (window.Shopify.customerPrivacy, loaded by content_for_header) reveals it when the visitor has to be asked and wires the
+  buttons that carry the data-consent-* attributes. Without this snippet the runtime draws a plain banner of its own.
+{%- enddoc -%}
+{%- if privacy.banner_enabled -%}
+  <div class="cookie-banner cookie-banner--{{ privacy.banner_position }}" data-consent-banner role="dialog" aria-labelledby="cookie-banner-text" hidden>
+    <div class="cookie-banner__main" data-consent-main>
+      <p class="cookie-banner__text" id="cookie-banner-text">
+        {{- privacy.banner_message | escape -}}
+        {%- if privacy.privacy_policy_url != blank %} <a href="{{ privacy.privacy_policy_url }}">{{ 'privacy.banner.privacy_policy' | t }}</a>{% endif -%}
+      </p>
+      <div class="cookie-banner__actions">
+        <button type="button" class="button button--outline button--small" data-consent-reject>{{ 'privacy.banner.reject' | t }}</button>
+        <button type="button" class="button button--outline button--small" data-consent-manage>{{ 'privacy.banner.manage' | t }}</button>
+        <button type="button" class="button button--small" data-consent-accept>{{ 'privacy.banner.accept' | t }}</button>
+      </div>
+    </div>
+    <div class="cookie-banner__panel" data-consent-panel hidden>
+      <p class="cookie-banner__heading">{{ 'privacy.banner.preferences_title' | t }}</p>
+      <label class="cookie-banner__option"><input type="checkbox" data-consent-category="analytics"> <span><strong>{{ 'privacy.banner.analytics' | t }}</strong><br>{{ 'privacy.banner.analytics_help' | t }}</span></label>
+      <label class="cookie-banner__option"><input type="checkbox" data-consent-category="marketing"> <span><strong>{{ 'privacy.banner.marketing' | t }}</strong><br>{{ 'privacy.banner.marketing_help' | t }}</span></label>
+      <label class="cookie-banner__option"><input type="checkbox" data-consent-category="preferences"> <span><strong>{{ 'privacy.banner.preferences' | t }}</strong><br>{{ 'privacy.banner.preferences_help' | t }}</span></label>
+      <button type="button" class="button button--small" data-consent-save>{{ 'privacy.banner.save' | t }}</button>
+    </div>
+  </div>
+{%- endif -%}

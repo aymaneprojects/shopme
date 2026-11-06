@@ -1,0 +1,298 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "chip-1": {
+          "type": "chip",
+          "settings": {
+            "icon": "leaf",
+            "text": "Peat-free soil"
+          }
+        },
+        "chip-2": {
+          "type": "chip",
+          "settings": {
+            "icon": "shield",
+            "text": "Healthy on arrival"
+          }
+        },
+        "chip-3": {
+          "type": "chip",
+          "settings": {
+            "icon": "drop",
+            "text": "Care advice included"
+          }
+        }
+      },
+      "block_order": [
+        "chip-1",
+        "chip-2",
+        "chip-3"
+      ],
+      "settings": {
+        "layout": "center",
+        "color_scheme": "scheme-4",
+        "eyebrow": "Plants and garden",
+        "heading": "Bring the greenhouse home",
+        "text": "Healthy houseplants, terracotta pots and well-made garden tools, chosen by people who actually grow things.",
+        "button_label": "Shop plants",
+        "button_link": "/collections/plants",
+        "button_2_label": "Garden tools",
+        "button_2_link": "/collections/garden-tools",
+        "product": "potted-monstera"
+      }
+    },
+    "finder": {
+      "type": "plant-finder",
+      "blocks": {
+        "room-1": {
+          "type": "room",
+          "settings": {
+            "title": "Bright living room",
+            "light": "Bright, indirect light",
+            "icon": "sun",
+            "product": "potted-monstera",
+            "link": "/collections/bright-room"
+          }
+        },
+        "room-2": {
+          "type": "room",
+          "settings": {
+            "title": "Sunny windowsill",
+            "light": "Direct sun, little water",
+            "icon": "sun",
+            "product": "terracotta-cactus",
+            "link": "/collections/sunny-windowsill"
+          }
+        },
+        "room-3": {
+          "type": "room",
+          "settings": {
+            "title": "Shady corner",
+            "light": "Low light, hanging planters",
+            "icon": "moon",
+            "product": "macrame-plant-hanger",
+            "link": "/collections/shady-corner"
+          }
+        },
+        "room-4": {
+          "type": "room",
+          "settings": {
+            "title": "Balcony garden",
+            "light": "Outdoors, all seasons",
+            "icon": "leaf",
+            "product": "seed-packet",
+            "link": "/collections/balcony-garden"
+          }
+        }
+      },
+      "block_order": [
+        "room-1",
+        "room-2",
+        "room-3",
+        "room-4"
+      ],
+      "settings": {
+        "eyebrow": "Plant finder",
+        "heading": "Which room are you planting for?",
+        "text": "Pick a spot and we will show you what thrives there.",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "plants": {
+      "type": "featured-collection",
+      "settings": {
+        "eyebrow": "This week",
+        "heading": "Fresh from the greenhouse",
+        "text": "Six things to grow, water and prune.",
+        "collection": "all",
+        "products_to_show": 6,
+        "columns": "3",
+        "show_view_all": true,
+        "color_scheme": "scheme-1"
+      }
+    },
+    "care": {
+      "type": "care-levels",
+      "blocks": {
+        "plant-1": {
+          "type": "plant",
+          "settings": {
+            "product": "potted-monstera",
+            "light": 2,
+            "water": 2,
+            "note": "Likes a bright spot out of the midday sun. Water when the top soil is dry."
+          }
+        },
+        "plant-2": {
+          "type": "plant",
+          "settings": {
+            "product": "terracotta-cactus",
+            "light": 3,
+            "water": 1,
+            "note": "Full sun and a drink once a fortnight in summer, less in winter."
+          }
+        }
+      },
+      "block_order": [
+        "plant-1",
+        "plant-2"
+      ],
+      "settings": {
+        "eyebrow": "Easy to live with",
+        "heading": "How much care does it need?",
+        "light_label": "Light",
+        "water_label": "Water",
+        "color_scheme": "scheme-4"
+      }
+    },
+    "story": {
+      "type": "image-with-text",
+      "settings": {
+        "layout": "left",
+        "color_scheme": "scheme-1",
+        "eyebrow": "The greenhouse",
+        "heading": "Good roots, good plants",
+        "text": "<p>Every plant is repotted by hand in a peat-free mix and given a week to settle before it ships. We grow with small nurseries nearby and never sell what we would not keep on our own windowsill.</p>",
+        "button_label": "Read our story",
+        "button_link": "/pages/about-us"
+      }
+    },
+    "calendar": {
+      "type": "planting-calendar",
+      "blocks": {
+        "season-1": {
+          "type": "season",
+          "settings": {
+            "title": "Spring",
+            "months": "March to May",
+            "icon": "leaf",
+            "task_1": "Sow seeds indoors",
+            "task_2": "Repot houseplants",
+            "task_3": "Start feeding monthly",
+            "link": "/collections/all"
+          }
+        },
+        "season-2": {
+          "type": "season",
+          "settings": {
+            "title": "Summer",
+            "months": "June to August",
+            "icon": "sun",
+            "task_1": "Water early in the morning",
+            "task_2": "Move plants from direct sun",
+            "task_3": "Harvest herbs often",
+            "link": "/collections/balcony-garden"
+          }
+        },
+        "season-3": {
+          "type": "season",
+          "settings": {
+            "title": "Autumn",
+            "months": "September to November",
+            "icon": "drop",
+            "task_1": "Plant bulbs and hardy shrubs",
+            "task_2": "Cut back and tidy beds",
+            "task_3": "Bring tender plants in",
+            "link": "/collections/garden-tools"
+          }
+        },
+        "season-4": {
+          "type": "season",
+          "settings": {
+            "title": "Winter",
+            "months": "December to February",
+            "icon": "moon",
+            "task_1": "Water less, keep the light",
+            "task_2": "Clean dusty leaves",
+            "task_3": "Plan next year’s beds",
+            "link": "/collections/shady-corner"
+          }
+        }
+      },
+      "block_order": [
+        "season-1",
+        "season-2",
+        "season-3",
+        "season-4"
+      ],
+      "settings": {
+        "eyebrow": "Season by season",
+        "heading": "What to plant and when",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "categories": {
+      "type": "collection-list",
+      "settings": {
+        "eyebrow": "Browse",
+        "heading": "Shop by corner of the garden",
+        "columns": "3",
+        "collections": [],
+        "color_scheme": "scheme-1"
+      }
+    },
+    "reviews": {
+      "type": "testimonials",
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The monstera arrived upright, glossy and already showing a new leaf. The care card was spot on.",
+            "name": "Camille R.",
+            "detail": "Potted monstera",
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Finally a watering can that pours where you aim. It looks great on the balcony, too.",
+            "name": "Paul D.",
+            "detail": "Metal watering can",
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The secateurs cut clean and feel solid in the hand. I pruned the whole rose bed in an afternoon.",
+            "name": "Sophie L.",
+            "detail": "Pruning secateurs",
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ],
+      "settings": {
+        "heading": "Grown with Serre",
+        "color_scheme": "scheme-4"
+      }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {
+        "heading": "The Serre letter",
+        "text": "Monthly planting tips, what to sow now and 10% off your first order.",
+        "button_label": "Subscribe",
+        "color_scheme": "scheme-2"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "finder",
+    "plants",
+    "care",
+    "story",
+    "calendar",
+    "categories",
+    "reviews",
+    "newsletter"
+  ]
+}

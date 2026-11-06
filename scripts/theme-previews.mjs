@@ -110,7 +110,14 @@ async function seedDemoCatalog({ gql, put }, demo) {
         inventoryItem: { tracked: true },
       })),
     };
-    const made = must(`product ${p.handle}`, (await gql('mutation($i: ProductSetInput!) { productSet(input: $i) { product { id variants(first: 100) { nodes { sku inventoryItem { id } } } } userErrors { field message } } }', { i: input })).productSet);
+    const made = must(`product ${p.handle}`, (await gql('mutation($i: ProductSetInput!) { productSet(input: $i) { product { id variants(first: 100) { nodes { id sku inventoryItem { id } } } } userErrors { field message } } }', { i: input })).productSet);
+    // a variant may name its photo (`variants[i].image`, one of the product's files): link it, so choosing a colour changes the photo
+    if (p.variants.some((v) => v.image)) {
+      const files = [p.image, ...(p.extraImages ?? [])];
+      const prod = (await gql('query($id: ID!) { product(id: $id) { media(first: 50) { nodes { id } } } }', { id: made.product.id })).product;
+      const links = made.product.variants.nodes.map((v) => ({ id: v.id, mediaId: prod.media.nodes[files.indexOf(p.variants[input.variants.findIndex((x) => x.sku === v.sku)]?.image)]?.id })).filter((v) => v.mediaId);
+      must(`variant photos ${p.handle}`, (await gql('mutation($p: ID!, $v: [ProductVariantsBulkInput!]!) { productVariantsBulkUpdate(productId: $p, variants: $v) { userErrors { field message } } }', { p: made.product.id, v: links })).productVariantsBulkUpdate);
+    }
     // stock levels cannot be given while a variant is created: set them afterwards
     const quantities = made.product.variants.nodes.map((v) => ({ inventoryItemId: v.inventoryItem.id, locationId: location, quantity: p.variants[input.variants.findIndex((x) => x.sku === v.sku)]?.stock ?? 10 }));
     must(`stock ${p.handle}`, (await gql('mutation($i: InventorySetQuantitiesInput!) { inventorySetQuantities(input: $i) { userErrors { field message } } }', { i: { name: 'available', reason: 'correction', quantities } })).inventorySetQuantities);
@@ -157,7 +164,8 @@ async function placeHomePhotos({ gql }, themeId, handle, photos) {
 /** Scrolls the page so lazy images and reveal-on-scroll sections show, and waits for the images. */
 const settle = async (page) => {
   await page.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 400) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 60)); } window.scrollTo(0, 0); });
-  await page.evaluate(() => Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })))));
+  // Lazy images that stay hidden at this width never load: wait for the others, at most 8 s.
+  await page.evaluate(() => Promise.race([Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => { i.addEventListener('load', r, { once: true }); i.addEventListener('error', r, { once: true }); })))), new Promise((r) => setTimeout(r, 8000))]));
   await page.waitForTimeout(400);
 };
 

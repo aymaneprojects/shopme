@@ -1,0 +1,31 @@
+{
+  "about": "What changed in each version of Sommet, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release of Sommet, a bold theme for sport and outdoor shops.",
+          "Header with the logo on the left, a mega menu that opens columns of links, a search panel and a slide-in bag.",
+          "Rounded product cards with a second photo on hover, colour swatches and a quick add button.",
+          "Product page with every photo in a column while the details stay in view, options, subscriptions and a low stock message.",
+          "Collection page with a sidebar of filters, sorting and infinite scroll.",
+          "New sections: activity tiles, specs comparison, trail-tested promise and a countdown timer.",
+          "Breadcrumbs, back to top button and an optional age check.",
+          "Section names, settings and storefront texts are translated to English and French."
+        ],
+        "fr": [
+          "Première version de Sommet, un thème tonique pour les boutiques de sport et de plein air.",
+          "En-tête avec le logo à gauche, méga-menu qui ouvre des colonnes de liens, panneau de recherche et panier latéral.",
+          "Cartes produit arrondies avec seconde photo au survol, pastilles de couleur et bouton d’ajout rapide.",
+          "Page produit avec toutes les photos en colonne pendant que les détails restent visibles, options, abonnements et message de stock faible.",
+          "Page collection avec barre latérale de filtres, tri et défilement infini.",
+          "Nouvelles sections : tuiles d’activités, comparatif technique, promesse testée sur le terrain et compte à rebours.",
+          "Fil d’Ariane, bouton retour en haut et vérification d’âge facultative.",
+          "Les noms des sections, les réglages et les textes de la boutique sont traduits en anglais et en français."
+        ]
+      }
+    }
+  ]
+}

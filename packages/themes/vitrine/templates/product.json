@@ -1,0 +1,77 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "blocks": {
+        "benefit-1": {
+          "type": "benefit",
+          "settings": {
+            "icon": "clock",
+            "text": "Cold for 24 hours, hot for 12"
+          }
+        },
+        "benefit-2": {
+          "type": "benefit",
+          "settings": {
+            "icon": "shield",
+            "text": "Lifetime guarantee on the steel"
+          }
+        },
+        "benefit-3": {
+          "type": "benefit",
+          "settings": {
+            "icon": "truck",
+            "text": "Free delivery and 30-day returns"
+          }
+        },
+        "accordion-4": {
+          "type": "accordion",
+          "settings": {
+            "show_description": true,
+            "open": true
+          }
+        },
+        "details-5": {
+          "type": "details",
+          "settings": {
+            "namespace": "custom",
+            "key": "details"
+          }
+        },
+        "accordion-6": {
+          "type": "accordion",
+          "settings": {}
+        },
+        "accordion-7": {
+          "type": "accordion",
+          "settings": {}
+        }
+      },
+      "block_order": [
+        "benefit-1",
+        "benefit-2",
+        "benefit-3",
+        "accordion-4",
+        "details-5",
+        "accordion-6",
+        "accordion-7"
+      ],
+      "settings": {
+        "show_vendor": true,
+        "show_summary": true,
+        "show_badge": true
+      }
+    },
+    "recommendations": {
+      "type": "product-recommendations",
+      "settings": {
+        "products_to_show": 3,
+        "columns": "3"
+      }
+    }
+  },
+  "order": [
+    "main",
+    "recommendations"
+  ]
+}

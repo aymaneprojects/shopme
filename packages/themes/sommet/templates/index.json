@@ -1,0 +1,265 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "chip-1": {
+          "type": "chip",
+          "settings": {
+            "icon": "shield",
+            "text": "Five-year guarantee"
+          }
+        },
+        "chip-2": {
+          "type": "chip",
+          "settings": {
+            "icon": "refresh",
+            "text": "60-day trail returns"
+          }
+        },
+        "chip-3": {
+          "type": "chip",
+          "settings": {
+            "icon": "package",
+            "text": "Light by design"
+          }
+        }
+      },
+      "block_order": [
+        "chip-1",
+        "chip-2",
+        "chip-3"
+      ],
+      "settings": {
+        "layout": "full",
+        "color_scheme": "scheme-2",
+        "eyebrow": "Hike. Run. Camp.",
+        "heading": "Go higher",
+        "text": "Light, tough gear for long days outside, tested on the trails before it reaches you.",
+        "button_label": "Shop the gear",
+        "button_link": "/collections/all",
+        "button_2_label": "By activity",
+        "button_2_link": "/collections/hike"
+      }
+    },
+    "activities": {
+      "type": "activity-tiles",
+      "blocks": {
+        "activity-1": {
+          "type": "activity",
+          "settings": {
+            "title": "Hike",
+            "text": "Packs, poles and layers for long days.",
+            "product": "hiking-backpack-30l",
+            "link": "/collections/hike"
+          }
+        },
+        "activity-2": {
+          "type": "activity",
+          "settings": {
+            "title": "Run",
+            "text": "Shoes and bottles built for speed.",
+            "product": "trail-running-shoes",
+            "link": "/collections/run"
+          }
+        },
+        "activity-3": {
+          "type": "activity",
+          "settings": {
+            "title": "Camp",
+            "text": "Light and heat when the sun goes down.",
+            "product": "led-headlamp",
+            "link": "/collections/camp"
+          }
+        }
+      },
+      "block_order": [
+        "activity-1",
+        "activity-2",
+        "activity-3"
+      ],
+      "settings": {
+        "eyebrow": "Pick your day",
+        "heading": "Shop by activity",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "gear": {
+      "type": "featured-collection",
+      "settings": {
+        "eyebrow": "Just landed",
+        "heading": "Fresh gear",
+        "text": "",
+        "collection": "all",
+        "products_to_show": 4,
+        "columns": "4",
+        "show_view_all": true,
+        "color_scheme": "scheme-1"
+      }
+    },
+    "specs": {
+      "type": "spec-compare",
+      "blocks": {
+        "item-1": {
+          "type": "item",
+          "settings": {
+            "product": "hiking-backpack-30l",
+            "badge": "Best seller",
+            "value_1": "980 g",
+            "value_2": "Day hikes, 30 L",
+            "value_3": "Rain cover included",
+            "value_4": "5 years"
+          }
+        },
+        "item-2": {
+          "type": "item",
+          "settings": {
+            "product": "light-windbreaker-jacket",
+            "badge": "",
+            "value_1": "190 g",
+            "value_2": "Ridge lines and wind",
+            "value_3": "Wind and showerproof",
+            "value_4": "5 years"
+          }
+        },
+        "item-3": {
+          "type": "item",
+          "settings": {
+            "product": "trail-running-shoes",
+            "badge": "New",
+            "value_1": "270 g each",
+            "value_2": "Rocky and muddy trails",
+            "value_3": "Quick-dry mesh",
+            "value_4": "2 years"
+          }
+        }
+      },
+      "block_order": [
+        "item-1",
+        "item-2",
+        "item-3"
+      ],
+      "settings": {
+        "eyebrow": "Tech specs",
+        "heading": "Compare before you go",
+        "label_1": "Weight",
+        "label_2": "Best for",
+        "label_3": "Weather rating",
+        "label_4": "Warranty",
+        "button_label": "View",
+        "color_scheme": "scheme-4"
+      }
+    },
+    "promise": {
+      "type": "trail-promise",
+      "blocks": {
+        "stat-1": {
+          "type": "stat",
+          "settings": {
+            "value": "500 km",
+            "label": "walked by every prototype"
+          }
+        },
+        "stat-2": {
+          "type": "stat",
+          "settings": {
+            "value": "3 seasons",
+            "label": "of field testing"
+          }
+        },
+        "stat-3": {
+          "type": "stat",
+          "settings": {
+            "value": "5 years",
+            "label": "guarantee on every piece"
+          }
+        }
+      },
+      "block_order": [
+        "stat-1",
+        "stat-2",
+        "stat-3"
+      ],
+      "settings": {
+        "eyebrow": "Trail tested",
+        "heading": "Tested where it counts",
+        "text": "Every piece goes through a season of real use before it reaches the shop. If it fails on a trail, it does not ship.",
+        "button_label": "Our promise",
+        "button_link": "/pages/about-us",
+        "color_scheme": "scheme-3"
+      }
+    },
+    "story": {
+      "type": "image-with-text",
+      "settings": {
+        "layout": "right",
+        "color_scheme": "scheme-1",
+        "eyebrow": "On the trail",
+        "heading": "Built by people who run in the rain",
+        "text": "<p>Sommet started with a few friends who were tired of kit that failed halfway up a mountain. We design for the first hour and the tenth, and we repair what we sell.</p>",
+        "button_label": "Read our story",
+        "button_link": "/pages/about-us"
+      }
+    },
+    "reviews": {
+      "type": "testimonials",
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The pack carried everything for a three-day trek and never rubbed. Best straps I have used.",
+            "name": "Julien P.",
+            "detail": "Hiking backpack 30 L",
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Grip on wet rock is excellent and they dry in minutes after a stream crossing.",
+            "name": "Inès B.",
+            "detail": "Trail running shoes",
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Bright enough for a night descent and light enough to forget it is on my head.",
+            "name": "Marc T.",
+            "detail": "LED headlamp",
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ],
+      "settings": {
+        "heading": "Out there with Sommet",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {
+        "heading": "Join the summit list",
+        "text": "Trail guides, new gear and 10% off your first order.",
+        "button_label": "Subscribe",
+        "color_scheme": "scheme-3"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "activities",
+    "gear",
+    "specs",
+    "promise",
+    "story",
+    "reviews",
+    "newsletter"
+  ]
+}

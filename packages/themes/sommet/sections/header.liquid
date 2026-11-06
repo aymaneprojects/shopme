@@ -1,0 +1,44 @@
+{%- liquid
+  assign menu = section.settings.menu
+-%}
+<header class="k-header k-header--mega{% if section.settings.sticky %} k-header--sticky{% endif %}{% if section.settings.transparent_home and template.name == 'index' %} k-header--over{% endif %}" data-header>
+  <div class="page-width k-header__inner">
+    <div class="k-header__start">
+      {% render 'header-drawer', menu: menu %}
+    </div>
+    {% render 'header-logo' %}
+    {% render 'header-menu', menu: menu, mega: true, modifier: 'k-menu--mega' %}
+    <div class="k-header__end">
+      {% render 'header-icons', parts: 'search,account,bag' %}
+    </div>
+  </div>
+  {% render 'header-search' %}
+</header>
+
+{% schema %}
+{
+  "name": "t:sections.header.name",
+  "tag": "div",
+  "class": "header-section",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "t:sections.header.settings.menu",
+      "default": "main-menu"
+    },
+    {
+      "type": "checkbox",
+      "id": "sticky",
+      "label": "t:sections.header.settings.sticky",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "transparent_home",
+      "label": "t:sections.header.settings.transparent_home",
+      "default": false
+    }
+  ]
+}
+{% endschema %}

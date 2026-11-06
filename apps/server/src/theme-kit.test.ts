@@ -22,7 +22,7 @@ const themeDir = (handle: string) => path.join(ROOT, 'packages/themes', handle);
 
 describe('theme kit', () => {
   it('lists the themes built with it', () => {
-    expect(HANDLES).toEqual(['cimaise', 'comptine', 'foyer', 'maroquin', 'pelage', 'sillage']);
+    expect(HANDLES).toEqual(['cimaise', 'comptine', 'foyer', 'maroquin', 'pelage', 'serre', 'sillage', 'sommet', 'vitrine']);
   });
 
   it.each(HANDLES)('%s: the committed folder is what the kit generates (run node scripts/theme-kit/build.mjs)', async (handle) => {
@@ -37,13 +37,14 @@ describe('theme kit', () => {
     for (const [file, body] of a) expect(Buffer.from(body).equals(Buffer.from(b.get(file)!)), file).toBe(true);
   });
 
-  it('gives the three themes different headers, cards, product pages and home pages', async () => {
+  it('gives every kit theme its own layout combination, home page and accent colour', async () => {
     const all = await Promise.all(HANDLES.map((h) => kit.loadOptions(h)));
     // Only three headers, four card styles and three product pages exist: what differs is the combination with the collection layout.
     expect(new Set(all.map((o) => [o.header.layout, o.card.style, o.product.layout, o.collection.layout].join('|'))).size).toBe(all.length);
     expect(new Set(all.map((o) => JSON.stringify(o.home.map((s: { type: string }) => s.type)))).size).toBe(all.length);
     expect(new Set(all.map((o) => o.colors.accent)).size).toBe(all.length);
-    expect(new Set(all.map((o) => o.fonts.heading + o.fonts.body)).size).toBe(all.length);
+    // Only six fonts are served, so font pairs may repeat across themes; layouts, home pages and accents must not.
+    expect(new Set(all.map((o) => o.fonts.heading + o.fonts.body)).size).toBeGreaterThanOrEqual(Math.min(all.length, 6));
   });
 
   it('refuses options it cannot honor', async () => {
@@ -74,8 +75,10 @@ describe('theme kit', () => {
     const demo = path.join(themeDir(handle), 'demo');
     const catalog = JSON.parse(readFileSync(path.join(demo, 'catalog.json'), 'utf8'));
     expect(catalog.storeName.length).toBeGreaterThan(2);
-    expect(catalog.products.length).toBe(6);
-    expect(catalog.collections.length).toBeGreaterThan(1);
+    // A single-product store (catalog size "one") ships one product whose variants carry the six photos.
+    const single = JSON.parse(readFileSync(path.join(themeDir(handle), 'config/settings_schema.json'), 'utf8'))[0].shopme_catalog_size === 'one';
+    expect(catalog.products.length).toBe(single ? 1 : 6);
+    expect(catalog.collections.length).toBeGreaterThanOrEqual(single ? 1 : 2);
     expect(catalog.menu.length).toBeGreaterThan(2);
     for (const p of catalog.products) {
       for (const text of [p.title, p.description]) { expect(typeof text.en).toBe('string'); expect(typeof text.fr).toBe('string'); expect(text.fr).not.toBe(text.en); }

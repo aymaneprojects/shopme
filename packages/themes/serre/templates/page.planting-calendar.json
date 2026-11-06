@@ -1,0 +1,67 @@
+{
+  "sections": {
+    "calendar": {
+      "type": "planting-calendar",
+      "blocks": {
+        "season-1": {
+          "type": "season",
+          "settings": {
+            "title": "Spring",
+            "months": "March to May",
+            "icon": "leaf",
+            "task_1": "Sow seeds indoors",
+            "task_2": "Repot houseplants",
+            "task_3": "Start feeding monthly"
+          }
+        },
+        "season-2": {
+          "type": "season",
+          "settings": {
+            "title": "Summer",
+            "months": "June to August",
+            "icon": "sun",
+            "task_1": "Water early in the morning",
+            "task_2": "Move plants from direct sun",
+            "task_3": "Harvest herbs often"
+          }
+        },
+        "season-3": {
+          "type": "season",
+          "settings": {
+            "title": "Autumn",
+            "months": "September to November",
+            "icon": "drop",
+            "task_1": "Plant bulbs and hardy shrubs",
+            "task_2": "Cut back and tidy beds",
+            "task_3": "Bring tender plants in"
+          }
+        },
+        "season-4": {
+          "type": "season",
+          "settings": {
+            "title": "Winter",
+            "months": "December to February",
+            "icon": "moon",
+            "task_1": "Water less, keep the light",
+            "task_2": "Clean dusty leaves",
+            "task_3": "Plan next year’s beds"
+          }
+        }
+      },
+      "block_order": [
+        "season-1",
+        "season-2",
+        "season-3",
+        "season-4"
+      ],
+      "settings": {
+        "eyebrow": "Season by season",
+        "heading": "The planting calendar",
+        "color_scheme": "scheme-1"
+      }
+    }
+  },
+  "order": [
+    "calendar"
+  ]
+}

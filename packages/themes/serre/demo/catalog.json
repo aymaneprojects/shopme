@@ -1,0 +1,667 @@
+{
+  "storeName": "Serre",
+  "currency": "EUR",
+  "menu": [
+    {
+      "title": {
+        "en": "Plants",
+        "fr": "Plantes"
+      },
+      "url": "/collections/plants"
+    },
+    {
+      "title": {
+        "en": "Garden tools",
+        "fr": "Outils de jardin"
+      },
+      "url": "/collections/garden-tools"
+    },
+    {
+      "title": {
+        "en": "By room",
+        "fr": "Par pièce"
+      },
+      "url": "/collections/bright-room"
+    },
+    {
+      "title": {
+        "en": "Calendar",
+        "fr": "Calendrier"
+      },
+      "url": "/pages/planting-calendar"
+    }
+  ],
+  "footerMenu": [
+    {
+      "title": {
+        "en": "Shop all",
+        "fr": "Tout voir"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Planting calendar",
+        "fr": "Calendrier de plantation"
+      },
+      "url": "/pages/planting-calendar"
+    },
+    {
+      "title": {
+        "en": "Search",
+        "fr": "Recherche"
+      },
+      "url": "/search"
+    }
+  ],
+  "pages": [
+    {
+      "handle": "planting-calendar",
+      "title": {
+        "en": "Planting calendar",
+        "fr": "Calendrier de plantation"
+      },
+      "template": "planting-calendar"
+    }
+  ],
+  "collections": [
+    {
+      "handle": "plants",
+      "title": {
+        "en": "Plants",
+        "fr": "Plantes"
+      },
+      "description": {
+        "en": "Houseplants and succulents, repotted by hand.",
+        "fr": "Plantes d’intérieur et succulentes, rempotées à la main."
+      },
+      "products": [
+        "potted-monstera",
+        "terracotta-cactus"
+      ]
+    },
+    {
+      "handle": "garden-tools",
+      "title": {
+        "en": "Garden tools",
+        "fr": "Outils de jardin"
+      },
+      "description": {
+        "en": "Tools and seeds that earn their place in the shed.",
+        "fr": "Des outils et des graines qui ont leur place dans la cabane."
+      },
+      "products": [
+        "metal-watering-can",
+        "pruning-secateurs",
+        "seed-packet"
+      ]
+    },
+    {
+      "handle": "bright-room",
+      "title": {
+        "en": "Bright living room",
+        "fr": "Salon lumineux"
+      },
+      "description": {
+        "en": "Statement plants for bright, indirect light.",
+        "fr": "Des plantes décoratives pour une lumière vive et indirecte."
+      },
+      "products": [
+        "potted-monstera",
+        "metal-watering-can"
+      ]
+    },
+    {
+      "handle": "sunny-windowsill",
+      "title": {
+        "en": "Sunny windowsill",
+        "fr": "Rebord de fenêtre ensoleillé"
+      },
+      "description": {
+        "en": "Sun lovers that ask for very little water.",
+        "fr": "Des amoureuses du soleil qui demandent très peu d’eau."
+      },
+      "products": [
+        "terracotta-cactus",
+        "seed-packet"
+      ]
+    },
+    {
+      "handle": "shady-corner",
+      "title": {
+        "en": "Shady corner",
+        "fr": "Coin d’ombre"
+      },
+      "description": {
+        "en": "Hanging planters and shade-tolerant greens.",
+        "fr": "Suspensions et plantes qui supportent l’ombre."
+      },
+      "products": [
+        "macrame-plant-hanger",
+        "potted-monstera"
+      ]
+    },
+    {
+      "handle": "balcony-garden",
+      "title": {
+        "en": "Balcony garden",
+        "fr": "Jardin de balcon"
+      },
+      "description": {
+        "en": "Seeds and tools for a small outdoor space.",
+        "fr": "Graines et outils pour un petit espace extérieur."
+      },
+      "products": [
+        "seed-packet",
+        "metal-watering-can",
+        "pruning-secateurs"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "handle": "potted-monstera",
+      "image": "produit-01.webp",
+      "extraImages": [
+        "hero.webp",
+        "ambiance.webp"
+      ],
+      "vendor": "Serre",
+      "type": {
+        "en": "Plants",
+        "fr": "Plantes"
+      },
+      "tags": [
+        "plants",
+        "houseplant",
+        "new"
+      ],
+      "title": {
+        "en": "Potted Monstera",
+        "fr": "Monstera en pot"
+      },
+      "description": {
+        "en": "A full monstera deliciosa in a 21 cm pot, with the split leaves that make it famous. Bright, indirect light and a weekly drink are all it asks.",
+        "fr": "Un monstera deliciosa bien fourni en pot de 21 cm, avec les feuilles découpées qui font sa réputation. Une lumière vive et indirecte et un arrosage par semaine lui suffisent."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            {
+              "en": "Medium",
+              "fr": "Moyen"
+            },
+            {
+              "en": "Large",
+              "fr": "Grand"
+            }
+          ]
+        }
+      ],
+      "price": 39,
+      "variants": [
+        {
+          "stock": 14
+        },
+        {
+          "stock": 5
+        }
+      ]
+    },
+    {
+      "handle": "terracotta-cactus",
+      "image": "produit-02.webp",
+      "vendor": "Serre",
+      "type": {
+        "en": "Plants",
+        "fr": "Plantes"
+      },
+      "tags": [
+        "plants",
+        "cactus",
+        "gift"
+      ],
+      "title": {
+        "en": "Cactus in Terracotta",
+        "fr": "Cactus en terre cuite"
+      },
+      "description": {
+        "en": "A sturdy cactus in a hand-finished terracotta pot with a drainage saucer. Full sun, a drink every two weeks, and it keeps going for years.",
+        "fr": "Un cactus robuste dans un pot en terre cuite fini à la main, avec soucoupe de drainage. Plein soleil, un verre d’eau tous les quinze jours, et il dure des années."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Pot",
+            "fr": "Pot"
+          },
+          "values": [
+            {
+              "en": "Terracotta",
+              "fr": "Terre cuite"
+            },
+            {
+              "en": "Cream",
+              "fr": "Crème"
+            }
+          ]
+        }
+      ],
+      "price": 19,
+      "variants": [
+        {
+          "stock": 22
+        },
+        {
+          "stock": 9
+        }
+      ]
+    },
+    {
+      "handle": "metal-watering-can",
+      "image": "produit-03.webp",
+      "vendor": "Serre",
+      "type": {
+        "en": "Garden tools",
+        "fr": "Outils de jardin"
+      },
+      "tags": [
+        "tools",
+        "watering",
+        "gift"
+      ],
+      "title": {
+        "en": "Metal Watering Can",
+        "fr": "Arrosoir en métal"
+      },
+      "description": {
+        "en": "A 2 litre galvanised can with a long, slim spout that pours exactly where you aim, and a removable rose for seedlings.",
+        "fr": "Un arrosoir galvanisé de 2 litres au long bec fin qui verse exactement où l’on vise, avec pomme amovible pour les semis."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Finish",
+            "fr": "Finition"
+          },
+          "values": [
+            {
+              "en": "Metal",
+              "fr": "Métal"
+            },
+            {
+              "en": "Green",
+              "fr": "Vert"
+            }
+          ]
+        }
+      ],
+      "price": 34,
+      "compareAt": 42,
+      "variants": [
+        {
+          "stock": 18
+        },
+        {
+          "stock": 7
+        }
+      ]
+    },
+    {
+      "handle": "seed-packet",
+      "image": "produit-04.webp",
+      "vendor": "Serre",
+      "type": {
+        "en": "Seeds",
+        "fr": "Graines"
+      },
+      "tags": [
+        "seeds",
+        "balcony",
+        "gift"
+      ],
+      "title": {
+        "en": "Flower Seed Packet",
+        "fr": "Sachet de graines de fleurs"
+      },
+      "description": {
+        "en": "A mix of open-pollinated annual flowers for pots and borders, sown from April. Good for bees, easy for beginners.",
+        "fr": "Un mélange de fleurs annuelles non hybrides pour pots et massifs, à semer dès avril. Bon pour les abeilles, facile pour les débutants."
+      },
+      "options": [],
+      "price": 4.5,
+      "variants": [
+        {
+          "stock": 80
+        }
+      ]
+    },
+    {
+      "handle": "macrame-plant-hanger",
+      "image": "produit-05.webp",
+      "vendor": "Serre",
+      "type": {
+        "en": "Pots and hangers",
+        "fr": "Pots et suspensions"
+      },
+      "tags": [
+        "hanger",
+        "decor",
+        "gift"
+      ],
+      "title": {
+        "en": "Macramé Plant Hanger",
+        "fr": "Suspension macramé"
+      },
+      "description": {
+        "en": "A hand-knotted cotton hanger that carries a 15 to 22 cm pot. Hang it by a bright window and let trailing plants spill over.",
+        "fr": "Une suspension en coton nouée à la main qui porte un pot de 15 à 22 cm. Accrochez-la près d’une fenêtre lumineuse et laissez retomber les plantes."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Cream",
+              "fr": "Crème"
+            },
+            {
+              "en": "Sage",
+              "fr": "Sauge"
+            }
+          ]
+        }
+      ],
+      "price": 24,
+      "variants": [
+        {
+          "stock": 16
+        },
+        {
+          "stock": 11
+        }
+      ]
+    },
+    {
+      "handle": "pruning-secateurs",
+      "image": "produit-06.webp",
+      "vendor": "Serre",
+      "type": {
+        "en": "Garden tools",
+        "fr": "Outils de jardin"
+      },
+      "tags": [
+        "tools",
+        "pruning"
+      ],
+      "title": {
+        "en": "Pruning Secateurs",
+        "fr": "Sécateur"
+      },
+      "description": {
+        "en": "Bypass secateurs with hardened steel blades and a soft-grip handle. Cuts stems up to 20 mm cleanly, and the blades can be replaced.",
+        "fr": "Sécateur à lames franches en acier trempé et poignée souple. Coupe net les tiges jusqu’à 20 mm, lames remplaçables."
+      },
+      "options": [],
+      "price": 29,
+      "variants": [
+        {
+          "stock": 25
+        }
+      ]
+    }
+  ],
+  "homepage": {
+    "en": {
+      "hero": {
+        "eyebrow": "Plants and garden",
+        "heading": "Bring the greenhouse home",
+        "text": "Healthy houseplants, terracotta pots and well-made garden tools, chosen by people who actually grow things.",
+        "button_label": "Shop plants",
+        "button_2_label": "Garden tools"
+      },
+      "hero.chip-1": {
+        "text": "Peat-free soil"
+      },
+      "hero.chip-2": {
+        "text": "Healthy on arrival"
+      },
+      "hero.chip-3": {
+        "text": "Care advice included"
+      },
+      "finder": {
+        "eyebrow": "Plant finder",
+        "heading": "Which room are you planting for?",
+        "text": "Pick a spot and we will show you what thrives there."
+      },
+      "finder.room-1": {
+        "title": "Bright living room",
+        "light": "Bright, indirect light"
+      },
+      "finder.room-2": {
+        "title": "Sunny windowsill",
+        "light": "Direct sun, little water"
+      },
+      "finder.room-3": {
+        "title": "Shady corner",
+        "light": "Low light, hanging planters"
+      },
+      "finder.room-4": {
+        "title": "Balcony garden",
+        "light": "Outdoors, all seasons"
+      },
+      "plants": {
+        "eyebrow": "This week",
+        "heading": "Fresh from the greenhouse",
+        "text": "Six things to grow, water and prune."
+      },
+      "care": {
+        "eyebrow": "Easy to live with",
+        "heading": "How much care does it need?",
+        "light_label": "Light",
+        "water_label": "Water"
+      },
+      "care.plant-1": {
+        "note": "Likes a bright spot out of the midday sun. Water when the top soil is dry."
+      },
+      "care.plant-2": {
+        "note": "Full sun and a drink once a fortnight in summer, less in winter."
+      },
+      "story": {
+        "eyebrow": "The greenhouse",
+        "heading": "Good roots, good plants",
+        "text": "<p>Every plant is repotted by hand in a peat-free mix and given a week to settle before it ships. We grow with small nurseries nearby and never sell what we would not keep on our own windowsill.</p>",
+        "button_label": "Read our story"
+      },
+      "calendar": {
+        "eyebrow": "Season by season",
+        "heading": "What to plant and when"
+      },
+      "calendar.season-1": {
+        "title": "Spring",
+        "months": "March to May",
+        "task_1": "Sow seeds indoors",
+        "task_2": "Repot houseplants",
+        "task_3": "Start feeding monthly"
+      },
+      "calendar.season-2": {
+        "title": "Summer",
+        "months": "June to August",
+        "task_1": "Water early in the morning",
+        "task_2": "Move plants from direct sun",
+        "task_3": "Harvest herbs often"
+      },
+      "calendar.season-3": {
+        "title": "Autumn",
+        "months": "September to November",
+        "task_1": "Plant bulbs and hardy shrubs",
+        "task_2": "Cut back and tidy beds",
+        "task_3": "Bring tender plants in"
+      },
+      "calendar.season-4": {
+        "title": "Winter",
+        "months": "December to February",
+        "task_1": "Water less, keep the light",
+        "task_2": "Clean dusty leaves",
+        "task_3": "Plan next year’s beds"
+      },
+      "categories": {
+        "eyebrow": "Browse",
+        "heading": "Shop by corner of the garden"
+      },
+      "reviews": {
+        "heading": "Grown with Serre"
+      },
+      "reviews.testimonial-1": {
+        "quote": "The monstera arrived upright, glossy and already showing a new leaf. The care card was spot on.",
+        "detail": "Potted monstera"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Finally a watering can that pours where you aim. It looks great on the balcony, too.",
+        "detail": "Metal watering can"
+      },
+      "reviews.testimonial-3": {
+        "quote": "The secateurs cut clean and feel solid in the hand. I pruned the whole rose bed in an afternoon.",
+        "detail": "Pruning secateurs"
+      },
+      "newsletter": {
+        "heading": "The Serre letter",
+        "text": "Monthly planting tips, what to sow now and 10% off your first order.",
+        "button_label": "Subscribe"
+      }
+    },
+    "fr": {
+      "hero": {
+        "eyebrow": "Plantes et jardin",
+        "heading": "Ramenez la serre à la maison",
+        "text": "Des plantes d’intérieur en pleine santé, des pots en terre cuite et de bons outils de jardin, choisis par des gens qui cultivent vraiment.",
+        "button_label": "Voir les plantes",
+        "button_2_label": "Outils de jardin"
+      },
+      "hero.chip-1": {
+        "text": "Terreau sans tourbe"
+      },
+      "hero.chip-2": {
+        "text": "Saines à l’arrivée"
+      },
+      "hero.chip-3": {
+        "text": "Conseils d’entretien inclus"
+      },
+      "finder": {
+        "eyebrow": "Trouver sa plante",
+        "heading": "Pour quelle pièce cherchez-vous ?",
+        "text": "Choisissez un endroit, nous vous montrons ce qui s’y plaît."
+      },
+      "finder.room-1": {
+        "title": "Salon lumineux",
+        "light": "Lumière vive, indirecte"
+      },
+      "finder.room-2": {
+        "title": "Rebord de fenêtre ensoleillé",
+        "light": "Plein soleil, peu d’eau"
+      },
+      "finder.room-3": {
+        "title": "Coin d’ombre",
+        "light": "Peu de lumière, suspensions"
+      },
+      "finder.room-4": {
+        "title": "Jardin de balcon",
+        "light": "Dehors, toute l’année"
+      },
+      "plants": {
+        "eyebrow": "Cette semaine",
+        "heading": "Tout frais de la serre",
+        "text": "Six choses à cultiver, arroser et tailler."
+      },
+      "care": {
+        "eyebrow": "Facile à vivre",
+        "heading": "Quel entretien demande-t-elle ?",
+        "light_label": "Lumière",
+        "water_label": "Arrosage"
+      },
+      "care.plant-1": {
+        "note": "Aime une place lumineuse à l’abri du soleil de midi. Arrosez quand la terre est sèche en surface."
+      },
+      "care.plant-2": {
+        "note": "Plein soleil et un verre d’eau tous les quinze jours l’été, moins l’hiver."
+      },
+      "story": {
+        "eyebrow": "La serre",
+        "heading": "De bonnes racines, de belles plantes",
+        "text": "<p>Chaque plante est rempotée à la main dans un terreau sans tourbe et laissée une semaine au repos avant l’expédition. Nous travaillons avec de petites pépinières voisines et ne vendons rien que nous ne garderions pas sur notre propre rebord de fenêtre.</p>",
+        "button_label": "Lire notre histoire"
+      },
+      "calendar": {
+        "eyebrow": "Saison après saison",
+        "heading": "Quoi planter et quand"
+      },
+      "calendar.season-1": {
+        "title": "Printemps",
+        "months": "De mars à mai",
+        "task_1": "Semer à l’intérieur",
+        "task_2": "Rempoter les plantes d’intérieur",
+        "task_3": "Reprendre l’engrais mensuel"
+      },
+      "calendar.season-2": {
+        "title": "Été",
+        "months": "De juin à août",
+        "task_1": "Arroser tôt le matin",
+        "task_2": "Écarter les plantes du plein soleil",
+        "task_3": "Cueillir les aromatiques souvent"
+      },
+      "calendar.season-3": {
+        "title": "Automne",
+        "months": "De septembre à novembre",
+        "task_1": "Planter bulbes et arbustes rustiques",
+        "task_2": "Couper et nettoyer les massifs",
+        "task_3": "Rentrer les plantes fragiles"
+      },
+      "calendar.season-4": {
+        "title": "Hiver",
+        "months": "De décembre à février",
+        "task_1": "Moins d’eau, mais de la lumière",
+        "task_2": "Dépoussiérer les feuilles",
+        "task_3": "Préparer les massifs de l’an prochain"
+      },
+      "categories": {
+        "eyebrow": "Parcourir",
+        "heading": "Acheter par coin de jardin"
+      },
+      "reviews": {
+        "heading": "Cultivé avec Serre"
+      },
+      "reviews.testimonial-1": {
+        "quote": "Le monstera est arrivé droit, brillant, avec déjà une nouvelle feuille. La fiche d’entretien était parfaite.",
+        "detail": "Monstera en pot"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Enfin un arrosoir qui verse là où on vise. Il est beau sur le balcon, en plus.",
+        "detail": "Arrosoir en métal"
+      },
+      "reviews.testimonial-3": {
+        "quote": "Le sécateur coupe net et tient bien en main. J’ai taillé tout le massif de rosiers en un après-midi.",
+        "detail": "Sécateur"
+      },
+      "newsletter": {
+        "heading": "La lettre de Serre",
+        "text": "Chaque mois, des conseils de plantation, quoi semer maintenant et 10 % sur votre première commande.",
+        "button_label": "S’abonner"
+      }
+    },
+    "images": {
+      "hero": {
+        "image": "hero.webp"
+      },
+      "story": {
+        "image": "ambiance.webp"
+      }
+    }
+  }
+}

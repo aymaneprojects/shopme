@@ -1,0 +1,27 @@
+{%- doc -%}
+  Page links for a paginate object.
+  @param {object} paginate - the paginate object
+{%- enddoc -%}
+{%- if paginate.pages > 1 -%}
+  <nav class="pagination" aria-label="{{ 'general.pagination' | t }}">
+    {%- if paginate.previous -%}
+      <a class="pagination__link" href="{{ paginate.previous.url }}" rel="prev">{{ 'general.previous' | t }}</a>
+    {%- endif -%}
+    <ul class="pagination__list">
+      {%- for part in paginate.parts -%}
+        <li>
+          {%- if part.is_link -%}
+            <a class="pagination__link" href="{{ part.url }}">{{ part.title }}</a>
+          {%- elsif part.title == paginate.current_page -%}
+            <span class="pagination__link pagination__link--current" aria-current="page">{{ part.title }}</span>
+          {%- else -%}
+            <span class="pagination__gap">&hellip;</span>
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+    </ul>
+    {%- if paginate.next -%}
+      <a class="pagination__link" href="{{ paginate.next.url }}" rel="next">{{ 'general.next' | t }}</a>
+    {%- endif -%}
+  </nav>
+{%- endif -%}

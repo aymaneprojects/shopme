@@ -1,0 +1,17 @@
+{%- doc -%}
+  Search panel of the header with predictive results (opened by the [data-search-toggle] button).
+{%- enddoc -%}
+<div class="k-search" id="k-search" data-predictive-search data-url="{{ routes.predictive_search_url }}" data-limit="{{ settings.search_suggestions_limit | default: 4 }}" data-show-image="{{ settings.search_show_image | default: true }}" data-show-price="{{ settings.search_show_price | default: true }}" hidden>
+  <div class="page-width k-search__inner">
+    <form class="k-search__form" role="search" action="{{ routes.search_url }}" method="get">
+      <label class="visually-hidden" for="k-search-q">{{ 'accessibility.search' | t }}</label>
+      {% render 'icon', name: 'search', size: 22 %}
+      <input id="k-search-q" class="k-search__input" type="search" name="q" placeholder="{{ 'search.placeholder' | t }}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="k-search-results" data-predictive-input>
+      <button class="button button--small" type="submit">{{ 'search.submit' | t }}</button>
+    </form>
+    {%- capture search_labels -%}
+      {"queries":{{ 'search.predictive.queries' | t | json }},"products":{{ 'search.predictive.products' | t | json }},"collections":{{ 'search.predictive.collections' | t | json }},"pages":{{ 'search.predictive.pages' | t | json }},"articles":{{ 'search.predictive.articles' | t | json }},"none":{{ 'search.predictive.none' | t | json }},"all":{{ 'search.predictive.all' | t | json }}}
+    {%- endcapture -%}
+    <div class="k-search__results" id="k-search-results" role="listbox" aria-live="polite" data-predictive-results data-labels="{{ search_labels | escape }}"></div>
+  </div>
+</div>
