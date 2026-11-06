@@ -1,0 +1,85 @@
+{%- liquid
+  assign s = section.settings
+  assign product = s.product | default: collections.all.products.first
+-%}
+{%- if product != blank -%}
+<div id="colours" class="k-section k-shades-show {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width">
+    <div class="k-section__head k-section__head--center">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="k-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+    </div>
+    <ul class="k-cshow" role="list" data-colour-showcase>
+      {%- for variant in product.variants -%}
+        <li>
+          <a class="k-cshow__tile" href="#buy" data-pick-colour="{{ variant.option1 | escape }}">
+            <span class="k-cshow__img">{%- if variant.featured_image != blank -%}{{ variant.featured_image | image_url: width: 480 | image_tag: loading: 'lazy', widths: '240, 360, 480', sizes: '(min-width: 990px) 15vw, 45vw', alt: variant.option1 }}{%- endif -%}</span>
+            <span class="k-cshow__name"><span class="k-cshow__dot" style="{% render 'swatch-style', name: variant.option1 %}"></span>{{ variant.option1 | escape }}</span>
+            <span class="k-cshow__cta">{{ s.button_label | escape }}</span>
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+  <script>
+    (function () {
+      var list = document.currentScript.parentNode.querySelector('[data-colour-showcase]');
+      if (!list) return;
+      list.addEventListener('click', function (e) {
+        var tile = e.target.closest('[data-pick-colour]');
+        if (!tile) return;
+        var wanted = tile.getAttribute('data-pick-colour');
+        var input = Array.prototype.slice.call(document.querySelectorAll('#buy .k-option__input')).filter(function (i) { return i.value === wanted; })[0];
+        if (!input) return;
+        e.preventDefault();
+        input.checked = true;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        var target = document.getElementById('buy');
+        if (target) target.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+      });
+    }());
+  </script>
+</div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.colour_showcase.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "product",
+      "id": "product",
+      "label": "t:sections.colour_showcase.settings.product"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.colour_showcase.settings.eyebrow",
+      "default": "Six colours"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.colour_showcase.settings.heading",
+      "default": "Pick the one that feels like you"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.colour_showcase.settings.button_label",
+      "default": "Choose"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.colour_showcase.settings.color_scheme"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.colour_showcase.presets.colour_showcase"
+    }
+  ]
+}
+{% endschema %}

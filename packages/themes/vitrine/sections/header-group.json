@@ -1,0 +1,27 @@
+{
+  "name": "t:sections.groups.header",
+  "type": "header",
+  "sections": {
+    "announcement": {
+      "type": "announcement-bar",
+      "settings": {
+        "show": true,
+        "text": "Free delivery. 30 days to try it, or send it back.",
+        "link": "",
+        "color_scheme": "scheme-2"
+      }
+    },
+    "header": {
+      "type": "header",
+      "settings": {
+        "menu": "main-menu",
+        "sticky": true,
+        "transparent_home": false
+      }
+    }
+  },
+  "order": [
+    "announcement",
+    "header"
+  ]
+}

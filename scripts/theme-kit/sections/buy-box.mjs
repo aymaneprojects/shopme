@@ -10,7 +10,7 @@ export default {
     { id: 'eyebrow', type: 'text', label: t('Eyebrow', 'Sur-titre'), default: t('The one bottle', 'La gourde unique') },
     { id: 'rating_text', type: 'text', label: t('Rating line', 'Ligne de notation'), default: t('4.9 out of 5, from 1,200 reviews', '4,9 sur 5, d’après 1 200 avis') },
     { id: 'text', type: 'text', label: t('Short text (the product description when empty)', 'Texte court (la description du produit si vide)') },
-    { id: 'payment_note', type: 'text', label: t('Note under the button', 'Note sous le bouton'), default: t('Secure payment. Ships in 24 hours.', 'Paiement sécurisé. Expédié sous 24 heures.') },
+    { id: 'payment_note', type: 'text', label: t('Note under the button', 'Note sous le bouton'), default: t('Safe checkout. Ships in 24 hours.', 'Règlement protégé. Expédié sous 24 heures.') },
     { id: 'sticky_bar', type: 'checkbox', label: t('Sticky add to cart bar', 'Barre d’ajout au panier fixe'), default: true },
     { id: 'color_scheme', type: 'color_scheme', label: t('Color scheme', 'Palette de couleurs') },
   ],

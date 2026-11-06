@@ -1,0 +1,272 @@
+{
+  "sections": {
+    "buy": {
+      "type": "buy-box",
+      "blocks": {
+        "perk-1": {
+          "type": "perk",
+          "settings": {
+            "icon": "truck",
+            "text": "Free delivery"
+          }
+        },
+        "perk-2": {
+          "type": "perk",
+          "settings": {
+            "icon": "refresh",
+            "text": "30-day returns"
+          }
+        },
+        "perk-3": {
+          "type": "perk",
+          "settings": {
+            "icon": "shield",
+            "text": "Lifetime guarantee"
+          }
+        }
+      },
+      "block_order": [
+        "perk-1",
+        "perk-2",
+        "perk-3"
+      ],
+      "settings": {
+        "product": "the-bottle",
+        "eyebrow": "The one bottle",
+        "rating_text": "4.9 out of 5, from 1,200 reviews",
+        "text": "",
+        "payment_note": "Safe checkout. Ships in 24 hours.",
+        "sticky_bar": true,
+        "color_scheme": "scheme-1"
+      }
+    },
+    "benefits": {
+      "type": "benefit-grid",
+      "blocks": {
+        "benefit-1": {
+          "type": "benefit",
+          "settings": {
+            "icon": "clock",
+            "title": "Cold for 24 hours",
+            "text": "Double-wall steel holds ice from morning to night, and tea hot for 12 hours."
+          }
+        },
+        "benefit-2": {
+          "type": "benefit",
+          "settings": {
+            "icon": "drop",
+            "title": "Tastes of nothing",
+            "text": "Food-grade steel and a neutral lid: water tastes like water, even after a month."
+          }
+        },
+        "benefit-3": {
+          "type": "benefit",
+          "settings": {
+            "icon": "check",
+            "title": "Leak-proof, truly",
+            "text": "Toss it in a bag upside down. The lid seals with a silicone ring you can replace."
+          }
+        },
+        "benefit-4": {
+          "type": "benefit",
+          "settings": {
+            "icon": "leaf",
+            "title": "Plastic-free",
+            "text": "Steel body, silicone seal, bamboo-fibre cap. Packed in recycled card."
+          }
+        },
+        "benefit-5": {
+          "type": "benefit",
+          "settings": {
+            "icon": "shield",
+            "title": "Guaranteed for life",
+            "text": "If the steel ever fails, we replace it. Spare lids and seals are always in stock."
+          }
+        },
+        "benefit-6": {
+          "type": "benefit",
+          "settings": {
+            "icon": "sparkle",
+            "title": "Six colours",
+            "text": "A powder coat that resists scratches and keeps its colour for years."
+          }
+        }
+      },
+      "block_order": [
+        "benefit-1",
+        "benefit-2",
+        "benefit-3",
+        "benefit-4",
+        "benefit-5",
+        "benefit-6"
+      ],
+      "settings": {
+        "eyebrow": "Why this one",
+        "heading": "Made to be the last bottle you buy",
+        "text": "One product, thought through down to the lid.",
+        "color_scheme": "scheme-3"
+      }
+    },
+    "colours": {
+      "type": "colour-showcase",
+      "settings": {
+        "product": "the-bottle",
+        "eyebrow": "Six colours",
+        "heading": "Pick the one that feels like you",
+        "button_label": "Choose",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "how": {
+      "type": "craft-steps",
+      "blocks": {
+        "step-1": {
+          "type": "step",
+          "settings": {
+            "title": "Pressed from one sheet",
+            "text": "Food-grade stainless steel is drawn into shape, with no seam on the body."
+          }
+        },
+        "step-2": {
+          "type": "step",
+          "settings": {
+            "title": "Vacuum sealed",
+            "text": "Two walls with the air pumped out between them: that is what keeps drinks cold or hot."
+          }
+        },
+        "step-3": {
+          "type": "step",
+          "settings": {
+            "title": "Coated by hand",
+            "text": "A powder coat is applied and baked, then checked for scratches under bright light."
+          }
+        },
+        "step-4": {
+          "type": "step",
+          "settings": {
+            "title": "Tested and packed",
+            "text": "Every bottle is filled, turned upside down and weighed before it is wrapped in recycled card."
+          }
+        }
+      },
+      "block_order": [
+        "step-1",
+        "step-2",
+        "step-3",
+        "step-4"
+      ],
+      "settings": {
+        "eyebrow": "Inside the bottle",
+        "heading": "Four steps, no shortcuts",
+        "layout": "right",
+        "color_scheme": "scheme-4"
+      }
+    },
+    "reviews": {
+      "type": "testimonials",
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "I put ice in at 7 in the morning and it was still there at midnight. I have stopped buying anything else.",
+            "name": "Clara M.",
+            "detail": "Sage",
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "It has been dropped down a rock face and only the paint has a mark. The lid still closes perfectly.",
+            "name": "Thomas R.",
+            "detail": "Midnight blue",
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Finally one that does not taste of metal. I bought a second one in terracotta for my partner.",
+            "name": "Nadia K.",
+            "detail": "Sand",
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ],
+      "settings": {
+        "heading": "1,200 reviews, one bottle",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "faq": {
+      "type": "collapsible-content",
+      "blocks": {
+        "row-1": {
+          "type": "row",
+          "settings": {
+            "question": "How big is it?",
+            "answer": "<p>750 ml, 26 cm tall, and 7 cm wide so it fits most cup holders and bike cages.</p>"
+          }
+        },
+        "row-2": {
+          "type": "row",
+          "settings": {
+            "question": "Can I put hot drinks in it?",
+            "answer": "<p>Yes. Tea and coffee stay hot for 12 hours. Avoid fizzy drinks, which build pressure.</p>"
+          }
+        },
+        "row-3": {
+          "type": "row",
+          "settings": {
+            "question": "Is it dishwasher safe?",
+            "answer": "<p>The lid and seal are. We recommend washing the body by hand to keep the colour at its best.</p>"
+          }
+        },
+        "row-4": {
+          "type": "row",
+          "settings": {
+            "question": "What if I do not like it?",
+            "answer": "<p>Send it back within 30 days, used or not, and we refund the full price.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "row-1",
+        "row-2",
+        "row-3",
+        "row-4"
+      ],
+      "settings": {
+        "heading": "Before you order one",
+        "open_first": true,
+        "color_scheme": "scheme-3"
+      }
+    },
+    "final": {
+      "type": "rich-text",
+      "settings": {
+        "align": "center",
+        "color_scheme": "scheme-2",
+        "eyebrow": "Ready when you are",
+        "heading": "One bottle. Six colours. Thirty days to love it.",
+        "text": "<p>Free delivery on every order, and a lifetime guarantee on the steel.</p>",
+        "button_label": "Choose your colour",
+        "button_link": "#buy"
+      }
+    }
+  },
+  "order": [
+    "buy",
+    "benefits",
+    "colours",
+    "how",
+    "reviews",
+    "faq",
+    "final"
+  ]
+}

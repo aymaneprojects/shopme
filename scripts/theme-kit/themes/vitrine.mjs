@@ -43,7 +43,7 @@ export default {
   home: [
     {
       id: 'buy', type: 'buy-box',
-      settings: { product: 'the-bottle', eyebrow: t('The one bottle', 'La gourde unique'), rating_text: t('4.9 out of 5, from 1,200 reviews', '4,9 sur 5, d’après 1 200 avis'), text: '', payment_note: t('Secure payment. Ships in 24 hours.', 'Paiement sécurisé. Expédié sous 24 heures.'), sticky_bar: true, color_scheme: 'scheme-1' },
+      settings: { product: 'the-bottle', eyebrow: t('The one bottle', 'La gourde unique'), rating_text: t('4.9 out of 5, from 1,200 reviews', '4,9 sur 5, d’après 1 200 avis'), text: '', payment_note: t('Safe checkout. Ships in 24 hours.', 'Règlement protégé. Expédié sous 24 heures.'), sticky_bar: true, color_scheme: 'scheme-1' },
       blocks: [
         { type: 'perk', settings: { icon: 'truck', text: t('Free delivery', 'Livraison offerte') } },
         { type: 'perk', settings: { icon: 'refresh', text: t('30-day returns', 'Retours sous 30 jours') } },
@@ -83,7 +83,7 @@ export default {
       ],
     },
     {
-      id: 'faq', type: 'collapsible-content', settings: { heading: t('Questions, answered', 'Vos questions, nos réponses'), open_first: true, color_scheme: 'scheme-3' },
+      id: 'faq', type: 'collapsible-content', settings: { heading: t('Before you order one', 'Avant de choisir la vôtre'), open_first: true, color_scheme: 'scheme-3' },
       blocks: [
         { type: 'row', settings: { question: t('How big is it?', 'Quelle est sa taille ?'), answer: t('<p>750 ml, 26 cm tall, and 7 cm wide so it fits most cup holders and bike cages.</p>', '<p>750 ml, 26 cm de haut et 7 cm de large pour entrer dans la plupart des porte-gobelets et porte-bidons.</p>') } },
         { type: 'row', settings: { question: t('Can I put hot drinks in it?', 'Puis-je y mettre une boisson chaude ?'), answer: t('<p>Yes. Tea and coffee stay hot for 12 hours. Avoid fizzy drinks, which build pressure.</p>', '<p>Oui. Thé et café restent chauds 12 heures. Évitez les boissons gazeuses, qui font monter la pression.</p>') } },

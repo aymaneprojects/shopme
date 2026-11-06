@@ -1,0 +1,255 @@
+{%- liquid
+  assign s = section.settings
+  assign product = s.product | default: collections.all.products.first
+  assign current = product.selected_or_first_available_variant
+  assign first_image = current.featured_image | default: product.featured_image
+  assign first_alt = first_image.alt | default: product.title
+  assign first_focal = ''
+  if first_image.presentation.focal_point != blank
+    assign first_focal = 'object-position: ' | append: first_image.presentation.focal_point
+  endif
+  assign swatch_names = settings.swatch_option_names | downcase | split: ','
+  assign form_id = 'buy-form-' | append: section.id
+-%}
+{%- if product != blank -%}
+<div id="buy" class="k-buybox {% render 'scheme-class', scheme: s.color_scheme %}" data-product-section data-section-id="{{ section.id }}">
+  <div class="page-width k-pdp k-pdp--left">
+    <div class="k-pdp__grid">
+      {% render 'product-gallery', product: product, first_image: first_image, first_alt: first_alt, first_focal: first_focal, show_badge: true %}
+      <div class="k-info k-buybox__info">
+        {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+        <h1 class="k-info__title">{{ product.title | escape }}</h1>
+        {%- if s.rating_text != blank -%}<p class="k-buybox__rating"><span class="k-buybox__stars" aria-hidden="true">★★★★★</span> {{ s.rating_text | escape }}</p>{%- endif -%}
+        <div class="k-info__price" data-product-price>{% render 'price', product: product, variant: current, class: 'k-price--large' %}</div>
+        {%- assign summary = s.text | default: product.description | strip_html | truncatewords: 38 -%}
+        {%- if summary != blank -%}<div class="k-info__summary rte">{{ summary }}</div>{%- endif -%}
+        <p class="k-info__stock k-stock {% if current.available %}k-stock--in{% else %}k-stock--out{% endif %}" data-stock role="status"><span data-stock-label>{% if current.available %}{{ 'products.in_stock' | t }}{% else %}{{ 'products.sold_out' | t }}{% endif %}</span></p>
+        {%- if settings.stock_counter -%}
+          {%- assign low_limit = settings.stock_threshold | default: 10 -%}
+          <p class="k-lowstock" data-lowstock data-limit="{{ low_limit }}" data-template="{{ 'products.low_stock' | t: count: '[count]' | escape }}" role="status"{% unless current.available and current.inventory_management != blank and current.inventory_quantity > 0 and current.inventory_quantity <= low_limit %} hidden{% endunless %}>{{ 'products.low_stock' | t: count: current.inventory_quantity }}</p>
+          <script type="application/json" data-stock-json>{ {%- for variant in product.variants -%}"{{ variant.id }}": {% if variant.inventory_management != blank %}{{ variant.inventory_quantity | default: 0 }}{% else %}-1{% endif %}{% unless forloop.last %}, {% endunless %}{%- endfor -%} }</script>
+        {%- endif -%}
+
+        {%- form 'product', product, id: form_id, class: 'k-form', novalidate: 'novalidate' -%}
+          <input type="hidden" name="id" value="{{ current.id }}" data-variant-id>
+          {%- unless product.has_only_default_variant -%}
+            {%- for option in product.options_with_values -%}
+              {%- assign option_key = option.name | downcase | strip -%}
+              {%- assign as_swatch = false -%}
+              {%- if settings.swatches_enabled and swatch_names contains option_key -%}{%- assign as_swatch = true -%}{%- endif -%}
+              <fieldset class="k-option{% if as_swatch %} k-option--swatch{% endif %}" data-option-index="{{ forloop.index0 }}">
+                <legend class="k-legend">{{ option.name | escape }}<span class="k-legend__value" data-option-value>{{ option.selected_value | escape }}</span></legend>
+                <div class="k-option__values">
+                  {%- for value in option.values -%}
+                    <input type="radio" class="k-option__input" id="{{ section.id }}-{{ option.position }}-{{ forloop.index }}" name="options[{{ option.name | escape }}]" value="{{ value | escape }}"{% if option.selected_value == value %} checked{% endif %}>
+                    {%- if as_swatch -%}
+                      <label class="k-option__label k-option__label--swatch" for="{{ section.id }}-{{ option.position }}-{{ forloop.index }}" style="{% render 'swatch-style', name: value %}" title="{{ value | escape }}"><span class="visually-hidden">{{ value | escape }}</span></label>
+                    {%- else -%}
+                      <label class="k-option__label" for="{{ section.id }}-{{ option.position }}-{{ forloop.index }}">{{ value | escape }}</label>
+                    {%- endif -%}
+                  {%- endfor -%}
+                </div>
+              </fieldset>
+            {%- endfor -%}
+          {%- endunless -%}
+
+          {% render 'purchase-options', product: product, variant: current, id_prefix: section.id %}
+
+          <div class="k-form__row">
+            <div class="k-qty k-qty--lg">
+              <label class="visually-hidden" for="{{ section.id }}-qty">{{ 'products.quantity' | t }}</label>
+              <button type="button" class="k-qty__btn" data-pdp-step="-1" aria-label="{{ 'products.decrease_quantity' | t }}">{% render 'icon', name: 'minus', size: 16 %}</button>
+              <input class="k-qty__input" id="{{ section.id }}-qty" type="number" name="quantity" value="1" min="1" inputmode="numeric">
+              <button type="button" class="k-qty__btn" data-pdp-step="1" aria-label="{{ 'products.increase_quantity' | t }}">{% render 'icon', name: 'plus', size: 16 %}</button>
+            </div>
+            <button type="submit" class="button button--block" name="add" data-add-to-cart{% unless current.available %} disabled{% endunless %}>
+              <span data-add-label>{% if current.available %}{{ 'products.add_to_cart' | t }}{% else %}{{ 'products.sold_out' | t }}{% endif %}</span>
+            </button>
+          </div>
+          <p class="k-form__message" role="status" aria-live="polite" data-form-message></p>
+        {%- endform -%}
+        {%- if s.payment_note != blank -%}<p class="k-buybox__note">{% render 'icon', name: 'shield', size: 16 %} {{ s.payment_note | escape }}</p>{%- endif -%}
+        {%- if section.blocks.size > 0 -%}
+          <ul class="k-benefits k-buybox__perks" role="list">
+            {%- for block in section.blocks -%}<li {{ block.shopify_attributes }}>{% render 'icon', name: block.settings.icon, size: 20 %} <span>{{ block.settings.text | escape }}</span></li>{%- endfor -%}
+          </ul>
+        {%- endif -%}
+      </div>
+    </div>
+  </div>
+  {%- if s.sticky_bar -%}
+    <div class="k-sticky" data-sticky-bar hidden>
+      <div class="page-width k-sticky__inner">
+        {%- if first_image != blank -%}<span class="k-sticky__img" data-sticky-image>{{ first_image | image_url: width: 120 | image_tag: loading: 'lazy', alt: '' }}</span>{%- endif -%}
+        <span class="k-sticky__text"><span class="k-sticky__name">{{ product.title | escape }}</span><span class="k-sticky__variant" data-sticky-variant>{{ current.title | escape }}</span></span>
+        <span class="k-sticky__price" data-sticky-price>{% render 'price', product: product, variant: current %}</span>
+        <button type="submit" form="{{ form_id }}" class="button button--small" data-sticky-add{% unless current.available %} disabled{% endunless %}>{% if current.available %}{{ 'products.add_to_cart' | t }}{% else %}{{ 'products.sold_out' | t }}{% endif %}</button>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var root = document.currentScript.parentNode;
+        var bar = root.querySelector('[data-sticky-bar]');
+        var cta = root.querySelector('[data-add-to-cart]');
+        var priceBox = root.querySelector('[data-product-price]');
+        var priceOut = bar && bar.querySelector('[data-sticky-price]');
+        var nameOut = bar && bar.querySelector('[data-sticky-variant]');
+        var addOut = bar && bar.querySelector('[data-sticky-add]');
+        var imgOut = bar && bar.querySelector('[data-sticky-image] img');
+        if (!bar || !cta || !('IntersectionObserver' in window)) return;
+        var passed = false;
+        new IntersectionObserver(function (entries) {
+          var e = entries[0];
+          passed = !e.isIntersecting && e.boundingClientRect.top < 0;
+          bar.hidden = !passed;
+          document.documentElement.classList.toggle('has-sticky-bar', passed);
+        }).observe(cta);
+        document.addEventListener('product:variant', function (ev) {
+          if (!ev.detail || ev.detail.root !== root) return;
+          var v = ev.detail.variant;
+          if (nameOut) nameOut.textContent = v.title || '';
+          if (priceOut && priceBox) priceOut.innerHTML = priceBox.innerHTML;
+          if (addOut && cta) { addOut.disabled = cta.disabled; addOut.textContent = (root.querySelector('[data-add-label]') || cta).textContent; }
+          if (imgOut && v.featured_image) { imgOut.removeAttribute('srcset'); imgOut.src = v.featured_image.src; }
+        });
+      }());
+    </script>
+  {%- endif -%}
+  <script type="application/json" data-product-json>{{ product | json }}</script>
+</div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.buy_box.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "product",
+      "id": "product",
+      "label": "t:sections.buy_box.settings.product"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.buy_box.settings.eyebrow",
+      "default": "The one bottle"
+    },
+    {
+      "type": "text",
+      "id": "rating_text",
+      "label": "t:sections.buy_box.settings.rating_text",
+      "default": "4.9 out of 5, from 1,200 reviews"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.buy_box.settings.text"
+    },
+    {
+      "type": "text",
+      "id": "payment_note",
+      "label": "t:sections.buy_box.settings.payment_note",
+      "default": "Safe checkout. Ships in 24 hours."
+    },
+    {
+      "type": "checkbox",
+      "id": "sticky_bar",
+      "label": "t:sections.buy_box.settings.sticky_bar",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.buy_box.settings.color_scheme"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "perk",
+      "name": "t:sections.buy_box.blocks.perk.name",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:sections.buy_box.blocks.perk.settings.icon",
+          "options": [
+            {
+              "value": "truck",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.truck"
+            },
+            {
+              "value": "shield",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.shield"
+            },
+            {
+              "value": "refresh",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.refresh"
+            },
+            {
+              "value": "leaf",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.leaf"
+            },
+            {
+              "value": "heart",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.heart"
+            },
+            {
+              "value": "check",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.check"
+            },
+            {
+              "value": "package",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.package"
+            },
+            {
+              "value": "gift",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.gift"
+            },
+            {
+              "value": "clock",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.clock"
+            },
+            {
+              "value": "sparkle",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.sparkle"
+            },
+            {
+              "value": "drop",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.drop"
+            },
+            {
+              "value": "tag",
+              "label": "t:sections.buy_box.blocks.perk.options.icon.tag"
+            }
+          ],
+          "default": "truck"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.buy_box.blocks.perk.settings.text",
+          "default": "Free delivery"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "t:sections.buy_box.presets.buy_box",
+      "blocks": [
+        {
+          "type": "perk"
+        },
+        {
+          "type": "perk"
+        },
+        {
+          "type": "perk"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

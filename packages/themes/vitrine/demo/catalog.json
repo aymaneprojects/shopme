@@ -1,0 +1,395 @@
+{
+  "storeName": "Vitrine",
+  "currency": "EUR",
+  "menu": [
+    {
+      "title": {
+        "en": "The bottle",
+        "fr": "La gourde"
+      },
+      "url": "/#buy"
+    },
+    {
+      "title": {
+        "en": "Why this one",
+        "fr": "Pourquoi celle-ci"
+      },
+      "url": "/#benefits"
+    },
+    {
+      "title": {
+        "en": "Colours",
+        "fr": "Coloris"
+      },
+      "url": "/#colours"
+    },
+    {
+      "title": {
+        "en": "Shop",
+        "fr": "Boutique"
+      },
+      "url": "/collections/all"
+    }
+  ],
+  "footerMenu": [
+    {
+      "title": {
+        "en": "The bottle",
+        "fr": "La gourde"
+      },
+      "url": "/products/the-bottle"
+    },
+    {
+      "title": {
+        "en": "Shop all",
+        "fr": "Tout voir"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Search",
+        "fr": "Recherche"
+      },
+      "url": "/search"
+    }
+  ],
+  "pages": [],
+  "collections": [
+    {
+      "handle": "the-bottle",
+      "title": {
+        "en": "The bottle",
+        "fr": "La gourde"
+      },
+      "description": {
+        "en": "One bottle, six colours.",
+        "fr": "Une gourde, six coloris."
+      },
+      "products": [
+        "the-bottle"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "handle": "the-bottle",
+      "image": "produit-01.webp",
+      "extraImages": [
+        "produit-02.webp",
+        "produit-03.webp",
+        "produit-04.webp",
+        "produit-05.webp",
+        "produit-06.webp",
+        "hero.webp",
+        "ambiance.webp"
+      ],
+      "vendor": "Vitrine",
+      "type": {
+        "en": "Bottles",
+        "fr": "Gourdes"
+      },
+      "tags": [
+        "bottle",
+        "steel",
+        "new"
+      ],
+      "title": {
+        "en": "The Bottle",
+        "fr": "La Gourde"
+      },
+      "description": {
+        "en": "A 750 ml insulated steel bottle that keeps drinks cold for 24 hours and hot for 12. Leak-proof lid, scratch-resistant powder coat, no plastic in contact with your drink, and a lifetime guarantee on the steel.",
+        "fr": "Une gourde isotherme en acier de 750 ml qui garde les boissons froides 24 heures et chaudes 12 heures. Bouchon étanche, revêtement poudré résistant aux rayures, aucun plastique au contact de la boisson et garantie à vie sur l’acier."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Sand",
+              "fr": "Sable"
+            },
+            {
+              "en": "Black",
+              "fr": "Noir"
+            },
+            {
+              "en": "Sage",
+              "fr": "Sauge"
+            },
+            {
+              "en": "Midnight blue",
+              "fr": "Bleu nuit"
+            },
+            {
+              "en": "Terracotta",
+              "fr": "Terracotta"
+            },
+            {
+              "en": "White",
+              "fr": "Blanc"
+            }
+          ]
+        }
+      ],
+      "price": 49,
+      "variants": [
+        {
+          "stock": 24,
+          "image": "produit-01.webp"
+        },
+        {
+          "stock": 31,
+          "image": "produit-02.webp"
+        },
+        {
+          "stock": 17,
+          "image": "produit-03.webp"
+        },
+        {
+          "stock": 22,
+          "image": "produit-04.webp"
+        },
+        {
+          "stock": 4,
+          "image": "produit-05.webp"
+        },
+        {
+          "stock": 28,
+          "image": "produit-06.webp"
+        }
+      ]
+    }
+  ],
+  "homepage": {
+    "en": {
+      "buy": {
+        "eyebrow": "The one bottle",
+        "rating_text": "4.9 out of 5, from 1,200 reviews",
+        "payment_note": "Safe checkout. Ships in 24 hours."
+      },
+      "buy.perk-1": {
+        "text": "Free delivery"
+      },
+      "buy.perk-2": {
+        "text": "30-day returns"
+      },
+      "buy.perk-3": {
+        "text": "Lifetime guarantee"
+      },
+      "benefits": {
+        "eyebrow": "Why this one",
+        "heading": "Made to be the last bottle you buy",
+        "text": "One product, thought through down to the lid."
+      },
+      "benefits.benefit-1": {
+        "title": "Cold for 24 hours",
+        "text": "Double-wall steel holds ice from morning to night, and tea hot for 12 hours."
+      },
+      "benefits.benefit-2": {
+        "title": "Tastes of nothing",
+        "text": "Food-grade steel and a neutral lid: water tastes like water, even after a month."
+      },
+      "benefits.benefit-3": {
+        "title": "Leak-proof, truly",
+        "text": "Toss it in a bag upside down. The lid seals with a silicone ring you can replace."
+      },
+      "benefits.benefit-4": {
+        "title": "Plastic-free",
+        "text": "Steel body, silicone seal, bamboo-fibre cap. Packed in recycled card."
+      },
+      "benefits.benefit-5": {
+        "title": "Guaranteed for life",
+        "text": "If the steel ever fails, we replace it. Spare lids and seals are always in stock."
+      },
+      "benefits.benefit-6": {
+        "title": "Six colours",
+        "text": "A powder coat that resists scratches and keeps its colour for years."
+      },
+      "colours": {
+        "eyebrow": "Six colours",
+        "heading": "Pick the one that feels like you",
+        "button_label": "Choose"
+      },
+      "how": {
+        "eyebrow": "Inside the bottle",
+        "heading": "Four steps, no shortcuts"
+      },
+      "how.step-1": {
+        "title": "Pressed from one sheet",
+        "text": "Food-grade stainless steel is drawn into shape, with no seam on the body."
+      },
+      "how.step-2": {
+        "title": "Vacuum sealed",
+        "text": "Two walls with the air pumped out between them: that is what keeps drinks cold or hot."
+      },
+      "how.step-3": {
+        "title": "Coated by hand",
+        "text": "A powder coat is applied and baked, then checked for scratches under bright light."
+      },
+      "how.step-4": {
+        "title": "Tested and packed",
+        "text": "Every bottle is filled, turned upside down and weighed before it is wrapped in recycled card."
+      },
+      "reviews": {
+        "heading": "1,200 reviews, one bottle"
+      },
+      "reviews.testimonial-1": {
+        "quote": "I put ice in at 7 in the morning and it was still there at midnight. I have stopped buying anything else.",
+        "detail": "Sage"
+      },
+      "reviews.testimonial-2": {
+        "quote": "It has been dropped down a rock face and only the paint has a mark. The lid still closes perfectly.",
+        "detail": "Midnight blue"
+      },
+      "reviews.testimonial-3": {
+        "quote": "Finally one that does not taste of metal. I bought a second one in terracotta for my partner.",
+        "detail": "Sand"
+      },
+      "faq": {
+        "heading": "Before you order one"
+      },
+      "faq.row-1": {
+        "question": "How big is it?",
+        "answer": "<p>750 ml, 26 cm tall, and 7 cm wide so it fits most cup holders and bike cages.</p>"
+      },
+      "faq.row-2": {
+        "question": "Can I put hot drinks in it?",
+        "answer": "<p>Yes. Tea and coffee stay hot for 12 hours. Avoid fizzy drinks, which build pressure.</p>"
+      },
+      "faq.row-3": {
+        "question": "Is it dishwasher safe?",
+        "answer": "<p>The lid and seal are. We recommend washing the body by hand to keep the colour at its best.</p>"
+      },
+      "faq.row-4": {
+        "question": "What if I do not like it?",
+        "answer": "<p>Send it back within 30 days, used or not, and we refund the full price.</p>"
+      },
+      "final": {
+        "eyebrow": "Ready when you are",
+        "heading": "One bottle. Six colours. Thirty days to love it.",
+        "text": "<p>Free delivery on every order, and a lifetime guarantee on the steel.</p>",
+        "button_label": "Choose your colour"
+      }
+    },
+    "fr": {
+      "buy": {
+        "eyebrow": "La gourde unique",
+        "rating_text": "4,9 sur 5, d’après 1 200 avis",
+        "payment_note": "Règlement protégé. Expédié sous 24 heures."
+      },
+      "buy.perk-1": {
+        "text": "Livraison offerte"
+      },
+      "buy.perk-2": {
+        "text": "Retours sous 30 jours"
+      },
+      "buy.perk-3": {
+        "text": "Garantie à vie"
+      },
+      "benefits": {
+        "eyebrow": "Pourquoi celle-ci",
+        "heading": "Faite pour être la dernière gourde que vous achetez",
+        "text": "Un seul produit, pensé jusqu’au bouchon."
+      },
+      "benefits.benefit-1": {
+        "title": "Froid pendant 24 heures",
+        "text": "L’acier double paroi garde la glace du matin au soir, et le thé chaud 12 heures."
+      },
+      "benefits.benefit-2": {
+        "title": "Aucun goût",
+        "text": "Un acier alimentaire et un bouchon neutre : l’eau a goût d’eau, même après un mois."
+      },
+      "benefits.benefit-3": {
+        "title": "Vraiment étanche",
+        "text": "Jetez-la à l’envers dans un sac. Le bouchon ferme avec un joint en silicone remplaçable."
+      },
+      "benefits.benefit-4": {
+        "title": "Sans plastique",
+        "text": "Corps en acier, joint en silicone, capuchon en fibre de bambou. Emballée dans du carton recyclé."
+      },
+      "benefits.benefit-5": {
+        "title": "Garantie à vie",
+        "text": "Si l’acier vous lâche un jour, nous la remplaçons. Bouchons et joints de rechange toujours disponibles."
+      },
+      "benefits.benefit-6": {
+        "title": "Six coloris",
+        "text": "Un revêtement poudré qui résiste aux rayures et garde sa couleur des années."
+      },
+      "colours": {
+        "eyebrow": "Six coloris",
+        "heading": "Choisissez celle qui vous ressemble",
+        "button_label": "Choisir"
+      },
+      "how": {
+        "eyebrow": "À l’intérieur de la gourde",
+        "heading": "Quatre étapes, aucun raccourci"
+      },
+      "how.step-1": {
+        "title": "Emboutie dans une seule feuille",
+        "text": "L’acier inoxydable alimentaire est embouti sans aucune soudure sur le corps."
+      },
+      "how.step-2": {
+        "title": "Scellée sous vide",
+        "text": "Deux parois avec l’air aspiré entre elles : c’est ce qui garde les boissons fraîches ou chaudes."
+      },
+      "how.step-3": {
+        "title": "Colorée à la main",
+        "text": "Un revêtement poudré est appliqué puis cuit, et contrôlé sous une lumière vive."
+      },
+      "how.step-4": {
+        "title": "Testée et emballée",
+        "text": "Chaque gourde est remplie, retournée et pesée avant d’être emballée dans du carton recyclé."
+      },
+      "reviews": {
+        "heading": "1 200 avis, une seule gourde"
+      },
+      "reviews.testimonial-1": {
+        "quote": "J’ai mis des glaçons à 7 heures du matin, il en restait à minuit. J’ai arrêté d’acheter autre chose.",
+        "detail": "Sauge"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Elle a dévalé une paroi rocheuse et seule la peinture a une marque. Le bouchon ferme toujours parfaitement.",
+        "detail": "Bleu nuit"
+      },
+      "reviews.testimonial-3": {
+        "quote": "Enfin une gourde sans goût de métal. J’en ai pris une seconde en terracotta pour mon conjoint.",
+        "detail": "Sable"
+      },
+      "faq": {
+        "heading": "Avant de choisir la vôtre"
+      },
+      "faq.row-1": {
+        "question": "Quelle est sa taille ?",
+        "answer": "<p>750 ml, 26 cm de haut et 7 cm de large pour entrer dans la plupart des porte-gobelets et porte-bidons.</p>"
+      },
+      "faq.row-2": {
+        "question": "Puis-je y mettre une boisson chaude ?",
+        "answer": "<p>Oui. Thé et café restent chauds 12 heures. Évitez les boissons gazeuses, qui font monter la pression.</p>"
+      },
+      "faq.row-3": {
+        "question": "Passe-t-elle au lave-vaisselle ?",
+        "answer": "<p>Le bouchon et le joint, oui. Nous conseillons de laver le corps à la main pour garder la couleur intacte.</p>"
+      },
+      "faq.row-4": {
+        "question": "Et si elle ne me plaît pas ?",
+        "answer": "<p>Renvoyez-la sous 30 jours, utilisée ou non, et nous remboursons le prix complet.</p>"
+      },
+      "final": {
+        "eyebrow": "Prête quand vous l’êtes",
+        "heading": "Une gourde. Six coloris. Trente jours pour l’adorer.",
+        "text": "<p>Livraison offerte sur chaque commande et garantie à vie sur l’acier.</p>",
+        "button_label": "Choisir mon coloris"
+      }
+    },
+    "images": {
+      "how": {
+        "image": "ambiance.webp"
+      }
+    }
+  }
+}
