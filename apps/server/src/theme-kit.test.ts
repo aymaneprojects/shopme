@@ -22,7 +22,7 @@ const themeDir = (handle: string) => path.join(ROOT, 'packages/themes', handle);
 
 describe('theme kit', () => {
   it('lists the themes built with it', () => {
-    expect(HANDLES).toEqual(['foyer', 'maroquin', 'serre', 'sillage', 'sommet']);
+    expect(HANDLES).toEqual(['foyer', 'maroquin', 'serre', 'sillage', 'sommet', 'vitrine']);
   });
 
   it.each(HANDLES)('%s: the committed folder is what the kit generates (run node scripts/theme-kit/build.mjs)', async (handle) => {
