@@ -27,7 +27,7 @@ Main contains the reviewed integrations of PRs #1–#5 in `ebb270c`. Preserve th
 
 - #5: French unsaved-changes controls overflowed at 320/375 px (bar left edge −29 px at 320 px). The shared save bar now stays within an 8 px viewport gutter and uses a separate message row below 640 px, retaining the single-row desktop pill. Chromium checks passed in English/French at 320, 375 and 1280 px, including visible action bounds and discard/reset behavior; production build and diff check passed. No save/navigation-guard logic changed.
 
-- Theme segmented controls: radio groups used for section alignment/layout could be clicked but had no arrow-key navigation, and every option was a Tab stop. The control now has one Tab stop, wraps selection/focus with arrow keys and supports Home/End. Four regression tests failed before the fix; all 13 focused tests (including existing theme fields) now pass. Pointer behavior and empty-option handling are preserved.
+- Theme segmented controls: radio groups used for section alignment/layout could be clicked but had no arrow-key navigation, and every option was a Tab stop. The control now has one Tab stop, wraps selection/focus with arrow keys and supports Home/End. Four regression tests failed before the fix; all 13 focused tests (including existing theme fields) now pass. Pointer behavior and empty-option handling are preserved. Admin type check, production build and diff check passed. Review: https://github.com/aymaneprojects/shopme/pull/8.
 
 ## Bounded continuation
 
