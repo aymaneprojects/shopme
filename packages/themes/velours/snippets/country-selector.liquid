@@ -1,0 +1,17 @@
+{%- doc -%}
+  Country and currency switcher: posts country_code to /localization. Only shown when the shop sells in more than one country.
+  @param {string} [uid] - suffix that keeps element ids unique when the selector is shown twice on a page
+{%- enddoc -%}
+{%- if localization.available_countries.size > 1 -%}
+  {%- assign form_id = 'country-form' | append: uid -%}
+  {%- form 'localization', id: form_id, class: 'language-selector country-selector' -%}
+    <input type="hidden" name="return_to" value="{{ request.path | escape }}">
+    <label class="visually-hidden" for="country-select{{ uid }}">{{ 'localization.country' | t }}</label>
+    <select id="country-select{{ uid }}" name="country_code" class="language-selector__select country-selector__select" onchange="this.form.submit()">
+      {%- for country in localization.available_countries -%}
+        <option value="{{ country.iso_code }}"{% if country.iso_code == localization.country.iso_code %} selected{% endif %}>{{ country.name | escape }} ({{ country.currency.iso_code }} {{ country.currency.symbol }})</option>
+      {%- endfor -%}
+    </select>
+    <noscript><button class="button button--small" type="submit">{{ 'localization.update_country' | t }}</button></noscript>
+  {%- endform -%}
+{%- endif -%}

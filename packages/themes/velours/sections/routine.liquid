@@ -1,0 +1,156 @@
+{%- liquid
+  assign s = section.settings
+  assign heading = s.heading
+  if heading == blank
+    assign heading = 'routine.heading' | t
+  endif
+  assign intro = s.text
+  if intro == blank
+    assign intro = 'routine.text' | t
+  endif
+  assign fallback = collections['all'].products
+  assign variant_ids = ''
+  assign picked = 0
+-%}
+<div class="vl-section vl-routine {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width">
+    <div class="vl-section__head vl-section__head--center">
+      <p class="vl-eyebrow">{{ 'routine.eyebrow' | t }}</p>
+      <h2 class="vl-section__title">{{ heading | escape }}</h2>
+      <p class="vl-section__text">{{ intro | escape }}</p>
+    </div>
+    <ol class="vl-steps vl-steps--{{ section.blocks.size }}">
+      {%- for block in section.blocks -%}
+        {%- liquid
+          assign product = block.settings.product
+          if product == blank
+            assign product = fallback[forloop.index0]
+          endif
+          assign step_key = 'routine.step_' | append: forloop.index
+          assign step_title = block.settings.title
+          assign step_text = block.settings.text
+          assign step_when = block.settings.when
+          if step_title == blank
+            assign step_title = step_key | append: '_title' | t
+          endif
+          if step_text == blank
+            assign step_text = step_key | append: '_text' | t
+          endif
+          if step_when == blank
+            assign step_when = step_key | append: '_when' | t
+          endif
+          assign variant = product.selected_or_first_available_variant
+          if product != blank and variant.available
+            assign picked = picked | plus: 1
+            assign variant_ids = variant_ids | append: variant.id | append: ','
+          endif
+          assign focal = ''
+          if product.featured_image.presentation.focal_point != blank
+            assign focal = 'object-position: ' | append: product.featured_image.presentation.focal_point
+          endif
+        -%}
+        <li class="vl-step" {{ block.shopify_attributes }}>
+          <span class="vl-step__num" aria-hidden="true">{{ forloop.index }}</span>
+          <p class="vl-step__when">{{ step_when | escape }}</p>
+          <h3 class="vl-step__title">{{ 'routine.step_label' | t: number: forloop.index }} {{ step_title | escape }}</h3>
+          <p class="vl-step__text">{{ step_text | escape }}</p>
+          {%- if product != blank -%}
+            <a class="vl-step__product" href="{{ product.url }}">
+              <span class="vl-step__media">
+                {%- if product.featured_image -%}{{ product.featured_image | image_url: width: 400 | image_tag: loading: 'lazy', alt: product.title, style: focal }}{%- else -%}{{ 'product-1' | placeholder_svg_tag: 'vl-card__placeholder' }}{%- endif -%}
+              </span>
+              <span class="vl-step__name">{{ product.title | escape }}</span>
+              {% render 'price', product: product %}
+            </a>
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+    </ol>
+    {%- if s.show_add_all and picked > 0 -%}
+      <div class="vl-routine__cta">
+        <button type="button" class="button" data-routine-add data-variants="{{ variant_ids | split: ',' | join: ',' }}">{% render 'icon', name: 'bag', size: 18 %} {{ 'routine.add_all' | t }}</button>
+        <p class="vl-routine__msg" role="status" aria-live="polite" data-routine-message></p>
+      </div>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.routine.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.routine.settings.heading",
+      "info": "t:sections.routine.info.heading"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.routine.settings.text"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_add_all",
+      "label": "t:sections.routine.settings.show_add_all",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.routine.settings.color_scheme",
+      "default": ""
+    }
+  ],
+  "blocks": [
+    {
+      "type": "step",
+      "name": "t:sections.routine.blocks.step.name",
+      "limit": 5,
+      "settings": [
+        {
+          "type": "product",
+          "id": "product",
+          "label": "t:sections.routine.blocks.step.settings.product",
+          "info": "t:sections.routine.blocks.step.info.product"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.routine.blocks.step.settings.title"
+        },
+        {
+          "type": "text",
+          "id": "when",
+          "label": "t:sections.routine.blocks.step.settings.when"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "t:sections.routine.blocks.step.settings.text"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 5,
+  "presets": [
+    {
+      "name": "t:sections.routine.presets.routine",
+      "category": "product",
+      "blocks": [
+        {
+          "type": "step"
+        },
+        {
+          "type": "step"
+        },
+        {
+          "type": "step"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

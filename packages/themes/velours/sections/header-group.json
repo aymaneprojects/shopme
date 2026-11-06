@@ -1,0 +1,26 @@
+{
+  "name": "t:sections.groups.header",
+  "type": "header",
+  "sections": {
+    "announcement": {
+      "type": "announcement-bar",
+      "settings": {
+        "show": true,
+        "text": "",
+        "link": "",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "header": {
+      "type": "header",
+      "settings": {
+        "menu": "main-menu",
+        "sticky": true
+      }
+    }
+  },
+  "order": [
+    "announcement",
+    "header"
+  ]
+}

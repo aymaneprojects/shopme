@@ -1,0 +1,891 @@
+{
+  "settings_schema": {
+    "colors": {
+      "name": "Couleurs",
+      "settings": {
+        "color_primary": "Accent",
+        "color_background": "Arrière-plan",
+        "color_surface": "Surface",
+        "color_text": "Texte",
+        "color_sale": "Prix soldé",
+        "color_ok": "En stock"
+      }
+    },
+    "color_schemes": {
+      "name": "Palettes de couleurs",
+      "paragraphs": {
+        "color_schemes_can_be_applied_to_sections_and_blo": "Les palettes de couleurs s’appliquent aux sections et aux blocs. Une section sans palette utilise les couleurs du thème."
+      },
+      "definition": {
+        "settings": {
+          "name": "Nom",
+          "background": "Arrière-plan",
+          "text": "Texte",
+          "surface": "Surface",
+          "border": "Bordure",
+          "button": "Bouton",
+          "button_label": "Libellé du bouton"
+        }
+      }
+    },
+    "brand": {
+      "name": "Marque",
+      "settings": {
+        "logo": "Logo",
+        "logo_width": "Largeur du logo",
+        "favicon": "Favicon"
+      }
+    },
+    "typography": {
+      "name": "Typographie",
+      "settings": {
+        "type_body_font": "Police du texte",
+        "type_heading_font": "Police des titres",
+        "type_accent_font": "Police d’accent",
+        "type_base_size": "Taille de base"
+      },
+      "options": {
+        "type_body_font": {
+          "system_sans": "Sans empattement système",
+          "system_mono": "Monospace système",
+          "inter": "Inter",
+          "space_grotesk": "Space Grotesk",
+          "manrope": "Manrope"
+        },
+        "type_heading_font": {
+          "system_sans": "Sans empattement système",
+          "system_mono": "Monospace système",
+          "inter": "Inter",
+          "space_grotesk": "Space Grotesk",
+          "manrope": "Manrope"
+        },
+        "type_accent_font": {
+          "system_sans": "Sans empattement système",
+          "system_mono": "Monospace système",
+          "inter": "Inter",
+          "space_grotesk": "Space Grotesk",
+          "manrope": "Manrope"
+        }
+      }
+    },
+    "text_presets": {
+      "name": "Styles de texte",
+      "paragraphs": {
+        "text_presets_set_the_font_size_weight_line_heigh": "Les styles de texte définissent la police, la taille, l’épaisseur, l’interligne et la casse de chaque style. Les tailles sont un pourcentage de la taille de base."
+      },
+      "headers": {
+        "paragraph": "Paragraphe",
+        "heading_1": "Titre 1",
+        "heading_2": "Titre 2",
+        "heading_3": "Titre 3",
+        "heading_4": "Titre 4",
+        "heading_5": "Titre 5",
+        "heading_6": "Titre 6"
+      },
+      "settings": {
+        "preset_paragraph_font": "Police",
+        "preset_paragraph_size": "Taille",
+        "preset_paragraph_weight": "Épaisseur",
+        "preset_paragraph_line_height": "Interligne",
+        "preset_paragraph_case": "Casse",
+        "preset_h1_font": "Police",
+        "preset_h1_size": "Taille",
+        "preset_h1_weight": "Épaisseur",
+        "preset_h1_line_height": "Interligne",
+        "preset_h1_case": "Casse",
+        "preset_h2_font": "Police",
+        "preset_h2_size": "Taille",
+        "preset_h2_weight": "Épaisseur",
+        "preset_h2_line_height": "Interligne",
+        "preset_h2_case": "Casse",
+        "preset_h3_font": "Police",
+        "preset_h3_size": "Taille",
+        "preset_h3_weight": "Épaisseur",
+        "preset_h3_line_height": "Interligne",
+        "preset_h3_case": "Casse",
+        "preset_h4_font": "Police",
+        "preset_h4_size": "Taille",
+        "preset_h4_weight": "Épaisseur",
+        "preset_h4_line_height": "Interligne",
+        "preset_h4_case": "Casse",
+        "preset_h5_font": "Police",
+        "preset_h5_size": "Taille",
+        "preset_h5_weight": "Épaisseur",
+        "preset_h5_line_height": "Interligne",
+        "preset_h5_case": "Casse",
+        "preset_h6_font": "Police",
+        "preset_h6_size": "Taille",
+        "preset_h6_weight": "Épaisseur",
+        "preset_h6_line_height": "Interligne",
+        "preset_h6_case": "Casse"
+      },
+      "options": {
+        "preset_paragraph_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_paragraph_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h1_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h1_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h2_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h2_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h3_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h3_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h4_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h4_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h5_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h5_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h6_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h6_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        }
+      }
+    },
+    "layout": {
+      "name": "Disposition",
+      "settings": {
+        "page_width": "Largeur de page",
+        "corner_radius": "Rayon des angles",
+        "section_spacing": "Espacement des sections"
+      }
+    },
+    "product_cards": {
+      "name": "Cartes produit",
+      "settings": {
+        "show_vendor": "Afficher la marque",
+        "card_image_ratio": "Ratio de l’image",
+        "card_specs_count": "Caractéristiques affichées sur une carte",
+        "specs_namespace": "Espace de noms des métachamps de caractéristiques",
+        "card_show_sku": "Afficher la référence"
+      },
+      "options": {
+        "card_image_ratio": {
+          "square": "Carré",
+          "portrait": "Portrait",
+          "landscape": "Paysage"
+        }
+      },
+      "info": {
+        "specs_namespace": "Les métachamps produit de cet espace de noms alimentent les lignes de caractéristiques des cartes, le tableau de comparaison et le tableau des caractéristiques."
+      }
+    },
+    "compare": {
+      "name": "Comparer",
+      "settings": {
+        "compare_enabled": "Activer la comparaison de produits"
+      },
+      "info": {
+        "compare_enabled": "Les visiteurs peuvent choisir jusqu’à 4 produits et les comparer côte à côte."
+      }
+    },
+    "buttons": {
+      "name": "Boutons",
+      "settings": {
+        "button_radius": "Rayon des angles",
+        "button_border_width": "Épaisseur de la bordure",
+        "button_height": "Hauteur",
+        "button_uppercase": "Libellés en majuscules",
+        "button_font": "Police"
+      },
+      "options": {
+        "button_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        }
+      }
+    },
+    "badges": {
+      "name": "Badges",
+      "settings": {
+        "badge_show_sale": "Afficher un badge de promotion",
+        "badge_sale_percent": "Afficher l’économie en pourcentage",
+        "badge_show_sold_out": "Afficher un badge d’épuisement",
+        "badge_position": "Position",
+        "badge_sold_out_color": "Couleur du badge d’épuisement"
+      },
+      "options": {
+        "badge_position": {
+          "top_left": "En haut à gauche",
+          "top_right": "En haut à droite",
+          "bottom_left": "En bas à gauche"
+        }
+      }
+    },
+    "cart": {
+      "name": "Panier",
+      "settings": {
+        "cart_type": "Comportement du panier",
+        "cart_show_note": "Afficher la note de commande",
+        "cart_show_thumbnails": "Afficher les images des produits",
+        "cart_show_vendor": "Afficher la marque",
+        "cart_show_continue": "Afficher le lien « Continuer mes achats »"
+      },
+      "options": {
+        "cart_type": {
+          "drawer": "Ouvrir le panier latéral",
+          "page": "Aller à la page du panier"
+        }
+      }
+    },
+    "search": {
+      "name": "Recherche",
+      "settings": {
+        "search_predictive": "Recherche prédictive",
+        "search_show_image": "Afficher les images des produits dans les suggestions",
+        "search_show_price": "Afficher les prix dans les suggestions",
+        "search_suggestions_limit": "Suggestions par type"
+      }
+    },
+    "inputs": {
+      "name": "Champs de saisie",
+      "settings": {
+        "input_radius": "Rayon des angles",
+        "input_border_width": "Épaisseur de la bordure",
+        "input_height": "Hauteur"
+      }
+    },
+    "price": {
+      "name": "Prix",
+      "settings": {
+        "price_show_compare_at": "Afficher le prix barré",
+        "price_show_from": "Afficher « À partir de » pour les produits à plusieurs prix"
+      }
+    },
+    "icons": {
+      "name": "Icônes",
+      "settings": {
+        "icon_stroke_width": "Épaisseur du trait",
+        "icon_size": "Taille"
+      }
+    },
+    "animations": {
+      "name": "Animations",
+      "settings": {
+        "anim_card_hover": "Soulever les cartes au survol",
+        "anim_duration": "Durée des animations"
+      }
+    }
+  },
+  "shared": {
+    "color_scheme": "Palette de couleurs",
+    "left": "Gauche",
+    "center": "Centre"
+  },
+  "blocks": {},
+  "sections": {
+    "announcement_bar": {
+      "name": "Barre d’annonces",
+      "settings": {
+        "show": "Afficher la barre d’annonces",
+        "text": "Texte",
+        "link": "Lien",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "text": "Laissez vide pour utiliser le message par défaut du thème."
+      },
+      "presets": {
+        "announcement_bar": "Barre d’annonces"
+      }
+    },
+    "brand_logos": {
+      "name": "Logos des marques",
+      "settings": {
+        "heading": "Titre",
+        "collection": "Collection",
+        "max_brands": "Nombre maximum de marques",
+        "style": "Style",
+        "show_view_all": "Afficher le lien vers toutes les collections",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut du thème.",
+        "collection": "Les marques sont les fournisseurs des produits de cette collection. Laissez vide pour tous les produits."
+      },
+      "options": {
+        "style": {
+          "outline": "Avec contour",
+          "filled": "Rempli",
+          "plain": "Texte simple"
+        }
+      },
+      "blocks": {
+        "logo": {
+          "name": "Logo de marque",
+          "settings": {
+            "vendor": "Nom du fournisseur",
+            "image": "Logo"
+          },
+          "info": {
+            "vendor": "Doit correspondre exactement au fournisseur de vos produits.",
+            "image": "Sans logo, le nom du fournisseur s’affiche en texte."
+          }
+        }
+      },
+      "presets": {
+        "brand_logos": "Logos des marques"
+      }
+    },
+    "cart_drawer": {
+      "name": "Panier latéral",
+      "settings": {
+        "show_note": "Afficher la note de commande"
+      }
+    },
+    "category_tiles": {
+      "name": "Vignettes de rayons",
+      "settings": {
+        "heading": "Titre",
+        "collections": "Collections",
+        "columns": "Colonnes sur grand écran",
+        "show_count": "Afficher le nombre de produits",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut du thème.",
+        "collections": "Laissez vide pour afficher vos collections automatiquement."
+      },
+      "options": {
+        "columns": {
+          "3": "3",
+          "4": "4",
+          "6": "6"
+        }
+      },
+      "presets": {
+        "department_tiles": "Vignettes de rayons"
+      }
+    },
+    "collapsible_content": {
+      "name": "FAQ",
+      "settings": {
+        "heading": "Titre",
+        "open_first": "Ouvrir la première question",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "heading": "Laissez les textes vides pour utiliser le contenu par défaut du thème, dans la langue du visiteur."
+      },
+      "blocks": {
+        "row": {
+          "name": "Question",
+          "settings": {
+            "question": "Question",
+            "answer": "Réponse"
+          }
+        }
+      },
+      "presets": {
+        "faq": "FAQ"
+      }
+    },
+    "compare_tray": {
+      "name": "Barre de comparaison",
+      "paragraphs": {
+        "the_tray_appears_at_the_bottom_of_the_page_once_": "La barre apparaît en bas de la page dès qu’un visiteur choisit un produit à comparer, jusqu’à 4 produits. Activez ou désactivez la comparaison dans les réglages du thème."
+      },
+      "settings": {
+        "color_scheme": "Palette de couleurs"
+      }
+    },
+    "custom_liquid": {
+      "name": "Liquid personnalisé",
+      "settings": {
+        "custom_liquid": "Code Liquid",
+        "color_scheme": "Palette de couleurs"
+      },
+      "presets": {
+        "custom_liquid": "Liquid personnalisé"
+      }
+    },
+    "featured_collection": {
+      "name": "Collection à la une",
+      "settings": {
+        "heading": "Titre",
+        "collection": "Collection",
+        "products_to_show": "Produits à afficher",
+        "columns": "Colonnes sur grand écran",
+        "layout": "Disposition",
+        "show_view_all": "Afficher le lien « Tout voir »",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut du thème."
+      },
+      "options": {
+        "columns": {
+          "3": "3",
+          "4": "4",
+          "5": "5"
+        },
+        "layout": {
+          "grid": "Grille",
+          "rail": "Rangée défilante"
+        }
+      },
+      "presets": {
+        "featured_collection": "Collection à la une"
+      }
+    },
+    "groups": {
+      "footer": "Pied de page",
+      "footer_utilities": "Utilitaires du pied de page",
+      "header": "En-tête",
+      "overlays": "Superpositions"
+    },
+    "footer_utilities": {
+      "name": "Informations légales du pied de page",
+      "settings": {
+        "show_copyright": "Afficher la ligne de copyright",
+        "show_powered_by": "Afficher la mention « propulsé par »",
+        "show_language_selector": "Afficher le sélecteur de langue",
+        "show_country_selector": "Afficher le sélecteur de pays et de devise",
+        "color_scheme": "Palette de couleurs"
+      }
+    },
+    "footer": {
+      "name": "Pied de page",
+      "settings": {
+        "menu": "Premier menu",
+        "menu_heading": "Titre du premier menu",
+        "menu_2": "Second menu",
+        "show_description": "Afficher la description de la boutique",
+        "show_newsletter": "Afficher le formulaire de newsletter",
+        "show_support": "Afficher la colonne assistance et garantie",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "menu_heading": "Laissez vide pour utiliser le titre par défaut du thème."
+      }
+    },
+    "header": {
+      "name": "En-tête",
+      "settings": {
+        "menu": "Menu des rayons",
+        "sticky": "En-tête fixe",
+        "show_utility_bar": "Afficher la barre utilitaire",
+        "utility_menu": "Liens utilitaires",
+        "show_language_selector": "Afficher le sélecteur de langue",
+        "show_country_selector": "Afficher le sélecteur de pays et de devise",
+        "promo_text": "Texte de la promotion",
+        "promo_link": "Lien de la promotion"
+      },
+      "info": {
+        "menu": "Les liens de premier niveau deviennent les colonnes du méga-menu ; leurs sous-liens en sont les éléments.",
+        "promo_text": "Affiché en bas du méga-menu. Laissez vide pour le masquer."
+      },
+      "headers": {
+        "utility_bar": "Barre utilitaire",
+        "mega_menu": "Méga-menu"
+      }
+    },
+    "hero": {
+      "name": "Bannière",
+      "headers": {
+        "content": "Contenu",
+        "media": "Média",
+        "appearance": "Apparence"
+      },
+      "settings": {
+        "eyebrow": "Sur-titre",
+        "heading": "Titre",
+        "text": "Texte",
+        "button_label": "Libellé du bouton principal",
+        "button_link": "Lien du bouton principal",
+        "button_2_label": "Libellé du bouton secondaire",
+        "button_2_link": "Lien du bouton secondaire",
+        "product": "Produit à la une",
+        "image": "Image",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "eyebrow": "Laissez les textes vides pour utiliser le contenu par défaut du thème, dans la langue du visiteur.",
+        "product": "Affiché sous forme de carte produit mise en avant à côté du texte.",
+        "image": "Utilisée quand aucun produit à la une n’est choisi."
+      },
+      "blocks": {
+        "stat": {
+          "name": "Chiffre clé",
+          "settings": {
+            "value": "Valeur",
+            "label": "Libellé"
+          }
+        }
+      },
+      "presets": {
+        "hero": "Bannière"
+      }
+    },
+    "highlights_bar": {
+      "name": "Bandeau livraison et garantie",
+      "settings": {
+        "color_scheme": "Palette de couleurs"
+      },
+      "blocks": {
+        "item": {
+          "name": "Atout",
+          "settings": {
+            "icon": "Icône",
+            "title": "Titre",
+            "text": "Texte",
+            "link": "Lien"
+          },
+          "options": {
+            "icon": {
+              "truck": "Livraison",
+              "shield": "Garantie",
+              "refresh": "Retours",
+              "headset": "Assistance",
+              "check": "Coche",
+              "chip": "Puce électronique"
+            }
+          },
+          "info": {
+            "title": "Laissez les textes vides pour utiliser le contenu par défaut du thème, dans la langue du visiteur."
+          }
+        }
+      },
+      "presets": {
+        "delivery_and_warranty_bar": "Bandeau livraison et garantie"
+      }
+    },
+    "main_404": {
+      "name": "Page introuvable"
+    },
+    "main_account": {
+      "name": "Compte client"
+    },
+    "customer": {
+      "headers": {
+        "content": "Contenu",
+        "layout": "Mise en page"
+      },
+      "settings": {
+        "heading": "Titre",
+        "text": "Texte d’introduction",
+        "show_store_credit": "Afficher le solde du crédit en magasin",
+        "show_default_address": "Afficher l’adresse par défaut",
+        "orders_per_page": "Commandes par page",
+        "details_position": "Informations du compte",
+        "align": "Alignement",
+        "width": "Largeur",
+        "columns": "Adresses par ligne",
+        "show_recover_link": "Afficher le lien « Mot de passe oublié »",
+        "show_register_link": "Afficher le lien pour créer un compte",
+        "show_sku": "Afficher la colonne SKU",
+        "show_addresses": "Afficher les adresses de livraison et de facturation",
+        "show_shipments": "Afficher les expéditions et le suivi",
+        "show_name_fields": "Demander le prénom et le nom",
+        "show_marketing": "Proposer l’inscription aux e-mails marketing",
+        "show_login_link": "Afficher le lien pour se connecter"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut dans la langue du client.",
+        "show_store_credit": "Affiché uniquement si le crédit en magasin est activé et que le client a un solde.",
+        "text_default": "Laissez vide pour utiliser le texte par défaut.",
+        "order_heading": "Le numéro de commande est ajouté à la suite. Laissez vide pour le titre par défaut."
+      },
+      "options": {
+        "details_position": {
+          "side": "À côté des commandes",
+          "below": "Sous les commandes"
+        },
+        "width": {
+          "narrow": "Étroite",
+          "page": "Largeur de page"
+        }
+      }
+    },
+    "main_activate_account": {
+      "name": "Activation du compte"
+    },
+    "main_addresses": {
+      "name": "Adresses du client",
+      "options": {
+        "columns": {
+          "1": "1",
+          "2": "2",
+          "3": "3"
+        }
+      }
+    },
+    "main_article": {
+      "name": "Article",
+      "settings": {
+        "show_author": "Afficher l’auteur",
+        "show_navigation": "Afficher les liens précédent et suivant"
+      }
+    },
+    "main_blog": {
+      "name": "Articles du blog",
+      "settings": {
+        "articles_per_page": "Articles par page",
+        "show_image": "Afficher l’image",
+        "show_author": "Afficher l’auteur"
+      }
+    },
+    "main_cart": {
+      "name": "Panier"
+    },
+    "main_collection": {
+      "name": "Collection",
+      "settings": {
+        "products_per_page": "Produits par page",
+        "columns": "Colonnes sur grand écran",
+        "show_description": "Afficher la description de la collection"
+      },
+      "options": {
+        "columns": {
+          "3": "3",
+          "4": "4",
+          "5": "5"
+        }
+      }
+    },
+    "main_contact": {
+      "name": "Formulaire de contact"
+    },
+    "main_list_collections": {
+      "name": "Liste des collections"
+    },
+    "main_login": {
+      "name": "Connexion client"
+    },
+    "main_order": {
+      "name": "Commande client"
+    },
+    "main_page": {
+      "name": "Page"
+    },
+    "main_password": {
+      "name": "Page de mot de passe"
+    },
+    "main_product": {
+      "name": "Produit",
+      "headers": {
+        "layout": "Disposition",
+        "content": "Contenu"
+      },
+      "settings": {
+        "gallery_layout": "Disposition de la galerie",
+        "sticky_buybox": "Garder le bloc d’achat visible au défilement",
+        "show_breadcrumb": "Afficher le fil d’Ariane",
+        "show_vendor": "Afficher la marque",
+        "show_sku": "Afficher la référence",
+        "show_compare": "Afficher le bouton de comparaison"
+      },
+      "options": {
+        "gallery_layout": {
+          "side": "Miniatures sur le côté",
+          "below": "Miniatures en dessous"
+        }
+      },
+      "blocks": {
+        "perk": {
+          "name": "Note de livraison ou de garantie",
+          "settings": {
+            "icon": "Icône",
+            "title": "Titre",
+            "text": "Texte"
+          },
+          "options": {
+            "icon": {
+              "truck": "Livraison",
+              "shield": "Garantie",
+              "refresh": "Retours",
+              "headset": "Assistance",
+              "check": "Coche"
+            }
+          },
+          "info": {
+            "title": "Laissez vide pour utiliser le texte par défaut du thème."
+          }
+        }
+      }
+    },
+    "main_register": {
+      "name": "Création de compte"
+    },
+    "main_reset_password": {
+      "name": "Réinitialisation du mot de passe"
+    },
+    "main_search": {
+      "name": "Résultats de recherche",
+      "settings": {
+        "products_per_page": "Résultats par page",
+        "columns": "Colonnes sur grand écran"
+      },
+      "options": {
+        "columns": {
+          "3": "3",
+          "4": "4",
+          "5": "5"
+        }
+      }
+    },
+    "newsletter": {
+      "name": "Newsletter",
+      "settings": {
+        "heading": "Titre",
+        "text": "Texte",
+        "button_label": "Libellé du bouton",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "heading": "Laissez les textes vides pour utiliser le contenu par défaut du thème, dans la langue du visiteur."
+      },
+      "presets": {
+        "newsletter": "Newsletter"
+      }
+    },
+    "product_recommendations": {
+      "name": "Recommandations de produits",
+      "settings": {
+        "heading": "Titre",
+        "products_to_show": "Produits à afficher",
+        "columns": "Colonnes sur grand écran"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut du thème."
+      },
+      "options": {
+        "columns": {
+          "3": "3",
+          "4": "4",
+          "5": "5"
+        }
+      },
+      "presets": {
+        "product_recommendations": "Recommandations de produits"
+      }
+    },
+    "promo_tiles": {
+      "name": "Vignettes promotionnelles",
+      "blocks": {
+        "tile": {
+          "name": "Vignette promotionnelle",
+          "settings": {
+            "eyebrow": "Sur-titre",
+            "heading": "Titre",
+            "text": "Texte",
+            "button_label": "Libellé du bouton",
+            "link": "Lien",
+            "image": "Image",
+            "color_scheme": "Palette de couleurs"
+          },
+          "info": {
+            "eyebrow": "Laissez les textes vides pour utiliser le contenu par défaut du thème, dans la langue du visiteur."
+          }
+        }
+      },
+      "presets": {
+        "promo_tiles": "Vignettes promotionnelles"
+      }
+    },
+    "rich_text": {
+      "name": "Texte enrichi",
+      "settings": {
+        "eyebrow": "Sur-titre",
+        "heading": "Titre",
+        "text": "Texte",
+        "button_label": "Libellé du bouton",
+        "button_link": "Lien du bouton",
+        "align": "Alignement",
+        "color_scheme": "Palette de couleurs"
+      },
+      "options": {
+        "align": {
+          "left": "Gauche",
+          "center": "Centre"
+        }
+      },
+      "presets": {
+        "rich_text": "Texte enrichi"
+      }
+    },
+    "specs_table": {
+      "name": "Tableau des caractéristiques",
+      "settings": {
+        "heading": "Titre",
+        "namespace": "Espace de noms du métachamp",
+        "show_product_data": "Afficher la marque, le type, la référence, le poids et les options",
+        "zebra": "Alterner l’ombrage des lignes",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut du thème.",
+        "namespace": "Les métachamps produit de cet espace de noms deviennent des lignes. Laissez vide pour utiliser l’espace de noms défini dans les réglages du thème."
+      },
+      "blocks": {
+        "row": {
+          "name": "Ligne",
+          "settings": {
+            "label": "Libellé",
+            "value": "Valeur"
+          }
+        },
+        "group": {
+          "name": "Titre de groupe",
+          "settings": {
+            "title": "Titre"
+          }
+        }
+      },
+      "presets": {
+        "specs_table": "Tableau des caractéristiques"
+      }
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{%- liquid
+  assign s = section.settings
+  assign source = s.collection
+  if source == blank
+    assign source = collections['all']
+  endif
+  assign vendors = source.all_vendors
+  assign heading = s.heading
+  if heading == blank
+    assign heading = 'home.brands_heading' | t
+  endif
+-%}
+{%- if vendors.size > 0 -%}
+  <div class="page-width cx-section cx-brands {% render 'scheme-class', scheme: s.color_scheme %}">
+    <div class="cx-section__head">
+      <h2 class="cx-section__title">{{ heading | escape }}</h2>
+      {%- if s.show_view_all -%}<a class="cx-more" href="{{ routes.collections_url }}">{{ 'general.view_all' | t }} {% render 'icon', name: 'arrow-right', size: 16 %}</a>{%- endif -%}
+    </div>
+    <ul class="cx-brands__list" role="list">
+      {%- for vendor in vendors limit: s.max_brands -%}
+        {%- assign logo_image = nil -%}
+        {%- for block in section.blocks -%}
+          {%- if block.settings.vendor == vendor and block.settings.image != blank -%}{%- assign logo_image = block.settings.image -%}{%- endif -%}
+        {%- endfor -%}
+        <li>
+          <a class="cx-brand-tile cx-brand-tile--{{ s.style }}" href="{{ vendor | url_for_vendor }}">
+            {%- if logo_image -%}{{ logo_image | image_url: width: 240 | image_tag: loading: 'lazy', alt: vendor }}{%- else -%}<span>{{ vendor | escape }}</span>{%- endif -%}
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+{%- elsif request.design_mode -%}
+  <div class="page-width cx-section"><p class="empty">{{ 'home.brands_empty' | t }}</p></div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.brand_logos.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.brand_logos.settings.heading",
+      "info": "t:sections.brand_logos.info.heading"
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "t:sections.brand_logos.settings.collection",
+      "info": "t:sections.brand_logos.info.collection"
+    },
+    {
+      "type": "range",
+      "id": "max_brands",
+      "label": "t:sections.brand_logos.settings.max_brands",
+      "min": 4,
+      "max": 24,
+      "step": 1,
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "style",
+      "label": "t:sections.brand_logos.settings.style",
+      "default": "outline",
+      "options": [
+        {
+          "value": "outline",
+          "label": "t:sections.brand_logos.options.style.outline"
+        },
+        {
+          "value": "filled",
+          "label": "t:sections.brand_logos.options.style.filled"
+        },
+        {
+          "value": "plain",
+          "label": "t:sections.brand_logos.options.style.plain"
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_all",
+      "label": "t:sections.brand_logos.settings.show_view_all",
+      "default": false
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.brand_logos.settings.color_scheme",
+      "default": ""
+    }
+  ],
+  "blocks": [
+    {
+      "type": "logo",
+      "name": "t:sections.brand_logos.blocks.logo.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "vendor",
+          "label": "t:sections.brand_logos.blocks.logo.settings.vendor",
+          "info": "t:sections.brand_logos.blocks.logo.info.vendor"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:sections.brand_logos.blocks.logo.settings.image",
+          "info": "t:sections.brand_logos.blocks.logo.info.image"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.brand_logos.presets.brand_logos",
+      "category": "collection"
+    }
+  ]
+}
+{% endschema %}

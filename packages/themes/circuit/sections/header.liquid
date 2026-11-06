@@ -1,0 +1,219 @@
+{%- liquid
+  assign menu = section.settings.menu
+  assign utility = section.settings.utility_menu
+  assign logo = settings.logo
+  assign show_account = false
+  if shop.customer_accounts_enabled
+    if customer or routes.account_login_url != blank
+      assign show_account = true
+    endif
+  endif
+  assign has_language = false
+  if section.settings.show_language_selector and localization.available_languages.size > 1
+    assign has_language = true
+  endif
+  assign has_country = false
+  if section.settings.show_country_selector and localization.available_countries.size > 1
+    assign has_country = true
+  endif
+-%}
+<header class="cx-header{% if section.settings.sticky %} cx-header--sticky{% endif %}" data-header>
+  {%- if section.settings.show_utility_bar and utility != blank or has_language or has_country -%}
+    <div class="cx-util">
+      <div class="page-width cx-util__inner">
+        <ul class="cx-util__links" role="list">
+          {%- if utility != blank -%}
+            {%- for link in utility.links -%}
+              <li><a href="{{ link.url }}">{{ link.title | escape }}</a></li>
+            {%- endfor -%}
+          {%- endif -%}
+        </ul>
+        <div class="cx-util__locale">
+          {%- if has_language -%}{%- render 'language-selector', uid: '-header' -%}{%- endif -%}
+          {%- if has_country -%}{%- render 'country-selector', uid: '-header' -%}{%- endif -%}
+        </div>
+      </div>
+    </div>
+  {%- endif -%}
+
+  <div class="cx-bar">
+    <div class="page-width cx-bar__inner">
+      <button type="button" class="cx-icon-btn cx-bar__menu" aria-expanded="false" aria-controls="cx-nav" data-nav-toggle>
+        <span class="visually-hidden">{{ 'accessibility.open_menu' | t }}</span>
+        {% render 'icon', name: 'menu' %}
+      </button>
+
+      <a class="cx-brand" href="{{ routes.root_url }}">
+        {%- if logo -%}
+          {{ logo | image_url: width: 480 | image_tag: alt: shop.name, class: 'cx-brand__logo', loading: 'eager' }}
+        {%- else -%}
+          <span class="cx-brand__mark" aria-hidden="true">{% render 'icon', name: 'chip', size: 26 %}</span>
+          <span class="cx-brand__name">{{ shop.name | escape }}</span>
+        {%- endif -%}
+      </a>
+
+      <div class="cx-search" data-search>
+        <form class="cx-search__form" role="search" action="{{ routes.search_url }}" method="get">
+          <label class="visually-hidden" for="cx-search-q">{{ 'accessibility.search' | t }}</label>
+          <input id="cx-search-q" class="cx-search__input" type="search" name="q" value="{{ search.terms | escape }}" placeholder="{{ 'search.placeholder' | t }}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="cx-suggest-results" data-predictive-input>
+          <button class="cx-search__submit" type="submit">
+            <span class="visually-hidden">{{ 'search.submit' | t }}</span>
+            {% render 'icon', name: 'search' %}
+          </button>
+        </form>
+        <div class="cx-suggest" id="cx-suggest" data-predictive-search data-url="{{ routes.predictive_search_url }}" data-limit="{{ settings.search_suggestions_limit | default: 4 }}" data-show-image="{{ settings.search_show_image | default: true }}" data-show-price="{{ settings.search_show_price | default: true }}" hidden>
+          {%- capture search_labels -%}
+            {"queries":{{ 'search.predictive.queries' | t | json }},"products":{{ 'search.predictive.products' | t | json }},"collections":{{ 'search.predictive.collections' | t | json }},"pages":{{ 'search.predictive.pages' | t | json }},"articles":{{ 'search.predictive.articles' | t | json }},"none":{{ 'search.predictive.none' | t | json }},"all":{{ 'search.predictive.all' | t | json }}}
+          {%- endcapture -%}
+          <div class="cx-suggest__results" id="cx-suggest-results" role="listbox" aria-live="polite" data-predictive-results data-labels="{{ search_labels | escape }}"></div>
+        </div>
+      </div>
+
+      <div class="cx-actions">
+        {%- if show_account -%}
+          <a class="cx-action" href="{{ routes.account_url }}">
+            {% render 'icon', name: 'user' %}
+            <span class="cx-action__label">{%- if customer -%}{{ 'header.account' | t }}{%- else -%}{{ 'customer.login' | t }}{%- endif -%}</span>
+          </a>
+        {%- endif -%}
+        {%- if settings.compare_enabled -%}
+          <button type="button" class="cx-action cx-action--compare" data-compare-open aria-haspopup="dialog">
+            {% render 'icon', name: 'compare' %}
+            <span class="cx-action__label">{{ 'compare.title' | t }}</span>
+            <span class="cx-count is-empty" data-compare-count aria-hidden="true">0</span>
+          </button>
+        {%- endif -%}
+        <a class="cx-action cx-action--cart" href="{{ routes.cart_url }}" data-cart-link>
+          {% render 'icon', name: 'cart' %}
+          <span class="cx-action__label">{{ 'header.cart' | t }}</span>
+          <span class="visually-hidden">{{ 'accessibility.cart_count' | t: count: cart.item_count }}</span>
+          <span class="cx-count{% if cart.item_count == 0 %} is-empty{% endif %}" data-cart-count aria-hidden="true">{{ cart.item_count }}</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="cx-nav-overlay" data-nav-overlay></div>
+  <div class="cx-nav" id="cx-nav" data-nav>
+    <div class="page-width cx-nav__inner">
+      <button type="button" class="cx-icon-btn cx-nav__close" data-nav-close>
+        <span class="visually-hidden">{{ 'accessibility.close_menu' | t }}</span>
+        {% render 'icon', name: 'close' %}
+      </button>
+      {%- if menu != blank and menu.links.size > 0 -%}
+        <button type="button" class="cx-dept-btn" aria-expanded="false" aria-controls="cx-mega" data-mega-toggle>
+          {% render 'icon', name: 'menu', size: 18 %}
+          <span>{{ 'header.departments' | t }}</span>
+          {% render 'icon', name: 'chevron-down', size: 14 %}
+        </button>
+        <nav class="cx-nav__quick" aria-label="{{ menu.title | default: shop.name | escape }}">
+          <ul role="list">
+            {%- for link in menu.links limit: 7 -%}
+              <li><a href="{{ link.url }}"{% if link.current %} aria-current="page"{% endif %}{% if link.active %} class="is-active"{% endif %}>{{ link.title | escape }}</a></li>
+            {%- endfor -%}
+          </ul>
+        </nav>
+        <div class="cx-mega" id="cx-mega" data-mega>
+          <div class="cx-mega__cols">
+            {%- for link in menu.links -%}
+              <div class="cx-mega__col">
+                <a class="cx-mega__title" href="{{ link.url }}">{{ link.title | escape }}</a>
+                {%- if link.links.size > 0 -%}
+                  <ul role="list">
+                    {%- for child in link.links -%}
+                      <li>
+                        <a href="{{ child.url }}">{{ child.title | escape }}</a>
+                        {%- if child.links.size > 0 -%}
+                          <ul class="cx-mega__sub" role="list">
+                            {%- for grandchild in child.links -%}<li><a href="{{ grandchild.url }}">{{ grandchild.title | escape }}</a></li>{%- endfor -%}
+                          </ul>
+                        {%- endif -%}
+                      </li>
+                    {%- endfor -%}
+                  </ul>
+                {%- endif -%}
+              </div>
+            {%- endfor -%}
+          </div>
+          {%- if section.settings.promo_text != blank -%}
+            <a class="cx-mega__promo" href="{{ section.settings.promo_link | default: routes.all_products_collection_url }}">
+              <span class="cx-mega__promo-tag">{{ 'header.promo_tag' | t }}</span>
+              <span>{{ section.settings.promo_text | escape }}</span>
+              {% render 'icon', name: 'arrow-right', size: 18 %}
+            </a>
+          {%- endif -%}
+        </div>
+      {%- endif -%}
+      <div class="cx-nav__locale">
+        {%- if has_language -%}{%- render 'language-selector', uid: '-drawer' -%}{%- endif -%}
+        {%- if has_country -%}{%- render 'country-selector', uid: '-drawer' -%}{%- endif -%}
+      </div>
+    </div>
+  </div>
+</header>
+
+{% schema %}
+{
+  "name": "t:sections.header.name",
+  "tag": "div",
+  "class": "header-section",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "t:sections.header.settings.menu",
+      "default": "main-menu",
+      "info": "t:sections.header.info.menu"
+    },
+    {
+      "type": "checkbox",
+      "id": "sticky",
+      "label": "t:sections.header.settings.sticky",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.header.headers.utility_bar"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_utility_bar",
+      "label": "t:sections.header.settings.show_utility_bar",
+      "default": true
+    },
+    {
+      "type": "link_list",
+      "id": "utility_menu",
+      "label": "t:sections.header.settings.utility_menu",
+      "default": "footer"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_language_selector",
+      "label": "t:sections.header.settings.show_language_selector",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_country_selector",
+      "label": "t:sections.header.settings.show_country_selector",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.header.headers.mega_menu"
+    },
+    {
+      "type": "text",
+      "id": "promo_text",
+      "label": "t:sections.header.settings.promo_text",
+      "info": "t:sections.header.info.promo_text"
+    },
+    {
+      "type": "url",
+      "id": "promo_link",
+      "label": "t:sections.header.settings.promo_link"
+    }
+  ]
+}
+{% endschema %}

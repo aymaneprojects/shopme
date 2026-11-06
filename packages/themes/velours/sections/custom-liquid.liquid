@@ -1,0 +1,29 @@
+<div class="page-width vl-section {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  {{ section.settings.custom_liquid }}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.custom_liquid.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "liquid",
+      "id": "custom_liquid",
+      "label": "t:sections.custom_liquid.settings.custom_liquid"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.custom_liquid.settings.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.custom_liquid.presets.custom_liquid",
+      "category": "layout"
+    }
+  ]
+}
+{% endschema %}

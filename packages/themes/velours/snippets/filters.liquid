@@ -1,0 +1,115 @@
+{%- doc -%}
+  Filters and sorting of a product listing as a row of soft drop-downs. Submits a GET form; the script applies changes as they are made.
+  @param {array} filters - collection.filters or search.filters
+  @param {array} sort_options - the sort options of the listing
+  @param {string} sort_by - the current sort key
+  @param {string} action - URL the form submits to
+  @param {string} [search_terms] - search terms to keep (search page)
+  @param {string} [search_types] - search types to keep (search page)
+{%- enddoc -%}
+<form class="vl-filters" method="get" action="{{ action }}" data-filter-form aria-label="{{ 'collection.filter' | t }}">
+  {%- if search_terms != blank -%}
+    <input type="hidden" name="q" value="{{ search_terms | escape }}">
+    {%- if search_types != blank -%}<input type="hidden" name="type" value="{{ search_types | escape }}">{%- endif -%}
+  {%- endif -%}
+  <div class="vl-filters__row">
+    <div class="vl-filters__groups">
+      {%- for filter in filters -%}
+        {%- liquid
+          case filter.param_name
+            when 'filter.v.availability'
+              assign filter_label = 'collection.availability' | t
+            when 'filter.v.price'
+              assign filter_label = 'collection.price' | t
+            when 'filter.p.product_type'
+              assign filter_label = 'collection.product_type' | t
+            when 'filter.p.vendor'
+              assign filter_label = 'collection.vendor' | t
+            else
+              assign filter_label = filter.label
+          endcase
+          assign active_n = filter.active_values.size
+          if filter.type == 'price_range'
+            assign active_n = 0
+            if filter.min_value.value > 0 or filter.max_value.value < filter.range_max
+              assign active_n = 1
+            endif
+          endif
+        -%}
+        {%- if filter.type == 'price_range' or filter.values.size > 0 -%}
+          <details class="vl-drop{% if active_n > 0 %} is-active{% endif %}" data-drop>
+            <summary>{{ filter_label | escape }}{% if active_n > 0 %} <span class="vl-drop__n">{{ active_n }}</span>{% endif %} {% render 'icon', name: 'chevron-down', size: 16 %}</summary>
+            <div class="vl-drop__panel">
+              {%- if filter.type == 'price_range' -%}
+                {%- assign range_max_units = filter.range_max | divided_by: 100.0 | ceil -%}
+                <div class="vl-drop__range">
+                  <label><span class="visually-hidden">{{ 'collection.price_from' | t }}</span><span>{{ shop.currency }}</span>
+                    <input type="number" name="{{ filter.param_name }}.gte" min="0" max="{{ range_max_units }}" inputmode="numeric" placeholder="0"{% if filter.min_value.value > 0 %} value="{{ filter.min_value.value | divided_by: 100 }}"{% endif %}></label>
+                  <label><span class="visually-hidden">{{ 'collection.price_to' | t }}</span><span>{{ shop.currency }}</span>
+                    <input type="number" name="{{ filter.param_name }}.lte" min="0" max="{{ range_max_units }}" inputmode="numeric" placeholder="{{ range_max_units }}"{% if filter.max_value.value < filter.range_max %} value="{{ filter.max_value.value | divided_by: 100 }}"{% endif %}></label>
+                </div>
+                <button type="submit" class="button button--small">{{ 'collection.apply' | t }}</button>
+              {%- else -%}
+                <ul role="list">
+                  {%- for value in filter.values -%}
+                    {%- if filter.param_name == 'filter.v.availability' -%}
+                      {%- if value.value == '1' -%}{%- assign value_label = 'collection.in_stock' | t -%}{%- else -%}{%- assign value_label = 'collection.out_of_stock' | t -%}{%- endif -%}
+                    {%- else -%}
+                      {%- assign value_label = value.label -%}
+                    {%- endif -%}
+                    <li>
+                      <label class="vl-check">
+                        <input type="checkbox" name="{{ value.param_name }}" value="{{ value.value | escape }}"{% if value.active %} checked{% endif %}{% if value.count == 0 and value.active == false %} disabled{% endif %} data-auto-submit>
+                        <span class="vl-check__box" aria-hidden="true">{% render 'icon', name: 'check', size: 12 %}</span>
+                        <span>{{ value_label | escape }}</span>
+                        <span class="vl-check__count">{{ value.count }}</span>
+                      </label>
+                    </li>
+                  {%- endfor -%}
+                </ul>
+              {%- endif -%}
+            </div>
+          </details>
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+    <label class="vl-filters__sort">
+      <span class="visually-hidden">{{ 'collection.sort_by' | t }}</span>
+      <select name="sort_by" data-auto-submit aria-label="{{ 'collection.sort_by' | t }}">
+        {%- for option in sort_options -%}
+          {%- assign sort_key = 'collection.sort.' | append: option.value -%}
+          {%- if search_terms != blank and option.value == 'manual' -%}{%- assign sort_key = 'collection.sort.relevance' -%}{%- endif -%}
+          <option value="{{ option.value }}"{% if option.value == sort_by %} selected{% endif %}>{{ 'collection.sort_by' | t }}: {{ sort_key | t }}</option>
+        {%- endfor -%}
+      </select>
+    </label>
+  </div>
+  {%- assign pill_count = 0 -%}
+  {%- for filter in filters -%}
+    {%- if filter.type == 'list' -%}{%- assign pill_count = pill_count | plus: filter.active_values.size -%}{%- elsif filter.min_value.value > 0 or filter.max_value.value < filter.range_max -%}{%- assign pill_count = pill_count | plus: 1 -%}{%- endif -%}
+  {%- endfor -%}
+  {%- if pill_count > 0 -%}
+    <ul class="vl-pills" role="list">
+      {%- for filter in filters -%}
+        {%- if filter.type == 'list' -%}
+          {%- for value in filter.values -%}
+            {%- if value.active -%}
+              {%- if filter.param_name == 'filter.v.availability' -%}
+                {%- if value.value == '1' -%}{%- assign pill = 'collection.in_stock' | t -%}{%- else -%}{%- assign pill = 'collection.out_of_stock' | t -%}{%- endif -%}
+              {%- else -%}
+                {%- assign pill = value.label -%}
+              {%- endif -%}
+              <li><a class="vl-pill" href="{{ value.url_to_remove }}">{{ pill | escape }} {% render 'icon', name: 'close', size: 12 %}<span class="visually-hidden">{{ 'collection.remove_filter' | t }}</span></a></li>
+            {%- endif -%}
+          {%- endfor -%}
+        {%- elsif filter.min_value.value > 0 or filter.max_value.value < filter.range_max -%}
+          {%- assign pill_min = filter.min_value.value | money_without_trailing_zeros -%}
+          {%- assign pill_max = filter.max_value.value | money_without_trailing_zeros -%}
+          <li><a class="vl-pill" href="{{ filter.url_to_remove }}">{{ pill_min }} - {{ pill_max }} {% render 'icon', name: 'close', size: 12 %}<span class="visually-hidden">{{ 'collection.remove_filter' | t }}</span></a></li>
+        {%- endif -%}
+      {%- endfor -%}
+      <li><a class="vl-pill vl-pill--clear" href="{{ action }}{% if search_terms != blank %}?q={{ search_terms | url_encode }}{% if search_types != blank %}&amp;type={{ search_types | url_encode }}{% endif %}{% endif %}">{{ 'collection.clear' | t }}</a></li>
+    </ul>
+  {%- endif -%}
+  <noscript><button type="submit" class="button button--small">{{ 'collection.apply' | t }}</button></noscript>
+</form>

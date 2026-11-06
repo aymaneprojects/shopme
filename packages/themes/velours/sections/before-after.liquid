@@ -1,0 +1,131 @@
+{%- liquid
+  assign s = section.settings
+  assign heading = s.heading
+  if heading == blank
+    assign heading = 'before_after.heading' | t
+  endif
+-%}
+<div class="vl-section vl-ba {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width">
+    <div class="vl-section__head vl-section__head--center">
+      <p class="vl-eyebrow">{{ 'before_after.eyebrow' | t }}</p>
+      <h2 class="vl-section__title">{{ heading | escape }}</h2>
+    </div>
+    <ul class="vl-ba__list vl-ba__list--{{ section.blocks.size }}" role="list">
+      {%- for block in section.blocks -%}
+        {%- liquid
+          assign key = 'before_after.item_' | append: forloop.index
+          assign caption = block.settings.caption
+          assign who = block.settings.name
+          assign when = block.settings.when
+          if caption == blank
+            assign caption = key | append: '_caption' | t
+          endif
+          if who == blank
+            assign who = key | append: '_name' | t
+          endif
+          if when == blank
+            assign when = key | append: '_when' | t
+          endif
+          assign before = block.settings.before
+          assign after = block.settings.after
+          assign before_focal = ''
+          assign after_focal = ''
+          if before.presentation.focal_point != blank
+            assign before_focal = 'object-position: ' | append: before.presentation.focal_point
+          endif
+          if after.presentation.focal_point != blank
+            assign after_focal = 'object-position: ' | append: after.presentation.focal_point
+          endif
+        -%}
+        <li class="vl-ba__item" {{ block.shopify_attributes }}>
+          <div class="vl-compare" data-compare style="--pos: 50%;">
+            <div class="vl-compare__layer vl-compare__layer--after">
+              {%- if after -%}{{ after | image_url: width: 900 | image_tag: loading: 'lazy', alt: '', style: after_focal }}{%- else -%}<span class="vl-compare__art vl-compare__art--after" aria-hidden="true"></span>{%- endif -%}
+              <span class="vl-compare__tag vl-compare__tag--after">{{ 'before_after.after' | t }}</span>
+            </div>
+            <div class="vl-compare__layer vl-compare__layer--before">
+              {%- if before -%}{{ before | image_url: width: 900 | image_tag: loading: 'lazy', alt: '', style: before_focal }}{%- else -%}<span class="vl-compare__art vl-compare__art--before" aria-hidden="true"></span>{%- endif -%}
+              <span class="vl-compare__tag vl-compare__tag--before">{{ 'before_after.before' | t }}</span>
+            </div>
+            <span class="vl-compare__handle" aria-hidden="true">{% render 'icon', name: 'chevron-right', size: 18 %}</span>
+            <label class="visually-hidden" for="{{ block.id }}-range">{{ 'before_after.slider' | t }}</label>
+            <input class="vl-compare__range" id="{{ block.id }}-range" type="range" min="0" max="100" value="50" data-compare-range>
+          </div>
+          <p class="vl-ba__caption">{{ caption | escape }}</p>
+          <p class="vl-ba__who"><strong>{{ who | escape }}</strong> <span>{{ when | escape }}</span></p>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.before_after.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.before_after.settings.heading",
+      "info": "t:sections.before_after.info.heading"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.before_after.settings.color_scheme",
+      "default": "scheme-3"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "pair",
+      "name": "t:sections.before_after.blocks.pair.name",
+      "limit": 3,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "before",
+          "label": "t:sections.before_after.blocks.pair.settings.before"
+        },
+        {
+          "type": "image_picker",
+          "id": "after",
+          "label": "t:sections.before_after.blocks.pair.settings.after"
+        },
+        {
+          "type": "text",
+          "id": "caption",
+          "label": "t:sections.before_after.blocks.pair.settings.caption"
+        },
+        {
+          "type": "text",
+          "id": "name",
+          "label": "t:sections.before_after.blocks.pair.settings.name"
+        },
+        {
+          "type": "text",
+          "id": "when",
+          "label": "t:sections.before_after.blocks.pair.settings.when"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 3,
+  "presets": [
+    {
+      "name": "t:sections.before_after.presets.before_and_after",
+      "category": "image",
+      "blocks": [
+        {
+          "type": "pair"
+        },
+        {
+          "type": "pair"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

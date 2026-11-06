@@ -1,0 +1,117 @@
+{%- assign s = section.settings -%}
+<div class="page-width cx-section">
+  <ul class="cx-promos cx-promos--{{ section.blocks.size }}" role="list">
+    {%- for block in section.blocks -%}
+      {%- liquid
+        assign key = 'home.promo_' | append: forloop.index
+        assign eyebrow = block.settings.eyebrow
+        assign heading = block.settings.heading
+        assign text = block.settings.text
+        assign label = block.settings.button_label
+        if eyebrow == blank
+          assign eyebrow = key | append: '_eyebrow' | t
+        endif
+        if heading == blank
+          assign heading = key | append: '_heading' | t
+        endif
+        if text == blank
+          assign text = key | append: '_text' | t
+        endif
+        if label == blank
+          assign label = key | append: '_button' | t
+        endif
+        assign link = block.settings.link | default: routes.all_products_collection_url
+      -%}
+      <li class="cx-promo {% render 'scheme-class', scheme: block.settings.color_scheme %}" {{ block.shopify_attributes }}>
+        <a class="cx-promo__link" href="{{ link }}">
+          <span class="cx-promo__eyebrow cx-mono">{{ eyebrow | escape }}</span>
+          <span class="cx-promo__heading">{{ heading | escape }}</span>
+          <span class="cx-promo__text">{{ text | escape }}</span>
+          <span class="cx-promo__cta">{{ label | escape }} {% render 'icon', name: 'arrow-right', size: 16 %}</span>
+        </a>
+        {%- if block.settings.image != blank -%}<span class="cx-promo__media" aria-hidden="true">{% render 'media', media_type: 'image', image: block.settings.image, sizes: '(min-width: 990px) 33vw, 100vw' %}</span>{%- endif -%}
+      </li>
+    {%- endfor -%}
+  </ul>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.promo_tiles.name",
+  "tag": "section",
+  "settings": [],
+  "blocks": [
+    {
+      "type": "tile",
+      "name": "t:sections.promo_tiles.blocks.tile.name",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "text",
+          "id": "eyebrow",
+          "label": "t:sections.promo_tiles.blocks.tile.settings.eyebrow",
+          "info": "t:sections.promo_tiles.blocks.tile.info.eyebrow"
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "t:sections.promo_tiles.blocks.tile.settings.heading"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.promo_tiles.blocks.tile.settings.text"
+        },
+        {
+          "type": "text",
+          "id": "button_label",
+          "label": "t:sections.promo_tiles.blocks.tile.settings.button_label"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:sections.promo_tiles.blocks.tile.settings.link"
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:sections.promo_tiles.blocks.tile.settings.image"
+        },
+        {
+          "type": "color_scheme",
+          "id": "color_scheme",
+          "label": "t:sections.promo_tiles.blocks.tile.settings.color_scheme",
+          "default": "scheme-4"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "t:sections.promo_tiles.presets.promo_tiles",
+      "category": "banner",
+      "blocks": [
+        {
+          "type": "tile",
+          "settings": {
+            "color_scheme": "scheme-3"
+          }
+        },
+        {
+          "type": "tile",
+          "settings": {
+            "color_scheme": "scheme-2"
+          }
+        },
+        {
+          "type": "tile",
+          "settings": {
+            "color_scheme": "scheme-4"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

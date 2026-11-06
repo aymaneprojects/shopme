@@ -1,0 +1,88 @@
+{%- liquid
+  assign s = section.settings
+  assign heading = s.heading
+  if heading == blank
+    assign heading = 'home.faq_heading' | t
+  endif
+-%}
+<div class="page-width vl-section vl-faq {% render 'scheme-class', scheme: s.color_scheme %}">
+  <h2 class="vl-section__title">{{ heading | escape }}</h2>
+  <div class="vl-faq__list">
+    {%- for block in section.blocks -%}
+      {%- liquid
+        assign question = block.settings.question
+        assign answer = block.settings.answer
+        assign key = 'home.faq_' | append: forloop.index
+        if question == blank
+          assign question = key | append: '_q' | t
+        endif
+      -%}
+      <details class="vl-fold" {{ block.shopify_attributes }}{% if s.open_first and forloop.first %} open{% endif %}>
+        <summary>{{ question | escape }} {% render 'icon', name: 'chevron-down', size: 16 %}</summary>
+        {%- if answer != blank -%}<div class="rte">{{ answer }}</div>{%- else -%}<div class="rte"><p>{{ key | append: '_a' | t }}</p></div>{%- endif -%}
+      </details>
+    {%- endfor -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.collapsible_content.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.collapsible_content.settings.heading",
+      "info": "t:sections.collapsible_content.info.heading"
+    },
+    {
+      "type": "checkbox",
+      "id": "open_first",
+      "label": "t:sections.collapsible_content.settings.open_first",
+      "default": false
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.collapsible_content.settings.color_scheme",
+      "default": ""
+    }
+  ],
+  "blocks": [
+    {
+      "type": "row",
+      "name": "t:sections.collapsible_content.blocks.row.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "question",
+          "label": "t:sections.collapsible_content.blocks.row.settings.question"
+        },
+        {
+          "type": "richtext",
+          "id": "answer",
+          "label": "t:sections.collapsible_content.blocks.row.settings.answer"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.collapsible_content.presets.faq",
+      "category": "text",
+      "blocks": [
+        {
+          "type": "row"
+        },
+        {
+          "type": "row"
+        },
+        {
+          "type": "row"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

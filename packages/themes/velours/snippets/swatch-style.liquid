@@ -1,0 +1,56 @@
+{%- doc -%}
+  Prints the CSS color of a shade name for a swatch, as a custom property declaration (--shade: ...).
+  The merchant's own mapping (theme setting "Shade colors": Name:#hex pairs separated by commas) wins, then a hex code written in the name, then a built-in list of common shade names, then a soft neutral.
+  @param {string} name - the option value, such as "Rose" or "Nude #d9b8a0"
+{%- enddoc -%}
+{%- liquid
+  assign key = name | downcase | strip
+  assign found = ''
+  assign pairs = settings.swatch_colors | split: ','
+  for pair in pairs
+    assign bits = pair | split: ':'
+    assign pair_name = bits[0] | downcase | strip
+    if pair_name == key
+      assign found = bits[1] | strip
+    endif
+  endfor
+  if found == blank
+    assign words = name | split: '#'
+    if words.size > 1
+      assign found = '#' | append: words[1] | split: ' ' | first
+    endif
+  endif
+  if found == blank
+    case key
+      when 'ivory', 'porcelain', 'fair', 'light', 'cream'
+        assign found = '#f4e4d3'
+      when 'beige', 'sand', 'nude', 'natural'
+        assign found = '#e3c3a6'
+      when 'honey', 'golden', 'gold', 'tan', 'caramel'
+        assign found = '#c99668'
+      when 'mocha', 'chestnut', 'deep', 'espresso', 'brown', 'cocoa'
+        assign found = '#7b4b35'
+      when 'rose', 'pink', 'blush', 'petal'
+        assign found = '#e7a3ae'
+      when 'berry', 'plum', 'wine', 'burgundy', 'mauve'
+        assign found = '#8c3f5d'
+      when 'coral', 'peach', 'apricot', 'terracotta'
+        assign found = '#ee9a7e'
+      when 'red', 'poppy', 'cherry', 'ruby'
+        assign found = '#b3263a'
+      when 'sage', 'green', 'olive', 'matcha'
+        assign found = '#a3b899'
+      when 'slate', 'grey', 'gray', 'stone', 'charcoal'
+        assign found = '#7d8590'
+      when 'white', 'pearl', 'clear'
+        assign found = '#fbf7f2'
+      when 'black', 'noir', 'onyx'
+        assign found = '#2a2226'
+      when 'blue', 'navy', 'sky', 'lavender', 'lilac'
+        assign found = '#9ba8d4'
+      else
+        assign found = ''
+    endcase
+  endif
+-%}
+{%- if found != blank -%}--shade: {{ found | escape }};{%- else -%}--shade: #e8d9d4;{%- endif -%}

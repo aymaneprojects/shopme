@@ -1,0 +1,101 @@
+{%- doc -%}
+  Compact product card with key specs (metafields of the specs namespace, else the product options) and a compare toggle.
+  @param {product} card_product - the product to show
+  @param {string} [sizes] - image sizes attribute
+{%- enddoc -%}
+{%- liquid
+  assign image = card_product.featured_image
+  assign focal = ''
+  if image.presentation.focal_point != blank
+    assign focal = 'object-position: ' | append: image.presentation.focal_point
+  endif
+  assign sizes_attr = sizes | default: '(min-width: 1100px) 22vw, (min-width: 750px) 33vw, 50vw'
+  assign ns = settings.specs_namespace | default: 'specs'
+  assign spec_source = card_product.metafields[ns]
+  assign spec_max = settings.card_specs_count | default: 3
+  assign first_variant = card_product.selected_or_first_available_variant | default: card_product.variants.first
+-%}
+<article class="cx-card" data-card>
+  <a class="cx-card__media" href="{{ card_product.url }}" tabindex="-1" aria-hidden="true">
+    {%- if image -%}
+      {{ image | image_url: width: 560 | image_tag: loading: 'lazy', widths: '240, 360, 480, 560', sizes: sizes_attr, alt: card_product.title, style: focal }}
+    {%- else -%}
+      {{ 'product-1' | placeholder_svg_tag: 'cx-card__placeholder' }}
+    {%- endif -%}
+    {%- unless card_product.available -%}
+      {%- if settings.badge_show_sold_out != false -%}<span class="cx-badge cx-badge--out cx-badge--{{ settings.badge_position | default: 'top-left' }}">{{ 'products.sold_out' | t }}</span>{%- endif -%}
+    {%- elsif card_product.compare_at_price > card_product.price and settings.badge_show_sale != false -%}
+      <span class="cx-badge cx-badge--sale cx-badge--{{ settings.badge_position | default: 'top-left' }}">
+        {%- if settings.badge_sale_percent -%}
+          {%- assign saved = card_product.compare_at_price | minus: card_product.price | times: 100 | divided_by: card_product.compare_at_price | floor -%}
+          -{{ saved }}%
+        {%- else -%}
+          {{ 'products.sale' | t }}
+        {%- endif -%}
+      </span>
+    {%- endunless -%}
+  </a>
+  <div class="cx-card__body">
+    {%- if settings.show_vendor and card_product.vendor != blank -%}
+      <p class="cx-card__brand cx-mono">{{ card_product.vendor | escape }}</p>
+    {%- endif -%}
+    <h3 class="cx-card__title"><a href="{{ card_product.url }}">{{ card_product.title | escape }}</a></h3>
+    {%- if spec_max > 0 -%}
+      <dl class="cx-mini-specs">
+        {%- assign shown = 0 -%}
+        {%- if spec_source != blank -%}
+          {%- for entry in spec_source -%}
+            {%- if shown < spec_max -%}
+              <div><dt>{{ entry[0] | replace: '_', ' ' | capitalize }}</dt><dd>{{ entry[1] | strip_html | truncate: 24 }}</dd></div>
+              {%- assign shown = shown | plus: 1 -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- else -%}
+          {%- unless card_product.has_only_default_variant -%}
+            {%- for option in card_product.options_with_values -%}
+              {%- if shown < spec_max -%}
+                <div><dt>{{ option.name | escape }}</dt><dd>{{ option.values | join: ' / ' | truncate: 24 }}</dd></div>
+                {%- assign shown = shown | plus: 1 -%}
+              {%- endif -%}
+            {%- endfor -%}
+          {%- endunless -%}
+          {%- if shown < spec_max and card_product.type != blank -%}
+            <div><dt>{{ 'products.type' | t }}</dt><dd>{{ card_product.type | escape | truncate: 24 }}</dd></div>
+            {%- assign shown = shown | plus: 1 -%}
+          {%- endif -%}
+        {%- endif -%}
+      </dl>
+    {%- endif -%}
+    <div class="cx-card__buy">
+      {% render 'price', product: card_product %}
+      {%- if card_product.available -%}
+        <span class="cx-stock cx-stock--in"><span class="cx-dot" aria-hidden="true"></span>{{ 'products.in_stock' | t }}</span>
+      {%- else -%}
+        <span class="cx-stock cx-stock--out"><span class="cx-dot" aria-hidden="true"></span>{{ 'products.sold_out' | t }}</span>
+      {%- endif -%}
+    </div>
+    {%- if settings.card_show_sku and first_variant.sku != blank -%}
+      <p class="cx-card__sku cx-mono">{{ 'products.sku' | t }} {{ first_variant.sku | escape }}</p>
+    {%- endif -%}
+  </div>
+  <div class="cx-card__foot">
+    {%- if settings.compare_enabled -%}
+      {%- assign card_image = image | image_url: width: 160 -%}
+      {%- assign card_price = card_product.price | money -%}
+      <button type="button" class="cx-compare-btn" data-compare-toggle data-handle="{{ card_product.handle }}" data-title="{{ card_product.title | escape }}" data-url="{{ card_product.url }}" data-image="{{ card_image }}" data-price="{{ card_price | escape }}" aria-pressed="false">
+        <span class="cx-compare-btn__box" aria-hidden="true">{% render 'icon', name: 'check', size: 12 %}</span>
+        <span data-compare-label>{{ 'compare.add' | t }}</span>
+      </button>
+    {%- endif -%}
+    {%- if card_product.available -%}
+      {%- if card_product.variants.size == 1 and card_product.requires_selling_plan != true -%}
+        {%- form 'product', card_product, class: 'cx-quick' -%}
+          <input type="hidden" name="id" value="{{ first_variant.id }}">
+          <button type="submit" class="cx-quick__btn" name="add"><span class="visually-hidden">{{ 'products.add_to_cart' | t }}: {{ card_product.title | escape }}</span>{% render 'icon', name: 'cart', size: 18 %}</button>
+        {%- endform -%}
+      {%- else -%}
+        <a class="cx-quick__btn cx-quick__btn--link" href="{{ card_product.url }}"><span class="visually-hidden">{{ 'products.choose_options' | t }}: {{ card_product.title | escape }}</span>{% render 'icon', name: 'chevron-right', size: 18 %}</a>
+      {%- endif -%}
+    {%- endif -%}
+  </div>
+</article>

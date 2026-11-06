@@ -1,0 +1,23 @@
+<div class="page-width cx-listing">
+  <header class="cx-listing__head">
+    <h1 class="cx-listing__title">{{ 'general.all_collections' | t }}</h1>
+    <p class="cx-listing__count cx-mono">{{ 'general.collection_count' | t: count: collections.size }}</p>
+  </header>
+  {%- if collections.size > 0 -%}
+    <ul class="cx-cats__list cx-cats__list--4" role="list">
+      {%- for collection in collections -%}
+        <li>{% render 'collection-tile', tile_collection: collection, show_count: true, index: forloop.index %}</li>
+      {%- endfor -%}
+    </ul>
+  {%- else -%}
+    <p class="empty">{{ 'general.empty_collections' | t }}</p>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_list_collections.name",
+  "tag": "section",
+  "settings": []
+}
+{% endschema %}

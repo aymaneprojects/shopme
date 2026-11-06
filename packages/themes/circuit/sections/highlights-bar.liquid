@@ -1,0 +1,129 @@
+<div class="cx-highlights {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <ul class="page-width cx-highlights__list" role="list">
+    {%- for block in section.blocks -%}
+      {%- liquid
+        assign title = block.settings.title
+        assign text = block.settings.text
+        assign key = 'highlights.default_' | append: forloop.index
+        if title == blank
+          assign title = key | append: '_title' | t
+        endif
+        if text == blank
+          assign text = key | append: '_text' | t
+        endif
+      -%}
+      <li class="cx-highlight" {{ block.shopify_attributes }}>
+        <span class="cx-highlight__icon">{% render 'icon', name: block.settings.icon, size: 26 %}</span>
+        <span class="cx-highlight__copy">
+          {%- if block.settings.link != blank -%}<a class="cx-highlight__title" href="{{ block.settings.link }}">{{ title | escape }}</a>{%- else -%}<strong class="cx-highlight__title">{{ title | escape }}</strong>{%- endif -%}
+          <span class="cx-highlight__text">{{ text | escape }}</span>
+        </span>
+      </li>
+    {%- endfor -%}
+  </ul>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.highlights_bar.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.highlights_bar.settings.color_scheme",
+      "default": "scheme-4"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "item",
+      "name": "t:sections.highlights_bar.blocks.item.name",
+      "limit": 6,
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:sections.highlights_bar.blocks.item.settings.icon",
+          "default": "truck",
+          "options": [
+            {
+              "value": "truck",
+              "label": "t:sections.highlights_bar.blocks.item.options.icon.truck"
+            },
+            {
+              "value": "shield",
+              "label": "t:sections.highlights_bar.blocks.item.options.icon.shield"
+            },
+            {
+              "value": "refresh",
+              "label": "t:sections.highlights_bar.blocks.item.options.icon.refresh"
+            },
+            {
+              "value": "headset",
+              "label": "t:sections.highlights_bar.blocks.item.options.icon.headset"
+            },
+            {
+              "value": "check",
+              "label": "t:sections.highlights_bar.blocks.item.options.icon.check"
+            },
+            {
+              "value": "chip",
+              "label": "t:sections.highlights_bar.blocks.item.options.icon.chip"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.highlights_bar.blocks.item.settings.title",
+          "info": "t:sections.highlights_bar.blocks.item.info.title"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.highlights_bar.blocks.item.settings.text"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:sections.highlights_bar.blocks.item.settings.link"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 6,
+  "presets": [
+    {
+      "name": "t:sections.highlights_bar.presets.delivery_and_warranty_bar",
+      "category": "layout",
+      "blocks": [
+        {
+          "type": "item",
+          "settings": {
+            "icon": "truck"
+          }
+        },
+        {
+          "type": "item",
+          "settings": {
+            "icon": "shield"
+          }
+        },
+        {
+          "type": "item",
+          "settings": {
+            "icon": "refresh"
+          }
+        },
+        {
+          "type": "item",
+          "settings": {
+            "icon": "headset"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

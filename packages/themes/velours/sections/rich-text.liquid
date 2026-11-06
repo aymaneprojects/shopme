@@ -1,0 +1,72 @@
+{%- assign s = section.settings -%}
+<div class="vl-section vl-richtext vl-richtext--{{ s.align }} {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width page-width--narrow">
+    {%- if s.eyebrow != blank -%}<p class="vl-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+    {%- if s.heading != blank -%}<h2 class="vl-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+    {%- if s.text != blank -%}<div class="rte">{{ s.text }}</div>{%- endif -%}
+    {%- if s.button_label != blank -%}<p><a class="button" href="{{ s.button_link | default: routes.all_products_collection_url }}">{{ s.button_label | escape }}</a></p>{%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.rich_text.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.rich_text.settings.eyebrow"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.rich_text.settings.heading"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:sections.rich_text.settings.text"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.rich_text.settings.button_label"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:sections.rich_text.settings.button_link"
+    },
+    {
+      "type": "select",
+      "id": "align",
+      "label": "t:sections.rich_text.settings.align",
+      "default": "left",
+      "variant": "segmented",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:sections.rich_text.options.align.left"
+        },
+        {
+          "value": "center",
+          "label": "t:sections.rich_text.options.align.center"
+        }
+      ]
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.rich_text.settings.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.rich_text.presets.rich_text",
+      "category": "text"
+    }
+  ]
+}
+{% endschema %}

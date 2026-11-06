@@ -1,0 +1,62 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "stat-1": { "type": "stat", "settings": {} },
+        "stat-2": { "type": "stat", "settings": {} },
+        "stat-3": { "type": "stat", "settings": {} }
+      },
+      "block_order": ["stat-1", "stat-2", "stat-3"],
+      "settings": { "color_scheme": "scheme-2" }
+    },
+    "highlights": {
+      "type": "highlights-bar",
+      "blocks": {
+        "delivery": { "type": "item", "settings": { "icon": "truck" } },
+        "warranty": { "type": "item", "settings": { "icon": "shield" } },
+        "returns": { "type": "item", "settings": { "icon": "refresh" } },
+        "support": { "type": "item", "settings": { "icon": "headset" } }
+      },
+      "block_order": ["delivery", "warranty", "returns", "support"],
+      "settings": { "color_scheme": "scheme-4" }
+    },
+    "departments": {
+      "type": "category-tiles",
+      "settings": { "columns": "4", "show_count": true }
+    },
+    "top-picks": {
+      "type": "featured-collection",
+      "settings": { "collection": "all", "products_to_show": 8, "columns": "4", "layout": "grid", "show_view_all": true }
+    },
+    "promos": {
+      "type": "promo-tiles",
+      "blocks": {
+        "promo-1": { "type": "tile", "settings": { "color_scheme": "scheme-3" } },
+        "promo-2": { "type": "tile", "settings": { "color_scheme": "scheme-2" } },
+        "promo-3": { "type": "tile", "settings": { "color_scheme": "scheme-4" } }
+      },
+      "block_order": ["promo-1", "promo-2", "promo-3"],
+      "settings": {}
+    },
+    "brands": {
+      "type": "brand-logos",
+      "settings": { "collection": "all", "max_brands": 12, "style": "outline" }
+    },
+    "faq": {
+      "type": "collapsible-content",
+      "blocks": {
+        "q1": { "type": "row", "settings": {} },
+        "q2": { "type": "row", "settings": {} },
+        "q3": { "type": "row", "settings": {} }
+      },
+      "block_order": ["q1", "q2", "q3"],
+      "settings": { "open_first": true }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": { "color_scheme": "scheme-3" }
+    }
+  },
+  "order": ["hero", "highlights", "departments", "top-picks", "promos", "brands", "faq", "newsletter"]
+}
