@@ -1,0 +1,795 @@
+{
+  "storeName": "Maroquin",
+  "currency": "EUR",
+  "menu": [
+    {
+      "title": {
+        "en": "Bags",
+        "fr": "Sacs"
+      },
+      "url": "/collections/bags",
+      "children": [
+        {
+          "title": {
+            "en": "Everyday",
+            "fr": "Au quotidien"
+          },
+          "url": "/collections/bags",
+          "children": [
+            {
+              "title": {
+                "en": "Camel leather tote",
+                "fr": "Sac cabas en cuir camel"
+              },
+              "url": "/products/camel-leather-tote"
+            },
+            {
+              "title": {
+                "en": "Black crossbody bag",
+                "fr": "Sac bandoulière noir"
+              },
+              "url": "/products/black-crossbody-bag"
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Explore",
+            "fr": "Explorer"
+          },
+          "url": "/collections/all",
+          "children": [
+            {
+              "title": {
+                "en": "All bags",
+                "fr": "Tous les sacs"
+              },
+              "url": "/collections/bags"
+            },
+            {
+              "title": {
+                "en": "Gifts under 100",
+                "fr": "Cadeaux à moins de 100"
+              },
+              "url": "/collections/all?filter.v.price.lte=100"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Shoes",
+        "fr": "Chaussures"
+      },
+      "url": "/collections/shoes",
+      "children": [
+        {
+          "title": {
+            "en": "Footwear",
+            "fr": "Chaussures"
+          },
+          "url": "/collections/shoes",
+          "children": [
+            {
+              "title": {
+                "en": "Leather loafers",
+                "fr": "Mocassins en cuir"
+              },
+              "url": "/products/leather-loafers"
+            },
+            {
+              "title": {
+                "en": "Minimal white sneakers",
+                "fr": "Baskets blanches minimalistes"
+              },
+              "url": "/products/minimal-white-sneakers"
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Explore",
+            "fr": "Explorer"
+          },
+          "url": "/collections/all",
+          "children": [
+            {
+              "title": {
+                "en": "All shoes",
+                "fr": "Toutes les chaussures"
+              },
+              "url": "/collections/shoes"
+            },
+            {
+              "title": {
+                "en": "Care guide",
+                "fr": "Guide d’entretien"
+              },
+              "url": "/pages/leather-care"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Accessories",
+        "fr": "Accessoires"
+      },
+      "url": "/collections/accessories",
+      "children": [
+        {
+          "title": {
+            "en": "Small leather goods",
+            "fr": "Petite maroquinerie"
+          },
+          "url": "/collections/accessories",
+          "children": [
+            {
+              "title": {
+                "en": "Leather wallet",
+                "fr": "Portefeuille en cuir"
+              },
+              "url": "/products/leather-wallet"
+            },
+            {
+              "title": {
+                "en": "Leather belt",
+                "fr": "Ceinture en cuir"
+              },
+              "url": "/products/leather-belt"
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Explore",
+            "fr": "Explorer"
+          },
+          "url": "/collections/all",
+          "children": [
+            {
+              "title": {
+                "en": "All accessories",
+                "fr": "Tous les accessoires"
+              },
+              "url": "/collections/accessories"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Gifts",
+        "fr": "Cadeaux"
+      },
+      "url": "/collections/all?filter.v.price.lte=100"
+    }
+  ],
+  "footerMenu": [
+    {
+      "title": {
+        "en": "Shop all",
+        "fr": "Tout voir"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Leather care",
+        "fr": "Entretien du cuir"
+      },
+      "url": "/pages/leather-care"
+    },
+    {
+      "title": {
+        "en": "Search",
+        "fr": "Recherche"
+      },
+      "url": "/search"
+    }
+  ],
+  "pages": [
+    {
+      "handle": "leather-care",
+      "title": {
+        "en": "Leather care",
+        "fr": "Entretien du cuir"
+      },
+      "template": "leather-care"
+    }
+  ],
+  "collections": [
+    {
+      "handle": "bags",
+      "title": {
+        "en": "Bags",
+        "fr": "Sacs"
+      },
+      "description": {
+        "en": "Totes and crossbody bags in full-grain leather.",
+        "fr": "Cabas et sacs bandoulière en cuir pleine fleur."
+      },
+      "products": [
+        "camel-leather-tote",
+        "black-crossbody-bag"
+      ]
+    },
+    {
+      "handle": "shoes",
+      "title": {
+        "en": "Shoes",
+        "fr": "Chaussures"
+      },
+      "description": {
+        "en": "Loafers and sneakers, made to be resoled.",
+        "fr": "Mocassins et baskets, faits pour être ressemelés."
+      },
+      "products": [
+        "leather-loafers",
+        "minimal-white-sneakers"
+      ]
+    },
+    {
+      "handle": "accessories",
+      "title": {
+        "en": "Accessories",
+        "fr": "Accessoires"
+      },
+      "description": {
+        "en": "Wallets and belts that age beautifully.",
+        "fr": "Portefeuilles et ceintures qui vieillissent bien."
+      },
+      "products": [
+        "leather-wallet",
+        "leather-belt"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "handle": "camel-leather-tote",
+      "image": "produit-01.webp",
+      "extraImages": [
+        "hero.webp",
+        "ambiance.webp"
+      ],
+      "vendor": "Maroquin",
+      "type": {
+        "en": "Bags",
+        "fr": "Sacs"
+      },
+      "tags": [
+        "bags",
+        "tote",
+        "new"
+      ],
+      "title": {
+        "en": "Camel Leather Tote",
+        "fr": "Sac cabas en cuir camel"
+      },
+      "description": {
+        "en": "A roomy tote in vegetable-tanned camel leather with an unlined interior and a zipped inside pocket. It fits a laptop and a lunch.",
+        "fr": "Un cabas spacieux en cuir camel tanné au végétal, intérieur non doublé et poche zippée. Il accueille un ordinateur et un déjeuner."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Camel",
+              "fr": "Camel"
+            },
+            {
+              "en": "Black",
+              "fr": "Noir"
+            }
+          ]
+        }
+      ],
+      "price": 245,
+      "variants": [
+        {
+          "stock": 8
+        },
+        {
+          "stock": 4
+        }
+      ]
+    },
+    {
+      "handle": "black-crossbody-bag",
+      "image": "produit-02.webp",
+      "vendor": "Maroquin",
+      "type": {
+        "en": "Bags",
+        "fr": "Sacs"
+      },
+      "tags": [
+        "bags",
+        "crossbody"
+      ],
+      "title": {
+        "en": "Black Crossbody Bag",
+        "fr": "Sac bandoulière noir"
+      },
+      "description": {
+        "en": "A compact crossbody in smooth black leather with an adjustable strap and a magnetic flap. Small enough for evenings, big enough for days.",
+        "fr": "Un sac bandoulière compact en cuir lisse noir, bandoulière réglable et rabat aimanté. Assez petit pour le soir, assez grand pour la journée."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Black",
+              "fr": "Noir"
+            },
+            {
+              "en": "Cognac",
+              "fr": "Cognac"
+            }
+          ]
+        }
+      ],
+      "price": 195,
+      "compareAt": 225,
+      "variants": [
+        {
+          "stock": 10
+        },
+        {
+          "stock": 3
+        }
+      ]
+    },
+    {
+      "handle": "leather-wallet",
+      "image": "produit-03.webp",
+      "vendor": "Maroquin",
+      "type": {
+        "en": "Small leather goods",
+        "fr": "Petite maroquinerie"
+      },
+      "tags": [
+        "accessories",
+        "wallet",
+        "gift"
+      ],
+      "title": {
+        "en": "Leather Wallet",
+        "fr": "Portefeuille en cuir"
+      },
+      "description": {
+        "en": "A slim bifold with six card slots and a coin pocket, in leather that darkens with use. Comes in a gift box.",
+        "fr": "Un porte-cartes plié et fin avec six fentes à cartes et une poche monnaie, en cuir qui fonce à l’usage. Livré en coffret."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Cognac",
+              "fr": "Cognac"
+            },
+            {
+              "en": "Black",
+              "fr": "Noir"
+            },
+            {
+              "en": "Tan",
+              "fr": "Fauve"
+            }
+          ]
+        }
+      ],
+      "price": 69,
+      "variants": [
+        {
+          "stock": 30
+        },
+        {
+          "stock": 22
+        },
+        {
+          "stock": 12
+        }
+      ]
+    },
+    {
+      "handle": "leather-loafers",
+      "image": "produit-04.webp",
+      "vendor": "Maroquin",
+      "type": {
+        "en": "Shoes",
+        "fr": "Chaussures"
+      },
+      "tags": [
+        "shoes",
+        "loafers"
+      ],
+      "title": {
+        "en": "Leather Loafers",
+        "fr": "Mocassins en cuir"
+      },
+      "description": {
+        "en": "Hand-lasted loafers in soft calf leather with a leather sole and a flexible heel. Made to be resoled.",
+        "fr": "Mocassins montés main en cuir de veau souple, semelle cuir et talon flexible. Faits pour être ressemelés."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Pointure"
+          },
+          "values": [
+            "39",
+            "40",
+            "41",
+            "42",
+            "43",
+            "44"
+          ]
+        }
+      ],
+      "price": 185,
+      "variants": [
+        {
+          "stock": 5
+        },
+        {
+          "stock": 8
+        },
+        {
+          "stock": 10
+        },
+        {
+          "stock": 9
+        },
+        {
+          "stock": 6
+        },
+        {
+          "stock": 2
+        }
+      ]
+    },
+    {
+      "handle": "minimal-white-sneakers",
+      "image": "produit-05.webp",
+      "vendor": "Maroquin",
+      "type": {
+        "en": "Shoes",
+        "fr": "Chaussures"
+      },
+      "tags": [
+        "shoes",
+        "sneakers"
+      ],
+      "title": {
+        "en": "Minimal White Sneakers",
+        "fr": "Baskets blanches minimalistes"
+      },
+      "description": {
+        "en": "Clean white sneakers in smooth leather with a stitched cupsole. Nothing on the side, nothing to explain.",
+        "fr": "Des baskets blanches épurées en cuir lisse avec semelle cousue. Rien sur le côté, rien à expliquer."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Pointure"
+          },
+          "values": [
+            "39",
+            "40",
+            "41",
+            "42",
+            "43",
+            "44"
+          ]
+        }
+      ],
+      "price": 145,
+      "variants": [
+        {
+          "stock": 12
+        },
+        {
+          "stock": 15
+        },
+        {
+          "stock": 14
+        },
+        {
+          "stock": 11
+        },
+        {
+          "stock": 7
+        },
+        {
+          "stock": 4
+        }
+      ]
+    },
+    {
+      "handle": "leather-belt",
+      "image": "produit-06.webp",
+      "vendor": "Maroquin",
+      "type": {
+        "en": "Belts",
+        "fr": "Ceintures"
+      },
+      "tags": [
+        "accessories",
+        "belt",
+        "gift"
+      ],
+      "title": {
+        "en": "Leather Belt",
+        "fr": "Ceinture en cuir"
+      },
+      "description": {
+        "en": "A 3 cm belt in full-grain leather with a solid brass buckle that is easy to replace. Comes in a gift box.",
+        "fr": "Une ceinture de 3 cm en cuir pleine fleur avec boucle en laiton massif, facile à remplacer. Livrée en coffret."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Cognac",
+              "fr": "Cognac"
+            },
+            {
+              "en": "Black",
+              "fr": "Noir"
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            "85",
+            "90",
+            "95",
+            "100",
+            "105"
+          ]
+        }
+      ],
+      "price": 59,
+      "variants": [
+        {
+          "stock": 14
+        },
+        {
+          "stock": 12
+        },
+        {
+          "stock": 11
+        },
+        {
+          "stock": 6
+        },
+        {
+          "stock": 3
+        },
+        {
+          "stock": 15
+        },
+        {
+          "stock": 14
+        },
+        {
+          "stock": 10
+        },
+        {
+          "stock": 8
+        },
+        {
+          "stock": 5
+        }
+      ]
+    }
+  ],
+  "homepage": {
+    "en": {
+      "hero": {
+        "eyebrow": "Leather goods",
+        "heading": "Leather that gets better with time",
+        "text": "Bags, shoes and small leather goods in camel, black and cream. Full-grain hides, stitched by hand and made to be repaired, not replaced.",
+        "button_label": "Discover the collection",
+        "button_2_label": "The gift guide"
+      },
+      "hero.chip-1": {
+        "text": "Two-year guarantee"
+      },
+      "hero.chip-2": {
+        "text": "Hand-stitched"
+      },
+      "hero.chip-3": {
+        "text": "Repairs for life"
+      },
+      "essentials": {
+        "eyebrow": "The essentials",
+        "heading": "Pieces for every day",
+        "text": "Six classics, made in the same leather and the same colours."
+      },
+      "craft": {
+        "eyebrow": "The workshop",
+        "heading": "How a bag is made"
+      },
+      "craft.step-1": {
+        "title": "Choose the hide",
+        "text": "Full-grain leather from a tannery we have worked with for years, vegetable-tanned for a rich patina."
+      },
+      "craft.step-2": {
+        "title": "Cut by hand",
+        "text": "Each panel is cut around the best part of the hide, never stamped out."
+      },
+      "craft.step-3": {
+        "title": "Stitch and edge",
+        "text": "Saddle-stitched with waxed thread, edges burnished until they glow."
+      },
+      "craft.step-4": {
+        "title": "Check and send",
+        "text": "Every piece is inspected by the person who made it, then signed and packed."
+      },
+      "gifts": {
+        "eyebrow": "Gift guide",
+        "heading": "Find the right gift",
+        "text": "Choose a budget and we will show you what fits."
+      },
+      "gifts.budget-1": {
+        "label": "Under 100",
+        "text": "Wallets, belts and small leather goods."
+      },
+      "gifts.budget-2": {
+        "label": "100 to 200",
+        "text": "Sneakers, loafers and everyday bags."
+      },
+      "gifts.budget-3": {
+        "label": "Over 200",
+        "text": "The pieces that last a lifetime."
+      },
+      "repair": {
+        "eyebrow": "For life",
+        "heading": "Repair, resole, restore",
+        "text": "<p>Send a piece back after ten years and we will clean it, stitch it and polish it for the cost of the postage. Good leather deserves a long life.</p>",
+        "button_label": "Our repair promise"
+      },
+      "reviews": {
+        "heading": "Carried and trusted"
+      },
+      "reviews.testimonial-1": {
+        "quote": "The tote has the most beautiful colour and the stitching is flawless. It is already softening nicely.",
+        "detail": "Camel leather tote"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Comfortable from the first day. The loafers fit true to size and look better each week.",
+        "detail": "Leather loafers"
+      },
+      "reviews.testimonial-3": {
+        "quote": "A lovely belt, solid brass buckle, and it arrived in a beautiful box. A perfect gift.",
+        "detail": "Leather belt"
+      },
+      "newsletter": {
+        "heading": "The Maroquin letter",
+        "text": "New pieces, workshop notes and care advice, once a month.",
+        "button_label": "Subscribe"
+      }
+    },
+    "fr": {
+      "hero": {
+        "eyebrow": "Maroquinerie",
+        "heading": "Un cuir qui s’embellit avec le temps",
+        "text": "Sacs, chaussures et petite maroquinerie en camel, noir et crème. Des peaux pleine fleur, cousues main et faites pour être réparées, pas remplacées.",
+        "button_label": "Découvrir la collection",
+        "button_2_label": "Le guide cadeaux"
+      },
+      "hero.chip-1": {
+        "text": "Garantie deux ans"
+      },
+      "hero.chip-2": {
+        "text": "Cousu main"
+      },
+      "hero.chip-3": {
+        "text": "Réparations à vie"
+      },
+      "essentials": {
+        "eyebrow": "Les essentiels",
+        "heading": "Des pièces pour chaque jour",
+        "text": "Six classiques, dans le même cuir et les mêmes couleurs."
+      },
+      "craft": {
+        "eyebrow": "L’atelier",
+        "heading": "Comment naît un sac"
+      },
+      "craft.step-1": {
+        "title": "Choisir la peau",
+        "text": "Cuir pleine fleur d’une tannerie avec laquelle nous travaillons depuis des années, tanné au végétal pour une patine riche."
+      },
+      "craft.step-2": {
+        "title": "Découper à la main",
+        "text": "Chaque pièce est découpée autour de la meilleure partie de la peau, jamais emboutie."
+      },
+      "craft.step-3": {
+        "title": "Coudre et border",
+        "text": "Piqûre sellier au fil ciré, tranches lissées jusqu’à ce qu’elles brillent."
+      },
+      "craft.step-4": {
+        "title": "Contrôler et expédier",
+        "text": "Chaque pièce est contrôlée par celle ou celui qui l’a faite, puis signée et emballée."
+      },
+      "gifts": {
+        "eyebrow": "Guide cadeaux",
+        "heading": "Trouvez le bon cadeau",
+        "text": "Choisissez un budget et nous vous montrons ce qui convient."
+      },
+      "gifts.budget-1": {
+        "label": "Moins de 100",
+        "text": "Portefeuilles, ceintures et petite maroquinerie."
+      },
+      "gifts.budget-2": {
+        "label": "De 100 à 200",
+        "text": "Baskets, mocassins et sacs de tous les jours."
+      },
+      "gifts.budget-3": {
+        "label": "Plus de 200",
+        "text": "Les pièces qui durent toute une vie."
+      },
+      "repair": {
+        "eyebrow": "Pour la vie",
+        "heading": "Réparer, ressemeler, restaurer",
+        "text": "<p>Renvoyez une pièce après dix ans et nous la nettoierons, la recoudrons et la lustrerons pour le prix de l’envoi. Un bon cuir mérite une longue vie.</p>",
+        "button_label": "Notre promesse de réparation"
+      },
+      "reviews": {
+        "heading": "Portés et approuvés"
+      },
+      "reviews.testimonial-1": {
+        "quote": "Le cabas a une couleur sublime et les coutures sont impeccables. Il s’assouplit déjà joliment.",
+        "detail": "Sac cabas en cuir camel"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Confortables dès le premier jour. Les mocassins taillent juste et sont plus beaux chaque semaine.",
+        "detail": "Mocassins en cuir"
+      },
+      "reviews.testimonial-3": {
+        "quote": "Une très belle ceinture, boucle en laiton massif, arrivée dans un joli coffret. Un cadeau parfait.",
+        "detail": "Ceinture en cuir"
+      },
+      "newsletter": {
+        "heading": "La lettre Maroquin",
+        "text": "Nouvelles pièces, notes d’atelier et conseils d’entretien, une fois par mois.",
+        "button_label": "S’abonner"
+      }
+    },
+    "images": {
+      "hero": {
+        "image": "hero.webp"
+      },
+      "craft": {
+        "image": "ambiance.webp"
+      }
+    }
+  }
+}

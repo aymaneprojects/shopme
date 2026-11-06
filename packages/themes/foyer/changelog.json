@@ -1,0 +1,31 @@
+{
+  "about": "What changed in each version of Foyer, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release of Foyer, a warm and rounded theme for home and decor.",
+          "Centred logo header with the menu on its own row, a search panel and a slide-in bag with a free shipping progress bar.",
+          "Rounded product tiles that lift on hover, with a second photo, colour swatches and a quick add button.",
+          "Product page with the gallery and thumbnails on the left, options, subscriptions and a low stock message.",
+          "Collection page with filter drop-downs, sorting and pagination.",
+          "New sections: shop by room, materials and care, and a countdown timer.",
+          "Breadcrumbs, back to top button and an optional age check.",
+          "Section names, settings and storefront texts are translated to English and French."
+        ],
+        "fr": [
+          "Première version de Foyer, un thème chaleureux et arrondi pour la maison et la décoration.",
+          "En-tête à logo centré avec le menu sur sa propre ligne, panneau de recherche et panier latéral avec barre de progression vers la livraison offerte.",
+          "Tuiles produit arrondies qui se soulèvent au survol, avec seconde photo, pastilles de couleur et bouton d’ajout rapide.",
+          "Page produit avec la galerie et ses miniatures à gauche, options, abonnements et message de stock faible.",
+          "Page collection avec filtres déroulants, tri et pagination.",
+          "Nouvelles sections : acheter par pièce, matières et entretien, et compte à rebours.",
+          "Fil d’Ariane, bouton retour en haut et vérification d’âge facultative.",
+          "Les noms des sections, les réglages et les textes de la boutique sont traduits en anglais et en français."
+        ]
+      }
+    }
+  ]
+}

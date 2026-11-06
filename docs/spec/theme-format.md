@@ -434,7 +434,11 @@ ShopMe ships Aurora and any number of other themes. Merchants add them to their 
   `previews/`) are ignored. The handle is the folder name (lowercase letters, digits and hyphens).
 - **Metadata** is read from `theme_info`: `theme_name`, `theme_version`, `theme_author`, `shopme_description` (English),
   `shopme_descriptions` (optional, by language: `{ "fr": "..." }`) and `shopme_tags` (a list of short English tags such as
-  "Fashion"; the admin translates the ones it knows).
+  "Fashion"; the admin translates the ones it knows). The theme store filters on three more keys: `shopme_industries` (slugs such
+  as `fashion`, `home-decor`, `food-drink`), `shopme_catalog_size` (`one`, `few`, `some` or `many`: how many products the theme
+  is made for) and `shopme_features` (slugs such as `mega-menu`, `infinite-scroll`); the admin translates the slugs it knows.
+- **Demo catalogue.** A bundled theme may ship `demo/catalog.json` and `demo/images/*.webp`. They are not theme files: the
+  installer ignores them. `scripts/theme-previews.mjs` seeds them into a temporary store to photograph the theme.
 - **Seed texts.** `locales/<language>.json` may hold a `seed_defaults` map of English text to its translation. At install into
   a shop whose language is `<language>`, every quoted occurrence of the English text in the theme's templates, sections and
   schema defaults is replaced (never the locale files, and never later: merchant edits and existing installs are untouched).

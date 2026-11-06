@@ -9,6 +9,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- Theme kit (`scripts/theme-kit`): composes a complete theme from shared, tested Liquid plumbing and per-theme options (header layout, product card style, product page layout, collection layout, fonts, colour schemes, radius and spacing scale, home page composition, extra sections). Output is committed under `packages/themes/<handle>` and is deterministic (`node scripts/theme-kit/build.mjs`, `--check` in tests). Every generated theme has a sticky header, breadcrumbs, a back to top button, colour swatches, a low stock counter, a countdown timer section, an age verification popup (a setting) and infinite scroll on collections (a setting).
+- Three themes built with the kit: Sillage (fashion, olive and neutrals), Foyer (home and decor, cream and linen) and Maroquin (bags, shoes and accessories, camel, black and cream), each with its own sections, a demo catalogue (`demo/catalog.json`, photos in `demo/images`) and French seed texts.
+- Theme store: filters by industry, catalog size and features, with counts, on the all-themes page (`shopme_industries`, `shopme_catalog_size` and `shopme_features` in `theme_info`, set for every bundled theme). The Price facet is gone: every theme is free.
+- `scripts/theme-previews.mjs` seeds each theme's own demo catalogue (the coffee demo for themes without one), and writes QA screenshots with `--qa <dir>` (`--lang fr` for a French store).
 - Account pages: General (name, e-mail, stores, language) and Security (passkeys, password, two-step authentication, signed-in devices), with an identity re-check ("Verify your account to continue") before sensitive changes. Reachable from the account menu in single-store and multi-store mode; new `GET/PATCH /admin/api/auth/profile`, `POST /admin/api/auth/password/change` and `POST /admin/api/auth/verify`, and the security and passkey routes work without a store open.
 - Settings > Users: a page per user, a roles list with the built-in roles and a category column, an "Add a role" page, and Roles and Security as sub-items of Users in the settings sidebar.
 

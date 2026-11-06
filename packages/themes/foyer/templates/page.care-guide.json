@@ -1,0 +1,47 @@
+{
+  "sections": {
+    "care": {
+      "type": "materials",
+      "blocks": {
+        "material-1": {
+          "type": "material",
+          "settings": {
+            "icon": "drop",
+            "title": "Wash gently",
+            "text": "Cool water and a mild soap are enough for most pieces."
+          }
+        },
+        "material-2": {
+          "type": "material",
+          "settings": {
+            "icon": "sun",
+            "title": "Dry in the air",
+            "text": "Keep natural fibres away from direct heat."
+          }
+        },
+        "material-3": {
+          "type": "material",
+          "settings": {
+            "icon": "refresh",
+            "title": "Use it, again",
+            "text": "Most of our pieces soften and improve with use."
+          }
+        }
+      },
+      "block_order": [
+        "material-1",
+        "material-2",
+        "material-3"
+      ],
+      "settings": {
+        "eyebrow": "Care guide",
+        "heading": "Keeping your things beautiful",
+        "text": "",
+        "color_scheme": "scheme-1"
+      }
+    }
+  },
+  "order": [
+    "care"
+  ]
+}

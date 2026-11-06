@@ -9,6 +9,9 @@
       "fr": "Une boutique claire et polyvalente, avec un grand bandeau d’accueil, des grilles de produits et un accent bleu apaisé. Une bonne base pour tout catalogue."
     },
     "shopme_tags": ["General", "Minimal"],
+    "shopme_industries": ["general"],
+    "shopme_catalog_size": "some",
+    "shopme_features": ["cart-drawer", "colour-swatches", "multilingual", "predictive-search", "product-filters", "selling-plans", "sticky-header"],
     "theme_documentation_url": "https://github.com/aymaneprojects/shopme/blob/main/docs/spec/theme-format.md",
     "theme_support_url": "https://github.com/aymaneprojects/shopme/issues"
   },

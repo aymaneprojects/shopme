@@ -12,6 +12,9 @@
       "Skincare",
       "Wellness"
     ],
+    "shopme_industries": ["beauty"],
+    "shopme_catalog_size": "few",
+    "shopme_features": ["cart-drawer", "colour-swatches", "free-shipping-bar", "multilingual", "predictive-search", "product-filters", "quick-add", "selling-plans", "sticky-header"],
     "shopme_descriptions": {
       "fr": "Boutique douce et aérienne pour la beauté, les soins et le bien-être : palettes pastel, formes arrondies, routine en étapes, ingrédients et pastilles de teintes."
     }

@@ -1,0 +1,9 @@
+{%- doc -%}
+  A link covering its whole section (the section must be positioned).
+  @param {string} [url] - where the section leads
+  @param {boolean} [new_tab] - open in a new tab
+  @param {string} [label] - accessible name
+{%- enddoc -%}
+{%- if url != blank -%}
+  <a class="section-link" href="{{ url }}"{% if new_tab %} target="_blank" rel="noopener"{% endif %}><span class="visually-hidden">{{ label | default: url | escape }}</span></a>
+{%- endif -%}

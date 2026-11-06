@@ -13,3 +13,5 @@ data
 docs
 *.md
 !packages/**/README.md
+# the demo catalogues of the bundled themes are only used by scripts/theme-previews.mjs
+packages/themes/*/demo

@@ -1,0 +1,43 @@
+{%- doc -%}
+  Desktop menu: a row of links with a drop-down list (or a mega panel) for the links that have children.
+  @param {object} menu - the menu to show
+  @param {boolean} [mega] - show children as a wide panel with columns
+  @param {number} [from] - first link to show (0-based, default 0)
+  @param {number} [to] - last link to show, exclusive (default: all)
+  @param {string} [modifier] - extra class
+{%- enddoc -%}
+{%- assign first_i = from | default: 0 -%}
+{%- assign last_i = to | default: 99 -%}
+{%- if menu != blank and menu.links.size > 0 -%}
+  <nav class="k-menu {{ modifier }}" aria-label="{{ menu.title | default: shop.name | escape }}">
+    <ul class="k-menu__list" role="list">
+      {%- for link in menu.links -%}
+        {%- if forloop.index0 >= first_i and forloop.index0 < last_i -%}
+          <li class="k-menu__item{% if link.links.size > 0 %} k-menu__item--parent{% endif %}">
+            <a href="{{ link.url }}"{% if link.current %} aria-current="page"{% endif %}{% if link.active %} class="is-active"{% endif %}>{{ link.title | escape }}{% if link.links.size > 0 %} {% render 'icon', name: 'chevron-down', size: 14 %}{% endif %}</a>
+            {%- if link.links.size > 0 -%}
+              {%- if mega -%}
+                <div class="k-mega"><div class="page-width k-mega__inner">
+                  {%- for child in link.links -%}
+                    <div class="k-mega__col">
+                      <a class="k-mega__title" href="{{ child.url }}">{{ child.title | escape }}</a>
+                      {%- if child.links.size > 0 -%}
+                        <ul role="list">{%- for grand in child.links -%}<li><a href="{{ grand.url }}">{{ grand.title | escape }}</a></li>{%- endfor -%}</ul>
+                      {%- endif -%}
+                    </div>
+                  {%- endfor -%}
+                </div></div>
+              {%- else -%}
+                <ul class="k-menu__sub" role="list">
+                  {%- for child in link.links -%}
+                    <li><a href="{{ child.url }}"{% if child.current %} aria-current="page"{% endif %}>{{ child.title | escape }}</a></li>
+                  {%- endfor -%}
+                </ul>
+              {%- endif -%}
+            {%- endif -%}
+          </li>
+        {%- endif -%}
+      {%- endfor -%}
+    </ul>
+  </nav>
+{%- endif -%}

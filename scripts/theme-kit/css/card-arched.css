@@ -1,0 +1,6 @@
+/* Product card: arched (a tall arch above the photo, centred text) */
+.k-card--arched .k-card__frame { border-radius: calc(var(--round) * 8) calc(var(--round) * 8) var(--round) var(--round); box-shadow: 0 1px 0 color-mix(in srgb, var(--v-card) 60%, transparent) inset; }
+.k-card--arched:hover .k-card__frame, .k-card--arched:focus-within .k-card__frame { box-shadow: 0 24px 50px color-mix(in srgb, var(--v-accent) 18%, transparent); }
+.k-card--arched .k-card__title { font: 500 1.15rem/1.25 var(--f-heading); }
+.k-card--arched .k-badge--top-left { left: 50%; transform: translateX(-50%); top: 18px; }
+.k-card--arched .k-quick__btn { border-radius: var(--pill); }

@@ -18,6 +18,7 @@
     "typecheck": "turbo run typecheck",
     "e2e": "node e2e/run.mjs",
     "screenshots": "node scripts/screenshots.mjs",
+    "theme-kit": "node scripts/theme-kit/build.mjs",
     "theme-previews": "node scripts/theme-previews.mjs",
     "theme-zip": "node scripts/theme-zip.mjs",
     "theme-checksums": "node scripts/theme-checksums.mjs"

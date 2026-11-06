@@ -1,0 +1,64 @@
+{%- doc -%}
+  Prints the CSS color of a colour name for a swatch, as a custom property declaration (--shade: ...).
+  The merchant's own mapping (theme setting "Colour names and values": Name:#hex pairs separated by commas) wins, then a hex code written in the name, then a built-in list of common colour names in English and French, then a soft neutral.
+  @param {string} name - the option value, such as "Olive" or "Sand #d9b8a0"
+{%- enddoc -%}
+{%- liquid
+  assign key = name | downcase | strip
+  assign found = ''
+  assign pairs = settings.swatch_colors | split: ','
+  for pair in pairs
+    assign bits = pair | split: ':'
+    assign pair_name = bits[0] | downcase | strip
+    if pair_name == key
+      assign found = bits[1] | strip
+    endif
+  endfor
+  if found == blank
+    assign words = name | split: '#'
+    if words.size > 1
+      assign found = '#' | append: words[1] | split: ' ' | first
+    endif
+  endif
+  if found == blank
+    case key
+      when 'ivory', 'cream', 'crème', 'creme', 'ecru', 'écru', 'off-white', 'blanc cassé', 'porcelain'
+        assign found = '#f1e8d6'
+      when 'beige', 'sand', 'sable', 'nude', 'natural', 'naturel', 'oat', 'avoine', 'linen', 'lin'
+        assign found = '#d8c7a8'
+      when 'camel', 'caramel', 'tan', 'cognac', 'honey', 'miel', 'golden', 'gold', 'doré'
+        assign found = '#b88a5a'
+      when 'brown', 'marron', 'chocolate', 'chocolat', 'mocha', 'espresso', 'chestnut', 'châtaigne', 'cocoa', 'taupe'
+        assign found = '#6f4e37'
+      when 'rose', 'pink', 'blush', 'petal', 'poudre'
+        assign found = '#e3b1b3'
+      when 'berry', 'plum', 'prune', 'wine', 'vin', 'burgundy', 'bordeaux'
+        assign found = '#7d2f48'
+      when 'coral', 'corail', 'peach', 'pêche', 'apricot', 'abricot', 'terracotta', 'terre cuite', 'rust', 'rouille'
+        assign found = '#c9694a'
+      when 'red', 'rouge', 'poppy', 'cherry', 'cerise', 'ruby'
+        assign found = '#b3263a'
+      when 'orange', 'mustard', 'moutarde', 'ochre', 'ocre', 'yellow', 'jaune'
+        assign found = '#d29a2e'
+      when 'sage', 'sauge', 'green', 'vert', 'matcha', 'mint', 'menthe'
+        assign found = '#9aa98a'
+      when 'olive', 'khaki', 'kaki', 'moss', 'mousse'
+        assign found = '#6b705c'
+      when 'forest', 'forêt', 'bottle', 'emerald', 'émeraude'
+        assign found = '#2f4a3a'
+      when 'slate', 'ardoise', 'grey', 'gray', 'gris', 'stone', 'pierre', 'charcoal', 'anthracite', 'heather', 'chiné'
+        assign found = '#7d8590'
+      when 'white', 'blanc', 'pearl', 'perle', 'clear'
+        assign found = '#faf7f1'
+      when 'black', 'noir', 'onyx', 'jet'
+        assign found = '#1f1c1a'
+      when 'blue', 'bleu', 'sky', 'ciel', 'lavender', 'lavande', 'lilac', 'lilas'
+        assign found = '#8ea3c9'
+      when 'navy', 'marine', 'bleu nuit', 'midnight', 'indigo', 'denim', 'jean'
+        assign found = '#27364f'
+      else
+        assign found = ''
+    endcase
+  endif
+-%}
+{%- if found != blank -%}--shade: {{ found | escape }};{%- else -%}--shade: #e8dccb;{%- endif -%}

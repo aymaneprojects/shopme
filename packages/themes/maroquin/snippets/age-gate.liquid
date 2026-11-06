@@ -1,0 +1,22 @@
+{%- doc -%}
+  Age verification popup (theme setting "Ask visitors for their age"). Shown once per browser; never shown in the theme editor.
+{%- enddoc -%}
+{%- if settings.age_gate_enabled -%}
+  {%- assign age = settings.age_gate_min_age | default: 18 -%}
+  <div class="k-agegate" data-age-gate{% if request.design_mode %} data-preview="true"{% endif %} role="dialog" aria-modal="true" aria-labelledby="k-age-title" hidden>
+    <div class="k-agegate__box">
+      <div data-age-ask>
+        <h2 class="k-agegate__title" id="k-age-title">{{ 'age_gate.title' | t: age: age }}</h2>
+        <p class="k-agegate__text">{{ 'age_gate.text' | t }}</p>
+        <div class="k-agegate__actions">
+          <button type="button" class="button" data-age-yes>{{ 'age_gate.confirm' | t }}</button>
+          <button type="button" class="button button--outline" data-age-no>{{ 'age_gate.deny' | t }}</button>
+        </div>
+      </div>
+      <div data-age-denied hidden>
+        <h2 class="k-agegate__title">{{ 'age_gate.denied_title' | t }}</h2>
+        <p class="k-agegate__text">{{ 'age_gate.denied_text' | t: age: age }}</p>
+      </div>
+    </div>
+  </div>
+{%- endif -%}

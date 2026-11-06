@@ -1,0 +1,10 @@
+{%- doc -%}
+  Logo of the store: the uploaded image or the shop name.
+{%- enddoc -%}
+<a class="k-logo" href="{{ routes.root_url }}">
+  {%- if settings.logo -%}
+    {{ settings.logo | image_url: width: 480 | image_tag: alt: shop.name, class: 'k-logo__img', loading: 'eager' }}
+  {%- else -%}
+    <span class="k-logo__name">{{ shop.name | escape }}</span>
+  {%- endif -%}
+</a>

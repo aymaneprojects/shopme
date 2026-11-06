@@ -1,0 +1,13 @@
+{
+  "sections": {
+    "guide": {
+      "type": "size-guide",
+      "settings": {
+        "color_scheme": ""
+      }
+    }
+  },
+  "order": [
+    "guide"
+  ]
+}

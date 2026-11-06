@@ -1,0 +1,179 @@
+{%- assign s = section.settings -%}
+<div class="k-section k-sizes {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width k-sizes__inner">
+    <div class="k-sizes__intro">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="k-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.text != blank -%}<p class="k-section__text">{{ s.text | escape }}</p>{%- endif -%}
+      {%- if s.tip_text != blank -%}
+        <div class="k-sizes__tip">
+          {% render 'icon', name: 'ruler', size: 22 %}
+          <div><h3>{{ s.tip_title | escape }}</h3><p>{{ s.tip_text | escape }}</p></div>
+        </div>
+      {%- endif -%}
+    </div>
+    <div class="k-sizes__table" role="region" tabindex="0" aria-label="{{ s.heading | escape }}">
+      <table>
+        <thead><tr><th scope="col">{{ s.size_label | escape }}</th><th scope="col">{{ s.column_a | escape }}</th><th scope="col">{{ s.column_b | escape }}</th><th scope="col">{{ s.column_c | escape }}</th></tr></thead>
+        <tbody>
+          {%- for block in section.blocks -%}
+            <tr {{ block.shopify_attributes }}><th scope="row">{{ block.settings.size | escape }}</th><td>{{ block.settings.a | escape }}</td><td>{{ block.settings.b | escape }}</td><td>{{ block.settings.c | escape }}</td></tr>
+          {%- endfor -%}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.size_guide.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.size_guide.settings.eyebrow",
+      "default": "Find your fit"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.size_guide.settings.heading",
+      "default": "Size guide"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.size_guide.settings.text",
+      "default": "Measurements are in centimetres. If you are between two sizes, choose the larger one for a relaxed fit."
+    },
+    {
+      "type": "text",
+      "id": "column_a",
+      "label": "t:sections.size_guide.settings.column_a",
+      "default": "Chest"
+    },
+    {
+      "type": "text",
+      "id": "column_b",
+      "label": "t:sections.size_guide.settings.column_b",
+      "default": "Waist"
+    },
+    {
+      "type": "text",
+      "id": "column_c",
+      "label": "t:sections.size_guide.settings.column_c",
+      "default": "Hips"
+    },
+    {
+      "type": "text",
+      "id": "size_label",
+      "label": "t:sections.size_guide.settings.size_label",
+      "default": "Size"
+    },
+    {
+      "type": "text",
+      "id": "tip_title",
+      "label": "t:sections.size_guide.settings.tip_title",
+      "default": "How to measure"
+    },
+    {
+      "type": "text",
+      "id": "tip_text",
+      "label": "t:sections.size_guide.settings.tip_text",
+      "default": "Stand straight, keep the tape level and snug but not tight. Measure over light clothing."
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.size_guide.settings.color_scheme"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "size",
+      "name": "t:sections.size_guide.blocks.size.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "size",
+          "label": "t:sections.size_guide.blocks.size.settings.size",
+          "default": "M"
+        },
+        {
+          "type": "text",
+          "id": "a",
+          "label": "t:sections.size_guide.blocks.size.settings.a",
+          "default": "96-100"
+        },
+        {
+          "type": "text",
+          "id": "b",
+          "label": "t:sections.size_guide.blocks.size.settings.b",
+          "default": "80-84"
+        },
+        {
+          "type": "text",
+          "id": "c",
+          "label": "t:sections.size_guide.blocks.size.settings.c",
+          "default": "98-102"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 10,
+  "presets": [
+    {
+      "name": "t:sections.size_guide.presets.size_guide",
+      "blocks": [
+        {
+          "type": "size",
+          "settings": {
+            "size": "XS",
+            "a": "84-88",
+            "b": "68-72",
+            "c": "90-94"
+          }
+        },
+        {
+          "type": "size",
+          "settings": {
+            "size": "S",
+            "a": "88-92",
+            "b": "72-76",
+            "c": "94-98"
+          }
+        },
+        {
+          "type": "size",
+          "settings": {
+            "size": "M",
+            "a": "92-96",
+            "b": "76-80",
+            "c": "98-102"
+          }
+        },
+        {
+          "type": "size",
+          "settings": {
+            "size": "L",
+            "a": "96-100",
+            "b": "80-84",
+            "c": "102-106"
+          }
+        },
+        {
+          "type": "size",
+          "settings": {
+            "size": "XL",
+            "a": "100-106",
+            "b": "84-90",
+            "c": "106-112"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

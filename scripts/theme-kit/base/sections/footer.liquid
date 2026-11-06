@@ -1,0 +1,85 @@
+{%- liquid
+  assign menu = section.settings.menu
+  assign about = shop.description
+  if about == blank
+    assign about = 'footer.default_description' | t
+  endif
+  assign menu_title = section.settings.menu_heading
+  if menu_title == blank
+    assign menu_title = 'footer.links_title' | t
+  endif
+-%}
+<footer class="k-footer {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width k-footer__inner">
+    <div class="k-footer__lead">
+      <p class="k-footer__brand">{{ shop.name | escape }}</p>
+      {%- if section.settings.show_description -%}<p class="k-footer__text">{{ about | escape }}</p>{%- endif -%}
+    </div>
+    {%- if menu != blank and menu.links.size > 0 -%}
+      <nav class="k-footer__col" aria-label="{{ 'footer.menu' | t }}">
+        <p class="k-footer__heading">{{ menu_title | escape }}</p>
+        <ul role="list">
+          {%- for link in menu.links -%}<li><a href="{{ link.url }}">{{ link.title | escape }}</a></li>{%- endfor -%}
+        </ul>
+      </nav>
+    {%- endif -%}
+    {%- if section.settings.show_newsletter -%}
+      <div class="k-footer__col k-footer__news">
+        <p class="k-footer__heading">{{ 'newsletter.title' | t }}</p>
+        {%- form 'customer', id: 'newsletter-footer', class: 'k-newsletter' -%}
+          {%- if form.posted_successfully? -%}
+            <p class="form-success" role="status">{{ 'newsletter.success' | t }}</p>
+          {%- else -%}
+            {%- if form.errors -%}<div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>{%- endif -%}
+            <input type="hidden" name="contact[tags]" value="newsletter">
+            <label class="visually-hidden" for="newsletter-footer-email">{{ 'newsletter.label' | t }}</label>
+            <div class="k-newsletter__row">
+              <input id="newsletter-footer-email" class="k-input" type="email" name="contact[email]" value="{{ form.email | escape }}" placeholder="{{ 'newsletter.label' | t }}" autocomplete="email" required>
+              <button class="button" type="submit">{{ 'newsletter.submit' | t }}</button>
+            </div>
+          {%- endif -%}
+        {%- endform -%}
+      </div>
+    {%- endif -%}
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "t:sections.footer.name",
+  "tag": "div",
+  "class": "footer-section",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "t:sections.footer.settings.menu",
+      "default": "footer"
+    },
+    {
+      "type": "text",
+      "id": "menu_heading",
+      "label": "t:sections.footer.settings.menu_heading",
+      "info": "t:sections.footer.info.menu_heading"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "t:sections.footer.settings.show_description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_newsletter",
+      "label": "t:sections.footer.settings.show_newsletter",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.footer.settings.color_scheme",
+      "default": "scheme-1"
+    }
+  ]
+}
+{% endschema %}

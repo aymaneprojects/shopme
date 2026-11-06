@@ -1,0 +1,27 @@
+{% schema %}
+{
+  "name": "t:sections.header.name",
+  "tag": "div",
+  "class": "header-section",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "t:sections.header.settings.menu",
+      "default": "main-menu"
+    },
+    {
+      "type": "checkbox",
+      "id": "sticky",
+      "label": "t:sections.header.settings.sticky",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "transparent_home",
+      "label": "t:sections.header.settings.transparent_home",
+      "default": false
+    }
+  ]
+}
+{% endschema %}

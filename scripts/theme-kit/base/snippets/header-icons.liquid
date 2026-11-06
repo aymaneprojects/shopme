@@ -1,0 +1,26 @@
+{%- doc -%}
+  Header icon buttons.
+  @param {string} parts - comma separated list of: search, account, bag
+{%- enddoc -%}
+{%- assign wanted = parts | split: ',' -%}
+{%- assign show_account = false -%}
+{%- if shop.customer_accounts_enabled -%}{%- if customer or routes.account_login_url != blank -%}{%- assign show_account = true -%}{%- endif -%}{%- endif -%}
+{%- if wanted contains 'search' -%}
+  <button type="button" class="k-icon-btn" aria-controls="k-search" aria-expanded="false" data-search-toggle>
+    <span class="visually-hidden">{{ 'header.search' | t }}</span>
+    {% render 'icon', name: 'search' %}
+  </button>
+{%- endif -%}
+{%- if wanted contains 'account' and show_account -%}
+  <a class="k-icon-btn k-header__account" href="{{ routes.account_url }}">
+    <span class="visually-hidden">{{ 'header.account' | t }}</span>
+    {% render 'icon', name: 'user' %}
+  </a>
+{%- endif -%}
+{%- if wanted contains 'bag' -%}
+  <a class="k-icon-btn k-bag" href="{{ routes.cart_url }}" data-cart-link>
+    <span class="visually-hidden">{{ 'accessibility.cart_count' | t: count: cart.item_count }}</span>
+    {% render 'icon', name: 'bag' %}
+    <span class="k-bag__count{% if cart.item_count == 0 %} is-empty{% endif %}" data-cart-count aria-hidden="true">{{ cart.item_count }}</span>
+  </a>
+{%- endif -%}

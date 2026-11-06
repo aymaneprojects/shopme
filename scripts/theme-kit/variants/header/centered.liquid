@@ -1,0 +1,18 @@
+{%- liquid
+  assign menu = section.settings.menu
+-%}
+<header class="k-header k-header--centered{% if section.settings.sticky %} k-header--sticky{% endif %}{% if section.settings.transparent_home and template.name == 'index' %} k-header--over{% endif %}" data-header>
+  <div class="page-width k-header__inner">
+    <div class="k-header__start">
+      {% render 'header-drawer', menu: menu %}
+      {% render 'header-icons', parts: 'search' %}
+    </div>
+    {% render 'header-logo' %}
+    <div class="k-header__end">
+      {% render 'header-icons', parts: 'account,bag' %}
+    </div>
+  </div>
+  {% render 'header-menu', menu: menu, modifier: 'k-menu--center' %}
+  {% render 'header-search' %}
+</header>
+

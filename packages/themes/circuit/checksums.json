@@ -23,7 +23,8 @@
    "813ed5a9b7d70cb2f9e223ad1e6500b0"
   ],
   "config/settings_schema.json": [
-   "05cc8a3bcea87d7c1881b90f4ba6d481"
+   "05cc8a3bcea87d7c1881b90f4ba6d481",
+   "9bc5a38fa6d2715415c12883508cb2fc"
   ],
   "layout/password.liquid": [
    "a86049d6488a3cee5a953affdccd5e38"

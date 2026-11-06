@@ -49,4 +49,8 @@ export const frThemeGallery: Record<keyof typeof enThemeGallery, string> = {
   'themes.tag.wine': 'Vin',
   'themes.tag.local-producers': 'Producteurs locaux',
   'themes.tag.test': 'Test',
+  'themes.tag.accessories': 'Accessoires',
+  'themes.tag.editorial': 'Éditorial',
+  'themes.tag.lifestyle': 'Art de vivre',
+  'themes.tag.decor': 'Décoration',
 };

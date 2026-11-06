@@ -1,0 +1,47 @@
+{
+  "sections": {
+    "care": {
+      "type": "materials",
+      "blocks": {
+        "material-1": {
+          "type": "material",
+          "settings": {
+            "icon": "drop",
+            "title": "Keep it dry",
+            "text": "If it gets wet, let it dry slowly, away from heat."
+          }
+        },
+        "material-2": {
+          "type": "material",
+          "settings": {
+            "icon": "sun",
+            "title": "Feed it",
+            "text": "Rub in a little neutral conditioner twice a year."
+          }
+        },
+        "material-3": {
+          "type": "material",
+          "settings": {
+            "icon": "refresh",
+            "title": "Bring it back",
+            "text": "Send it to us for a clean, a stitch and a polish."
+          }
+        }
+      },
+      "block_order": [
+        "material-1",
+        "material-2",
+        "material-3"
+      ],
+      "settings": {
+        "eyebrow": "Leather care",
+        "heading": "Looking after your leather",
+        "text": "A little care once or twice a year is all it needs.",
+        "color_scheme": "scheme-4"
+      }
+    }
+  },
+  "order": [
+    "care"
+  ]
+}

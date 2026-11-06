@@ -17,8 +17,16 @@ import { lintThemeFile } from './theme-lint';
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const THEMES_DIR = path.resolve(here, '../../../packages/themes');
-const HANDLES = (process.env.THEME_ONLY ? [process.env.THEME_ONLY] : ['circuit', 'velours']) as ('circuit' | 'velours')[];
-const NAMES = { circuit: 'Circuit', velours: 'Velours' } as const;
+const ALL_HANDLES = ['circuit', 'velours', 'sillage', 'foyer', 'maroquin'] as const;
+const HANDLES = (process.env.THEME_ONLY ? [process.env.THEME_ONLY] : [...ALL_HANDLES]) as (typeof ALL_HANDLES)[number][];
+const NAMES = { circuit: 'Circuit', velours: 'Velours', sillage: 'Sillage', foyer: 'Foyer', maroquin: 'Maroquin' } as const;
+
+/** What each theme composed by the kit (scripts/theme-kit/themes) is made of. */
+const KIT = {
+  sillage: { header: 'split', card: 'minimal', pdp: 'stacked', filters: 'bar', infinite: true, homeMarker: 'k-lookbook', sections: ['lookbook', 'size-guide'], templates: ['page.size-guide'] },
+  foyer: { header: 'centered', card: 'rounded', pdp: 'left', filters: 'bar', infinite: false, homeMarker: 'k-rooms', sections: ['room-tiles', 'materials'], templates: ['page.care-guide'] },
+  maroquin: { header: 'mega', card: 'framed', pdp: 'rail', filters: 'side', infinite: false, homeMarker: 'k-craft', sections: ['craft-steps', 'gift-guide'], templates: ['page.leather-care'] },
+} as const;
 
 function walk(dir: string, base = dir, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -295,6 +303,32 @@ describe('themes rendered on a seeded shop', () => {
       expect([200, 302, 303]).toContain(ok.statusCode);
       const bad = await t.app.inject({ method: 'POST', url: '/contact', ...form({ form_type: 'contact', 'contact[email]': 'not-an-email', 'contact[body]': '' }) });
       expect([200, 302, 303, 422]).toContain(bad.statusCode);
+    });
+
+    // The themes composed by the theme kit: each variant, the kit features and the sections of their trade.
+    it.runIf(handle in KIT)('kit theme: header, card, product page and collection variants, features and trade sections', async () => {
+      const k = KIT[handle as keyof typeof KIT]!;
+      const page = async (url: string) => (await t.app.inject({ url, headers: { 'user-agent': 'Googlebot' } })).body;
+      const home = await page('/');
+      expect(home).toContain(`k-header--${k.header}`);
+      expect(home).toContain(k.homeMarker);
+      expect(home).toContain('data-back-to-top');
+      expect(home).not.toContain('data-age-gate');
+      const collection = await page('/collections/all');
+      expect(collection).toContain(`k-card--${k.card}`);
+      expect(collection).toContain(`k-filters--${k.filters}`);
+      expect(collection).toContain('class="k-crumbs"');
+      expect(collection.includes('data-infinite')).toBe(k.infinite);
+      const dripper = (await db().select().from(s.productVariants)).find((v) => v.sku === 'CPD-SL')!;
+      const product = await page(`/products/ceramic-pour-over-dripper?variant=${dripper.id}`);
+      expect(product).toContain(`k-pdp--${k.pdp}`);
+      expect(product).toContain('class="k-crumbs"');
+      expect(product).toContain('data-stock-json');
+      expect(product).toMatch(/data-lowstock[^>]*role="status">Only 5 left in stock</);
+      const files = themeFiles(handle);
+      for (const section of ['countdown', ...k.sections]) expect(files, section).toContain(`sections/${section}.liquid`);
+      for (const template of k.templates) expect(files, template).toContain(`templates/${template}.json`);
+      for (const header of ['k-header--centered', 'k-header--mega', 'k-header--split']) if (header !== `k-header--${k.header}`) expect(home).not.toContain(header);
     });
 
     it('renders the password page', async () => {

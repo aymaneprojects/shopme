@@ -6,7 +6,7 @@ export const THEMES = /* GraphQL */ `
 
 /** The themes that ship with ShopMe (the "Free ShopMe themes" gallery). */
 export const BUNDLED_THEMES = /* GraphQL */ `
-  query BundledThemes($locale: String) { shopmeBundledThemes(locale: $locale) { handle name version author description tags templates changelog { version date notes } previews { desktop mobile } } }
+  query BundledThemes($locale: String) { shopmeBundledThemes(locale: $locale) { handle name version author description tags industries catalogSize features templates changelog { version date notes } previews { desktop mobile } } }
 `;
 
 /** Add a bundled theme to the library, unpublished. */

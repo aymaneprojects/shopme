@@ -32,11 +32,22 @@ export interface BundledThemeInfo extends BundledTheme {
   descriptions: Record<string, string>;
   /** Free-form English tags (`shopme_tags`), e.g. "Fashion". */
   tags: string[];
+  /** Industries the theme is made for (`shopme_industries`, slugs such as `fashion` or `home-decor`): the theme store's "Industry" facet. */
+  industries: string[];
+  /** How many products the theme is made for (`shopme_catalog_size`): the theme store's "Catalog size" facet. */
+  catalogSize: CatalogSize | null;
+  /** Features of the theme (`shopme_features`, slugs such as `mega-menu`): the theme store's "Features" facet. */
+  features: string[];
   /** Absolute folder of the theme. */
   dir: string;
   /** Languages (besides English) the theme has seed texts for (`seed_defaults` in `locales/<language>.json`). */
   seedLocales: string[];
 }
+
+/** Catalog sizes a theme can be made for: a single product, a few, some or many. */
+export const CATALOG_SIZES = ['one', 'few', 'some', 'many'] as const;
+export type CatalogSize = (typeof CATALOG_SIZES)[number];
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export const AURORA_HANDLE = 'aurora';
 /** Folders of `packages/themes` that are not themes. */
@@ -76,7 +87,10 @@ export function readThemeInfo(dir: string, handle: string): BundledThemeInfo | n
     ? Object.fromEntries(Object.entries(info.shopme_descriptions).map(([k, v]) => [k.toLowerCase(), str(v)] as const).filter(([, v]) => v))
     : {};
   const tags = Array.isArray(info.shopme_tags) ? [...new Set(info.shopme_tags.map(str).filter(Boolean))] : [];
-  return { ...base, author: str(info.theme_author), description: str(info.shopme_description), descriptions, tags, dir, seedLocales: seedLocalesOf(dir) };
+  const slugs = (v: unknown) => (Array.isArray(v) ? [...new Set(v.map(str).filter((x) => SLUG_RE.test(x)))] : []);
+  const size = str(info.shopme_catalog_size);
+  const catalogSize = (CATALOG_SIZES as readonly string[]).includes(size) ? (size as CatalogSize) : null;
+  return { ...base, author: str(info.theme_author), description: str(info.shopme_description), descriptions, tags, industries: slugs(info.shopme_industries), catalogSize, features: slugs(info.shopme_features), dir, seedLocales: seedLocalesOf(dir) };
 }
 
 /** The bundled themes: Aurora first, then the folders of `themesDir` in alphabetical order. */

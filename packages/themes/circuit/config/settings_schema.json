@@ -12,6 +12,9 @@
       "Gadgets",
       "Large catalog"
     ],
+    "shopme_industries": ["electronics"],
+    "shopme_catalog_size": "many",
+    "shopme_features": ["breadcrumbs", "cart-drawer", "mega-menu", "multilingual", "predictive-search", "product-filters", "selling-plans", "sticky-header"],
     "shopme_descriptions": {
       "fr": "Boutique dense et précise pour l’électronique, les gadgets et les grands catalogues : méga-menu des rayons, cartes produit riches en caractéristiques, barre de comparaison et tableau des caractéristiques."
     }

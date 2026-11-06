@@ -1,0 +1,13 @@
+/* Header layout: half of the menu on each side of a centred logo, icons at the far right */
+.k-header--split .k-header__inner { grid-template-columns: 1fr auto 1fr auto; gap: 20px; min-height: 84px; }
+.k-header--split .k-header__start { display: none; }
+.k-header--split .k-menu--left .k-menu__list { justify-content: flex-end; }
+.k-header--split .k-menu--right .k-menu__list { justify-content: flex-start; }
+.k-header--split .k-logo { padding-inline: 12px; }
+.k-header--split .k-menu__item > a { padding: 14px 12px; border-radius: 0; background: none; font-size: .86rem; --nav-tracking: .12em; text-transform: var(--nav-case, uppercase); }
+.k-header--split .k-menu__item > a:hover, .k-header--split .k-menu__item > a.is-active { background: none; color: var(--v-accent); }
+.k-header--split .k-header__end { padding-left: 12px; border-left: 1px solid var(--v-line); }
+@media (max-width: 989px) {
+  .k-header--split .k-header__start { display: flex; }
+  .k-header--split .k-header__end { border-left: 0; padding-left: 0; }
+}

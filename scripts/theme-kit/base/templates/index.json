@@ -1,0 +1,216 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "chip-1": {
+          "type": "chip",
+          "settings": {
+            "icon": "leaf"
+          }
+        },
+        "chip-2": {
+          "type": "chip",
+          "settings": {
+            "icon": "drop"
+          }
+        },
+        "chip-3": {
+          "type": "chip",
+          "settings": {
+            "icon": "heart"
+          }
+        }
+      },
+      "block_order": [
+        "chip-1",
+        "chip-2",
+        "chip-3"
+      ],
+      "settings": {
+        "layout": "split",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "bestsellers": {
+      "type": "featured-collection",
+      "settings": {
+        "collection": "all",
+        "products_to_show": 6,
+        "columns": "3",
+        "show_view_all": true
+      }
+    },
+    "routine": {
+      "type": "routine",
+      "blocks": {
+        "step-1": {
+          "type": "step",
+          "settings": {}
+        },
+        "step-2": {
+          "type": "step",
+          "settings": {}
+        },
+        "step-3": {
+          "type": "step",
+          "settings": {}
+        }
+      },
+      "block_order": [
+        "step-1",
+        "step-2",
+        "step-3"
+      ],
+      "settings": {
+        "show_add_all": true,
+        "color_scheme": "scheme-2"
+      }
+    },
+    "ingredients": {
+      "type": "ingredients-benefits",
+      "blocks": {
+        "ingredient-1": {
+          "type": "ingredient",
+          "settings": {
+            "icon": "drop"
+          }
+        },
+        "ingredient-2": {
+          "type": "ingredient",
+          "settings": {
+            "icon": "leaf"
+          }
+        },
+        "ingredient-3": {
+          "type": "ingredient",
+          "settings": {
+            "icon": "sparkle"
+          }
+        },
+        "ingredient-4": {
+          "type": "ingredient",
+          "settings": {
+            "icon": "sun"
+          }
+        }
+      },
+      "block_order": [
+        "ingredient-1",
+        "ingredient-2",
+        "ingredient-3",
+        "ingredient-4"
+      ],
+      "settings": {
+        "color_scheme": "scheme-3"
+      }
+    },
+    "story": {
+      "type": "image-with-text",
+      "settings": {
+        "layout": "left",
+        "color_scheme": ""
+      }
+    },
+    "results": {
+      "type": "before-after",
+      "blocks": {
+        "pair-1": {
+          "type": "pair",
+          "settings": {}
+        },
+        "pair-2": {
+          "type": "pair",
+          "settings": {}
+        }
+      },
+      "block_order": [
+        "pair-1",
+        "pair-2"
+      ],
+      "settings": {
+        "color_scheme": "scheme-1"
+      }
+    },
+    "reviews": {
+      "type": "testimonials",
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ],
+      "settings": {
+        "color_scheme": ""
+      }
+    },
+    "concerns": {
+      "type": "collection-list",
+      "settings": {
+        "columns": "3"
+      }
+    },
+    "faq": {
+      "type": "collapsible-content",
+      "blocks": {
+        "row-1": {
+          "type": "row",
+          "settings": {}
+        },
+        "row-2": {
+          "type": "row",
+          "settings": {}
+        },
+        "row-3": {
+          "type": "row",
+          "settings": {}
+        }
+      },
+      "block_order": [
+        "row-1",
+        "row-2",
+        "row-3"
+      ],
+      "settings": {
+        "open_first": true
+      }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {
+        "color_scheme": "scheme-1"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "bestsellers",
+    "routine",
+    "ingredients",
+    "story",
+    "results",
+    "reviews",
+    "concerns",
+    "faq",
+    "newsletter"
+  ]
+}

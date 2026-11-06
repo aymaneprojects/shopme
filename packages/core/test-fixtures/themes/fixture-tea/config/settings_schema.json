@@ -6,7 +6,10 @@
     "theme_author": "ShopMe contributors",
     "shopme_description": "A tiny theme used by the tests.",
     "shopme_descriptions": { "fr": "Un tout petit thème utilisé par les tests." },
-    "shopme_tags": ["Food", "Test"]
+    "shopme_tags": ["Food", "Test"],
+    "shopme_industries": ["food-drink", "Not A Slug"],
+    "shopme_catalog_size": "few",
+    "shopme_features": ["cart-drawer", "mega-menu"]
   },
   {
     "name": "Colors",

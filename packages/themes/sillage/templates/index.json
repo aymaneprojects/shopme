@@ -1,0 +1,193 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "chip-1": {
+          "type": "chip",
+          "settings": {
+            "icon": "leaf",
+            "text": "Natural fibres"
+          }
+        },
+        "chip-2": {
+          "type": "chip",
+          "settings": {
+            "icon": "truck",
+            "text": "Free delivery from 80"
+          }
+        },
+        "chip-3": {
+          "type": "chip",
+          "settings": {
+            "icon": "refresh",
+            "text": "30-day returns"
+          }
+        }
+      },
+      "block_order": [
+        "chip-1",
+        "chip-2",
+        "chip-3"
+      ],
+      "settings": {
+        "layout": "full",
+        "color_scheme": "scheme-4",
+        "eyebrow": "Autumn / Winter",
+        "heading": "Dressed in quiet colours",
+        "text": "Soft knits, washed linen and easy shapes in olive and stone. Pieces made to be worn all season and kept for years.",
+        "button_label": "Shop the collection",
+        "button_link": "/collections/all",
+        "button_2_label": "Find your size",
+        "button_2_link": "/pages/size-guide"
+      }
+    },
+    "new-in": {
+      "type": "featured-collection",
+      "settings": {
+        "eyebrow": "New in",
+        "heading": "The new season",
+        "text": "Four pieces to build a wardrobe around.",
+        "collection": "all",
+        "products_to_show": 4,
+        "columns": "4",
+        "show_view_all": true,
+        "color_scheme": ""
+      }
+    },
+    "lookbook": {
+      "type": "lookbook",
+      "blocks": {
+        "look-1": {
+          "type": "look",
+          "settings": {
+            "title": "Weekend in wool",
+            "text": "A heather cardigan over a striped tee, olive trousers to finish.",
+            "product": "heather-wool-cardigan"
+          }
+        },
+        "look-2": {
+          "type": "look",
+          "settings": {
+            "title": "Linen, layered",
+            "text": "A beige shirt under raw denim.",
+            "product": "beige-linen-shirt"
+          }
+        },
+        "look-3": {
+          "type": "look",
+          "settings": {
+            "title": "All black, one texture",
+            "text": "A roll-neck, nothing else needed.",
+            "product": "black-roll-neck-sweater"
+          }
+        }
+      },
+      "block_order": [
+        "look-1",
+        "look-2",
+        "look-3"
+      ],
+      "settings": {
+        "eyebrow": "The edit",
+        "heading": "Shop the look",
+        "color_scheme": "scheme-3"
+      }
+    },
+    "sale": {
+      "type": "countdown",
+      "settings": {
+        "eyebrow": "Winter sale",
+        "heading": "Up to 30% off the autumn edit",
+        "text": "The last pieces of the season, at their best price.",
+        "end_date": "2027-01-15T23:59",
+        "ended_text": "The sale has ended. See you next season.",
+        "button_label": "Shop the sale",
+        "button_link": "/collections/all?filter.v.availability=1",
+        "color_scheme": "scheme-2"
+      }
+    },
+    "categories": {
+      "type": "collection-list",
+      "settings": {
+        "eyebrow": "Wardrobe",
+        "heading": "Shop by category",
+        "columns": "3",
+        "collections": [],
+        "color_scheme": ""
+      }
+    },
+    "story": {
+      "type": "image-with-text",
+      "settings": {
+        "layout": "left",
+        "color_scheme": "scheme-1",
+        "eyebrow": "The atelier",
+        "heading": "Made slowly, worn for years",
+        "text": "<p>We work with small mills that spin and weave natural fibres, and with workshops that cut and sew in short runs. Fewer pieces, better materials, and colours that go with everything you already own.</p>",
+        "button_label": "Read our story",
+        "button_link": "/pages/about-us"
+      }
+    },
+    "reviews": {
+      "type": "testimonials",
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The cardigan is exactly the grey I was looking for, and the wool is so soft. I wear it every week.",
+            "name": "Camille R.",
+            "detail": "Heather wool cardigan",
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Great cut on the chinos, and the olive is beautiful. They fit true to size.",
+            "name": "Thomas L.",
+            "detail": "Olive chino trousers",
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Quick delivery, tidy packaging and an easy exchange when I needed a size up.",
+            "name": "Inès B.",
+            "detail": "Linen shirt",
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ],
+      "settings": {
+        "heading": "Worn and loved",
+        "color_scheme": ""
+      }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {
+        "heading": "Stay close to Sillage",
+        "text": "New arrivals, behind the scenes and 10% off your first order.",
+        "button_label": "Subscribe",
+        "color_scheme": "scheme-1"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "new-in",
+    "lookbook",
+    "sale",
+    "categories",
+    "story",
+    "reviews",
+    "newsletter"
+  ]
+}

@@ -1,0 +1,8 @@
+/* Product card: rounded (a soft tile that lifts on hover) */
+.k-card--rounded { height: 100%; align-content: start; gap: 0; padding: 10px 10px 20px; background: var(--v-card); border-radius: var(--round); box-shadow: 0 1px 2px color-mix(in srgb, var(--v-ink) 8%, transparent), 0 10px 24px color-mix(in srgb, var(--v-ink) 5%, transparent); transition: transform var(--anim) ease, box-shadow var(--anim) ease; }
+.k-card--rounded:hover, .k-card--rounded:focus-within { transform: translateY(-4px); box-shadow: 0 24px 48px color-mix(in srgb, var(--v-ink) 14%, transparent); }
+.k-card--rounded .k-card__frame { border-radius: max(calc(var(--round) - 8px), 6px); box-shadow: none; }
+.k-card--rounded:hover .k-card__frame { box-shadow: none; }
+.k-card--rounded .k-card__body { padding: 16px 8px 0; gap: 6px; }
+.k-card--rounded .k-card__title { font: 600 1.02rem/1.3 var(--f-body); }
+.k-card--rounded .k-quick__btn { left: 10px; right: 10px; bottom: 10px; border-radius: var(--pill); }
