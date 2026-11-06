@@ -23,6 +23,7 @@
    "87c506d88b9f587f0e2292bc271f5083"
   ],
   "assets/terroir.css": [
+   "2093c383f73062b1ef8287ece5c9d476",
    "f057683ae5872e43b6e8254b2ce33aa8"
   ],
   "assets/terroir.js": [
@@ -50,12 +51,14 @@
    "d331665c5b91f47b4d5dc0727369795c"
   ],
   "config/settings_schema.json": [
-   "3bc4d793331eb4c7b371363b716d63a0"
+   "3bc4d793331eb4c7b371363b716d63a0",
+   "f0c3a88f1b17084e64fc851d13ca0b5e"
   ],
   "layout/password.liquid": [
    "e297116bf42b302808887171edf4199e"
   ],
   "layout/theme.liquid": [
+   "044d135be169a3dd2afcbe7c62752063",
    "ab0c50542901d423e9aef317cc294b78"
   ],
   "locales/en.default.json": [
@@ -127,7 +130,9 @@
    "74cb885d9f2f73e57939f72d61ff7f7b"
   ],
   "sections/hero.liquid": [
+   "1af6d1c16aa98349f5f3941c88ee593f",
    "3d3914262c9c658743b10eba902afb63",
+   "57ecd56b0a8c783fb380361d29df1b5a",
    "fe24cbb471c87e5410e24e381851604d"
   ],
   "sections/image-with-text.liquid": [
@@ -280,6 +285,7 @@
    "32fc113cdba9b8b31af99b76edc44c53"
   ],
   "snippets/product-badges.liquid": [
+   "2eb16cddf3eaedb61a9f3f071c730d66",
    "6b32f33ce810db91bb2fbbb43eeede03"
   ],
   "snippets/product-card.liquid": [

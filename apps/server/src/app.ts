@@ -12,6 +12,7 @@ import { registerFileUploadRoute } from './admin/files-routes';
 import { registerAdminGraphQL } from './admin/graphql/route';
 import { registerAdminSpa, registerFilesStatic } from './admin/spa';
 import { registerCheckout } from './checkout';
+import { registerCheckoutPreview } from './checkout/preview';
 import type { AppContext } from './context';
 import { registerJobs } from './jobs';
 import { registerSubscriptionJobs } from './subscriptions';
@@ -120,6 +121,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   registerFilesStatic(app);
   registerAdminSpa(app);
   await registerCheckout(app);
+  registerCheckoutPreview(app);
   registerSubscriptionJobs(app);
   await registerWebhooks(app);
   await registerOpsRoutes(app);

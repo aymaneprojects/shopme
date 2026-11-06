@@ -1,6 +1,9 @@
 {%- assign s = section.settings -%}
 {%- assign date_format = 'general.date_format' | t -%}
 <div class="page-width section-pad customer {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="customer-shell">
+    {% render 'account-nav', current: 'orders' %}
+    <div class="customer-main">
   <div class="section-head">
     <h1 class="page-title">{%- if s.heading != blank -%}{{ s.heading | escape }}{%- else -%}{{ 'customer.account_page.title' | t }}{%- endif -%}</h1>
     <a class="link-arrow" href="{{ routes.account_logout_url }}">{{ 'customer.logout' | t }}</a>
@@ -14,28 +17,17 @@
         <p class="empty">{{ 'customer.account_page.no_orders' | t }}</p>
       {%- else -%}
         {%- paginate customer.orders by s.orders_per_page -%}
-          <table class="customer__table">
-            <thead>
-              <tr>
-                <th scope="col">{{ 'customer.account_page.order' | t }}</th>
-                <th scope="col">{{ 'customer.account_page.date' | t }}</th>
-                <th scope="col">{{ 'customer.account_page.payment_status' | t }}</th>
-                <th scope="col">{{ 'customer.account_page.fulfillment_status' | t }}</th>
-                <th scope="col" class="customer__num">{{ 'customer.account_page.total' | t }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {%- for order in customer.orders -%}
-                <tr>
-                  <th scope="row"><a href="{{ order.customer_url }}">{{ order.name }}</a></th>
-                  <td>{{ order.created_at | date: date_format }}</td>
-                  <td>{{ order.financial_status_label }}</td>
-                  <td>{{ order.fulfillment_status_label }}</td>
-                  <td class="customer__num">{{ order.total_price | money }}</td>
-                </tr>
-              {%- endfor -%}
-            </tbody>
-          </table>
+          <ul class="customer__orders" role="list">
+            {%- for order in customer.orders -%}
+              <li class="customer__order-card">
+                <a class="customer__order-link" href="{{ order.customer_url }}">
+                  <span class="customer__order-status">{{ order.fulfillment_status_label }}</span>
+                  <span class="customer__muted">{{ order.name }} &middot; {{ order.total_price | money }} &middot; {{ order.created_at | date: date_format }}</span>
+                  <span class="customer__muted">{{ order.financial_status_label }}</span>
+                </a>
+              </li>
+            {%- endfor -%}
+          </ul>
           {% render 'pagination', paginate: paginate %}
         {%- endpaginate -%}
       {%- endif -%}
@@ -99,6 +91,8 @@
       {%- endif -%}
       <a class="button button--outline button--small" href="{{ routes.account_addresses_url }}">{{ 'customer.account_page.view_addresses' | t: count: customer.addresses_count }}</a>
     </aside>
+  </div>
+    </div>
   </div>
 </div>
 

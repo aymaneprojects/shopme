@@ -39,6 +39,8 @@ import { enAccountPages } from './en-account-pages';
 import { enSubscriptions } from './en-subscriptions';
 import { enThemeUpdate } from './en-theme-update';
 import { enThemeGallery } from './en-theme-gallery';
+import { enThemeStore } from './en-theme-store';
+import { enCheckoutEditor } from './en-checkout-editor';
 import { enMultistore } from './en-multistore';
 import { enAccount } from './en-account';
 import { enAuth } from './en-auth';
@@ -171,6 +173,8 @@ export const en = {
   ...enSubscriptions,
   ...enThemeUpdate,
   ...enThemeGallery,
+  ...enThemeStore,
+  ...enCheckoutEditor,
   ...enFidelity,
   ...enMultistore,
   ...enEmail,

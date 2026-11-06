@@ -2,6 +2,18 @@
   "about": "What changed in each version of Aurora, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
   "versions": [
     {
+      "version": "1.2.1",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "Customer account pages: an Orders / Profile menu on the account, order and addresses pages, orders listed as cards, a back arrow on the order page, a profile block with the contact details above the addresses, and a short line under the sign-in heading."
+        ],
+        "fr": [
+          "Pages du compte client : un menu Commandes / Profil sur les pages du compte, de la commande et des adresses, les commandes présentées en cartes, une flèche de retour sur la page de commande, un bloc profil avec les coordonnées au-dessus des adresses et une courte phrase sous le titre de connexion."
+        ]
+      }
+    },
+    {
       "version": "1.2.0",
       "date": "2026-11-05",
       "notes": {

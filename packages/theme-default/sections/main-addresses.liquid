@@ -1,10 +1,22 @@
 {%- assign s = section.settings -%}
 <div class="page-width section-pad customer {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="customer-shell">
+    {% render 'account-nav', current: 'profile' %}
+    <div class="customer-main">
   <div class="section-head">
-    <h1 class="page-title">{%- if s.heading != blank -%}{{ s.heading | escape }}{%- else -%}{{ 'customer.addresses.title' | t }}{%- endif -%}</h1>
+    <h1 class="page-title">{%- if s.heading != blank -%}{{ s.heading | escape }}{%- else -%}{{ 'customer.profile.title' | t }}{%- endif -%}</h1>
     <a class="link-arrow" href="{{ routes.account_url }}">{{ 'customer.addresses.back' | t }}</a>
   </div>
   {%- if s.text != blank -%}<div class="rte customer__intro">{{ s.text }}</div>{%- endif -%}
+
+  <section class="customer__profile" aria-labelledby="profile-name">
+    <h2 id="profile-name">{{ customer.name | escape }}</h2>
+    <dl class="customer__contact">
+      <div><dt>{{ 'customer.email' | t }}</dt><dd>{{ customer.email | escape }}</dd></div>
+      {%- if customer.phone != blank -%}<div><dt>{{ 'customer.profile.phone' | t }}</dt><dd>{{ customer.phone | escape }}</dd></div>{%- endif -%}
+    </dl>
+  </section>
+  <h2 class="customer__subtitle" id="addresses-title">{{ 'customer.addresses.title' | t }}</h2>
 
   <details class="customer__details"{% if form.errors %} open{% endif %}>
     <summary class="button button--outline">{{ 'customer.addresses.add' | t }}</summary>
@@ -42,6 +54,8 @@
       {%- endfor -%}
     </ul>
   {%- endif -%}
+    </div>
+  </div>
 </div>
 
 {% schema %}

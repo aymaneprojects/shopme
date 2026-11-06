@@ -23,7 +23,8 @@
    "87c506d88b9f587f0e2292bc271f5083"
   ],
   "assets/nocturne.css": [
-   "cfa3325200dc1e6128794040e7189e03"
+   "cfa3325200dc1e6128794040e7189e03",
+   "fed61d4c2df057ef869a3df0ef11b478"
   ],
   "assets/nocturne.js": [
    "dc86b37ff249bb2152fb71f6f3913ecd"
@@ -45,13 +46,15 @@
    "1273416de4988b548796b39ef8d099da"
   ],
   "config/settings_schema.json": [
+   "7415e9ed42b314777ee5c0a8835e1320",
    "dc47226e440ad7ba9507e1c6edf53152"
   ],
   "layout/password.liquid": [
    "9f127c3ed92409da181055abe9d78028"
   ],
   "layout/theme.liquid": [
-   "994a26d2a04f64f759d4ef0e812189ba"
+   "994a26d2a04f64f759d4ef0e812189ba",
+   "f66af5c27626338e78150d5ceb1b4682"
   ],
   "locales/en.default.json": [
    "358f519d1d88a711021beb72eaf377d6"
@@ -273,6 +276,7 @@
    "32fc113cdba9b8b31af99b76edc44c53"
   ],
   "snippets/product-badges.liquid": [
+   "2eb16cddf3eaedb61a9f3f071c730d66",
    "6b32f33ce810db91bb2fbbb43eeede03"
   ],
   "snippets/product-card.liquid": [

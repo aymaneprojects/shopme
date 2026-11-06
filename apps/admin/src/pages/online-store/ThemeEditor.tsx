@@ -2,6 +2,7 @@ import { Badge, Banner, Button, ConfirmDialog, Input, Modal, Skeleton, cx, useTo
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { FileText, LayoutTemplate, LogOut, Minimize2, Monitor, MousePointerClick, PanelsTopLeft, Redo2, Settings, Smartphone, Tablet, Undo2 } from 'lucide-react';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useBlocker, useNavigate, useParams, useSearchParams } from 'react-router';
 import type { Key } from '../../i18n';
 import { gql, mutate, rest } from '../../api';
@@ -35,8 +36,12 @@ const nodes = (r?: FilesRes) => (r?.theme?.files.nodes ?? []).map((n) => ({ file
 const DEVICES = [['desktop', Monitor, 'themes.desktop'], ['tablet', Tablet, 'editor.tablet'], ['mobile', Smartphone, 'themes.mobile']] as const;
 const EMPTY_TEMPLATE: Template = { sections: {}, order: [] };
 
-export function ThemeEditorPage() {
-  const { id = '' } = useParams();
+/** Set when the editor is the checkout and customer accounts editor: the account page's template, the configuration shown at the top and the page selector. */
+export interface AccountsChrome { name: string; active: boolean; template: string; backTo: string; menu: ReactNode }
+
+export function ThemeEditorPage({ themeNum, accounts }: { themeNum?: string; accounts?: AccountsChrome } = {}) {
+  const route = useParams();
+  const id = themeNum ?? route.id ?? '';
   const { t } = useI18n();
   const gid = numToGid('OnlineStoreTheme', id);
   const q = useQuery({ queryKey: ['theme-settings', gid], queryFn: () => gql<FilesRes>(THEME_SETTINGS, { id: gid }) });
@@ -44,7 +49,7 @@ export function ThemeEditorPage() {
   if (q.isLoading) return <div className="grid gap-4"><Skeleton className="h-8 w-64" /><Skeleton className="h-96" /></div>;
   if (q.error) return <Banner>{q.error.message}</Banner>;
   if (!q.data?.theme) return <Banner>{t('themes.notFound')}</Banner>;
-  return <EditorShell key={gid} themeId={gid} name={q.data.theme.name ?? ''} role={q.data.theme.role} schemaJson={fileText(q.data, 'config/settings_schema.json') ?? '[]'} dataJson={fileText(q.data, DATA_FILE)} localesData={loc.data} />;
+  return <EditorShell key={gid} accounts={accounts} themeId={gid} name={q.data.theme.name ?? ''} role={q.data.theme.role} schemaJson={fileText(q.data, 'config/settings_schema.json') ?? '[]'} dataJson={fileText(q.data, DATA_FILE)} localesData={loc.data} />;
 }
 
 const withParams = (path: string, params: Record<string, string>) => {
@@ -56,19 +61,19 @@ const withParams = (path: string, params: Record<string, string>) => {
 interface SaveVars { docs: Docs; files: Array<{ filename: string; body: { type: 'TEXT'; value: string } }>; settings: Record<string, SettingValue>; data?: string }
 
 /** The editor session: one history (undo/redo) over every template and the theme settings, one live preview, one save. */
-function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }: { themeId: string; name: string; role?: string; schemaJson: string; dataJson: string | undefined; localesData: FilesRes | undefined }) {
+function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData, accounts }: { accounts?: AccountsChrome; themeId: string; name: string; role?: string; schemaJson: string; dataJson: string | undefined; localesData: FilesRes | undefined }) {
   const { t, lang } = useI18n();
   const toast = useToast();
   const nav = useNavigate();
   const num = gidToNum(themeId);
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab') === 'settings' ? 'settings' : 'sections';
-  const setTab = (v: string) => setParams(v === 'settings' ? { tab: v } : {}, { replace: true });
+  const setTab = (v: string) => setParams((cur) => { const next = new URLSearchParams(cur); if (v === 'settings') next.set('tab', v); else next.delete('tab'); return next; }, { replace: true });
 
   // ---- data
   // `?template=customers/login` (Settings > Customer accounts > Customize) opens the editor on that template.
-  const [template, setTemplate] = useState(() => params.get('template') || 'index');
-  const [frameTpl, setFrameTpl] = useState(() => params.get('template') || 'index');
+  const [template, setTemplate] = useState(() => accounts?.template ?? (params.get('template') || 'index'));
+  const [frameTpl, setFrameTpl] = useState(() => accounts?.template ?? (params.get('template') || 'index'));
   const names = useQuery({ queryKey: ['theme-templates', themeId], queryFn: () => gql<FilesRes>(THEME_TEMPLATE_NAMES, { id: themeId }) });
   const schemas = useQuery({ queryKey: ['theme-schemas', themeId], queryFn: () => gql<FilesRes>(THEME_SCHEMAS, { id: themeId }), staleTime: 60_000 });
   const files = useQuery({ queryKey: ['theme-editor-files', themeId, template], queryFn: () => gql<FilesRes>(THEME_EDITOR_FILES, { id: themeId, filenames: [`templates/${template}.json`, 'sections/*.json'] }) });
@@ -221,6 +226,8 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
   const src = useMemo(() => frameUrl(frameTpl, true), [frameTpl, h.product, h.collection, h.page, h.article, chosen.locale, chosen.country, num]); // eslint-disable-line react-hooks/exhaustive-deps
   const changeChosen = (v: PreviewData) => { setChosen(v); writeChosen(num, v); };
   const chooseTemplate = (tpl: string) => { setSel(null); setTemplate(tpl); setFrameTpl(tpl); };
+  const accountTemplate = accounts?.template;
+  useEffect(() => { if (accountTemplate) chooseTemplate(accountTemplate); }, [accountTemplate]); // eslint-disable-line react-hooks/exhaustive-deps
   const onNavigate = (path: string) => {
     const tpl = templateForPath(path);
     if (!tpl || tpl === template.split('.')[0]) return;
@@ -329,11 +336,17 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
         onConfirm={() => blocker.proceed?.()} onClose={() => blocker.reset?.()} />
       <header className="relative flex h-[46px] shrink-0 items-center justify-between px-3">
         <div role="tablist" aria-label={t('editor.panels')} className="flex items-center gap-1">
-          <button type="button" aria-label={t('editor.allThemes')} title={t('editor.allThemes')} className={topBtn} onClick={() => nav('/online-store')}><LogOut className="size-4 -scale-x-100" /></button>
+          <button type="button" aria-label={t('editor.allThemes')} title={t('editor.allThemes')} className={topBtn} onClick={() => nav(accounts?.backTo ?? '/online-store')}><LogOut className="size-4 -scale-x-100" /></button>
           <button type="button" role="tab" aria-selected={tab === 'sections'} aria-label={t('editor.tabSections')} title={t('editor.tabSections')} className={topBtn} onClick={() => setTab('sections')}><PanelsTopLeft className="size-4" /></button>
           <button type="button" role="tab" aria-selected={tab === 'settings'} aria-label={t('editor.tabSettings')} title={t('editor.tabSettings')} className={topBtn} onClick={() => setTab('settings')}><Settings className="size-4" /></button>
         </div>
         <div className="pointer-events-none absolute inset-x-0 top-0 flex h-full items-center justify-center gap-10 text-[12px]">
+          {accounts ? (
+            <>
+              <div className="pointer-events-auto flex items-center gap-2"><LayoutTemplate className="size-3.5" aria-hidden /><span className="max-w-[260px] truncate font-medium">{accounts.name}</span>{accounts.active ? <Badge tone="success">{t('ckeditor.active')}</Badge> : <Badge tone="info">{t('editor.draft')}</Badge>}</div>
+              {accounts.menu}
+            </>
+          ) : <>
           <div className="pointer-events-auto flex items-center gap-2"><LayoutTemplate className="size-3.5" aria-hidden /><span className="font-medium">{name}</span>{status}</div>
           <label className="pointer-events-auto relative flex h-7 items-center gap-1.5 rounded-md pl-1.5 pr-2 hover:bg-hover">
             <FileText className="size-3.5" aria-hidden />
@@ -342,7 +355,7 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
               <optgroup label={t('editor.groupPages')}>{pageGroups.pages.map((x) => <option key={x} value={x}>{templateLabel(x, t)}</option>)}</optgroup>
               {pageGroups.account.length > 0 && <optgroup label={t('editor.groupAccount')}>{pageGroups.account.map((x) => <option key={x} value={x}>{templateLabel(x, t)}</option>)}</optgroup>}
             </select>
-          </label>
+          </label></>}
         </div>
         <div className="flex items-center gap-1">
           <PreviewDataMenu choices={choices} value={chosen} onChange={changeChosen} className={topBtn} />
@@ -350,7 +363,7 @@ function EditorShell({ themeId, name, role, schemaJson, dataJson, localesData }:
           {deviceBtn}
           <button type="button" aria-label={t('editor.undo')} title={t('editor.undo')} disabled={!hist.past.length} onClick={() => dispatch({ kind: 'undo' })} className={topBtn}><Undo2 className="size-4" /></button>
           <button type="button" aria-label={t('editor.redo')} title={t('editor.redo')} disabled={!hist.future.length} onClick={() => dispatch({ kind: 'redo' })} className={topBtn}><Redo2 className="size-4" /></button>
-          <ThemeToolbar onShortcuts={() => setShortcuts(true)} themeId={themeId} name={name} role={role} dirty={dirty} previewUrl={frameUrl(frameTpl, false)} docsUrl={info.docs} supportUrl={info.support} version={info.version} author={info.author} />
+          <ThemeToolbar hidePublish={!!accounts} onShortcuts={() => setShortcuts(true)} themeId={themeId} name={name} role={role} dirty={dirty} previewUrl={frameUrl(frameTpl, false)} docsUrl={info.docs} supportUrl={info.support} version={info.version} author={info.author} />
           <Button size="sm" variant="primary" disabled={!dirty} loading={save.isPending} onClick={doSave}>{t('save.save')}</Button>
         </div>
       </header>

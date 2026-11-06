@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../i18n';
+import { SessionProvider } from '../../session';
 import type { Lang } from '../../i18n';
 import { ThemesPage } from './Themes';
 
@@ -49,7 +50,7 @@ const dialogTitled = async (title: string) => (await screen.findByRole('heading'
 
 const page = (lang: Lang) => render(
   <I18nProvider initial={lang}><ToastProvider><QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-    <MemoryRouter><ThemesPage /></MemoryRouter>
+    <SessionProvider><MemoryRouter><ThemesPage /></MemoryRouter></SessionProvider>
   </QueryClientProvider></ToastProvider></I18nProvider>,
 );
 

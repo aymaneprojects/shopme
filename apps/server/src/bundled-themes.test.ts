@@ -61,6 +61,20 @@ describe('bundled themes: gallery, install and updates (Admin GraphQL)', () => {
     expect(fr.shopmeBundledThemes[0].description).toContain('boutique');
   });
 
+  it('lists the pages a theme has a template for and its changelog (theme store details)', async () => {
+    const r = await g('{ shopmeBundledThemes(locale: "fr") { handle templates changelog { version date notes } } }');
+    const aurora = r.shopmeBundledThemes.find((x: { handle: string }) => x.handle === 'aurora');
+    expect(aurora.templates).toEqual(expect.arrayContaining(['index', 'product', 'customers/login', 'customers/account', 'customers/order', 'customers/addresses']));
+    expect([...aurora.templates].sort()).toEqual(aurora.templates); // stable order
+    const versions = aurora.changelog.map((v: { version: string }) => v.version.split('.').map(Number));
+    expect(versions[0]).toEqual([...versions].sort((a: number[], b: number[]) => b[0]! - a[0]! || b[1]! - a[1]! || b[2]! - a[2]!)[0]); // newest first
+    expect(aurora.changelog.length).toBeGreaterThan(1);
+    expect(aurora.changelog[0].notes.join(' ')).toMatch(/[a-zé]/);
+    const tea = r.shopmeBundledThemes.find((x: { handle: string }) => x.handle === 'fixture-tea');
+    expect(tea.templates).toContain('index');
+    expect(Array.isArray(tea.changelog)).toBe(true);
+  });
+
   it('serves the previews to signed-in admins only', async () => {
     const url = '/admin/api/theme-previews/fixture-tea-desktop.webp';
     const ok = await t.app.inject({ url, cookies: { shopme_session: cookie } });

@@ -1,9 +1,10 @@
-import { Badge, Button, ButtonGroup, Modal, cx } from '@shopme/ui';
-import { useQuery } from '@tanstack/react-query';
+import { Badge, Button, ButtonGroup, Modal, cx, useToast } from '@shopme/ui';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Monitor, Palette, Smartphone } from 'lucide-react';
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
-import { rest } from '../api';
+import { UserErrors, gql, mutate, rest } from '../api';
+import { BUNDLED_THEMES, THEME_INSTALL_BUNDLED } from '../graphql';
 import { useI18n, useT } from '../i18n';
 import type { Key } from '../i18n';
 
@@ -11,6 +12,31 @@ import type { Key } from '../i18n';
 export interface BundledThemeCard {
   handle: string; name: string; version: string; author: string; description: string; tags: string[];
   previews: { desktop: string | null; mobile: string | null };
+  /** Pages the theme has a template for (`index`, `customers/login`...). */
+  templates?: string[];
+  /** What changed in each version, newest first. */
+  changelog?: Array<{ version: string; date: string | null; notes: string[] }>;
+}
+
+/** The themes that ship with ShopMe, in the admin's language (signed-in admin: GraphQL). */
+export function useBundledThemes() {
+  const { lang } = useI18n();
+  return useQuery({ queryKey: ['bundled-themes', lang], staleTime: 60_000, queryFn: () => gql<{ shopmeBundledThemes?: BundledThemeCard[] }>(BUNDLED_THEMES, { locale: lang }) });
+}
+
+/** Adds a bundled theme to the library (unpublished) and refreshes the theme list. */
+export function useAddBundledTheme(onAdded?: (theme: BundledThemeCard) => void) {
+  const t = useT();
+  const toast = useToast();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (th: BundledThemeCard) => mutate(THEME_INSTALL_BUNDLED, { handle: th.handle }, 'shopmeThemeInstallBundled').then(() => th),
+    onSuccess: (th) => { toast(t('themes.free.added', { name: th.name })); onAdded?.(th); void qc.invalidateQueries({ queryKey: ['themes'] }); },
+    onError: (e: Error) => {
+      const code = e instanceof UserErrors ? (e.errors[0] as { code?: string } | undefined)?.code : undefined;
+      toast(code === 'NOT_FOUND' ? t('themes.free.notFound') : e.message, 'critical');
+    },
+  });
 }
 
 /** The bundled themes through the REST endpoint (works in the first-store wizard, where nobody is signed in yet). */

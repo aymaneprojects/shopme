@@ -4,9 +4,11 @@
 {%- assign cancelled_on = order.cancelled_at | date: date_format -%}
 {%- if s.show_sku -%}{%- assign label_cols = 4 -%}{%- else -%}{%- assign label_cols = 3 -%}{%- endif -%}
 <div class="page-width section-pad customer {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="customer-shell">
+    {% render 'account-nav', current: 'orders' %}
+    <div class="customer-main">
   <div class="section-head">
-    <h1 class="page-title">{%- if s.heading != blank -%}{{ s.heading | escape }} {{ order.name }}{%- else -%}{{ 'customer.order_page.title' | t: name: order.name }}{%- endif -%}</h1>
-    <a class="link-arrow" href="{{ routes.account_url }}">{{ 'customer.order_page.back' | t }}</a>
+    <h1 class="page-title"><a class="customer__back" href="{{ routes.account_url }}" aria-label="{{ 'customer.order_page.back' | t }}">&larr;</a>{%- if s.heading != blank -%}{{ s.heading | escape }} {{ order.name }}{%- else -%}{{ 'customer.order_page.title' | t: name: order.name }}{%- endif -%}</h1>
   </div>
   <p>{{ 'customer.order_page.placed_on' | t: date: placed }}</p>
   {%- if order_notice != blank -%}
@@ -117,6 +119,8 @@
       {%- endfor -%}
     </ul>
   {%- endif -%}
+    </div>
+  </div>
 </div>
 
 {% schema %}

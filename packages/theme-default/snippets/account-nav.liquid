@@ -1,0 +1,5 @@
+{%- comment -%} Orders / Profile navigation of the customer account pages. `current`: orders or profile. {%- endcomment -%}
+<nav class="customer-nav" aria-label="{{ 'customer.nav.label' | t }}">
+  <a href="{{ routes.account_url }}"{% if current == 'orders' %} aria-current="page"{% endif %}>{{ 'customer.nav.orders' | t }}</a>
+  <a href="{{ routes.account_addresses_url }}"{% if current == 'profile' %} aria-current="page"{% endif %}>{{ 'customer.nav.profile' | t }}</a>
+</nav>

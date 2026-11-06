@@ -144,7 +144,8 @@
       "code_label": "6-digit code",
       "code_submit": "Sign in with the code",
       "code_resend": "Send a new code",
-      "or": "or"
+      "or": "or",
+      "subtitle": "Sign in or create an account"
     },
     "register_page": {
       "title": "Create account",
@@ -271,6 +272,15 @@
           "other": "Every {{ count }} years"
         }
       }
+    },
+    "nav": {
+      "label": "Account",
+      "orders": "Orders",
+      "profile": "Profile"
+    },
+    "profile": {
+      "title": "Profile",
+      "phone": "Phone"
     }
   },
   "blog": {
