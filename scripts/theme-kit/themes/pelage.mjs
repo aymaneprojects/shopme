@@ -139,7 +139,7 @@ export default {
   ],
   demo: {
     currency: 'EUR',
-    homeImages: { hero: { image: 'hero.webp' }, vet: { image: 'ambiance.webp' }, 'pets.pet-2': { image: 'ambiance.webp' } },
+    homeImages: { hero: { image: 'hero.webp' }, 'pets.pet-2': { image: 'ambiance.webp' } },
     menu: [
       { title: t('Shop all', 'Tout voir'), url: '/collections/all' },
       { title: t('Dogs', 'Chiens'), url: '/collections/dogs' },

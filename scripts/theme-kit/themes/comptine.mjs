@@ -41,7 +41,7 @@ export default {
     {
       id: 'hero', type: 'hero',
       settings: {
-        layout: 'center', color_scheme: 'scheme-3',
+        layout: 'full', color_scheme: 'scheme-3',
         eyebrow: t('Toys and little things', 'Jouets et petites choses'),
         heading: t('Play, the way it should be', 'Jouer, comme il se doit'),
         text: t('Wooden toys, soft friends and good books, picked for curious hands and made to be passed on.', 'Des jouets en bois, des amis tout doux et de beaux livres, choisis pour les mains curieuses et faits pour être transmis.'),
@@ -142,7 +142,7 @@ export default {
   ],
   demo: {
     currency: 'EUR',
-    homeImages: { hero: { image: 'hero.webp' }, promise: { image: 'ambiance.webp' }, gifts: { image: 'ambiance.webp' } },
+    homeImages: { hero: { image: 'hero.webp' }, promise: { image: 'ambiance.webp' } },
     menu: [
       { title: t('Shop all', 'Tout voir'), url: '/collections/all' },
       { title: t('Babies', 'Bébés'), url: '/collections/babies' },

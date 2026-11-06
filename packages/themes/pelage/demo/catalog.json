@@ -645,9 +645,6 @@
       "hero": {
         "image": "hero.webp"
       },
-      "vet": {
-        "image": "ambiance.webp"
-      },
       "pets.pet-2": {
         "image": "ambiance.webp"
       }

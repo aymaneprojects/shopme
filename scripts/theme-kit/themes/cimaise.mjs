@@ -137,7 +137,7 @@ export default {
   ],
   demo: {
     currency: 'EUR',
-    homeImages: { hero: { image: 'hero.webp' }, artist: { image: 'ambiance.webp' }, room: { image: 'ambiance.webp' } },
+    homeImages: { hero: { image: 'hero.webp' }, room: { image: 'ambiance.webp' } },
     menu: [
       { title: t('Shop all', 'Tout voir'), url: '/collections/all' },
       { title: t('Paintings', 'Peintures'), url: '/collections/paintings' },

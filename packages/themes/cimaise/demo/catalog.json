@@ -642,9 +642,6 @@
       "hero": {
         "image": "hero.webp"
       },
-      "artist": {
-        "image": "ambiance.webp"
-      },
       "room": {
         "image": "ambiance.webp"
       }
