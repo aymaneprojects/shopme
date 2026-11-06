@@ -42,8 +42,13 @@ export function InlineTags({ label, placeholder, value, onChange, suggestions, r
   const [draft, setDraft] = useState('');
   const listId = useId();
   const add = (raw: string) => {
-    const t = raw.trim();
-    if (t && !value.some((v) => v.toLowerCase() === t.toLowerCase())) onChange([...value, t]);
+    const next = [...value];
+    const seen = new Set(value.map((tag) => tag.toLowerCase()));
+    for (const part of raw.split(',')) {
+      const tag = part.trim();
+      if (tag && !seen.has(tag.toLowerCase())) { next.push(tag); seen.add(tag.toLowerCase()); }
+    }
+    if (next.length !== value.length) onChange(next);
     setDraft('');
   };
   return (

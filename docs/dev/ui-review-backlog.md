@@ -18,6 +18,7 @@ Take one reproducible issue or small visual improvement per pass. Check open pul
 ## Progress
 
 PRs #1–#4 remain open drafts as of this pass; their completed work is tracked here but has not been merged into main. Main advanced independently to `584ce9d`. The mobile save-bar pass starts from that main revision and does not include or overwrite those draft branches.
+PRs #1–#5 are review drafts, separate from main. Main has advanced independently; the tag-entry pass starts from `dd6c7ee` and preserves the contributor’s PostgreSQL and settings-placeholder changes.
 
 - #1: shared table keyboard activation, independent cell controls, disabled bulk menus and dialog labels. Admin tests/type checks/build passed.
 - #2: desktop content placement, mobile sidebar behavior, language selector, button edges and stale password-reset feedback. 253 admin tests passed; Chromium checks covered layout, collapse, mobile navigation, Escape/focus restoration and language selection.
@@ -26,6 +27,8 @@ PRs #1–#4 remain open drafts as of this pass; their completed work is tracked 
 - #4: Dropdown/Popover escape scroll-container clipping through the native popover top layer, with bounded placement and preserved modal/focus scope; refined the ShopMe S-ribbon logo for small sizes. See PR validation before overlapping work.
 
 - #5: French unsaved-changes controls overflowed at 320/375 px (bar left edge −29 px at 320 px). The shared save bar now stays within an 8 px viewport gutter and uses a separate message row below 640 px, retaining the single-row desktop pill. Chromium checks passed in English/French at 320, 375 and 1280 px, including visible action bounds and discard/reset behavior; production build and diff check passed. No save/navigation-guard logic changed.
+
+- #6: pasting multiple comma-separated product tags and committing with Enter, blur or a trailing comma created one combined literal tag. The input now splits, trims and deduplicates tags in a single update while preserving existing tags and single-tag entry. Three new paste regressions failed against baseline before the fix; all six targeted tests, the admin type check, production build and diff check passed. Review: https://github.com/aymaneprojects/shopme/pull/6.
 
 ## Bounded continuation
 
