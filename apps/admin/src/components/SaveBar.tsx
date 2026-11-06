@@ -25,11 +25,11 @@ export function SaveBar({ dirty, saving, saveDisabled, onSave, onDiscard, saveLa
   return (
     <>
       {dirty && (
-        <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex h-12 items-center justify-center">
-          <div role="region" aria-label={t('save.unsaved')} key={shake} className={`anim-bar pointer-events-auto flex h-9 items-center gap-3 rounded-full border border-white/10 bg-bar py-1 pl-4 pr-1 text-white shadow-lg ${shake ? 'anim-shake' : ''}`}>
-            <span className="text-[13px] font-semibold">{t('save.unsaved')}</span>
-            <Button size="sm" variant="plain" onClick={onDiscard} disabled={saving} className="!rounded-full !text-white hover:!bg-white/15">{discardLabel ?? t('save.discard')}</Button>
-            <Button size="sm" variant="primary" onClick={onSave} loading={saving} disabled={saveDisabled} className="!rounded-full">{saveLabel ?? t('save.save')}</Button>
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex min-h-12 items-start justify-center px-2 py-1.5">
+          <div role="region" aria-label={t('save.unsaved')} key={shake} className={`anim-bar pointer-events-auto flex min-h-9 max-w-full flex-wrap items-center justify-end gap-x-2 gap-y-1 rounded-2xl border border-white/10 bg-bar py-1 pl-3 pr-1 text-white shadow-lg sm:rounded-full ${shake ? 'anim-shake' : ''}`}>
+            <span className="min-w-0 text-[13px] font-semibold max-sm:w-full max-sm:px-2 max-sm:text-center">{t('save.unsaved')}</span>
+            <Button size="sm" variant="plain" onClick={onDiscard} disabled={saving} className="shrink-0 !rounded-full !text-white hover:!bg-white/15">{discardLabel ?? t('save.discard')}</Button>
+            <Button size="sm" variant="primary" onClick={onSave} loading={saving} disabled={saveDisabled} className="shrink-0 !rounded-full">{saveLabel ?? t('save.save')}</Button>
           </div>
         </div>
       )}

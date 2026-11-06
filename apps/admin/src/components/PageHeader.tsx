@@ -6,8 +6,8 @@ import { Link, useLocation } from 'react-router';
 import { useT } from '../i18n';
 import { NAV } from './Shell';
 
-/** Index pages of the navigation (Orders, Drafts, Customers...): the arrow goes to the parent section and the section icon sits before the title. */
-function indexPage(pathname: string): { to: string; icon: ReactNode } | null {
+/** Index pages of the navigation (Orders, Drafts, Customers...): the arrow goes to the parent section (Home for top-level lists) and the section icon sits before the title, as in the reference. */
+function indexPage(pathname: string): { to?: string; icon: ReactNode } | null {
   const path = pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname;
   for (const item of NAV) {
     if (item.id === 'home' || item.id === 'settings') continue;
@@ -31,7 +31,7 @@ export function PageHeader({ title, back, actions, badges, more, subtitle, icon,
         <div className="flex flex-wrap items-center gap-2">
           <Link to={back ?? breadcrumb.to} aria-label={t('common.back')} className="btn btn-secondary btn-icon btn-sm"><ArrowLeft className="size-4" /></Link>
           <Link to={breadcrumb.to} className="inline-flex items-center gap-1.5 text-[13px] text-muted hover:text-fg">{breadcrumb.icon}{breadcrumb.label}</Link>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
             {actions}
             {more && more.length > 0 && <Dropdown align="right" chevron label={t('common.moreActions')} trigger={t('common.moreActions')} items={more} />}
           </div>
@@ -55,7 +55,7 @@ export function PageHeader({ title, back, actions, badges, more, subtitle, icon,
         </div>
         {subtitle && <div className="text-xs text-muted">{subtitle}</div>}
       </div>
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
         {actions}
         {more && more.length > 0 && <Dropdown align="right" chevron label={t('common.moreActions')} trigger={t('common.moreActions')} items={more} />}
       </div>

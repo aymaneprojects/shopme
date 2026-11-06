@@ -38,6 +38,36 @@ afterEach(() => { vi.useRealTimers(); });
 const calls = (path: string) => restMock.mock.calls.filter((c) => c[0] === path);
 
 describe('login, e-mail first', () => {
+  it('returns from password reset without stale login errors and uses the email that was reset', async () => {
+    const user = userEvent.setup();
+    routes['/auth/login'] = () => { throw new ApiError('Invalid email or password', 401); };
+    routes['/auth/password/forgot'] = () => ({});
+    routes['/auth/password/reset'] = () => ({});
+    wrap(<LoginPage />);
+    await user.type(await screen.findByLabelText('Email'), 'old@example.com');
+    await user.click(screen.getByRole('button', { name: 'Continue with email' }));
+    await user.type(screen.getByLabelText('Password'), 'wrong password');
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
+    expect(await screen.findByText('Incorrect email or password.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Forgot your password?' }));
+    await user.clear(screen.getByLabelText('Email'));
+    await user.type(screen.getByLabelText('Email'), 'reset@example.com');
+    await user.click(screen.getByRole('button', { name: 'Send the code' }));
+    await user.type(await screen.findByLabelText('Digit 1'), '123456');
+    await user.type(screen.getByLabelText('New password'), 'new password');
+    await user.click(screen.getByRole('button', { name: 'Reset password' }));
+    const notice = 'Your password was changed. You can log in now.';
+    expect(await screen.findByText(notice)).toBeInTheDocument();
+    expect(screen.queryByText('Incorrect email or password.')).not.toBeInTheDocument();
+    expect(screen.getByTestId('login-email')).toHaveTextContent('reset@example.com');
+    expect(screen.getByLabelText('Password')).toHaveValue('');
+    await user.type(screen.getByLabelText('Password'), 'new password');
+    await user.click(screen.getByRole('button', { name: 'Log in' }));
+    expect(await screen.findByText('Incorrect email or password.')).toBeInTheDocument();
+    expect(screen.queryByText(notice)).not.toBeInTheDocument();
+    expect(calls('/auth/login').at(-1)?.[1]).toEqual({ body: { email: 'reset@example.com', password: 'new password' } });
+  });
+
   it('asks for the e-mail alone, then the password with the e-mail shown and a way to change it', async () => {
     const user = userEvent.setup();
     wrap(<LoginPage />);

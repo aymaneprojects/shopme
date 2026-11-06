@@ -1,12 +1,13 @@
 import { ChevronDown, X } from 'lucide-react';
-import { cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
+import { cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from 'react';
 import { Button, ButtonGroup, cx } from './basics';
 import type { ButtonProps } from './basics';
 
 /** Modal built on the native <dialog> element (focus trap, Escape, inert backdrop). Fades and scales in. */
 export function Modal({ open, onClose, title, children, footer, footerStart, closeLabel = 'Close', wide, medium, xl, plain }: { /** Mid-size dialog (about 32rem). */ medium?: boolean; /** Large dialog (about 64rem), e.g. an image preview. */ xl?: boolean; open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; /** Left-aligned footer content, e.g. a selected count. */ footerStart?: ReactNode; closeLabel?: string; wide?: boolean; /** Compact dialog without divider lines (confirmations). */ plain?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -15,13 +16,18 @@ export function Modal({ open, onClose, title, children, footer, footerStart, clo
   }, [open]);
   return (
     <dialog
-      ref={ref} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}
+      ref={ref} aria-labelledby={titleId} onClose={onClose} onClick={(e) => {
+        if (e.target !== e.currentTarget) return;
+        // Native dialogs receive backdrop clicks too. Padding and scrollbars are inside the dialog.
+        const box = e.currentTarget.getBoundingClientRect();
+        if (e.clientX < box.left || e.clientX > box.right || e.clientY < box.top || e.clientY > box.bottom) onClose();
+      }}
       className={cx('modal m-auto w-[calc(100%-2rem)] rounded-xl border-0 bg-canvas p-0 text-fg shadow-pop', xl ? 'max-w-5xl' : wide ? 'max-w-2xl' : medium ? 'max-w-lg' : 'max-w-md')}
     >
       {open && (
         <div className="flex max-h-[85vh] flex-col">
           <header className={cx('flex items-center justify-between px-4 py-3', !plain && 'border-b border-line')}>
-            <h2 className="text-[13px] font-semibold">{title}</h2>
+            <h2 id={titleId} className="text-[13px] font-semibold">{title}</h2>
             <Button variant="plain" size="sm" icon aria-label={closeLabel} onClick={onClose} className="btn-neutral"><X className="size-4" /></Button>
           </header>
           <div className={cx('overflow-y-auto p-4', plain && 'pt-1')}>{children}</div>
@@ -54,14 +60,69 @@ function useDismiss(open: boolean, close: () => void) {
     const down = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && close();
     const key = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
       close();
       ref.current?.querySelector<HTMLElement>('[aria-haspopup],[data-popover-trigger]')?.focus();
     };
+    const panel = ref.current;
     document.addEventListener('mousedown', down);
-    document.addEventListener('keydown', key);
-    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key); };
+    panel?.addEventListener('keydown', key);
+    return () => { document.removeEventListener('mousedown', down); panel?.removeEventListener('keydown', key); };
   }, [open, close]);
   return ref;
+}
+
+const floatingStyle: CSSProperties = { position: 'fixed', inset: 'auto', margin: 0, border: 0, overflow: 'auto' };
+
+/** Keep floating controls outside ancestor clipping without moving them out of a modal's DOM/focus scope. */
+function useFloatingPanel<T extends HTMLElement>(open: boolean, anchor: RefObject<HTMLDivElement | null>, panel: RefObject<T | null>, align: 'left' | 'right') {
+  useLayoutEffect(() => {
+    const element = panel.current;
+    if (!open || !element || !anchor.current) return;
+    // The native popover top layer escapes scroll containers and transformed ancestors.
+    // Older browsers still receive bounded fixed positioning.
+    if (typeof element.showPopover === 'function') element.showPopover();
+    else element.style.display = 'block';
+    const update = () => {
+      const trigger = anchor.current?.getBoundingClientRect();
+      if (!trigger) return;
+      const padding = 8, gap = 4;
+      const viewportWidth = window.innerWidth, viewportHeight = window.innerHeight;
+      const availableWidth = Math.max(0, viewportWidth - padding * 2);
+      element.style.maxWidth = `${availableWidth}px`;
+      element.style.minWidth = '';
+      if (parseFloat(getComputedStyle(element).minWidth) > availableWidth) element.style.minWidth = `${availableWidth}px`;
+      const box = element.getBoundingClientRect();
+      // offset dimensions exclude the entry animation's scale transform.
+      const width = element.offsetWidth || box.width;
+      const naturalHeight = Math.max(element.scrollHeight, element.offsetHeight, box.height);
+      const availableViewportHeight = Math.max(0, viewportHeight - padding * 2);
+      const below = Math.max(0, Math.min(availableViewportHeight, viewportHeight - trigger.bottom - gap - padding));
+      const above = Math.max(0, Math.min(availableViewportHeight, trigger.top - gap - padding));
+      const placeAbove = naturalHeight > below && above > below;
+      const availableHeight = placeAbove ? above : below;
+      const height = Math.min(naturalHeight, availableHeight);
+      const left = align === 'right' ? trigger.right - width : trigger.left;
+      const top = placeAbove ? trigger.top - gap - height : trigger.bottom + gap;
+      element.style.left = `${Math.max(padding, Math.min(left, viewportWidth - width - padding))}px`;
+      element.style.top = `${Math.max(padding, Math.min(top, viewportHeight - height - padding))}px`;
+      element.style.maxHeight = `${availableHeight}px`;
+      element.style.transformOrigin = placeAbove ? 'bottom' : 'top';
+    };
+    update();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    observer?.observe(element);
+    observer?.observe(anchor.current);
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+      element.hidePopover?.();
+    };
+  }, [open, anchor, panel, align]);
 }
 
 export interface MenuItem { key: string; label: ReactNode; onSelect: () => void; danger?: boolean; disabled?: boolean; /** Optional leading icon. */ icon?: ReactNode; /** Draws a divider above this item (groups related actions). */ separatorBefore?: boolean; /** Keyboard shortcut hint shown on the right, e.g. `Ctrl+D`. */ shortcut?: string; /** Small heading drawn above this item (starts a titled group, e.g. "Print"). */ section?: string }
@@ -72,7 +133,21 @@ export function Dropdown({ trigger, items, align = 'left', label, variant = 'sec
   const close = useCallback(() => setOpen(false), []);
   const ref = useDismiss(open, close);
   const menu = useRef<HTMLUListElement>(null);
-  useEffect(() => { if (open) menu.current?.querySelector<HTMLElement>('[role=menuitem]:not(:disabled)')?.focus({ preventScroll: true }); }, [open]);
+  useFloatingPanel(open, ref, menu, align);
+  const menuId = useId();
+  const triggerId = useId();
+  const openingEdge = useRef<'first' | 'last'>('first');
+  const focusItem = (edge: 'first' | 'last') => {
+    const els = menu.current?.querySelectorAll<HTMLElement>('[role=menuitem]:not(:disabled)');
+    (edge === 'last' ? els?.[els.length - 1] : els?.[0])?.focus({ preventScroll: true });
+  };
+  useEffect(() => { if (open) focusItem(openingEdge.current); }, [open]);
+  const select = (item: MenuItem) => {
+    close();
+    // Restore focus before the action: a dialog or navigation may deliberately move it next.
+    ref.current?.querySelector<HTMLElement>('[aria-haspopup="menu"]')?.focus({ preventScroll: true });
+    item.onSelect();
+  };
   const nav = (e: ReactKeyboardEvent) => {
     const els = [...(menu.current?.querySelectorAll<HTMLElement>('[role=menuitem]:not(:disabled)') ?? [])];
     const i = els.indexOf(document.activeElement as HTMLElement);
@@ -85,18 +160,25 @@ export function Dropdown({ trigger, items, align = 'left', label, variant = 'sec
   };
   return (
     <div ref={ref} className="relative inline-block">
-      <Button variant={variant} size={size} icon={icon} className={className} aria-haspopup="menu" aria-expanded={open} aria-label={label} disabled={disabled} title={title} onClick={() => setOpen(!open)}>
+      <Button id={triggerId} variant={variant} size={size} icon={icon} className={className} aria-haspopup="menu" aria-controls={open ? menuId : undefined} aria-expanded={open} aria-label={label} disabled={disabled} title={title}
+        onKeyDown={(e) => {
+          if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+          e.preventDefault();
+          openingEdge.current = e.key === 'ArrowUp' ? 'last' : 'first';
+          if (open) focusItem(openingEdge.current); else setOpen(true);
+        }}
+        onClick={() => { openingEdge.current = 'first'; setOpen(!open); }}>
         {trigger}{chevron && <ChevronDown className="size-3.5" />}
       </Button>
       {open && (
-        <ul ref={menu} role="menu" onKeyDown={nav} className={cx('anim-menu absolute z-30 mt-1 min-w-48 rounded-lg bg-canvas p-1 shadow-pop', align === 'right' ? 'right-0' : 'left-0', menuClassName)}>
+        <ul ref={menu} id={menuId} popover="manual" style={floatingStyle} role="menu" aria-labelledby={triggerId} onKeyDown={nav} className={cx('anim-menu z-[90] min-w-48 rounded-lg bg-canvas p-1 text-fg shadow-pop', menuClassName)}>
           {items.map((it) => (
             <li key={it.key} role="none" className={it.separatorBefore || it.section ? 'mt-1 border-t border-line pt-1 first:mt-0 first:border-t-0 first:pt-0' : undefined}>
               {it.section && <div role="presentation" className="px-2.5 pb-0.5 pt-1 text-xs font-medium text-muted">{it.section}</div>}
-              <button role="menuitem" type="button" disabled={it.disabled} onClick={() => { setOpen(false); it.onSelect(); }}
+              <button role="menuitem" type="button" disabled={it.disabled} onClick={() => select(it)}
                 className={cx('flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover focus-visible:bg-hover focus-visible:outline-none disabled:opacity-50', it.danger && 'text-critical hover:bg-critical-subtle')}>
                 {it.icon && <span className="grid size-4 shrink-0 place-items-center [&_svg]:size-4" aria-hidden>{it.icon}</span>}
-                <span className="flex-1 whitespace-nowrap">{it.label}</span>
+                <span className="min-w-0 flex-1 break-words">{it.label}</span>
                 {it.shortcut && <kbd className="ml-4 text-xs text-muted">{it.shortcut}</kbd>}
               </button>
             </li>
@@ -121,6 +203,7 @@ export function ContextMenu({ at, items, onClose, footer }: { at: { x: number; y
   }, [at, onClose]);
   if (!at) return null;
   const nav = (e: ReactKeyboardEvent) => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose(); return; }
     const els = [...(menu.current?.querySelectorAll<HTMLElement>('[role=menuitem]:not(:disabled)') ?? [])];
     const i = els.indexOf(document.activeElement as HTMLElement);
     if (e.key === 'ArrowDown') { e.preventDefault(); els[(i + 1) % els.length]?.focus(); }
@@ -149,7 +232,7 @@ export function SplitButton({ children, onClick, items, variant = 'primary', loa
   return (
     <ButtonGroup>
       <Button variant={variant} size={size} onClick={onClick} loading={loading} disabled={disabled}>{children}</Button>
-      <Dropdown align="right" variant={variant} size={size} icon label={menuLabel} trigger={<ChevronDown className="size-3.5" />} items={items} />
+      <Dropdown align="right" variant={variant} size={size} icon disabled={disabled || loading} label={menuLabel} trigger={<ChevronDown className="size-3.5" />} items={items} />
     </ButtonGroup>
   );
 }
@@ -159,10 +242,12 @@ export function Popover({ trigger, children, align = 'left', label, className, t
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   const ref = useDismiss(open, close);
+  const panel = useRef<HTMLDivElement>(null);
+  useFloatingPanel(open, ref, panel, align);
   return (
     <div ref={ref} className="relative inline-block">
       <Button variant={triggerVariant} className={triggerClassName} aria-haspopup="dialog" data-popover-trigger aria-expanded={open} aria-label={label} onClick={() => setOpen(!open)}>{trigger}</Button>
-      {open && <div role="dialog" aria-label={label} className={cx('anim-menu absolute z-30 mt-1 rounded-lg bg-canvas p-3 shadow-pop', align === 'right' ? 'right-0' : 'left-0', className)}>{typeof children === 'function' ? children(close) : children}</div>}
+      {open && <div ref={panel} popover="manual" style={floatingStyle} role="dialog" aria-label={label} className={cx('anim-menu z-[90] rounded-lg bg-canvas p-3 text-fg shadow-pop', className)}>{typeof children === 'function' ? children(close) : children}</div>}
     </div>
   );
 }
