@@ -2,6 +2,8 @@
 
 ShopMe is one Node.js process plus PostgreSQL. For local use PostgreSQL is optional: an embedded database is used.
 
+**New server and a domain name? [Install on a server in one command](quick-install.md)**: HTTPS, backups, updates and checks included, no guide to read.
+
 Several stores on one installation? See [Multi-store mode](multi-store.md).
 
 Not technical? Use the [desktop app](desktop.md) (Windows, macOS, Linux): one download, no setup. / [Application de bureau](desktop.fr.md).

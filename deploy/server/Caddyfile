@@ -1,0 +1,10 @@
+# Caddy in front of ShopMe. Replace the domain and e-mail; the DNS A/AAAA record must point to this server.
+# Multi-store: see docs/install/Caddyfile.multistore in the repository.
+{
+	email you@example.com
+}
+
+shop.example.com {
+	encode zstd gzip
+	reverse_proxy shopme:3000
+}

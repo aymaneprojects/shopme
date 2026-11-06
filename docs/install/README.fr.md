@@ -2,6 +2,8 @@
 
 ShopMe est un processus Node.js plus PostgreSQL. En local, PostgreSQL est facultatif : une base embarquée est utilisée.
 
+**Un serveur neuf et un nom de domaine ? [Installer sur un serveur en une commande](quick-install.fr.md)** : HTTPS, sauvegardes, mises à jour et contrôles inclus, sans guide à lire.
+
 Plusieurs boutiques sur une même installation ? Voir [Mode multi-boutique](multi-store.fr.md).
 
 ## 1. Lancer en local (sans base de données)

@@ -1,0 +1,22 @@
+# Optional: Caddy with automatic HTTPS in the same stack (use when no web server runs on the machine).
+#   docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
+# Needs a Caddyfile next to it (see Caddyfile). Ports 80 and 443 must be free.
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    mem_limit: 128m
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - shopme
+
+volumes:
+  caddy-data:
+  caddy-config:

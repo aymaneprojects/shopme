@@ -116,6 +116,8 @@ lancement). Voir [docs/install/desktop.fr.md](docs/install/desktop.fr.md).
 
 ## Déploiement sur votre serveur
 
+[Installer sur un serveur en une commande](docs/install/quick-install.fr.md) : `shopme-install.sh` met en place Docker, HTTPS (votre nginx, ou Caddy), la base de données, les sauvegardes nocturnes, les mises à jour avec retour arrière automatique et un contrôle de santé, sur un serveur Debian ou Ubuntu neuf.
+
 [docs/install](docs/install/README.fr.md) couvre Docker Compose sur un VPS avec HTTPS via Caddy, les sauvegardes, les
 restaurations et les mises à jour.
 [docs/install/email.fr.md](docs/install/email.fr.md) couvre les e-mails : envoi depuis votre propre serveur avec DKIM, les trois lignes DNS, ou un relais SMTP.
