@@ -3,10 +3,11 @@ import path from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import {
-  addShopDomain, availableHandle, canCreateStores, createStore, deleteStoreData, ensureDefaultTheme, getPlatformConfig, getShop, handleOf, handleProblem, listAccountStores, listAllStores, listShopDomains, removeShopDomain,
+  addShopDomain, availableHandle, canCreateStores, createStore, deleteStoreData, getPlatformConfig, getShop, handleOf, handleProblem, listAccountStores, listAllStores, listShopDomains, removeShopDomain,
   RESERVED_HANDLES, setPrimaryShopDomain, setSessionShop, setShopStripeKeys, setStoreStatus, shopStripeStatus, SetupError, SHOP_FOLDER, slugifyHandle, updatePlatformConfig, verificationRecord, verifyShopDomain, type Account, type TxtResolver,
 } from '@shopme/core';
 import { accountOf, authenticate, sessionToken } from '../plugins/auth';
+import { applyStartingTheme, startingThemeExists } from './starting-theme';
 
 let txtResolver: TxtResolver | undefined;
 /** Tests: answer TXT lookups without DNS. */
@@ -19,6 +20,8 @@ const createBody = z.object({
   country: z.string().trim().regex(/^[A-Za-z]{2}$/),
   locale: z.string().trim().min(2).max(20).default('en'),
   timezone: z.string().trim().min(1).max(64).optional(),
+  /** Handle of the bundled theme the store starts with (default: Aurora). */
+  theme: z.string().trim().toLowerCase().max(40).optional(),
 });
 const idParam = (req: FastifyRequest) => { const n = Number((req.params as { id: string }).id); return Number.isSafeInteger(n) && n > 0 ? n : null; };
 
@@ -83,10 +86,12 @@ export function registerStoresRoutes(app: FastifyInstance) {
     const body = createBody.safeParse(req.body);
     if (!body.success) return reply.code(422).send({ error: 'Invalid input', issues: body.error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })) });
     try {
-      const { shop, owner: member } = await createStore(db, a, { ...body.data, handle: body.data.handle || undefined });
+      if (body.data.theme && !startingThemeExists(app, body.data.theme)) return reply.code(422).send({ error: 'Unknown theme', issues: [{ field: 'theme', message: 'Unknown theme' }] });
+      const { theme: startingTheme, ...fields } = body.data;
+      const { shop, owner: member } = await createStore(db, a, { ...fields, handle: fields.handle || undefined });
       await stores.refresh(db);
       await app.ctx.locales.refresh(db);
-      await ensureDefaultTheme(db, shop.id, app.ctx.paths.themeDefaultDir, app.ctx.storageFor(shop.id));
+      await applyStartingTheme(app, shop.id, startingTheme);
       const token = sessionToken(req);
       if (token) await setSessionShop(db, token, shop.id, member.id);
       return reply.code(201).send({ store: { id: shop.id, name: shop.name, handle: handleOf(shop), ...storeView(shop.id) } });

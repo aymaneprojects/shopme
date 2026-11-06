@@ -1,8 +1,10 @@
 import {
-  copyThemeFiles, createThemeFromZip, deleteTheme, deleteThemeFiles, duplicateTheme, fetchSafely, listThemeFiles, MAX_THEME_ZIP_BYTES, readBundledTheme, readThemeReleaseNotes, renameTheme,
+  copyThemeFiles, createThemeFromZip, deleteTheme, deleteThemeFiles, duplicateTheme, fetchSafely, findBundledTheme, installBundledTheme, listThemeFiles, MAX_THEME_ZIP_BYTES, readThemeReleaseNotes, renameTheme,
   themeUpdateStatus, updateThemeToBundled, type RemovedReference, type SkippedFile, type Theme as ThemeRow, type ThemeFile, type ThemeReleaseNote, type ThemeUpdateResult, type ThemeUpdateStatus,
 } from '@shopme/core';
 import { parseId, toGid, type UserError } from '@shopme/shopify-compat';
+import { listBundledThemes, type BundledThemeListing } from '../../themes-routes';
+import { themeRoots } from '../../../paths';
 import { builder } from '../builder';
 import { requireScope } from '../context';
 import { payloadWith, typedUserError } from '../types/sales';
@@ -104,7 +106,7 @@ builder.mutationFields((t) => ({
   }),
 }));
 
-/* ------------------------------ updates of the bundled theme (Aurora) ------------------------------ */
+/* ------------------------------ bundled themes: gallery, install, updates ------------------------------ */
 
 const ReleaseNote = builder.objectRef<ThemeReleaseNote>('ShopmeThemeReleaseNote').implement({
   description: 'What changed in one version of the bundled theme.',
@@ -115,24 +117,30 @@ const ReleaseNote = builder.objectRef<ThemeReleaseNote>('ShopmeThemeReleaseNote'
   }),
 });
 
-const BundledTheme = builder.objectRef<ThemeUpdateStatus>('ShopmeBundledTheme').implement({
+type BundledStatus = ThemeUpdateStatus & { handle: string; dir: string };
+const BundledTheme = builder.objectRef<BundledStatus>('ShopmeBundledTheme').implement({
   description: 'The bundled theme a theme was installed from, and whether the server ships a newer version of it.',
   fields: (t) => ({
+    handle: t.exposeString('handle', { description: 'Handle of the bundled theme (`aurora`, or the folder name of the theme in packages/themes).' }),
     name: t.exposeString('name'),
     installedVersion: t.string({ nullable: true, resolve: (b) => b.installedVersion }),
     bundledVersion: t.exposeString('bundledVersion'),
     updateAvailable: t.exposeBoolean('updateAvailable'),
     releaseNotes: t.field({
       type: [ReleaseNote], description: 'Changes in the versions after the installed one, newest first.', args: { locale: t.arg.string({ defaultValue: 'en' }) },
-      resolve: (b, a, ctx) => readThemeReleaseNotes(ctx.app.paths.themeDefaultDir, a.locale ?? 'en', { after: b.installedVersion, upTo: b.bundledVersion }),
+      resolve: (b, a) => readThemeReleaseNotes(b.dir, a.locale ?? 'en', { after: b.installedVersion, upTo: b.bundledVersion }),
     }),
   }),
 });
 
 builder.objectFields(Theme, (t) => ({
   shopmeBundledTheme: t.field({
-    type: BundledTheme, nullable: true, description: 'Set when the theme was installed from the theme bundled with ShopMe (Aurora).',
-    resolve: (th, _a, ctx) => themeUpdateStatus(th, readBundledTheme(ctx.app.paths.themeDefaultDir)),
+    type: BundledTheme, nullable: true, description: 'Set when the theme was installed from a theme bundled with ShopMe (Aurora or a theme of packages/themes) that this server still ships.',
+    resolve: (th, _a, ctx) => {
+      const info = th.originTheme ? findBundledTheme(themeRoots(ctx.app.paths), th.originTheme) : null;
+      const status = themeUpdateStatus(th, info);
+      return status && info ? { ...status, handle: info.handle, dir: info.dir } : null;
+    },
   }),
 }));
 
@@ -170,8 +178,54 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_themes');
       const id = themeId(a.id);
       if (!id) return { result: null, userErrors: nope(['id'], 'Theme does not exist') };
-      const r = await updateThemeToBundled(ctx.db, ctx.app.storageFor(ctx.shopId), ctx.shopId, id, ctx.app.paths.themeDefaultDir, { staffId: staffId(ctx) });
+      const r = await updateThemeToBundled(ctx.db, ctx.app.storageFor(ctx.shopId), ctx.shopId, id, themeRoots(ctx.app.paths), { staffId: staffId(ctx) });
       return r.ok ? { result: r.value, userErrors: [] } : { result: null, userErrors: r.errors };
+    },
+  }),
+}));
+
+const BundledPreviews = builder.objectRef<BundledThemeListing['previews']>('ShopmeBundledThemePreviews').implement({
+  description: 'Home page previews of a bundled theme: URLs of images served to signed-in admins (null when there is none).',
+  fields: (t) => ({
+    desktop: t.string({ nullable: true, resolve: (p) => p.desktop }),
+    mobile: t.string({ nullable: true, resolve: (p) => p.mobile }),
+  }),
+});
+const BundledListing = builder.objectRef<BundledThemeListing>('ShopmeBundledThemeListing').implement({
+  description: 'A theme that ships with ShopMe and can be added to the theme library.',
+  fields: (t) => ({
+    handle: t.exposeString('handle'),
+    name: t.exposeString('name'),
+    version: t.exposeString('version'),
+    author: t.exposeString('author'),
+    description: t.exposeString('description'),
+    tags: t.stringList({ resolve: (b) => b.tags }),
+    previews: t.field({ type: BundledPreviews, resolve: (b) => b.previews }),
+  }),
+});
+
+builder.queryFields((t) => ({
+  shopmeBundledThemes: t.field({
+    type: [BundledListing], args: { locale: t.arg.string({ defaultValue: 'en', description: 'Language of the descriptions (falls back to English).' }) },
+    description: 'The themes bundled with ShopMe: Aurora and the themes of packages/themes.',
+    resolve: (_r, a, ctx) => { requireScope(ctx, 'read_themes'); return listBundledThemes(ctx.app.paths, a.locale); },
+  }),
+}));
+
+const InstallBundledError = typedUserError('ShopmeThemeInstallBundledUserError', ['NOT_FOUND'] as const);
+const InstallBundledPayload = payloadWith<{ theme: ThemeRow | null }>('ShopmeThemeInstallBundledPayload', InstallBundledError, (t) => ({
+  theme: t.field({ type: Theme, nullable: true, description: 'The new, unpublished theme.', resolve: (p) => p.theme }),
+}));
+
+builder.mutationFields((t) => ({
+  shopmeThemeInstallBundled: t.field({
+    type: InstallBundledPayload, args: { handle: t.arg.string({ required: true }) },
+    description: "Add a bundled theme to the theme library as a new, unpublished theme (with the seed texts of the shop's language when the theme has them), and record where it came from so updates can be offered.",
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_themes');
+      const info = findBundledTheme(themeRoots(ctx.app.paths), a.handle.trim().toLowerCase());
+      if (!info) return { theme: null, userErrors: nope(['handle'], 'No bundled theme has this handle') };
+      return { theme: await installBundledTheme(ctx.db, ctx.app.storageFor(ctx.shopId), ctx.shopId, info, { staffId: staffId(ctx) }), userErrors: [] };
     },
   }),
 }));

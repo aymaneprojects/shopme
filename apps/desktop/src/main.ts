@@ -44,6 +44,7 @@ async function launchServer(): Promise<RunningServer> {
       adminDist: path.join(resources, 'admin'),
       migrationsDir: path.join(resources, 'migrations'),
       themeDefaultDir: path.join(resources, 'theme'),
+      themesDir: path.join(resources, 'themes'), // the other bundled themes, with their previews
     },
   };
   try {

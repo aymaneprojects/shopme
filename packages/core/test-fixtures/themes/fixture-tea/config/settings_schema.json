@@ -1,0 +1,17 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Fixture Tea",
+    "theme_version": "1.0.0",
+    "theme_author": "ShopMe contributors",
+    "shopme_description": "A tiny theme used by the tests.",
+    "shopme_descriptions": { "fr": "Un tout petit thème utilisé par les tests." },
+    "shopme_tags": ["Food", "Test"]
+  },
+  {
+    "name": "Colors",
+    "settings": [
+      { "type": "color", "id": "color_accent", "label": "Accent color", "default": "#9a3412" }
+    ]
+  }
+]

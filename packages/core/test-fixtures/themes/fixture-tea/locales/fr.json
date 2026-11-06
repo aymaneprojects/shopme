@@ -1,0 +1,8 @@
+{
+  "general": { "shop": "Boutique" },
+  "seed_defaults": {
+    "Fresh tea, delivered": "Du thé frais, livré chez vous",
+    "Small batches, steeped slowly.": "Petites quantités, infusées lentement.",
+    "Shop the teas": "Voir les thés"
+  }
+}

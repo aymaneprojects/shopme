@@ -5,7 +5,7 @@ import { Button, ButtonGroup, cx } from './basics';
 import type { ButtonProps } from './basics';
 
 /** Modal built on the native <dialog> element (focus trap, Escape, inert backdrop). Fades and scales in. */
-export function Modal({ open, onClose, title, children, footer, footerStart, closeLabel = 'Close', wide, medium, plain }: { /** Mid-size dialog (about 32rem). */ medium?: boolean; open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; /** Left-aligned footer content, e.g. a selected count. */ footerStart?: ReactNode; closeLabel?: string; wide?: boolean; /** Compact dialog without divider lines (confirmations). */ plain?: boolean }) {
+export function Modal({ open, onClose, title, children, footer, footerStart, closeLabel = 'Close', wide, medium, xl, plain }: { /** Mid-size dialog (about 32rem). */ medium?: boolean; /** Large dialog (about 64rem), e.g. an image preview. */ xl?: boolean; open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; /** Left-aligned footer content, e.g. a selected count. */ footerStart?: ReactNode; closeLabel?: string; wide?: boolean; /** Compact dialog without divider lines (confirmations). */ plain?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -16,7 +16,7 @@ export function Modal({ open, onClose, title, children, footer, footerStart, clo
   return (
     <dialog
       ref={ref} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}
-      className={cx('modal m-auto w-[calc(100%-2rem)] rounded-xl border-0 bg-canvas p-0 text-fg shadow-pop', wide ? 'max-w-2xl' : medium ? 'max-w-lg' : 'max-w-md')}
+      className={cx('modal m-auto w-[calc(100%-2rem)] rounded-xl border-0 bg-canvas p-0 text-fg shadow-pop', xl ? 'max-w-5xl' : wide ? 'max-w-2xl' : medium ? 'max-w-lg' : 'max-w-md')}
     >
       {open && (
         <div className="flex max-h-[85vh] flex-col">

@@ -38,8 +38,8 @@ TRUST_PROXY=true
 
 Redémarrez. Sur une nouvelle installation, l'assistant crée le premier compte (le propriétaire de la plateforme) et sa
 première boutique. Les boutiques suivantes se créent depuis « Créer une boutique » dans le menu du compte : nom
-(l'identifiant et l'adresse s'affichent au fur et à mesure), pays, devise et langue. La nouvelle boutique reçoit le thème
-Aurora et les menus de départ, et la personne qui la crée en devient propriétaire. Les autres personnes obtiennent un
+(l'identifiant et l'adresse s'affichent au fur et à mesure), pays, devise, langue et thème de départ (l'un des thèmes
+fournis, Aurora par défaut). La nouvelle boutique reçoit ce thème, publié, et les menus de départ, et la personne qui la crée en devient propriétaire. Les autres personnes obtiennent un
 compte quand le propriétaire d'une boutique les invite (Paramètres > Utilisateurs) ; une personne invitée qui a déjà un
 compte le rejoint en saisissant son mot de passe.
 

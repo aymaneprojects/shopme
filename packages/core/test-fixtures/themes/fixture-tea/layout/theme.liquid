@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title }}</title>
+    {{ 'fixture.css' | asset_url | stylesheet_tag }}
+    <style>:root { --accent: {{ settings.color_accent }}; }</style>
+    {{ content_for_header }}
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/">{{ shop.name }}</a>
+      <nav><a href="/collections/all">{{ 'general.shop' | t }}</a></nav>
+    </header>
+    <main>{{ content_for_layout }}</main>
+    <footer class="foot">{{ shop.name }}</footer>
+  </body>
+</html>

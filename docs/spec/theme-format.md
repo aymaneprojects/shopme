@@ -384,23 +384,24 @@ These are ShopMe conventions on top of the Online Store 2.0 format. A theme that
   does not know is only a warning in `themeFilesLint`); the previous text of each saved or deleted file is kept (30 versions per file)
   and read with `themeFileVersions`.
 
-## 14. Updates of the bundled theme (Aurora)
+## 14. Updates of bundled themes
 
-A shop's themes live in the database: when a store is set up, Aurora's files (`packages/theme-default`) are copied into
-its live theme. A newer Aurora that comes with a ShopMe upgrade (Docker image, desktop app or `git pull`) therefore does
-not change existing themes by itself; it is offered as an update, the way a theme store would.
+A shop's themes live in the database: when a store is set up, the files of its starting theme (Aurora, `packages/theme-default`,
+or another bundled theme of section 15) are copied into its live theme. A newer version that comes with a ShopMe upgrade
+(Docker image, desktop app or a source update) therefore does not change existing themes by itself; it is offered as an
+update, the way a theme store would. Every bundled theme is updated the same way.
 
-- **Origin.** `themes.origin_theme` (`aurora`), `themes.origin_version` (the `theme_version` of `theme_info` in
+- **Origin.** `themes.origin_theme` (the bundled theme's handle: `aurora`, or the folder name in `packages/themes`), `themes.origin_version` (the `theme_version` of `theme_info` in
   `config/settings_schema.json` when the theme was installed) and `themes.origin_checksums` (the MD5 of every file as
   installed, which tells the merchant's edits apart) are recorded at install and kept by `themeDuplicate`. Migration
   `0026_theme_origin` marks the themes that existed before as Aurora when their settings schema names Aurora (with their
   installed version, without checksums); importing an older `.shopme` export does the same.
-- **Status.** `OnlineStoreTheme.shopmeBundledTheme { name installedVersion bundledVersion updateAvailable releaseNotes(locale) }`.
-  `releaseNotes` reads `packages/theme-default/changelog.json` (versions newest first, notes in `en` and `fr`) for the versions
+- **Status.** `OnlineStoreTheme.shopmeBundledTheme { handle name installedVersion bundledVersion updateAvailable releaseNotes(locale) }`.
+  `releaseNotes` reads the `changelog.json` of the theme's folder (versions newest first, notes in `en` and `fr`) for the versions
   after the installed one. Online Store > Themes shows the installed version, an "Update available" badge and an
   "Update theme" button with this "What's new".
 - **Update.** `shopmeThemeUpdateToBundled(id)` never changes the theme it is given. It creates a new **unpublished** theme
-  named `Aurora <version>` from the bundled files (with the French seed texts for a French shop, as at install), then carries
+  named `<theme name> <version>` (for example `Aurora 1.2.0`) from the bundled files (with the French seed texts for a French shop, as at install), then carries
   over the merchant's customizations, file by file, comparing each file with what was installed:
 
   | File | Unchanged since install | Changed by the merchant |
@@ -415,9 +416,35 @@ not change existing themes by itself; it is offered as an update, the way a them
   lists `carriedOverFiles`, `skippedFiles { filename reason }`, `removedReferences { filename kind id type }` and
   `removedSettings`, with `userErrors` codes `NOT_FOUND`, `NOT_BUNDLED_THEME`, `UP_TO_DATE` and `BUNDLE_UNAVAILABLE`.
   Publishing the new theme stays a separate action (`themePublish`).
-- **Themes installed before checksums were recorded** are compared with `packages/theme-default/checksums.json`, the MD5 of
-  every file Aurora has shipped (regenerate it with `node scripts/theme-checksums.mjs`): a file whose checksum is listed was
+- **Themes installed before checksums were recorded** are compared with the theme's `checksums.json`, the MD5 of every file
+  the theme has shipped (regenerate them all with `node scripts/theme-checksums.mjs`): a file whose checksum is listed was
   not edited.
-- **Releasing a new Aurora version**: bump `theme_version` in `config/settings_schema.json` and add an entry (English and
+- **Releasing a new version of a bundled theme**: bump `theme_version` in `config/settings_schema.json` and add an entry (English and
   French) at the top of `changelog.json`. A section or block type that is removed is dropped from merchants' templates on
   update, so prefer keeping old types working.
+
+## 15. Bundled themes
+
+ShopMe ships Aurora and any number of other themes. Merchants add them to their theme library from Online Store > Themes >
+"Free ShopMe themes", and choose one as the starting theme of a new store (first-store setup, "Create a store").
+
+- **Layout.** Aurora is `packages/theme-default` (handle `aurora`). Every other theme is a folder `packages/themes/<handle>/` that
+  holds theme files only (section 1), plus `LICENSE`, `changelog.json` and a generated `checksums.json`. A folder is a theme when
+  its `config/settings_schema.json` has a `theme_info` group with `theme_name` and `theme_version`; other folders (such as
+  `previews/`) are ignored. The handle is the folder name (lowercase letters, digits and hyphens).
+- **Metadata** is read from `theme_info`: `theme_name`, `theme_version`, `theme_author`, `shopme_description` (English),
+  `shopme_descriptions` (optional, by language: `{ "fr": "..." }`) and `shopme_tags` (a list of short English tags such as
+  "Fashion"; the admin translates the ones it knows).
+- **Seed texts.** `locales/<language>.json` may hold a `seed_defaults` map of English text to its translation. At install into
+  a shop whose language is `<language>`, every quoted occurrence of the English text in the theme's templates, sections and
+  schema defaults is replaced (never the locale files, and never later: merchant edits and existing installs are untouched).
+  A theme without a map for the shop's language is installed as written.
+- **Previews** are WebP images, `packages/themes/previews/<handle>-desktop.webp` (1440x900) and `<handle>-mobile.webp`
+  (390x844), made by `node scripts/theme-previews.mjs` and served to signed-in admins at `/admin/api/theme-previews/<file>`.
+- **API.** `shopmeBundledThemes(locale) { handle name version author description tags previews { desktop mobile } }` and
+  `shopmeThemeInstallBundled(handle)`, which adds the theme to the library as an unpublished theme, records its origin
+  (section 14) and answers `userErrors` code `NOT_FOUND` for an unknown handle. Before the first store exists (and for any
+  signed-in account in multi-store mode) `GET /admin/api/bundled-themes` lists the same themes for the setup pages.
+- **Zips.** `node scripts/theme-zip.mjs [handle...] --out <dir>` writes an uploadable zip (theme files only) for each theme.
+- **Where the server looks**: `packages/themes` next to `packages/theme-default` (the repository, the Docker image and the
+  desktop app all have this layout); `THEMES_DIR` and `THEME_PREVIEWS_DIR` override it. See `packages/themes/README.md`.

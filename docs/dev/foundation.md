@@ -46,7 +46,7 @@ In-process with retry/backoff; the interface is meant to be swappable for a sepa
 
 `startServer({ port?, host?, dataDir?, appUrl?, databaseUrl?, storageDir?, baseDir?, env?, paths?, logger? })` returns
 `{ url, port, config, close() }`; `port: 0` picks a free port. Migrations, admin build and theme directories are located
-relative to the package (override with `paths` or `MIGRATIONS_DIR`, `ADMIN_DIST_DIR`, `THEME_DEFAULT_DIR`), never `process.cwd()`.
+relative to the package (override with `paths` or `MIGRATIONS_DIR`, `ADMIN_DIST_DIR`, `THEME_DEFAULT_DIR`, `THEMES_DIR`, `THEME_PREVIEWS_DIR`), never `process.cwd()`.
 
 ## Commands
 

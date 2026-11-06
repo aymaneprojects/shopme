@@ -1,4 +1,4 @@
-// Updates of the bundled theme (Aurora): a shop keeps the theme it installed in the database, so a newer Aurora shipped
+// Updates of the bundled themes (Aurora and the themes of packages/themes): a shop keeps the theme it installed in the database, so a newer version shipped
 // with the server is offered as an update that creates a new, unpublished copy carrying the merchant's customizations.
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -8,7 +8,8 @@ import { shops, themeFiles, themeFileVersions, themes, translations } from '../d
 import { errR, okR, type Result } from './catalog/common';
 import { getTheme, type Theme } from './content/content';
 import { addEvent } from './events';
-import { cachedPackageFile, frenchSeedDefaults, localizeSeedTexts, parseThemeJson, readBundledTheme, readThemeBinaries, readThemeDir, type BundledTheme } from './theme-install';
+import { cachedPackageFile, localizeSeedTexts, seedDefaultsFor, parseThemeJson, readBundledTheme, readThemeBinaries, readThemeDir, type BundledTheme } from './theme-install';
+import { findBundledTheme, type ThemeRoots } from './theme-registry';
 import { releaseObjects } from './theme-zip';
 import type { Storage } from './storage';
 
@@ -319,10 +320,18 @@ export interface ThemeUpdateResult {
  * Create a new, unpublished copy of a theme installed from the bundled theme in `dir`, at the bundled version, with the
  * merchant's customizations carried over (see `planThemeUpdate`). The original theme is not changed.
  */
-export async function updateThemeToBundled(db: Db, storage: Storage, shopId: number, themeId: number, dir: string, o: { staffId?: number | null } = {}): Promise<Result<ThemeUpdateResult>> {
+export async function updateThemeToBundled(db: Db, storage: Storage, shopId: number, themeId: number, source: string | ThemeRoots, o: { staffId?: number | null } = {}): Promise<Result<ThemeUpdateResult>> {
   const cur = await getTheme(db, shopId, themeId);
   if (!cur) return errR(['id'], 'Theme does not exist', 'NOT_FOUND');
-  const bundled = readBundledTheme(dir);
+  // `source` is the folder of one bundled theme, or the bundled themes (the one the theme came from is looked up by its handle).
+  let dir: string;
+  let bundled: BundledTheme | null;
+  if (typeof source === 'string') { dir = source; bundled = readBundledTheme(source); }
+  else {
+    const info = cur.originTheme ? findBundledTheme(source, cur.originTheme) : null;
+    dir = info?.dir ?? source.defaultDir;
+    bundled = info ?? (cur.originTheme ? null : readBundledTheme(source.defaultDir));
+  }
   if (!bundled) return errR(['id'], 'The bundled theme is not available on this server', 'BUNDLE_UNAVAILABLE');
   if (cur.originTheme !== bundled.handle) return errR(['id'], `This theme was not installed from ${bundled.name}`, 'NOT_BUNDLED_THEME');
   if (compareVersions(cur.originVersion ?? '0', bundled.version) >= 0) return errR(['id'], `This theme is already at ${bundled.name} ${cur.originVersion ?? bundled.version}`, 'UP_TO_DATE');
@@ -345,9 +354,9 @@ export async function updateThemeToBundled(db: Db, storage: Storage, shopId: num
 
   // The new version as a fresh install would write it (French seed texts for a French shop).
   const [shop] = await db.select({ locale: shops.locale }).from(shops).where(eq(shops.id, shopId)).limit(1);
-  const fr = shop?.locale.toLowerCase().startsWith('fr') ? frenchSeedDefaults(dir) : {};
+  const seeds = seedDefaultsFor(dir, shop?.locale);
   const plan = planThemeUpdate({
-    current, bundleText: localizeSeedTexts(readThemeDir(dir), fr), bundleBinary: readThemeBinaries(dir),
+    current, bundleText: localizeSeedTexts(readThemeDir(dir), seeds), bundleBinary: readThemeBinaries(dir),
     isBundledPath, isPristine, originalText: (p) => originals.get(p),
   });
 

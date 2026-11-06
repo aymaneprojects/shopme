@@ -8,7 +8,7 @@ import { THEME_RELEASE_NOTES } from '../../graphql';
 import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 
-export interface BundledThemeStatus { name: string; installedVersion: string | null; bundledVersion: string; updateAvailable: boolean }
+export interface BundledThemeStatus { handle?: string; name: string; installedVersion: string | null; bundledVersion: string; updateAvailable: boolean }
 interface ReleaseNote { version: string; date: string | null; notes: string[] }
 export interface ThemeUpdateResult {
   theme: { id: string; name: string; role: string } | null;

@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { FastifyInstance, InjectOptions } from 'fastify';
 import { createDb, loadConfig, runMigrations, type DbHandle } from '@shopme/core';
 import { buildApp } from './app';
+import type { ServerPaths } from './paths';
 
 export interface TestApp { app: FastifyInstance; dbHandle: DbHandle; dir: string; close(): Promise<void> }
 
@@ -12,13 +13,13 @@ export const MULTI_STORE_RUN = process.env.MULTI_STORE === 'true';
 /** Base domain of the stores' permanent hosts in multi-store test runs. */
 export const TEST_STORE_BASE_DOMAIN = 'shops.test';
 
-export async function createTestApp(env: Record<string, string> = {}): Promise<TestApp> {
+export async function createTestApp(env: Record<string, string> = {}, o: { paths?: Partial<ServerPaths> } = {}): Promise<TestApp> {
   const dir = mkdtempSync(path.join(tmpdir(), 'shopme-test-'));
   const multi = { ...(MULTI_STORE_RUN ? { MULTI_STORE: 'true' } : {}), STORE_BASE_DOMAIN: TEST_STORE_BASE_DOMAIN };
   const config = loadConfig({ SESSION_SECRET: 's'.repeat(40), NODE_ENV: 'test', DATA_DIR: dir, ...multi, ...env }, { baseDir: dir });
   const dbHandle = await createDb({ memory: true });
   await runMigrations(dbHandle);
-  const app = await buildApp({ config, dbHandle, logger: false, paths: { adminDist: path.join(dir, 'no-admin') } });
+  const app = await buildApp({ config, dbHandle, logger: false, paths: { adminDist: path.join(dir, 'no-admin'), ...o.paths } });
   await app.ready();
   if (config.multiStore && !env.MULTI_STORE) routeToFirstStore(app);
   return { app, dbHandle, dir, async close() { await app.close(); await dbHandle.close(); } };

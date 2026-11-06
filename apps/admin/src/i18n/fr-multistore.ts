@@ -15,7 +15,7 @@ export const frMultistore: Record<keyof typeof enMultistore, string> = {
   'ms.create.handleHelp': 'Lettres minuscules, chiffres et tirets.', 'ms.create.address': 'Adresse de la boutique :', 'ms.create.addressHint': 'L’adresse s’affiche pendant que vous saisissez le nom.',
   'ms.create.editHandle': 'Modifier', 'ms.create.handleNote': 'L’identifiant est définitif. Vous pourrez connecter votre propre domaine plus tard dans Paramètres > Domaines.',
   'ms.create.handleTaken': 'Cet identifiant est déjà utilisé par une autre boutique.', 'ms.create.handleReserved': 'Cet identifiant est réservé.', 'ms.create.handleInvalid': 'Utilisez de 1 à 40 lettres minuscules, chiffres ou tirets, en commençant et en terminant par une lettre ou un chiffre.',
-  'ms.create.regional': 'Région', 'ms.create.language': 'Langue de la boutique', 'ms.create.starter': 'La boutique démarre avec le thème Aurora, un menu principal et un menu de pied de page. Vous en êtes le propriétaire.',
+  'ms.create.regional': 'Région', 'ms.create.language': 'Langue de la boutique', 'ms.create.starter': 'La boutique démarre avec le thème choisi ci-dessous, un menu principal et un menu de pied de page. Vous en êtes le propriétaire.',
   'ms.create.submit': 'Créer la boutique',
 
   'ms.platform.subtitle': 'Toutes les boutiques de cette installation', 'ms.platform.ownerOnly': 'Seul le propriétaire de la plateforme peut ouvrir cet espace.', 'ms.platform.storesCaption': 'Boutiques de cette installation',

@@ -68,13 +68,27 @@ export function localizeSeedTexts<F extends { path: string; body: string }>(file
   });
 }
 
-/** The `seed_defaults` map of the theme's French locale file (empty when missing). */
-export function frenchSeedDefaults(dir: string): Record<string, string> {
-  try {
-    const fr = JSON.parse(readFileSync(path.join(dir, 'locales', 'fr.json'), 'utf8')) as { seed_defaults?: Record<string, string> };
-    return fr.seed_defaults ?? {};
-  } catch { return {}; }
+/** The `seed_defaults` map of `locales/<language>.json` of a theme folder (empty when missing). */
+export function seedDefaultsOf(dir: string, language: string): Record<string, string> {
+  if (!/^[a-z]{2,3}$/.test(language)) return {};
+  return cachedPackageFile(path.join(dir, 'locales', `${language}.json`), (text) => {
+    const seeds = (parseThemeJson(text) as { seed_defaults?: unknown }).seed_defaults;
+    if (!seeds || typeof seeds !== 'object' || Array.isArray(seeds)) return {};
+    return Object.fromEntries(Object.entries(seeds).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
+  }) ?? {};
 }
+
+/**
+ * Seed texts a shop of `locale` (`fr`, `fr-FR`) gets at install: the theme's own map for that language. English and
+ * languages the theme has no map for get none (the English defaults stay), so a theme without seed texts is installed as is.
+ */
+export function seedDefaultsFor(dir: string, locale: string | null | undefined): Record<string, string> {
+  const language = (locale ?? 'en').toLowerCase().split(/[-_]/)[0]!;
+  return language === 'en' ? {} : seedDefaultsOf(dir, language);
+}
+
+/** The `seed_defaults` map of the theme's French locale file (empty when missing). */
+export const frenchSeedDefaults = (dir: string): Record<string, string> => seedDefaultsOf(dir, 'fr');
 
 /** Replace all files of a theme with those found in `dir` (optionally transformed first). */
 export async function installThemeFiles(db: Db, shopId: number, themeId: number, dir: string, transform?: (files: ReturnType<typeof readThemeDir>) => ReturnType<typeof readThemeDir>, storage?: Storage): Promise<number> {
@@ -102,16 +116,17 @@ export async function installThemeFiles(db: Db, shopId: number, themeId: number,
 /** Theme JSON files may start with a `/* ... *\/` banner; strip comments before parsing. */
 export const parseThemeJson = (body: string): unknown => JSON.parse(body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, ''));
 
-/** A small file of a theme package, parsed with `parse`, read again only when it changes on disk (null when missing or invalid). */
+/** A small file of a theme package, parsed with `parse`, read again only when it changes on disk (null when missing or invalid). `variant` tells apart different parsings of one file. */
 const packageFiles = new Map<string, { mtime: number; value: unknown }>();
-export function cachedPackageFile<T>(file: string, parse: (text: string) => T): T | null {
+export function cachedPackageFile<T>(file: string, parse: (text: string) => T, variant = ''): T | null {
   let mtime: number;
   try { mtime = statSync(file).mtimeMs; } catch { return null; }
-  const hit = packageFiles.get(file);
+  const key = `${file}\0${variant}`;
+  const hit = packageFiles.get(key);
   if (hit && hit.mtime === mtime) return hit.value as T;
   let value: T | null = null;
   try { value = parse(readFileSync(file, 'utf8')); } catch { value = null; }
-  packageFiles.set(file, { mtime, value });
+  packageFiles.set(key, { mtime, value });
   return value;
 }
 
@@ -120,15 +135,17 @@ export interface BundledTheme { handle: string; name: string; version: string }
 /** A stable handle for a theme name (`Aurora` -> `aurora`). */
 export const themeHandle = (name: string) => name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-/** Name and version of the theme in a package directory (`theme_info` of `config/settings_schema.json`). */
-export function readBundledTheme(dir: string): BundledTheme | null {
-  return cachedPackageFile(path.join(dir, 'config', 'settings_schema.json'), (text) => {
+/** Name and version of the theme in a package directory (`theme_info` of `config/settings_schema.json`); `handle` replaces the one derived from the name. */
+export function readBundledTheme(dir: string, handle?: string): BundledTheme | null {
+  const found = cachedPackageFile(path.join(dir, 'config', 'settings_schema.json'), (text) => {
     const groups = parseThemeJson(text);
     const info = Array.isArray(groups) ? (groups as Record<string, unknown>[]).find((g) => g && g.name === 'theme_info') : undefined;
     const name = typeof info?.theme_name === 'string' ? info.theme_name : '';
     const version = typeof info?.theme_version === 'string' ? info.theme_version : '';
     return name && version ? { handle: themeHandle(name), name, version } : null;
   });
+  // A theme folder of `packages/themes` is identified by its folder name, whatever the theme is called.
+  return found && handle ? { ...found, handle } : found;
 }
 
 /** Checksums of a theme's files as stored, by path. */
@@ -155,10 +172,10 @@ export async function ensureDefaultTheme(db: Db, shopId: number, dir: string, st
   const main = await ensureMainTheme(db, shopId);
   const [r] = await db.select({ n: sql<number>`count(*)::int` }).from(themeFiles).where(eq(themeFiles.themeId, main.id));
   if ((r?.n ?? 0) > 0 || !existsSync(dir)) return false;
-  // A French shop gets the seed texts in French; other locales keep the English defaults.
+  // A shop whose language the theme has seed texts for (French) gets them; other locales keep the English defaults.
   const [shop] = await db.select({ locale: shops.locale }).from(shops).where(eq(shops.id, shopId)).limit(1);
-  const fr = shop?.locale.toLowerCase().startsWith('fr') ? frenchSeedDefaults(dir) : {};
-  await installThemeFiles(db, shopId, main.id, dir, (files) => localizeSeedTexts(files, fr), storage);
+  const seeds = seedDefaultsFor(dir, shop?.locale);
+  await installThemeFiles(db, shopId, main.id, dir, (files) => localizeSeedTexts(files, seeds), storage);
   await db.update(themes).set({ name: 'Aurora' }).where(and(eq(themes.id, main.id), eq(themes.name, 'Default')));
   const bundled = readBundledTheme(dir);
   if (bundled) await recordThemeOrigin(db, main.id, bundled);

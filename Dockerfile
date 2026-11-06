@@ -23,9 +23,9 @@ COPY --from=build /out/node_modules ./apps/server/node_modules
 COPY --from=build /out/package.json ./apps/server/package.json
 COPY --from=build /app/apps/server/dist ./apps/server/dist
 COPY --from=build /app/packages/core/drizzle ./packages/core/drizzle
-# Optional pieces: present once the admin SPA / default theme exist.
+# Optional pieces: present once the admin SPA / bundled themes exist (Aurora, the themes folder and their previews).
 RUN --mount=from=build,source=/app,target=/src \
-    for d in apps/admin/dist packages/theme-default; do \
+    for d in apps/admin/dist packages/theme-default packages/themes; do \
       if [ -d "/src/$d" ]; then mkdir -p "/app/$d" && cp -r "/src/$d/." "/app/$d/"; fi; \
     done
 RUN mkdir -p /data && chown -R node:node /data

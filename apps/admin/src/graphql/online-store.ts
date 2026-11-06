@@ -1,7 +1,19 @@
 // Online store operations: themes (settings editor), pages, navigation menus.
 
 export const THEMES = /* GraphQL */ `
-  query Themes { themes(first: 50) { nodes { id name role shopmeBundledTheme { name installedVersion bundledVersion updateAvailable } } } }
+  query Themes { themes(first: 50) { nodes { id name role shopmeBundledTheme { handle name installedVersion bundledVersion updateAvailable } } } }
+`;
+
+/** The themes that ship with ShopMe (the "Free ShopMe themes" gallery). */
+export const BUNDLED_THEMES = /* GraphQL */ `
+  query BundledThemes($locale: String) { shopmeBundledThemes(locale: $locale) { handle name version author description tags previews { desktop mobile } } }
+`;
+
+/** Add a bundled theme to the library, unpublished. */
+export const THEME_INSTALL_BUNDLED = /* GraphQL */ `
+  mutation ThemeInstallBundled($handle: String!) {
+    shopmeThemeInstallBundled(handle: $handle) { theme { id name role } userErrors { field message code } }
+  }
 `;
 
 /** What changed in the bundled theme (Aurora) since the version a theme was installed from. */

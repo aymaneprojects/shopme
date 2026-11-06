@@ -4,6 +4,11 @@
     "theme_name": "Aurora",
     "theme_version": "1.2.0",
     "theme_author": "ShopMe contributors",
+    "shopme_description": "A clean, versatile storefront with a bold hero, product grids and a calm blue accent. A solid base for any catalog.",
+    "shopme_descriptions": {
+      "fr": "Une boutique claire et polyvalente, avec un grand bandeau d’accueil, des grilles de produits et un accent bleu apaisé. Une bonne base pour tout catalogue."
+    },
+    "shopme_tags": ["General", "Minimal"],
     "theme_documentation_url": "https://github.com/aymaneprojects/shopme/blob/main/docs/spec/theme-format.md",
     "theme_support_url": "https://github.com/aymaneprojects/shopme/issues"
   },

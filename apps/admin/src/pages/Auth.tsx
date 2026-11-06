@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { FormEvent, ReactNode } from 'react';
 import { ApiError, rest } from '../api';
+import { ThemePicker, useBundledThemesRest } from '../components/ThemeGallery';
 import { LANGS, useI18n } from '../i18n';
 import { useSession } from '../session';
 import type { Shop, User } from '../session';
@@ -92,8 +93,11 @@ export function SetupPage() {
   const fr = lang === 'fr';
   const [f, setF] = useState({ shopName: '', firstName: '', lastName: '', email: '', password: '', currency: fr ? 'EUR' : 'USD', country: fr ? 'FR' : 'US' });
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  // Starting theme: Aurora unless another bundled theme is picked (the picker only appears when there is a choice).
+  const [theme, setTheme] = useState('aurora');
+  const themes = useBundledThemesRest().data?.themes ?? [];
   const { error, busy, submit } = useSubmit(
-    () => rest<{ user: User; shop: Shop }>('/setup', { body: { ...f, locale: lang, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone } }),
+    () => rest<{ user: User; shop: Shop }>('/setup', { body: { ...f, locale: lang, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, ...(themes.length > 1 && { theme }) } }),
     signedIn,
   );
   return (
@@ -111,6 +115,7 @@ export function SetupPage() {
           <Select label={t('setup.currency')} value={f.currency} onChange={set('currency')}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select>
           <Select label={t('setup.country')} value={f.country} onChange={set('country')}>{COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}</Select>
         </div>
+        {themes.length > 1 && <ThemePicker compact themes={themes} value={theme} onChange={setTheme} />}
         <Button type="submit" variant="primary" loading={busy}>{t('setup.submit')}</Button>
       </form>
     </AuthLayout>

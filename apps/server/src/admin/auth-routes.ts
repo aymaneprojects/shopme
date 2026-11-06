@@ -1,13 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
-  accountCount, authenticateAccount, canCreateStores, createSession, destroySession, ensureDefaultTheme, getAccount, getShop, handleOf, isTwoFactorEnabled, listAccountStores, listStaffSessions, needsSetup, publicAccount, publicStaff,
+  accountCount, authenticateAccount, canCreateStores, createSession, destroySession, getAccount, getShop, handleOf, isTwoFactorEnabled, listAccountStores, listStaffSessions, needsSetup, publicAccount, publicStaff,
   sendNotification, setSessionShop, setupStore, staffOfAccount, twoFactorEnrolmentRequired, SetupError, signChallenge, verifyChallenge, verifySecondFactor, schema, type Account, type Shop, type StaffUser,
 } from '@shopme/core';
 import { eq } from 'drizzle-orm';
 import { accountOf, authenticate, clearSessionCookie, requestedShopId, sessionToken, setSessionCookie } from '../plugins/auth';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { FailureLimiter } from '../plugins/rate-limit';
+import { applyStartingTheme, startingThemeExists } from './starting-theme';
 
 const setupBody = z.object({
   shopName: z.string().trim().min(1).max(120),
@@ -19,6 +20,8 @@ const setupBody = z.object({
   timezone: z.string().trim().min(1).max(64).optional(),
   firstName: z.string().trim().max(100).optional(),
   lastName: z.string().trim().max(100).optional(),
+  /** Handle of the bundled theme the store starts with (default: Aurora). */
+  theme: z.string().trim().toLowerCase().max(40).optional(),
 });
 const loginBody = z.object({ email: z.string().trim().email(), password: z.string().min(1).max(200) });
 const challengeBody = z.object({ challenge: z.string().min(10).max(200), code: z.string().trim().min(6).max(20) });
@@ -43,11 +46,13 @@ export function registerAuthRoutes(app: FastifyInstance) {
     if (!body.success) return reply.code(422).send({ error: 'Invalid input', issues: body.error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })) });
     try {
       if (multi && !(await setupNeeded())) throw new SetupError('Store is already set up');
-      const { shop, owner } = await setupStore(db, { ...body.data, ...(multi && { perStoreStorage: true, platformOwner: true }) });
+      if (body.data.theme && !startingThemeExists(app, body.data.theme)) return reply.code(422).send({ error: 'Unknown theme', issues: [{ field: 'theme', message: 'Unknown theme' }] });
+      const { theme: startingTheme, ...setup } = body.data;
+      const { shop, owner } = await setupStore(db, { ...setup, ...(multi && { perStoreStorage: true, platformOwner: true }) });
       await app.ctx.locales.refresh(db);
       await app.ctx.stores.refresh(db);
-      // Install Aurora now so the admin theme editor works before the storefront is ever visited.
-      await ensureDefaultTheme(db, shop.id, app.ctx.paths.themeDefaultDir, app.ctx.storageFor(shop.id));
+      // Install the starting theme (Aurora unless another was chosen) now so the admin theme editor works before the storefront is ever visited.
+      await applyStartingTheme(app, shop.id, startingTheme);
       const session = await createSession(db, { shopId: shop.id, staffUserId: owner.id, accountId: owner.accountId, ip: req.ip, userAgent: req.headers['user-agent'] });
       setSessionCookie(app, reply, session.token, session.expiresAt);
       const account = multi && owner.accountId != null ? await getAccount(db, owner.accountId) : null;

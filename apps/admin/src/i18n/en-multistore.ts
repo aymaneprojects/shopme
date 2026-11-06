@@ -14,7 +14,7 @@ export const enMultistore = {
   'ms.create.handleHelp': 'Lowercase letters, digits and hyphens.', 'ms.create.address': 'Store address:', 'ms.create.addressHint': 'The address appears as you type the name.',
   'ms.create.editHandle': 'Change', 'ms.create.handleNote': 'The handle is permanent. You can connect your own domain later in Settings > Domains.',
   'ms.create.handleTaken': 'This handle is already used by another store.', 'ms.create.handleReserved': 'This handle is reserved.', 'ms.create.handleInvalid': 'Use 1 to 40 lowercase letters, digits or hyphens, starting and ending with a letter or digit.',
-  'ms.create.regional': 'Region', 'ms.create.language': 'Store language', 'ms.create.starter': 'The store starts with the Aurora theme, a main menu and a footer menu. You are its owner.',
+  'ms.create.regional': 'Region', 'ms.create.language': 'Store language', 'ms.create.starter': 'The store starts with the theme you choose below, a main menu and a footer menu. You are its owner.',
   'ms.create.submit': 'Create store',
 
   'ms.platform.subtitle': 'Every store on this installation', 'ms.platform.ownerOnly': 'Only the platform owner can open this area.', 'ms.platform.storesCaption': 'Stores on this installation',
