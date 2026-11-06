@@ -90,6 +90,8 @@ export function MarketingPage() {
     onSuccess: () => { setRemoving(null); toast(t('btn.mkt.deleted')); refresh(); }, onError: (e: Error) => { setRemoving(null); toast(e.message, 'critical'); },
   });
   const d = q.data;
+  /** The server masks unhandled failures as the English "Unexpected error.": show a translated sentence instead. */
+  const loadError = (m: string) => (/^unexpected error\.?$/i.test(m.trim()) ? t('btn.mkt.loadError') : m);
   const money = (amount: string) => fmt.money({ amount, currencyCode: shop.currency });
   const campaigns = d?.shopmeMarketingCampaigns ?? [];
   const tags = (c: { utmSource: string | null; utmMedium: string | null; utmCampaign: string | null }) => [c.utmSource, c.utmMedium, c.utmCampaign].filter(Boolean).join(' / ') || '—';
@@ -124,7 +126,7 @@ export function MarketingPage() {
   return (
     <>
       <PageHeader back="/" icon={<Megaphone className="size-4" />} title={t('btn.mkt.title')} actions={<Button variant="primary" onClick={() => setDialog('new')}><Plus className="size-4" />{t('btn.mkt.create')}</Button>} />
-      {q.isError && <div className="mb-3"><Banner>{(q.error as Error).message}</Banner></div>}
+      {q.isError && <div className="mb-3"><Banner>{loadError((q.error as Error).message)}</Banner></div>}
       <div className="mb-3 grid gap-3 sm:grid-cols-3">
         <Card title={t('btn.mkt.activeCampaigns')}><p className="text-2xl font-semibold">{d ? campaigns.filter((c) => c.status === 'ACTIVE').length : '…'}</p></Card>
         <Card title={t('btn.mkt.attributedOrders')}><p className="text-2xl font-semibold">{d ? `${d.shopmeAttribution.attributedOrders} / ${d.shopmeAttribution.totalOrders}` : '…'}</p><p className="mt-1 text-xs text-muted">{t('btn.mkt.attributedHelp')}</p></Card>

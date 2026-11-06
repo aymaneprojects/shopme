@@ -202,7 +202,9 @@ export function registerLoginMethodRoutes(app: FastifyInstance, limiter: Failure
     const accounts = await db.select().from(accountsTable).where(and(eq(accountsTable.email, email), eq(accountsTable.active, true)));
     for (const account of accounts) {
       if ((await verifyDeviceCode(db, account.id, body.data.code)) === 'ok') {
-        await setAccountPassword(db, account.id, body.data.password);
+        // The mailed code proves the mailbox, which is what the accounts sharing this e-mail have in common (members migrated from
+        // separate stores): all of them get the new password, otherwise the one that signs in could be left on its old one.
+        for (const a of accounts) await setAccountPassword(db, a.id, body.data.password);
         keys.forEach((k) => limiter.reset(k));
         return { ok: true };
       }

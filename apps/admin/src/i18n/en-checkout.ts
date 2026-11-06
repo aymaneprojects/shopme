@@ -37,6 +37,6 @@ export const enCheckout = {
   'activity.title': 'Notifications', 'activity.open': 'Notifications', 'activity.openUnread': 'Notifications, {n} unread', 'activity.markAll': 'Mark all as read', 'activity.empty': 'Nothing new.', 'activity.unread': 'Unread',
   'activity.order': 'New order {name}', 'activity.lowStock': 'Low stock: {title}', 'activity.lowStockBody': '{n} left', 'activity.webhook': 'Webhook delivery failed: {topic}',
   'activity.backupOk': 'Backup completed', 'activity.backupFailed': 'Backup failed',
-  'shell.help': 'Help center', 'shell.expand': 'Expand the sidebar', 'shell.collapse': 'Collapse the sidebar',
+  'shell.help': 'Help center', 'shell.expand': 'Expand navigation', 'shell.collapse': 'Collapse navigation',
   'cmd.placeholder': 'Search', 'cmd.filters': 'Search in', 'cmd.searchIn': 'Search in {shop}', 'cmd.recent': 'Recent searches', 'cmd.open': 'Open',
 } as const;

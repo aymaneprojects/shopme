@@ -78,7 +78,7 @@ export const frBtnOrders = {
   'btn.mkt.deleteTitle': 'Supprimer {name} ?', 'btn.mkt.deleteBody': 'Les commandes gardent leur attribution ; seule la fiche de la campagne est supprimée.',
   'btn.mkt.emptyTitle': 'Aucune campagne pour le moment', 'btn.mkt.emptyBody': 'Créez une campagne, partagez son lien balisé et voyez les commandes qu’elle rapporte.',
   'btn.mkt.activeCampaigns': 'Campagnes actives', 'btn.mkt.attributedOrders': 'Commandes avec une source connue', 'btn.mkt.attributedHelp': 'Commandes passées après une visite suivie de la boutique.', 'btn.mkt.totalSales': 'Ventes de la période',
-  'btn.mkt.attributionEmpty': 'Aucune commande attribuée sur cette période.', 'btn.mkt.source': 'Source', 'btn.mkt.pageViews': 'Pages vues', 'btn.mkt.period': 'Période', 'btn.mkt.days': '{n} jours',
+  'btn.mkt.loadError': 'Les données marketing n’ont pas pu être chargées. Réessayez dans un instant.', 'btn.mkt.attributionEmpty': 'Aucune commande attribuée sur cette période.', 'btn.mkt.source': 'Source', 'btn.mkt.pageViews': 'Pages vues', 'btn.mkt.period': 'Période', 'btn.mkt.days': '{n} jours',
   'btn.mkt.channel.email': 'E-mail', 'btn.mkt.channel.social': 'Réseaux sociaux', 'btn.mkt.channel.search': 'Publicité de recherche', 'btn.mkt.channel.display': 'Publicité display', 'btn.mkt.channel.affiliate': 'Affiliation',
   'btn.mkt.channel.influencer': 'Influenceur', 'btn.mkt.channel.other': 'Autre',
   'btn.mkt.status.DRAFT': 'Brouillon', 'btn.mkt.status.ACTIVE': 'Active', 'btn.mkt.status.ENDED': 'Terminée',

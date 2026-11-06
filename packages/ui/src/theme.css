@@ -73,15 +73,18 @@
   .btn[data-loading="true"] > .btn-label { visibility: hidden; }
   .btn > .btn-spinner { position: absolute; inset: 0; display: grid; place-items: center; }
 
+  /* Primary: same two-stop gradient, but every edge is a hard 1px ring (no blurred drop shadow, no translucent halo, no text-shadow, no transform at rest), so the text and the capsule outline stay crisp on any pixel ratio. */
   .btn-primary {
     --b-top: var(--color-primary-top); --b-bot: var(--color-primary);
-    color: var(--color-primary-contrast);
+    --b-ring: color-mix(in srgb, var(--color-primary-top) 62%, white);
+    color: var(--color-primary-contrast); text-shadow: none; transform: none; backdrop-filter: none;
     background: linear-gradient(180deg, var(--b-top) 0%, var(--b-bot) 100%);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 1px 2px rgb(0 0 0 / 0.4), 0 0 0 1px rgb(124 156 255 / 0.35);
+    box-shadow: 0 0 0 1px var(--b-ring), inset 0 1px 0 rgb(255 255 255 / 0.22);
   }
-  :root[data-theme="light"] .btn-primary { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(0 0 0 / 0.3), 0 0 0 1px rgb(0 0 0 / 0.25); }
+  :root[data-theme="light"] .btn-primary { --b-ring: color-mix(in srgb, var(--color-primary) 62%, black); }
+  @media (prefers-color-scheme: light) { :root[data-theme="system"] .btn-primary { --b-ring: color-mix(in srgb, var(--color-primary) 62%, black); } }
   .btn-primary:hover:not(:disabled) { --b-top: color-mix(in srgb, var(--color-primary-hover) 80%, white); --b-bot: var(--color-primary-hover); }
-  .btn-primary:active:not(:disabled) { background: var(--color-primary-pressed); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(124 156 255 / 0.25); }
+  .btn-primary:active:not(:disabled) { background: var(--color-primary-pressed); box-shadow: 0 0 0 1px var(--b-ring), inset 0 1px 0 rgb(0 0 0 / 0.3); }
 
   .btn-secondary { color: var(--color-text); background: linear-gradient(180deg, var(--color-raised), var(--color-surface)); box-shadow: var(--shadow-btn); }
   .btn-secondary:hover:not(:disabled) { background: linear-gradient(180deg, color-mix(in srgb, var(--color-raised) 80%, white), color-mix(in srgb, var(--color-surface) 70%, var(--color-raised))); }
@@ -176,7 +179,10 @@
   .route-progress > span { display: block; height: 100%; background: var(--color-accent); box-shadow: 0 0 6px var(--color-accent); animation: sm-progress 2s var(--ease-out) forwards; }
 
   /* Tooltip */
-  .tip { position: absolute; z-index: 60; padding: 4px 8px; border-radius: 6px; background: var(--color-ink); color: var(--color-ink-text); font-size: 12px; font-weight: 500; white-space: nowrap; pointer-events: none; animation: sm-fade-in 120ms ease-out; }
+  .tip { position: absolute; z-index: 80; display: inline-flex; align-items: center; gap: 8px; padding: 6px 8px 6px 10px; border-radius: 8px; background: #17181c; color: #f4f5f7; font-size: 12.5px; font-weight: 500; line-height: 16px; white-space: nowrap; pointer-events: none; box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1), 0 6px 16px rgb(0 0 0 / 0.35); animation: sm-fade-in 120ms ease-out; }
+  .tip:not(:has(.tip-keys)) { padding: 5px 10px; }
+  .tip-keys { display: inline-flex; gap: 3px; }
+  .tip-keys kbd { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 4px; background: rgb(255 255 255 / 0.16); color: #f4f5f7; font: inherit; font-size: 11.5px; line-height: 1; }
 
   /* Index table */
   .itable tbody tr { transition: background-color var(--dur-fast); }
@@ -187,5 +193,6 @@
     *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
     .skeleton { animation: none; }
     .btn:active:not(:disabled) { transform: none; }
+    .tip { animation: none; }
   }
 }

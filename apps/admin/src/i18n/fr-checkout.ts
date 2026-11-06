@@ -38,6 +38,6 @@ export const frCheckout: Record<keyof typeof enCheckout, string> = {
   'activity.title': 'Notifications', 'activity.open': 'Notifications', 'activity.openUnread': 'Notifications, {n} non lues', 'activity.markAll': 'Tout marquer comme lu', 'activity.empty': 'Rien de nouveau.', 'activity.unread': 'Non lu',
   'activity.order': 'Nouvelle commande {name}', 'activity.lowStock': 'Stock faible : {title}', 'activity.lowStockBody': '{n} restant(s)', 'activity.webhook': 'Échec de livraison du webhook : {topic}',
   'activity.backupOk': 'Sauvegarde terminée', 'activity.backupFailed': 'Échec de la sauvegarde',
-  'shell.help': 'Centre d’aide', 'shell.expand': 'Développer la barre latérale', 'shell.collapse': 'Réduire la barre latérale',
+  'shell.help': 'Centre d’aide', 'shell.expand': 'Agrandir la navigation', 'shell.collapse': 'Réduire la navigation',
   'cmd.placeholder': 'Rechercher', 'cmd.filters': 'Rechercher dans', 'cmd.searchIn': 'Rechercher dans {shop}', 'cmd.recent': 'Recherches récentes', 'cmd.open': 'Ouvrir',
 };

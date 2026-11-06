@@ -1,5 +1,5 @@
 import { ChevronDown, X } from 'lucide-react';
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
+import { cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
 import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
 import { Button, ButtonGroup, cx } from './basics';
 import type { ButtonProps } from './basics';
@@ -167,18 +167,28 @@ export function Popover({ trigger, children, align = 'left', label, className, t
   );
 }
 
-/** Tooltip that appears after a short hover delay (or immediately on keyboard focus). */
-export function Tooltip({ content, children, delay = 450, side = 'bottom' }: { content: ReactNode; children: ReactNode; delay?: number; side?: 'top' | 'bottom' }) {
+/**
+ * Tooltip that appears after a short hover delay (or immediately on keyboard focus). `shortcut` shows keys as small keycaps after
+ * the label, and the control it describes gets `aria-describedby` while the tooltip is open. The fade is dropped with reduced motion.
+ */
+export function Tooltip({ content, children, delay = 450, side = 'bottom', shortcut }: { content: ReactNode; children: ReactNode; delay?: number; side?: 'top' | 'bottom' | 'right'; shortcut?: string[] }) {
   const [show, setShow] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const id = useId();
   const on = (wait: number) => { clearTimeout(timer.current); timer.current = setTimeout(() => setShow(true), wait); };
   const off = () => { clearTimeout(timer.current); setShow(false); };
   useEffect(() => () => clearTimeout(timer.current), []);
+  const child = show && isValidElement<{ 'aria-describedby'?: string }>(children) ? cloneElement(children, { 'aria-describedby': id }) : children;
+  const where = side === 'right' ? 'left-full top-1/2 ml-2 -translate-y-1/2' : side === 'top' ? 'bottom-full left-1/2 mb-1.5 -translate-x-1/2' : 'top-full left-1/2 mt-1.5 -translate-x-1/2';
   return (
-    <span className="relative inline-flex" onMouseEnter={() => on(delay)} onMouseLeave={off} onFocus={() => on(0)} onBlur={off} onKeyDown={(e) => e.key === 'Escape' && off()} aria-describedby={show ? id : undefined}>
-      {children}
-      {show && <span id={id} role="tooltip" className={cx('tip left-1/2 -translate-x-1/2', side === 'bottom' ? 'top-full mt-1.5' : 'bottom-full mb-1.5')}>{content}</span>}
+    <span className="relative inline-flex" onMouseEnter={() => on(delay)} onMouseLeave={off} onFocus={() => on(0)} onBlur={off} onKeyDown={(e) => e.key === 'Escape' && off()} onMouseDown={off}>
+      {child}
+      {show && (
+        <span id={id} role="tooltip" className={cx('tip', where)}>
+          {content}
+          {shortcut && shortcut.length > 0 && <span className="tip-keys" aria-hidden>{shortcut.map((k) => <kbd key={k}>{k}</kbd>)}</span>}
+        </span>
+      )}
     </span>
   );
 }
