@@ -12,3 +12,4 @@ re-private/
 /apps/*/data/
 /packages/*/data/
 /e2e/failures/
+dist-bundle

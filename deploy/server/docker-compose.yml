@@ -1,0 +1,64 @@
+# ShopMe server stack for a prebuilt bundle (manual install; shopme-install.sh generates the same file).
+# Put this file next to the bundle's app/ folder and a .env (see README.md), then: docker compose up -d
+# With an existing nginx in front, the app listens on 127.0.0.1:3200 only. For Caddy, merge docker-compose.caddy.yml.
+name: shopme
+services:
+  shopme:
+    image: node:22-slim
+    restart: unless-stopped
+    working_dir: /app
+    command: ["node", "apps/server/dist/main.js"]
+    user: "1000:1000"
+    mem_limit: 768m
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${SHOPME_PORT:-3200}:3000"
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=512
+      PORT: "3000"
+      HOST: 0.0.0.0
+      DATA_DIR: /data
+      DATABASE_URL: postgres://shopme:${POSTGRES_PASSWORD}@db:5432/shopme
+      APP_URL: ${APP_URL}
+      SESSION_SECRET: ${SESSION_SECRET}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      HSTS: ${HSTS:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PUBLIC_IP: ${PUBLIC_IP:-}
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MULTI_STORE: ${MULTI_STORE:-false}
+      STORE_BASE_DOMAIN: ${STORE_BASE_DOMAIN:-}
+      ADMIN_HOST: ${ADMIN_HOST:-}
+    volumes:
+      - ./app:/app:ro
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    mem_limit: 512m
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=60"]
+    environment:
+      POSTGRES_USER: shopme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: shopme
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shopme -d shopme"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

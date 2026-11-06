@@ -112,6 +112,8 @@ They are unsigned for now (expect a security prompt on first launch). See [docs/
 
 ## Deploy on your server
 
+[Install on a server in one command](docs/install/quick-install.md): `shopme-install.sh` sets up Docker, HTTPS (your nginx, or Caddy), the database, nightly backups, updates with automatic rollback and a health check, on a fresh Debian or Ubuntu server.
+
 [docs/install](docs/install/README.md) covers Docker Compose on a VPS with HTTPS through Caddy, backups, restores and upgrades.
 [docs/install/email.md](docs/install/email.md) covers e-mail: sending from your own server with DKIM, the three DNS lines, or an SMTP relay.
 [docs/install/multi-store.md](docs/install/multi-store.md) covers the multi-store mode: wildcard DNS, custom domains, Caddy with on-demand certificates, and per-store backups.
