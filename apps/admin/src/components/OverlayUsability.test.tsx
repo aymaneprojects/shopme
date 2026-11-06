@@ -1,13 +1,58 @@
 import { Dropdown, Modal, Popover, SplitButton } from '@shopme/ui';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const items = [
   { key: 'disabled', label: 'Unavailable', disabled: true, onSelect: vi.fn() },
   { key: 'edit', label: 'Edit', onSelect: vi.fn() },
   { key: 'archive', label: 'Archive', onSelect: vi.fn() },
 ];
+
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
+
+const bounds = (left: number, top: number, width: number, height: number): DOMRect => ({ left, top, right: left + width, bottom: top + height, width, height, x: left, y: top, toJSON: () => ({}) });
+
+describe('floating panel placement', () => {
+  it('flips above a low trigger and clamps a dropdown inside the right viewport edge', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('innerWidth', 360);
+    vi.stubGlobal('innerHeight', 320);
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return this.getAttribute('role') === 'menu' ? bounds(0, 0, 200, 140) : bounds(300, 250, 30, 30);
+    });
+    render(<div style={{ overflow: 'hidden', height: 30 }}><Dropdown trigger="Actions" items={items} /></div>);
+    await user.click(screen.getByRole('button', { name: 'Actions' }));
+    const menu = screen.getByRole('menu');
+    expect(menu).toHaveAttribute('popover', 'manual');
+    expect(menu).toHaveStyle({ position: 'fixed', left: '152px', top: '106px', maxWidth: '344px', transformOrigin: 'bottom' });
+    expect(screen.getByRole('menuitem', { name: 'Edit' })).toHaveFocus();
+  });
+
+  it('bounds tall popovers and follows their trigger when a containing panel scrolls', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('innerWidth', 360);
+    vi.stubGlobal('innerHeight', 300);
+    let triggerTop = 100;
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      return this.getAttribute('role') === 'dialog' ? bounds(0, 0, 240, 500) : bounds(-30, triggerTop, 50, 30);
+    });
+    render(<div data-testid="scroller" style={{ overflow: 'auto' }}><Popover trigger="Filters" label="Filters"><input aria-label="Filter" /></Popover></div>);
+    await user.click(screen.getByRole('button', { name: 'Filters' }));
+    const panel = screen.getByRole('dialog', { name: 'Filters' });
+    expect(panel).toHaveStyle({ left: '8px', top: '134px', maxHeight: '158px', overflow: 'auto' });
+    triggerTop = 50;
+    fireEvent.scroll(screen.getByTestId('scroller'));
+    expect(panel).toHaveStyle({ top: '84px', maxHeight: '208px' });
+    vi.stubGlobal('innerWidth', 280);
+    fireEvent.resize(window);
+    expect(panel).toHaveStyle({ maxWidth: '264px' });
+    screen.getByRole('textbox', { name: 'Filter' }).focus();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Filters' })).toHaveFocus();
+  });
+});
 
 describe('dropdown keyboard and focus behavior', () => {
   it('opens at the first or last available action with arrow keys and announces its trigger', async () => {

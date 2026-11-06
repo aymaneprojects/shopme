@@ -6,7 +6,7 @@ Use the merchant-supplied screenshots and recordings to improve ShopMe's own imp
 
 Take one reproducible issue or small visual improvement per pass. Check open pull requests and this list before starting. Add the observed trigger, change, validation and PR link to the progress section after each pass. A screenshot alone does not prove a functional bug.
 
-- [ ] Review dropdown clipping and placement near viewport edges and inside scrollable tables.
+- [x] Review dropdown clipping and placement near viewport edges and inside scrollable tables. Fixed in #4; keep testing additional consumers as they change.
 - [ ] Compare product editor metadata selectors, scrolling and save feedback with the recordings.
 - [ ] Review dialog sizing and opening/closing motion, preserving native focus and reduced-motion support.
 - [ ] Review table density, action placement and long translated labels on small screens.
@@ -20,7 +20,8 @@ Take one reproducible issue or small visual improvement per pass. Check open pul
 - #1: shared table keyboard activation, independent cell controls, disabled bulk menus and dialog labels. Admin tests/type checks/build passed.
 - #2: desktop content placement, mobile sidebar behavior, language selector, button edges and stale password-reset feedback. 253 admin tests passed; Chromium checks covered layout, collapse, mobile navigation, Escape/focus restoration and language selection.
 - #3: neutral light palette, charcoal controls, original ShopMe ribbon logo/favicon, section navigation and dropdown focus/keyboard behavior. 262 admin tests, type check and production build passed; Chromium checks covered desktop/mobile layout and navigation. Review PR #3 before choosing overlapping work.
-- Two additional merchant recordings are queued for a later pass. One exceeds the current 32 MiB attachment transfer limit; do not claim it was inspected.
+- Recordings 3–6 are available and sampled at 0.1-second intervals. Recording 3 covers theme preview/editor controls; 4 covers analytics/content/action menus; 5 covers payment/settings and theme workspace transitions; 6 covers settings navigation and lists. These are observations of the supplied overview frames, not a complete interaction audit. Raw slices remain outside the repository.
+- #4: Dropdown/Popover escape scroll-container clipping through the native popover top layer, with bounded placement and preserved modal/focus scope; refined the ShopMe S-ribbon logo for small sizes. See PR validation before overlapping work.
 
 ## Bounded continuation
 
