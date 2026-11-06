@@ -1,19 +1,23 @@
-import { Badge, Banner, Button, Card, ConfirmDialog, Skeleton, useToast } from '@shopme/ui';
+import { Banner, Card, ConfirmDialog, Skeleton, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BarChart3, Check, Lock, Megaphone, Package, Rocket, Search, ShoppingCart } from 'lucide-react';
-import { useState } from 'react';
-import type { ReactNode } from 'react';
+import { BarChart3, Lock, Megaphone, Package, Rocket, Search, ShoppingCart } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { apiUrl, gql, mutate } from '../api';
 import { selectCls, useFormat } from '../components/shared';
 import type { Money } from '../components/shared';
-import { MARKETING_PAGE, ORDERS_COUNT, PAYMENT_SETTINGS, SHOPME_DASHBOARD, SHOP_POLICIES, STORE_ACCESS_UPDATE } from '../graphql';
+import { DELIVERY_PROFILES, HOME_THEMES, MARKETING_PAGE, ORDERS_COUNT, PAYMENT_SETTINGS, PRODUCTS_COUNT, SHOPME_DASHBOARD, STORE_ACCESS_UPDATE } from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useStoreInfo } from '../lib/storeInfo';
 import { EmailBanner } from '../components/EmailSetup';
+import { DottedGlobe } from '../components/home/Globe';
+import { KpiBar } from '../components/home/KpiBar';
+import { SetupGuide } from '../components/home/SetupGuide';
 import { OffsiteAlertBanner } from '../components/OffsiteBackup';
 import { fetchEmailHealth } from '../lib/emailApi';
+import { detectTasks, greetingPart } from '../lib/home';
+import { offsiteApi } from '../lib/offsiteApi';
 import { useMulti, useShop } from '../session';
 
 interface Dash { totalSales: Money; ordersCount: number; averageOrderValue: Money; salesByDay: Array<{ date: string; sales: { amount: string } }>; topProducts: Array<{ title: string; quantity: number }> }
@@ -66,61 +70,11 @@ function StorePreview({ protectedStore }: { protectedStore: boolean }) {
   );
 }
 
-const ART = { card: 'var(--color-bg)', line: 'var(--color-border)', main: 'var(--color-primary)', sub: 'var(--color-primary-subtle)' };
-/** Own illustrations: simple shapes in the admin palette. */
-function PaymentArt() {
-  return (
-    <svg viewBox="0 0 240 120" className="h-full w-full" aria-hidden>
-      <rect x="62" y="26" width="116" height="72" rx="10" fill={ART.card} stroke={ART.line} strokeWidth="1.5" />
-      <rect x="62" y="40" width="116" height="16" fill={ART.main} opacity=".85" />
-      <rect x="76" y="72" width="40" height="6" rx="3" fill={ART.line} /><rect x="76" y="84" width="24" height="6" rx="3" fill={ART.line} />
-      <circle cx="152" cy="80" r="10" fill={ART.sub} stroke={ART.main} strokeWidth="1.5" /><path d="m147.5 80 3 3 5-6" fill="none" stroke={ART.main} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function DomainArt() {
-  return (
-    <svg viewBox="0 0 240 120" className="h-full w-full" aria-hidden>
-      <rect x="34" y="40" width="172" height="40" rx="20" fill={ART.card} stroke={ART.line} strokeWidth="1.5" />
-      <circle cx="56" cy="60" r="8" fill={ART.sub} stroke={ART.main} strokeWidth="1.5" /><path d="M48 60h16M56 52c-4 5-4 11 0 16M56 52c4 5 4 11 0 16" fill="none" stroke={ART.main} strokeWidth="1.2" />
-      <rect x="72" y="56" width="86" height="8" rx="4" fill={ART.line} />
-      <text x="166" y="64" fontSize="13" fontWeight="600" fill={ART.main} fontFamily="inherit">.com</text>
-      <path d="m184 74 12 26 4-10 10-4z" fill={ART.main} stroke={ART.card} strokeWidth="1.5" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function EmailArt() {
-  return (
-    <svg viewBox="0 0 240 120" className="h-full w-full" aria-hidden>
-      <rect x="62" y="30" width="116" height="68" rx="8" fill={ART.card} stroke={ART.line} strokeWidth="1.5" />
-      <path d="m66 36 54 36 54-36" fill="none" stroke={ART.main} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="170" cy="40" r="14" fill={ART.main} /><path d="m163 40 5 5 9-10" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function PolicyArt() {
-  return (
-    <svg viewBox="0 0 240 120" className="h-full w-full" aria-hidden>
-      <rect x="82" y="18" width="84" height="88" rx="8" fill={ART.card} stroke={ART.line} strokeWidth="1.5" transform="rotate(-6 124 62)" />
-      <rect x="74" y="14" width="84" height="88" rx="8" fill={ART.card} stroke={ART.line} strokeWidth="1.5" />
-      <rect x="86" y="50" width="48" height="5" rx="2.5" fill={ART.line} /><rect x="86" y="62" width="60" height="5" rx="2.5" fill={ART.line} /><rect x="86" y="74" width="36" height="5" rx="2.5" fill={ART.line} />
-      <path d="M116 22l14 5v10c0 9-6 15-14 18-8-3-14-9-14-18V27z" fill={ART.main} /><path d="m110 38 4 4 7-8" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function StepCard({ to, art, title, body, done }: { to: string; art: ReactNode; title: string; body: string; done: boolean }) {
-  const t = useT();
-  return (
-    <Link to={to} className="group flex flex-col gap-3 rounded-2xl border border-line bg-canvas p-2 shadow-card transition-colors hover:bg-surface">
-      <div className={`grid h-[110px] place-items-center overflow-hidden rounded-xl bg-surface ${done ? 'opacity-60' : ''}`}>{art}</div>
-      <div className="flex flex-col gap-1 px-2 pb-2">
-        <span className="flex items-center gap-2 text-[13px] font-semibold">{title}{done && <Badge tone="success"><Check className="size-3" aria-hidden />{t('home.card.done')}</Badge>}</span>
-        <span className="text-[13px] leading-5 text-muted">{body}</span>
-      </div>
-    </Link>
-  );
+/** Current time, refreshed every minute, so the greeting follows the day. */
+function useNow(everyMs = 60_000) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => { const id = setInterval(() => setNow(new Date()), everyMs); return () => clearInterval(id); }, [everyMs]);
+  return now;
 }
 
 export function HomePage() {
@@ -131,6 +85,7 @@ export function HomePage() {
   const toast = useToast();
   const qc = useQueryClient();
   const store = useStoreInfo();
+  const now = useNow();
   const [launching, setLaunching] = useState(false);
   const launch_ = useMutation({
     mutationFn: () => mutate(STORE_ACCESS_UPDATE, { input: { storefrontPasswordEnabled: false } }, 'shopmeShopUpdate'),
@@ -141,66 +96,79 @@ export function HomePage() {
     queryFn: () => gql<{ shopmeMarketingCampaigns: Array<{ status: string }>; shopmeAttribution: { attributedOrders: number; totalOrders: number } }>(MARKETING_PAGE, { from: new Date(Date.now() - 30 * 86_400_000).toISOString(), to: new Date(Date.now() + 86_400_000).toISOString() }),
   });
   const toProcess = useQuery({ queryKey: ['orders-count', 'to-process'], queryFn: () => gql<{ ordersCount: { count: number } }>(ORDERS_COUNT, { query: 'fulfillment_status:unfulfilled status:open' }) });
+
+  // Setup guide: every task is read from the store's own data. A query that fails leaves its task pending.
   const pay = useQuery({ queryKey: ['home-payments'], retry: false, queryFn: () => gql<{ shopmePaymentSettings: { bankTransfer: { enabled: boolean }; cod: { enabled: boolean }; stripe: { enabled: boolean; stripeConfigured: boolean } } }>(PAYMENT_SETTINGS) });
-  const pol = useQuery({ queryKey: ['home-policies'], retry: false, queryFn: () => gql<{ shop: { shopPolicies: Array<{ body: string }> } }>(SHOP_POLICIES) });
   const mail = useQuery({ queryKey: ['email-health'], retry: false, staleTime: 60_000, queryFn: fetchEmailHealth });
+  const products = useQuery({ queryKey: ['home-products-count'], retry: false, staleTime: 30_000, queryFn: () => gql<{ productsCount: { count: number } }>(PRODUCTS_COUNT, {}) });
+  const shipping = useQuery({ queryKey: ['home-delivery-profiles'], retry: false, staleTime: 30_000, queryFn: () => gql<{ deliveryProfiles: { nodes: Array<{ activeMethodDefinitionsCount: number }> } }>(DELIVERY_PROFILES) });
+  const themes = useQuery({ queryKey: ['home-themes'], retry: false, staleTime: 30_000, queryFn: () => gql<{ themes: { nodes: Array<{ role: string; createdAt: string; updatedAt: string }> } }>(HOME_THEMES) });
+  const offsite = useQuery({ queryKey: ['home-offsite'], retry: false, staleTime: 60_000, queryFn: () => offsiteApi('store').overview() });
   const p = pay.data?.shopmePaymentSettings;
-  const steps = [
-    { to: '/settings/payments', art: <PaymentArt />, title: t('home.setupPayments'), body: t('home.setupPayments.body'), done: !!p && (p.bankTransfer.enabled || p.cod.enabled || (p.stripe.enabled && p.stripe.stripeConfigured)) },
-    { to: '/settings/domains', art: <DomainArt />, title: t('home.setupDomain'), body: t('home.setupDomain.body'), done: store.customDomain },
-    { to: '/settings/emails', art: <EmailArt />, title: t('home.setupEmail'), body: t('home.setupEmail.body'), done: !!mail.data && mail.data.done },
-    { to: '/settings/policies', art: <PolicyArt />, title: t('home.setupPolicies'), body: t('home.setupPolicies.body'), done: !!pol.data && pol.data.shop.shopPolicies.some((x) => x.body.trim() !== '') },
-  ];
+  const settled = store.loaded && [pay, mail, products, shipping, themes, offsite].every((x) => !x.isPending);
+  const done = useMemo(() => detectTasks({
+    passwordProtected: store.loaded ? store.passwordProtected : undefined,
+    payments: p && { bankTransfer: p.bankTransfer.enabled, cod: p.cod.enabled, stripe: p.stripe.enabled, stripeConfigured: p.stripe.stripeConfigured },
+    customDomain: store.loaded ? store.customDomain : undefined,
+    emailDone: mail.data?.done,
+    productCount: products.data?.productsCount.count,
+    theme: themes.data?.themes.nodes.find((x) => x.role === 'MAIN') ?? null,
+    shippingMethods: shipping.data?.deliveryProfiles.nodes.reduce((n, x) => n + x.activeMethodDefinitionsCount, 0),
+    offsite: offsite.data?.destination,
+  }), [store.loaded, store.passwordProtected, store.customDomain, p, mail.data, products.data, themes.data, shipping.data, offsite.data]);
+
   const [range, setRange] = useState('LAST_7_DAYS');
   const q = useQuery({ queryKey: ['dashboard', range], queryFn: () => gql<{ shopmeDashboard: Dash }>(SHOPME_DASHBOARD, { range }) });
   const d = q.data?.shopmeDashboard;
-  const kpi = (label: string, value: string) => <Card key={label} title={label}><p className="text-2xl font-semibold">{q.isLoading ? <Skeleton className="h-8 w-24" /> : value}</p></Card>;
   const series = (d?.salesByDay ?? []).map((x) => ({ date: x.date, total: Number(x.sales.amount) }));
   const maxQty = Math.max(1, ...(d?.topProducts ?? []).map((p) => p.quantity));
   const link = 'inline-flex items-center gap-2 field-control font-medium hover:bg-surface';
   const prot = store.passwordProtected;
-  const launch = 'btn btn-primary mt-2 w-[290px] justify-center !rounded-full';
+  const launch = 'btn btn-primary !rounded-full';
+  const pill = 'inline-flex h-9 items-center gap-2 rounded-full border border-line bg-canvas px-4 text-[13px] font-medium shadow-card hover:bg-hover';
+  const toDo = toProcess.data?.ordersCount.count ?? 0;
 
   return (
-    <>
-      <div className="mx-auto max-w-[860px]"><OffsiteAlertBanner link /><EmailBanner /></div>
-      <div className="mx-auto flex max-w-[860px] flex-col items-center">
-        <div className="mb-6 self-start">
-          <span className="inline-flex h-7 items-center gap-2 rounded-full bg-canvas px-3 text-[13px] shadow-card" role="status">
-            <span className={`size-2 rounded-full ${prot ? 'bg-[#e0a100]' : 'bg-[#2ea44f]'}`} aria-hidden />{t(prot ? 'home.status.protected' : 'home.status.online')}
-          </span>
+    <div className="mx-auto max-w-[1100px]">
+      <KpiBar currency={shop.currency} timezone={shop.timezone} />
+      <OffsiteAlertBanner link /><EmailBanner />
+
+      <section className="relative isolate overflow-x-clip py-6 sm:py-10" aria-labelledby="home-greeting">
+        <DottedGlobe className="pointer-events-none absolute -right-24 top-1/2 -z-10 aspect-square w-[360px] -translate-y-1/2 text-muted opacity-40 sm:-right-10 sm:w-[500px] lg:w-[560px]" />
+        <h1 id="home-greeting" className="max-w-[560px] text-[28px] font-semibold leading-tight tracking-tight sm:text-[34px]">{user.firstName ? t(`hm.greet.${greetingPart(now, shop.timezone)}` as Key, { name: user.firstName }) : t(`hm.greet.${greetingPart(now, shop.timezone)}.plain` as Key)}</h1>
+        <p className="mt-2 max-w-[520px] text-lg text-muted sm:text-xl">{t('hm.greet.sub')}</p>
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          {toDo > 0 && <button type="button" className={pill} onClick={() => nav('/orders?tab=unfulfilled')}>{t('hm.processOrders', { n: toDo })}</button>}
+          <button type="button" onClick={openPalette} aria-label={t('home.searchLabel')} aria-keyshortcuts="Control+K Meta+K" className={`${pill} min-w-0 text-muted`}>
+            <Search className="size-4 shrink-0" aria-hidden /><span className="truncate">{t('home.search')}</span><kbd className="hidden rounded bg-surface sm:inline px-1.5 py-0.5 text-[11px] font-medium">Ctrl K</kbd>
+          </button>
         </div>
-        <StorePreview protectedStore={prot} />
-        {prot
-          ? <button type="button" className={launch} onClick={() => setLaunching(true)}><Rocket className="size-4" />{t('home.launch')}</button>
-          : <a href={store.url || '/'} target="_blank" rel="noreferrer" className={launch}><Rocket className="size-4" />{t('home.viewStore')}</a>}
-        <h1 className="mt-8 text-center text-[26px] font-medium leading-9">
-          <span className="underline decoration-dotted decoration-1 underline-offset-4">{shop.name}</span><br />{t(prot ? 'home.headline.protected' : 'home.headline.online')}<br />{t('home.question')}
-        </h1>
-        <button type="button" onClick={openPalette} aria-label={t('home.searchLabel')} aria-keyshortcuts="Control+K Meta+K"
-          className="mt-6 flex h-[88px] w-full max-w-[560px] flex-col justify-between rounded-3xl bg-canvas px-4 py-3 text-left shadow-card ring-1 ring-line hover:ring-primary">
-          <span className="text-sm text-muted">{t('home.search')}</span>
-          <span className="flex items-center justify-between text-muted"><Search className="size-4" aria-hidden /><kbd className="rounded bg-surface px-1.5 py-0.5 text-[11px] font-medium">Ctrl K</kbd></span>
-        </button>
-        <Button className="mt-5 !rounded-full" onClick={() => nav('/orders?tab=unfulfilled')}>{t('home.processOrders')}{toProcess.data && <Badge tone={toProcess.data.ordersCount.count ? 'attention' : 'neutral'}>{toProcess.data.ordersCount.count}</Badge>}</Button>
-      </div>
-      {steps.some((s) => !s.done) && (
-        <div className="mx-auto mt-12 grid max-w-[860px] gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={t('home.nextSteps')}>
-          {steps.map((s) => <StepCard key={s.to} {...s} />)}
-        </div>
-      )}
-      <div className="mt-12">
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <h2 className="min-w-0 flex-1 truncate text-lg font-semibold">{t('home.welcome', { name: user.firstName || shop.name })}</h2>
+      </section>
+
+      {settled ? <SetupGuide shopId={shop.id} done={done} onLaunch={() => setLaunching(true)} launchable={prot} storeUrl={store.url || '/'} /> : <Skeleton className="mt-8 h-64 w-full rounded-2xl" />}
+
+      <div className="mt-10 flex flex-col gap-4">
+        <Card title={t('hm.store.title')}>
+          <div className="flex flex-col items-center gap-5 sm:flex-row sm:justify-center sm:gap-10">
+            <StorePreview protectedStore={prot} />
+            <div className="flex flex-col items-center gap-3 sm:items-start">
+              <span className="inline-flex h-7 items-center gap-2 rounded-full bg-surface px-3 text-[13px]" role="status">
+                <span className={`size-2 rounded-full ${prot ? 'bg-[#e0a100]' : 'bg-[#2ea44f]'}`} aria-hidden />{t(prot ? 'home.status.protected' : 'home.status.online')}
+              </span>
+              <p className="text-[13px] text-muted"><span className="font-medium">{shop.name}</span> {t(prot ? 'home.headline.protected' : 'home.headline.online')}</p>
+              {prot
+                ? <button type="button" className={launch} onClick={() => setLaunching(true)}><Rocket className="size-4" />{t('home.launch')}</button>
+                : <a href={store.url || '/'} target="_blank" rel="noreferrer" className={launch}><Rocket className="size-4" />{t('home.viewStore')}</a>}
+            </div>
+          </div>
+        </Card>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="min-w-0 flex-1 truncate text-lg font-semibold">{t('hm.overview')}</h2>
           <select aria-label={t('home.range')} value={range} onChange={(e) => setRange(e.target.value)} className={selectCls}>{RANGES.map((r) => <option key={r} value={r}>{t(`home.range.${r}` as Key)}</option>)}</select>
         </div>
-        {q.isError && <div className="mb-4"><Banner>{(q.error as Error).message}</Banner></div>}
-        <div className="grid gap-4 sm:grid-cols-3">
-          {kpi(t('home.sales'), fmt.money(d?.totalSales))}
-          {kpi(t('home.orders'), String(d?.ordersCount ?? '—'))}
-          {kpi(t('home.aov'), fmt.money(d?.averageOrderValue))}
-        </div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_20rem]">
+        {q.isError && <Banner>{(q.error as Error).message}</Banner>}
+        <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
           <Card title={t('home.salesByDay')} actions={<Link to="/analytics/SALES_OVER_TIME" className="text-[13px] text-accent underline">{t('analytics.viewReports')}</Link>}>
             {series.length ? <SalesChart data={series} label={t('home.salesByDay')} format={(n) => fmt.money({ amount: String(n), currencyCode: shop.currency })} /> : <p className="py-8 text-center text-[13px] text-muted">{t('home.noSales')}</p>}
           </Card>
@@ -215,13 +183,13 @@ export function HomePage() {
             )}
           </Card>
         </div>
-        <Card className="mt-4" title={t('btn.home.growth')} actions={<Link to="/marketing" className="text-[13px] text-accent underline">{t('btn.home.growthOpen')}</Link>}>
+        <Card title={t('btn.home.growth')} actions={<Link to="/marketing" className="text-[13px] text-accent underline">{t('btn.home.growthOpen')}</Link>}>
           <div className="flex items-center gap-3 text-[13px]">
             <Megaphone className="size-5 text-muted" aria-hidden />
             <p className="text-muted">{growth.data ? t('btn.home.growthSummary', { campaigns: growth.data.shopmeMarketingCampaigns.filter((c) => c.status === 'ACTIVE').length, orders: growth.data.shopmeAttribution.attributedOrders }) : t('btn.home.growthBody')}</p>
           </div>
         </Card>
-        <Card className="mt-4" title={t('home.quickLinks')}>
+        <Card title={t('home.quickLinks')}>
           <div className="flex flex-wrap gap-2">
             <Link to="/products/new" className={link}><Package className="size-4" />{t('products.add')}</Link>
             <Link to="/orders" className={link}><ShoppingCart className="size-4" />{t('home.viewOrders')}</Link>
@@ -229,8 +197,8 @@ export function HomePage() {
           </div>
         </Card>
       </div>
-    <ConfirmDialog open={launching} loading={launch_.isPending} onClose={() => setLaunching(false)} closeLabel={t('common.close')} title={t('btn.home.launchTitle')}
+      <ConfirmDialog open={launching} loading={launch_.isPending} onClose={() => setLaunching(false)} closeLabel={t('common.close')} title={t('btn.home.launchTitle')}
         message={t('btn.home.launchBody')} confirmLabel={t('home.launch')} cancelLabel={t('common.cancel')} onConfirm={() => launch_.mutate()} />
-    </>
+    </div>
   );
 }

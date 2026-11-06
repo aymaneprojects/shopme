@@ -27,6 +27,7 @@ import { enQaStore } from './en-qa-store';
 import { enFinal } from './en-final';
 import { enQaSettings } from './en-qa-settings';
 import { enQaHome } from './en-qa-home';
+import { enHome } from './en-home';
 import { enShipping } from './en-shipping';
 import { enTransfers } from './en-transfers';
 import { enMetaobjects } from './en-metaobjects';
@@ -152,6 +153,7 @@ export const en = {
   ...enFinal,
   ...enQaSettings,
   ...enQaHome,
+  ...enHome,
   ...enTransfers,
   ...enDiscountCodes,
   ...enMarkets,

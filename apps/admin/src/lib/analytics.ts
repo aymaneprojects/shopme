@@ -89,3 +89,6 @@ export function weekStart(d: string): string {
   const dow = (new Date(parse(d)).getUTCDay() + 6) % 7;
   return addDays(d, -dow);
 }
+
+/** Today's date (YYYY-MM-DD) in a time zone. */
+export const todayIn = (tz: string) => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()); } catch { return new Date().toISOString().slice(0, 10); } };
