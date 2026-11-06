@@ -12,6 +12,7 @@ import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useStoreInfo } from '../lib/storeInfo';
 import { EmailBanner } from '../components/EmailSetup';
+import { OffsiteAlertBanner } from '../components/OffsiteBackup';
 import { fetchEmailHealth } from '../lib/emailApi';
 import { useMulti, useShop } from '../session';
 
@@ -162,7 +163,7 @@ export function HomePage() {
 
   return (
     <>
-      <div className="mx-auto max-w-[860px]"><EmailBanner /></div>
+      <div className="mx-auto max-w-[860px]"><OffsiteAlertBanner link /><EmailBanner /></div>
       <div className="mx-auto flex max-w-[860px] flex-col items-center">
         <div className="mb-6 self-start">
           <span className="inline-flex h-7 items-center gap-2 rounded-full bg-canvas px-3 text-[13px] shadow-card" role="status">

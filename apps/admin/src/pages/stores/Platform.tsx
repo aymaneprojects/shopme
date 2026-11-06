@@ -8,6 +8,7 @@ import { PageHeader } from '../../components/PageHeader';
 import { useI18n } from '../../i18n';
 import { useSession } from '../../session';
 import { PlatformEmail } from '../../components/EmailSetup';
+import { OffsiteCard } from '../../components/OffsiteBackup';
 import { Section } from '../../components/SettingsKit';
 
 interface PlatformStore { id: number; name: string; handle: string; status: 'ACTIVE' | 'SUSPENDED'; ownerEmail: string | null; primaryDomain: string | null; createdAt: string; staffCount: number; host: string | null; url: string; adminPath: string }
@@ -93,6 +94,7 @@ export function PlatformPage() {
               ))}
             </fieldset>
           </Card>
+          <Section title={t('offsite.platform.title')} description={t('offsite.platform.desc')}><OffsiteCard scope="platform" /></Section>
           <Section title={t('email.platform.title')} description={t('email.platform.desc')}><Card><PlatformEmail defaultTo={state.status === 'account' ? state.multi.account.email : ''} /></Card></Section>
         </div>
       )}

@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { createInProcessQueue, createLocalStorage, ensureSearchExtensions, type AppConfig, type DbHandle } from '@shopme/core';
+import { createInProcessQueue, createLocalStorage, ensureSearchExtensions, OffsiteBackups, type AppConfig, type DbHandle } from '@shopme/core';
 import { registerAuthRoutes } from './admin/auth-routes';
 import { registerBackupRoutes } from './admin/backup-routes';
 import { registerReportRoutes } from './admin/report-routes';
@@ -72,10 +72,11 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   const ctx: AppContext = {
     config, db: dbHandle.db, dbHandle, paths: resolvePaths(opts.paths), log: app.log,
     queue: createInProcessQueue(app.log),
-    mailer: undefined as never, email: undefined as never,
+    mailer: undefined as never, email: undefined as never, offsite: undefined as never,
     storage, storageFor: (shopId) => stores.storageFor(shopId), stores,
     locales, appVersion: APP_VERSION,
   };
+  ctx.offsite = new OffsiteBackups({ db: ctx.db, config, storageFor: (id) => stores.storageFor(id), dataDirFor: (id) => stores.dataDirFor(id), appVersion: APP_VERSION, log: { warn: (m) => app.log.warn(m) } });
   ctx.email = new EmailService(ctx);
   ctx.mailer = ctx.email.mailer();
   app.decorate('ctx', ctx);

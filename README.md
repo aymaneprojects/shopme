@@ -39,7 +39,8 @@ or with an embedded database for local use.
 - **Migration and data:** a Shopify migration importer (command line and admin page, through the Admin API), CSV import and export, and `.shopme` store archives for moving a whole store.
 - **API:** Admin GraphQL API (compatible subset), documented in [docs/spec](docs/spec/README.md).
 - **Deployment:** zero-setup local mode with embedded PostgreSQL (PGlite), Docker Compose with PostgreSQL 17, and desktop apps (beta).
-- **Multi-store mode (optional, `MULTI_STORE=true`):** one account and several stores on one installation, with a store switcher and "Create a store" in the account menu. Each store is isolated and answers on its own host (`<handle>.<base domain>` and its own verified domains), with its own Stripe keys, sender name, files and backups; a platform owner lists, suspends and deletes stores. See [docs/install/multi-store.md](docs/install/multi-store.md).
+- **Multi-store mode (optional, `MULTI_STORE=true`):** one account and several stores on one installation, with a store switcher and "Create a store" in the account menu. Each store is isolated and answers on its own host (`<handle>.<base domain>` and its own verified domains), with its own Stripe keys, sender name, files and backups; a platform owner lists, suspends and deletes stores. See [docs/install/backups.md](docs/install/backups.md) covers off-site backups: an S3-compatible bucket, encryption, retention and restoring.
+[docs/install/multi-store.md](docs/install/multi-store.md).
 
 **Not in v0.1:** Storefront GraphQL API, OAuth apps and an app platform, multi-currency and markets, EU VAT and OSS, shipping
 labels and carrier rates (including French carriers), local pickup, bulk operations, a REST Admin API, exchanges, customer

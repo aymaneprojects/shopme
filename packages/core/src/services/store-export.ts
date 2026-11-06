@@ -13,7 +13,7 @@ import { detectThemeOrigins } from './theme-update';
 export const EXPORT_FORMAT = 'shopme-export';
 export const EXPORT_FORMAT_VERSION = 1;
 /** Rows of these tables are not exported: credentials, sessions, transient and rebuildable data. */
-const EXCLUDED = new Set(['sessions', 'staff_users', 'staff_two_factor', 'platform_accounts', 'account_two_factor', 'platform_settings', 'shop_secrets', 'shop_domains', 'api_tokens', 'customer_tokens', 'jobs', 'webhook_deliveries', 'visits', 'bulk_operations', 'discount_code_bulk_creations', 'customer_login_codes', 'storefront_events', 'email_settings', 'email_dkim_keys', 'email_outbox']);
+const EXCLUDED = new Set(['sessions', 'staff_users', 'staff_two_factor', 'platform_accounts', 'account_two_factor', 'platform_settings', 'shop_secrets', 'shop_domains', 'api_tokens', 'customer_tokens', 'jobs', 'webhook_deliveries', 'visits', 'bulk_operations', 'discount_code_bulk_creations', 'customer_login_codes', 'storefront_events', 'email_settings', 'email_dkim_keys', 'email_outbox', 'backup_destinations', 'backup_runs']);
 
 export interface ExportManifest {
   format: typeof EXPORT_FORMAT; formatVersion: number; appVersion: string; schemaVersion: number; createdAt: string;

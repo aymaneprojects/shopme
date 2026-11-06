@@ -11,7 +11,7 @@ export const ref = (name: string) => bigint(name, { mode: 'number' });
 /** Money in minor units (cents). bigint so large totals cannot overflow. */
 export const money = (name: string) => bigint(name, { mode: 'number' });
 export const qty = (name: string) => integer(name);
-export const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
+export const createdAt = (name = 'created_at') => timestamp(name, { withTimezone: true }).notNull().defaultNow();
 export const updatedAt = () => timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date());
 export const ts = (name: string) => timestamp(name, { withTimezone: true });
 export const timestamps = () => ({ createdAt: createdAt(), updatedAt: updatedAt() });
