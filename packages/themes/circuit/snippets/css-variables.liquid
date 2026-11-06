@@ -1,0 +1,92 @@
+{%- doc -%}
+  Emits the font faces and the CSS custom properties derived from the theme settings: colors, color schemes, fonts, text presets, buttons, inputs, badges and layout.
+{%- enddoc -%}
+{%- liquid
+  assign accent = settings.color_primary | default: '#1f4fff'
+  assign accent_dark = accent | color_darken: 10
+  assign on_accent = '#ffffff'
+  assign accent_brightness = accent | color_brightness
+  if accent_brightness > 170
+    assign on_accent = '#0e1420'
+  endif
+  assign text_color = settings.color_text | default: '#0e1420'
+  assign fonts_used = settings.type_body_font | append: ' ' | append: settings.type_heading_font | append: ' ' | append: settings.type_accent_font
+  assign preset_ids = 'paragraph,h1,h2,h3,h4,h5,h6' | split: ','
+-%}
+<style data-circuit-fonts>
+  {%- if fonts_used contains 'inter' %}
+  @font-face { font-family: 'Circuit Inter'; src: url({{ 'font-inter.woff2' | asset_url }}) format('woff2'); font-weight: 100 900; font-display: swap; }
+  {%- endif %}
+  {%- if fonts_used contains 'space-grotesk' %}
+  @font-face { font-family: 'Circuit Space Grotesk'; src: url({{ 'font-space-grotesk.woff2' | asset_url }}) format('woff2'); font-weight: 300 700; font-display: swap; }
+  {%- endif %}
+  {%- if fonts_used contains 'manrope' %}
+  @font-face { font-family: 'Circuit Manrope'; src: url({{ 'font-manrope.woff2' | asset_url }}) format('woff2'); font-weight: 200 800; font-display: swap; }
+  {%- endif %}
+</style>
+<style data-circuit-variables>
+  :root {
+    --c-accent: {{ accent }};
+    --c-accent-dark: {{ accent_dark }};
+    --c-accent-soft: {{ accent | color_modify: 'alpha', 0.1 }};
+    --c-on-accent: {{ on_accent }};
+    --c-bg: {{ settings.color_background | default: '#f4f6f9' }};
+    --c-surface: {{ settings.color_surface | default: '#ffffff' }};
+    --c-text: {{ text_color }};
+    --c-muted: {{ text_color | color_modify: 'alpha', 0.68 }};
+    --c-line: {{ text_color | color_modify: 'alpha', 0.16 }};
+    --c-sale: {{ settings.color_sale | default: '#c42b1c' }};
+    --c-ok: {{ settings.color_ok | default: '#067647' }};
+    --f-body: {% render 'font-stack', font: settings.type_body_font %};
+    --f-heading: {% render 'font-stack', font: settings.type_heading_font %};
+    --f-accent: {% render 'font-stack', font: settings.type_accent_font %};
+    --f-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    --font-size-base: {{ settings.type_base_size | default: 16 }}px;
+    --page-width: {{ settings.page_width | default: 1440 }}px;
+    --radius: {{ settings.corner_radius | default: 4 }}px;
+    --logo-width: {{ settings.logo_width | default: 130 }}px;
+    --section-pad: {{ settings.section_spacing | default: 40 }}px;
+    --card-ratio: {% case settings.card_image_ratio %}{% when 'portrait' %}4 / 5{% when 'landscape' %}4 / 3{% else %}1 / 1{% endcase %};
+    --btn-radius: {{ settings.button_radius | default: 4 }}px;
+    --btn-border: {{ settings.button_border_width | default: 1 }}px;
+    --btn-height: {{ settings.button_height | default: 44 }}px;
+    --btn-transform: {% if settings.button_uppercase %}uppercase{% else %}none{% endif %};
+    --btn-font: var(--f-{{ settings.button_font | default: 'heading' }});
+    --input-radius: {{ settings.input_radius | default: 4 }}px;
+    --input-border: {{ settings.input_border_width | default: 1 }}px;
+    --input-height: {{ settings.input_height | default: 42 }}px;
+    --badge-sold-out: {{ settings.badge_sold_out_color | default: '#4a5160' }};
+    --anim: {{ settings.anim_duration | default: 150 }}ms;
+    --icon-stroke: {{ settings.icon_stroke_width | default: 1.8 }};
+    --icon-size: {{ settings.icon_size | default: 22 }}px;
+    {%- for id in preset_ids %}
+      {%- assign k_font = 'preset_' | append: id | append: '_font' -%}
+      {%- assign k_size = 'preset_' | append: id | append: '_size' -%}
+      {%- assign k_weight = 'preset_' | append: id | append: '_weight' -%}
+      {%- assign k_lh = 'preset_' | append: id | append: '_line_height' -%}
+      {%- assign k_case = 'preset_' | append: id | append: '_case' -%}
+      {%- if settings[k_size] != blank %}
+    --p-{{ id }}-font: var(--f-{{ settings[k_font] | default: 'body' }});
+    --p-{{ id }}-size: calc(var(--font-size-base) * {{ settings[k_size] | divided_by: 100.0 }});
+    --p-{{ id }}-weight: {{ settings[k_weight] | default: 400 }};
+    --p-{{ id }}-lh: {{ settings[k_lh] | default: 130 | divided_by: 100.0 }};
+    --p-{{ id }}-case: {{ settings[k_case] | default: 'none' }};
+      {%- endif %}
+    {%- endfor %}
+  }
+  {%- for scheme in settings.color_schemes %}
+    {%- assign sid = scheme[0] -%}
+    {%- assign sv = scheme[1].settings %}
+  .color-{{ sid }} {
+    --c-bg: {{ sv.background | default: '#ffffff' }};
+    --c-text: {{ sv.text | default: '#0e1420' }};
+    --c-surface: {{ sv.surface | default: sv.background }};
+    --c-line: {{ sv.border | default: '#d5d9e0' }};
+    --c-accent: {{ sv.button | default: '#1f4fff' }};
+    --c-accent-dark: {{ sv.button | default: '#1f4fff' | color_darken: 10 }};
+    --c-accent-soft: {{ sv.button | default: '#1f4fff' | color_modify: 'alpha', 0.14 }};
+    --c-on-accent: {{ sv.button_label | default: '#ffffff' }};
+    --c-muted: {{ sv.text | default: '#0e1420' | color_modify: 'alpha', 0.74 }};
+  }
+  {%- endfor %}
+</style>

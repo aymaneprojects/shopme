@@ -1,0 +1,88 @@
+{%- assign s = section.settings -%}
+<div class="page-width cx-listing">
+  <nav class="cx-crumbs" aria-label="{{ 'products.breadcrumb' | t }}">
+    <ol>
+      <li><a href="{{ routes.root_url }}">{{ 'general.home' | t }}</a></li>
+      <li aria-current="page">{{ collection.title | escape }}</li>
+    </ol>
+  </nav>
+  <header class="cx-listing__head">
+    <div>
+      <h1 class="cx-listing__title">{{ collection.title | escape }}</h1>
+      {%- if s.show_description and collection.description != blank -%}<div class="cx-listing__desc rte">{{ collection.description }}</div>{%- endif -%}
+    </div>
+    <p class="cx-listing__count cx-mono">{{ 'collection.product_count' | t: count: collection.products_count }}</p>
+  </header>
+
+  <div class="cx-listing__layout">
+    <div class="cx-listing__side" data-filters-panel>
+      {% render 'filters', filters: collection.filters, sort_options: collection.sort_options, sort_by: collection.sort_by, action: collection.url %}
+    </div>
+    <div class="cx-listing__main">
+      <div class="cx-listing__bar">
+        <button type="button" class="button button--outline button--small cx-listing__filter-btn" data-filters-open aria-controls="cx-filters">{% render 'icon', name: 'filter', size: 16 %} {{ 'collection.filter' | t }}</button>
+        <div class="cx-view" role="group" aria-label="{{ 'collection.view' | t }}">
+          <button type="button" class="cx-view__btn is-active" data-view="grid" aria-pressed="true"><span class="visually-hidden">{{ 'collection.view_grid' | t }}</span>{% render 'icon', name: 'grid', size: 18 %}</button>
+          <button type="button" class="cx-view__btn" data-view="list" aria-pressed="false"><span class="visually-hidden">{{ 'collection.view_list' | t }}</span>{% render 'icon', name: 'list', size: 18 %}</button>
+        </div>
+      </div>
+      {%- paginate collection.products by s.products_per_page -%}
+        {%- if collection.products.size > 0 -%}
+          <ul class="cx-grid cx-grid--{{ s.columns }}" role="list" data-product-grid>
+            {%- for product in collection.products -%}
+              <li>{% render 'product-card', card_product: product %}</li>
+            {%- endfor -%}
+          </ul>
+        {%- else -%}
+          <p class="empty">{{ 'general.no_products' | t }}</p>
+        {%- endif -%}
+        {% render 'pagination', paginate: paginate %}
+      {%- endpaginate -%}
+    </div>
+  </div>
+  <div class="cx-overlay cx-overlay--filters" data-filters-close></div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_collection.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "t:sections.main_collection.settings.products_per_page",
+      "min": 8,
+      "max": 48,
+      "step": 4,
+      "default": 24
+    },
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "t:sections.main_collection.settings.columns",
+      "default": "4",
+      "options": [
+        {
+          "value": "3",
+          "label": "t:sections.main_collection.options.columns.3"
+        },
+        {
+          "value": "4",
+          "label": "t:sections.main_collection.options.columns.4"
+        },
+        {
+          "value": "5",
+          "label": "t:sections.main_collection.options.columns.5"
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "t:sections.main_collection.settings.show_description",
+      "default": true
+    }
+  ]
+}
+{% endschema %}

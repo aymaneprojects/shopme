@@ -1,0 +1,115 @@
+{%- liquid
+  assign menu = section.settings.menu
+  assign menu_2 = section.settings.menu_2
+  assign about = shop.description
+  if about == blank
+    assign about = 'footer.default_description' | t
+  endif
+  assign menu_title = section.settings.menu_heading
+  if menu_title == blank
+    assign menu_title = 'footer.links_title' | t
+  endif
+-%}
+<footer class="cx-footer {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width cx-footer__grid">
+    <div class="cx-footer__about">
+      <p class="cx-footer__brand">{{ shop.name | escape }}</p>
+      {%- if section.settings.show_description -%}
+        <p class="cx-footer__text">{{ about | escape }}</p>
+      {%- endif -%}
+      {%- if section.settings.show_newsletter -%}
+        {%- form 'customer', id: 'newsletter-footer', class: 'cx-newsletter' -%}
+          <p class="cx-footer__heading">{{ 'newsletter.title' | t }}</p>
+          {%- if form.posted_successfully? -%}
+            <p class="form-success" role="status">{{ 'newsletter.success' | t }}</p>
+          {%- else -%}
+            {%- if form.errors -%}<div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>{%- endif -%}
+            <input type="hidden" name="contact[tags]" value="newsletter">
+            <label class="visually-hidden" for="newsletter-footer-email">{{ 'newsletter.label' | t }}</label>
+            <div class="cx-newsletter__row">
+              <input id="newsletter-footer-email" class="cx-input" type="email" name="contact[email]" value="{{ form.email | escape }}" placeholder="{{ 'newsletter.label' | t }}" autocomplete="email" required>
+              <button class="button" type="submit">{{ 'newsletter.submit' | t }}</button>
+            </div>
+          {%- endif -%}
+        {%- endform -%}
+      {%- endif -%}
+    </div>
+    {%- if menu != blank and menu.links.size > 0 -%}
+      <nav class="cx-footer__col" aria-label="{{ 'footer.menu' | t }}">
+        <p class="cx-footer__heading">{{ menu_title | escape }}</p>
+        <ul role="list">
+          {%- for link in menu.links -%}<li><a href="{{ link.url }}">{{ link.title | escape }}</a></li>{%- endfor -%}
+        </ul>
+      </nav>
+    {%- endif -%}
+    {%- if menu_2 != blank and menu_2.links.size > 0 -%}
+      <nav class="cx-footer__col" aria-label="{{ menu_2.title | escape }}">
+        <p class="cx-footer__heading">{{ menu_2.title | escape }}</p>
+        <ul role="list">
+          {%- for link in menu_2.links -%}<li><a href="{{ link.url }}">{{ link.title | escape }}</a></li>{%- endfor -%}
+        </ul>
+      </nav>
+    {%- endif -%}
+    {%- if section.settings.show_support -%}
+      <div class="cx-footer__col cx-footer__support">
+        <p class="cx-footer__heading">{{ 'footer.support_title' | t }}</p>
+        <ul role="list">
+          <li>{% render 'icon', name: 'headset', size: 18 %} <span>{{ 'footer.support_text' | t }}</span></li>
+          <li>{% render 'icon', name: 'shield', size: 18 %} <span>{{ 'footer.warranty_text' | t }}</span></li>
+          <li>{% render 'icon', name: 'refresh', size: 18 %} <span>{{ 'footer.returns_text' | t }}</span></li>
+        </ul>
+      </div>
+    {%- endif -%}
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "t:sections.footer.name",
+  "tag": "div",
+  "class": "footer-section",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "t:sections.footer.settings.menu",
+      "default": "footer"
+    },
+    {
+      "type": "text",
+      "id": "menu_heading",
+      "label": "t:sections.footer.settings.menu_heading",
+      "info": "t:sections.footer.info.menu_heading"
+    },
+    {
+      "type": "link_list",
+      "id": "menu_2",
+      "label": "t:sections.footer.settings.menu_2"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "t:sections.footer.settings.show_description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_newsletter",
+      "label": "t:sections.footer.settings.show_newsletter",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_support",
+      "label": "t:sections.footer.settings.show_support",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.footer.settings.color_scheme",
+      "default": "scheme-2"
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,57 @@
+{%- liquid
+  assign text = section.settings.text
+  if text == blank
+    assign text = 'announcement.default' | t
+  endif
+-%}
+{%- if section.settings.show -%}
+  <div class="vl-announce {% render 'scheme-class', scheme: section.settings.color_scheme | default: 'scheme-1' %}" role="region" aria-label="{{ 'announcement.label' | t }}">
+    <div class="page-width vl-announce__inner">
+      {% render 'icon', name: 'sparkle', size: 16 %}
+      {%- if section.settings.link != blank -%}
+        <a href="{{ section.settings.link }}">{{ text | escape }}</a>
+      {%- else -%}
+        <p>{{ text | escape }}</p>
+      {%- endif -%}
+      {% render 'icon', name: 'sparkle', size: 16 %}
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.announcement_bar.name",
+  "tag": "div",
+  "class": "announcement-section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show",
+      "label": "t:sections.announcement_bar.settings.show",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.announcement_bar.settings.text",
+      "info": "t:sections.announcement_bar.info.text"
+    },
+    {
+      "type": "url",
+      "id": "link",
+      "label": "t:sections.announcement_bar.settings.link"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.announcement_bar.settings.color_scheme",
+      "default": "scheme-1"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.announcement_bar.presets.announcement_bar"
+    }
+  ]
+}
+{% endschema %}

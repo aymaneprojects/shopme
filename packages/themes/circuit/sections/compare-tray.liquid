@@ -1,0 +1,48 @@
+{%- if settings.compare_enabled -%}
+  <div class="cx-compare {% render 'scheme-class', scheme: section.settings.color_scheme %}" data-compare-tray hidden>
+    <div class="page-width cx-compare__inner">
+      <p class="cx-compare__title">
+        {% render 'icon', name: 'compare', size: 20 %}
+        <span>{{ 'compare.title' | t }}</span>
+        <span class="cx-compare__counter cx-mono" data-compare-counter>0/4</span>
+      </p>
+      <ul class="cx-compare__slots" data-compare-slots role="list" aria-label="{{ 'compare.title' | t }}"></ul>
+      <div class="cx-compare__actions">
+        <button type="button" class="button" data-compare-view disabled>{{ 'compare.compare_now' | t }}</button>
+        <button type="button" class="cx-link-btn" data-compare-clear>{{ 'compare.clear' | t }}</button>
+      </div>
+    </div>
+  </div>
+  <div class="cx-modal" data-compare-modal role="dialog" aria-modal="true" aria-labelledby="cx-compare-title" tabindex="-1" hidden>
+    <div class="cx-modal__panel">
+      <header class="cx-modal__head">
+        <h2 id="cx-compare-title">{{ 'compare.heading' | t }}</h2>
+        <button type="button" class="cx-icon-btn" data-compare-close>
+          <span class="visually-hidden">{{ 'compare.close' | t }}</span>
+          {% render 'icon', name: 'close' %}
+        </button>
+      </header>
+      <div class="cx-modal__body" data-compare-table aria-live="polite"></div>
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.compare_tray.name",
+  "tag": "div",
+  "class": "compare-section",
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "t:sections.compare_tray.paragraphs.the_tray_appears_at_the_bottom_of_the_page_once_"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.compare_tray.settings.color_scheme",
+      "default": "scheme-4"
+    }
+  ]
+}
+{% endschema %}

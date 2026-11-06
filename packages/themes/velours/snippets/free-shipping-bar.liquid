@@ -1,0 +1,26 @@
+{%- doc -%}
+  Free shipping progress bar: how far the cart total is from the threshold set in the theme settings.
+  @param {string} [class] - extra css class
+{%- enddoc -%}
+{%- if settings.cart_show_free_shipping and settings.free_shipping_threshold > 0 and cart.item_count > 0 -%}
+  {%- liquid
+    assign threshold = settings.free_shipping_threshold | times: 100
+    assign total = cart.total_price
+    assign remaining = threshold | minus: total
+    assign percent = total | times: 100 | divided_by: threshold
+    if percent > 100
+      assign percent = 100
+    endif
+    assign remaining_money = remaining | money_without_trailing_zeros
+  -%}
+  <div class="vl-ship{% if class %} {{ class }}{% endif %}{% if remaining <= 0 %} is-unlocked{% endif %}" data-free-shipping>
+    <p class="vl-ship__text" role="status">
+      {%- if remaining <= 0 -%}
+        {% render 'icon', name: 'truck', size: 18 %} {{ 'cart.free_shipping_reached' | t }}
+      {%- else -%}
+        {% render 'icon', name: 'truck', size: 18 %} {{ 'cart.free_shipping_remaining' | t: amount: remaining_money }}
+      {%- endif -%}
+    </p>
+    <div class="vl-ship__track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ percent }}" aria-label="{{ 'cart.free_shipping_label' | t }}"><span style="width: {{ percent }}%"></span></div>
+  </div>
+{%- endif -%}

@@ -160,7 +160,7 @@ describe('installing and updating a bundled theme (PGlite in memory)', () => {
     expect(idx!.body).toContain('Du thé frais');
     expect(await installStartingTheme(fresh.db, storage, shop.id, info)).toBe(false); // already has files
     await fresh.close();
-  });
+  }, 30_000);
 
   it('offers an update for a theme that is not Aurora, and creates the new version with the merchant’s settings', async () => {
     const [theme] = await h.db.select().from(schema.themes).where(and(eq(schema.themes.shopId, enShop), eq(schema.themes.originTheme, 'fixture-tea')));

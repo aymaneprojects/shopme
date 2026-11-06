@@ -1,0 +1,24 @@
+{%- doc -%}
+  Department tile: a collection with its image (or a numbered chip), title and product count.
+  @param {collection} tile_collection - the collection
+  @param {boolean} [show_count] - show the product count
+  @param {number} [index] - position, shown on tiles without an image
+{%- enddoc -%}
+{%- liquid
+  assign image = tile_collection.image | default: tile_collection.featured_image
+  assign focal = ''
+  if image.presentation.focal_point != blank
+    assign focal = 'object-position: ' | append: image.presentation.focal_point
+  endif
+-%}
+<a class="cx-tile" href="{{ tile_collection.url }}">
+  <span class="cx-tile__media">
+    {%- if image -%}
+      {{ image | image_url: width: 400 | image_tag: loading: 'lazy', alt: '', sizes: '(min-width: 990px) 16vw, 45vw', style: focal }}
+    {%- else -%}
+      <span class="cx-tile__index cx-mono">{{ index | default: 1 | prepend: '00' | slice: -2, 2 }}</span>
+    {%- endif -%}
+  </span>
+  <span class="cx-tile__title">{{ tile_collection.title | escape }}</span>
+  {%- if show_count -%}<span class="cx-tile__count cx-mono">{{ 'collection.product_count' | t: count: tile_collection.products_count }}</span>{%- endif -%}
+</a>

@@ -1,0 +1,491 @@
+{
+  "accessibility": {
+    "skip_to_content": "Skip to content",
+    "cart_count": "Cart, {{ count }} items",
+    "open_menu": "Open menu",
+    "close_menu": "Close menu",
+    "search": "Search",
+    "gallery": "Product images",
+    "quantity": "Quantity"
+  },
+  "general": {
+    "home": "Home",
+    "error": "Something went wrong. Please try again.",
+    "previous": "Previous",
+    "next": "Next",
+    "pagination": "Pagination",
+    "view_all": "View all",
+    "continue_shopping": "Continue shopping",
+    "copyright": "© {{ year }} {{ shop }}",
+    "powered_by": "Powered by ShopMe",
+    "page_not_found": "Page not found",
+    "page_not_found_text": "The page you are looking for does not exist or has moved.",
+    "back_to_store": "Back to the store",
+    "empty_collections": "No collections yet.",
+    "no_products": "No products found.",
+    "date_format": "%b %-d, %Y",
+    "all_collections": "All departments",
+    "collection_count": {
+      "one": "{{ count }} department",
+      "other": "{{ count }} departments"
+    }
+  },
+  "header": {
+    "cart": "Cart",
+    "search": "Search",
+    "account": "Account",
+    "departments": "All departments",
+    "promo_tag": "Deal"
+  },
+  "products": {
+    "add_to_cart": "Add to cart",
+    "sold_out": "Sold out",
+    "sale": "Sale",
+    "added_to_cart": "Added to cart",
+    "view_cart": "View cart",
+    "from_price": "From {{ price }}",
+    "regular_price": "Regular price",
+    "sale_price": "Sale price",
+    "quantity": "Quantity",
+    "description": "Description",
+    "unavailable": "Unavailable",
+    "gift_card": {
+      "recipient_email": "Recipient email (optional)",
+      "recipient_name": "Recipient name (optional)",
+      "message": "Message (optional)"
+    },
+    "purchase_options": {
+      "title": "Purchase options",
+      "one_time": "One-time purchase",
+      "delivery": "Delivery frequency",
+      "per_delivery": "{{ price }} per delivery",
+      "save_percent": "Save {{ percent }}%",
+      "subscription_note": "Skip, pause or cancel at any time from your account.",
+      "required": "This product is only sold as a subscription."
+    },
+    "in_stock": "In stock",
+    "type": "Type",
+    "sku": "SKU",
+    "breadcrumb": "Breadcrumb",
+    "show_image": "Show image {{ number }}",
+    "decrease_quantity": "Decrease quantity",
+    "increase_quantity": "Increase quantity",
+    "recommendations": "You may also need",
+    "choose_options": "Choose options for"
+  },
+  "collection": {
+    "sort_by": "Sort by",
+    "filter": "Filter",
+    "availability": "Availability",
+    "in_stock": "In stock",
+    "out_of_stock": "Out of stock",
+    "apply": "Apply",
+    "clear": "Clear all",
+    "product_count": {
+      "one": "{{ count }} product",
+      "other": "{{ count }} products"
+    },
+    "price": "Price",
+    "product_type": "Type",
+    "vendor": "Brand",
+    "price_from": "Minimum price",
+    "price_to": "Maximum price",
+    "view": "Layout",
+    "view_grid": "Grid view",
+    "view_list": "List view",
+    "close_filters": "Close filters",
+    "remove_filter": "Remove filter",
+    "sort": {
+      "manual": "Featured",
+      "relevance": "Relevance",
+      "best-selling": "Best selling",
+      "title-ascending": "Name, A-Z",
+      "title-descending": "Name, Z-A",
+      "price-ascending": "Price, low to high",
+      "price-descending": "Price, high to low",
+      "created-ascending": "Date, old to new",
+      "created-descending": "Date, new to old"
+    }
+  },
+  "cart": {
+    "title": "Your cart",
+    "empty": "Your cart is empty",
+    "product": "Product",
+    "price": "Price",
+    "quantity": "Quantity",
+    "total": "Total",
+    "remove": "Remove",
+    "subtotal": "Subtotal",
+    "note": "Order note",
+    "taxes_shipping": "Taxes and shipping are calculated at checkout.",
+    "discount": "Discount",
+    "checkout": "Check out",
+    "update": "Update cart",
+    "decrease": "Decrease quantity of {{ title }}",
+    "increase": "Increase quantity of {{ title }}",
+    "recurring": "Subscription: {{ price }} per delivery",
+    "close": "Close the cart",
+    "summary": "Order summary"
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "Search our store",
+    "submit": "Search",
+    "results": {
+      "one": "{{ count }} result for \"{{ terms }}\"",
+      "other": "{{ count }} results for \"{{ terms }}\""
+    },
+    "no_results": "No results found for \"{{ terms }}\". Try another search.",
+    "predictive": {
+      "products": "Products",
+      "collections": "Collections",
+      "pages": "Pages",
+      "articles": "Articles",
+      "queries": "Suggestions",
+      "none": "No suggestions for \"{terms}\"",
+      "all": "Search for \"{terms}\""
+    },
+    "corrected": "Showing results for \"{{ terms }}\"",
+    "type": {
+      "product": "Product",
+      "page": "Page",
+      "article": "Article"
+    }
+  },
+  "password": {
+    "title": "Opening soon",
+    "message": "This store is password protected.",
+    "label": "Password",
+    "submit": "Enter",
+    "wrong": "Wrong password"
+  },
+  "footer": {
+    "menu": "Footer menu",
+    "links_title": "Explore",
+    "default_description": "Gadgets, devices and accessories with clear specs and honest prices.",
+    "support_title": "Support",
+    "support_text": "Help from real people, 7 days a week",
+    "warranty_text": "2-year warranty on all devices",
+    "returns_text": "30 days to change your mind"
+  },
+  "customer": {
+    "login": "Log in",
+    "logout": "Log out",
+    "register": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "password_confirmation": "Confirm password",
+    "first_name": "First name",
+    "last_name": "Last name",
+    "login_page": {
+      "title": "Log in",
+      "forgot": "Forgot your password?",
+      "submit": "Sign in",
+      "no_account": "New customer?",
+      "code_title": "Sign in with an email code",
+      "code_text": "We will email you a 6-digit code. No password needed.",
+      "code_send": "Email me a code",
+      "code_sent": "If the address is valid, a code is on its way. It stays valid for 10 minutes.",
+      "code_label": "6-digit code",
+      "code_submit": "Sign in with the code",
+      "code_resend": "Send a new code",
+      "or": "or"
+    },
+    "register_page": {
+      "title": "Create account",
+      "submit": "Create account",
+      "have_account": "Already have an account?",
+      "marketing": "Email me with news and offers"
+    },
+    "recover": {
+      "title": "Reset your password",
+      "text": "Enter your email and we will send you a link to choose a new password.",
+      "submit": "Send email",
+      "cancel": "Cancel",
+      "success": "If an account exists for this email address, we have sent you a message with a link to continue."
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "submit": "Save password"
+    },
+    "activate": {
+      "title": "Activate your account",
+      "text": "Choose a password to activate your account.",
+      "submit": "Activate account"
+    },
+    "account_page": {
+      "title": "My account",
+      "welcome": "Hello, {{ name }}",
+      "order_history": "Order history",
+      "no_orders": "You have not placed any orders yet.",
+      "details": "Account details",
+      "view_addresses": "View addresses ({{ count }})",
+      "default_address": "Default address",
+      "order": "Order",
+      "date": "Date",
+      "payment_status": "Payment",
+      "fulfillment_status": "Fulfillment",
+      "total": "Total",
+      "store_credit": "Store credit",
+      "store_credit_balance": "Balance: {{ amount }}"
+    },
+    "order_page": {
+      "title": "Order {{ name }}",
+      "placed_on": "Placed on {{ date }}",
+      "cancelled": "Cancelled on {{ date }}",
+      "product": "Product",
+      "sku": "SKU",
+      "price": "Price",
+      "quantity": "Quantity",
+      "total": "Total",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "shipping": "Shipping",
+      "taxes": "Taxes",
+      "order_total": "Total",
+      "billing_address": "Billing address",
+      "shipping_address": "Shipping address",
+      "shipments": "Shipments",
+      "tracking": "Tracking",
+      "back": "Back to account",
+      "actions": "Order actions",
+      "reorder": "Buy again",
+      "cancel": "Cancel order",
+      "cancel_until": "You can cancel this order until {{ date }}.",
+      "cancel_confirm": "Cancel this order? Items go back in stock and any payment is refunded.",
+      "return_title": "Request a return",
+      "return_text": "Choose the items you want to return. We review each request.",
+      "return_submit": "Request return",
+      "return_note": "Note (optional)",
+      "return_max": "of {{ max }}",
+      "notice_cancel_ok": "Your order was cancelled.",
+      "notice_cancel_failed": "This order can no longer be cancelled.",
+      "notice_return_ok": "Your return request was sent. We will get back to you.",
+      "notice_return_failed": "The return request could not be created."
+    },
+    "addresses": {
+      "title": "Addresses",
+      "add": "Add a new address",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save address",
+      "default": "Default",
+      "set_default": "Set as default address",
+      "company": "Company",
+      "address1": "Address",
+      "address2": "Apartment, suite, etc.",
+      "city": "City",
+      "country": "Country/region",
+      "province": "State/province",
+      "zip": "Postal code",
+      "phone": "Phone",
+      "confirm_delete": "Delete this address?",
+      "none": "No saved addresses.",
+      "back": "Back to account"
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "next_order": "Next order on {{ date }}: {{ total }}",
+      "skip": "Skip next order",
+      "pause": "Pause",
+      "resume": "Resume",
+      "cancel": "Cancel",
+      "cancel_confirm": "Cancel this subscription? You will not be charged again.",
+      "statuses": {
+        "active": "Active",
+        "paused": "Paused",
+        "cancelled": "Cancelled",
+        "expired": "Ended",
+        "failed": "Payment problem"
+      },
+      "frequency": {
+        "day": {
+          "one": "Every day",
+          "other": "Every {{ count }} days"
+        },
+        "week": {
+          "one": "Every week",
+          "other": "Every {{ count }} weeks"
+        },
+        "month": {
+          "one": "Every month",
+          "other": "Every {{ count }} months"
+        },
+        "year": {
+          "one": "Every year",
+          "other": "Every {{ count }} years"
+        }
+      }
+    }
+  },
+  "blog": {
+    "read_more": "Read more",
+    "by": "By {{ author }}",
+    "published": "Published on {{ date }}",
+    "tags": "Tags",
+    "all": "All",
+    "no_articles": "No articles yet.",
+    "next": "Next article",
+    "previous": "Previous article",
+    "back": "Back to {{ blog }}",
+    "feed": "Atom feed"
+  },
+  "contact": {
+    "title": "Contact us",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone number (optional)",
+    "message": "Message",
+    "submit": "Send",
+    "success": "Thanks for contacting us. We will get back to you as soon as possible."
+  },
+  "newsletter": {
+    "title": "Stay in touch",
+    "label": "Email address",
+    "submit": "Subscribe",
+    "success": "Thanks for subscribing!"
+  },
+  "localization": {
+    "language": "Language",
+    "update": "Update language",
+    "country": "Country or region",
+    "update_country": "Update country"
+  },
+  "gift_card": {
+    "title": "Your {{ shop }} gift card",
+    "balance": "Balance",
+    "initial_value": "Initial value: {{ amount }}",
+    "code": "Gift card code",
+    "expires_on": "Valid until {{ date }}",
+    "expired": "This gift card expired on {{ date }}.",
+    "disabled": "This gift card has been deactivated.",
+    "shop_now": "Start shopping",
+    "how_to": "Enter the code in the Gift card field at checkout. The balance is used up to the amount of your order."
+  },
+  "privacy": {
+    "banner": {
+      "title": "Cookie consent",
+      "accept": "Accept all",
+      "reject": "Decline",
+      "manage": "Manage preferences",
+      "save": "Save preferences",
+      "preferences_title": "Cookie preferences",
+      "analytics": "Analytics",
+      "analytics_help": "Helps us understand how the store is used.",
+      "marketing": "Marketing",
+      "marketing_help": "Lets us and our partners show relevant offers.",
+      "preferences": "Preferences",
+      "preferences_help": "Remembers your choices such as language or region.",
+      "privacy_policy": "Privacy policy"
+    },
+    "footer": {
+      "cookie_preferences": "Cookie preferences",
+      "opt_out": "Do not sell or share my personal information"
+    }
+  },
+  "media": {
+    "video": "Video"
+  },
+  "announcement": {
+    "default": "Free delivery over 50, 2-year warranty on every device",
+    "label": "Announcement",
+    "tag": "New"
+  },
+  "page_titles": {
+    "404": "Page not found",
+    "cart": "Cart",
+    "search": "Search",
+    "list-collections": "Departments",
+    "password": "Password",
+    "login": "Log in",
+    "register": "Create account",
+    "account": "My account",
+    "order": "Order",
+    "addresses": "Addresses",
+    "activate_account": "Activate account",
+    "reset_password": "Reset password"
+  },
+  "compare": {
+    "title": "Compare",
+    "heading": "Compare products",
+    "add": "Compare",
+    "added": "Added to compare",
+    "full": "You can compare up to 4 products. Remove one to add another.",
+    "loading": "Loading the comparison...",
+    "spec": "Specification",
+    "availability": "Availability",
+    "brand": "Brand",
+    "price": "Price",
+    "remove": "Remove",
+    "view_product": "View product",
+    "differences_only": "Show differences only",
+    "compare_now": "Compare now",
+    "clear": "Clear all",
+    "close": "Close the comparison"
+  },
+  "perks": {
+    "default_1_title": "Fast delivery.",
+    "default_1_text": "Ships within 24 hours.",
+    "default_2_title": "2-year warranty.",
+    "default_2_text": "Covered against defects.",
+    "default_3_title": "30-day returns.",
+    "default_3_text": "Free if it is not for you."
+  },
+  "highlights": {
+    "default_1_title": "Delivery in 24 to 48 h",
+    "default_1_text": "Free over 50, tracked parcels",
+    "default_2_title": "2-year warranty",
+    "default_2_text": "On every device we sell",
+    "default_3_title": "30-day returns",
+    "default_3_text": "Simple and free",
+    "default_4_title": "Expert support",
+    "default_4_text": "Chat or call, 7 days a week"
+  },
+  "home": {
+    "hero_eyebrow": "New season, new gear",
+    "hero_heading": "The right device, at the right spec",
+    "hero_text": "Compare specs side by side, filter by what matters and order with a 2-year warranty on everything.",
+    "hero_button": "Shop all products",
+    "hero_button_2": "Browse departments",
+    "spotlight": "Spotlight",
+    "stat_1_value": "24 h",
+    "stat_1_label": "Dispatch",
+    "stat_2_value": "2 yrs",
+    "stat_2_label": "Warranty",
+    "stat_3_value": "30 d",
+    "stat_3_label": "Free returns",
+    "categories_heading": "Shop by department",
+    "featured_heading": "Top picks this week",
+    "brands_heading": "Brands we carry",
+    "brands_empty": "Brands appear here once your products have a vendor.",
+    "promo_1_eyebrow": "Bundle",
+    "promo_1_heading": "Build your setup",
+    "promo_1_text": "Pick a device and the accessories that go with it.",
+    "promo_1_button": "Start building",
+    "promo_2_eyebrow": "Compare",
+    "promo_2_heading": "Not sure which one?",
+    "promo_2_text": "Add up to 4 products to the tray and compare every spec.",
+    "promo_2_button": "See all products",
+    "promo_3_eyebrow": "Deals",
+    "promo_3_heading": "Last chance prices",
+    "promo_3_text": "Selected devices at their lowest price yet.",
+    "promo_3_button": "View deals",
+    "faq_heading": "Good to know",
+    "faq_1_q": "How long does delivery take?",
+    "faq_1_a": "Orders placed before 2 pm ship the same day and arrive in 24 to 48 hours.",
+    "faq_2_q": "What does the warranty cover?",
+    "faq_2_a": "Every device has a 2-year warranty against manufacturing defects. Keep your order confirmation as proof of purchase.",
+    "faq_3_q": "Can I return a product?",
+    "faq_3_a": "Yes, within 30 days if it is unused and in its original packaging. Return shipping is free.",
+    "newsletter_heading": "Get launch alerts and deals",
+    "newsletter_text": "One short email when something new lands. No spam, unsubscribe any time."
+  },
+  "specs": {
+    "heading": "Technical specifications",
+    "product_data": "Product data",
+    "brand": "Brand",
+    "barcode": "Barcode",
+    "weight": "Weight",
+    "availability": "Availability"
+  }
+}

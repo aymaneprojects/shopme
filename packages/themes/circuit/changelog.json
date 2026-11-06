@@ -1,0 +1,31 @@
+{
+  "about": "What changed in each version of Circuit, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release of Circuit, a crisp and dense theme for electronics, gadgets and large catalogs.",
+          "Sticky header with a large predictive search bar, a department mega menu built from your menu, language and currency selectors, and a cart drawer.",
+          "Compact product cards with key specs read from product metafields (or the product options), stock status and a compare checkbox.",
+          "Compare tray: pick up to 4 products, then open a side-by-side table with a \"differences only\" filter. Everything stays in the browser.",
+          "Product page with a thumbnail gallery that follows the image focal point, option pickers that flag unavailable variants, purchase options and subscriptions, a specs table section and recommendations.",
+          "Collection and search pages with faceted filters, price range, sorting, grid and list views, and pagination.",
+          "New sections: delivery and warranty bar, brand logos driven by vendors, specs table, department tiles, promo tiles, compare tray and cart drawer.",
+          "Color schemes, typography with a monospace accent for specs, layout, buttons, badges and card settings in the theme editor, all translated to English and French."
+        ],
+        "fr": [
+          "Première version de Circuit, un thème net et dense pour l’électronique, les gadgets et les grands catalogues.",
+          "En-tête fixe avec une grande barre de recherche prédictive, un méga-menu des rayons construit depuis votre menu, des sélecteurs de langue et de devise et un panier latéral.",
+          "Cartes produit compactes avec les caractéristiques clés lues dans les métachamps du produit (ou ses options), l’état du stock et une case de comparaison.",
+          "Barre de comparaison : choisissez jusqu’à 4 produits, puis ouvrez un tableau côte à côte avec un filtre « différences uniquement ». Tout reste dans le navigateur.",
+          "Page produit avec une galerie de miniatures qui respecte le point focal de l’image, des sélecteurs d’options qui signalent les variantes indisponibles, des options d’achat et abonnements, un tableau des caractéristiques et des recommandations.",
+          "Pages collection et recherche avec filtres à facettes, fourchette de prix, tri, affichage en grille ou en liste et pagination.",
+          "Nouvelles sections : bandeau livraison et garantie, logos de marques issus des fournisseurs, tableau des caractéristiques, vignettes de rayons, vignettes promotionnelles, barre de comparaison et panier latéral.",
+          "Palettes de couleurs, typographie avec accent monospace pour les caractéristiques, mise en page, boutons, badges et cartes réglables dans l’éditeur de thème, le tout traduit en anglais et en français."
+        ]
+      }
+    }
+  ]
+}

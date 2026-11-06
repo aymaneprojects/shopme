@@ -1,0 +1,17 @@
+{%- doc -%}
+  Language switcher: posts to /localization. Only shown with 2 or more published languages.
+  @param {string} [uid] - suffix that keeps element ids unique when the selector is shown twice on a page
+{%- enddoc -%}
+{%- if localization.available_languages.size > 1 -%}
+  {%- assign form_id = 'language-form' | append: uid -%}
+  {%- form 'localization', id: form_id, class: 'language-selector' -%}
+    <input type="hidden" name="return_to" value="{{ request.path | escape }}">
+    <label class="visually-hidden" for="language-select{{ uid }}">{{ 'localization.language' | t }}</label>
+    <select id="language-select{{ uid }}" name="language_code" class="language-selector__select" onchange="this.form.submit()">
+      {%- for language in localization.available_languages -%}
+        <option value="{{ language.iso_code }}" lang="{{ language.iso_code }}"{% if language.iso_code == localization.language.iso_code %} selected{% endif %}>{{ language.endonym_name | escape }}</option>
+      {%- endfor -%}
+    </select>
+    <noscript><button class="button button--small" type="submit">{{ 'localization.update' | t }}</button></noscript>
+  {%- endform -%}
+{%- endif -%}

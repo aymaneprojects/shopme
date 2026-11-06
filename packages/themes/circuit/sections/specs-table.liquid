@@ -1,0 +1,144 @@
+{%- liquid
+  assign s = section.settings
+  assign ns = s.namespace
+  if ns == blank
+    assign ns = settings.specs_namespace | default: 'specs'
+  endif
+  assign spec_source = product.metafields[ns]
+  assign current = product.selected_or_first_available_variant
+  assign heading = s.heading
+  if heading == blank
+    assign heading = 'specs.heading' | t
+  endif
+  assign rows = 0
+  if spec_source != blank
+    assign rows = 1
+  endif
+  if section.blocks.size > 0
+    assign rows = 1
+  endif
+  if s.show_product_data
+    assign rows = 1
+  endif
+-%}
+{%- if rows == 1 -%}
+  <section class="page-width cx-specs {% render 'scheme-class', scheme: s.color_scheme %}" id="specifications">
+    <h2 class="cx-section__title">{{ heading | escape }}</h2>
+    <div class="cx-specs__wrap">
+      <table class="cx-spec-table{% if s.zebra %} cx-spec-table--zebra{% endif %}">
+        <caption class="visually-hidden">{{ heading | escape }}</caption>
+        {%- if spec_source != blank -%}
+          <tbody>
+            {%- for entry in spec_source -%}
+              <tr><th scope="row">{{ entry[0] | replace: '_', ' ' | capitalize }}</th><td class="cx-mono">{{ entry[1] | metafield_tag }}</td></tr>
+            {%- endfor -%}
+          </tbody>
+        {%- endif -%}
+        {%- for block in section.blocks -%}
+          {%- if block.type == 'group' -%}
+            </table><table class="cx-spec-table{% if s.zebra %} cx-spec-table--zebra{% endif %}" {{ block.shopify_attributes }}>
+              <caption class="cx-spec-table__group">{{ block.settings.title | escape }}</caption>
+          {%- else -%}
+            <tbody {{ block.shopify_attributes }}><tr><th scope="row">{{ block.settings.label | escape }}</th><td class="cx-mono">{{ block.settings.value | escape }}</td></tr></tbody>
+          {%- endif -%}
+        {%- endfor -%}
+        {%- if s.show_product_data -%}
+          </table><table class="cx-spec-table{% if s.zebra %} cx-spec-table--zebra{% endif %}">
+            <caption class="cx-spec-table__group">{{ 'specs.product_data' | t }}</caption>
+            <tbody>
+              {%- if product.vendor != blank -%}<tr><th scope="row">{{ 'specs.brand' | t }}</th><td class="cx-mono"><a href="{{ product.vendor | url_for_vendor }}">{{ product.vendor | escape }}</a></td></tr>{%- endif -%}
+              {%- if product.type != blank -%}<tr><th scope="row">{{ 'products.type' | t }}</th><td class="cx-mono">{{ product.type | escape }}</td></tr>{%- endif -%}
+              {%- if current.sku != blank -%}<tr><th scope="row">{{ 'products.sku' | t }}</th><td class="cx-mono">{{ current.sku | escape }}</td></tr>{%- endif -%}
+              {%- if current.barcode != blank -%}<tr><th scope="row">{{ 'specs.barcode' | t }}</th><td class="cx-mono">{{ current.barcode | escape }}</td></tr>{%- endif -%}
+              {%- if current.weight > 0 -%}<tr><th scope="row">{{ 'specs.weight' | t }}</th><td class="cx-mono">{{ current.weight | weight_with_unit }}</td></tr>{%- endif -%}
+              {%- unless product.has_only_default_variant -%}
+                {%- for option in product.options_with_values -%}
+                  <tr><th scope="row">{{ option.name | escape }}</th><td class="cx-mono">{{ option.values | join: ' / ' }}</td></tr>
+                {%- endfor -%}
+              {%- endunless -%}
+              <tr><th scope="row">{{ 'specs.availability' | t }}</th><td class="cx-mono">{% if product.available %}{{ 'products.in_stock' | t }}{% else %}{{ 'products.sold_out' | t }}{% endif %}</td></tr>
+            </tbody>
+        {%- endif -%}
+      </table>
+    </div>
+  </section>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.specs_table.name",
+  "tag": "div",
+  "enabled_on": {
+    "templates": [
+      "product"
+    ]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.specs_table.settings.heading",
+      "info": "t:sections.specs_table.info.heading"
+    },
+    {
+      "type": "text",
+      "id": "namespace",
+      "label": "t:sections.specs_table.settings.namespace",
+      "info": "t:sections.specs_table.info.namespace"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_product_data",
+      "label": "t:sections.specs_table.settings.show_product_data",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "zebra",
+      "label": "t:sections.specs_table.settings.zebra",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.specs_table.settings.color_scheme",
+      "default": ""
+    }
+  ],
+  "blocks": [
+    {
+      "type": "row",
+      "name": "t:sections.specs_table.blocks.row.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:sections.specs_table.blocks.row.settings.label"
+        },
+        {
+          "type": "text",
+          "id": "value",
+          "label": "t:sections.specs_table.blocks.row.settings.value"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "name": "t:sections.specs_table.blocks.group.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.specs_table.blocks.group.settings.title"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.specs_table.presets.specs_table",
+      "category": "product"
+    }
+  ]
+}
+{% endschema %}

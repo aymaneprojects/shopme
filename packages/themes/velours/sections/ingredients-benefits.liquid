@@ -1,0 +1,177 @@
+{%- liquid
+  assign s = section.settings
+  assign heading = s.heading
+  if heading == blank
+    assign heading = 'ingredients.heading' | t
+  endif
+  assign intro = s.text
+  if intro == blank
+    assign intro = 'ingredients.text' | t
+  endif
+  assign button_label = s.button_label
+  if button_label == blank
+    assign button_label = 'ingredients.button' | t
+  endif
+-%}
+<div class="vl-section vl-ingredients {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width vl-ingredients__inner">
+    <div class="vl-ingredients__intro">
+      <p class="vl-eyebrow">{{ 'ingredients.eyebrow' | t }}</p>
+      <h2 class="vl-section__title">{{ heading | escape }}</h2>
+      <p class="vl-section__text">{{ intro | escape }}</p>
+      <a class="button button--outline" href="{{ s.button_link | default: routes.all_products_collection_url }}">{{ button_label | escape }}</a>
+    </div>
+    <ul class="vl-ingredients__list" role="list">
+      {%- for block in section.blocks -%}
+        {%- liquid
+          assign key = 'ingredients.item_' | append: forloop.index
+          assign name = block.settings.name
+          assign benefit = block.settings.benefit
+          assign detail = block.settings.text
+          if name == blank
+            assign name = key | append: '_name' | t
+          endif
+          if benefit == blank
+            assign benefit = key | append: '_benefit' | t
+          endif
+          if detail == blank
+            assign detail = key | append: '_text' | t
+          endif
+        -%}
+        <li class="vl-ingredient" {{ block.shopify_attributes }}>
+          <span class="vl-ingredient__icon">{% render 'icon', name: block.settings.icon, size: 26 %}</span>
+          <div>
+            <h3 class="vl-ingredient__name">{{ name | escape }}</h3>
+            <p class="vl-ingredient__benefit">{{ benefit | escape }}</p>
+            <p class="vl-ingredient__text">{{ detail | escape }}</p>
+          </div>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.ingredients_benefits.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.ingredients_benefits.settings.heading",
+      "info": "t:sections.ingredients_benefits.info.heading"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.ingredients_benefits.settings.text"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.ingredients_benefits.settings.button_label"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:sections.ingredients_benefits.settings.button_link"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.ingredients_benefits.settings.color_scheme",
+      "default": "scheme-2"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "ingredient",
+      "name": "t:sections.ingredients_benefits.blocks.ingredient.name",
+      "limit": 8,
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:sections.ingredients_benefits.blocks.ingredient.settings.icon",
+          "default": "drop",
+          "options": [
+            {
+              "value": "drop",
+              "label": "t:sections.ingredients_benefits.blocks.ingredient.options.icon.drop"
+            },
+            {
+              "value": "leaf",
+              "label": "t:sections.ingredients_benefits.blocks.ingredient.options.icon.leaf"
+            },
+            {
+              "value": "sparkle",
+              "label": "t:sections.ingredients_benefits.blocks.ingredient.options.icon.sparkle"
+            },
+            {
+              "value": "sun",
+              "label": "t:sections.ingredients_benefits.blocks.ingredient.options.icon.sun"
+            },
+            {
+              "value": "moon",
+              "label": "t:sections.ingredients_benefits.blocks.ingredient.options.icon.moon"
+            },
+            {
+              "value": "heart",
+              "label": "t:sections.ingredients_benefits.blocks.ingredient.options.icon.heart"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "name",
+          "label": "t:sections.ingredients_benefits.blocks.ingredient.settings.name"
+        },
+        {
+          "type": "text",
+          "id": "benefit",
+          "label": "t:sections.ingredients_benefits.blocks.ingredient.settings.benefit"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "t:sections.ingredients_benefits.blocks.ingredient.settings.text"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 8,
+  "presets": [
+    {
+      "name": "t:sections.ingredients_benefits.presets.ingredients_and_benefits",
+      "category": "text",
+      "blocks": [
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "drop"
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "leaf"
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "sparkle"
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "icon": "sun"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

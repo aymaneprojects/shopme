@@ -1,0 +1,119 @@
+{%- liquid
+  assign menu = section.settings.menu
+  assign logo = settings.logo
+  assign show_account = false
+  if shop.customer_accounts_enabled
+    if customer or routes.account_login_url != blank
+      assign show_account = true
+    endif
+  endif
+-%}
+<header class="vl-header{% if section.settings.sticky %} vl-header--sticky{% endif %}{% if section.settings.transparent_home and template.name == 'index' %} vl-header--over{% endif %}" data-header>
+  <div class="page-width vl-header__inner">
+    <div class="vl-header__start">
+      <button type="button" class="vl-icon-btn vl-header__menu" aria-expanded="false" aria-controls="vl-nav" data-nav-toggle>
+        <span class="visually-hidden">{{ 'accessibility.open_menu' | t }}</span>
+        {% render 'icon', name: 'menu' %}
+      </button>
+      <div class="vl-overlay vl-overlay--nav" data-nav-overlay></div>
+      <nav class="vl-nav" id="vl-nav" aria-label="{{ menu.title | default: shop.name | escape }}" data-nav>
+        <button type="button" class="vl-icon-btn vl-nav__close" data-nav-close>
+          <span class="visually-hidden">{{ 'accessibility.close_menu' | t }}</span>
+          {% render 'icon', name: 'close' %}
+        </button>
+        {%- if menu != blank and menu.links.size > 0 -%}
+          <ul class="vl-nav__list" role="list">
+            {%- for link in menu.links -%}
+              <li class="vl-nav__item{% if link.links.size > 0 %} vl-nav__item--parent{% endif %}">
+                <a href="{{ link.url }}"{% if link.current %} aria-current="page"{% endif %}{% if link.active %} class="is-active"{% endif %}>{{ link.title | escape }}</a>
+                {%- if link.links.size > 0 -%}
+                  <ul class="vl-nav__sub" role="list">
+                    {%- for child in link.links -%}
+                      <li><a href="{{ child.url }}"{% if child.current %} aria-current="page"{% endif %}>{{ child.title | escape }}</a></li>
+                    {%- endfor -%}
+                  </ul>
+                {%- endif -%}
+              </li>
+            {%- endfor -%}
+          </ul>
+        {%- endif -%}
+        <div class="vl-nav__extra">
+          {%- if show_account -%}
+            <a class="vl-nav__account" href="{{ routes.account_url }}">{% render 'icon', name: 'user', size: 20 %} {% if customer %}{{ 'header.account' | t }}{% else %}{{ 'customer.login' | t }}{% endif %}</a>
+          {%- endif -%}
+          {%- render 'language-selector', uid: '-drawer' -%}
+          {%- render 'country-selector', uid: '-drawer' -%}
+        </div>
+      </nav>
+    </div>
+
+    <a class="vl-logo" href="{{ routes.root_url }}">
+      {%- if logo -%}
+        {{ logo | image_url: width: 480 | image_tag: alt: shop.name, class: 'vl-logo__img', loading: 'eager' }}
+      {%- else -%}
+        <span class="vl-logo__name">{{ shop.name | escape }}</span>
+      {%- endif -%}
+    </a>
+
+    <div class="vl-header__end">
+      <button type="button" class="vl-icon-btn" aria-controls="vl-search" aria-expanded="false" data-search-toggle>
+        <span class="visually-hidden">{{ 'header.search' | t }}</span>
+        {% render 'icon', name: 'search' %}
+      </button>
+      {%- if show_account -%}
+        <a class="vl-icon-btn vl-header__account" href="{{ routes.account_url }}">
+          <span class="visually-hidden">{{ 'header.account' | t }}</span>
+          {% render 'icon', name: 'user' %}
+        </a>
+      {%- endif -%}
+      <a class="vl-icon-btn vl-bag" href="{{ routes.cart_url }}" data-cart-link>
+        <span class="visually-hidden">{{ 'accessibility.cart_count' | t: count: cart.item_count }}</span>
+        {% render 'icon', name: 'bag' %}
+        <span class="vl-bag__count{% if cart.item_count == 0 %} is-empty{% endif %}" data-cart-count aria-hidden="true">{{ cart.item_count }}</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="vl-search" id="vl-search" data-predictive-search data-url="{{ routes.predictive_search_url }}" data-limit="{{ settings.search_suggestions_limit | default: 4 }}" data-show-image="{{ settings.search_show_image | default: true }}" data-show-price="{{ settings.search_show_price | default: true }}" hidden>
+    <div class="page-width vl-search__inner">
+      <form class="vl-search__form" role="search" action="{{ routes.search_url }}" method="get">
+        <label class="visually-hidden" for="vl-search-q">{{ 'accessibility.search' | t }}</label>
+        {% render 'icon', name: 'search', size: 22 %}
+        <input id="vl-search-q" class="vl-search__input" type="search" name="q" placeholder="{{ 'search.placeholder' | t }}" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="vl-search-results" data-predictive-input>
+        <button class="button button--small" type="submit">{{ 'search.submit' | t }}</button>
+      </form>
+      {%- capture search_labels -%}
+        {"queries":{{ 'search.predictive.queries' | t | json }},"products":{{ 'search.predictive.products' | t | json }},"collections":{{ 'search.predictive.collections' | t | json }},"pages":{{ 'search.predictive.pages' | t | json }},"articles":{{ 'search.predictive.articles' | t | json }},"none":{{ 'search.predictive.none' | t | json }},"all":{{ 'search.predictive.all' | t | json }}}
+      {%- endcapture -%}
+      <div class="vl-search__results" id="vl-search-results" role="listbox" aria-live="polite" data-predictive-results data-labels="{{ search_labels | escape }}"></div>
+    </div>
+  </div>
+</header>
+
+{% schema %}
+{
+  "name": "t:sections.header.name",
+  "tag": "div",
+  "class": "header-section",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "t:sections.header.settings.menu",
+      "default": "main-menu"
+    },
+    {
+      "type": "checkbox",
+      "id": "sticky",
+      "label": "t:sections.header.settings.sticky",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "transparent_home",
+      "label": "t:sections.header.settings.transparent_home",
+      "default": false
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,15 @@
+{
+  "name": "t:sections.groups.overlays",
+  "type": "overlay",
+  "sections": {
+    "cart-drawer": {
+      "type": "cart-drawer",
+      "settings": { "show_note": true }
+    },
+    "compare-tray": {
+      "type": "compare-tray",
+      "settings": {}
+    }
+  },
+  "order": ["cart-drawer", "compare-tray"]
+}

@@ -1,0 +1,23 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "blocks": {
+        "perk-delivery": { "type": "perk", "settings": { "icon": "truck" } },
+        "perk-warranty": { "type": "perk", "settings": { "icon": "shield" } },
+        "perk-returns": { "type": "perk", "settings": { "icon": "refresh" } }
+      },
+      "block_order": ["perk-delivery", "perk-warranty", "perk-returns"],
+      "settings": { "gallery_layout": "side", "sticky_buybox": true, "show_breadcrumb": true, "show_vendor": true, "show_sku": true, "show_compare": true }
+    },
+    "specs": {
+      "type": "specs-table",
+      "settings": { "show_product_data": true, "zebra": true }
+    },
+    "recommendations": {
+      "type": "product-recommendations",
+      "settings": { "products_to_show": 4, "columns": "4" }
+    }
+  },
+  "order": ["main", "specs", "recommendations"]
+}

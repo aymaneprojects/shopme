@@ -1,0 +1,15 @@
+{
+  "name": "t:sections.groups.header",
+  "type": "header",
+  "sections": {
+    "announcement": {
+      "type": "announcement-bar",
+      "settings": { "show": true, "text": "", "link": "", "color_scheme": "scheme-2" }
+    },
+    "header": {
+      "type": "header",
+      "settings": { "menu": "main-menu", "sticky": true, "show_utility_bar": true, "utility_menu": "footer", "show_language_selector": true, "show_country_selector": true }
+    }
+  },
+  "order": ["announcement", "header"]
+}

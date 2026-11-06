@@ -1,0 +1,11 @@
+{%- layout none -%}
+{%- liquid
+  assign ns = settings.specs_namespace | default: 'specs'
+  assign spec_source = product.metafields[ns]
+  assign current = product.selected_or_first_available_variant
+-%}
+<!--circuit-compare-->{"handle":{{ product.handle | json }},"title":{{ product.title | json }},"url":{{ product.url | json }},"vendor":{{ product.vendor | json }},"type":{{ product.type | json }},"sku":{{ current.sku | json }},"available":{{ product.available | json }},"price":{{ product.price | money | json }},"compare_at":{% if product.compare_at_price > product.price %}{{ product.compare_at_price | money | json }}{% else %}null{% endif %},"image":{{ product.featured_image | image_url: width: 320 | json }},"specs":[
+{%- assign first_row = true -%}
+{%- if spec_source != blank -%}{%- for entry in spec_source -%}{%- unless first_row -%},{%- endunless -%}{%- assign first_row = false -%}{"label":{{ entry[0] | replace: '_', ' ' | capitalize | json }},"value":{{ entry[1] | strip_html | json }}}{%- endfor -%}{%- endif -%}
+{%- unless product.has_only_default_variant -%}{%- for option in product.options_with_values -%}{%- unless first_row -%},{%- endunless -%}{%- assign first_row = false -%}{"label":{{ option.name | json }},"value":{{ option.values | join: ' / ' | json }}}{%- endfor -%}{%- endunless -%}
+]}<!--/circuit-compare-->

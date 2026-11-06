@@ -1,0 +1,72 @@
+{%- liquid
+  assign s = section.settings
+  assign heading = s.heading
+  if heading == blank
+    assign heading = 'products.recommendations' | t
+  endif
+-%}
+<div class="page-width cx-section cx-recs" data-recommendations data-url="{{ routes.product_recommendations_url }}?section_id={{ section.id }}&product_id={{ product.id }}&limit={{ s.products_to_show }}">
+  {%- if recommendations.performed and recommendations.products_count > 0 -%}
+    <div class="cx-section__head"><h2 class="cx-section__title">{{ heading | escape }}</h2></div>
+    <ul class="cx-grid cx-grid--{{ s.columns }}" role="list">
+      {%- for item in recommendations.products limit: s.products_to_show -%}
+        <li>{% render 'product-card', card_product: item %}</li>
+      {%- endfor -%}
+    </ul>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.product_recommendations.name",
+  "tag": "section",
+  "enabled_on": {
+    "templates": [
+      "product"
+    ]
+  },
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.product_recommendations.settings.heading",
+      "info": "t:sections.product_recommendations.info.heading"
+    },
+    {
+      "type": "range",
+      "id": "products_to_show",
+      "label": "t:sections.product_recommendations.settings.products_to_show",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "t:sections.product_recommendations.settings.columns",
+      "default": "4",
+      "options": [
+        {
+          "value": "3",
+          "label": "t:sections.product_recommendations.options.columns.3"
+        },
+        {
+          "value": "4",
+          "label": "t:sections.product_recommendations.options.columns.4"
+        },
+        {
+          "value": "5",
+          "label": "t:sections.product_recommendations.options.columns.5"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.product_recommendations.presets.product_recommendations",
+      "category": "product"
+    }
+  ]
+}
+{% endschema %}

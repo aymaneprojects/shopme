@@ -1,0 +1,11 @@
+{
+  "name": "t:sections.groups.footer",
+  "type": "footer",
+  "sections": {
+    "footer": {
+      "type": "footer",
+      "settings": { "menu": "footer", "show_description": true, "show_newsletter": true, "show_support": true, "color_scheme": "scheme-2" }
+    }
+  },
+  "order": ["footer"]
+}

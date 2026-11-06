@@ -1,0 +1,82 @@
+<div class="page-width cx-cart" data-cart-region data-section-id="{{ section.id }}">
+  <h1 class="cx-listing__title">{{ 'cart.title' | t }} <span class="cx-mono cx-cart__count">({{ cart.item_count }})</span></h1>
+  {%- if cart.item_count == 0 -%}
+    <div class="cx-empty">
+      <p>{{ 'cart.empty' | t }}</p>
+      <a class="button" href="{{ routes.all_products_collection_url }}">{{ 'general.continue_shopping' | t }}</a>
+    </div>
+  {%- else -%}
+    {%- form 'cart', cart, id: 'cart-form', class: 'cx-cart__form' -%}
+      <div class="cx-cart__layout">
+        <div class="cx-cart__lines">
+          <div class="cx-cart__head" aria-hidden="true"><span>{{ 'cart.product' | t }}</span><span>{{ 'cart.quantity' | t }}</span><span>{{ 'cart.total' | t }}</span></div>
+          <ul role="list">
+            {%- for item in cart.items -%}
+              <li class="cx-cartline" data-line="{{ forloop.index }}">
+                {%- if settings.cart_show_thumbnails != false -%}
+                  <a class="cx-cartline__image" href="{{ item.url }}">
+                    {%- if item.image -%}{{ item.image | image_url: width: 240 | image_tag: loading: 'lazy', alt: item.product.title }}{%- else -%}{{ 'product-1' | placeholder_svg_tag: 'cx-line__placeholder' }}{%- endif -%}
+                  </a>
+                {%- endif -%}
+                <div class="cx-cartline__info">
+                  {%- if settings.cart_show_vendor and item.vendor != blank -%}<p class="cx-line__vendor cx-mono">{{ item.vendor | escape }}</p>{%- endif -%}
+                  <a class="cx-line__title" href="{{ item.url }}">{{ item.product.title | escape }}</a>
+                  {%- unless item.product.has_only_default_variant -%}
+                    {%- for option in item.options_with_values -%}<p class="cx-line__meta">{{ option.name | escape }}: <span class="cx-mono">{{ option.value | escape }}</span></p>{%- endfor -%}
+                  {%- endunless -%}
+                  {%- if item.sku != blank -%}<p class="cx-line__meta cx-mono">{{ 'products.sku' | t }} {{ item.sku | escape }}</p>{%- endif -%}
+                  {%- if item.selling_plan_allocation -%}
+                    {%- assign per_delivery = item.selling_plan_allocation.per_delivery_price | money -%}
+                    <p class="cx-line__plan">{{ item.selling_plan_allocation.selling_plan.name | escape }}</p>
+                    <p class="cx-line__meta">{{ 'cart.recurring' | t: price: per_delivery }}</p>
+                  {%- endif -%}
+                  <p class="cx-line__meta">
+                    {%- if item.original_price != item.final_price -%}<s>{{ item.original_price | money }}</s> {% endif -%}
+                    <span class="cx-mono">{{ item.final_price | money }}</span>
+                  </p>
+                  {%- for allocation in item.line_level_discount_allocations -%}
+                    <p class="cx-line__meta">{{ 'cart.discount' | t }}: {{ allocation.discount_application.title | escape }} (-{{ allocation.amount | money }})</p>
+                  {%- endfor -%}
+                  <a class="cx-link-btn" href="{{ item.url_to_remove }}" data-remove-line="{{ forloop.index }}">{{ 'cart.remove' | t }}</a>
+                </div>
+                <div class="cx-qty">
+                  <button type="button" class="cx-qty__btn" data-qty-step="-1" data-line="{{ forloop.index }}" aria-label="{{ 'cart.decrease' | t: title: item.product.title }}">{% render 'icon', name: 'minus', size: 14 %}</button>
+                  <input class="cx-qty__input" type="number" name="updates[]" value="{{ item.quantity }}" min="0" inputmode="numeric" data-line-qty data-line="{{ forloop.index }}" aria-label="{{ 'accessibility.quantity' | t }}">
+                  <button type="button" class="cx-qty__btn" data-qty-step="1" data-line="{{ forloop.index }}" aria-label="{{ 'cart.increase' | t: title: item.product.title }}">{% render 'icon', name: 'plus', size: 14 %}</button>
+                </div>
+                <p class="cx-cartline__total cx-mono">{{ item.final_line_price | money }}</p>
+              </li>
+            {%- endfor -%}
+          </ul>
+          {%- if settings.cart_show_note != false -%}
+            <label class="cx-cart__note">
+              <span class="cx-legend">{{ 'cart.note' | t }}</span>
+              <textarea name="note" rows="3">{{ cart.note }}</textarea>
+            </label>
+          {%- endif -%}
+        </div>
+        <aside class="cx-summary" aria-label="{{ 'cart.summary' | t }}">
+          <h2>{{ 'cart.summary' | t }}</h2>
+          {%- for application in cart.cart_level_discount_applications -%}
+            <p class="cx-summary__row"><span>{{ 'cart.discount' | t }}: {{ application.title | escape }}</span> <span class="cx-mono">-{{ application.total_allocated_amount | money }}</span></p>
+          {%- endfor -%}
+          <p class="cx-summary__row cx-summary__total"><span>{{ 'cart.subtotal' | t }}</span> <strong class="cx-mono">{{ cart.total_price | money_with_currency }}</strong></p>
+          <p class="cx-drawer__hint">{{ 'cart.taxes_shipping' | t }}</p>
+          <noscript><button type="submit" class="button button--outline button--block" name="update">{{ 'cart.update' | t }}</button></noscript>
+          <a class="button button--block" href="/checkout">{{ 'cart.checkout' | t }}</a>
+          {%- if settings.cart_show_continue != false -%}
+            <a class="cx-link-btn cx-summary__continue" href="{{ routes.all_products_collection_url }}">{{ 'general.continue_shopping' | t }}</a>
+          {%- endif -%}
+        </aside>
+      </div>
+    {%- endform -%}
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_cart.name",
+  "tag": "section",
+  "settings": []
+}
+{% endschema %}

@@ -1,0 +1,31 @@
+{
+  "about": "What changed in each version of Velours, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release of Velours, a soft and airy theme for beauty, skincare and wellness.",
+          "Centered logo header with a search panel, a slide-in bag with a free shipping progress bar and a soft cart page.",
+          "Pastel color schemes, rounded shapes and an elegant serif and sans pairing, with settings for fonts, radius, spacing and buttons.",
+          "Arched product cards with shade swatches, a second photo on hover and a quick add button.",
+          "Product page with a large arched photo, round thumbnails that follow the image focal point, shade swatches with their names, purchase options and subscriptions, benefits and accordions for description, ingredients and usage.",
+          "Collection and search pages with filter drop-downs, sorting and pagination.",
+          "New sections: routine builder with step 1, 2 and 3 product picks and an add-the-whole-routine button, ingredients and benefits, before and after slider, testimonials, and the free shipping bar.",
+          "Section names, settings and storefront texts are translated to English and French."
+        ],
+        "fr": [
+          "Première version de Velours, un thème doux et aérien pour la beauté, les soins et le bien-être.",
+          "En-tête avec logo centré et panneau de recherche, panier latéral avec barre de progression vers la livraison offerte et page panier tout en douceur.",
+          "Palettes de couleurs pastel, formes arrondies et association élégante d’une police avec empattement et d’une sans empattement, avec des réglages de polices, de rayons, d’espacement et de boutons.",
+          "Cartes produit en arche avec pastilles de teintes, seconde photo au survol et bouton d’ajout rapide.",
+          "Page produit avec une grande photo en arche, des miniatures rondes qui respectent le point focal de l’image, des pastilles de teintes avec leur nom, des options d’achat et abonnements, des bénéfices et des accordéons pour la description, les ingrédients et l’utilisation.",
+          "Pages collection et recherche avec filtres déroulants, tri et pagination.",
+          "Nouvelles sections : routine en étapes 1, 2 et 3 avec choix de produits et bouton pour ajouter toute la routine, ingrédients et bienfaits, curseur avant et après, témoignages et barre de livraison offerte.",
+          "Les noms des sections, les réglages et les textes de la boutique sont traduits en anglais et en français."
+        ]
+      }
+    }
+  ]
+}

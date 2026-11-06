@@ -1,0 +1,290 @@
+{%- liquid
+  assign current = product.selected_or_first_available_variant
+  assign first_image = current.featured_image | default: product.featured_image
+  assign first_alt = first_image.alt | default: product.title
+  assign first_focal = ''
+  if first_image.presentation.focal_point != blank
+    assign first_focal = 'object-position: ' | append: first_image.presentation.focal_point
+  endif
+  assign ns = settings.specs_namespace | default: 'specs'
+  assign spec_source = product.metafields[ns]
+  assign s = section.settings
+-%}
+<div class="page-width cx-pdp cx-pdp--{{ s.gallery_layout }}" data-product-section data-section-id="{{ section.id }}">
+  {%- if s.show_breadcrumb -%}
+    <nav class="cx-crumbs" aria-label="{{ 'products.breadcrumb' | t }}">
+      <ol>
+        <li><a href="{{ routes.root_url }}">{{ 'general.home' | t }}</a></li>
+        {%- if collection != blank and collection.handle != 'all' -%}<li><a href="{{ collection.url }}">{{ collection.title | escape }}</a></li>{%- elsif product.type != blank -%}<li><a href="{{ product.type | url_for_type }}">{{ product.type | escape }}</a></li>{%- endif -%}
+        <li aria-current="page">{{ product.title | escape }}</li>
+      </ol>
+    </nav>
+  {%- endif -%}
+
+  <div class="cx-pdp__grid">
+    <div class="cx-gallery" role="group" aria-label="{{ 'accessibility.gallery' | t }}">
+      {%- if product.images.size > 1 -%}
+        <ul class="cx-gallery__thumbs" role="list">
+          {%- for image in product.images -%}
+            {%- assign thumb_focal = '' -%}
+            {%- if image.presentation.focal_point != blank -%}{%- assign thumb_focal = image.presentation.focal_point -%}{%- endif -%}
+            <li>
+              <button type="button" class="cx-gallery__thumb{% if forloop.first %} is-active{% endif %}" data-thumb data-src="{{ image | image_url: width: 1200 }}" data-alt="{{ image.alt | default: product.title | escape }}" data-focal="{{ thumb_focal }}" aria-label="{{ 'products.show_image' | t: number: forloop.index }}" aria-pressed="{% if forloop.first %}true{% else %}false{% endif %}">
+                {{ image | image_url: width: 160 | image_tag: loading: 'lazy', alt: '', style: thumb_focal }}
+              </button>
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+      <div class="cx-gallery__main" data-main-image>
+        {%- if first_image -%}
+          {{ first_image | image_url: width: 1200 | image_tag: loading: 'eager', widths: '600, 900, 1200', sizes: '(min-width: 990px) 46vw, 100vw', alt: first_alt, style: first_focal }}
+        {%- else -%}
+          {{ 'product-1' | placeholder_svg_tag: 'cx-gallery__placeholder' }}
+        {%- endif -%}
+      </div>
+    </div>
+
+    <div class="cx-buybox{% if s.sticky_buybox %} cx-buybox--sticky{% endif %}">
+      <div class="cx-buybox__top">
+        {%- if s.show_vendor and product.vendor != blank -%}<a class="cx-brand-link cx-mono" href="{{ product.vendor | url_for_vendor }}">{{ product.vendor | escape }}</a>{%- endif -%}
+        {%- if s.show_sku -%}<span class="cx-sku cx-mono">{{ 'products.sku' | t }} <span data-sku>{{ current.sku | default: '-' | escape }}</span></span>{%- endif -%}
+      </div>
+      <h1 class="cx-pdp__title">{{ product.title | escape }}</h1>
+
+      {%- if spec_source != blank -%}
+        <ul class="cx-keyspecs" role="list">
+          {%- assign shown = 0 -%}
+          {%- for entry in spec_source -%}
+            {%- if shown < 4 -%}<li class="cx-mono"><span>{{ entry[0] | replace: '_', ' ' | capitalize }}</span> {{ entry[1] | strip_html | truncate: 28 }}</li>{%- assign shown = shown | plus: 1 -%}{%- endif -%}
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+
+      <div class="cx-buybox__price">
+        <div data-product-price>{% render 'price', product: product, variant: current, class: 'cx-price--large' %}</div>
+        <p class="cx-stock {% if current.available %}cx-stock--in{% else %}cx-stock--out{% endif %}" data-stock role="status"><span class="cx-dot" aria-hidden="true"></span><span data-stock-label>{% if current.available %}{{ 'products.in_stock' | t }}{% else %}{{ 'products.sold_out' | t }}{% endif %}</span></p>
+      </div>
+
+      {%- form 'product', product, id: 'product-form', class: 'cx-form', novalidate: 'novalidate' -%}
+        <input type="hidden" name="id" value="{{ current.id }}" data-variant-id>
+        {%- unless product.has_only_default_variant -%}
+          {%- for option in product.options_with_values -%}
+            <fieldset class="cx-option" data-option-index="{{ forloop.index0 }}">
+              <legend class="cx-legend">{{ option.name | escape }}: <span class="cx-mono" data-option-value>{{ option.selected_value | escape }}</span></legend>
+              <div class="cx-option__values">
+                {%- for value in option.values -%}
+                  {%- assign checked = false -%}
+                  {%- if option.selected_value == value -%}{%- assign checked = true -%}{%- endif -%}
+                  <input type="radio" class="cx-option__input" id="{{ section.id }}-{{ option.position }}-{{ forloop.index }}" name="options[{{ option.name | escape }}]" value="{{ value | escape }}"{% if checked %} checked{% endif %}>
+                  <label class="cx-option__label" for="{{ section.id }}-{{ option.position }}-{{ forloop.index }}">{{ value | escape }}</label>
+                {%- endfor -%}
+              </div>
+            </fieldset>
+          {%- endfor -%}
+        {%- endunless -%}
+
+        {% render 'purchase-options', product: product, variant: current, id_prefix: section.id %}
+
+        {%- if product.gift_card -%}
+          <div class="field">
+            <label for="{{ section.id }}-gc-email">{{ 'products.gift_card.recipient_email' | t }}</label>
+            <input id="{{ section.id }}-gc-email" type="email" name="properties[Recipient email]" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="{{ section.id }}-gc-name">{{ 'products.gift_card.recipient_name' | t }}</label>
+            <input id="{{ section.id }}-gc-name" type="text" name="properties[Recipient name]" autocomplete="off">
+          </div>
+          <div class="field">
+            <label for="{{ section.id }}-gc-message">{{ 'products.gift_card.message' | t }}</label>
+            <textarea id="{{ section.id }}-gc-message" name="properties[Message]" rows="3" maxlength="200"></textarea>
+          </div>
+        {%- endif -%}
+
+        <div class="cx-form__row">
+          <div class="cx-qty cx-qty--lg">
+            <label class="visually-hidden" for="{{ section.id }}-qty">{{ 'products.quantity' | t }}</label>
+            <button type="button" class="cx-qty__btn" data-pdp-step="-1" aria-label="{{ 'products.decrease_quantity' | t }}">{% render 'icon', name: 'minus', size: 14 %}</button>
+            <input class="cx-qty__input" id="{{ section.id }}-qty" type="number" name="quantity" value="1" min="1" inputmode="numeric">
+            <button type="button" class="cx-qty__btn" data-pdp-step="1" aria-label="{{ 'products.increase_quantity' | t }}">{% render 'icon', name: 'plus', size: 14 %}</button>
+          </div>
+          <button type="submit" class="button button--block" name="add" data-add-to-cart{% unless current.available %} disabled{% endunless %}>
+            <span data-add-label>{% if current.available %}{{ 'products.add_to_cart' | t }}{% else %}{{ 'products.sold_out' | t }}{% endif %}</span>
+          </button>
+        </div>
+        {%- if s.show_compare and settings.compare_enabled -%}
+          {%- assign card_image = product.featured_image | image_url: width: 160 -%}
+          {%- assign card_price = product.price | money -%}
+          <button type="button" class="cx-compare-btn cx-compare-btn--wide" data-compare-toggle data-handle="{{ product.handle }}" data-title="{{ product.title | escape }}" data-url="{{ product.url }}" data-image="{{ card_image }}" data-price="{{ card_price | escape }}" aria-pressed="false">
+            <span class="cx-compare-btn__box" aria-hidden="true">{% render 'icon', name: 'check', size: 12 %}</span>
+            <span data-compare-label>{{ 'compare.add' | t }}</span>
+          </button>
+        {%- endif -%}
+        <p class="cx-form__message" role="status" aria-live="polite" data-form-message></p>
+      {%- endform -%}
+
+      {%- if section.blocks.size > 0 -%}
+        <ul class="cx-perks" role="list">
+          {%- for block in section.blocks -%}
+            {%- liquid
+              assign title = block.settings.title
+              assign text = block.settings.text
+              assign perk_key = 'perks.default_' | append: forloop.index
+              if title == blank
+                assign title = perk_key | append: '_title' | t
+              endif
+              if text == blank
+                assign text = perk_key | append: '_text' | t
+              endif
+            -%}
+            <li class="cx-perk" {{ block.shopify_attributes }}>
+              {% render 'icon', name: block.settings.icon, size: 22 %}
+              <span><strong>{{ title | escape }}</strong> {{ text | escape }}</span>
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+
+      {%- if product.description != blank -%}
+        <details class="cx-fold" open>
+          <summary>{{ 'products.description' | t }} {% render 'icon', name: 'chevron-down', size: 16 %}</summary>
+          <div class="rte">{{ product.description }}</div>
+        </details>
+      {%- endif -%}
+    </div>
+  </div>
+  <script type="application/json" data-product-json>{{ product | json }}</script>
+  <script type="application/ld+json">{{ product | structured_data }}</script>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_product.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.main_product.headers.layout"
+    },
+    {
+      "type": "select",
+      "id": "gallery_layout",
+      "label": "t:sections.main_product.settings.gallery_layout",
+      "default": "side",
+      "options": [
+        {
+          "value": "side",
+          "label": "t:sections.main_product.options.gallery_layout.side"
+        },
+        {
+          "value": "below",
+          "label": "t:sections.main_product.options.gallery_layout.below"
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "sticky_buybox",
+      "label": "t:sections.main_product.settings.sticky_buybox",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.main_product.headers.content"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_breadcrumb",
+      "label": "t:sections.main_product.settings.show_breadcrumb",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_vendor",
+      "label": "t:sections.main_product.settings.show_vendor",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sku",
+      "label": "t:sections.main_product.settings.show_sku",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_compare",
+      "label": "t:sections.main_product.settings.show_compare",
+      "default": true
+    }
+  ],
+  "blocks": [
+    {
+      "type": "perk",
+      "name": "t:sections.main_product.blocks.perk.name",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:sections.main_product.blocks.perk.settings.icon",
+          "default": "truck",
+          "options": [
+            {
+              "value": "truck",
+              "label": "t:sections.main_product.blocks.perk.options.icon.truck"
+            },
+            {
+              "value": "shield",
+              "label": "t:sections.main_product.blocks.perk.options.icon.shield"
+            },
+            {
+              "value": "refresh",
+              "label": "t:sections.main_product.blocks.perk.options.icon.refresh"
+            },
+            {
+              "value": "headset",
+              "label": "t:sections.main_product.blocks.perk.options.icon.headset"
+            },
+            {
+              "value": "check",
+              "label": "t:sections.main_product.blocks.perk.options.icon.check"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.main_product.blocks.perk.settings.title",
+          "info": "t:sections.main_product.blocks.perk.info.title"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.main_product.blocks.perk.settings.text"
+        }
+      ]
+    }
+  ],
+  "default": {
+    "blocks": [
+      {
+        "type": "perk",
+        "settings": {
+          "icon": "truck"
+        }
+      },
+      {
+        "type": "perk",
+        "settings": {
+          "icon": "shield"
+        }
+      },
+      {
+        "type": "perk",
+        "settings": {
+          "icon": "refresh"
+        }
+      }
+    ]
+  }
+}
+{% endschema %}
