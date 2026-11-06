@@ -1,0 +1,167 @@
+{%- assign s = section.settings -%}
+<div class="section-pad flavor {% render 'scheme-class', scheme: s.color_scheme %}{% if s.texture != blank and s.texture != 'none' %} texture texture--{{ s.texture }}{% endif %}">
+  <div class="page-width flavor__inner">
+    <div class="flavor__body">
+      {%- if s.eyebrow != blank -%}<p class="eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="section-title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.text != blank -%}<div class="rte">{{ s.text }}</div>{%- endif -%}
+      {%- if s.aromas != blank -%}
+        {%- assign aromas = s.aromas | split: ',' -%}
+        <ul class="flavor__aromas" role="list">
+          {%- for aroma in aromas -%}<li>{{ aroma | strip | escape }}</li>{%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </div>
+    <ul class="flavor__scales" role="list">
+      {%- for block in section.blocks -%}
+        <li {{ block.shopify_attributes }}>
+          <p class="flavor__label"><span>{{ block.settings.label | escape }}</span><span class="flavor__note">{{ block.settings.hint | escape }}</span></p>
+          <div class="flavor__dots" role="img" aria-label="{{ block.settings.label | escape }}: {{ block.settings.level }} / 5">
+            {%- for i in (1..5) -%}<span class="{% if i <= block.settings.level %}is-on{% endif %}"></span>{%- endfor -%}
+          </div>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.flavor_notes.name",
+  "tag": "section",
+  "max_blocks": 6,
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.flavor_notes.settings.eyebrow",
+      "default": "In the cup"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.flavor_notes.settings.heading",
+      "default": "What to expect"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:sections.flavor_notes.settings.text",
+      "default": "<p>A bright, floral light roast with a honeyed finish.</p>"
+    },
+    {
+      "type": "text",
+      "id": "aromas",
+      "label": "t:sections.flavor_notes.settings.aromas",
+      "default": "Peach, Honey, Jasmine, Almond"
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.flavor_notes.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.flavor_notes.options.texture.none"
+        },
+        {
+          "value": "paper",
+          "label": "t:sections.flavor_notes.options.texture.paper"
+        },
+        {
+          "value": "linen",
+          "label": "t:sections.flavor_notes.options.texture.linen"
+        },
+        {
+          "value": "dots",
+          "label": "t:sections.flavor_notes.options.texture.dots"
+        },
+        {
+          "value": "wash",
+          "label": "t:sections.flavor_notes.options.texture.wash"
+        },
+        {
+          "value": "grain",
+          "label": "t:sections.flavor_notes.options.texture.grain"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": "scheme-2"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "note",
+      "name": "t:sections.flavor_notes.blocks.note.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:sections.flavor_notes.blocks.note.settings.label",
+          "default": "Acidity"
+        },
+        {
+          "type": "text",
+          "id": "hint",
+          "label": "t:sections.flavor_notes.blocks.note.settings.hint",
+          "default": ""
+        },
+        {
+          "type": "range",
+          "id": "level",
+          "label": "t:sections.flavor_notes.blocks.note.settings.level",
+          "min": 0,
+          "max": 5,
+          "step": 1,
+          "default": 3
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.flavor_notes.presets.tasting_notes",
+      "category": "text",
+      "blocks": [
+        {
+          "type": "note",
+          "settings": {
+            "label": "Acidity",
+            "hint": "bright",
+            "level": 4
+          }
+        },
+        {
+          "type": "note",
+          "settings": {
+            "label": "Sweetness",
+            "hint": "honeyed",
+            "level": 4
+          }
+        },
+        {
+          "type": "note",
+          "settings": {
+            "label": "Body",
+            "hint": "silky",
+            "level": 3
+          }
+        },
+        {
+          "type": "note",
+          "settings": {
+            "label": "Roast",
+            "hint": "light",
+            "level": 2
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

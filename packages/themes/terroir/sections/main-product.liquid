@@ -1,0 +1,181 @@
+{%- liquid
+  assign s = section.settings
+  assign current = product.selected_or_first_available_variant
+-%}
+<div class="section-pad product {% render 'scheme-class', scheme: s.color_scheme %}" data-product-section data-section-id="{{ section.id }}">
+  <div class="page-width">
+    <nav class="breadcrumbs" aria-label="{{ 'product.breadcrumb' | t }}">
+      <a href="{{ routes.root_url }}">{{ 'general.home' | t }}</a>
+      <span aria-hidden="true">&rsaquo;</span>
+      {%- if collection != blank and collection.handle != 'all' -%}
+        <a href="{{ collection.url }}">{{ collection.title | escape }}</a>
+      {%- else -%}
+        <a href="{{ routes.all_products_collection_url }}">{{ 'product.all_products' | t }}</a>
+      {%- endif -%}
+      <span aria-hidden="true">&rsaquo;</span>
+      <span aria-current="page">{{ product.title | escape }}</span>
+    </nav>
+
+    <header class="product__head">
+      {% render 'product-badges', product: product, limit: 4, stock: false %}
+      <h1 class="product__title">{{ product.title | escape }}</h1>
+      {%- if product.vendor != blank -%}<p class="product__vendor">{{ 'product.by' | t: vendor: product.vendor }}</p>{%- endif -%}
+    </header>
+
+    <div class="product__layout">
+      <div class="product__gallery" role="group" aria-label="{{ 'accessibility.gallery' | t }}">
+        {%- for image in product.images -%}
+          {%- assign focal = '' -%}
+          {%- if image.presentation.focal_point != blank -%}{%- assign focal = 'object-position: ' | append: image.presentation.focal_point -%}{%- endif -%}
+          {%- assign alt_text = image.alt | default: product.title -%}
+          <figure class="product__media{% if forloop.first %} product__media--lead{% endif %}" data-media data-media-id="{{ image.id }}">
+            {%- if forloop.first -%}
+              {{ image | image_url: width: 1200 | image_tag: loading: 'eager', widths: '600, 900, 1200', sizes: '(min-width: 990px) 55vw, 100vw', alt: alt_text, style: focal }}
+            {%- else -%}
+              {{ image | image_url: width: 900 | image_tag: loading: 'lazy', widths: '450, 700, 900', sizes: '(min-width: 990px) 28vw, 50vw', alt: alt_text, style: focal }}
+            {%- endif -%}
+          </figure>
+        {%- else -%}
+          <figure class="product__media product__media--lead">{{ 'product-1' | placeholder_svg_tag: 'product__placeholder' }}</figure>
+        {%- endfor -%}
+      </div>
+
+      <div class="product__info{% if s.sticky_info %} product__info--sticky{% endif %}">
+        <div class="buybox texture texture--paper">
+          <div class="product__price" data-product-price>{% render 'price', product: product, variant: current, class: 'price--large' %}</div>
+          {%- if s.show_short_description and product.description != blank -%}
+            <p class="product__lead">{{ product.description | strip_html | truncatewords: 32 }}</p>
+          {%- endif -%}
+
+          {%- form 'product', product, id: 'product-form', class: 'product-form', novalidate: 'novalidate' -%}
+            <input type="hidden" name="id" value="{{ current.id }}" data-variant-id>
+            {%- unless product.has_only_default_variant -%}
+              {%- for option in product.options_with_values -%}
+                <fieldset class="option" data-option-index="{{ forloop.index0 }}">
+                  <legend class="option__name">{{ option.name | escape }}</legend>
+                  <div class="option__values">
+                    {%- assign option_key = option.name | downcase -%}
+                    {%- assign as_swatch = false -%}
+                    {%- if settings.swatches_enabled != false -%}
+                      {%- if option_key == 'color' or option_key == 'colour' or option_key == 'couleur' -%}{%- assign as_swatch = true -%}{%- endif -%}
+                    {%- endif -%}
+                    {%- for value in option.values -%}
+                      {%- assign checked = false -%}
+                      {%- if option.selected_value == value -%}{%- assign checked = true -%}{%- endif -%}
+                      <input type="radio" class="option__input" id="{{ section.id }}-{{ option.position }}-{{ forloop.index }}" name="options[{{ option.name | escape }}]" value="{{ value | escape }}"{% if checked %} checked{% endif %}>
+                      {%- if as_swatch -%}
+                        <label class="option__label option__label--swatch" for="{{ section.id }}-{{ option.position }}-{{ forloop.index }}" style="--swatch: {{ value | downcase | replace: ' ', '' | escape }};" title="{{ value | escape }}"><span class="visually-hidden">{{ value | escape }}</span></label>
+                      {%- else -%}
+                        <label class="option__label" for="{{ section.id }}-{{ option.position }}-{{ forloop.index }}">{{ value | escape }}</label>
+                      {%- endif -%}
+                    {%- endfor -%}
+                  </div>
+                </fieldset>
+              {%- endfor -%}
+            {%- endunless -%}
+
+            {% render 'purchase-options', product: product, variant: current, id_prefix: section.id %}
+
+            {%- if product.gift_card -%}
+              <div class="field"><label for="{{ section.id }}-gc-email">{{ 'products.gift_card.recipient_email' | t }}</label><input id="{{ section.id }}-gc-email" type="email" name="properties[Recipient email]" autocomplete="off"></div>
+              <div class="field"><label for="{{ section.id }}-gc-name">{{ 'products.gift_card.recipient_name' | t }}</label><input id="{{ section.id }}-gc-name" type="text" name="properties[Recipient name]" autocomplete="off"></div>
+              <div class="field"><label for="{{ section.id }}-gc-message">{{ 'products.gift_card.message' | t }}</label><textarea id="{{ section.id }}-gc-message" name="properties[Message]" rows="3" maxlength="200"></textarea></div>
+            {%- endif -%}
+
+            <div class="product-form__row">
+              <div class="quantity">
+                <button type="button" class="quantity__button" data-qty-dec aria-label="{{ 'cart.decrease' | t: title: product.title }}">{% render 'icon', name: 'minus' %}</button>
+                <label class="visually-hidden" for="{{ section.id }}-qty">{{ 'products.quantity' | t }}</label>
+                <input class="quantity__input" id="{{ section.id }}-qty" type="number" name="quantity" value="1" min="1" inputmode="numeric" data-qty-input>
+                <button type="button" class="quantity__button" data-qty-inc aria-label="{{ 'cart.increase' | t: title: product.title }}">{% render 'icon', name: 'plus' %}</button>
+              </div>
+              <button type="submit" class="button button--block" name="add" data-add-to-cart{% unless current.available %} disabled{% endunless %}>
+                <span data-add-label>{% if current.available %}{{ 'products.add_to_cart' | t }}{% else %}{{ 'products.sold_out' | t }}{% endif %}</span>
+              </button>
+            </div>
+            <p class="product-form__message" role="status" aria-live="polite" data-form-message></p>
+          {%- endform -%}
+
+          <ul class="product__meta" role="list">
+            {%- if s.show_availability -%}
+              <li><span class="product__meta-label">{{ 'products.availability' | t }}</span> <span data-availability data-state="{% if current.available %}in{% else %}out{% endif %}">{% if current.available %}{{ 'products.in_stock' | t }}{% else %}{{ 'products.sold_out' | t }}{% endif %}</span></li>
+            {%- endif -%}
+            {%- if s.show_sku -%}
+              <li data-sku-row{% if current.sku == blank %} hidden{% endif %}><span class="product__meta-label">{{ 'products.sku' | t }}</span> <span data-sku>{{ current.sku | escape }}</span></li>
+            {%- endif -%}
+          </ul>
+        </div>
+
+        {%- content_for 'blocks' -%}
+      </div>
+    </div>
+
+    <div class="product__story">
+      {%- if product.description != blank -%}
+        <section class="product__description">
+          <h2 class="product__story-title">{{ 'products.about' | t }}</h2>
+          <div class="rte">{{ product.description }}</div>
+        </section>
+      {%- endif -%}
+      {%- assign details = product.metafields.custom -%}
+      {%- if details != blank -%}
+        <section class="product__description">
+          <h2 class="product__story-title">{{ 'products.details' | t }}</h2>
+          <dl class="product__specs">
+            {%- for entry in details -%}
+              <dt>{{ entry[0] | replace: '_', ' ' | capitalize }}</dt>
+              <dd>{{ entry[1] | metafield_tag }}</dd>
+            {%- endfor -%}
+          </dl>
+        </section>
+      {%- endif -%}
+    </div>
+  </div>
+  <script type="application/json" data-variant-media>{ {% for v in product.variants %}"{{ v.id }}": {% if v.featured_image %}{{ v.featured_image.id }}{% else %}null{% endif %}{% unless forloop.last %}, {% endunless %}{% endfor %} }</script>
+  <script type="application/json" data-product-json>{{ product | json }}</script>
+  <script type="application/ld+json">{{ product | structured_data }}</script>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_product.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_short_description",
+      "label": "t:sections.main_product.settings.show_short_description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_availability",
+      "label": "t:sections.main_product.settings.show_availability",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sku",
+      "label": "t:sections.main_product.settings.show_sku",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "sticky_info",
+      "label": "t:sections.main_product.settings.sticky_info",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@theme"
+    }
+  ]
+}
+{% endschema %}

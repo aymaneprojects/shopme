@@ -1,0 +1,49 @@
+{
+  "name": "t:sections.groups.footer",
+  "type": "footer",
+  "sections": {
+    "footer": {
+      "type": "footer",
+      "settings": {
+        "menu": "footer",
+        "show_description": true,
+        "show_newsletter": true,
+        "about": "Roasters, bakers and tea lovers since 2014.",
+        "newsletter_heading": "Join the table",
+        "newsletter_text": "Recipes, harvest news and a little discount.",
+        "color_scheme": "scheme-3"
+      },
+      "blocks": {
+        "pledge-1": {
+          "type": "pledge",
+          "settings": {
+            "icon": "leaf",
+            "text": "Organic and local"
+          }
+        },
+        "pledge-2": {
+          "type": "pledge",
+          "settings": {
+            "icon": "truck",
+            "text": "Fast, careful delivery"
+          }
+        },
+        "pledge-3": {
+          "type": "pledge",
+          "settings": {
+            "icon": "gift",
+            "text": "Plastic-free packaging"
+          }
+        }
+      },
+      "block_order": [
+        "pledge-1",
+        "pledge-2",
+        "pledge-3"
+      ]
+    }
+  },
+  "order": [
+    "footer"
+  ]
+}

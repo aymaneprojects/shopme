@@ -1,0 +1,75 @@
+<div class="section-pad video-section {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width{% if section.settings.width == 'narrow' %} page-width--narrow{% endif %}">
+    {%- if section.settings.heading != blank -%}<div class="section-head"><h2 class="section-title">{{ section.settings.heading | escape }}</h2></div>{%- endif -%}
+    <div class="video-frame">
+      {%- if section.settings.video_url != blank -%}
+        {%- render 'media', media_type: 'video', video_url: section.settings.video_url, controls: true, autoplay: section.settings.autoplay, image: section.settings.cover -%}
+      {%- elsif section.settings.cover -%}
+        {{ section.settings.cover | image_url: width: 1600 | image_tag: loading: 'lazy', alt: section.settings.heading }}
+      {%- else -%}
+        {{ 'lifestyle-1' | placeholder_svg_tag: 'video-frame__placeholder' }}
+      {%- endif -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.video.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.video.settings.heading",
+      "default": ""
+    },
+    {
+      "type": "video_url",
+      "id": "video_url",
+      "label": "t:sections.video.settings.video_url",
+      "info": "t:sections.video.info.video_url"
+    },
+    {
+      "type": "image_picker",
+      "id": "cover",
+      "label": "t:sections.video.settings.cover"
+    },
+    {
+      "type": "checkbox",
+      "id": "autoplay",
+      "label": "t:sections.video.settings.autoplay",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "width",
+      "label": "t:sections.video.settings.width",
+      "options": [
+        {
+          "value": "page",
+          "label": "t:sections.video.options.width.page"
+        },
+        {
+          "value": "narrow",
+          "label": "t:sections.video.options.width.narrow"
+        }
+      ],
+      "default": "page",
+      "variant": "segmented"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.video.presets.video",
+      "category": "video"
+    }
+  ]
+}
+{% endschema %}

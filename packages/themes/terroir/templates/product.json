@@ -1,0 +1,48 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "settings": {},
+      "blocks": {
+        "producer-1": {
+          "type": "producer",
+          "settings": {
+            "name": "The Rojas family",
+            "place": "Huila, Colombia",
+            "since": "1962",
+            "text": "Three generations growing coffee on steep, shaded slopes."
+          }
+        },
+        "accordion-2": {
+          "type": "accordion",
+          "settings": {
+            "heading": "Brewing tips",
+            "text": "<p>Use fresh, filtered water just off the boil and about 60 g of coffee per litre.</p>",
+            "open": false
+          }
+        },
+        "accordion-3": {
+          "type": "accordion",
+          "settings": {
+            "heading": "Delivery and returns",
+            "text": "<p>Shipped within two days of roasting. If something is not right, tell us and we will make it right.</p>",
+            "open": false
+          }
+        }
+      },
+      "block_order": [
+        "producer-1",
+        "accordion-2",
+        "accordion-3"
+      ]
+    },
+    "recommendations": {
+      "type": "product-recommendations",
+      "settings": {}
+    }
+  },
+  "order": [
+    "main",
+    "recommendations"
+  ]
+}

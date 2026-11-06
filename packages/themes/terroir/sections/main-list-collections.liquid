@@ -1,0 +1,58 @@
+<div class="section-pad {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width">
+    <header class="page-head">
+      <p class="eyebrow">{{ 'collection.eyebrow' | t }}</p>
+      <h1 class="page-title">{{ 'general.view_all' | t }}</h1>
+    </header>
+    {%- if collections.size > 0 -%}
+      <ul class="grid grid--cols-{{ section.settings.columns }} grid--mobile-1 collection-tiles" role="list">
+        {%- for collection in collections -%}
+          <li>{% render 'collection-tile', tile_collection: collection, show_count: section.settings.show_count %}</li>
+        {%- endfor -%}
+      </ul>
+    {%- else -%}
+      <p class="empty">{{ 'general.empty_collections' | t }}</p>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_list_collections.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "t:sections.main_list_collections.settings.columns",
+      "options": [
+        {
+          "value": "2",
+          "label": "t:sections.main_list_collections.options.columns.2"
+        },
+        {
+          "value": "3",
+          "label": "t:sections.main_list_collections.options.columns.3"
+        },
+        {
+          "value": "4",
+          "label": "t:sections.main_list_collections.options.columns.4"
+        }
+      ],
+      "default": "3"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_count",
+      "label": "t:sections.main_list_collections.settings.show_count",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ]
+}
+{% endschema %}

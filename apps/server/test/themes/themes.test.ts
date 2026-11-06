@@ -96,7 +96,7 @@ for (const handle of THEME_HANDLES) {
       }
       const same = Object.keys(en).filter((k) => en[k] === fr[k] && /[a-z]{4}/i.test(en[k]!) && !/^(general\.copyright|general\.powered_by)$/.test(k));
       const sameWords = new Set(['Pagination', 'Total', 'Collections', 'Pages', 'Articles', 'Suggestions', 'Page', 'Article', 'Date', 'Taxes', 'Marketing', 'Description', 'Navigation', 'Collection', 'Journal', 'Newsletter', 'Contact', 'Menu']);
-      const allowed = new Set(['header.search', 'customer.login', 'customer.register', 'contact.title', 'search.title', 'search.submit', 'contact.message', 'products.description', 'blog.tags', 'blog.all', 'collection.eyebrow', 'blog.eyebrow', 'carousel.next', 'newsletter.title', 'password.title', 'slideshow.label']);
+      const allowed = new Set(['header.search', 'customer.login', 'customer.register', 'contact.title', 'search.title', 'search.submit', 'contact.message', 'products.description', 'blog.tags', 'blog.all', 'collection.eyebrow', 'blog.eyebrow', 'carousel.next', 'newsletter.title', 'password.title', 'slideshow.label', 'origin.altitude']);
       expect(same.filter((k) => !allowed.has(k) && !sameWords.has(en[k]!) && !/^customer\.subscriptions\.statuses/.test(k) && !/^(badges|products\.sku|products\.details|footer\.explore|collection\.product_type|collection\.sort\.manual)/.test(k) && !/(email|Email|E-mail|Téléphone)/i.test(en[k]!))).toEqual([]);
       expect(Object.keys(seeds).length).toBeGreaterThan(40);
       for (const [k, v] of Object.entries(seeds)) expect(v, k).not.toBe('');
@@ -292,7 +292,8 @@ for (const handle of THEME_HANDLES) {
       expect(home).toContain('name="contact[email]"');
       const product = (await get('/products/highland-morning-coffee-beans')).body;
       expect(product).toContain(handle === 'terroir' ? 'badge--organic' : 'badge--new');
-      expect(product).toContain('badge--sale');
+      if (handle === 'nocturne') expect(product).toContain('badge--sale');
+      expect((await get('/collections/all')).body).toContain('badge--sale');
       expect(product).toContain('data-media-id');
       const priced = (await get('/collections/all?filter.v.price.lte=12')).body;
       expect(priced).toContain('Jasmine Pearl');

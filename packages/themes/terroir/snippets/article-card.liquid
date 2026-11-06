@@ -1,0 +1,29 @@
+{%- doc -%}
+  Card of a blog article.
+  @param {article} article - the article
+  @param {boolean} [show_image] - show the image
+  @param {boolean} [show_date] - show the date
+  @param {boolean} [show_author] - show the author
+  @param {boolean} [show_excerpt] - show an excerpt
+{%- enddoc -%}
+{%- assign date_format = 'general.date_format' | t -%}
+<article class="article-card">
+  {%- if show_image and article.image -%}
+    <a class="article-card__media" href="{{ article.url }}" tabindex="-1" aria-hidden="true">
+      {%- assign focal = '' -%}
+      {%- if article.image.presentation.focal_point != blank -%}{%- assign focal = 'object-position: ' | append: article.image.presentation.focal_point -%}{%- endif -%}
+      {{ article.image | image_url: width: 700 | image_tag: alt: article.image.alt, loading: 'lazy', widths: '350, 500, 700', sizes: '(min-width: 990px) 33vw, 100vw', style: focal }}
+    </a>
+  {%- endif -%}
+  <div class="article-card__body">
+    {%- if show_date or show_author -%}
+      <p class="article-card__meta">
+        {%- if show_date -%}<time datetime="{{ article.published_at | date: '%Y-%m-%d' }}">{{ article.published_at | date: date_format }}</time>{%- endif -%}
+        {%- if show_author and article.author != blank -%}{%- if show_date %} &middot; {% endif -%}{{ 'blog.by' | t: author: article.author }}{%- endif -%}
+      </p>
+    {%- endif -%}
+    <h3 class="article-card__title"><a href="{{ article.url }}">{{ article.title | escape }}</a></h3>
+    {%- if show_excerpt -%}<p class="article-card__excerpt">{{ article.excerpt_or_content | strip_html | truncatewords: 24 }}</p>{%- endif -%}
+    <a class="link-arrow" href="{{ article.url }}">{{ 'blog.read_more' | t }}</a>
+  </div>
+</article>

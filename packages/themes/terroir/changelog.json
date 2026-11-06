@@ -1,0 +1,27 @@
+{
+  "about": "What changed in each version of Terroir, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release: a warm, earthy theme for fine food, coffee and tea, bakeries and local producers.",
+          "Left-aligned header with a mega menu and a search pill, a cart drawer with a free-delivery bar, predictive search and language and currency selectors.",
+          "Storytelling sections: recipe, origin story, producers and tasting notes, plus a producer block for product pages.",
+          "Textured section backgrounds made with CSS, and product badges such as Organic or Local driven by tags.",
+          "Product page with a mosaic gallery that follows the focal point, option pickers that show unavailable variants, purchase options for subscriptions and recommendations.",
+          "Collections with filters (availability, price, type, producer), sorting and pagination; every customer page can be customized in the editor."
+        ],
+        "fr": [
+          "Première version : un thème chaleureux et terrien pour l’épicerie fine, le café et le thé, les boulangeries et les producteurs locaux.",
+          "En-tête aligné à gauche avec méga-menu et champ de recherche, panier latéral avec barre de livraison offerte, recherche prédictive et sélecteurs de langue et de devise.",
+          "Sections pour raconter : recette, histoire d’origine, producteurs et notes de dégustation, avec un bloc producteur pour les pages produit.",
+          "Fonds de section texturés en CSS et badges produit comme Bio ou Local pilotés par les étiquettes.",
+          "Page produit avec galerie en mosaïque qui suit le point focal, sélecteurs d’options qui signalent les variantes indisponibles, options d’achat pour les abonnements et recommandations.",
+          "Collections avec filtres (disponibilité, prix, type, producteur), tri et pagination ; toutes les pages client se personnalisent dans l’éditeur."
+        ]
+      }
+    }
+  ]
+}

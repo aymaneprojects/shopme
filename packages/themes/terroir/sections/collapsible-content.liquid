@@ -1,0 +1,133 @@
+<div class="section-pad faq {% render 'scheme-class', scheme: section.settings.color_scheme %}{% if section.settings.texture != blank and section.settings.texture != 'none' %} texture texture--{{ section.settings.texture }}{% endif %}">
+  <div class="page-width page-width--narrow">
+    {%- if section.settings.heading != blank -%}
+      <div class="section-head">
+        {%- if section.settings.eyebrow != blank -%}<p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>{%- endif -%}
+        <h2 class="section-title">{{ section.settings.heading | escape }}</h2>
+      </div>
+    {%- endif -%}
+    <div class="accordion">
+      {%- for block in section.blocks -%}
+        <details class="accordion__item"{% if section.settings.open_first and forloop.first %} open{% endif %} {{ block.shopify_attributes }}>
+          <summary class="accordion__summary"><span>{{ block.settings.heading | escape }}</span>{% render 'icon', name: 'chevron-down' %}</summary>
+          <div class="accordion__body rte">{{ block.settings.text }}</div>
+        </details>
+      {%- endfor -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.collapsible_content.name",
+  "tag": "section",
+  "max_blocks": 12,
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.collapsible_content.settings.eyebrow",
+      "default": ""
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.collapsible_content.settings.heading",
+      "default": "Good questions"
+    },
+    {
+      "type": "checkbox",
+      "id": "open_first",
+      "label": "t:sections.collapsible_content.settings.open_first",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.collapsible_content.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.collapsible_content.options.texture.none"
+        },
+        {
+          "value": "paper",
+          "label": "t:sections.collapsible_content.options.texture.paper"
+        },
+        {
+          "value": "linen",
+          "label": "t:sections.collapsible_content.options.texture.linen"
+        },
+        {
+          "value": "dots",
+          "label": "t:sections.collapsible_content.options.texture.dots"
+        },
+        {
+          "value": "wash",
+          "label": "t:sections.collapsible_content.options.texture.wash"
+        },
+        {
+          "value": "grain",
+          "label": "t:sections.collapsible_content.options.texture.grain"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "blocks": [
+    {
+      "type": "row",
+      "name": "t:sections.collapsible_content.blocks.row.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "t:sections.collapsible_content.blocks.row.settings.heading",
+          "default": "How fresh is your coffee?"
+        },
+        {
+          "type": "richtext",
+          "id": "text",
+          "label": "t:sections.collapsible_content.blocks.row.settings.text",
+          "default": "<p>We roast every week in small batches and ship within two days of roasting.</p>"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.collapsible_content.presets.collapsible_content",
+      "category": "text",
+      "blocks": [
+        {
+          "type": "row",
+          "settings": {
+            "heading": "How fresh is your coffee?",
+            "text": "<p>We roast every week in small batches and ship within two days of roasting.</p>"
+          }
+        },
+        {
+          "type": "row",
+          "settings": {
+            "heading": "Can I pause or change a subscription?",
+            "text": "<p>Yes, at any time from your account: skip a delivery, change the frequency or cancel.</p>"
+          }
+        },
+        {
+          "type": "row",
+          "settings": {
+            "heading": "Are your products organic?",
+            "text": "<p>Many are, and each product shows its labels. Look for the Organic and Local badges.</p>"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

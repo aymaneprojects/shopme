@@ -1,0 +1,110 @@
+{%- assign s = section.settings -%}
+<div class="page-width{% if s.width != 'page' %} page-width--narrow{% endif %} section-pad customer customer--{{ s.align | default: 'left' }} {% render 'scheme-class', scheme: s.color_scheme %}">
+  <section class="customer__recover" id="recover" aria-labelledby="recover-title">
+    <h1 class="page-title" id="recover-title">{{ 'customer.recover.title' | t }}</h1>
+    {%- form 'recover_customer_password', class: 'customer__form' -%}
+      {%- if form.posted_successfully? -%}
+        <p class="form-success" role="status">{{ 'customer.recover.success' | t }}</p>
+      {%- endif -%}
+      {%- if form.errors -%}
+        <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+      {%- endif -%}
+      <p>{{ 'customer.recover.text' | t }}</p>
+      <div class="field">
+        <label for="RecoverEmail">{{ 'customer.email' | t }}</label>
+        <input id="RecoverEmail" type="email" name="email" autocomplete="email" autocapitalize="off" required>
+      </div>
+      <div class="customer__actions">
+        <button class="button" type="submit">{{ 'customer.recover.submit' | t }}</button>
+        <a href="#login">{{ 'customer.recover.cancel' | t }}</a>
+      </div>
+    {%- endform -%}
+  </section>
+
+  <section class="customer__login" id="login" aria-labelledby="login-title">
+    <h1 class="page-title" id="login-title">{%- if s.heading != blank -%}{{ s.heading | escape }}{%- else -%}{{ 'customer.login_page.title' | t }}{%- endif -%}</h1>
+    {%- if s.text != blank -%}<div class="rte customer__intro">{{ s.text }}</div>{%- endif -%}
+    {%- if customer_accounts.password_login -%}
+    {%- form 'customer_login', class: 'customer__form' -%}
+      {%- if form.errors -%}
+        <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+      {%- endif -%}
+      <div class="field">
+        <label for="CustomerEmail">{{ 'customer.email' | t }}</label>
+        <input id="CustomerEmail" type="email" name="customer[email]" value="{{ form.email | escape }}" autocomplete="email" autocapitalize="off" required>
+      </div>
+      <div class="field">
+        <label for="CustomerPassword">{{ 'customer.password' | t }}</label>
+        <input id="CustomerPassword" type="password" name="customer[password]" autocomplete="current-password" required>
+      </div>
+      <div class="customer__actions">
+        <button class="button" type="submit">{{ 'customer.login_page.submit' | t }}</button>
+        {%- if s.show_recover_link -%}<a href="#recover">{{ 'customer.login_page.forgot' | t }}</a>{%- endif -%}
+      </div>
+    {%- endform -%}
+    {%- endif -%}
+
+    {%- if customer_accounts.email_code_login -%}
+      <div id="email-code" class="customer__code">
+        {%- if customer_accounts.password_login -%}<p class="customer__divider">{{ 'customer.login_page.or' | t }}</p>{%- endif -%}
+        <h2>{{ 'customer.login_page.code_title' | t }}</h2>
+        {%- if login_step == 'code' -%}
+          <p class="customer__code-sent" role="status">{{ 'customer.login_page.code_sent' | t }}</p>
+          {%- form 'customer_login_code_verify', class: 'customer__form' -%}
+            {%- if form.errors -%}
+              <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+            {%- endif -%}
+            <input type="hidden" name="customer[email]" value="{{ login_email | escape }}">
+            {%- if login_return_url != blank -%}<input type="hidden" name="return_url" value="{{ login_return_url | escape }}">{%- endif -%}
+            <div class="field">
+              <label for="LoginCode">{{ 'customer.login_page.code_label' | t }}</label>
+              <input id="LoginCode" class="customer__code-input" type="text" name="customer[code]" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+            </div>
+            <div class="customer__actions">
+              <button class="button" type="submit">{{ 'customer.login_page.code_submit' | t }}</button>
+              <a href="{{ routes.account_login_url | default: '/account/login' }}#email-code">{{ 'customer.login_page.code_resend' | t }}</a>
+            </div>
+          {%- endform -%}
+        {%- else -%}
+          <p>{{ 'customer.login_page.code_text' | t }}</p>
+          {%- form 'customer_login_code', class: 'customer__form' -%}
+            {%- if form.errors -%}
+              <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+            {%- endif -%}
+            {%- if login_return_url != blank -%}<input type="hidden" name="return_url" value="{{ login_return_url | escape }}">{%- endif -%}
+            <div class="field">
+              <label for="CodeEmail">{{ 'customer.email' | t }}</label>
+              <input id="CodeEmail" type="email" name="customer[email]" value="{{ form.email | escape }}" autocomplete="email" autocapitalize="off" required>
+            </div>
+            <div class="customer__actions">
+              <button class="button" type="submit">{{ 'customer.login_page.code_send' | t }}</button>
+            </div>
+          {%- endform -%}
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+    {%- if s.show_register_link -%}
+      <p class="customer__alt">{{ 'customer.login_page.no_account' | t }} <a href="{{ routes.account_register_url | default: '/account/register' }}">{{ 'customer.register' | t }}</a></p>
+    {%- endif -%}
+  </section>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_login.name",
+  "tag": "section",
+  "settings": [
+    { "type": "header", "content": "t:sections.customer.headers.content" },
+    { "type": "text", "id": "heading", "label": "t:sections.customer.settings.heading", "info": "t:sections.customer.info.heading" },
+    { "type": "richtext", "id": "text", "label": "t:sections.customer.settings.text" },
+    { "type": "checkbox", "id": "show_recover_link", "label": "t:sections.customer.settings.show_recover_link", "default": true },
+    { "type": "checkbox", "id": "show_register_link", "label": "t:sections.customer.settings.show_register_link", "default": true },
+    { "type": "header", "content": "t:sections.customer.headers.layout" },
+    { "type": "select", "id": "align", "label": "t:sections.customer.settings.align", "variant": "segmented", "default": "left", "options": [
+      { "value": "left", "label": "t:shared.left" }, { "value": "center", "label": "t:shared.center" } ] },
+    { "type": "select", "id": "width", "label": "t:sections.customer.settings.width", "variant": "segmented", "default": "narrow", "options": [
+      { "value": "narrow", "label": "t:sections.customer.options.width.narrow" }, { "value": "page", "label": "t:sections.customer.options.width.page" } ] },
+    { "type": "color_scheme", "id": "color_scheme", "label": "t:shared.color_scheme", "default": "" }
+  ]
+}
+{% endschema %}
