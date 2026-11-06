@@ -115,6 +115,9 @@
     {
       "handle": "heather-wool-cardigan",
       "image": "produit-01.webp",
+      "extraImages": [
+        "ambiance.webp"
+      ],
       "vendor": "Sillage",
       "type": {
         "en": "Knitwear",
@@ -493,7 +496,7 @@
       "new-in": {
         "eyebrow": "New in",
         "heading": "The new season",
-        "text": "Six pieces to build a wardrobe around."
+        "text": "Four pieces to build a wardrobe around."
       },
       "lookbook": {
         "eyebrow": "The edit",
@@ -569,7 +572,7 @@
       "new-in": {
         "eyebrow": "Nouveautés",
         "heading": "La nouvelle saison",
-        "text": "Six pièces pour construire une garde-robe."
+        "text": "Quatre pièces pour construire une garde-robe."
       },
       "lookbook": {
         "eyebrow": "La sélection",

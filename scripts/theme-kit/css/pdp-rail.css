@@ -6,4 +6,5 @@
   .k-pdp--rail .k-gallery__thumb { width: 84px; height: 104px; border-radius: var(--round-sm); }
   .k-pdp--rail .k-gallery__thumb img { width: 100%; height: 100%; object-fit: cover; }
   .k-pdp--rail .k-gallery__main { aspect-ratio: 4 / 5; }
+  .k-pdp--rail .k-gallery:not(:has(.k-gallery__thumbs)) { grid-template-columns: minmax(0, 1fr); }
 }

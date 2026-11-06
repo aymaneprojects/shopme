@@ -57,7 +57,7 @@ export default {
   css: `
 .k-lookbook__grid { display: grid; gap: 24px; grid-template-columns: repeat(12, minmax(0, 1fr)); align-items: end; }
 .k-look { position: relative; display: grid; gap: 14px; grid-column: span 4; }
-.k-lookbook__grid--3 .k-look--1 { grid-column: span 6; } .k-lookbook__grid--3 .k-look--2 { grid-column: span 3; } .k-lookbook__grid--3 .k-look--3 { grid-column: span 3; }
+.k-lookbook__grid--3 { align-items: start; } .k-lookbook__grid--3 .k-look--1 { grid-column: 1 / span 6; grid-row: 1 / span 2; } .k-lookbook__grid--3 .k-look--2, .k-lookbook__grid--3 .k-look--3 { grid-column: 7 / span 6; grid-template-columns: 1fr 1fr; align-items: end; gap: 22px; } .k-lookbook__grid--3 .k-look--2 .k-look__media, .k-lookbook__grid--3 .k-look--3 .k-look__media { aspect-ratio: 4 / 5; }
 .k-lookbook__grid--2 .k-look { grid-column: span 6; } .k-lookbook__grid--4 .k-look { grid-column: span 3; } .k-lookbook__grid--1 .k-look { grid-column: 3 / span 8; }
 .k-look__media { display: block; aspect-ratio: 4 / 5; overflow: hidden; background: var(--v-surface); border-radius: var(--round-sm); }
 .k-look--1 .k-look__media { aspect-ratio: 5 / 6; } .k-look--2 .k-look__media { aspect-ratio: 3 / 4; }
@@ -65,6 +65,6 @@ export default {
 .k-look__caption { display: grid; gap: 6px; }
 .k-look__title { margin: 0; font: 500 clamp(1.3rem, 2vw, 1.8rem)/1.15 var(--f-heading); } .k-look__text { margin: 0; color: var(--v-muted); font-size: .95rem; }
 .k-look__shop { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 14px; margin-top: 6px; padding: 12px 0 0; border-top: 1px solid var(--v-line); color: var(--v-ink); text-decoration: none; font-size: .92rem; } .k-look__shop:hover { color: var(--v-accent); }
-@media (max-width: 899px) { .k-look, .k-lookbook__grid--3 .k-look--1, .k-lookbook__grid--3 .k-look--2, .k-lookbook__grid--3 .k-look--3, .k-lookbook__grid--4 .k-look, .k-lookbook__grid--2 .k-look, .k-lookbook__grid--1 .k-look { grid-column: span 12; } .k-look--1 .k-look__media, .k-look--2 .k-look__media { aspect-ratio: 4 / 5; } }
+@media (max-width: 899px) { .k-lookbook__grid--3 .k-look--2, .k-lookbook__grid--3 .k-look--3 { grid-template-columns: 1fr; } .k-look, .k-lookbook__grid--3 .k-look--1, .k-lookbook__grid--3 .k-look--2, .k-lookbook__grid--3 .k-look--3, .k-lookbook__grid--4 .k-look, .k-lookbook__grid--2 .k-look, .k-lookbook__grid--1 .k-look { grid-column: span 12; } .k-look--1 .k-look__media, .k-look--2 .k-look__media { aspect-ratio: 4 / 5; } }
 `,
 };

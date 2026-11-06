@@ -115,6 +115,9 @@
     {
       "handle": "boucle-cushion",
       "image": "produit-01.webp",
+      "extraImages": [
+        "ambiance.webp"
+      ],
       "vendor": "Foyer",
       "type": {
         "en": "Cushions",
@@ -180,6 +183,9 @@
     {
       "handle": "braided-wool-throw",
       "image": "produit-02.webp",
+      "extraImages": [
+        "hero.webp"
+      ],
       "vendor": "Foyer",
       "type": {
         "en": "Throws",
@@ -668,6 +674,9 @@
       },
       "rooms.room-2": {
         "image": "ambiance.webp"
+      },
+      "story": {
+        "image": "hero.webp"
       }
     }
   }

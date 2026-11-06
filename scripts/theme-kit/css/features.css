@@ -1,4 +1,6 @@
 /* Kit features */
+.k-richtext .rte { margin-bottom: 24px; }
+.k-gifts__list > li { display: flex; } .k-gift { width: 100%; }
 .k-header--sticky.is-stuck { box-shadow: 0 8px 24px color-mix(in srgb, var(--v-ink) 8%, transparent); }
 .k-crumbs { padding-top: 22px; font-size: .84rem; color: var(--v-muted); } .k-crumbs ol { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 0; padding: 0; list-style: none; }
 .k-crumbs li + li::before { content: '/'; margin: 0 10px; opacity: .5; } .k-crumbs a { color: var(--v-muted); text-decoration: none; } .k-crumbs a:hover { color: var(--v-accent); text-decoration: underline; } .k-crumbs [aria-current] { color: var(--v-ink); }

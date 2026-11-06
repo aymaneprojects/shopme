@@ -52,7 +52,7 @@ export default {
         { type: 'chip', settings: { icon: 'refresh', text: t('30-day returns', 'Retours sous 30 jours') } },
       ],
     },
-    { id: 'new-in', type: 'featured-collection', settings: { eyebrow: t('New in', 'Nouveautés'), heading: t('The new season', 'La nouvelle saison'), text: t('Six pieces to build a wardrobe around.', 'Six pièces pour construire une garde-robe.'), collection: 'all', products_to_show: 8, columns: '4', show_view_all: true, color_scheme: '' } },
+    { id: 'new-in', type: 'featured-collection', settings: { eyebrow: t('New in', 'Nouveautés'), heading: t('The new season', 'La nouvelle saison'), text: t('Four pieces to build a wardrobe around.', 'Quatre pièces pour construire une garde-robe.'), collection: 'all', products_to_show: 4, columns: '4', show_view_all: true, color_scheme: '' } },
     {
       id: 'lookbook', type: 'lookbook',
       settings: { eyebrow: t('The edit', 'La sélection'), heading: t('Shop the look', 'Shopper le look'), color_scheme: 'scheme-3' },
@@ -149,7 +149,7 @@ export default {
     ],
     products: [
       {
-        handle: 'heather-wool-cardigan', image: 'produit-01.webp', vendor: 'Sillage', type: t('Knitwear', 'Maille'), tags: ['knitwear', 'wool', 'new'],
+        handle: 'heather-wool-cardigan', image: 'produit-01.webp', extraImages: ['ambiance.webp'], vendor: 'Sillage', type: t('Knitwear', 'Maille'), tags: ['knitwear', 'wool', 'new'],
         title: t('Heather Wool Cardigan', 'Cardigan en laine gris chiné'),
         description: t('A mid-weight cardigan in a soft heather grey wool blend, with a relaxed fit and horn-effect buttons.', 'Un cardigan de poids moyen dans un mélange de laine gris chiné, coupe décontractée et boutons effet corne.'),
         options: [{ name: t('Size', 'Taille'), values: ['S', 'M', 'L', 'XL'] }, { name: t('Colour', 'Couleur'), values: [t('Heather grey', 'Gris chiné'), t('Olive', 'Olive')] }],

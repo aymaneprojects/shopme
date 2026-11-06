@@ -6,6 +6,8 @@
 // adds it to the theme library, publishes it and captures the storefront home page as WebP:
 //   <out>/<handle>-desktop.webp   1440x900 (the top of the page, cropped)
 //   <out>/<handle>-mobile.webp    390x844
+// Options: --out <dir> (previews folder), --lang fr (seed the demo store in French, as a French shop gets the theme), and
+// --qa <dir> (also write screenshots of the home page, a collection, a product and the cart drawer at 1440 and 390 px).
 // <out> defaults to packages/themes/previews, where the admin serves them from. THEMES_DIR and THEME_PREVIEWS_DIR (see
 // apps/server/src/paths.ts) let the server look at another themes folder, e.g. to preview a theme that is not bundled yet.
 //
@@ -29,6 +31,10 @@ const sharp = createRequire(path.join(root, 'apps/server/package.json'))('sharp'
 const args = process.argv.slice(2);
 const outIndex = args.indexOf('--out');
 const outDir = path.resolve(outIndex >= 0 ? (args.splice(outIndex, 2)[1] ?? '') : path.join(root, 'packages/themes/previews'));
+const langAt = args.indexOf('--lang');
+const LANG = langAt >= 0 ? (args.splice(langAt, 2)[1] ?? 'en') : 'en';
+const qaAt = args.indexOf('--qa');
+const qaDir = qaAt >= 0 ? path.resolve(args.splice(qaAt, 2)[1] ?? '') : null;
 const wanted = args;
 const PASSWORD = 'previews-demo-pw';
 const EMAIL = 'owner@example.com';
@@ -49,7 +55,8 @@ const demoOf = (handle) => {
   const file = path.join(themesDir, handle, 'demo/catalog.json');
   return existsSync(file) ? { catalog: JSON.parse(readFileSync(file, 'utf8')), dir: path.join(themesDir, handle, 'demo') } : null;
 };
-const en = (v) => (v && typeof v === 'object' && 'en' in v ? v.en : v);
+/** A text of the catalogue in the language of the run (`--lang fr` seeds a French store). */
+const en = (v) => (v && typeof v === 'object' && 'en' in v ? (v[LANG] ?? v.en) : v);
 
 /**
  * Replaces the coffee demo of a freshly seeded store by a theme's demo catalogue: products with options, variants and photos,
@@ -67,13 +74,6 @@ async function seedDemoCatalog({ gql, put }, demo) {
   must('shop', (await gql('mutation($n: String!) { shopmeShopUpdate(input: { name: $n }) { userErrors { field message } } }', { n: catalog.storeName })).shopmeShopUpdate);
 
   const location = (await gql('{ locations(first: 1) { nodes { id } } }')).locations.nodes[0].id;
-  const collectionIds = {};
-  for (const c of catalog.collections ?? []) {
-    const created = must(`collection ${c.handle}`, (await gql('mutation($c: CollectionInput!) { collectionCreate(input: $c) { collection { id } userErrors { field message } } }', { c: { title: en(c.title), handle: c.handle, descriptionHtml: `<p>${en(c.description ?? '')}</p>` } })).collectionCreate);
-    collectionIds[c.handle] = created.collection.id;
-  }
-  const inCollections = (handle) => (catalog.collections ?? []).filter((c) => c.products.includes(handle)).map((c) => collectionIds[c.handle]);
-
   const uploaded = {};
   const upload = async (file) => {
     if (uploaded[file]) return uploaded[file];
@@ -83,6 +83,14 @@ async function seedDemoCatalog({ gql, put }, demo) {
     uploaded[file] = target.resourceUrl;
     return target.resourceUrl;
   };
+  const cover = (c) => (catalog.products ?? []).find((p) => p.handle === c.products[0])?.image;
+  const collectionIds = {};
+  for (const c of catalog.collections ?? []) {
+    const created = must(`collection ${c.handle}`, (await gql('mutation($c: CollectionInput!) { collectionCreate(input: $c) { collection { id } userErrors { field message } } }', { c: { title: en(c.title), handle: c.handle, descriptionHtml: `<p>${en(c.description ?? '')}</p>`, ...(cover(c) ? { image: { src: await upload(cover(c)), altText: en(c.title) } } : {}) } })).collectionCreate);
+    collectionIds[c.handle] = created.collection.id;
+  }
+  const inCollections = (handle) => (catalog.collections ?? []).filter((c) => c.products.includes(handle)).map((c) => collectionIds[c.handle]);
+
 
   for (const [index, p] of (catalog.products ?? []).entries()) {
     const names = p.options.map((o) => en(o.name));
@@ -90,18 +98,22 @@ async function seedDemoCatalog({ gql, put }, demo) {
     const combos = values.reduce((acc, list) => acc.flatMap((a) => list.map((v) => [...a, v])), [[]]);
     // the first option varies fastest
     const ordered = values.length > 1 ? values.slice().reverse().reduce((acc, list) => acc.flatMap((a) => list.map((v) => [v, ...a])), [[]]) : combos;
-    const photo = await upload(p.image);
+    const photos2 = [];
+    for (const file of [p.image, ...(p.extraImages ?? [])]) photos2.push({ file, src: await upload(file) });
     const input = {
       title: en(p.title), handle: p.handle, descriptionHtml: `<p>${en(p.description)}</p>`, vendor: p.vendor, productType: en(p.type), tags: p.tags, status: 'ACTIVE', collections: inCollections(p.handle),
-      files: [{ originalSource: photo, contentType: 'IMAGE', filename: p.image, alt: en(p.title) }],
+      files: photos2.map(({ file, src }) => ({ originalSource: src, contentType: 'IMAGE', filename: file, alt: en(p.title) })),
       productOptions: p.options.length ? p.options.map((o) => ({ name: en(o.name), values: o.values.map((v) => ({ name: en(v) })) })) : [{ name: 'Title', values: [{ name: 'Default Title' }] }],
       variants: ordered.map((vals, i) => ({
         optionValues: p.options.length ? vals.map((name, n) => ({ optionName: names[n], name })) : [{ optionName: 'Title', name: 'Default Title' }],
         price: p.price.toFixed(2), ...(p.compareAt ? { compareAtPrice: p.compareAt.toFixed(2) } : {}), sku: `${p.handle.slice(0, 3).toUpperCase()}${index + 1}-${i + 1}`,
-        inventoryItem: { tracked: true }, inventoryQuantities: [{ locationId: location, name: 'available', quantity: p.variants[i]?.stock ?? 10 }],
+        inventoryItem: { tracked: true },
       })),
     };
-    must(`product ${p.handle}`, (await gql('mutation($i: ProductSetInput!) { productSet(input: $i) { product { id } userErrors { field message } } }', { i: input })).productSet);
+    const made = must(`product ${p.handle}`, (await gql('mutation($i: ProductSetInput!) { productSet(input: $i) { product { id variants(first: 100) { nodes { sku inventoryItem { id } } } } userErrors { field message } } }', { i: input })).productSet);
+    // stock levels cannot be given while a variant is created: set them afterwards
+    const quantities = made.product.variants.nodes.map((v) => ({ inventoryItemId: v.inventoryItem.id, locationId: location, quantity: p.variants[input.variants.findIndex((x) => x.sku === v.sku)]?.stock ?? 10 }));
+    must(`stock ${p.handle}`, (await gql('mutation($i: InventorySetQuantitiesInput!) { inventorySetQuantities(input: $i) { userErrors { field message } } }', { i: { name: 'available', reason: 'correction', quantities } })).inventorySetQuantities);
   }
 
   const menus = (await gql('{ menus(first: 20) { nodes { id handle title } } }')).menus.nodes;
@@ -138,6 +150,42 @@ async function placeHomePhotos({ gql }, themeId, handle, photos) {
   }
   const r = (await gql('mutation($id: ID!, $f: [OnlineStoreThemeFilesUpsertFileInput!]!) { themeFilesUpsert(themeId: $id, files: $f) { userErrors { message } } }', { id: themeId, f: [{ filename: 'templates/index.json', body: { type: 'TEXT', value: `${JSON.stringify(index, null, 2)}\n` } }] })).themeFilesUpsert;
   if (r.userErrors.length) throw new Error(`${handle}: ${r.userErrors.map((e) => e.message).join('; ')}`);
+}
+
+/** Scrolls the page so lazy images and reveal-on-scroll sections show, and waits for the images. */
+const settle = async (page) => {
+  await page.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 400) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 60)); } window.scrollTo(0, 0); });
+  await page.evaluate(() => Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })))));
+  await page.waitForTimeout(400);
+};
+
+/** QA screenshots of a theme: home page, a collection, a product and the open cart drawer, at 1440 and 390 px. */
+async function qaShots(browser, baseUrl, handle, gql) {
+  mkdirSync(qaDir, { recursive: true });
+  const collections = (await gql('{ collections(first: 10) { nodes { handle productsCount { count } } } }')).collections.nodes.filter((c) => c.handle !== 'all' && c.handle !== 'frontpage');
+  const collection = (collections.sort((a, b) => b.productsCount.count - a.productsCount.count)[0] ?? { handle: 'all' }).handle;
+  const product = (await gql('{ products(first: 3) { nodes { handle } } }')).products.nodes[0].handle;
+  for (const [w, viewport] of [[1440, { width: 1440, height: 900 }], [390, { width: 390, height: 844 }]]) {
+    const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, locale: LANG === 'fr' ? 'fr-FR' : 'en-US', colorScheme: 'light' });
+    const page = await ctx.newPage();
+    const open = async (url) => {
+      await page.goto(`${baseUrl}${url}`, { waitUntil: 'networkidle' });
+      await page.locator('[data-consent-accept]:visible').first().click({ timeout: 1500 }).catch(() => undefined);
+      await page.addStyleTag({ content: '[data-consent-banner] { display: none !important; }' });
+      await settle(page);
+    };
+    for (const [name, url] of [['home', '/'], ['collection', `/collections/${collection}`], ['product', `/products/${product}`]]) {
+      await open(url);
+      await page.screenshot({ path: path.join(qaDir, `${handle}-${LANG}-${name}-${w}.png`), fullPage: true });
+    }
+    await open(`/products/${product}`);
+    await page.locator('[data-add-to-cart]').first().click();
+    await page.waitForSelector('.has-cart-open', { timeout: 8000 }).catch(() => undefined);
+    await page.waitForTimeout(900);
+    await page.screenshot({ path: path.join(qaDir, `${handle}-${LANG}-cart-drawer-${w}.png`) });
+    await ctx.close();
+  }
+  console.log(`  wrote QA screenshots of ${handle} (${LANG}) to ${qaDir}`);
 }
 
 /** Boots a fresh store (seeded with the coffee demo), previews the given themes on it, then stops it. */
@@ -179,6 +227,7 @@ async function runGroup(handles, demo) {
 
     let photos = {};
     if (demo) photos = await seedDemoCatalog({ gql, put }, demo);
+    if (LANG !== 'en') await gql('mutation($l: String!) { shopmeShopUpdate(input: { locale: $l }) { userErrors { message } } }', { l: LANG });
 
     mkdirSync(outDir, { recursive: true });
     browser = await chromium.launch();
@@ -189,6 +238,7 @@ async function runGroup(handles, demo) {
       const published = (await gql('mutation($id: ID!) { themePublish(id: $id) { theme { id } userErrors { message } } }', { id: added.theme.id })).themePublish;
       if (!published.theme) throw new Error(`${handle}: ${published.userErrors.map((e) => e.message).join('; ')}`);
 
+      if (qaDir) await qaShots(browser, baseUrl, handle, gql);
       for (const [kind, viewport] of Object.entries(SIZES)) {
         const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1, locale: 'en-US', colorScheme: 'light' });
         const page = await ctx.newPage();
@@ -197,9 +247,7 @@ async function runGroup(handles, demo) {
         await page.locator('[data-consent-accept]:visible').first().click({ timeout: 1500 }).catch(() => undefined);
         await page.addStyleTag({ content: '[data-consent-banner] { display: none !important; }' });
         // Lazy images and reveal-on-scroll sections only show once scrolled into view.
-        await page.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 400) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 60)); } window.scrollTo(0, 0); });
-        await page.evaluate(() => Promise.all([...document.images].map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; })))));
-        await page.waitForTimeout(500);
+        await settle(page);
         const png = await page.screenshot({ fullPage: true, clip: { x: 0, y: 0, ...viewport } });
         await ctx.close();
         const file = path.join(outDir, `${handle}-${kind}.webp`);

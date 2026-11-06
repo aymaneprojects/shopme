@@ -167,7 +167,7 @@ export default {
     ],
     products: [
       {
-        handle: 'camel-leather-tote', image: 'produit-01.webp', vendor: 'Maroquin', type: t('Bags', 'Sacs'), tags: ['bags', 'tote', 'new'],
+        handle: 'camel-leather-tote', image: 'produit-01.webp', extraImages: ['hero.webp', 'ambiance.webp'], vendor: 'Maroquin', type: t('Bags', 'Sacs'), tags: ['bags', 'tote', 'new'],
         title: t('Camel Leather Tote', 'Sac cabas en cuir camel'),
         description: t('A roomy tote in vegetable-tanned camel leather with an unlined interior and a zipped inside pocket. It fits a laptop and a lunch.', 'Un cabas spacieux en cuir camel tanné au végétal, intérieur non doublé et poche zippée. Il accueille un ordinateur et un déjeuner.'),
         options: [{ name: t('Colour', 'Couleur'), values: [t('Camel', 'Camel'), t('Black', 'Noir')] }],

@@ -31,7 +31,7 @@ export default {
         {%- assign room = block.settings -%}
         {%- assign pic = room.image | default: room.product.featured_image -%}
         <li class="k-room k-room--{{ forloop.index }}" {{ block.shopify_attributes }}>
-          <a class="k-room__link" href="{{ room.link | default: room.product.url | default: routes.collections_url }}">
+          <a class="k-room__link{% if room.image == blank %} k-room__link--product{% endif %}" href="{{ room.link | default: room.product.url | default: routes.collections_url }}">
             {%- if pic != blank -%}
               {{ pic | image_url: width: 900 | image_tag: loading: 'lazy', widths: '400, 600, 900', sizes: '(min-width: 990px) 30vw, 90vw', alt: '' }}
             {%- else -%}
@@ -46,15 +46,20 @@ export default {
 </div>
 `,
   css: `
-.k-rooms__grid { display: grid; gap: 18px; margin: 0; padding: 0; list-style: none; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: 240px; }
-.k-room { grid-column: span 2; min-width: 0; } .k-room--1 { grid-column: span 3; grid-row: span 2; } .k-room--2, .k-room--3 { grid-column: span 3; }
-.k-rooms__grid--3 .k-room--2, .k-rooms__grid--3 .k-room--3 { grid-column: span 3; } .k-rooms__grid--4 .k-room--4 { grid-column: span 3; } .k-rooms__grid--5 .k-room--4, .k-rooms__grid--5 .k-room--5 { grid-column: span 3; }
-.k-rooms__grid--2 .k-room--1, .k-rooms__grid--2 .k-room--2 { grid-column: span 3; grid-row: span 2; }
+.k-rooms__grid { display: grid; gap: 18px; margin: 0; padding: 0; list-style: none; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 230px; }
+.k-room { grid-column: span 4; min-width: 0; }
+.k-rooms__grid--2 .k-room, .k-rooms__grid--3 .k-room--1, .k-rooms__grid--4 .k-room--1, .k-rooms__grid--5 .k-room--1 { grid-column: span 6; }
+.k-rooms__grid--2 .k-room, .k-rooms__grid--3 .k-room--1, .k-rooms__grid--4 .k-room--1, .k-rooms__grid--5 .k-room--1 { grid-row: span 2; }
+.k-rooms__grid--3 .k-room--2, .k-rooms__grid--3 .k-room--3, .k-rooms__grid--4 .k-room--2 { grid-column: span 6; }
+.k-rooms__grid--4 .k-room--3, .k-rooms__grid--4 .k-room--4, .k-rooms__grid--5 .k-room { grid-column: span 3; }
+.k-rooms__grid--5 .k-room--1 { grid-column: span 6; }
 .k-room__link { position: relative; display: block; height: 100%; overflow: hidden; border-radius: var(--round); background: var(--v-surface); color: #fff; text-decoration: none; }
 .k-room__link img, .k-room__placeholder { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform calc(var(--anim) * 2) ease; } .k-room__link:hover img { transform: scale(1.05); }
-.k-room__link::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, color-mix(in srgb, #1b1612 55%, transparent)); }
+.k-room__link--product { background: var(--v-card); } .k-room__link--product img { object-fit: contain; padding: 18px 18px 64px; }
+.k-room__link::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, color-mix(in srgb, #1b1612 55%, transparent)); } .k-room__link--product::after { background: none; }
 .k-room__label { position: absolute; z-index: 1; left: 18px; right: 18px; bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.k-room__title { font: 500 1.35rem/1.15 var(--f-heading); } .k-room__arrow { display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--pill); background: var(--v-card); color: var(--v-ink); transition: transform var(--anim); } .k-room__link:hover .k-room__arrow { transform: translateX(4px); }
-@media (max-width: 899px) { .k-rooms__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 200px; } .k-room, .k-room--1, .k-room--2, .k-room--3, .k-rooms__grid .k-room--4, .k-rooms__grid .k-room--5 { grid-column: span 1; grid-row: span 1; } .k-room--1 { grid-column: span 2; } .k-room__title { font-size: 1.1rem; } }
+.k-room__link--product .k-room__label { color: var(--v-ink); }
+.k-room__title { font: 500 1.35rem/1.15 var(--f-heading); } .k-room__arrow { display: grid; place-items: center; width: 38px; height: 38px; border-radius: var(--pill); background: var(--v-card); color: var(--v-ink); transition: transform var(--anim); } .k-room__link--product .k-room__arrow { background: var(--v-ink); color: var(--v-bg); } .k-room__link:hover .k-room__arrow { transform: translateX(4px); }
+@media (max-width: 899px) { .k-rooms__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 200px; } .k-room, .k-rooms__grid .k-room--2, .k-rooms__grid .k-room--3, .k-rooms__grid .k-room--4, .k-rooms__grid .k-room--5 { grid-column: span 1; grid-row: span 1; } .k-rooms__grid .k-room--1 { grid-column: span 2; grid-row: span 1; } .k-room__title { font-size: 1.1rem; } }
 `,
 };

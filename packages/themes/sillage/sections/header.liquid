@@ -1,6 +1,6 @@
 {%- liquid
   assign menu = section.settings.menu
-  assign half = menu.links.size | plus: 1 | divided_by: 2
+  assign half = menu.links.size | plus: 1 | divided_by: 2 | floor
 -%}
 <header class="k-header k-header--split{% if section.settings.sticky %} k-header--sticky{% endif %}{% if section.settings.transparent_home and template.name == 'index' %} k-header--over{% endif %}" data-header>
   <div class="page-width k-header__inner">

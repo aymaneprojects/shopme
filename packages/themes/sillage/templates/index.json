@@ -47,9 +47,9 @@
       "settings": {
         "eyebrow": "New in",
         "heading": "The new season",
-        "text": "Six pieces to build a wardrobe around.",
+        "text": "Four pieces to build a wardrobe around.",
         "collection": "all",
-        "products_to_show": 8,
+        "products_to_show": 4,
         "columns": "4",
         "show_view_all": true,
         "color_scheme": ""

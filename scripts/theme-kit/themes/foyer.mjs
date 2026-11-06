@@ -146,7 +146,7 @@ export default {
   ],
   demo: {
     currency: 'EUR',
-    homeImages: { hero: { image: 'ambiance.webp' }, 'rooms.room-1': { image: 'hero.webp' }, 'rooms.room-2': { image: 'ambiance.webp' } },
+    homeImages: { hero: { image: 'ambiance.webp' }, 'rooms.room-1': { image: 'hero.webp' }, 'rooms.room-2': { image: 'ambiance.webp' }, story: { image: 'hero.webp' } },
     menu: [
       { title: t('Shop all', 'Tout voir'), url: '/collections/all' },
       { title: t('Textiles', 'Textiles'), url: '/collections/textiles' },
@@ -166,14 +166,14 @@ export default {
     ],
     products: [
       {
-        handle: 'boucle-cushion', image: 'produit-01.webp', vendor: 'Foyer', type: t('Cushions', 'Coussins'), tags: ['textiles', 'cushion', 'new'],
+        handle: 'boucle-cushion', image: 'produit-01.webp', extraImages: ['ambiance.webp'], vendor: 'Foyer', type: t('Cushions', 'Coussins'), tags: ['textiles', 'cushion', 'new'],
         title: t('Boucle Cushion', 'Coussin en bouclette'),
         description: t('A plump cushion in cream boucle with a removable cover and a feather-and-down inner. Soft to the touch, it holds its shape.', 'Un coussin généreux en bouclette crème, housse amovible et garnissage plumes et duvet. Doux au toucher, il garde sa forme.'),
         options: [{ name: t('Size', 'Taille'), values: ['45 x 45 cm', '60 x 60 cm'] }, { name: t('Colour', 'Couleur'), values: [t('Cream', 'Crème'), t('Oat', 'Avoine')] }],
         price: 39, variants: [{ stock: 22 }, { stock: 14 }, { stock: 9 }, { stock: 4 }],
       },
       {
-        handle: 'braided-wool-throw', image: 'produit-02.webp', vendor: 'Foyer', type: t('Throws', 'Plaids'), tags: ['textiles', 'wool'],
+        handle: 'braided-wool-throw', image: 'produit-02.webp', extraImages: ['hero.webp'], vendor: 'Foyer', type: t('Throws', 'Plaids'), tags: ['textiles', 'wool'],
         title: t('Braided Wool Throw', 'Plaid en laine tressée'),
         description: t('A chunky throw braided from merino wool, heavy and warm. It drapes over a sofa or the foot of a bed.', 'Un plaid épais tressé en laine mérinos, lourd et chaud. Il se drape sur un canapé ou au pied d’un lit.'),
         options: [{ name: t('Colour', 'Couleur'), values: [t('Natural', 'Naturel'), t('Ink', 'Encre')] }],
