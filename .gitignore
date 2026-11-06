@@ -13,3 +13,5 @@ re-private/
 /packages/*/data/
 /e2e/failures/
 dist-bundle
+.verify-logs/
+dist-release/
