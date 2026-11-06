@@ -22,6 +22,10 @@ sudo ./shopme-install.sh install --bundle ./shopme-server-<version>.tar.gz --dom
    TRUST_PROXY=true
    HSTS=true
    ```
+   Multi-store is on by default (`MULTI_STORE=true` in the compose template): the admin is at `/admin`, the first store is served on
+   the same domain and further stores on `<handle>.shop.example.com`, which needs one extra DNS record, `*.shop.example.com`.
+   For a single store add `MULTI_STORE=false`. For nginx add `HOSTS_TOKEN=<16+ random characters>` and run
+   `shopme-install.sh sync-certs` every minute (the installer does this for you); with Caddy the Caddyfile already issues certificates on demand.
 4. `docker compose up -d`, then check `curl http://127.0.0.1:3200/healthz`.
 5. HTTPS: use `templates/nginx-site.conf` with certbot, or `templates/docker-compose.caddy.yml` with `templates/Caddyfile`.
 6. Open `https://shop.example.com/admin` and finish the setup wizard right away.

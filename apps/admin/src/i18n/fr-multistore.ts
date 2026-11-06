@@ -3,6 +3,8 @@ import type { enMultistore } from './en-multistore';
 export const frMultistore: Record<keyof typeof enMultistore, string> = {
   'ms.badge.suspended': 'Suspendue', 'ms.badge.test': 'Test', 'ms.badge.testHint': 'Cette boutique n’accepte que des paiements de test',
   'ms.switchTo': 'Passer à {name}', 'ms.allStores': 'Toutes les boutiques', 'ms.createStore': 'Créer une boutique', 'ms.platform': 'Plateforme',
+  'ms.single.server': 'Plusieurs boutiques sont possibles sur un serveur. Ajoutez MULTI_STORE=true à votre fichier .env, puis redémarrez ShopMe.',
+  'ms.single.desktop': 'Plusieurs boutiques sont disponibles dans la version serveur de ShopMe.', 'ms.single.docs': 'Lire le guide multi-boutiques',
   'ms.language': 'Langue', 'ms.appearance': 'Apparence',
   'ms.suspendedBanner': 'Cette boutique a été suspendue par le propriétaire de la plateforme. Sa vitrine affiche une page « indisponible » et son administration est en lecture seule.',
   'ms.nav.stores': 'Boutiques', 'ms.nav.account': 'Compte', 'ms.forbidden': 'Votre compte n’a pas accès à la boutique « {handle} ». Choisissez l’une de vos boutiques.',

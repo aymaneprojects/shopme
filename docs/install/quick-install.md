@@ -8,7 +8,8 @@ No Docker, nginx or database knowledge is needed.
 ## Install
 
 1. At your domain provider, create an **A record** (and an AAAA record if your server has an IPv6 address) for the shop's name, for example
-   `shop.example.com`, pointing to the server's public IP address.
+   `boutique.fr`, pointing to the server's public IP address, and **one more A record**, `*.boutique.fr`, to the same address (every extra
+   store then answers on `<handle>.boutique.fr`). With `--single-store` the second record is not needed.
 2. On the server, download the script and run it:
 
 ```bash
@@ -63,27 +64,33 @@ sudo shopme-install.sh uninstall              # keeps data; add --purge to delet
   `--json` prints the same as JSON; the exit code is 1 when something fails, which suits a monitoring job.
 - **`restore`** takes a database dump (`db-*.sql.gz`) or a files archive (`uploads-*.tar.gz`) and takes a safety backup first.
 
-## Several stores (multi-store)
+## Several stores (multi-store) is the default
+
+A server installed for `boutique.fr` runs in multi-store mode without any extra option:
 
 ```bash
-sudo bash shopme-install.sh install --domain admin.example.com --email you@example.com \
-  --multi-store shops.example.com --bundle <file|url> \
-  --dns-provider cloudflare --dns-credentials /root/cloudflare.ini
+sudo bash shopme-install.sh install --domain boutique.fr --email you@example.com --bundle <file|url>
 ```
 
-`--domain` is the platform admin's host and `--multi-store` the base domain: each store answers on `<handle>.shops.example.com`. Create
-the A records for `admin.example.com` and `*.shops.example.com`. More in [Multi-store mode](multi-store.md).
-
+- The admin is at `https://boutique.fr/admin`, and the **first store's storefront is served on `boutique.fr` itself** (the setup wizard records
+  it as that store's verified primary domain). Every further store answers on `https://<handle>.boutique.fr`.
+- `.env` gets `MULTI_STORE=true`, `STORE_BASE_DOMAIN=boutique.fr` and `ADMIN_HOST=boutique.fr`. The install also asks for the `*.boutique.fr` A record
+  and checks it (`doctor` checks it again later).
 - **With Caddy** nothing more is needed: certificates are issued on demand, only for hosts ShopMe confirms it serves (the `/__shopme/tls-ask`
   endpoint).
-- **With nginx** a wildcard certificate (`*.shops.example.com`) is needed, and only DNS validation can give one:
-  - `--dns-provider cloudflare|ovh|gandi|digitalocean|route53` with `--dns-credentials <file>`: the file holds your API credentials in
-    the format certbot's plugin expects (for Cloudflare: `dns_cloudflare_api_token = ...`; for Route 53 an AWS credentials file). The
+- **With nginx** no DNS API key is needed either. The installer adds `shopme-install.sh sync-certs`, run every minute by a systemd timer (cron
+  without systemd). It reads the hosts the app serves from a local-only endpoint (`/__shopme/hosts`, protected by `HOSTS_TOKEN` in `.env`) and runs
+  `certbot --nginx -d <host>` for each new one, then reloads nginx. It uses a lock, backs off after a failure or a Let's Encrypt rate limit, and
+  logs to `/var/log/shopme/sync-certs.log`. A new store has HTTPS within a minute or two.
+  - Prefer one wildcard certificate? `--dns-provider cloudflare|ovh|gandi|digitalocean|route53` with `--dns-credentials <file>`: the file holds your API
+    credentials in the format certbot's plugin expects (for Cloudflare: `dns_cloudflare_api_token = ...`; for Route 53 an AWS credentials file). The
     script copies it to a root-only file under `/etc/shopme` (mode 600) and never prints it. Renewal is automatic.
   - `--manual-dns`: certbot shows the TXT record to create, step by step. A manual certificate cannot renew itself: every 60 days run
     `sudo shopme-install.sh renew`. `doctor` warns when the date approaches.
-- **A store's own domain** (for example `shop.brand.com`): add and verify it in Settings > Domains, point its A record to the server, then
-  run `sudo shopme-install.sh add-domain shop.brand.com`. With nginx this gets its own certificate; with Caddy it is automatic.
+- **A store's own domain** (for example `shop.brand.com`): add and verify it in Settings > Domains and point its A record to the server. The
+  certificate follows by itself (`sync-certs` with nginx, on demand with Caddy). With a wildcard certificate run `sudo shopme-install.sh add-domain shop.brand.com`.
+- **Only one store?** Install with `--single-store`, or set `MULTI_STORE=false` in `/opt/shopme/.env` and restart. An installation made before multi-store
+  became the default stays as it is. More in [Multi-store mode](multi-store.md).
 
 ## Small servers
 
@@ -95,16 +102,17 @@ the A records for `admin.example.com` and `*.shops.example.com`. More in [Multi-
 
 | Flag | Meaning |
 | --- | --- |
-| `--domain <host>` | Public host name of the shop (the admin host in multi-store mode). |
+| `--domain <host>` | Public host name of the shop: the admin, the first store and the base of the other stores' hosts. |
 | `--email <address>` | Contact address for the certificate authority. |
-| `--multi-store <base>` | Several stores on subdomains of `<base>`. |
+| `--multi-store <base>` | Stores on subdomains of `<base>` instead of `<host>` (multi-store is already the default). |
+| `--single-store` | One store only: `MULTI_STORE=false`, no wildcard record. |
 | `--bundle <path or https URL>` | A prebuilt `shopme-server-<version>.tar.gz`. |
 | `--version <x.y.z>` | Download that release's bundle (see below). |
 | `--sha256 <hex>` | Expected checksum of the bundle. Downloads from a release are checked against the published `.sha256` file. |
 | `--source <dir>` | Source checkout to build from. |
 | `--dir <path>` | Installation folder, default `/opt/shopme`. |
 | `--port <n>` | Loopback port of the app, default 3200. |
-| `--dns-provider`, `--dns-credentials`, `--manual-dns` | Wildcard certificate with nginx. |
+| `--dns-provider`, `--dns-credentials`, `--manual-dns` | One wildcard certificate with nginx (optional: the default needs no DNS key). |
 | `--no-proxy` | No HTTPS set up; the app listens on `127.0.0.1` only. |
 | `--add-swap` | Add 2 GB of swap if there is none. |
 | `--force` | Go on despite a DNS mismatch or an existing nginx name. |
@@ -146,4 +154,4 @@ Start with `sudo shopme-install.sh doctor`: each line names its fix.
 ## Limits
 
 Debian and Ubuntu only (other systems: [Docker Compose guide](README.md)). The Gandi DNS plugin is installed with pip, the others with apt.
-Pointing your DNS at a wildcard needs a DNS provider you can edit; the script cannot do that for you.
+The `*.<domain>` A record must be created by you at your DNS provider; the script checks it but cannot create it.

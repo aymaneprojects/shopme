@@ -6,8 +6,15 @@ customers, theme, files, settings, payment account and backups, and answers on i
 
 [Version française](multi-store.fr.md)
 
-Multi-store mode is off by default. Without it ShopMe runs one store per installation, exactly as described in the
-[install guide](README.md). The desktop app always runs one store.
+**On a server, multi-store is the default**, and it is as simple as a single store: install ShopMe for `boutique.fr` and
+you get the admin at `https://boutique.fr/admin`, your first store's storefront on `https://boutique.fr`, and every
+further store on `https://<handle>.boutique.fr`. One domain, one extra DNS record (`*.boutique.fr`), and certificates
+that are issued by themselves.
+
+It is on in the installer, in `docker-compose.yml` and in the Docker image (`MULTI_STORE` unset means `true` there).
+`pnpm dev`, a bare `node` start and the desktop app stay single-store. To keep one store on a server, set
+`MULTI_STORE=false` in `.env` (or install with `--single-store`) and restart; the account menu then still shows "Create a
+store" and explains how to turn the mode back on.
 
 ## How it works
 
@@ -23,23 +30,41 @@ Multi-store mode is off by default. Without it ShopMe runs one store per install
 A suspended store shows a neutral "store unavailable" page (503) on its hosts, its admin stays readable with a banner and
 refuses changes, and the background jobs skip it.
 
-## Turn it on
+## One domain
 
-Add to `.env` (or the `environment` of the Compose service):
+With the installer (`shopme-install.sh install --domain boutique.fr`) the `.env` gets:
 
 ```
+APP_URL=https://boutique.fr
 MULTI_STORE=true
-APP_URL=https://admin.example.com
-STORE_BASE_DOMAIN=shops.example.com
-# Optional: ADMIN_HOST=admin.example.com (default: the host of APP_URL)
+STORE_BASE_DOMAIN=boutique.fr
+ADMIN_HOST=boutique.fr
 TRUST_PROXY=true
 ```
 
-Restart. On a new installation the setup wizard creates the first account (the platform owner) and its first store.
+`STORE_BASE_DOMAIN` defaults to the host of `APP_URL`, and `ADMIN_HOST` too, so these two lines can be left out. When
+both are the same real domain, the setup wizard records it automatically as the **verified primary domain of the first
+store** (it is the install domain, so no TXT record is needed). The admin and the first store then share the host:
+
+- paths under `/admin` (and `/webhooks`) are the admin; every other path is the first store's storefront;
+- the first store's permanent host `<handle>.boutique.fr` redirects to `boutique.fr` like any primary domain;
+- cookies are host-only and the origin check compares the request's own host, so the shared host needs no extra setting;
+- a store's theme scripts run on the same origin as the admin there, as in a single-store installation: only put code
+  you trust in the first store's theme, or give it its own domain and move the admin elsewhere with `ADMIN_HOST`.
+
+To keep the admin on its own host (`ADMIN_HOST=admin.boutique.fr`) set `STORE_BASE_DOMAIN` to the domain you want for the
+stores; nothing is recorded as a primary domain then.
+
 Further stores come from "Create a store" in the account menu: name (the handle and address are previewed), country,
 currency, language and starting theme (one of the bundled themes, Aurora by default). The new store gets that theme, published, and the starter menus, and its creator becomes its owner.
 Other people get an account when a store owner invites them (Settings > Users); an invited person who already has an
 account joins with that account by typing its password.
+
+Setting it up by hand without the installer: add the lines above to `.env` (or the `environment` of the Compose service) and restart.
+On a new installation the setup wizard creates the first account (the platform owner) and its first store.
+
+Account and platform routes (`/admin/api/account`, `/admin/api/platform`, sign-in and sign-out) answer only on the admin
+host, never on a store's own host.
 
 ### An existing single-store installation
 
@@ -48,9 +73,10 @@ owner. Every staff member already has an account (migration `0028_multi_store` c
 members of different stores are never merged unless the person proves the password of each account at sign-in.
 The store keeps its files where they are and its backups in `DATA_DIR/backups`. Two points need care:
 
-- The admin host must not be one of the store's hosts. If the store was served on `APP_URL` (say `shop.example.com`),
-  move the admin to another host (`APP_URL=https://admin.example.com`) and keep `shop.example.com` as the store's
-  domain: it keeps working as its primary domain.
+- The store can keep the address it had. If it was served on `APP_URL` (say `shop.example.com`) and you leave
+  `STORE_BASE_DOMAIN` and `ADMIN_HOST` unset, the admin and the store share that host as described above. To put the admin
+  elsewhere, set `ADMIN_HOST=admin.example.com` (and `APP_URL` to that address): `shop.example.com` stays the store's
+  primary domain.
 - Store links in e-mails sent before the switch keep pointing at the old addresses, which still serve the store.
 
 Switching back to single-store mode is only meant for an installation that has one store: in that mode the
@@ -60,25 +86,40 @@ storefront serves the oldest store only.
 
 | Record | Points to | Purpose |
 | --- | --- | --- |
-| `admin.example.com` A/AAAA | the server | the admin and the Stripe webhooks |
-| `*.shops.example.com` A/AAAA (wildcard) | the server | every store's permanent host |
-| `shop.brand.com` CNAME | `<handle>.shops.example.com` | a store's own domain (or A/AAAA to the server for an apex domain) |
+| `boutique.fr` A/AAAA | the server | the admin, the first store and the Stripe webhooks |
+| `*.boutique.fr` A/AAAA (wildcard) | the server | every other store's permanent host (the only extra record) |
+| `shop.brand.com` CNAME | `<handle>.boutique.fr` | a store's own domain (or A/AAAA to the server for an apex domain) |
 | `_shopme-verify.shop.brand.com` TXT | `shopme-verify=<token>` | proves the store controls the domain (Settings > Domains shows the value) |
 
-A domain serves a store only once it is verified, and a host belongs to one store at most. Hosts under
-`STORE_BASE_DOMAIN` and the admin host cannot be added as custom domains.
+The installer checks the first two and `shopme-install.sh doctor` checks them again later. A domain serves a store only
+once it is verified, and a host belongs to one store at most. Hosts under `STORE_BASE_DOMAIN` and the admin host cannot
+be added as custom domains.
 
 Locally nothing is needed: with the default `STORE_BASE_DOMAIN=localhost`, stores answer on
 `http://<handle>.localhost:3000` (browsers resolve `*.localhost` to the machine itself) and the admin on
 `http://localhost:3000/admin`.
 
-## HTTPS with Caddy (on-demand certificates)
+## HTTPS
 
-Store hosts appear when stores and domains are created, so certificates are issued on demand. To keep strangers from
-making the server request certificates for any name, Caddy first asks ShopMe: `GET /__shopme/tls-ask?domain=<host>`
-answers 200 only for the admin host, the stores' permanent hosts and verified custom domains, and 404 otherwise.
+Certificates need no DNS API key.
 
-Use [`Caddyfile.multistore`](Caddyfile.multistore):
+- **Caddy** (the installer's default when nothing uses ports 80/443): certificates are issued on demand. To keep strangers
+  from making the server request certificates for any name, Caddy first asks ShopMe: `GET /__shopme/tls-ask?domain=<host>`
+  answers 200 only for the admin host, the stores' permanent hosts and verified custom domains, and 404 otherwise.
+- **nginx with certbot**: the installer sets up `shopme-install.sh sync-certs`, run every minute by a systemd timer (or a
+  cron job without systemd). It asks the app which hosts it serves (`GET /__shopme/hosts`, reachable from the machine itself
+  only and protected by `HOSTS_TOKEN` from `.env`), and for each host without a certificate it adds a small site file
+  and runs `certbot --nginx -d <host>` (HTTP-01), then reloads nginx. A new store has its certificate within a minute or two
+  once its DNS answers. It takes a lock, checks DNS before asking, backs off after a failure (5 minutes, doubling, 6 hours
+  after a Let's Encrypt rate limit), requests at most 5 certificates per run and logs to `/var/log/shopme/sync-certs.log`.
+  `doctor` shows whether the job runs and the last problem. Run it by hand any time: `sudo shopme-install.sh sync-certs`.
+- **One wildcard certificate** instead, for nginx: install with `--dns-provider <name> --dns-credentials <file>`
+  (Cloudflare, OVH, Gandi, DigitalOcean, Route 53) or `--manual-dns`. Then `sync-certs` is not installed, except that a
+  store's own domain still gets its certificate with `sudo shopme-install.sh add-domain <host>`.
+
+### Caddyfile
+
+Use [`Caddyfile.multistore`](Caddyfile.multistore) (or `deploy/server/Caddyfile`):
 
 ```
 {
@@ -87,7 +128,7 @@ Use [`Caddyfile.multistore`](Caddyfile.multistore):
 	}
 }
 
-admin.example.com {
+boutique.fr {
 	encode zstd gzip
 	reverse_proxy shopme:3000
 }
@@ -101,9 +142,10 @@ https:// {
 }
 ```
 
-Let's Encrypt limits certificates per registered domain (currently 50 a week for `example.com` and its subdomains).
-With many stores under one base domain, use a wildcard certificate for `*.shops.example.com` instead (DNS challenge,
-which needs a Caddy build with your DNS provider's module) and keep on-demand certificates for custom domains.
+Let's Encrypt limits certificates per registered domain (currently 50 a week for `boutique.fr` and its subdomains).
+With many stores under one base domain, use a wildcard certificate for `*.boutique.fr` instead (DNS challenge,
+which needs a Caddy build with your DNS provider's module, or `--dns-provider` with nginx) and keep on-demand certificates for custom domains.
+
 
 ## Docker Compose example
 

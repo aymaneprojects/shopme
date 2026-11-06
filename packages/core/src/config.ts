@@ -37,10 +37,12 @@ const schema = z.object({
   LOG_LEVEL: z.preprocess(emptyToUndef, z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info')),
   /** Several stores on one installation (accounts, store switcher, stores resolved by host). Off: one store per installation. */
   MULTI_STORE: z.preprocess(emptyToUndef, z.enum(['true', 'false', '1', '0']).default('false')),
-  /** Multi-store: each store answers on `<handle>.<STORE_BASE_DOMAIN>` (wildcard DNS). */
+  /** Multi-store: each store answers on `<handle>.<STORE_BASE_DOMAIN>` (wildcard DNS). Default: the host of APP_URL. */
   STORE_BASE_DOMAIN: opt(z.string().regex(/^[a-z0-9.-]+$/i, 'must be a host name such as shops.example.com')),
   /** Multi-store: host of the platform admin (default: the host of APP_URL). Comma separated for several. */
   ADMIN_HOST: opt(z.string()),
+  /** Multi-store: secret of the local `GET /__shopme/hosts` endpoint the certificate sync (`shopme-install.sh sync-certs`) reads. Off when unset. */
+  HOSTS_TOKEN: opt(z.string().min(16, 'must be at least 16 characters')),
 });
 
 export interface AppConfig {
@@ -74,13 +76,22 @@ export interface AppConfig {
   storeBaseDomain: string;
   /** Multi-store: host names of the platform admin (lower-cased, without port). */
   adminHosts: string[];
+  /**
+   * Multi-store: the install domain when the admin host and the base domain are one real domain (`boutique.fr`): the first store's
+   * storefront is served there too. Null otherwise (localhost, IP addresses, or an admin on its own host).
+   */
+  installDomain: string | null;
+  /** `HOSTS_TOKEN`: token of the local hosts endpoint (undefined: the endpoint is off). */
+  hostsToken?: string;
+  /** Embedded in the desktop app (one store on the computer; the admin explains how to get several on a server). */
+  desktop: boolean;
 }
 
 export interface LoadConfigOptions {
   /** Base for relative DATA_DIR/STORAGE_DIR. Defaults to INIT_CWD (set by pnpm) or process.cwd(). */
   baseDir?: string;
   /** Overrides applied after env parsing (programmatic embedding, e.g. desktop app). */
-  overrides?: Partial<Pick<AppConfig, 'host' | 'port' | 'appUrl' | 'dataDir' | 'storageDir' | 'databaseUrl' | 'sessionSecret' | 'multiStore'>>;
+  overrides?: Partial<Pick<AppConfig, 'host' | 'port' | 'appUrl' | 'dataDir' | 'storageDir' | 'databaseUrl' | 'sessionSecret' | 'multiStore' | 'desktop'>>;
   warn?: (msg: string) => void;
 }
 
@@ -99,6 +110,11 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
   const warn = opts.warn ?? ((m: string) => console.warn(`[shopme] ${m}`));
   const sessionSecret = o.sessionSecret ?? e.SESSION_SECRET ?? loadOrCreateSecret(dataDir, warn);
   const appUrl = (o.appUrl ?? e.APP_URL ?? `http://localhost:${port}`).replace(/\/+$/, '');
+  const multiStore = o.multiStore ?? (e.MULTI_STORE === 'true' || e.MULTI_STORE === '1');
+  // Default: the install domain (the host of APP_URL) when it is a real domain, so new stores get `<handle>.<install domain>`.
+  const appHost = new URL(appUrl).hostname.toLowerCase();
+  const storeBaseDomain = (e.STORE_BASE_DOMAIN ?? (isRealDomain(appHost) ? appHost : 'localhost')).toLowerCase().replace(/^\.+|\.+$/g, '');
+  const adminHosts = (e.ADMIN_HOST ?? new URL(appUrl).hostname).split(',').map((h) => h.trim().toLowerCase().replace(/:\d+$/, '')).filter(Boolean);
   return {
     env: e.NODE_ENV,
     host: o.host ?? e.HOST,
@@ -119,9 +135,12 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     trustProxy: e.TRUST_PROXY === 'true',
     hsts: e.HSTS === 'true',
     logLevel: e.LOG_LEVEL,
-    multiStore: o.multiStore ?? (e.MULTI_STORE === 'true' || e.MULTI_STORE === '1'),
-    storeBaseDomain: (e.STORE_BASE_DOMAIN ?? 'localhost').toLowerCase().replace(/^\.+|\.+$/g, ''),
-    adminHosts: (e.ADMIN_HOST ?? new URL(appUrl).hostname).split(',').map((h) => h.trim().toLowerCase().replace(/:\d+$/, '')).filter(Boolean),
+    hostsToken: e.HOSTS_TOKEN,
+    desktop: o.desktop ?? false,
+    multiStore,
+    storeBaseDomain,
+    adminHosts,
+    installDomain: multiStore && adminHosts.length === 1 && adminHosts[0] === storeBaseDomain && isRealDomain(storeBaseDomain) ? storeBaseDomain : null,
   };
 }
 
@@ -134,4 +153,9 @@ function loadOrCreateSecret(dataDir: string, warn: (m: string) => void): string 
   try { chmodSync(file, 0o600); } catch { /* best effort */ }
   warn(`SESSION_SECRET is not set: generated one and saved it to ${file}. Set SESSION_SECRET explicitly in production.`);
   return secret;
+}
+
+/** A public domain name (not `localhost`, `*.localhost`, a single label or an IP address). */
+function isRealDomain(host: string): boolean {
+  return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host) && !/^\d+(\.\d+)+$/.test(host) && !host.endsWith('.localhost');
 }

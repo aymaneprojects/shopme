@@ -92,7 +92,7 @@ export function viewOf(row: DestinationRow | null, scope: OffsiteScope, extra: {
 }
 
 /** Validate a form and turn it into a row patch. Secrets are encrypted with `key`. */
-export async function patchFromInput(cur: DestinationRow | null, input: DestinationInput, key: string, allowPrivate: boolean): Promise<{ patch: DestinationPatch } | { errors: FieldError[] }> {
+export async function patchFromInput(cur: DestinationRow | null, input: DestinationInput, key: string, allowPrivate: boolean, reservedRoots: string[] = []): Promise<{ patch: DestinationPatch } | { errors: FieldError[] }> {
   const errors: FieldError[] = [];
   const patch: DestinationPatch = {};
   if (input.enabled !== undefined) patch.enabled = !!input.enabled;
@@ -120,7 +120,12 @@ export async function patchFromInput(cur: DestinationRow | null, input: Destinat
   if (input.prefix !== undefined) {
     const p = input.prefix.trim();
     if (!PREFIX_RE.test(p) || p.split('/').some((s) => s.trim() === '..' || s.trim() === '.') || p.length > 200) errors.push({ field: 'prefix', message: 'The folder may contain letters, digits, spaces, dots, dashes, underscores and slashes only' });
-    else patch.prefix = normalizePrefix(p);
+    else {
+      const norm = normalizePrefix(p);
+      // A store may not write into the platform's own folder (`<prefix>platform/`): its archives would show up as the platform's.
+      if (reservedRoots.some((root) => norm.startsWith(root))) errors.push({ field: 'prefix', message: 'This folder is reserved for the platform backups. Choose another one.' });
+      else patch.prefix = norm;
+    }
   }
   if (input.accessKeyId !== undefined) {
     const k = input.accessKeyId.trim();

@@ -1,4 +1,5 @@
 import type { IncomingMessage } from 'node:http';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type {} from '@fastify/cookie'; // request.cookies / unsignCookie types
@@ -71,7 +72,8 @@ export class StoreRegistry {
       for (const h of localeHosts) byHost.set(h, r.id);
     }
     for (const [host, shopId] of verified) if (byId.has(shopId)) byHost.set(host, shopId);
-    for (const h of this.config.adminHosts) byHost.delete(h);
+    // The admin host never serves a store, except the install domain: there the store that owns it (recorded at setup, or a store that already served it as its primary domain) shares the host with the admin.
+    for (const h of this.config.adminHosts) if (h !== this.config.installDomain) byHost.delete(h);
     this.byId = byId; this.byHost = byHost; this.byHandle = byHandle; this.misses.clear();
   }
 
@@ -82,6 +84,9 @@ export class StoreRegistry {
     this.timer.unref?.();
     return () => { if (this.timer) clearInterval(this.timer); this.timer = null; };
   }
+
+  /** Every host the installation serves: the admin hosts and the hosts of the stores (permanent, verified custom, language). */
+  allHosts(): string[] { return [...new Set([...this.config.adminHosts, ...this.byHost.keys()])].sort(); }
 
   info(id: number): StoreInfo | undefined { return this.byId.get(id); }
   all(): StoreInfo[] { return [...this.byId.values()]; }
@@ -208,6 +213,8 @@ export function neutralPage(req: FastifyRequest, reply: FastifyReply, kind: keyo
 
 /** Paths every host answers, whatever store it belongs to. */
 const PLATFORM_PATHS = ['/healthz', '/__shopme/'];
+/** Admin API routes tied to the account session (no store): served on the admin host only. */
+export const ACCOUNT_HOST_ONLY = [/^\/admin\/api\/account(\/|$)/, /^\/admin\/api\/platform(\/|$)/, /^\/admin\/api\/auth\/(?!me$)/];
 const isAdminPath = (p: string) => p === '/admin' || p.startsWith('/admin/');
 const NO_PRIMARY_REDIRECT = (p: string) => isAdminPath(p) || p.startsWith('/webhooks/') || p.startsWith('/files/') || p.startsWith('/.well-known/') || p.startsWith('/checkout-assets/');
 
@@ -228,9 +235,17 @@ export function installHostRouting(app: FastifyInstance) {
     const host = req.headers.host;
     if (stores.isAdminHost(host)) {
       req.hostShopId = null;
-      if (isAdminPath(path) || path.startsWith('/webhooks/') || path.startsWith('/files/')) return;
+      if (isAdminPath(path) || path.startsWith('/webhooks/')) return;
+      // One domain for both: the admin host is also the first store's host. Its non-admin paths are that store's storefront.
+      const own = stores.idForHostSync(host);
+      if (path.startsWith('/files/') && own == null) return;
       const preview = await staffPreviewShop(req);
-      if (preview != null) { req.hostShopId = preview; req.staffPreview = true; return; }
+      if (preview != null && preview !== own) { req.hostShopId = preview; req.staffPreview = true; return; }
+      if (own != null) {
+        req.hostShopId = own;
+        if (stores.info(own)!.status === 'SUSPENDED') return neutralPage(req, reply, 'unavailable', 503);
+        return;
+      }
       if (path === '/' && (req.method === 'GET' || req.method === 'HEAD')) return reply.redirect('/admin/', 302);
       return neutralPage(req, reply, 'notFound', 404);
     }
@@ -243,6 +258,12 @@ export function installHostRouting(app: FastifyInstance) {
     if (info.primaryDomain && h !== info.primaryDomain && !info.localeHosts.includes(h) && (req.method === 'GET' || req.method === 'HEAD') && !NO_PRIMARY_REDIRECT(path)) {
       return reply.redirect(`${stores.publicOrigin(shopId)}${req.url.startsWith('/') ? req.url : '/'}`, 301);
     }
+  });
+
+  // Account and platform routes belong to the admin host: a store host never serves them (a store's theme scripts run there).
+  app.addHook('onRequest', async (req, reply) => {
+    if (req.hostShopId == null || !ACCOUNT_HOST_ONLY.some((r) => r.test(req.url.split('?')[0]!))) return;
+    return reply.code(404).send({ error: 'Not found' });
   });
 
   // Staff previews on the admin host: no store script runs there, nothing is cached or indexed.
@@ -280,8 +301,9 @@ export function installHostRouting(app: FastifyInstance) {
     const owner = m ? Number(m[1]) : null;
     const allowed = async (shopId: number) => (owner != null ? owner === shopId : (stores.info(shopId)?.storagePrefix ?? null) === null);
     if (req.hostShopId != null) {
-      if (!(await allowed(req.hostShopId))) return reply.code(404).send({ error: 'Not found' });
-      return;
+      if (await allowed(req.hostShopId)) return;
+      // On the shared admin and storefront host, another store's file is still shown to its staff (the admin pages).
+      if (!stores.isAdminHost(req.headers.host)) return reply.code(404).send({ error: 'Not found' });
     }
     // Admin host: the signed-in account must be staff of the store that owns the file.
     const raw = req.cookies.shopme_session;
@@ -301,5 +323,34 @@ export function registerTlsAsk(app: FastifyInstance) {
     if (stores.isAdminHost(domain)) return { ok: true };
     if (!stores.multi) return reply.code(404).send({ error: 'Unknown host' });
     return (await stores.idForHost(db, domain)) != null ? { ok: true } : reply.code(404).send({ error: 'Unknown host' });
+  });
+}
+
+/**
+ * The machine itself or its private network. In Docker, a request from the host to the published port reaches the container
+ * from the bridge gateway (a private address), not from 127.0.0.1.
+ */
+export function isLocalAddress(addr: string): boolean {
+  const a = addr.replace(/^::ffff:/i, '').toLowerCase();
+  return a === '::1' || /^127\./.test(a) || /^10\./.test(a) || /^192\.168\./.test(a) || /^172\.(1[6-9]|2\d|3[01])\./.test(a) || /^f[cd][0-9a-f]{2}:/.test(a);
+}
+
+/**
+ * `GET /__shopme/hosts`: the hosts this installation serves, for the certificate sync of the nginx install. Reachable only from
+ * the machine itself (the socket is loopback or private and no proxy header is present, so nginx never forwards it) and only with the
+ * `HOSTS_TOKEN` from `.env` (`Authorization: Bearer <token>`). Without a token configured it does not exist.
+ */
+export function registerHostsEndpoint(app: FastifyInstance) {
+  const { stores, db, config } = app.ctx;
+  app.get('/__shopme/hosts', async (req, reply) => {
+    const token = config.hostsToken;
+    const proxied = ['x-forwarded-for', 'x-real-ip', 'forwarded', 'x-forwarded-host'].some((h) => req.headers[h] !== undefined);
+    if (!token || !stores.multi || proxied || !isLocalAddress(req.raw.socket.remoteAddress ?? '')) return reply.code(404).send({ error: 'Not found' });
+    const given = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1] ?? '';
+    const a = createHash('sha256').update(given).digest();
+    const b = createHash('sha256').update(token).digest();
+    if (!timingSafeEqual(a, b)) return reply.code(404).send({ error: 'Not found' });
+    await stores.refresh(db);
+    return reply.header('cache-control', 'no-store').send({ hosts: stores.allHosts() });
   });
 }

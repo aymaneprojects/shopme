@@ -19,7 +19,7 @@
 
 ## Qu'est-ce que ShopMe ?
 
-ShopMe est une plateforme e-commerce auto-hébergeable : une boutique par installation, ou plusieurs avec le mode multi-boutique. Elle exécute les thèmes
+ShopMe est une plateforme e-commerce auto-hébergeable : plusieurs boutiques par serveur par défaut (un seul domaine, un seul enregistrement DNS générique), ou une seule boutique. Elle exécute les thèmes
 Liquid au format Shopify et implémente un sous-ensemble de l'API GraphQL Admin, de forme compatible avec Shopify.
 Tout tourne dans un seul processus Node.js avec PostgreSQL, ou avec une base embarquée pour un usage local.
 
@@ -39,7 +39,7 @@ Tout tourne dans un seul processus Node.js avec PostgreSQL, ou avec une base emb
 - **Migration et données :** un importateur de migration depuis Shopify (ligne de commande et page d'administration, via l'API Admin), import et export CSV, et archives de boutique `.shopme` pour déplacer une boutique complète.
 - **API :** API GraphQL Admin (sous-ensemble compatible), documentée dans [docs/spec](docs/spec/README.md).
 - **Déploiement :** mode local sans configuration avec PostgreSQL embarqué (PGlite), Docker Compose avec PostgreSQL 17, et applications de bureau (bêta).
-- **Mode multi-boutique (facultatif, `MULTI_STORE=true`) :** un compte et plusieurs boutiques sur une même installation, avec un sélecteur de boutique et « Créer une boutique » dans le menu du compte. Chaque boutique est isolée et répond sur sa propre adresse (`<identifiant>.<domaine de base>` et ses domaines vérifiés), avec ses propres clés Stripe, son nom d'expéditeur, ses fichiers et ses sauvegardes ; un propriétaire de la plateforme liste, suspend et supprime les boutiques. Voir [docs/install/multi-store.fr.md](docs/install/multi-store.fr.md).
+- **Mode multi-boutique (par défaut sur un serveur ; `MULTI_STORE=false` pour le désactiver) :** un compte et plusieurs boutiques sur une même installation, avec un sélecteur de boutique et « Créer une boutique » dans le menu du compte. Chaque boutique est isolée et répond sur sa propre adresse (`<identifiant>.<domaine de base>` et ses domaines vérifiés), avec ses propres clés Stripe, son nom d'expéditeur, ses fichiers et ses sauvegardes ; un propriétaire de la plateforme liste, suspend et supprime les boutiques. Voir [docs/install/multi-store.fr.md](docs/install/multi-store.fr.md).
 
 **Absent de la v0.1 :** l'API GraphQL Storefront, les applications OAuth et une plateforme d'applications, la multi-devise et
 les marchés, la TVA de l'UE et le guichet OSS, les étiquettes d'expédition et les tarifs des transporteurs (y compris les
@@ -122,8 +122,8 @@ lancement). Voir [docs/install/desktop.fr.md](docs/install/desktop.fr.md).
 restaurations et les mises à jour.
 [docs/install/backups.fr.md](docs/install/backups.fr.md) couvre les sauvegardes hors site : bucket compatible S3, chiffrement, rotation et restauration.
 [docs/install/email.fr.md](docs/install/email.fr.md) couvre les e-mails : envoi depuis votre propre serveur avec DKIM, les trois lignes DNS, ou un relais SMTP.
-[docs/install/multi-store.fr.md](docs/install/multi-store.fr.md) couvre le mode multi-boutique : DNS générique, domaines
-propres, Caddy avec certificats à la demande et sauvegardes par boutique.
+[docs/install/multi-store.fr.md](docs/install/multi-store.fr.md) couvre le mode multi-boutique : un seul domaine pour l'administration et la première boutique, un enregistrement DNS générique,
+certificats automatiques (Caddy à la demande, ou nginx avec `sync-certs`), domaines propres et sauvegardes par boutique.
 
 ## Architecture
 
@@ -133,7 +133,7 @@ propres, Caddy avec certificats à la demande et sauvegardes par boutique.
 - **Admin :** application monopage React et Vite, compilée et servie par le serveur sur `/admin`.
 - **Moteur de thèmes :** moteur de thèmes basé sur LiquidJS.
 - **Tâches de fond :** file d'attente dans le processus, Redis n'est donc pas nécessaire.
-- **Locataires :** une boutique par installation par défaut. Avec `MULTI_STORE=true`, un compte accède à plusieurs boutiques ; chaque table garde un `shop_id`, la boutique est déterminée par l'adresse de la requête (vitrine) ou par l'URL d'administration (`/admin/store/<identifiant>`), et chaque requête est vérifiée selon l'appartenance du compte à l'équipe de cette boutique.
+- **Locataires :** les installations serveur (Docker, installateur) sont multi-boutique par défaut ; `pnpm dev` et l'application de bureau gèrent une boutique, et `MULTI_STORE=false` n'en garde qu'une sur un serveur. En mode multi-boutique, un compte accède à plusieurs boutiques ; chaque table garde un `shop_id`, la boutique est déterminée par l'adresse de la requête (vitrine) ou par l'URL d'administration (`/admin/store/<identifiant>`), et chaque requête est vérifiée selon l'appartenance du compte à l'équipe de cette boutique.
 
 ## Compatibilité
 

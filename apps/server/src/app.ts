@@ -22,7 +22,7 @@ import { installOriginCheck } from './plugins/auth';
 import { registerSecurity } from './security';
 import { registerStorefront } from './storefront';
 import { registerWebhooks } from './webhooks';
-import { installHostRouting, registerTlsAsk, StoreRegistry } from './stores';
+import { installHostRouting, registerHostsEndpoint, registerTlsAsk, StoreRegistry } from './stores';
 import { registerStoresRoutes } from './admin/stores-routes';
 import { registerThemeRoutes } from './admin/themes-routes';
 import { EmailService } from './email/service';
@@ -88,6 +88,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   await app.register(cookie, { secret: config.sessionSecret });
   installHostRouting(app);
   registerTlsAsk(app);
+  registerHostsEndpoint(app);
   registerSecurity(app);
   app.addHook('onSend', async (req, reply) => {
     const robots = robotsHeader(req.url.split('?')[0]!, reply.statusCode);

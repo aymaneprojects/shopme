@@ -25,7 +25,7 @@ services:
       # Off-site backups: let the bucket be on a private address (a local MinIO).
       BACKUP_ALLOW_PRIVATE_ENDPOINTS: ${BACKUP_ALLOW_PRIVATE_ENDPOINTS:-false}
       # Several stores on this installation (docs/install/multi-store.md). Off by default.
-      MULTI_STORE: ${MULTI_STORE:-false}
+      MULTI_STORE: ${MULTI_STORE:-true}
       STORE_BASE_DOMAIN: ${STORE_BASE_DOMAIN:-}
       ADMIN_HOST: ${ADMIN_HOST:-}
     volumes:

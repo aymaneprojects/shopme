@@ -17,7 +17,8 @@ FROM node:22-slim AS runtime
 ENV NODE_ENV=production \
     PORT=3000 \
     HOST=0.0.0.0 \
-    DATA_DIR=/data
+    DATA_DIR=/data \
+    MULTI_STORE=true
 WORKDIR /app
 COPY --from=build /out/node_modules ./apps/server/node_modules
 COPY --from=build /out/package.json ./apps/server/package.json

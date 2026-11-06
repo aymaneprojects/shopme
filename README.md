@@ -19,7 +19,7 @@
 
 ## What is ShopMe
 
-ShopMe is a self-hostable e-commerce platform: one shop per installation, or several with the multi-store mode. It runs Shopify-format Liquid themes and
+ShopMe is a self-hostable e-commerce platform: several stores per server by default (one domain, one wildcard DNS record), or a single store. It runs Shopify-format Liquid themes and
 implements a compatible subset of the Shopify Admin GraphQL API. Everything runs in one Node.js process with PostgreSQL,
 or with an embedded database for local use.
 
@@ -39,7 +39,7 @@ or with an embedded database for local use.
 - **Migration and data:** a Shopify migration importer (command line and admin page, through the Admin API), CSV import and export, and `.shopme` store archives for moving a whole store.
 - **API:** Admin GraphQL API (compatible subset), documented in [docs/spec](docs/spec/README.md).
 - **Deployment:** zero-setup local mode with embedded PostgreSQL (PGlite), Docker Compose with PostgreSQL 17, and desktop apps (beta).
-- **Multi-store mode (optional, `MULTI_STORE=true`):** one account and several stores on one installation, with a store switcher and "Create a store" in the account menu. Each store is isolated and answers on its own host (`<handle>.<base domain>` and its own verified domains), with its own Stripe keys, sender name, files and backups; a platform owner lists, suspends and deletes stores. See [docs/install/backups.md](docs/install/backups.md) covers off-site backups: an S3-compatible bucket, encryption, retention and restoring.
+- **Multi-store mode (the default on a server; `MULTI_STORE=false` to opt out):** one account and several stores on one installation, with a store switcher and "Create a store" in the account menu. Each store is isolated and answers on its own host (`<handle>.<base domain>` and its own verified domains), with its own Stripe keys, sender name, files and backups; a platform owner lists, suspends and deletes stores. See [docs/install/backups.md](docs/install/backups.md) covers off-site backups: an S3-compatible bucket, encryption, retention and restoring.
 [docs/install/multi-store.md](docs/install/multi-store.md).
 
 **Not in v0.1:** Storefront GraphQL API, OAuth apps and an app platform, multi-currency and markets, EU VAT and OSS, shipping
@@ -117,7 +117,7 @@ They are unsigned for now (expect a security prompt on first launch). See [docs/
 
 [docs/install](docs/install/README.md) covers Docker Compose on a VPS with HTTPS through Caddy, backups, restores and upgrades.
 [docs/install/email.md](docs/install/email.md) covers e-mail: sending from your own server with DKIM, the three DNS lines, or an SMTP relay.
-[docs/install/multi-store.md](docs/install/multi-store.md) covers the multi-store mode: wildcard DNS, custom domains, Caddy with on-demand certificates, and per-store backups.
+[docs/install/multi-store.md](docs/install/multi-store.md) covers the multi-store mode: one domain for the admin and the first store, one wildcard DNS record, automatic certificates (Caddy on demand, or nginx with `sync-certs`), custom domains and per-store backups.
 
 ## Architecture
 
@@ -127,7 +127,7 @@ They are unsigned for now (expect a security prompt on first launch). See [docs/
 - **Admin:** React and Vite single-page app, built and served by the server at `/admin`.
 - **Theme engine:** LiquidJS-based theme renderer.
 - **Background jobs:** in-process queue, so Redis is not required.
-- **Tenancy:** one shop per installation by default. With `MULTI_STORE=true`, accounts reach several stores; every table keeps a `shop_id`, the store is resolved from the request host (storefront) or the admin URL (`/admin/store/<handle>`), and each request is checked against the account's staff membership in that store.
+- **Tenancy:** server installs (Docker, the installer) are multi-store by default; `pnpm dev` and the desktop app run one store, and `MULTI_STORE=false` keeps one on a server. In multi-store mode, accounts reach several stores; every table keeps a `shop_id`, the store is resolved from the request host (storefront) or the admin URL (`/admin/store/<handle>`), and each request is checked against the account's staff membership in that store.
 
 ## Compatibility
 

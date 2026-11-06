@@ -8,7 +8,8 @@ Aucune connaissance de Docker, nginx ou des bases de données n'est nécessaire.
 ## Installer
 
 1. Chez votre fournisseur de domaine, créez un **enregistrement A** (et AAAA si votre serveur a une adresse IPv6) pour le nom de la boutique, par
-   exemple `boutique.exemple.fr`, vers l'adresse IP publique du serveur.
+   exemple `boutique.fr`, vers l'adresse IP publique du serveur, et **un second enregistrement A**, `*.boutique.fr`, vers la même adresse
+   (chaque boutique supplémentaire répond alors sur `<identifiant>.boutique.fr`). Avec `--single-store`, ce second enregistrement est inutile.
 2. Sur le serveur, téléchargez le script et lancez-le :
 
 ```bash
@@ -62,29 +63,34 @@ sudo shopme-install.sh uninstall              # garde les données ; --purge sup
   `--json` donne la même chose en JSON ; le code de sortie est 1 en cas d'échec, pratique pour une supervision.
 - **`restore`** prend un dump de base (`db-*.sql.gz`) ou une archive de fichiers (`uploads-*.tar.gz`) et fait d'abord une sauvegarde de sécurité.
 
-## Plusieurs boutiques (multi-boutique)
+## Plusieurs boutiques (multi-boutique) par défaut
+
+Un serveur installé pour `boutique.fr` fonctionne en mode multi-boutique sans option supplémentaire :
 
 ```bash
-sudo bash shopme-install.sh install --domain admin.exemple.fr --email vous@exemple.fr \
-  --multi-store boutiques.exemple.fr --bundle <fichier|url> \
-  --dns-provider cloudflare --dns-credentials /root/cloudflare.ini
+sudo bash shopme-install.sh install --domain boutique.fr --email vous@exemple.fr --bundle <fichier|url>
 ```
 
-`--domain` est l'adresse de l'administration de la plateforme et `--multi-store` le domaine de base : chaque boutique répond sur
-`<identifiant>.boutiques.exemple.fr`. Créez les enregistrements A pour `admin.exemple.fr` et `*.boutiques.exemple.fr`. Détails dans
-[Mode multi-boutique](multi-store.fr.md).
-
-- **Avec Caddy**, rien de plus : les certificats sont émis à la demande, seulement pour les adresses que ShopMe confirme servir (point d'accès
+- L'administration est sur `https://boutique.fr/admin`, et la **vitrine de la première boutique est servie sur `boutique.fr` lui-même** (l'assistant
+  l'enregistre comme domaine principal vérifié de cette boutique). Chaque boutique suivante répond sur `https://<identifiant>.boutique.fr`.
+- Le `.env` reçoit `MULTI_STORE=true`, `STORE_BASE_DOMAIN=boutique.fr` et `ADMIN_HOST=boutique.fr`. L'installation demande aussi l'enregistrement A
+  `*.boutique.fr` et le vérifie (`doctor` le revérifie plus tard).
+- **Avec Caddy**, rien de plus : les certificats sont émis à la demande, uniquement pour les adresses que ShopMe confirme servir (le point d'accès
   `/__shopme/tls-ask`).
-- **Avec nginx**, il faut un certificat générique (`*.boutiques.exemple.fr`), que seule la validation DNS peut donner :
-  - `--dns-provider cloudflare|ovh|gandi|digitalocean|route53` avec `--dns-credentials <fichier>` : le fichier contient vos identifiants d'API au
-    format attendu par le plugin certbot (Cloudflare : `dns_cloudflare_api_token = ...` ; pour Route 53, un fichier d'identifiants AWS). Le script
-    le copie dans un fichier réservé à root sous `/etc/shopme` (mode 600) et ne l'affiche jamais. Le renouvellement est automatique.
-  - `--manual-dns` : certbot affiche l'enregistrement TXT à créer, pas à pas. Un certificat manuel ne se renouvelle pas seul : tous les 60 jours,
-    lancez `sudo shopme-install.sh renew`. `doctor` prévient quand la date approche.
-- **Le domaine propre d'une boutique** (par exemple `boutique.marque.fr`) : ajoutez-le et vérifiez-le dans Réglages > Domaines, faites pointer son
-  enregistrement A vers le serveur, puis lancez `sudo shopme-install.sh add-domain boutique.marque.fr`. Avec nginx, il obtient son propre certificat ;
-  avec Caddy, c'est automatique.
+- **Avec nginx**, aucune clé d'API DNS n'est nécessaire non plus. L'installateur ajoute `shopme-install.sh sync-certs`, lancé chaque minute par un timer
+  systemd (cron sans systemd). Il lit les adresses servies par l'application sur un point d'accès local (`/__shopme/hosts`, protégé par `HOSTS_TOKEN` dans
+  `.env`) et lance `certbot --nginx -d <adresse>` pour chaque nouvelle, puis recharge nginx. Il prend un verrou, attend plus longtemps après un échec ou une
+  limite de Let's Encrypt, et écrit dans `/var/log/shopme/sync-certs.log`. Une nouvelle boutique est en HTTPS en une à deux minutes.
+  - Vous préférez un seul certificat générique ? `--dns-provider cloudflare|ovh|gandi|digitalocean|route53` avec `--dns-credentials <fichier>` : le fichier
+    contient vos identifiants d'API au format attendu par le plugin de certbot (Cloudflare : `dns_cloudflare_api_token = ...` ; Route 53 : un fichier
+    d'identifiants AWS). Le script en fait une copie lisible par root seul sous `/etc/shopme` (mode 600) et ne l'affiche jamais. Le renouvellement est automatique.
+  - `--manual-dns` : certbot affiche l'enregistrement TXT à créer, pas à pas. Un certificat manuel ne se renouvelle pas seul : tous les 60 jours, lancez
+    `sudo shopme-install.sh renew`. `doctor` prévient quand la date approche.
+- **Le domaine propre d'une boutique** (par exemple `boutique.marque.fr`) : ajoutez-le et vérifiez-le dans Paramètres > Domaines, puis faites pointer son
+  enregistrement A vers le serveur. Le certificat suit tout seul (`sync-certs` avec nginx, à la demande avec Caddy). Avec un certificat générique, lancez
+  `sudo shopme-install.sh add-domain boutique.marque.fr`.
+- **Une seule boutique ?** Installez avec `--single-store`, ou mettez `MULTI_STORE=false` dans `/opt/shopme/.env` et redémarrez. Une installation faite avant
+  que le multi-boutique soit le mode par défaut reste telle quelle. Détails dans [Mode multi-boutique](multi-store.fr.md).
 
 ## Petits serveurs
 
@@ -96,16 +102,17 @@ sudo bash shopme-install.sh install --domain admin.exemple.fr --email vous@exemp
 
 | Option | Sens |
 | --- | --- |
-| `--domain <hôte>` | Nom d'hôte public de la boutique (l'hôte d'administration en multi-boutique). |
+| `--domain <hôte>` | Nom d'hôte public de la boutique : l'administration, la première boutique et la base des adresses des autres. |
 | `--email <adresse>` | Adresse de contact pour l'autorité de certification. |
-| `--multi-store <base>` | Plusieurs boutiques sur des sous-domaines de `<base>`. |
+| `--multi-store <base>` | Boutiques sur des sous-domaines de `<base>` plutôt que de `<hôte>` (le multi-boutique est déjà le mode par défaut). |
+| `--single-store` | Une seule boutique : `MULTI_STORE=false`, pas d'enregistrement générique. |
 | `--bundle <chemin ou URL https>` | Un `shopme-server-<version>.tar.gz` précompilé. |
 | `--version <x.y.z>` | Télécharge le bundle de cette version (voir plus bas). |
 | `--sha256 <hex>` | Somme de contrôle attendue du bundle. Les téléchargements d'une release sont vérifiés avec le fichier `.sha256` publié. |
 | `--source <dossier>` | Dépôt source à compiler. |
 | `--dir <chemin>` | Dossier d'installation, `/opt/shopme` par défaut. |
 | `--port <n>` | Port local de l'application, 3200 par défaut. |
-| `--dns-provider`, `--dns-credentials`, `--manual-dns` | Certificat générique avec nginx. |
+| `--dns-provider`, `--dns-credentials`, `--manual-dns` | Un seul certificat générique avec nginx (facultatif : par défaut, aucune clé DNS n'est nécessaire). |
 | `--no-proxy` | Pas de HTTPS configuré ; l'application écoute sur `127.0.0.1` seulement. |
 | `--add-swap` | Ajoute 2 Go de swap s'il n'y en a pas. |
 | `--force` | Continue malgré un DNS incorrect ou un nom nginx déjà pris. |
@@ -147,4 +154,4 @@ Commencez par `sudo shopme-install.sh doctor` : chaque ligne indique sa solution
 ## Limites
 
 Debian et Ubuntu uniquement (autres systèmes : [guide Docker Compose](README.fr.md)). Le plugin DNS Gandi s'installe avec pip, les autres avec apt.
-Un DNS générique demande un fournisseur DNS que vous pouvez modifier ; le script ne peut pas le faire à votre place.
+L'enregistrement A `*.<domaine>` doit être créé par vos soins chez votre fournisseur DNS ; le script le vérifie mais ne peut pas le créer.
