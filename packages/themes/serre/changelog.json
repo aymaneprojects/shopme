@@ -1,0 +1,31 @@
+{
+  "about": "What changed in each version of Serre, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release of Serre, a botanical theme for plant, pot and garden tool shops.",
+          "Centred header with search on the left, a slide-in bag and a menu on its own row.",
+          "Arched product cards with a second photo on hover, colour swatches and a quick add button.",
+          "Product page with a vertical rail of thumbnails, options, subscriptions and a low stock message.",
+          "Collection page with a sidebar of filters, sorting and infinite scroll.",
+          "New sections: plant finder by room, plant care levels, seasonal planting calendar and a countdown timer.",
+          "Breadcrumbs, back to top button and an optional age check.",
+          "Section names, settings and storefront texts are translated to English and French."
+        ],
+        "fr": [
+          "Première version de Serre, un thème botanique pour les boutiques de plantes, de pots et d’outils de jardin.",
+          "En-tête centré avec recherche à gauche, panier latéral et menu sur sa propre ligne.",
+          "Cartes produit en arche avec seconde photo au survol, pastilles de couleur et bouton d’ajout rapide.",
+          "Page produit avec un rail vertical de miniatures, options, abonnements et message de stock faible.",
+          "Page collection avec barre latérale de filtres, tri et défilement infini.",
+          "Nouvelles sections : recherche de plante par pièce, niveaux d’entretien, calendrier de plantation saisonnier et compte à rebours.",
+          "Fil d’Ariane, bouton retour en haut et vérification d’âge facultative.",
+          "Les noms des sections, les réglages et les textes de la boutique sont traduits en anglais et en français."
+        ]
+      }
+    }
+  ]
+}

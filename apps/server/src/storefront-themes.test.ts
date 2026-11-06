@@ -17,15 +17,16 @@ import { lintThemeFile } from './theme-lint';
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const THEMES_DIR = path.resolve(here, '../../../packages/themes');
-const ALL_HANDLES = ['circuit', 'velours', 'sillage', 'foyer', 'maroquin'] as const;
+const ALL_HANDLES = ['circuit', 'velours', 'sillage', 'foyer', 'maroquin', 'serre'] as const;
 const HANDLES = (process.env.THEME_ONLY ? [process.env.THEME_ONLY] : [...ALL_HANDLES]) as (typeof ALL_HANDLES)[number][];
-const NAMES = { circuit: 'Circuit', velours: 'Velours', sillage: 'Sillage', foyer: 'Foyer', maroquin: 'Maroquin' } as const;
+const NAMES = { circuit: 'Circuit', velours: 'Velours', sillage: 'Sillage', foyer: 'Foyer', maroquin: 'Maroquin', serre: 'Serre' } as const;
 
 /** What each theme composed by the kit (scripts/theme-kit/themes) is made of. */
 const KIT = {
   sillage: { header: 'split', card: 'minimal', pdp: 'stacked', filters: 'bar', infinite: true, homeMarker: 'k-lookbook', sections: ['lookbook', 'size-guide'], templates: ['page.size-guide'] },
   foyer: { header: 'centered', card: 'rounded', pdp: 'left', filters: 'bar', infinite: false, homeMarker: 'k-rooms', sections: ['room-tiles', 'materials'], templates: ['page.care-guide'] },
   maroquin: { header: 'mega', card: 'framed', pdp: 'rail', filters: 'side', infinite: false, homeMarker: 'k-craft', sections: ['craft-steps', 'gift-guide'], templates: ['page.leather-care'] },
+  serre: { header: 'centered', card: 'arched', pdp: 'rail', filters: 'side', infinite: true, homeMarker: 'k-finder', sections: ['care-levels', 'planting-calendar', 'plant-finder'], templates: ['page.planting-calendar'] },
 } as const;
 
 function walk(dir: string, base = dir, out: string[] = []): string[] {
