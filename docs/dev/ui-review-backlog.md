@@ -17,7 +17,7 @@ Take one reproducible issue or small visual improvement per pass. Check open pul
 
 ## Progress
 
-PRs #1–#4 remain open drafts as of this pass; their completed work is tracked here but has not been merged into main. Main advanced independently to `584ce9d`. The mobile save-bar pass starts from that main revision and does not include or overwrite those draft branches.
+Main contains the reviewed integrations of PRs #1–#5 in `ebb270c`. Preserve the reviewer’s retained palette, logo and top-level back arrows. Separate follow-ups: PR #6 covers product-tag paste; PR #7 covers long modal titles/actions. Inspect their current state before overlapping work.
 
 - #1: shared table keyboard activation, independent cell controls, disabled bulk menus and dialog labels. Admin tests/type checks/build passed.
 - #2: desktop content placement, mobile sidebar behavior, language selector, button edges and stale password-reset feedback. 253 admin tests passed; Chromium checks covered layout, collapse, mobile navigation, Escape/focus restoration and language selection.
@@ -26,6 +26,8 @@ PRs #1–#4 remain open drafts as of this pass; their completed work is tracked 
 - #4: Dropdown/Popover escape scroll-container clipping through the native popover top layer, with bounded placement and preserved modal/focus scope; refined the ShopMe S-ribbon logo for small sizes. See PR validation before overlapping work.
 
 - #5: French unsaved-changes controls overflowed at 320/375 px (bar left edge −29 px at 320 px). The shared save bar now stays within an 8 px viewport gutter and uses a separate message row below 640 px, retaining the single-row desktop pill. Chromium checks passed in English/French at 320, 375 and 1280 px, including visible action bounds and discard/reset behavior; production build and diff check passed. No save/navigation-guard logic changed.
+
+- Theme segmented controls: radio groups used for section alignment/layout could be clicked but had no arrow-key navigation, and every option was a Tab stop. The control now has one Tab stop, wraps selection/focus with arrow keys and supports Home/End. Four regression tests failed before the fix; all 13 focused tests (including existing theme fields) now pass. Pointer behavior and empty-option handling are preserved.
 
 ## Bounded continuation
 
