@@ -180,3 +180,11 @@ export async function setAccountPassword(db: Executor, accountId: number, passwo
   await db.update(platformAccounts).set({ passwordHash: await hashPassword(password), updatedAt: new Date() }).where(eq(platformAccounts.id, accountId));
   await db.delete(sessions).where(and(eq(sessions.accountId, accountId), eq(sessions.kind, 'staff')));
 }
+
+/** Change the name of an account; the staff memberships of its stores follow, so the name reads the same everywhere. */
+export async function updateAccountProfile(db: Executor, accountId: number, input: { firstName: string | null; lastName: string | null }): Promise<Account | null> {
+  const [row] = await db.update(platformAccounts).set({ firstName: input.firstName, lastName: input.lastName, updatedAt: new Date() }).where(eq(platformAccounts.id, accountId)).returning();
+  if (!row) return null;
+  await db.update(staffUsers).set({ firstName: input.firstName, lastName: input.lastName, updatedAt: new Date() }).where(eq(staffUsers.accountId, accountId));
+  return row;
+}

@@ -1,6 +1,6 @@
 import { Banner, Dropdown, Skeleton, cx, useToast } from '@shopme/ui';
 import { BarChart3, Rocket, Gift, Repeat, ShoppingBasket, Home, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Building2, Activity, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
-import { Suspense, useEffect, useState } from 'react';
+import { Fragment, Suspense, useEffect, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { gql } from '../api';
@@ -151,6 +151,7 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate: () => void; collapsed
 /** Settings mode: the sidebar swaps to the settings sections, with a way back, a search field and the store header. */
 function SettingsNavLinks({ onNavigate, collapsed }: { onNavigate: () => void; collapsed: boolean }) {
   const { t } = useI18n();
+  const { pathname } = useLocation();
   const can = useStaffAccess();
   const { shop } = useShop();
   const store = useStoreInfo();
@@ -185,9 +186,14 @@ function SettingsNavLinks({ onNavigate, collapsed }: { onNavigate: () => void; c
         </>
       )}
       {sections.map((s) => (
-        <NavLink key={s.id} to={s.to ?? `/settings/${s.id}`} onClick={onNavigate} title={collapsed ? t(s.key) : undefined} aria-label={collapsed ? t(s.key) : undefined} className={({ isActive }) => cx('flex min-h-7 items-center gap-2 rounded-lg px-2 py-1 text-[13px] leading-4 transition-colors', collapsed && 'justify-center', isActive ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover')}>
-          <s.icon className="size-4 shrink-0" />{!collapsed && t(s.key)}
-        </NavLink>
+        <Fragment key={s.id}>
+          <NavLink to={s.to ?? `/settings/${s.id}`} end={!!s.children} onClick={onNavigate} title={collapsed ? t(s.key) : undefined} aria-label={collapsed ? t(s.key) : undefined} className={({ isActive }) => cx('flex min-h-7 items-center gap-2 rounded-lg px-2 py-1 text-[13px] leading-4 transition-colors', collapsed && 'justify-center', (s.children ? pathname.startsWith(`/settings/${s.id}`) && !s.children.some((c) => pathname.startsWith(c.to)) : isActive) ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover')}>
+            <s.icon className="size-4 shrink-0" />{!collapsed && t(s.key)}
+          </NavLink>
+          {!collapsed && s.children && (pathname.startsWith(`/settings/${s.id}`) || s.children.some((c) => pathname.startsWith(c.to))) && s.children.map((c) => (
+            <NavLink key={c.to} to={c.to} end onClick={onNavigate} className={({ isActive }) => cx('flex min-h-7 items-center rounded-lg py-1 pl-8 pr-2 text-[13px] leading-4 transition-colors', isActive ? 'bg-frame-active font-semibold text-white' : 'text-frame-text hover:bg-frame-hover')}>{t(c.key)}</NavLink>
+          ))}
+        </Fragment>
       ))}
       {sections.length === 0 && <p className="px-2 py-2 text-[13px] text-frame-muted">{t('settings.nav.empty')}</p>}
     </nav>

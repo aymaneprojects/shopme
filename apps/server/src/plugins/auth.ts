@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { countPasskeys, getSecuritySettings, isTwoFactorEnabled, resolveAccountSession, resolveApiToken, resolveSession, scopesFor, staffInShop, type Account } from '@shopme/core';
+import { countPasskeys, getSecuritySettings, isTwoFactorEnabled, resolveAccountSession, resolveApiToken, resolveSession, scopesFor, staffInShop, type Account, type StaffUser } from '@shopme/core';
 import type { AuthInfo } from '../context';
 
 export const SESSION_COOKIE = 'shopme_session';
@@ -39,6 +39,18 @@ export async function authenticate(req: FastifyRequest): Promise<AuthInfo | null
   if (!user) { req.authDenied = true; return null; }
   const needs2fa = await enrolmentRequired(req, shopId, sess.account.id, user);
   return (req.auth = { kind: 'session', shopId, user, scopes: needs2fa ? [] : scopesFor(user), needs2fa, account: sess.account });
+}
+
+/**
+ * The signed-in account of the account pages (profile, security, passkeys): works with or without a store open, so the account
+ * level of a multi-store installation can use it. `user` is the staff membership of the store the request names, when there is one.
+ */
+export async function accountMember(req: FastifyRequest, reply: FastifyReply): Promise<{ account: Account; accountId: number; user: StaffUser | null; shopId: number | null } | null> {
+  const sess = await accountOf(req);
+  if (!sess) { reply.code(401).send({ error: 'Not authenticated' }); return null; }
+  const auth = await authenticate(req);
+  const session = auth?.kind === 'session' ? auth : null;
+  return { account: sess.account, accountId: sess.account.id, user: session?.user ?? null, shopId: session?.shopId ?? null };
 }
 
 const accountCache = new WeakMap<FastifyRequest, { account: Account; shopId: number | null } | null>();

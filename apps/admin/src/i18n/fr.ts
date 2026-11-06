@@ -1,4 +1,5 @@
 import { frBtnOrders } from './fr-btn-orders';
+import { frAccount } from './fr-account';
 import { frBtnSettings } from './fr-btn-settings';
 import { frCheckout } from './fr-checkout';
 import { frPrivacy } from './fr-privacy';
@@ -177,4 +178,5 @@ export const fr: Record<Key, string> = {
   ...frEmail,
   ...frOffsite,
   ...frAuth,
+  ...frAccount,
 };

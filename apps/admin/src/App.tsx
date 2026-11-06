@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Suspense, lazy } from 'react';
 import type { ComponentType } from 'react';
 import { Navigate, createBrowserRouter } from 'react-router';
+import type { RouteObject } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { PageFallback, Shell } from './components/Shell';
 import { I18nProvider, useT } from './i18n';
@@ -18,6 +19,7 @@ import { SecuritySettings } from './pages/settings/Security';
 import { INVITE_PATH_RE, SessionProvider, useSession } from './session';
 import { adminBase } from './api';
 import { AccountShell } from './pages/stores/AccountShell';
+import { AccountLayout } from './pages/account/AccountLayout';
 import { Spinner } from '@shopme/ui';
 
 
@@ -30,6 +32,15 @@ const L = (load: () => Promise<Record<string, unknown>>, name: string) => {
 type AppRouter = ReturnType<typeof createBrowserRouter>;
 let storeRouter: AppRouter | null = null;
 /** The store admin. Its base is `/admin`, or `/admin/store/<handle>` in multi-store mode (one store per tab). */
+/** Account pages (profile, security): outside the store frame, in both modes. */
+const accountRoutes: RouteObject = {
+  path: '/account', element: <AccountLayout />,
+  children: [
+    { index: true, element: L(() => import('./pages/account/AccountProfile'), 'AccountProfilePage') },
+    { path: 'security', element: L(() => import('./pages/settings/Security'), 'AccountSecurityPage') },
+  ],
+};
+
 const getStoreRouter = () => (storeRouter ??= createBrowserRouter(
   [{
     element: <Shell />,
@@ -147,11 +158,14 @@ const getStoreRouter = () => (storeRouter ??= createBrowserRouter(
           { path: 'domains', element: L(() => import('./pages/settings/Settings'), 'DomainsSettings') },
           { path: 'languages', element: L(() => import('./pages/settings/Languages'), 'LanguagesSettings') },
           { path: 'languages/translate', element: L(() => import('./pages/settings/Translations'), 'TranslationsPage') },
-          { path: 'security', element: <SecuritySettings /> },
+          { path: 'security', element: L(() => import('./pages/settings/Team'), 'UsersSecurityPage') },
+          { path: 'users/roles/new', element: L(() => import('./pages/settings/Roles'), 'RolePage') },
+          { path: 'users/roles/:id', element: L(() => import('./pages/settings/Roles'), 'RolePage') },
+          { path: 'users/:id', element: L(() => import('./pages/settings/UserDetail'), 'UserDetailPage') },
           { path: 'backup', element: L(() => import('./pages/settings/Backup'), 'BackupSettings') },
           { path: 'users', element: L(() => import('./pages/settings/Team'), 'UsersSettings') },
           { path: 'users/new', element: L(() => import('./pages/settings/AddUsers'), 'AddUsersPage') },
-          { path: 'users/roles', element: L(() => import('./pages/settings/Team'), 'RolesSettings') },
+          { path: 'users/roles', element: L(() => import('./pages/settings/Roles'), 'RolesSettings') },
           { path: 'emails', element: L(() => import('./pages/settings/Emails'), 'EmailsSettings') },
           { path: 'notifications', element: L(() => import('./pages/settings/Notifications'), 'NotificationsSettings') },
           { path: 'notifications/customer', element: L(() => import('./pages/settings/Notifications'), 'CustomerNotificationsPage') },
@@ -170,17 +184,16 @@ const getStoreRouter = () => (storeRouter ??= createBrowserRouter(
       },
       { path: '*', element: <ComingSoon titleKey="nav.notFound" /> },
     ],
-  }],
+  }, accountRoutes],
   { basename: adminBase() },
 ));
 
 let accountRouter: AppRouter | null = null;
 /** Multi-store, no store open: the account's stores, "Create a store" and the platform owner's area. */
 const getAccountRouter = () => (accountRouter ??= createBrowserRouter(
-  [{ path: '/stores/new', element: L(() => import('./pages/stores/CreateStore'), 'CreateStorePage') }, {
+  [{ path: '/stores/new', element: L(() => import('./pages/stores/CreateStore'), 'CreateStorePage') }, { path: '/stores', element: L(() => import('./pages/stores/Stores'), 'StoresPage') }, accountRoutes, {
     element: <AccountShell />,
     children: [
-      { path: '/stores', element: L(() => import('./pages/stores/Stores'), 'StoresPage') },
       { path: '/platform', element: L(() => import('./pages/stores/Platform'), 'PlatformPage') },
       { path: '*', element: <Navigate to="/stores" replace /> },
     ],

@@ -40,6 +40,7 @@ import { enSubscriptions } from './en-subscriptions';
 import { enThemeUpdate } from './en-theme-update';
 import { enThemeGallery } from './en-theme-gallery';
 import { enMultistore } from './en-multistore';
+import { enAccount } from './en-account';
 import { enAuth } from './en-auth';
 import { enEmail } from './en-email';
 import { enOffsite } from './en-offsite';
@@ -175,6 +176,7 @@ export const en = {
   ...enEmail,
   ...enOffsite,
   ...enAuth,
+  ...enAccount,
 } as const;
 
 export type Key = keyof typeof en;

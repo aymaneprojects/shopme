@@ -12,7 +12,7 @@ import {
 } from '@simplewebauthn/server';
 import { and, eq } from 'drizzle-orm';
 import { schema } from '@shopme/core';
-import { authenticate } from '../plugins/auth';
+import { accountMember } from '../plugins/auth';
 
 const accountsTable = schema.platformAccounts;
 import { FailureLimiter } from '../plugins/rate-limit';
@@ -250,11 +250,7 @@ export function registerLoginMethodRoutes(app: FastifyInstance, limiter: Failure
 
   // ---- managing passkeys ---------------------------------------------------------------------------------------------------------------
 
-  async function member(req: FastifyRequest, reply: FastifyReply): Promise<{ user: StaffUser; accountId: number } | null> {
-    const auth = await authenticate(req);
-    if (!auth || auth.kind !== 'session' || auth.user.accountId == null) { reply.code(401).send({ error: 'Not authenticated' }); return null; }
-    return { user: auth.user, accountId: auth.user.accountId };
-  }
+  const member = (req: FastifyRequest, reply: FastifyReply) => accountMember(req, reply);
   /** Adding a passkey creates a way in that skips every other check, so it needs the password again (like turning two-step verification off). */
   const passwordOk = async (accountId: number, password: unknown) => {
     const account = await getAccount(db, accountId);
