@@ -334,7 +334,11 @@
       input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); form.submit(); } });
     });
     var drops = $$('[data-drop]', form);
-    if (form.classList.contains('k-filters--side')) return;
+    if (form.classList.contains('k-filters--side')) {
+      /* Sidebar groups are open on wide screens; on a phone they start closed unless a filter is active. */
+      if (window.matchMedia && window.matchMedia('(max-width: 989px)').matches) drops.forEach(function (d) { if (!d.classList.contains('is-active')) d.open = false; });
+      return;
+    }
     drops.forEach(function (d) {
       d.addEventListener('toggle', function () { if (d.open) drops.forEach(function (o) { if (o !== d) o.open = false; }); });
     });

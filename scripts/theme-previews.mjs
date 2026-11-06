@@ -141,7 +141,9 @@ async function seedDemoCatalog({ gql, put }, demo) {
 /** Writes the home page photos into the installed theme's templates/index.json. */
 async function placeHomePhotos({ gql }, themeId, handle, photos) {
   if (!Object.keys(photos).length) return;
-  const index = JSON.parse(readFileSync(path.join(themesDir, handle, 'templates/index.json'), 'utf8'));
+  // the installed file, not the one on disk: a French shop's copy already holds the French seed texts
+  const installed = (await gql('query($id: ID!) { theme: node(id: $id) { ... on OnlineStoreTheme { files(filenames: ["templates/index.json"], first: 1) { nodes { body { ... on OnlineStoreThemeFileBodyText { content } } } } } } }', { id: themeId })).theme.files.nodes[0].body.content;
+  const index = JSON.parse(installed);
   for (const [k, src] of Object.entries(photos)) {
     const [target, setting] = k.split('\u0000');
     const [sectionId, blockId] = target.split('.');

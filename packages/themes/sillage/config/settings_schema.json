@@ -947,7 +947,7 @@
         "id": "swatch_colors",
         "label": "t:settings_schema.shade_swatches.settings.swatch_colors",
         "info": "t:settings_schema.shade_swatches.info.swatch_colors",
-        "default": "Heather grey:#9a9a94,Stone:#d9d1be,Olive:#5c6838,Ecru:#efe7d3,Raw denim:#3b4a63"
+        "default": "Heather grey:#9a9a94,Gris chiné:#9a9a94,Stone:#d9d1be,Pierre:#d9d1be,Olive:#5c6838,Ecru:#efe7d3,Écru:#efe7d3,Raw denim:#3b4a63"
       }
     ]
   },

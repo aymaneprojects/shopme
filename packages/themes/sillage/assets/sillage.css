@@ -376,6 +376,7 @@ body:not(.no-card-zoom) .k-card:hover .k-card__img { transform: scale(1.04); }
 .k-gallery__stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
 .k-gallery__shot { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: var(--v-surface); border-radius: var(--round-sm); }
 .k-gallery__shot:first-child { grid-column: 1 / -1; aspect-ratio: 1 / 1; border-radius: var(--arch) var(--arch) var(--round-sm) var(--round-sm); }
+.k-gallery__shot:last-child:nth-child(even) { grid-column: 1 / -1; aspect-ratio: 4 / 3; }
 .k-gallery__shot img { width: 100%; height: 100%; object-fit: cover; }
 .k-pdp--stacked .k-info { position: sticky; top: 110px; }
 @media (max-width: 989px) { .k-pdp--stacked .k-info { position: static; } .k-pdp--stacked .k-pdp__grid { grid-template-columns: 1fr; } }

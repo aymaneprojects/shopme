@@ -21,7 +21,7 @@ export default {
   type: { h1: 320, h2: 220, headingWeight: 300, h1LineHeight: 112, headingCase: 'uppercase', lineHeight: 165, baseSize: 16 },
   colors: {
     accent: '#a8743a', background: '#faf6ee', surface: '#efe6d6', card: '#fffdf8', text: '#1b1713', sale: '#a02a1c', soldOut: '#5a544c',
-    swatchColors: 'Camel:#b07a42,Black:#1b1713,Cognac:#8a4a24,Cream:#efe6d2,White:#faf7f1,Tan:#c99a64,Navy:#27364f',
+    swatchColors: 'Camel:#b07a42,Black:#1b1713,Noir:#1b1713,Cognac:#8a4a24,Tan:#c99a64,Fauve:#c99a64,Navy:#27364f',
     schemes: [
       { name: 'Cream', background: '#faf6ee', text: '#1b1713', surface: '#efe6d6', card: '#fffdf8', border: '#ded3bd', button: '#1b1713', button_label: '#faf6ee' },
       { name: 'Camel', background: '#b07a42', text: '#1b1713', surface: '#bd8a55', card: '#c4935f', border: '#8f6130', button: '#1b1713', button_label: '#faf6ee' },

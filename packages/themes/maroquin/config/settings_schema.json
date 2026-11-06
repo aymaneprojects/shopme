@@ -949,7 +949,7 @@
         "id": "swatch_colors",
         "label": "t:settings_schema.shade_swatches.settings.swatch_colors",
         "info": "t:settings_schema.shade_swatches.info.swatch_colors",
-        "default": "Camel:#b07a42,Black:#1b1713,Cognac:#8a4a24,Cream:#efe6d2,White:#faf7f1,Tan:#c99a64,Navy:#27364f"
+        "default": "Camel:#b07a42,Black:#1b1713,Noir:#1b1713,Cognac:#8a4a24,Tan:#c99a64,Fauve:#c99a64,Navy:#27364f"
       }
     ]
   },

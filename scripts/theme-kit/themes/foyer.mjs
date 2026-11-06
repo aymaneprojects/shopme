@@ -21,7 +21,7 @@ export default {
   type: { h1: 350, h2: 240, headingWeight: 500, h1LineHeight: 110, lineHeight: 165, baseSize: 16 },
   colors: {
     accent: '#a8603a', background: '#f8f2e7', surface: '#efe5d2', card: '#fffaf0', text: '#3a3127', sale: '#a8432b',
-    swatchColors: 'Cream:#efe6d2,Oat:#d6c7a6,Natural:#d9c9a8,Ink:#2e3440,Sand:#d6c4a0,Clay:#b4704b,Ivory:#f3ecdc,Linen:#d8c9ad',
+    swatchColors: 'Cream:#efe6d2,Crème:#efe6d2,Oat:#d6c7a6,Avoine:#d6c7a6,Natural:#d9c9a8,Naturel:#d9c9a8,Ink:#2e3440,Encre:#2e3440,Sand:#d6c4a0,Sable:#d6c4a0,Clay:#b4704b,Argile:#b4704b,Ivory:#f3ecdc,Ivoire:#f3ecdc,Natural linen:#d8c9ad,Lin naturel:#d8c9ad',
     schemes: [
       { name: 'Cream', background: '#f8f2e7', text: '#3a3127', surface: '#efe5d2', card: '#fffaf0', border: '#e2d6bd', button: '#a8603a', button_label: '#fffaf0' },
       { name: 'Linen', background: '#ebe0ca', text: '#3a3127', surface: '#e1d4b9', card: '#f6efe0', border: '#d3c4a5', button: '#3a3127', button_label: '#f8f2e7' },

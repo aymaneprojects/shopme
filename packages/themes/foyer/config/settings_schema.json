@@ -935,7 +935,7 @@
         "id": "swatch_colors",
         "label": "t:settings_schema.shade_swatches.settings.swatch_colors",
         "info": "t:settings_schema.shade_swatches.info.swatch_colors",
-        "default": "Cream:#efe6d2,Oat:#d6c7a6,Natural:#d9c9a8,Ink:#2e3440,Sand:#d6c4a0,Clay:#b4704b,Ivory:#f3ecdc,Linen:#d8c9ad"
+        "default": "Cream:#efe6d2,Crème:#efe6d2,Oat:#d6c7a6,Avoine:#d6c7a6,Natural:#d9c9a8,Naturel:#d9c9a8,Ink:#2e3440,Encre:#2e3440,Sand:#d6c4a0,Sable:#d6c4a0,Clay:#b4704b,Argile:#b4704b,Ivory:#f3ecdc,Ivoire:#f3ecdc,Natural linen:#d8c9ad,Lin naturel:#d8c9ad"
       }
     ]
   },

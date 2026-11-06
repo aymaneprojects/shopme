@@ -21,7 +21,7 @@ export default {
   type: { h1: 400, h2: 270, headingWeight: 400, h1LineHeight: 100, lineHeight: 165, baseSize: 16 },
   colors: {
     accent: '#5c6838', background: '#f6f3ec', surface: '#ebe6d9', card: '#fbf9f4', text: '#23251d', sale: '#a4412b',
-    swatchColors: 'Heather grey:#9a9a94,Stone:#d9d1be,Olive:#5c6838,Ecru:#efe7d3,Raw denim:#3b4a63',
+    swatchColors: 'Heather grey:#9a9a94,Gris chiné:#9a9a94,Stone:#d9d1be,Pierre:#d9d1be,Olive:#5c6838,Ecru:#efe7d3,Écru:#efe7d3,Raw denim:#3b4a63',
     schemes: [
       { name: 'Ivory', background: '#f6f3ec', text: '#23251d', surface: '#ebe6d9', card: '#fbf9f4', border: '#d9d3c3', button: '#23251d', button_label: '#f6f3ec' },
       { name: 'Olive', background: '#4a5230', text: '#f3efe2', surface: '#59623b', card: '#59623b', border: '#7a8458', button: '#f3efe2', button_label: '#4a5230' },
