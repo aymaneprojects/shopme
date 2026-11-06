@@ -1,6 +1,6 @@
 import { ChevronDown, X } from 'lucide-react';
-import { cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
-import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
+import { cloneElement, createContext, isValidElement, useCallback, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode, RefObject } from 'react';
 import { Button, ButtonGroup, cx } from './basics';
 import type { ButtonProps } from './basics';
 
@@ -73,6 +73,58 @@ function useDismiss(open: boolean, close: () => void) {
   return ref;
 }
 
+const floatingStyle: CSSProperties = { position: 'fixed', inset: 'auto', margin: 0, border: 0, overflow: 'auto' };
+
+/** Keep floating controls outside ancestor clipping without moving them out of a modal's DOM/focus scope. */
+function useFloatingPanel<T extends HTMLElement>(open: boolean, anchor: RefObject<HTMLDivElement | null>, panel: RefObject<T | null>, align: 'left' | 'right') {
+  useLayoutEffect(() => {
+    const element = panel.current;
+    if (!open || !element || !anchor.current) return;
+    // The native popover top layer escapes scroll containers and transformed ancestors.
+    // Older browsers still receive bounded fixed positioning.
+    if (typeof element.showPopover === 'function') element.showPopover();
+    else element.style.display = 'block';
+    const update = () => {
+      const trigger = anchor.current?.getBoundingClientRect();
+      if (!trigger) return;
+      const padding = 8, gap = 4;
+      const viewportWidth = window.innerWidth, viewportHeight = window.innerHeight;
+      const availableWidth = Math.max(0, viewportWidth - padding * 2);
+      element.style.maxWidth = `${availableWidth}px`;
+      element.style.minWidth = '';
+      if (parseFloat(getComputedStyle(element).minWidth) > availableWidth) element.style.minWidth = `${availableWidth}px`;
+      const box = element.getBoundingClientRect();
+      // offset dimensions exclude the entry animation's scale transform.
+      const width = element.offsetWidth || box.width;
+      const naturalHeight = Math.max(element.scrollHeight, element.offsetHeight, box.height);
+      const availableViewportHeight = Math.max(0, viewportHeight - padding * 2);
+      const below = Math.max(0, Math.min(availableViewportHeight, viewportHeight - trigger.bottom - gap - padding));
+      const above = Math.max(0, Math.min(availableViewportHeight, trigger.top - gap - padding));
+      const placeAbove = naturalHeight > below && above > below;
+      const availableHeight = placeAbove ? above : below;
+      const height = Math.min(naturalHeight, availableHeight);
+      const left = align === 'right' ? trigger.right - width : trigger.left;
+      const top = placeAbove ? trigger.top - gap - height : trigger.bottom + gap;
+      element.style.left = `${Math.max(padding, Math.min(left, viewportWidth - width - padding))}px`;
+      element.style.top = `${Math.max(padding, Math.min(top, viewportHeight - height - padding))}px`;
+      element.style.maxHeight = `${availableHeight}px`;
+      element.style.transformOrigin = placeAbove ? 'bottom' : 'top';
+    };
+    update();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    observer?.observe(element);
+    observer?.observe(anchor.current);
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+      element.hidePopover?.();
+    };
+  }, [open, anchor, panel, align]);
+}
+
 export interface MenuItem { key: string; label: ReactNode; onSelect: () => void; danger?: boolean; disabled?: boolean; /** Optional leading icon. */ icon?: ReactNode; /** Draws a divider above this item (groups related actions). */ separatorBefore?: boolean; /** Keyboard shortcut hint shown on the right, e.g. `Ctrl+D`. */ shortcut?: string; /** Small heading drawn above this item (starts a titled group, e.g. "Print"). */ section?: string }
 
 /** Button + popup menu with arrow-key navigation. Closes on outside click, Escape and selection. */
@@ -81,6 +133,7 @@ export function Dropdown({ trigger, items, align = 'left', label, variant = 'sec
   const close = useCallback(() => setOpen(false), []);
   const ref = useDismiss(open, close);
   const menu = useRef<HTMLUListElement>(null);
+  useFloatingPanel(open, ref, menu, align);
   const menuId = useId();
   const triggerId = useId();
   const openingEdge = useRef<'first' | 'last'>('first');
@@ -118,14 +171,14 @@ export function Dropdown({ trigger, items, align = 'left', label, variant = 'sec
         {trigger}{chevron && <ChevronDown className="size-3.5" />}
       </Button>
       {open && (
-        <ul ref={menu} id={menuId} role="menu" aria-labelledby={triggerId} onKeyDown={nav} className={cx('anim-menu absolute z-30 mt-1 min-w-48 rounded-lg bg-canvas p-1 shadow-pop', align === 'right' ? 'right-0' : 'left-0', menuClassName)}>
+        <ul ref={menu} id={menuId} popover="manual" style={floatingStyle} role="menu" aria-labelledby={triggerId} onKeyDown={nav} className={cx('anim-menu z-[90] min-w-48 rounded-lg bg-canvas p-1 text-fg shadow-pop', menuClassName)}>
           {items.map((it) => (
             <li key={it.key} role="none" className={it.separatorBefore || it.section ? 'mt-1 border-t border-line pt-1 first:mt-0 first:border-t-0 first:pt-0' : undefined}>
               {it.section && <div role="presentation" className="px-2.5 pb-0.5 pt-1 text-xs font-medium text-muted">{it.section}</div>}
               <button role="menuitem" type="button" disabled={it.disabled} onClick={() => select(it)}
                 className={cx('flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-hover focus-visible:bg-hover focus-visible:outline-none disabled:opacity-50', it.danger && 'text-critical hover:bg-critical-subtle')}>
                 {it.icon && <span className="grid size-4 shrink-0 place-items-center [&_svg]:size-4" aria-hidden>{it.icon}</span>}
-                <span className="flex-1 whitespace-nowrap">{it.label}</span>
+                <span className="min-w-0 flex-1 break-words">{it.label}</span>
                 {it.shortcut && <kbd className="ml-4 text-xs text-muted">{it.shortcut}</kbd>}
               </button>
             </li>
@@ -189,10 +242,12 @@ export function Popover({ trigger, children, align = 'left', label, className, t
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
   const ref = useDismiss(open, close);
+  const panel = useRef<HTMLDivElement>(null);
+  useFloatingPanel(open, ref, panel, align);
   return (
     <div ref={ref} className="relative inline-block">
       <Button variant={triggerVariant} className={triggerClassName} aria-haspopup="dialog" data-popover-trigger aria-expanded={open} aria-label={label} onClick={() => setOpen(!open)}>{trigger}</Button>
-      {open && <div role="dialog" aria-label={label} className={cx('anim-menu absolute z-30 mt-1 rounded-lg bg-canvas p-3 shadow-pop', align === 'right' ? 'right-0' : 'left-0', className)}>{typeof children === 'function' ? children(close) : children}</div>}
+      {open && <div ref={panel} popover="manual" style={floatingStyle} role="dialog" aria-label={label} className={cx('anim-menu z-[90] rounded-lg bg-canvas p-3 text-fg shadow-pop', className)}>{typeof children === 'function' ? children(close) : children}</div>}
     </div>
   );
 }
