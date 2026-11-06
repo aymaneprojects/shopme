@@ -27,7 +27,7 @@ describe('migration of existing zones and rates', () => {
     const partial = mkdtempSync(path.join(tmpdir(), 'mig-partial-'));
     cpSync(full, partial, { recursive: true });
     writeFileSync(path.join(partial, 'meta', '_journal.json'), JSON.stringify(old));
-    h = await createDb({ memory: true });
+    h = await createDb({ memory: true, blank: true });
     await h.migrate(partial);
     // Raw shop row: `setupStore` needs tables (markets) that later migrations create, and the current `shops` columns do not all exist yet.
     const res = await h.db.execute(sql`insert into shops (name, email, currency, country, locale, timezone) values ('M', 'm@example.com', 'EUR', 'FR', 'en', 'UTC') returning id`);

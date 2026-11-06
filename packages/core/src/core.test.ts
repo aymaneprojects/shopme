@@ -6,6 +6,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApiToken, createDb, createInProcessQueue, createLocalStorage, createSession, destroySession, authenticateStaff, listEvents, addEvent,
   loadConfig, makeStorageKey, needsSetup, nextOrderNumber, resolveApiToken, resolveSession, runMigrations, saveUpload, schema, seedDemo, setupStore, slugify, uniqueHandle, type DbHandle } from './index';
 
+/** `db.execute` returns `{ rows }` on PGlite and the bare row array on postgres.js. */
+const rowsOf = <T>(r: unknown): T[] => (r as { rows?: T[] }).rows ?? (r as T[]);
+
 describe('config', () => {
   const tmp = () => mkdtempSync(path.join(tmpdir(), 'shopme-cfg-'));
   it('applies defaults and generates + persists a session secret', () => {
@@ -50,7 +53,7 @@ describe('database + services (PGlite in memory)', () => {
   it('applies migrations (all MVP tables exist) and is idempotent', async () => {
     await runMigrations(h);
     const r = await h.db.execute(sql`select table_name from information_schema.tables where table_schema = 'public'`);
-    const names = new Set((r as unknown as { rows: { table_name: string }[] }).rows.map((x) => x.table_name));
+    const names = new Set(rowsOf<{ table_name: string }>(r).map((x) => x.table_name));
     for (const t of ['shops', 'staff_users', 'sessions', 'api_tokens', 'products', 'product_variants', 'inventory_levels', 'collections', 'customers', 'carts', 'orders', 'order_lines', 'transactions', 'fulfillments', 'refunds', 'discounts', 'shipping_rates', 'tax_rates', 'pages', 'menus', 'menu_items', 'themes', 'theme_files', 'metafields', 'webhook_subscriptions', 'events', 'sequences', 'files']) expect(names.has(t), t).toBe(true);
   });
 
@@ -82,7 +85,7 @@ describe('database + services (PGlite in memory)', () => {
   });
 
   it('allocates order numbers from 1001 per shop', async () => {
-    const shopId = (await h.db.execute(sql`select id from shops limit 1`) as unknown as { rows: { id: number }[] }).rows[0]!.id;
+    const shopId = rowsOf<{ id: number }>(await h.db.execute(sql`select id from shops limit 1`))[0]!.id;
     expect(await nextOrderNumber(h.db, shopId)).toBe(1001);
     expect(await nextOrderNumber(h.db, shopId)).toBe(1002);
     const concurrent = await Promise.all([nextOrderNumber(h.db, shopId), nextOrderNumber(h.db, shopId)]);
@@ -90,7 +93,7 @@ describe('database + services (PGlite in memory)', () => {
   });
 
   it('events timeline', async () => {
-    const shopId = (await h.db.execute(sql`select id from shops limit 1`) as unknown as { rows: { id: number }[] }).rows[0]!.id;
+    const shopId = rowsOf<{ id: number }>(await h.db.execute(sql`select id from shops limit 1`))[0]!.id;
     await addEvent(h.db, shopId, { subjectType: 'order', subjectId: 5, kind: 'comment', message: 'hello' });
     const list = await listEvents(h.db, shopId, 'order', 5);
     expect(list).toHaveLength(1);
@@ -102,14 +105,14 @@ describe('database + services (PGlite in memory)', () => {
     const storage = createLocalStorage(dir);
     await seedDemo(h.db, storage);
     await seedDemo(h.db, storage);
-    const r = (await h.db.execute(sql`select (select count(*)::int from products) p, (select count(*)::int from product_variants) v, (select count(*)::int from menus) m, (select count(*)::int from collections) c`)) as unknown as { rows: Record<string, number>[] };
-    expect(r.rows[0]).toEqual({ p: 5, v: 10, m: 2, c: 3 });
+    const r = rowsOf<Record<string, number>>(await h.db.execute(sql`select (select count(*)::int from products) p, (select count(*)::int from product_variants) v, (select count(*)::int from menus) m, (select count(*)::int from collections) c`));
+    expect(r[0]).toEqual({ p: 5, v: 10, m: 2, c: 3 });
     expect(existsSync(path.join(dir, 'demo', 'product-highland-morning-coffee-beans-1.webp'))).toBe(true);
   });
 
   it('saves uploads', async () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'shopme-up-'));
-    const shopId = (await h.db.execute(sql`select id from shops limit 1`) as unknown as { rows: { id: number }[] }).rows[0]!.id;
+    const shopId = rowsOf<{ id: number }>(await h.db.execute(sql`select id from shops limit 1`))[0]!.id;
     const f = await saveUpload(h.db, createLocalStorage(dir), shopId, { filename: '../../evil name.PNG', data: Buffer.from('x'), mimeType: 'image/png' });
     expect(f.url.startsWith('/files/')).toBe(true);
     expect(readFileSync(path.join(dir, f.storageKey), 'utf8')).toBe('x');
