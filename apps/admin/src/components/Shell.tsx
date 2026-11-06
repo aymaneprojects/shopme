@@ -113,8 +113,10 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate: () => void; collapsed
   const { t } = useI18n();
   const can = useStaffAccess();
   const { pathname } = useLocation();
+  const containsRoute = (to: string) => pathname === to || pathname.startsWith(`${to}/`);
+  const inGroup = (item: NavItem) => containsRoute(item.to) || !!item.children?.some((c) => containsRoute(c.to));
   const link = (item: NavItem, child = false, extra?: ReactNode) => (
-    <NavLink key={item.id} to={item.to} end={item.end || !!item.children} onClick={onNavigate} title={collapsed ? t(item.labelKey) : undefined} aria-label={collapsed ? t(item.labelKey) : undefined} className={({ isActive }) => itemCls(isActive, child, collapsed)}>
+    <NavLink key={item.id} to={item.to} end={item.end || !!item.children} onClick={onNavigate} title={collapsed ? t(item.labelKey) : undefined} aria-label={collapsed ? t(item.labelKey) : undefined} className={({ isActive }) => itemCls(isActive || (!child && !!item.children && inGroup(item)), child, collapsed)}>
       {!child && <item.icon className="size-4 shrink-0" />}
       {!collapsed && t(item.labelKey)}
       {extra}
@@ -124,7 +126,7 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate: () => void; collapsed
   const badge = (i: NavItem) => (i.id === 'orders' && !collapsed && (unfulfilled.data?.ordersCount.count ?? 0) > 0
     ? <span className="ml-auto grid min-w-5 place-items-center rounded-full bg-white/15 px-1.5 text-[11px] font-semibold text-white" aria-label={t('nav.unfulfilledBadge')}>{unfulfilled.data!.ordersCount.count}</span> : null);
   const group = (i: NavItem) => {
-    const open = !collapsed && !!i.children && (pathname.startsWith(i.to) || i.children.some((c) => pathname.startsWith(c.to)));
+    const open = !collapsed && !!i.children && inGroup(i);
     return (
       <div key={i.id} className={cx('contents', i.id === 'settings' && '[&>a]:mt-auto')}>
         {link(i, false, badge(i))}
@@ -279,9 +281,9 @@ export function Shell() {
   }
   const inSettings = pathname.startsWith('/settings');
   return (
-    <div className="flex h-dvh flex-col bg-frame text-frame-text md:grid md:grid-cols-[var(--w-sidebar)_minmax(0,1fr)] md:grid-rows-[3rem_minmax(0,1fr)]" style={collapsed ? ({ '--w-sidebar': '3.5rem' } as React.CSSProperties) : inSettings ? ({ '--w-sidebar': '16rem' } as React.CSSProperties) : undefined}>
+    <div className="flex h-dvh flex-col bg-frame text-frame-text md:grid md:grid-cols-[var(--w-sidebar)_minmax(0,1fr)] md:grid-rows-[3rem_minmax(0,1fr)] md:transition-[grid-template-columns] md:duration-200 md:ease-out" style={collapsed ? ({ '--w-sidebar': '3.5rem' } as React.CSSProperties) : inSettings ? ({ '--w-sidebar': '16rem' } as React.CSSProperties) : undefined}>
       <RouteProgress />
-      <header className="flex h-12 shrink-0 items-center gap-2 px-3">
+      <header className="flex h-12 min-w-0 shrink-0 items-center gap-2 overflow-hidden px-3">
         <span className="md:hidden"><Tooltip content={t('nav.menu')}><button ref={menuTrigger} type="button" aria-expanded={open} aria-controls="admin-sidebar" className="btn btn-plain btn-icon !text-frame-text hover:!bg-frame-hover" aria-label={t('nav.menu')} onClick={() => setOpen(true)}><Menu className="size-5" /></button></Tooltip></span>
         <div className={cx('flex items-center gap-2', collapsed && 'md:hidden')}>
           <Logo className="size-6" />
@@ -292,7 +294,7 @@ export function Shell() {
         </Tooltip></span>
               </header>
       <div className="flex min-h-0 flex-1 md:contents">
-        <aside id="admin-sidebar" onKeyDown={(e) => { if (open && e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); closeMenu(); } }} className={cx('fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-frame px-2 pb-3 pt-14 transition-[transform,visibility] duration-200 ease-out md:static md:col-start-1 md:row-start-2 md:z-auto md:min-h-0 md:w-[var(--w-sidebar)] md:translate-x-0 md:pt-1', open ? 'translate-x-0' : '-translate-x-full max-md:invisible')}>
+        <aside id="admin-sidebar" onKeyDown={(e) => { if (open && e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); closeMenu(); } }} className={cx('fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-frame px-2 pb-3 pt-14 transition-[transform,visibility] duration-200 ease-out md:static md:col-start-1 md:row-start-2 md:z-auto md:min-h-0 md:min-w-0 md:w-auto md:translate-x-0 md:pt-1', open ? 'translate-x-0' : '-translate-x-full max-md:invisible')}>
           <div className="absolute inset-x-3 top-3 flex items-center justify-between md:hidden">
             <div className="flex items-center gap-2"><Logo className="size-6" /><span className="font-semibold text-white">ShopMe</span></div>
             <button ref={menuClose} type="button" aria-label={t('common.close')} onClick={closeMenu} className="btn btn-plain btn-icon !text-frame-text hover:!bg-frame-hover"><span aria-hidden className="text-xl leading-none">×</span></button>
