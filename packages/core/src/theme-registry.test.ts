@@ -46,10 +46,13 @@ describe('bundled theme registry', () => {
     expect(found.map((t) => t.handle)).toEqual(['aurora', 'fixture-tea']);
     expect(found[0]).toMatchObject({ handle: 'aurora', name: 'Aurora', author: 'ShopMe contributors', dir: auroraDir, seedLocales: ['fr'] });
     expect(found[0]!.tags).toEqual(expect.arrayContaining(['General']));
+    expect(found[0]!.industries).toEqual(['general']);
+    expect(found[0]!.catalogSize).toBe('some');
+    expect(found[0]!.features).toEqual(expect.arrayContaining(['cart-drawer', 'predictive-search']));
     expect(found[0]!.description.length).toBeGreaterThan(20);
     expect(found[1]).toMatchObject({
       handle: 'fixture-tea', name: 'Fixture Tea', version: '1.0.0', author: 'ShopMe contributors', description: 'A tiny theme used by the tests.',
-      tags: ['Food', 'Test'], seedLocales: ['fr'],
+      tags: ['Food', 'Test'], industries: ['food-drink'], catalogSize: 'few', features: ['cart-drawer', 'mega-menu'], seedLocales: ['fr'],
     });
   });
 

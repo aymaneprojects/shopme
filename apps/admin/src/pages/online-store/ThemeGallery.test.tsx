@@ -21,8 +21,8 @@ afterEach(() => { vi.unstubAllGlobals(); window.history.pushState({}, '', '/'); 
 
 const preview = (h: string, k: string) => `/admin/api/theme-previews/${h}-${k}.webp`;
 const bundled = [
-  { handle: 'aurora', name: 'Aurora', version: '1.2.0', author: 'ShopMe contributors', description: 'A clean, versatile storefront.', tags: ['General', 'Minimal'], templates: ['index', 'product', 'customers/login'], changelog: [{ version: '1.2.0', date: '2026-11-05', notes: ['Account pages.'] }], previews: { desktop: preview('aurora', 'desktop'), mobile: preview('aurora', 'mobile') } },
-  { handle: 'fixture-tea', name: 'Fixture Tea', version: '1.0.0', author: 'ShopMe contributors', description: 'A tiny theme used by the tests.', tags: ['Food', 'Whimsical'], templates: ['index', 'customers/login'], changelog: [{ version: '1.0.0', date: null, notes: ['First release.'] }], previews: { desktop: preview('fixture-tea', 'desktop'), mobile: null } },
+  { handle: 'aurora', name: 'Aurora', version: '1.2.0', author: 'ShopMe contributors', description: 'A clean, versatile storefront.', tags: ['General', 'Minimal'], industries: ['general'], catalogSize: 'some', features: ['cart-drawer', 'multilingual'], templates: ['index', 'product', 'customers/login'], changelog: [{ version: '1.2.0', date: '2026-11-05', notes: ['Account pages.'] }], previews: { desktop: preview('aurora', 'desktop'), mobile: preview('aurora', 'mobile') } },
+  { handle: 'fixture-tea', name: 'Fixture Tea', version: '1.0.0', author: 'ShopMe contributors', description: 'A tiny theme used by the tests.', tags: ['Food', 'Whimsical'], industries: ['food-drink'], catalogSize: 'few', features: ['cart-drawer', 'mega-menu'], templates: ['index', 'customers/login'], changelog: [{ version: '1.0.0', date: null, notes: ['First release.'] }], previews: { desktop: preview('fixture-tea', 'desktop'), mobile: null } },
 ];
 const libraryThemes = [
   { id: 'gid://shopify/OnlineStoreTheme/1', name: 'Aurora', role: 'MAIN', createdAt: '2026-11-04T05:36:00Z', shopmeBundledTheme: { handle: 'aurora', name: 'Aurora', installedVersion: '1.2.0', bundledVersion: '1.2.0', updateAvailable: false } },
@@ -131,14 +131,39 @@ describe('theme store', () => {
     expect(await screen.findByRole('heading', { name: 'Browse free themes' })).toBeInTheDocument();
     expect(await screen.findByText('2 themes')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remove the filter Free' })).toBeInTheDocument();
-    await user.click(screen.getByRole('checkbox', { name: 'Food' }));
+    await user.click(screen.getByRole('checkbox', { name: /^Food and drink/ }));
     expect(screen.getByText('1 theme')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Fixture Tea', level: 2 })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Aurora', level: 2 })).toBeNull();
-    await user.click(screen.getByRole('checkbox', { name: 'Food' }));
+    await user.click(screen.getByRole('checkbox', { name: /^Food and drink/ }));
     await user.selectOptions(screen.getByLabelText('Sort'), 'name');
     const names = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
     expect(names).toEqual(['Aurora', 'Fixture Tea']);
+  });
+
+  it('filters by industry, catalog size and feature with counts, and has no price facet', async () => {
+    mockApi();
+    const user = userEvent.setup();
+    store('/online-store/themes/store', <ThemeStoreAllPage />);
+    expect(await screen.findByText('2 themes')).toBeInTheDocument();
+    expect(screen.queryByText('Price')).toBeNull();
+    for (const title of ['Industry', 'Catalog size', 'Features']) expect(screen.getByRole('button', { name: title })).toBeInTheDocument();
+    // every option shows how many themes it holds
+    expect(screen.getByRole('checkbox', { name: 'Cart drawer 2 themes' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Mega menu 1 theme' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'A few products (up to 20) 1 theme' })).toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: 'Mega menu 1 theme' }));
+    expect(screen.getByText('1 theme')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Fixture Tea', level: 2 })).toBeInTheDocument();
+    // the other facets now count inside that selection
+    expect(screen.getByRole('checkbox', { name: 'Multiple languages 1 theme' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Some products (20 to 200) 0 themes' })).toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: 'Some products (20 to 200) 0 themes' }));
+    expect(screen.getByText('0 themes')).toBeInTheDocument();
+    expect(screen.getByText('No theme matches these filters.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Remove the filter Mega menu' }));
+    await user.click(screen.getByRole('button', { name: 'Remove the filter Some products (20 to 200)' }));
+    expect(screen.getByText('2 themes')).toBeInTheDocument();
   });
 
   it('browse is in French and has no "free" filter on the all-themes page', async () => {
@@ -146,7 +171,11 @@ describe('theme store', () => {
     store('/online-store/themes/store', <ThemeStoreAllPage />, 'fr');
     expect(await screen.findByRole('heading', { name: 'Parcourir tous les thèmes' })).toBeInTheDocument();
     expect(screen.queryByText('Filtré par :')).toBeNull();
-    expect(await screen.findByRole('checkbox', { name: 'Alimentation' })).toBeInTheDocument();
+    expect(await screen.findByRole('checkbox', { name: /^Alimentation et boissons/ })).toBeInTheDocument();
+    expect(screen.getByText('Taille du catalogue')).toBeInTheDocument();
+    expect(screen.getByText('Caractéristiques')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /^Méga-menu/ })).toBeInTheDocument();
+    expect(screen.queryByText('Prix')).toBeNull();
   });
 
   it('shows the details of a theme: description, included pages, changelog; adds it from there', async () => {

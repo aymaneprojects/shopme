@@ -11,6 +11,8 @@ import type { Key } from '../i18n';
 /** A theme that ships with ShopMe (`shopmeBundledThemes`, or `GET /admin/api/bundled-themes` before sign-in). */
 export interface BundledThemeCard {
   handle: string; name: string; version: string; author: string; description: string; tags: string[];
+  /** Facets of the theme store: industries and features (slugs) and the catalog size (`one`, `few`, `some`, `many`). */
+  industries?: string[]; catalogSize?: string | null; features?: string[];
   previews: { desktop: string | null; mobile: string | null };
   /** Pages the theme has a template for (`index`, `customers/login`...). */
   templates?: string[];

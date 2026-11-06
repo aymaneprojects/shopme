@@ -16,7 +16,10 @@
       "Tea",
       "Bakery",
       "Local producers"
-    ]
+    ],
+    "shopme_industries": ["food-drink"],
+    "shopme_catalog_size": "some",
+    "shopme_features": ["breadcrumbs", "cart-drawer", "colour-swatches", "free-shipping-bar", "mega-menu", "multilingual", "predictive-search", "product-filters", "quick-add", "selling-plans", "sticky-header"]
   },
   {
     "name": "t:settings_schema.colors.name",

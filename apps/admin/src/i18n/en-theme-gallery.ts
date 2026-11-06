@@ -48,4 +48,8 @@ export const enThemeGallery = {
   'themes.tag.wine': 'Wine',
   'themes.tag.local-producers': 'Local producers',
   'themes.tag.test': 'Test',
+  'themes.tag.accessories': 'Accessories',
+  'themes.tag.editorial': 'Editorial',
+  'themes.tag.lifestyle': 'Lifestyle',
+  'themes.tag.decor': 'Decor',
 } as const;

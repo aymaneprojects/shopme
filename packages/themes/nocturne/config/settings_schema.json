@@ -15,7 +15,10 @@
       "Jewelry",
       "Watches",
       "Dark"
-    ]
+    ],
+    "shopme_industries": ["accessories"],
+    "shopme_catalog_size": "few",
+    "shopme_features": ["breadcrumbs", "cart-drawer", "colour-swatches", "free-shipping-bar", "multilingual", "predictive-search", "product-filters", "selling-plans", "sticky-header"]
   },
   {
     "name": "t:settings_schema.colors.name",

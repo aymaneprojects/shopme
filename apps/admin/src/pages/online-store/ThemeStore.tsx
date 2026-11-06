@@ -7,7 +7,7 @@ import { Link, useNavigate, useParams } from 'react-router';
 import { gql } from '../../api';
 import { ThemeTags, ThemeThumb, useAddBundledTheme, useBundledThemes, useTagLabel, type BundledThemeCard } from '../../components/ThemeGallery';
 import { THEMES } from '../../graphql';
-import { useI18n } from '../../i18n';
+import { useI18n, useT } from '../../i18n';
 import type { Key } from '../../i18n';
 
 const BASE = '/online-store/themes/store';
@@ -55,34 +55,72 @@ function Facet({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** Industries (tags) of the themes, with the themes they hold, sorted by name in the admin's language. */
-export function industriesOf(themes: BundledThemeCard[], label: (tag: string) => string): Array<{ tag: string; label: string; count: number }> {
-  const m = new Map<string, number>();
-  for (const th of themes) for (const tag of new Set(th.tags)) m.set(tag, (m.get(tag) ?? 0) + 1);
-  return [...m].map(([tag, count]) => ({ tag, label: label(tag), count })).sort((a, b) => a.label.localeCompare(b.label));
+/** The facets of the theme store: what a theme is made for, how many products, and what it can do. */
+export type FacetName = 'industries' | 'sizes' | 'features';
+export interface Selection { industries: string[]; sizes: string[]; features: string[] }
+export const NO_SELECTION: Selection = { industries: [], sizes: [], features: [] };
+export const CATALOG_SIZE_ORDER = ['one', 'few', 'some', 'many'];
+
+/** Values of a theme for a facet (industries and features are lists, the catalog size is a single value). */
+export function facetValues(th: BundledThemeCard, facet: FacetName): string[] {
+  if (facet === 'industries') return th.industries ?? [];
+  if (facet === 'sizes') return th.catalogSize ? [th.catalogSize] : [];
+  return th.features ?? [];
 }
 
-/** Themes matching the filters (every selected industry must be in the theme's tags), sorted. */
-export function filterThemes(themes: BundledThemeCard[], o: { industries: string[]; query: string; sort: 'relevance' | 'name' }): BundledThemeCard[] {
-  const q = o.query.trim().toLowerCase();
-  const out = themes.filter((th) => o.industries.every((i) => th.tags.includes(i)) && (!q || `${th.name} ${th.description}`.toLowerCase().includes(q)));
+const matchesQuery = (th: BundledThemeCard, query: string) => { const q = query.trim().toLowerCase(); return !q || `${th.name} ${th.description}`.toLowerCase().includes(q); };
+/** A theme matches a facet when it has any of the selected values (nothing selected: every theme); the facets combine with "and". */
+const matchesFacet = (th: BundledThemeCard, facet: FacetName, sel: Selection) => sel[facet].length === 0 || facetValues(th, facet).some((v) => sel[facet].includes(v));
+
+/** Themes matching the selection and the search, sorted. */
+export function filterThemes(themes: BundledThemeCard[], o: Selection & { query: string; sort: 'relevance' | 'name' }): BundledThemeCard[] {
+  const out = themes.filter((th) => matchesQuery(th, o.query) && (['industries', 'sizes', 'features'] as const).every((f) => matchesFacet(th, f, o)));
   return o.sort === 'name' ? [...out].sort((a, b) => a.name.localeCompare(b.name)) : out;
 }
 
-/** Browse the themes: "all themes" or "free themes" (every bundled theme is free), with industry filters and sorting. */
+/** Every value of a facet with the number of themes that would match when it is chosen (the other facets and the search still apply). */
+export function facetOptions(themes: BundledThemeCard[], facet: FacetName, sel: Selection, query: string, label: (value: string) => string): Array<{ value: string; label: string; count: number }> {
+  const others = (['industries', 'sizes', 'features'] as const).filter((f) => f !== facet);
+  const pool = themes.filter((th) => matchesQuery(th, query) && others.every((f) => matchesFacet(th, f, sel)));
+  const values = new Set(themes.flatMap((th) => facetValues(th, facet)));
+  const rows = [...values].map((value) => ({ value, label: label(value), count: pool.filter((th) => facetValues(th, facet).includes(value)).length }));
+  return facet === 'sizes' ? rows.sort((a, b) => CATALOG_SIZE_ORDER.indexOf(a.value) - CATALOG_SIZE_ORDER.indexOf(b.value)) : rows.sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/** Translated label of an industry, catalog size or feature slug; a slug the admin does not know is shown as words. */
+export function useFacetLabel(prefix: 'industry' | 'size' | 'feature') {
+  const t = useT();
+  return (slug: string) => {
+    const key = `themes.${prefix}.${slug}` as Key;
+    const label = t(key);
+    return label === key ? slug.replace(/-/g, ' ').replace(/^./, (c) => c.toUpperCase()) : label;
+  };
+}
+
+/** Browse the themes: "all themes" or "free themes" (every bundled theme is free), with industry, catalog size and feature filters (with counts) and sorting. */
 export function ThemeStoreBrowsePage({ free }: { free?: boolean }) {
   const { t } = useI18n();
   const nav = useNavigate();
-  const label = useTagLabel();
+  const industryLabel = useFacetLabel('industry');
+  const sizeLabel = useFacetLabel('size');
+  const featureLabel = useFacetLabel('feature');
   const q = useBundledThemes();
-  const [industries, setIndustries] = useState<string[]>([]);
+  const [sel, setSel] = useState<Selection>(NO_SELECTION);
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<'relevance' | 'name'>('relevance');
   const themes = q.data?.shopmeBundledThemes ?? [];
-  const shown = filterThemes(themes, { industries, query, sort });
-  const facets = industriesOf(themes, label);
-  const toggle = (tag: string) => setIndustries((l) => (l.includes(tag) ? l.filter((x) => x !== tag) : [...l, tag]));
-  const chips = [...(free ? [{ key: 'free', name: t('themes.store.free'), remove: () => nav(BASE) }] : []), ...industries.map((tag) => ({ key: tag, name: label(tag), remove: () => toggle(tag) }))];
+  const shown = filterThemes(themes, { ...sel, query, sort });
+  const toggle = (facet: FacetName, value: string) => setSel((s) => ({ ...s, [facet]: s[facet].includes(value) ? s[facet].filter((x) => x !== value) : [...s[facet], value] }));
+  const labels: Record<FacetName, (v: string) => string> = { industries: industryLabel, sizes: sizeLabel, features: featureLabel };
+  const facets: Array<{ facet: FacetName; title: string }> = [
+    { facet: 'industries', title: t('themes.store.industry') },
+    { facet: 'sizes', title: t('themes.store.catalogSize') },
+    { facet: 'features', title: t('themes.store.features') },
+  ];
+  const chips = [
+    ...(free ? [{ key: 'free', name: t('themes.store.free'), remove: () => nav(BASE) }] : []),
+    ...facets.flatMap(({ facet }) => sel[facet].map((value) => ({ key: `${facet}:${value}`, name: labels[facet](value), remove: () => toggle(facet, value) }))),
+  ];
   return (
     <Screen>
       <StoreBar query={query} onQuery={setQuery} />
@@ -95,13 +133,18 @@ export function ThemeStoreBrowsePage({ free }: { free?: boolean }) {
           </div>
         )}
         <div className="mt-6 grid gap-8 md:grid-cols-[220px_1fr]">
-          <aside aria-label={t('themes.store.price')}>
-            <Facet title={t('themes.store.price')}>
-              <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={!!free} onChange={() => nav(free ? BASE : `${BASE}/free`)} className="size-4 accent-[var(--color-primary)]" /><span className="flex-1">{t('themes.store.free')}</span><span className="text-muted">{themes.length}</span></label>
-            </Facet>
-            <Facet title={t('themes.store.industry')}>
-              {facets.map((f) => <label key={f.tag} className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={industries.includes(f.tag)} onChange={() => toggle(f.tag)} className="size-4 accent-[var(--color-primary)]" /><span className="flex-1">{f.label}</span></label>)}
-            </Facet>
+          <aside aria-label={t('themes.store.filters')}>
+            {facets.map(({ facet, title }) => (
+              <Facet key={facet} title={title}>
+                {facetOptions(themes, facet, sel, query, labels[facet]).map((o) => (
+                  <label key={o.value} className="flex items-center gap-2 text-[13px]">
+                    <input type="checkbox" checked={sel[facet].includes(o.value)} onChange={() => toggle(facet, o.value)} className="size-4 accent-[var(--color-primary)]" />
+                    <span className="flex-1">{o.label}</span>{" "}
+                    <span className="text-muted" aria-label={t('themes.store.count', { n: o.count })}>{o.count}</span>
+                  </label>
+                ))}
+              </Facet>
+            ))}
           </aside>
           <section aria-live="polite">
             <div className="mb-4 flex items-end justify-between gap-3">
@@ -153,6 +196,9 @@ const pageLabel = (t: (k: Key) => string, name: string) => { const k = `editor.p
 export function ThemeStoreDetailPage() {
   const { t, lang } = useI18n();
   const label = useTagLabel();
+  const industryLabel = useFacetLabel('industry');
+  const sizeLabel = useFacetLabel('size');
+  const featureLabel = useFacetLabel('feature');
   const { theme, loading, error } = useStoreTheme();
   const inLibrary = useInLibrary();
   const date = (iso: string | null) => (iso && !Number.isNaN(Date.parse(iso)) ? new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(iso)) : null);
@@ -164,7 +210,9 @@ export function ThemeStoreDetailPage() {
   const columns: Array<{ title: string; items: string[] }> = [
     { title: t('themes.store.pages'), items: pages.map((n) => pageLabel(t, n.split('.')[0]!)).filter((v, i, a) => a.indexOf(v) === i) },
     { title: t('themes.store.accountPages'), items: accounts.map((n) => pageLabel(t, n)) },
-    { title: t('themes.store.industries'), items: theme.tags.map(label) },
+    { title: t('themes.store.industries'), items: (theme.industries?.length ? theme.industries.map(industryLabel) : theme.tags.map(label)) },
+    { title: t('themes.store.catalogSize'), items: theme.catalogSize ? [sizeLabel(theme.catalogSize)] : [] },
+    { title: t('themes.store.features'), items: (theme.features ?? []).map(featureLabel) },
   ].filter((c) => c.items.length);
   const added = inLibrary.has(theme.handle);
   return (

@@ -47,13 +47,13 @@ describe('bundled themes: gallery, install and updates (Admin GraphQL)', () => {
   afterAll(async () => { await t.close(); });
 
   it('lists Aurora and the bundled themes with their metadata and preview URLs', async () => {
-    const r = await g('{ shopmeBundledThemes { handle name version author description tags previews { desktop mobile } } }');
+    const r = await g('{ shopmeBundledThemes { handle name version author description tags industries catalogSize features previews { desktop mobile } } }');
     expect(r.shopmeBundledThemes.map((x: { handle: string }) => x.handle)).toEqual(['aurora', 'fixture-tea']);
     const [aurora, tea] = r.shopmeBundledThemes;
     expect(aurora).toMatchObject({ handle: 'aurora', name: 'Aurora', author: 'ShopMe contributors', previews: { desktop: null, mobile: null } });
     expect(aurora.version).toMatch(/^\d+\.\d+\.\d+$/);
     expect(tea).toEqual({
-      handle: 'fixture-tea', name: 'Fixture Tea', version: '1.0.0', author: 'ShopMe contributors', description: 'A tiny theme used by the tests.', tags: ['Food', 'Test'],
+      handle: 'fixture-tea', name: 'Fixture Tea', version: '1.0.0', author: 'ShopMe contributors', description: 'A tiny theme used by the tests.', tags: ['Food', 'Test'], industries: ['food-drink'], catalogSize: 'few', features: ['cart-drawer', 'mega-menu'],
       previews: { desktop: '/admin/api/theme-previews/fixture-tea-desktop.webp', mobile: '/admin/api/theme-previews/fixture-tea-mobile.webp' },
     });
     const fr = await g('{ shopmeBundledThemes(locale: "fr") { handle description } }');

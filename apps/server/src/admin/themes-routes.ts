@@ -10,6 +10,8 @@ export const THEME_PREVIEW_ROUTE = '/admin/api/theme-previews';
 
 export interface BundledThemeListing {
   handle: string; name: string; version: string; author: string; description: string; tags: string[];
+  /** Facets of the theme store: industries (slugs), catalog size (`one`, `few`, `some`, `many`) and features (slugs). */
+  industries: string[]; catalogSize: string | null; features: string[];
   previews: { desktop: string | null; mobile: string | null };
   /** Pages the theme ships a template for (`index`, `product`, `customers/login`...). */
   templates: string[];
@@ -37,7 +39,7 @@ export function listBundledThemes(paths: ServerPaths, locale: string | null | un
   const url = (f: string | null) => (f ? `${THEME_PREVIEW_ROUTE}/${f}` : null);
   return discoverBundledThemes(roots).map((i: BundledThemeInfo) => {
     const p = themePreviewFiles(roots, i.handle);
-    return { handle: i.handle, name: i.name, version: i.version, author: i.author, description: bundledThemeDescription(i, locale), tags: i.tags, templates: templatesOf(i.dir), changelog: readThemeReleaseNotes(i.dir, locale ?? 'en'), previews: { desktop: url(p.desktop), mobile: url(p.mobile) } };
+    return { handle: i.handle, name: i.name, version: i.version, author: i.author, description: bundledThemeDescription(i, locale), tags: i.tags, industries: i.industries, catalogSize: i.catalogSize, features: i.features, templates: templatesOf(i.dir), changelog: readThemeReleaseNotes(i.dir, locale ?? 'en'), previews: { desktop: url(p.desktop), mobile: url(p.mobile) } };
   });
 }
 
