@@ -56,14 +56,6 @@ export type DayPart = 'morning' | 'afternoon' | 'evening';
 export const dayPart = (hour: number): DayPart => (hour >= 5 && hour < 12 ? 'morning' : hour >= 12 && hour < 18 ? 'afternoon' : 'evening');
 export const greetingPart = (at: Date, timeZone: string): DayPart => dayPart(hourIn(at, timeZone));
 
-const guideKey = (shopId: number | string) => `shopme.home.guide.hidden.${shopId}`;
-export function readGuideHidden(shopId: number | string): boolean {
-  try { return localStorage.getItem(guideKey(shopId)) === '1'; } catch { return false; }
-}
-export function writeGuideHidden(shopId: number | string, hidden: boolean): void {
-  try { if (hidden) localStorage.setItem(guideKey(shopId), '1'); else localStorage.removeItem(guideKey(shopId)); } catch { /* storage unavailable: the choice lasts for this visit only */ }
-}
-
 // ---- key figures ---------------------------------------------------------------------------------------------------------------------
 
 export type KpiId = 'sessions' | 'sales' | 'orders' | 'conversion';

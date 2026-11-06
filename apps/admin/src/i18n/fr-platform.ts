@@ -3,7 +3,7 @@ import type { enPlatform } from './en-platform';
 export const frPlatform: Record<keyof typeof enPlatform, string> = {
   'nav.analytics': 'Analyses de données', 'settings.security': 'Sécurité', 'settings.backup': 'Sauvegarde et transfert',
 
-  'analytics.title': 'Analyses', 'analytics.reports': 'Rapports', 'analytics.viewReports': 'Voir les rapports', 'analytics.exportCsv': 'Exporter en CSV', 'analytics.noData': 'Aucune donnée pour cette période.',
+  'analytics.title': 'Analyses de données', 'analytics.reports': 'Rapports', 'analytics.viewReports': 'Voir les rapports', 'analytics.exportCsv': 'Exporter en CSV', 'analytics.noData': 'Aucune donnée pour cette période.',
   'analytics.range': 'Période', 'analytics.custom': 'Personnalisée', 'analytics.from': 'Du', 'analytics.to': 'Au', 'analytics.invalidRange': 'La date de début ne peut pas être après la date de fin.',
   'analytics.compare': 'Comparer à', 'analytics.compare.NONE': 'Aucune comparaison', 'analytics.compare.PREVIOUS_PERIOD': 'Période précédente', 'analytics.compare.PREVIOUS_YEAR': 'Même période l’an dernier',
   'analytics.groupBy': 'Regrouper par', 'analytics.group.DAY': 'Jour', 'analytics.group.WEEK': 'Semaine', 'analytics.group.MONTH': 'Mois',

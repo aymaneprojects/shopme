@@ -138,14 +138,14 @@ export function HomePage() {
         <h1 id="home-greeting" className="max-w-[560px] text-[28px] font-semibold leading-tight tracking-tight sm:text-[34px]">{user.firstName ? t(`hm.greet.${greetingPart(now, shop.timezone)}` as Key, { name: user.firstName }) : t(`hm.greet.${greetingPart(now, shop.timezone)}.plain` as Key)}</h1>
         <p className="mt-2 max-w-[520px] text-lg text-muted sm:text-xl">{t('hm.greet.sub')}</p>
         <div className="mt-6 flex flex-wrap items-center gap-2">
-          {toDo > 0 && <button type="button" className={pill} onClick={() => nav('/orders?tab=unfulfilled')}>{t('hm.processOrders', { n: toDo })}</button>}
+          {toDo > 0 && <button type="button" className={pill} onClick={() => nav('/orders?tab=unfulfilled')}>{t('hm.processOrders')}<span className="rounded-md bg-surface px-1.5 text-xs tabular-nums">{toDo}</span></button>}
           <button type="button" onClick={openPalette} aria-label={t('home.searchLabel')} aria-keyshortcuts="Control+K Meta+K" className={`${pill} min-w-0 text-muted`}>
             <Search className="size-4 shrink-0" aria-hidden /><span className="truncate">{t('home.search')}</span><kbd className="hidden rounded bg-surface sm:inline px-1.5 py-0.5 text-[11px] font-medium">Ctrl K</kbd>
           </button>
         </div>
       </section>
 
-      {settled ? <SetupGuide shopId={shop.id} done={done} onLaunch={() => setLaunching(true)} launchable={prot} storeUrl={store.url || '/'} /> : <Skeleton className="mt-8 h-64 w-full rounded-2xl" />}
+      {settled ? <SetupGuide done={done} onLaunch={() => setLaunching(true)} launchable={prot} /> : <Skeleton className="mt-8 h-64 w-full rounded-2xl" />}
 
       <div className="mt-10 flex flex-col gap-4">
         <Card title={t('hm.store.title')}>

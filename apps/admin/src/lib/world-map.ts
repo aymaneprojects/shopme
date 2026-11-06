@@ -23,6 +23,22 @@ export function project(lon: number, lat: number): [number, number] {
   return [x * SCALE, -y * SCALE];
 }
 
+/** Inverse of `project`: longitude and latitude in degrees of a projected point (Newton steps on the latitude). */
+export function unproject(x: number, y: number): [number, number] {
+  const yy = -y / SCALE;
+  let p = yy / 1.007226;
+  for (let i = 0; i < 6; i++) {
+    const p2 = p * p; const p4 = p2 * p2;
+    const f = p * (1.007226 + p2 * (0.015085 + p4 * (-0.044475 + 0.028874 * p2 - 0.005916 * p4))) - yy;
+    const h = 1e-5; const q = p + h; const q2 = q * q; const q4 = q2 * q2;
+    const df = (q * (1.007226 + q2 * (0.015085 + q4 * (-0.044475 + 0.028874 * q2 - 0.005916 * q4))) - (f + yy)) / h;
+    p -= f / (df || 1);
+  }
+  const p2 = p * p; const p4 = p2 * p2;
+  const l = x / SCALE / (0.8707 - 0.131979 * p2 + p4 * (-0.013791 + p4 * (0.003971 * p2 - 0.001529 * p4)));
+  return [l / rad, p / rad];
+}
+
 type Ring = number[][];
 interface Geometry { type: string; coordinates: unknown }
 export interface AtlasFeature { id?: string | number; properties?: { name?: string } | null; geometry: Geometry | null }

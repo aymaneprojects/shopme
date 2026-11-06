@@ -186,7 +186,7 @@ export const EXPLORATION_DELETE = /* GraphQL */ `mutation ExplorationDelete($id:
 export const LIVE_VIEW = /* GraphQL */ `
   query LiveView {
     shopmeLiveView {
-      at currencyCode visitorsNow sessionsToday ordersToday salesToday activeCarts
+      at currencyCode visitorsNow sessionsToday ordersToday salesToday activeCarts checkoutsNow
       viewsPerMinute { minute views } topPages { path views } topSources { source sessions } recentOrders { id name total createdAt country }
       countries { countryCode visitors } visitorsUnlocated
     }

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { THEME_GRACE_MS, TASK_IDS, countDone, dayPart, detectTasks, formatKpi, greetingPart, groupFor, hourIn, kpiRows, kpiTotal, orderTasks, readGuideHidden, themeCustomized, writeGuideHidden } from './home';
+import { THEME_GRACE_MS, TASK_IDS, countDone, dayPart, detectTasks, formatKpi, greetingPart, groupFor, hourIn, kpiRows, kpiTotal, orderTasks, themeCustomized } from './home';
 import type { TaskSignals } from './home';
 
 const fresh: TaskSignals = {
@@ -81,17 +81,6 @@ describe('greeting by time of day', () => {
   });
 });
 
-describe('guide dismissal storage', () => {
-  beforeEach(() => localStorage.clear());
-  it('remembers a hidden guide per store and forgets it when restored', () => {
-    expect(readGuideHidden(1)).toBe(false);
-    writeGuideHidden(1, true);
-    expect(readGuideHidden(1)).toBe(true);
-    expect(readGuideHidden(2)).toBe(false);
-    writeGuideHidden(1, false);
-    expect(readGuideHidden(1)).toBe(false);
-  });
-});
 
 describe('key figures', () => {
   const rep = { columns: [{ key: 'period' }, { key: 'orders' }], rows: [['2026-11-01', 2], ['2026-11-02', null]] as Array<Array<string | number | null>>, totals: { orders: 2 } };

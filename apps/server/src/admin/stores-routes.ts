@@ -1,3 +1,4 @@
+import { resolve4, resolveCname, resolveTxt as resolveTxtDefault } from 'node:dns/promises';
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -12,6 +13,14 @@ import { applyStartingTheme, startingThemeExists } from './starting-theme';
 let txtResolver: TxtResolver | undefined;
 /** Tests: answer TXT lookups without DNS. */
 export const setTxtResolver = (r: TxtResolver | undefined) => { txtResolver = r; };
+
+/** DNS answers the domain check needs; tests replace them. */
+export interface DnsLookups { cname: (name: string) => Promise<string[]>; a: (name: string) => Promise<string[]> }
+let dnsLookups: DnsLookups = { cname: resolveCname, a: resolve4 };
+export const setDnsLookups = (d: DnsLookups | undefined) => { dnsLookups = d ?? { cname: resolveCname, a: resolve4 }; };
+const HOST_RE = /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
+const bare = (v: string) => v.trim().toLowerCase().replace(/\.$/, '');
+const settle = async <T,>(p: Promise<T[]>): Promise<T[]> => { try { return await p; } catch { return []; } };
 
 const createBody = z.object({
   shopName: z.string().trim().min(1).max(120),
@@ -176,6 +185,41 @@ export function registerStoresRoutes(app: FastifyInstance) {
     if (shopId == null) return;
     return domainView(shopId)();
   });
+  /**
+   * Both modes: what DNS says about a domain compared with what it must say: the routing record (CNAME to the store's address, or an
+   * A record for a bare domain) and, in multi-store mode, the TXT ownership record. Read-only; nothing is changed.
+   */
+  app.get('/admin/api/store/domain-dns', async (req, reply) => {
+    const shopId = await settingsMember(req, reply, false);
+    if (shopId == null) return;
+    const host = bare(String((req.query as { host?: unknown }).host ?? ''));
+    if (!HOST_RE.test(host)) return reply.code(422).send({ error: 'Enter a valid domain, such as shop.example.com' });
+    const info = stores.info(shopId);
+    const target = multi && info ? stores.platformHost(info.handle) : new URL(app.ctx.config.appUrl).host.replace(/:\d+$/, '');
+    const records: Array<{ id: string; type: string; name: string; value: string; current: string[]; ok: boolean }> = [];
+    const subdomain = host.split('.').length > 2;
+    if (subdomain) {
+      const current = (await settle(dnsLookups.cname(host))).map(bare);
+      records.push({ id: 'routing', type: 'CNAME', name: host, value: target, current, ok: current.includes(bare(target)) });
+    } else {
+      const want = await settle(dnsLookups.a(target));
+      const current = await settle(dnsLookups.a(host));
+      records.push({ id: 'routing', type: 'A', name: host, value: want[0] ?? target, current, ok: current.length > 0 && current.some((x) => want.includes(x)) });
+    }
+    if (multi) {
+      const row = (await listShopDomains(db, shopId)).find((d) => d.host === host);
+      if (row) {
+        const name = verificationRecord(host);
+        const value = `shopme-verify=${row.verificationToken}`;
+        let txt: string[][] = [];
+        try { txt = await (txtResolver ?? resolveTxtDefault)(name); } catch { txt = []; }
+        const current = txt.map((r) => r.join(''));
+        records.push({ id: 'verify', type: 'TXT', name, value, current, ok: !!row.verifiedAt || current.some((x) => x.trim() === value) });
+      }
+    }
+    return { host, target, records, propagated: records.every((r) => r.ok) };
+  });
+
   app.post('/admin/api/store/domains', async (req, reply) => {
     if (!multiOnly(reply)) return;
     const shopId = await settingsMember(req, reply, true);

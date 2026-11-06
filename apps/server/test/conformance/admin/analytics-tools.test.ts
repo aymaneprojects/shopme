@@ -169,10 +169,11 @@ describe('explorations', () => {
 
 describe('live view', () => {
   it('counts visitors, sessions and orders of the moment', async () => {
-    const l = (await ok(`{ shopmeLiveView { visitorsNow sessionsToday ordersToday salesToday activeCarts currencyCode viewsPerMinute { minute views } topPages { path views } topSources { source sessions } recentOrders { name total } } }`)).shopmeLiveView;
+    const l = (await ok(`{ shopmeLiveView { visitorsNow sessionsToday ordersToday salesToday activeCarts checkoutsNow currencyCode viewsPerMinute { minute views } topPages { path views } topSources { source sessions } recentOrders { name total } } }`)).shopmeLiveView;
     expect(l.visitorsNow).toBe(2);
     expect(l.sessionsToday).toBe(2);
     expect(l.ordersToday).toBe(2);
+    expect(l.checkoutsNow).toBeLessThanOrEqual(l.activeCarts);
     expect(l.viewsPerMinute).toHaveLength(30);
     expect(l.viewsPerMinute.reduce((s: number, m: { views: number }) => s + m.views, 0)).toBe(3);
     expect(l.topPages[0]).toEqual({ path: '/', views: 2 });

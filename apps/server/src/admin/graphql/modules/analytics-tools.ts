@@ -67,7 +67,7 @@ const LiveType = builder.objectRef<LiveView>('ShopmeLiveView').implement({
   description: 'Real-time store activity from the first-party visit log. `salesToday` is in minor units of `currencyCode`.',
   fields: (t) => ({
     at: t.field({ type: 'DateTime', resolve: (l) => new Date(l.at) }), currencyCode: t.exposeString('currency'), visitorsNow: t.exposeInt('visitorsNow'), sessionsToday: t.exposeInt('sessionsToday'),
-    ordersToday: t.exposeInt('ordersToday'), salesToday: t.float({ resolve: (l) => l.salesToday }), activeCarts: t.exposeInt('activeCarts'),
+    ordersToday: t.exposeInt('ordersToday'), salesToday: t.float({ resolve: (l) => l.salesToday }), activeCarts: t.exposeInt('activeCarts'), checkoutsNow: t.exposeInt('checkoutsNow', { description: 'Active carts whose buyer has reached the checkout (e-mail or shipping address given).' }),
     viewsPerMinute: t.field({ type: [LiveMinute], resolve: (l) => l.viewsPerMinute }), topPages: t.field({ type: [LivePage], resolve: (l) => l.topPages }),
     topSources: t.field({ type: [LiveSource], resolve: (l) => l.topSources }), recentOrders: t.field({ type: [LiveOrder], resolve: (l) => l.recentOrders }),
     countries: t.field({ type: [LiveCountry], description: 'Visitors of the last 5 minutes by country, most first.', resolve: (l) => l.countries }),

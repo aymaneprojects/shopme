@@ -358,6 +358,8 @@ export async function deleteExploration(db: Db, shopId: number, id: number): Pro
 
 export interface LiveView {
   at: string; currency: string; visitorsNow: number; sessionsToday: number; ordersToday: number; salesToday: number; activeCarts: number;
+  /** Active carts (last 30 minutes) whose buyer already gave an e-mail or a shipping address: they are in the checkout. */
+  checkoutsNow: number;
   /** Page views per minute for the last 30 minutes, oldest first. */
   viewsPerMinute: Array<{ minute: string; views: number }>;
   topPages: Array<{ path: string; views: number }>; topSources: Array<{ source: string; sessions: number }>;
@@ -379,6 +381,7 @@ export async function liveView(db: Executor, shopId: number, now = new Date()): 
   const [today] = await q(sql`select count(distinct session_id)::int as n from visits where shop_id = ${shopId} and created_at >= ${dayStart}`);
   const [ord] = await q(sql`select count(*)::int as n, coalesce(sum(total - total_refunded), 0)::text as total from orders where shop_id = ${shopId} and cancelled_at is null and test = false and processed_at >= ${dayStart}`);
   const [carts] = await q(sql`select count(*)::int as n from carts c where c.shop_id = ${shopId} and c.completed_at is null and c.updated_at >= ${t}::timestamptz - interval '30 minutes' and exists (select 1 from cart_lines l where l.cart_id = c.id)`);
+  const [checkouts] = await q(sql`select count(*)::int as n from carts c where c.shop_id = ${shopId} and c.completed_at is null and c.updated_at >= ${t}::timestamptz - interval '30 minutes' and (c.email is not null or c.shipping_address is not null) and exists (select 1 from cart_lines l where l.cart_id = c.id)`);
   const perMinute = await q(sql`select to_char(date_trunc('minute', created_at), 'YYYY-MM-DD"T"HH24:MI:00"Z"') as minute, count(*)::int as views from visits where shop_id = ${shopId} and created_at >= ${t}::timestamptz - interval '30 minutes' and created_at <= ${t}::timestamptz group by 1`);
   const byMinute = new Map(perMinute.map((r) => [String(r.minute), n(r.views)]));
   const base = Math.floor(now.getTime() / 60000) * 60000;
@@ -389,7 +392,7 @@ export async function liveView(db: Executor, shopId: number, now = new Date()): 
   const recent = await q(sql`select o.id, o.name, (o.total - o.total_refunded)::text as total, o.processed_at as at, a.country_code as country from orders o left join order_addresses a on a.order_id = o.id and a.kind = 'shipping'
     where o.shop_id = ${shopId} and o.cancelled_at is null and o.test = false and o.processed_at >= ${t}::timestamptz - interval '24 hours' order by o.processed_at desc limit 10`);
   return {
-    at: t, currency: shop.currency, visitorsNow: n(visitors?.n), sessionsToday: n(today?.n), ordersToday: n(ord?.n), salesToday: n(ord?.total), activeCarts: n(carts?.n), viewsPerMinute,
+    at: t, currency: shop.currency, visitorsNow: n(visitors?.n), sessionsToday: n(today?.n), ordersToday: n(ord?.n), salesToday: n(ord?.total), activeCarts: n(carts?.n), checkoutsNow: n(checkouts?.n), viewsPerMinute,
     topPages: topPages.map((r) => ({ path: String(r.path), views: n(r.views) })), topSources: topSources.map((r) => ({ source: String(r.source), sessions: n(r.sessions) })),
     recentOrders: recent.map((r) => ({ id: n(r.id), name: String(r.name), total: n(r.total), createdAt: new Date(String(r.at)).toISOString(), country: (r.country as string) ?? null })),
     countries: byCountry.filter((r) => r.country).map((r) => ({ countryCode: String(r.country), visitors: n(r.visitors) })), visitorsUnlocated: n(byCountry.find((r) => !r.country)?.visitors),

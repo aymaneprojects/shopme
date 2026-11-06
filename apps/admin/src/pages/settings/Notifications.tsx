@@ -4,7 +4,9 @@ import { Bell, ChevronDown, ChevronRight, Trash2, Users, Webhook } from 'lucide-
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { UserErrors, gql, mutate } from '../../api';
+import { DnsLines } from '../../components/EmailSetup';
 import { LinkRow, RowCard, Section, SubHeader } from '../../components/SettingsKit';
+import { emailErrorText, storeEmailApi } from '../../lib/emailApi';
 import { SaveBar } from '../../components/SaveBar';
 import { NOTIFICATION_TOGGLE, STAFF_ORDER_RECIPIENTS, STAFF_ORDER_RECIPIENTS_UPDATE, NOTIFICATION_PREVIEW, NOTIFICATION_SEND_TEST, NOTIFICATION_SETTINGS, NOTIFICATION_SETTINGS_UPDATE, NOTIFICATION_TEMPLATES, NOTIFICATION_TEMPLATE_RESET, NOTIFICATION_TEMPLATE_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
@@ -48,22 +50,39 @@ function Sender() {
   );
 }
 
+/** Contact address, and where the e-mails sent from it are authenticated: the 3 DNS lines and the "Check" button. */
+function ContactSection() {
+  const { t } = useI18n();
+  const mail = useQuery({ queryKey: ['email', 'store', 'settings'], queryFn: () => storeEmailApi.settings(), retry: false });
+  const view = mail.data;
+  return (
+    <ShopPanel fields={['email']}>
+      {(f, set) => (
+        <Section title={t('notif.contactTitle')} description={t('notif.contactDesc')}>
+          {view?.sender.free && <Banner tone="info" data-testid="free-mailbox">{t('email.sender.free', { address: view.sender.address ?? '' })} <Link to="/settings/emails" className="underline">{t('notif.senderAuth')}</Link>.</Banner>}
+          <Card><Input aria-label={t('settings.contactEmail')} type="email" value={f.email} onChange={(e) => set({ email: e.target.value })} /></Card>
+          {mail.error && <Banner>{emailErrorText(mail.error)}</Banner>}
+          {view && (
+            <Card title={t('notif.senderAuthTitle')} actions={<Link to="/settings/emails" className="text-[13px] text-accent underline">{t('notif.senderAuthAll')}</Link>}>
+              <DnsLines api={storeEmailApi} view={view} />
+            </Card>
+          )}
+        </Section>
+      )}
+    </ShopPanel>
+  );
+}
+
 export function NotificationsSettings() {
   const { t } = useI18n();
   return (
     <div className="flex flex-col gap-6">
-      <ShopPanel fields={['email']}>
-        {(f, set) => (
-          <Section title={t('notif.contactTitle')} description={t('notif.contactDesc')}>
-            <Card><Input label={t('settings.contactEmail')} type="email" value={f.email} onChange={(e) => set({ email: e.target.value })} /></Card>
-          </Section>
-        )}
-      </ShopPanel>
+      <ContactSection />
       <RowCard>
         <LinkRow to="/settings/notifications/customer" icon={Bell} title={t('notif.customerTitle')} description={t('notif.customerDesc')} />
         <LinkRow to="/settings/notifications/staff" icon={Users} title={t('notif.staffTitle')} description={t('notif.staffDesc')} />
+        <FulfillmentRequestRow />
       </RowCard>
-      <FulfillmentRequestRow />
       <RowCard>
         <LinkRow to="/settings/webhooks" icon={Webhook} title={t('settings.webhooks')} description={t('notif.webhooksDesc')} />
       </RowCard>
@@ -158,7 +177,7 @@ function AudiencePage({ audience }: { audience: 'customer' | 'staff' }) {
   const all = (q.data?.shopmeNotificationTemplates ?? []).filter((n) => n.audience === audience);
   const used = new Set(GROUPS.flatMap((g) => g.keys));
   const groups = audience === 'customer'
-    ? [...GROUPS.map((g) => ({ id: g.id, title: t(g.title), items: all.filter((n) => g.keys.includes(n.key)) })), { id: 'other', title: t('notif.group.other'), items: all.filter((n) => !used.has(n.key)) }]
+    ? [...GROUPS.map((g) => ({ id: g.id, title: t(g.title), items: g.keys.flatMap((k) => all.filter((n) => n.key === k)) })), { id: 'other', title: t('notif.group.other'), items: all.filter((n) => !used.has(n.key)) }]
     : [{ id: 'staff', title: t('notif.staffTitle'), items: all }];
   const first = all[0];
   return (
