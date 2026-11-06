@@ -10,6 +10,7 @@
     "lint": "echo \"no lint yet\"",
     "shopify": "tsx src/cli.ts",
     "test": "vitest run",
+    "test:pg": "vitest run --maxWorkers=2",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

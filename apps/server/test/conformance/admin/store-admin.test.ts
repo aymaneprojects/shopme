@@ -176,7 +176,8 @@ describe('discounts, settings, content and dashboard API', () => {
     expect(outside.themeFilesUpsert.userErrors[0].code).toBe('INVALID');
 
     // publish a second theme
-    const { id } = (await t.dbHandle.db.execute(`insert into themes (shop_id, name, role) values (${await shopIdOf(t.dbHandle.db)}, 'Draft', 'UNPUBLISHED') returning id`) as unknown as { rows: { id: string }[] }).rows[0]!;
+    const execRes = (await t.dbHandle.db.execute(`insert into themes (shop_id, name, role) values (${await shopIdOf(t.dbHandle.db)}, 'Draft', 'UNPUBLISHED') returning id`) as unknown as { rows?: { id: string }[] } & { id: string }[]);
+    const { id } = (execRes.rows ?? execRes)[0]!;
     const pub = await g(`mutation { themePublish(id: "gid://shopify/OnlineStoreTheme/${id}") { theme { name role } userErrors { message } } }`);
     expect(pub.themePublish.theme).toEqual({ name: 'Draft', role: 'MAIN' });
     expect((await g(`{ themes(first: 5, roles: [UNPUBLISHED]) { nodes { role } } }`)).themes.nodes).toHaveLength(1);

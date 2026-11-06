@@ -8,6 +8,7 @@
     "build": "echo \"bundled into @shopme/server\"",
     "lint": "echo \"no lint yet\"",
     "test": "vitest run",
+    "test:pg": "vitest run --maxWorkers=2",
     "typecheck": "tsc -p tsconfig.json",
     "db:generate": "drizzle-kit generate",
     "seed": "tsx src/seed.ts"

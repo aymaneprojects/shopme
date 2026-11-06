@@ -336,4 +336,4 @@ export async function dueDeliveries(db: Executor, now = new Date(), limit = 100)
 }
 
 export const purgeOldDeliveries = (db: Executor, olderThanMs = 30 * 24 * 3600_000) =>
-  db.delete(webhookDeliveries).where(and(sql`${webhookDeliveries.createdAt} < ${new Date(Date.now() - olderThanMs)}`, sql`${webhookDeliveries.status} <> 'PENDING'`));
+  db.delete(webhookDeliveries).where(and(sql`${webhookDeliveries.createdAt} < ${new Date(Date.now() - olderThanMs).toISOString()}::timestamptz`, sql`${webhookDeliveries.status} <> 'PENDING'`));

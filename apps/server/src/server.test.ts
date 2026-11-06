@@ -13,7 +13,7 @@ describe('auth flow', () => {
 
   it('healthz', async () => {
     const r = await t.app.inject('/healthz');
-    expect(r.json()).toEqual({ status: 'ok', db: 'pglite' });
+    expect(r.json()).toEqual({ status: 'ok', db: process.env.TEST_DATABASE_URL ? 'postgres' : 'pglite' });
   });
 
   it('setup -> me -> logout -> login', async () => {
