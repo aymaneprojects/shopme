@@ -1,5 +1,6 @@
 # Caddy in front of a multi-store installation (see multi-store.md).
-#   admin.example.com              the platform admin (APP_URL=https://admin.example.com)
+#   admin.example.com              the platform admin (APP_URL=https://admin.example.com). With APP_URL=https://boutique.fr and
+#                                  nothing else set, the admin and the first store share boutique.fr (the default install).
 #   <handle>.shops.example.com     every store's permanent host (STORE_BASE_DOMAIN=shops.example.com, wildcard DNS)
 #   shop.brand.com, ...            stores' own domains, added and verified in Settings > Domains
 # Certificates for store hosts are issued on demand, and only for hosts ShopMe confirms it serves: Caddy asks

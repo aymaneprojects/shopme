@@ -2,6 +2,8 @@
 export const enMultistore = {
   'ms.badge.suspended': 'Suspended', 'ms.badge.test': 'Test', 'ms.badge.testHint': 'This store takes test payments only',
   'ms.switchTo': 'Switch to {name}', 'ms.allStores': 'All stores', 'ms.createStore': 'Create a store', 'ms.platform': 'Platform',
+  'ms.single.server': 'Several stores are available on a server. Add MULTI_STORE=true to your .env file and restart ShopMe.',
+  'ms.single.desktop': 'Several stores are available on the server version of ShopMe.', 'ms.single.docs': 'Read the multi-store guide',
   'ms.language': 'Language', 'ms.appearance': 'Appearance',
   'ms.suspendedBanner': 'This store is suspended by the platform owner. Its storefront shows an "unavailable" page and its admin is read-only.',
   'ms.nav.stores': 'Stores', 'ms.nav.account': 'Account', 'ms.forbidden': 'Your account has no access to the store "{handle}". Choose one of your stores.',

@@ -7,8 +7,15 @@ paiement et ses sauvegardes, et répond sur sa propre adresse.
 
 [English version](multi-store.md)
 
-Le mode multi-boutique est désactivé par défaut. Sans lui, ShopMe gère une boutique par installation, exactement comme
-le décrit le [guide d'installation](README.fr.md). L'application de bureau gère toujours une seule boutique.
+**Sur un serveur, le mode multi-boutique est activé par défaut**, et il est aussi simple qu'une boutique unique :
+installez ShopMe pour `boutique.fr` et vous obtenez l'administration sur `https://boutique.fr/admin`, la vitrine de votre
+première boutique sur `https://boutique.fr`, et chaque boutique suivante sur `https://<identifiant>.boutique.fr`. Un seul
+domaine, un seul enregistrement DNS en plus (`*.boutique.fr`), et des certificats émis tout seuls.
+
+Le mode est actif dans l'installateur, dans `docker-compose.yml` et dans l'image Docker (`MULTI_STORE` non défini vaut
+`true` à ces endroits). `pnpm dev`, un simple démarrage `node` et l'application de bureau restent à boutique unique. Pour
+ne garder qu'une boutique sur un serveur, mettez `MULTI_STORE=false` dans `.env` (ou installez avec `--single-store`) et
+redémarrez ; le menu du compte affiche alors toujours « Créer une boutique » et explique comment réactiver le mode.
 
 ## Fonctionnement
 
@@ -24,24 +31,48 @@ le décrit le [guide d'installation](README.fr.md). L'application de bureau gèr
 Une boutique suspendue affiche une page neutre « boutique indisponible » (503) sur ses adresses ; son administration
 reste consultable, avec un bandeau, mais refuse les modifications, et les tâches de fond l'ignorent.
 
-## Activer le mode
+## Un seul domaine
 
-Ajoutez au fichier `.env` (ou à l'`environment` du service Compose) :
+Avec l'installateur (`shopme-install.sh install --domain boutique.fr`), le fichier `.env` contient :
 
 ```
+APP_URL=https://boutique.fr
 MULTI_STORE=true
-APP_URL=https://admin.exemple.fr
-STORE_BASE_DOMAIN=boutiques.exemple.fr
-# Facultatif : ADMIN_HOST=admin.exemple.fr (par défaut, l'hôte d'APP_URL)
+STORE_BASE_DOMAIN=boutique.fr
+ADMIN_HOST=boutique.fr
 TRUST_PROXY=true
 ```
 
-Redémarrez. Sur une nouvelle installation, l'assistant crée le premier compte (le propriétaire de la plateforme) et sa
-première boutique. Les boutiques suivantes se créent depuis « Créer une boutique » dans le menu du compte : nom
+`STORE_BASE_DOMAIN` vaut par défaut l'hôte d'`APP_URL`, et `ADMIN_HOST` aussi : ces deux lignes peuvent donc être omises.
+Quand les deux désignent le même vrai domaine, l'assistant d'installation l'enregistre automatiquement comme **domaine
+principal vérifié de la première boutique** (c'est le domaine d'installation : aucun enregistrement TXT n'est demandé).
+L'administration et la première boutique partagent alors la même adresse :
+
+- les chemins sous `/admin` (et `/webhooks`) sont l'administration ; tous les autres chemins sont la vitrine de la
+  première boutique ;
+- l'adresse permanente `<identifiant>.boutique.fr` de cette boutique redirige vers `boutique.fr`, comme pour tout domaine
+  principal ;
+- les cookies sont propres à l'adresse et le contrôle d'origine compare l'adresse de la requête : l'adresse partagée
+  n'exige aucun réglage ;
+- les scripts du thème d'une boutique s'exécutent sur la même origine que l'administration, comme dans une installation à
+  boutique unique : ne mettez dans le thème de la première boutique que du code de confiance, ou donnez-lui son propre
+  domaine et déplacez l'administration avec `ADMIN_HOST`.
+
+Pour garder l'administration sur sa propre adresse (`ADMIN_HOST=admin.boutique.fr`), définissez `STORE_BASE_DOMAIN` avec
+le domaine voulu pour les boutiques ; aucun domaine principal n'est alors enregistré.
+
+Les boutiques suivantes se créent depuis « Créer une boutique » dans le menu du compte : nom
 (l'identifiant et l'adresse s'affichent au fur et à mesure), pays, devise, langue et thème de départ (l'un des thèmes
 fournis, Aurora par défaut). La nouvelle boutique reçoit ce thème, publié, et les menus de départ, et la personne qui la crée en devient propriétaire. Les autres personnes obtiennent un
 compte quand le propriétaire d'une boutique les invite (Paramètres > Utilisateurs) ; une personne invitée qui a déjà un
 compte le rejoint en saisissant son mot de passe.
+
+Sans l'installateur, ajoutez les lignes ci-dessus au fichier `.env` (ou à l'`environment` du service Compose) et
+redémarrez. Sur une nouvelle installation, l'assistant crée le premier compte (le propriétaire de la plateforme) et sa
+première boutique.
+
+Les routes de compte et de plateforme (`/admin/api/account`, `/admin/api/platform`, connexion et déconnexion) ne répondent
+que sur l'adresse d'administration, jamais sur l'adresse propre d'une boutique.
 
 ### Une installation existante à boutique unique
 
@@ -51,10 +82,10 @@ propriétaire le propriétaire de la plateforme. Chaque membre de l'équipe a d�
 fusionnés, sauf si la personne prouve le mot de passe de chaque compte à la connexion. La boutique garde ses fichiers à
 leur place et ses sauvegardes dans `DATA_DIR/backups`. Deux points demandent de l'attention :
 
-- L'adresse d'administration ne doit pas être l'une des adresses de la boutique. Si la boutique était servie sur
-  `APP_URL` (par exemple `boutique.exemple.fr`), déplacez l'administration sur une autre adresse
-  (`APP_URL=https://admin.exemple.fr`) et gardez `boutique.exemple.fr` comme domaine de la boutique : il reste son
-  domaine principal.
+- La boutique peut garder son adresse. Si elle était servie sur `APP_URL` (par exemple `boutique.exemple.fr`) et que vous
+  ne définissez ni `STORE_BASE_DOMAIN` ni `ADMIN_HOST`, l'administration et la boutique partagent cette adresse comme
+  décrit plus haut. Pour placer l'administration ailleurs, définissez `ADMIN_HOST=admin.exemple.fr` (et `APP_URL` sur
+  cette adresse) : `boutique.exemple.fr` reste le domaine principal de la boutique.
 - Les liens des e-mails envoyés avant le changement pointent toujours vers les anciennes adresses, qui servent toujours
   la boutique.
 
@@ -65,26 +96,42 @@ la vitrine ne sert que la plus ancienne.
 
 | Enregistrement | Cible | Rôle |
 | --- | --- | --- |
-| `admin.exemple.fr` A/AAAA | le serveur | l'administration et les webhooks Stripe |
-| `*.boutiques.exemple.fr` A/AAAA (générique) | le serveur | l'adresse permanente de chaque boutique |
-| `boutique.marque.fr` CNAME | `<identifiant>.boutiques.exemple.fr` | le domaine propre d'une boutique (ou A/AAAA vers le serveur pour un domaine racine) |
+| `boutique.fr` A/AAAA | le serveur | l'administration, la première boutique et les webhooks Stripe |
+| `*.boutique.fr` A/AAAA (générique) | le serveur | l'adresse permanente de chaque autre boutique (le seul enregistrement en plus) |
+| `boutique.marque.fr` CNAME | `<identifiant>.boutique.fr` | le domaine propre d'une boutique (ou A/AAAA vers le serveur pour un domaine racine) |
 | `_shopme-verify.boutique.marque.fr` TXT | `shopme-verify=<jeton>` | prouve que la boutique contrôle le domaine (Paramètres > Domaines affiche la valeur) |
 
-Un domaine ne sert une boutique qu'une fois vérifié, et une adresse appartient au plus à une boutique. Les adresses sous
-`STORE_BASE_DOMAIN` et l'adresse d'administration ne peuvent pas être ajoutées comme domaines propres.
+L'installateur vérifie les deux premiers, et `shopme-install.sh doctor` les revérifie plus tard. Un domaine ne sert une
+boutique qu'une fois vérifié, et une adresse appartient au plus à une boutique. Les adresses sous `STORE_BASE_DOMAIN` et
+l'adresse d'administration ne peuvent pas être ajoutées comme domaines propres.
 
 En local, rien à faire : avec la valeur par défaut `STORE_BASE_DOMAIN=localhost`, les boutiques répondent sur
 `http://<identifiant>.localhost:3000` (les navigateurs dirigent `*.localhost` vers la machine elle-même) et
 l'administration sur `http://localhost:3000/admin`.
 
-## HTTPS avec Caddy (certificats à la demande)
+## HTTPS
 
-Les adresses des boutiques apparaissent au fil des créations de boutiques et de domaines : les certificats sont donc
-émis à la demande. Pour qu'un inconnu ne puisse pas faire demander un certificat pour n'importe quel nom, Caddy
-interroge d'abord ShopMe : `GET /__shopme/tls-ask?domain=<adresse>` répond 200 uniquement pour l'adresse
-d'administration, les adresses permanentes des boutiques et les domaines vérifiés, et 404 sinon.
+Les certificats n'exigent aucune clé d'API DNS.
 
-Utilisez [`Caddyfile.multistore`](Caddyfile.multistore) :
+- **Caddy** (le choix de l'installateur quand rien n'utilise les ports 80/443) : les certificats sont émis à la demande.
+  Pour qu'un inconnu ne puisse pas faire demander un certificat pour n'importe quel nom, Caddy interroge d'abord ShopMe :
+  `GET /__shopme/tls-ask?domain=<adresse>` répond 200 uniquement pour l'adresse d'administration, les adresses permanentes
+  des boutiques et les domaines vérifiés, et 404 sinon.
+- **nginx avec certbot** : l'installateur met en place `shopme-install.sh sync-certs`, lancé chaque minute par un timer
+  systemd (ou une tâche cron sans systemd). Il demande à l'application quelles adresses elle sert (`GET /__shopme/hosts`,
+  accessible depuis la machine seulement et protégé par `HOSTS_TOKEN` du fichier `.env`) et, pour chaque adresse sans
+  certificat, ajoute un petit fichier de site et lance `certbot --nginx -d <adresse>` (HTTP-01), puis recharge nginx. Une
+  nouvelle boutique a son certificat en une à deux minutes dès que son DNS répond. Le script prend un verrou, vérifie le
+  DNS avant de demander, attend de plus en plus longtemps après un échec (5 minutes, en doublant, 6 heures après une limite
+  de Let's Encrypt), demande au plus 5 certificats par passage et écrit dans `/var/log/shopme/sync-certs.log`. `doctor`
+  indique si la tâche tourne et le dernier problème. Vous pouvez la lancer à la main : `sudo shopme-install.sh sync-certs`.
+- **Un seul certificat générique** à la place, avec nginx : installez avec `--dns-provider <nom> --dns-credentials <fichier>`
+  (Cloudflare, OVH, Gandi, DigitalOcean, Route 53) ou `--manual-dns`. `sync-certs` n'est alors pas installé ; le domaine
+  propre d'une boutique reçoit son certificat avec `sudo shopme-install.sh add-domain <adresse>`.
+
+### Caddyfile
+
+Utilisez [`Caddyfile.multistore`](Caddyfile.multistore) (ou `deploy/server/Caddyfile`) :
 
 ```
 {
@@ -93,7 +140,7 @@ Utilisez [`Caddyfile.multistore`](Caddyfile.multistore) :
 	}
 }
 
-admin.exemple.fr {
+boutique.fr {
 	encode zstd gzip
 	reverse_proxy shopme:3000
 }
@@ -107,10 +154,10 @@ https:// {
 }
 ```
 
-Let's Encrypt limite le nombre de certificats par domaine enregistré (actuellement 50 par semaine pour `exemple.fr` et
-ses sous-domaines). Avec beaucoup de boutiques sous un même domaine de base, utilisez plutôt un certificat générique pour
-`*.boutiques.exemple.fr` (validation DNS, qui demande une version de Caddy avec le module de votre fournisseur DNS) et
-gardez les certificats à la demande pour les domaines propres.
+Let's Encrypt limite le nombre de certificats par domaine enregistré (actuellement 50 par semaine pour `boutique.fr` et
+ses sous-domaines). Avec de nombreuses boutiques sous un même domaine de base, utilisez plutôt un certificat générique
+pour `*.boutique.fr` (validation DNS : une version de Caddy avec le module de votre hébergeur DNS, ou `--dns-provider` avec
+nginx) et gardez les certificats à la demande pour les domaines propres.
 
 ## Exemple Docker Compose
 

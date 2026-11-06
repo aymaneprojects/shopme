@@ -16,16 +16,16 @@ export type SessionState =
   | { status: 'loading' }
   | { status: 'setup' }
   | { status: 'anonymous' }
-  | { status: 'authenticated'; user: User; shop: Shop; /** The shop requires two-step verification and this member has not set it up. */ twoFactorSetupRequired?: boolean; multi?: MultiStore }
+  | { status: 'authenticated'; user: User; shop: Shop; /** The shop requires two-step verification and this member has not set it up. */ twoFactorSetupRequired?: boolean; multi?: MultiStore; /** Embedded in the desktop app. */ desktop?: boolean }
   /** Multi-store mode, signed in, no store open: the account pages (stores, create a store, platform). `forbidden`: the URL named a store the account cannot open. */
   | { status: 'account'; multi: MultiStore; forbidden?: string };
 
-interface Me { user: User | null; shop: Shop | null; twoFactorSetupRequired?: boolean; multiStore?: boolean; account?: Account; stores?: AccountStore[]; canCreateStores?: boolean; storeHandle?: string | null; suspended?: boolean }
+interface Me { user: User | null; shop: Shop | null; twoFactorSetupRequired?: boolean; multiStore?: boolean; account?: Account; stores?: AccountStore[]; canCreateStores?: boolean; storeHandle?: string | null; suspended?: boolean; desktop?: boolean }
 
 interface SessionApi {
   state: SessionState;
   /** Store the result of login/setup. */
-  signedIn: (r: { user: User | null; shop: Shop | null; twoFactorSetupRequired?: boolean; account?: Account; storeHandle?: string | null }) => void;
+  signedIn: (r: { user: User | null; shop: Shop | null; twoFactorSetupRequired?: boolean; desktop?: boolean; account?: Account; storeHandle?: string | null }) => void;
   /** Re-read /auth/me (after the security settings changed). */
   refresh: () => Promise<void>;
   logout: () => Promise<void>;
@@ -62,7 +62,7 @@ const multiOf = (me: Me): MultiStore => ({ account: me.account!, stores: me.stor
  * the page is being moved.
  */
 function stateOf(me: Me): SessionState | null {
-  if (!me.multiStore) return { status: 'authenticated', user: me.user!, shop: me.shop!, twoFactorSetupRequired: me.twoFactorSetupRequired };
+  if (!me.multiStore) return { status: 'authenticated', user: me.user!, shop: me.shop!, twoFactorSetupRequired: me.twoFactorSetupRequired, desktop: me.desktop };
   const multi = multiOf(me);
   const path = window.location.pathname;
   // The URL moved under a store after this page loaded (history change): reload so every request names that store.
@@ -115,10 +115,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized); };
   }, [qc, load]);
 
-  const signedIn = useCallback((r: { user: User | null; shop: Shop | null; twoFactorSetupRequired?: boolean; account?: Account; storeHandle?: string | null }) => {
+  const signedIn = useCallback((r: { user: User | null; shop: Shop | null; twoFactorSetupRequired?: boolean; desktop?: boolean; account?: Account; storeHandle?: string | null }) => {
     // Multi-store: the session belongs to the account; /auth/me tells which store this tab opens.
     if (r.account || r.storeHandle !== undefined) { setState({ status: 'loading' }); void load().catch(() => setState({ status: 'anonymous' })); return; }
-    setState({ status: 'authenticated', user: r.user!, shop: r.shop!, twoFactorSetupRequired: r.twoFactorSetupRequired });
+    setState({ status: 'authenticated', user: r.user!, shop: r.shop!, twoFactorSetupRequired: r.twoFactorSetupRequired, desktop: r.desktop });
   }, [load]);
   const refresh = useCallback(async () => { await load(); }, [load]);
   const logout = useCallback(async () => {

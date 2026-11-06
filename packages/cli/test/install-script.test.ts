@@ -129,9 +129,15 @@ describe('env generation', () => {
     expect(out).toContain('PUBLIC_IP=203.0.113.7');
   });
   it('renders the multi-store variables', () => {
-    const out = fn(`${vars} ENVV_MULTI=shops.example.com render_env`).out;
+    const out = fn(`${vars} ENVV_MULTI=shops.example.com ENVV_HOSTS_TOKEN=TOK render_env`).out;
     expect(out).toContain('MULTI_STORE=true');
     expect(out).toContain('STORE_BASE_DOMAIN=shops.example.com');
+    expect(out).toContain('ADMIN_HOST=shop.example.com');
+    expect(out).toContain('HOSTS_TOKEN=TOK');
+  });
+  it('the install domain is the stores base domain and the admin host by default', () => {
+    const out = fn(`${vars} ENVV_MULTI=shop.example.com render_env`).out;
+    expect(out).toContain('STORE_BASE_DOMAIN=shop.example.com');
     expect(out).toContain('ADMIN_HOST=shop.example.com');
   });
   it('uses http and no HSTS without a proxy', () => {
@@ -402,12 +408,6 @@ describe('dry-run: multi-store with a DNS provider', () => {
     expect(r.all).toContain('--manual --preferred-challenges dns');
     expect(r.all).toContain('DNS_MODE=manual');
   });
-  it('needs a wildcard method behind nginx', () => {
-    const r = dry(args, { SHOPME_OVERRIDE_WEBSERVER: 'nginx' });
-    expect(r.status).not.toBe(0);
-    expect(r.all).toContain('--dns-provider');
-    expect(r.all).toContain('--manual-dns');
-  });
   it('with Caddy uses on-demand TLS restricted by the ask endpoint', () => {
     const r = dry(args, { SHOPME_OVERRIDE_WEBSERVER: 'none' });
     expect(r.status).toBe(0);
@@ -519,7 +519,7 @@ describe('dry-run: other commands and refusals', () => {
     [['install', '--domain', 'shop.example.com', '--email', 'a@b.co', '--bundle', '/tmp/b', '--version', '1.0.0'], 'either --bundle or --version'],
     [['install', '--email', 'a@b.co'], 'Missing --domain'],
     [['install', '--domain', 'shop.example.com'], 'Missing --email'],
-    [['install', '--domain', 'a.example.com', '--email', 'a@b.co', '--multi-store', 'a.example.com', '--bundle', '/tmp/b'], 'must differ'],
+    [['install', '--domain', 'a.example.com', '--email', 'a@b.co', '--multi-store', 'b.example.com', '--single-store', '--bundle', '/tmp/b'], 'either --single-store or --multi-store'],
   ])('refuses %j', (args, message) => {
     const r = dry(args as string[], { SHOPME_OVERRIDE_WEBSERVER: 'none' });
     expect(r.status).not.toBe(0);
@@ -567,5 +567,151 @@ describe('bundle builder', () => {
     const ver = spawnSync('node', [path.join(repoRoot, 'scripts/make-server-bundle.mjs'), '--version', 'not-a-version'], { encoding: 'utf8' });
     expect(ver.status).not.toBe(0);
     expect(existsSync(path.join(repoRoot, 'deploy/server/docker-compose.yml'))).toBe(true);
+  });
+});
+
+describe('dry-run: multi-store is the default', () => {
+  const base = ['install', '--domain', 'boutique.fr', '--email', 'me@boutique.fr', '--bundle', '/tmp/b.tar.gz'];
+
+  it('nginx: one domain, no wildcard certificate, a sync-certs timer', () => {
+    const r = dry(base, { SHOPME_OVERRIDE_WEBSERVER: 'nginx', SHOPME_OVERRIDE_INIT: 'systemd' });
+    expect(r.status, r.all).toBe(0);
+    expect(r.all).toContain('MODE=multi');
+    expect(r.all).toContain('MULTI_BASE=boutique.fr');
+    expect(r.all).toContain('DNS_MODE=sync');
+    expect(r.all).toContain('MULTI_STORE: ${MULTI_STORE:-true}');
+    // the main site is served for the admin domain only; stores get their own certificate later
+    expect(r.all).toContain('server_name boutique.fr;');
+    expect(r.all).not.toContain('*.boutique.fr;');
+    expect(r.all).toMatch(/\+ certbot --nginx -d boutique\.fr /);
+    expect(r.all).not.toContain('certbot certonly');
+    expect(r.all).toContain('location = /__shopme/hosts { return 404; }');
+    // the sync job
+    expect(r.all).toContain('shopme-sync-certs.timer');
+    expect(r.all).toContain('OnUnitActiveSec=1min');
+    expect(r.all).toMatch(/ExecStart=\S+ sync-certs --quiet --dir /);
+    expect(r.all).toContain('systemctl enable --now shopme-sync-certs.timer');
+    // next steps: the single extra DNS record
+    expect(r.all).toContain('*.boutique.fr  A  203.0.113.7');
+    expect(r.all).toContain('your first store is served on boutique.fr itself');
+    expect(r.all).toContain('MULTI_STORE=false');
+  });
+
+  it('nginx without systemd falls back to a cron job', () => {
+    const r = dry(base, { SHOPME_OVERRIDE_WEBSERVER: 'nginx', SHOPME_OVERRIDE_INIT: 'cron' });
+    expect(r.all).toContain('* * * * * root');
+    expect(r.all).toContain('sync-certs --quiet');
+    expect(r.all).not.toContain('enable --now shopme-sync-certs.timer');
+  });
+
+  it('checks the wildcard A record', () => {
+    const r = dry(base, { SHOPME_OVERRIDE_WEBSERVER: 'nginx', SHOPME_OVERRIDE_DNS: '' });
+    expect(r.all).toContain('DNS: boutique.fr has no A/AAAA record');
+    expect(r.all).toContain('DNS: *.boutique.fr has no A/AAAA record');
+    const ok = dry(base, { SHOPME_OVERRIDE_WEBSERVER: 'nginx' });
+    expect(ok.all).toContain('DNS ok: shopme-dns-check.boutique.fr');
+  });
+
+  it('Caddy: on-demand TLS for every store, nothing to sync', () => {
+    const r = dry(base, { SHOPME_OVERRIDE_WEBSERVER: 'none' });
+    expect(r.status, r.all).toBe(0);
+    expect(r.all).toContain('MODE=multi');
+    expect(r.all).toContain('ask http://shopme:3000/__shopme/tls-ask');
+    expect(r.all).toContain('on_demand');
+    expect(r.all).toContain('MULTI_STORE: ${MULTI_STORE:-true}');
+    expect(r.all).not.toContain('shopme-sync-certs');
+    expect(r.all).toContain('Caddy gets each store');
+  });
+
+  it('--single-store opts out: MULTI_STORE=false, no wildcard record, no sync job', () => {
+    const r = dry([...base, '--single-store'], { SHOPME_OVERRIDE_WEBSERVER: 'nginx' });
+    expect(r.status, r.all).toBe(0);
+    expect(r.all).toContain('MODE=single');
+    expect(r.all).toContain('(single store)');
+    expect(r.all).not.toContain('shopme-sync-certs');
+    expect(r.all).not.toContain('shopme-dns-check');
+    expect(r.all).not.toContain('*.boutique.fr');
+  });
+
+  it('--dns-provider and --manual-dns still give one wildcard certificate', () => {
+    const r = dry([...base, '--dns-provider', 'cloudflare', '--dns-credentials', '/root/cf.ini'], { SHOPME_OVERRIDE_WEBSERVER: 'nginx' });
+    expect(r.all).toContain('DNS_MODE=provider');
+    expect(r.all).toMatch(/certbot certonly --cert-name boutique\.fr .*-d boutique\.fr -d \\\*\.boutique\.fr/);
+    expect(r.all).not.toContain('shopme-sync-certs');
+    expect(dry([...base, '--manual-dns'], { SHOPME_OVERRIDE_WEBSERVER: 'nginx' }).all).toContain('DNS_MODE=manual');
+  });
+
+  it('an install made as a single store before this default stays single', () => {
+    const d = tmp();
+    mkdirSync(d, { recursive: true });
+    writeFileSync(path.join(d, 'install.conf'), 'DOMAIN=boutique.fr\nEMAIL=me@boutique.fr\nMULTI_BASE=\nPROXY=nginx\nPORT=3200\n');
+    const r = spawnSync('bash', [script, ...base, '--dir', d], {
+      env: { ...baseEnv, SHOPME_DRY_RUN: '1', SHOPME_OVERRIDE_WEBSERVER: 'nginx', SHOPME_NGINX_DIR: path.join(d, 'nginx') }, encoding: 'utf8', input: '',
+    });
+    expect(r.stdout).toContain('MODE=single');
+  });
+});
+
+describe('sync-certs', () => {
+  const confDir = (mode = 'sync') => {
+    const d = tmp();
+    mkdirSync(path.join(d, 'nginx', 'sites-available'), { recursive: true });
+    writeFileSync(path.join(d, 'install.conf'), `DOMAIN=boutique.fr\nEMAIL=me@boutique.fr\nMODE=multi\nMULTI_BASE=boutique.fr\nPROXY=nginx\nDNS_MODE=${mode}\nPORT=3200\n`);
+    return d;
+  };
+  const sync = (d: string, env: Record<string, string> = {}) => spawnSync('bash', [script, 'sync-certs', '--dir', d], {
+    env: { ...baseEnv, SHOPME_DRY_RUN: '1', SHOPME_NGINX_DIR: path.join(d, 'nginx'), SHOPME_STATE_DIR: path.join(d, 'state'), SHOPME_LETSENCRYPT_DIR: path.join(d, 'le'), ...env }, encoding: 'utf8', input: '',
+  });
+
+  it('gets a certificate for each host that has none, with certbot --nginx and one reload', () => {
+    const d = confDir();
+    mkdirSync(path.join(d, 'le', 'live', 'boutique.fr'), { recursive: true });
+    writeFileSync(path.join(d, 'le', 'live', 'boutique.fr', 'fullchain.pem'), 'x');
+    const r = sync(d, { SHOPME_OVERRIDE_HOSTS: 'boutique.fr shop-a.boutique.fr custom.example.org' });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toContain('/__shopme/hosts');
+    expect(r.stdout).not.toContain('certbot --nginx -d boutique.fr');
+    expect(r.stdout).toContain('certbot --nginx -d shop-a.boutique.fr');
+    expect(r.stdout).toContain('certbot --nginx -d custom.example.org');
+    expect(r.stdout).toContain('shopme-domain-shop-a.boutique.fr.conf');
+    expect(r.stdout.match(/\+ systemctl reload nginx/g)).toHaveLength(1);
+  });
+
+  it('ignores invalid and local host names', () => {
+    const r = sync(confDir(), { SHOPME_OVERRIDE_HOSTS: 'localhost x.localhost bad_host;id good.example.org' });
+    expect(r.stdout).toContain('certbot --nginx -d good.example.org');
+    expect(r.stdout).not.toContain('bad_host');
+    expect(r.stdout).not.toContain('x.localhost');
+  });
+
+  it('does nothing with a wildcard certificate or Caddy', () => {
+    expect(sync(confDir('provider'), { SHOPME_OVERRIDE_HOSTS: 'a.boutique.fr' }).stdout).toContain('Nothing to do');
+    const d = confDir();
+    writeFileSync(path.join(d, 'install.conf'), 'DOMAIN=boutique.fr\nMODE=multi\nMULTI_BASE=boutique.fr\nPROXY=caddy\nPORT=3200\n');
+    expect(sync(d, { SHOPME_OVERRIDE_HOSTS: 'a.boutique.fr' }).stdout).toContain('Nothing to do');
+  });
+
+  it('caps the certificates per run', () => {
+    const r = sync(confDir(), { SHOPME_OVERRIDE_HOSTS: 'a.boutique.fr b.boutique.fr c.boutique.fr', SHOPME_SYNC_MAX_PER_RUN: '2' });
+    expect(r.stdout.match(/\+ certbot --nginx/g)).toHaveLength(2);
+    expect(r.stdout).toContain('limit of 2 certificates per run');
+  });
+
+  it('waits when DNS does not point here yet, instead of calling certbot', () => {
+    const r = sync(confDir(), { SHOPME_OVERRIDE_HOSTS: 'a.boutique.fr', SHOPME_OVERRIDE_DNS: '198.51.100.9' });
+    expect(r.stdout).not.toContain('certbot --nginx');
+    expect(r.stdout).toContain('DNS is not pointing to this server yet');
+  });
+
+  it('reads the host list from the endpoint JSON and backs off exponentially up to 6 hours', () => {
+    expect(fn(`printf '%s' '{"hosts":["boutique.fr","a.boutique.fr"]}' | hosts_from_json`).out).toBe('boutique.fr\na.boutique.fr');
+    expect(fn(`printf '%s' '{"hosts":[]}' | hosts_from_json`).out).toBe('');
+    expect(fn('for n in 1 2 3 4 5 6 7 20; do sync_backoff_seconds $n; done').out.split('\n').filter(Boolean)).toEqual(['300', '600', '1200', '2400', '4800', '9600', '19200', '21600']);
+  });
+
+  it('the token never appears on a command line', () => {
+    const src = readFileSync(script, 'utf8');
+    expect(src).toContain('curl -fsS --max-time 10 -K -');
+    expect(src).not.toMatch(/curl[^\n]*Bearer \$/);
   });
 });

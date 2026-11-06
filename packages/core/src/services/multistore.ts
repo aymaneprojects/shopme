@@ -96,6 +96,16 @@ export async function addShopDomain(db: Executor, shopId: number, input: string,
   return okR(row!);
 }
 
+/**
+ * Setup of a server installed for one domain: the first store's storefront is served on the install domain itself, so the domain is
+ * recorded as its verified primary domain (it needs no TXT check: the installer proved control of it).
+ */
+export async function recordInstallDomain(db: Executor, shopId: number, host: string): Promise<void> {
+  const h = host.toLowerCase();
+  await db.insert(shopDomains).values({ shopId, host: h, verificationToken: randomBytes(16).toString('hex'), verifiedAt: new Date() }).onConflictDoNothing();
+  await db.update(shops).set({ primaryDomain: h }).where(eq(shops.id, shopId));
+}
+
 export type TxtResolver = (name: string) => Promise<string[][]>;
 
 /** Check the TXT record and mark the domain verified. `force` (platform owner) skips the DNS check. */

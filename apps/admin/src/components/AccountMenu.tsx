@@ -1,4 +1,4 @@
-import { cx } from '@shopme/ui';
+import { Button, cx, Modal } from '@shopme/ui';
 import { Check, CircleHelp, Languages, LayoutGrid, LogOut, Monitor, Moon, PlusCircle, Server, Sun } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
@@ -34,6 +34,7 @@ export function StoreBadge({ store }: { store: Pick<AccountStore, 'status' | 'te
 }
 
 const row = 'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] hover:bg-hover focus-visible:bg-hover focus-visible:outline-none';
+const DOCS_BASE = 'https://github.com/aymaneprojects/shopme/blob/main/docs/install';
 const HELP_URL = 'https://github.com/aymaneprojects/shopme#readme';
 
 /**
@@ -45,6 +46,7 @@ export function AccountMenu({ collapsed, userBlock }: { collapsed: boolean; user
   const { state, logout } = useSession();
   const multi = useMulti();
   const [open, setOpen] = useState(false);
+  const [singleInfo, setSingleInfo] = useState(false);
   const [theme, setThemeState] = useState<Theme>(getTheme);
   const box = useRef<HTMLDivElement>(null);
   const pick = (v: Theme) => { setTheme(v); setThemeState(v); };
@@ -78,6 +80,11 @@ export function AccountMenu({ collapsed, userBlock }: { collapsed: boolean; user
         {trigger}
       </button>
       {!collapsed && shop && <ActivityBell />}
+      <Modal open={singleInfo} onClose={() => setSingleInfo(false)} title={t('ms.createStore')} medium closeLabel={t('common.close')}
+        footer={<Button onClick={() => setSingleInfo(false)}>{t('common.close')}</Button>}>
+        <p className="text-[13px]">{t(state.status === 'authenticated' && state.desktop ? 'ms.single.desktop' : 'ms.single.server')}</p>
+        <p className="mt-2 text-[13px]"><a href={`${DOCS_BASE}/${lang === 'fr' ? 'multi-store.fr.md' : 'multi-store.md'}`} target="_blank" rel="noreferrer" className="text-primary underline">{t('ms.single.docs')}</a></p>
+      </Modal>
       {open && (
         <div role="menu" aria-label={t('shell.account')} className="anim-fade absolute bottom-11 left-0 z-50 max-h-[80vh] w-72 overflow-y-auto rounded-xl border border-line bg-canvas p-1.5 text-fg shadow-pop">
           {shop && (
@@ -91,6 +98,7 @@ export function AccountMenu({ collapsed, userBlock }: { collapsed: boolean; user
             </a>
           ))}
           {multi && <a role="menuitem" href="/admin/stores" className={row}><LayoutGrid className="size-4 text-muted" />{t('ms.allStores')}</a>}
+          {!multi && shop && <button type="button" role="menuitem" className={row} onClick={() => { setOpen(false); setSingleInfo(true); }}><PlusCircle className="size-4 text-muted" />{t('ms.createStore')}</button>}
           {multi?.canCreateStores && <a role="menuitem" href="/admin/stores/new" className={row}><PlusCircle className="size-4 text-muted" />{t('ms.createStore')}</a>}
           {(shop || multi) && <div className="my-1.5 border-t border-line" role="separator" />}
           <div className="flex items-center gap-2.5 px-2 py-1.5 text-[13px]"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold text-on-primary" aria-hidden>{personInitials(person)}</span><span className="min-w-0 flex-1 truncate">{person.email}</span></div>

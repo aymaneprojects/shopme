@@ -110,7 +110,9 @@ export function installOriginCheck(app: FastifyInstance) {
     if (typeof req.headers[TOKEN_HEADER] === 'string') return;
     const origin = req.headers.origin;
     if (!origin) {
-      if (req.headers['sec-fetch-site'] === 'cross-site') return reply.code(403).send({ error: 'Cross-site request blocked' });
+      // Browsers that send Fetch Metadata but no Origin: only the page's own origin, or a user-initiated request (`none`), may post.
+      const site = req.headers['sec-fetch-site'];
+      if (typeof site === 'string' && site !== 'same-origin' && site !== 'none') return reply.code(403).send({ error: 'Cross-site request blocked' });
       return;
     }
     let host: string;

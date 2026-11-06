@@ -30,9 +30,10 @@ services:
       PUBLIC_IP: ${PUBLIC_IP:-}
       SMTP_URL: ${SMTP_URL:-}
       MAIL_FROM: ${MAIL_FROM:-}
-      MULTI_STORE: ${MULTI_STORE:-false}
+      MULTI_STORE: ${MULTI_STORE:-true}
       STORE_BASE_DOMAIN: ${STORE_BASE_DOMAIN:-}
       ADMIN_HOST: ${ADMIN_HOST:-}
+      HOSTS_TOKEN: ${HOSTS_TOKEN:-}
     volumes:
       - ./app:/app:ro
       - ./data:/data

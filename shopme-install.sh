@@ -28,6 +28,13 @@ SHOPME_INSTALL_BIN="${SHOPME_INSTALL_BIN:-/usr/local/sbin/shopme-install.sh}"
 SHOPME_NGINX_DIR="${SHOPME_NGINX_DIR:-/etc/nginx}"
 SHOPME_CRON_FILE="${SHOPME_CRON_FILE:-/etc/cron.d/shopme-backup}"
 SHOPME_DNS_CRED_DIR="${SHOPME_DNS_CRED_DIR:-/etc/shopme}"
+SHOPME_STATE_DIR="${SHOPME_STATE_DIR:-/var/lib/shopme}"
+SHOPME_LOG_DIR="${SHOPME_LOG_DIR:-/var/log/shopme}"
+SHOPME_SYSTEMD_DIR="${SHOPME_SYSTEMD_DIR:-/etc/systemd/system}"
+SHOPME_SYNC_CRON_FILE="${SHOPME_SYNC_CRON_FILE:-/etc/cron.d/shopme-sync-certs}"
+SHOPME_LOGROTATE_FILE="${SHOPME_LOGROTATE_FILE:-/etc/logrotate.d/shopme}"
+SHOPME_LETSENCRYPT_DIR="${SHOPME_LETSENCRYPT_DIR:-/etc/letsencrypt}"
+SHOPME_SYNC_MAX_PER_RUN="${SHOPME_SYNC_MAX_PER_RUN:-5}"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Output helpers
@@ -85,7 +92,7 @@ write_file() {
 reset_options() {
   CMD=""
   POSITIONAL=()
-  OPT_DOMAIN=""; OPT_EMAIL=""; OPT_MULTI=""; OPT_BUNDLE=""; OPT_VERSION=""; OPT_SHA256=""
+  OPT_DOMAIN=""; OPT_EMAIL=""; OPT_MULTI=""; OPT_SINGLE=0; OPT_BUNDLE=""; OPT_VERSION=""; OPT_SHA256=""
   OPT_DIR="${SHOPME_DIR:-/opt/shopme}"; OPT_PORT="3200"; OPT_SOURCE=""
   OPT_FORCE=0; OPT_YES=0; OPT_ADD_SWAP=0; OPT_JSON=0; OPT_PURGE=0; OPT_NO_PROXY=0; OPT_MANUAL_DNS=0
   OPT_DNS_PROVIDER=""; OPT_DNS_CREDENTIALS=""
@@ -105,24 +112,27 @@ Commands
   restore <file>     Restore a database dump (db-*.sql.gz) or a files archive (uploads-*.tar.gz).
   status             Containers, health, disk, memory, certificate.
   doctor             status plus DNS, outgoing port 25, reverse DNS (PTR), public IP and web server config.
-  add-domain <host>  Multi-store with nginx: get a certificate for a store's own domain.
+  add-domain <host>  Multi-store with nginx: get a certificate for a store's own domain now.
+  sync-certs         Multi-store with nginx: get a certificate for every host the app serves (runs every minute by itself).
   renew              Renew certificates now (re-runs the DNS challenge when --manual-dns was used).
   uninstall          Remove containers, site file and cron job. Data is kept unless --purge.
   help               This text.
 
 Options
-  --domain <host>          Public host name of the shop (the admin host in multi-store mode).
+  --domain <host>          Public host name of the shop. Multi-store is the default: the admin is at <host>/admin, the first
+                           store is served on <host>, other stores on <handle>.<host> (one extra DNS record: *.<host>).
   --email <address>        Contact address for the certificate authority.
-  --multi-store <base>     Several stores on subdomains of <base> (wildcard DNS needed).
+  --multi-store <base>     Stores on subdomains of <base> instead of <host> (wildcard DNS needed).
+  --single-store           Opt out of multi-store (sets MULTI_STORE=false): one store, no wildcard DNS record.
   --bundle <path|https-url> Prebuilt bundle (shopme-server-<version>.tar.gz).
   --version <x.y.z>        Download that release's bundle (see SHOPME_BUNDLE_URL_TEMPLATE).
   --sha256 <hex>           Expected checksum of the bundle.
   --source <dir>           Source checkout to build from (default: this script's folder, when it has a Dockerfile).
   --dir <path>             Installation folder (default /opt/shopme).
   --port <n>               Loopback port of the app (default 3200).
-  --dns-provider <name>    cloudflare | ovh | gandi | digitalocean | route53 (wildcard certificate, nginx).
+  --dns-provider <name>    cloudflare | ovh | gandi | digitalocean | route53 (one wildcard certificate, nginx; optional).
   --dns-credentials <file> API credentials file for that provider (copied to a root-only file, never printed).
-  --manual-dns             Wildcard certificate with a TXT record you add by hand (renew every 90 days).
+  --manual-dns             Wildcard certificate with a TXT record you add by hand (renew every 90 days; optional).
   --no-proxy               Do not set up HTTPS: the app only listens on 127.0.0.1:<port>.
   --add-swap               Add 2 GB of swap when there is none, without asking.
   --force                  Continue despite a DNS mismatch or an existing site name in nginx.
@@ -140,7 +150,7 @@ parse_args() {
   reset_options
   while [ "$#" -gt 0 ]; do
     case "$1" in
-      install|update|backup|restore|status|doctor|add-domain|renew|uninstall|help)
+      install|update|backup|restore|status|doctor|add-domain|sync-certs|renew|uninstall|help)
         if [ -z "$CMD" ]; then CMD=$1; else POSITIONAL+=("$1"); fi ;;
       -h|--help) CMD=help ;;
       --domain|--email|--multi-store|--bundle|--version|--sha256|--dir|--port|--source|--dns-provider|--dns-credentials)
@@ -167,6 +177,7 @@ parse_args() {
       --dns-provider=*) OPT_DNS_PROVIDER=${1#*=} ;;
       --dns-credentials=*) OPT_DNS_CREDENTIALS=${1#*=} ;;
       --manual-dns) OPT_MANUAL_DNS=1 ;;
+      --single-store) OPT_SINGLE=1 ;;
       --no-proxy) OPT_NO_PROXY=1 ;;
       --add-swap) OPT_ADD_SWAP=1 ;;
       --force) OPT_FORCE=1 ;;
@@ -256,7 +267,7 @@ env_get() {
 }
 
 # render_env: reads the ENVV_* variables, prints the .env file.
-#   ENVV_DOMAIN ENVV_MULTI ENVV_PORT ENVV_PUBLIC_IP ENVV_PG_PASSWORD ENVV_SESSION_SECRET ENVV_HTTPS (1|0)
+#   ENVV_DOMAIN ENVV_MULTI ENVV_PORT ENVV_PUBLIC_IP ENVV_PG_PASSWORD ENVV_SESSION_SECRET ENVV_HTTPS (1|0) ENVV_HOSTS_TOKEN
 render_env() {
   local scheme=https
   [ "${ENVV_HTTPS:-1}" = 1 ] || scheme=http
@@ -278,9 +289,11 @@ EOF
 MULTI_STORE=true
 STORE_BASE_DOMAIN=${ENVV_MULTI}
 ADMIN_HOST=${ENVV_DOMAIN}
+HOSTS_TOKEN=${ENVV_HOSTS_TOKEN:-}
 EOF
   else
     cat <<EOF
+# Single store (installed with --single-store). Remove this line, or set it to true, to get several stores.
 MULTI_STORE=false
 STORE_BASE_DOMAIN=
 ADMIN_HOST=
@@ -326,9 +339,10 @@ services:
       PUBLIC_IP: ${PUBLIC_IP:-}
       SMTP_URL: ${SMTP_URL:-}
       MAIL_FROM: ${MAIL_FROM:-}
-      MULTI_STORE: ${MULTI_STORE:-false}
+      MULTI_STORE: ${MULTI_STORE:-true}
       STORE_BASE_DOMAIN: ${STORE_BASE_DOMAIN:-}
       ADMIN_HOST: ${ADMIN_HOST:-}
+      HOSTS_TOKEN: ${HOSTS_TOKEN:-}
     volumes:
       - ./app:/app:ro
       - ./data:/data
@@ -404,6 +418,7 @@ nginx_proxy_block() {
 
     # Only Caddy-style on-demand TLS needs this; it is not meant for the public.
     location = /__shopme/tls-ask { return 404; }
+    location = /__shopme/hosts { return 404; }
 
     location / {
         proxy_pass http://127.0.0.1:$1;
@@ -718,6 +733,7 @@ render_conf() {
   cat <<EOF
 DOMAIN=${CONF_DOMAIN}
 EMAIL=${CONF_EMAIL}
+MODE=$([ -n "${CONF_MULTI}" ] && echo multi || echo single)
 MULTI_BASE=${CONF_MULTI}
 PROXY=${CONF_PROXY}
 CERT_NAME=${CONF_CERT_NAME}
@@ -755,7 +771,9 @@ collect_inputs() {
   local saved
   saved=$(conf_get DOMAIN); [ -n "$OPT_DOMAIN" ] || OPT_DOMAIN=$saved
   saved=$(conf_get EMAIL); [ -n "$OPT_EMAIL" ] || OPT_EMAIL=$saved
-  saved=$(conf_get MULTI_BASE); [ -n "$OPT_MULTI" ] || OPT_MULTI=$saved
+  [ "$OPT_SINGLE" = 0 ] || [ -z "$OPT_MULTI" ] || die "Use either --single-store or --multi-store, not both."
+  saved=$(conf_get MULTI_BASE); [ -n "$OPT_MULTI" ] || [ "$OPT_SINGLE" = 1 ] || OPT_MULTI=$saved
+  if [ "$(conf_get DNS_MODE)" = manual ] && [ -z "$OPT_DNS_PROVIDER" ]; then OPT_MANUAL_DNS=1; fi
   saved=$(conf_get DNS_PROVIDER)
   if [ -z "$OPT_DNS_PROVIDER" ] && [ "$OPT_MANUAL_DNS" = 0 ] && [ -n "$saved" ] && [ "$saved" != manual ]; then OPT_DNS_PROVIDER=$saved; fi
   if [ -z "$OPT_DOMAIN" ] && ! have_tty; then die "Missing --domain (the host name of your shop, for example shop.example.com)."; fi
@@ -769,10 +787,12 @@ collect_inputs() {
   else
     OPT_EMAIL=${OPT_EMAIL:-admin@$OPT_DOMAIN}
   fi
+  # Multi-store is the default for a new install: stores live under the install domain. An installation made before that, as a
+  # single store, stays one (re-running install or update never changes the mode).
+  if [ "$OPT_SINGLE" = 0 ] && [ -z "$OPT_MULTI" ] && ! { [ -f "$(conf_file)" ] && [ "$(conf_get MODE)" != multi ]; }; then OPT_MULTI=$OPT_DOMAIN; fi
   if [ -n "$OPT_MULTI" ]; then
     OPT_MULTI=$(lower "$OPT_MULTI")
     valid_hostname "$OPT_MULTI" || die "'$OPT_MULTI' is not a valid base domain for --multi-store (example: shops.example.com)."
-    [ "$OPT_MULTI" != "$OPT_DOMAIN" ] || die "The admin host (--domain) must differ from the stores' base domain (--multi-store)."
   fi
   valid_port "$OPT_PORT" || die "Invalid --port '$OPT_PORT' (1024-65535)."
   if [ -n "$OPT_DNS_PROVIDER" ]; then
@@ -789,23 +809,12 @@ collect_inputs() {
   return 0
 }
 
-# Wildcard certificate method for multi-store behind nginx.
-collect_wildcard_method() {
-  [ -n "$OPT_MULTI" ] || return 0
-  [ -z "$OPT_DNS_PROVIDER" ] && [ "$OPT_MANUAL_DNS" = 0 ] || return 0
-  if have_tty; then
-    info "A wildcard certificate (*.$OPT_MULTI) can only be validated through DNS."
-    ask OPT_DNS_PROVIDER "DNS provider (cloudflare, ovh, gandi, digitalocean, route53) or 'manual'" manual
-    if [ "$OPT_DNS_PROVIDER" = manual ]; then OPT_DNS_PROVIDER=""; OPT_MANUAL_DNS=1; fi
-    valid_dns_provider "$OPT_DNS_PROVIDER" || [ "$OPT_MANUAL_DNS" = 1 ] || die "Unknown DNS provider."
-    if [ -n "$OPT_DNS_PROVIDER" ] && [ -z "$OPT_DNS_CREDENTIALS" ]; then
-      ask OPT_DNS_CREDENTIALS "Path of the API credentials file (chmod 600)"
-      safe_path "$OPT_DNS_CREDENTIALS" || die "Invalid credentials path."
-    fi
-  else
-    die "Multi-store behind nginx needs a wildcard certificate: pass --dns-provider <name> --dns-credentials <file>, or --manual-dns."
-  fi
-}
+# Certificates for multi-store behind nginx: one certificate per host, issued by the sync-certs job (HTTP-01, no DNS API key),
+# unless a wildcard certificate was asked for with --dns-provider or --manual-dns.
+wildcard_requested() { [ -n "$OPT_MULTI" ] && { [ -n "$OPT_DNS_PROVIDER" ] || [ "$OPT_MANUAL_DNS" = 1 ]; }; }
+
+# dns_record_for <host>: the record to create for a checked host (the wildcard for the probe name).
+dns_record_for() { case "$1" in shopme-dns-check.*) printf '*.%s' "${1#shopme-dns-check.}" ;; *) printf '%s' "$1" ;; esac; }
 
 check_dns_for_install() {
   local pub4 pub6 st hosts=("$OPT_DOMAIN") h bad=0
@@ -821,8 +830,8 @@ check_dns_for_install() {
       st=$(dns_status "$h" "$pub4" "$pub6")
       case "$st" in
         ok) info "DNS ok: $h points to this server ($pub4)." ;;
-        missing) bad=1; warn "DNS: $h has no A/AAAA record. Create an A record to $pub4 at your domain provider." ;;
-        mismatch:*) bad=1; warn "DNS: $h points to ${st#mismatch:}, not to this server ($pub4). Fix the A/AAAA record (remove an AAAA that is not this server)." ;;
+        missing) bad=1; warn "DNS: $(dns_record_for "$h") has no A/AAAA record. Create an A record for $(dns_record_for "$h") to $pub4 at your domain provider." ;;
+        mismatch:*) bad=1; warn "DNS: $(dns_record_for "$h") points to ${st#mismatch:}, not to this server ($pub4). Fix the A/AAAA record (remove an AAAA that is not this server)." ;;
       esac
     done
     [ "$bad" = 0 ] && return 0
@@ -975,12 +984,13 @@ EOF
 }
 
 setup_nginx() {
-  local names site cert_dir
-  names=$(nginx_server_names "$OPT_DOMAIN" "$OPT_MULTI")
+  local names site cert_dir wild=""
+  wildcard_requested && wild=$OPT_MULTI
+  names=$(nginx_server_names "$OPT_DOMAIN" "$wild")
   site=$(nginx_site_path shopme)
   nginx_guard "$site" "$names"
   ensure_certbot
-  if [ -n "$OPT_MULTI" ]; then
+  if [ -n "$wild" ]; then
     install_dns_credentials
     issue_wildcard_cert
     cert_dir="/etc/letsencrypt/live/$CONF_CERT_NAME"
@@ -1001,6 +1011,7 @@ setup_nginx() {
       run certbot --nginx -d "$OPT_DOMAIN" -m "$OPT_EMAIL" --agree-tos --no-eff-email --non-interactive --redirect
     fi
   fi
+  if [ -n "$OPT_MULTI" ] && [ -z "$wild" ]; then install_cert_sync; fi
 }
 
 setup_caddy() {
@@ -1008,16 +1019,17 @@ setup_caddy() {
 }
 
 write_installation_files() {
-  local pg session
+  local pg session hosts_token
   run install -d -m 755 "$OPT_DIR"
   run install -d -m 700 "$OPT_DIR/backups"
   run install -d -m 755 -o 1000 -g 1000 "$OPT_DIR/data"
   pg=$(env_get "$OPT_DIR/.env" POSTGRES_PASSWORD); [ -n "$pg" ] || pg=$(gen_secret)
   session=$(env_get "$OPT_DIR/.env" SESSION_SECRET); [ -n "$session" ] || session=$(gen_secret)
-  ENVV_DOMAIN=$OPT_DOMAIN ENVV_MULTI=$OPT_MULTI ENVV_PORT=$OPT_PORT ENVV_PUBLIC_IP=${PUBLIC_IPV4:-} \
+  hosts_token=$(env_get "$OPT_DIR/.env" HOSTS_TOKEN); [ -n "$hosts_token" ] || hosts_token=$(gen_secret)
+  ENVV_DOMAIN=$OPT_DOMAIN ENVV_MULTI=$OPT_MULTI ENVV_PORT=$OPT_PORT ENVV_PUBLIC_IP=${PUBLIC_IPV4:-} ENVV_HOSTS_TOKEN=$hosts_token \
     ENVV_PG_PASSWORD=$pg ENVV_SESSION_SECRET=$session ENVV_HTTPS=$([ "$OPT_NO_PROXY" = 1 ] && echo 0 || echo 1) \
     render_env | write_file "$OPT_DIR/.env" 600 secret
-  unset pg session
+  unset pg session hosts_token
   render_compose "$CONF_PROXY" | write_file "$OPT_DIR/docker-compose.yml" 644 public
   [ "$CONF_PROXY" != caddy ] || setup_caddy
 }
@@ -1247,17 +1259,25 @@ cmd_install() {
   if [ "$OPT_NO_PROXY" = 1 ]; then CONF_PROXY=none
   elif [ "$ws" = nginx ]; then CONF_PROXY=nginx
   else CONF_PROXY=caddy; fi
-  info "Domain: $OPT_DOMAIN${OPT_MULTI:+  (multi-store, stores on *.$OPT_MULTI)}"
+  if [ -n "$OPT_MULTI" ]; then
+    info "Domain: $OPT_DOMAIN  (multi-store: admin at /admin, stores on <handle>.$OPT_MULTI)"
+  else
+    info "Domain: $OPT_DOMAIN  (single store)"
+  fi
   case "$CONF_PROXY" in
     nginx) info "HTTPS: through the existing nginx and certbot." ;;
-    caddy) info "HTTPS: through Caddy (automatic certificates, in the compose stack)." ;;
+    caddy) info "HTTPS: through Caddy (automatic certificates for every store, in the compose stack)." ;;
     *) info "HTTPS: not configured (--no-proxy)." ;;
   esac
 
   if [ "$CONF_PROXY" = nginx ] && [ -n "$OPT_MULTI" ]; then
-    collect_wildcard_method
-    CONF_CERT_NAME=$OPT_MULTI
-    if [ -n "$OPT_DNS_PROVIDER" ]; then CONF_DNS_MODE=provider; CONF_DNS_PROVIDER=$OPT_DNS_PROVIDER; else CONF_DNS_MODE=manual; CONF_DNS_PROVIDER=manual; fi
+    if wildcard_requested; then
+      CONF_CERT_NAME=$OPT_MULTI
+      if [ -n "$OPT_DNS_PROVIDER" ]; then CONF_DNS_MODE=provider; CONF_DNS_PROVIDER=$OPT_DNS_PROVIDER; else CONF_DNS_MODE=manual; CONF_DNS_PROVIDER=manual; fi
+    else
+      CONF_DNS_MODE=sync; CONF_DNS_PROVIDER=""
+      info "Certificates: one per host, requested automatically every minute (no DNS API key needed)."
+    fi
   fi
   if [ "$CONF_PROXY" = caddy ] && [ "$(command -v nginx || true)" != "" ] && ! is_dry; then
     warn "nginx is installed but not running. Caddy will take ports 80/443; run 'systemctl disable nginx' so it does not start at boot and conflict."
@@ -1330,8 +1350,11 @@ Next steps
 EOF
   if [ -n "$OPT_MULTI" ]; then
     cat <<EOF
-  4. Stores answer on <handle>.$OPT_MULTI (wildcard DNS: create an A record for *.$OPT_MULTI to this server).
-     A store's own domain: add it in Settings > Domains, then run:  sudo shopme-install.sh add-domain <host>
+  4. DNS: one more record is needed besides $OPT_DOMAIN:  *.$OPT_MULTI  A  ${PUBLIC_IPV4:-<this server>}
+     Stores then answer on <handle>.$OPT_MULTI$([ "$OPT_MULTI" = "$OPT_DOMAIN" ] && echo "; your first store is served on $OPT_DOMAIN itself").
+     $(case "$CONF_PROXY" in nginx) [ "$CONF_DNS_MODE" = sync ] && echo "A new store gets its HTTPS certificate within a minute (shopme-install.sh sync-certs, log: $SHOPME_LOG_DIR/sync-certs.log)." ;; caddy) echo "Caddy gets each store's certificate the first time its address is opened." ;; esac)
+     $(if [ "$CONF_PROXY" = nginx ] && [ "$CONF_DNS_MODE" != sync ]; then echo "A store's own domain: add it in Settings > Domains, then run:  sudo shopme-install.sh add-domain <host>"; else echo "A store's own domain: add it in Settings > Domains and point its A record here; the certificate follows by itself."; fi)
+  5. Only one store wanted? Set MULTI_STORE=false in $OPT_DIR/.env and restart (or install with --single-store).
 EOF
   fi
 }
@@ -1504,7 +1527,7 @@ check_dns() {
     st=$(dns_status "$h" "$pub4" "$pub6")
     case "$st" in
       ok) add_check OK "dns-$h" "DNS: $h points to this server." ;;
-      missing) add_check FAIL "dns-$h" "DNS: $h has no A/AAAA record." "At your domain provider, create an A record for ${h/shopme-dns-check/*} pointing to $pub4." ;;
+      missing) add_check FAIL "dns-$h" "DNS: $h has no A/AAAA record." "At your domain provider, create an A record for $(dns_record_for "$h") pointing to $pub4." ;;
       mismatch:*) add_check FAIL "dns-$h" "DNS: $h points to ${st#mismatch:}, not to this server ($pub4)." "Edit the A record to $pub4 and remove any AAAA record that is not this server." ;;
     esac
   done
@@ -1541,6 +1564,18 @@ check_nginx_config() {
   else add_check FAIL nginx "nginx -t reports a problem: $(printf '%s' "$out" | tail -n1)" "Fix the file named in the message; ours is $(nginx_site_path shopme). Never reload until nginx -t passes."; fi
 }
 
+check_cert_sync() {
+  [ "$CONF_PROXY" = nginx ] && [ "$CONF_DNS_MODE" = sync ] || return 0
+  if [ -f "$SHOPME_SYNC_CRON_FILE" ] || systemctl is-active --quiet shopme-sync-certs.timer 2>/dev/null; then
+    add_check OK cert-sync "Certificates for new store hosts are requested automatically every minute."
+  else
+    add_check FAIL cert-sync "The certificate sync job is not running, so new stores get no HTTPS certificate." "Run: shopme-install.sh install (safe to re-run), then: systemctl status shopme-sync-certs.timer"
+  fi
+  local last
+  last=$(grep -E ' (FAILED|ERROR|WAIT) ' "$SHOPME_LOG_DIR/sync-certs.log" 2>/dev/null | tail -n1 || true)
+  if [ -n "$last" ]; then add_check WARN cert-sync-log "Last certificate problem: $last" "See $SHOPME_LOG_DIR/sync-certs.log. HTTP-01 needs the host's DNS to point here and port 80 open."; fi
+}
+
 check_backups() {
   local latest age_h
   # shellcheck disable=SC2012
@@ -1566,6 +1601,7 @@ cmd_doctor() {
     check_dns
     check_mail
     check_nginx_config
+    check_cert_sync
     check_backups
   fi
   emit_checks
@@ -1582,6 +1618,7 @@ cmd_add_domain() {
   host=$(lower "$host")
   valid_hostname "$host" || die "'$host' is not a valid host name."
   [ -n "$CONF_MULTI" ] || die "add-domain is for multi-store installations."
+  if [ "$CONF_DNS_MODE" = sync ]; then info "Certificates are requested automatically every minute (sync-certs); running it once now for $host."; fi
   if [ "$CONF_PROXY" = caddy ]; then
     info "Nothing to do: Caddy gets a certificate for $host by itself the first time it is visited, as soon as ShopMe confirms it serves that host."
     info "Point the DNS A record of $host to this server, and verify the domain in Settings > Domains."
@@ -1616,6 +1653,218 @@ cmd_add_domain() {
   info "$host is served over HTTPS."
 }
 
+# ---- certificate sync (multi-store behind nginx, no wildcard certificate) -----------------------------------------------------
+
+render_sync_service() {
+  cat <<EOF
+# Managed by shopme-install.sh
+[Unit]
+Description=ShopMe: HTTPS certificates for new store hosts
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=$SHOPME_INSTALL_BIN sync-certs --quiet --dir $OPT_DIR
+EOF
+}
+
+render_sync_timer() {
+  cat <<'EOF'
+# Managed by shopme-install.sh
+[Unit]
+Description=ShopMe: look for new store hosts every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
+EOF
+}
+
+render_sync_cron() {
+  cat <<EOF
+# ShopMe certificate sync (managed by shopme-install.sh): a certificate for every new store host, every minute.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+* * * * * root $SHOPME_INSTALL_BIN sync-certs --quiet --dir $OPT_DIR
+EOF
+}
+
+render_logrotate() {
+  cat <<EOF
+# Managed by shopme-install.sh
+$SHOPME_LOG_DIR/*.log {
+    weekly
+    rotate 8
+    compress
+    missingok
+    notifempty
+}
+EOF
+}
+
+# init_system: systemd | cron
+init_system() {
+  if [ -n "${SHOPME_OVERRIDE_INIT:-}" ]; then echo "$SHOPME_OVERRIDE_INIT"; return; fi
+  if [ -d /run/systemd/system ]; then echo systemd; else echo cron; fi
+}
+
+# install_cert_sync: a systemd timer (cron when there is no systemd) that runs `sync-certs` every minute.
+install_cert_sync() {
+  step "Automatic certificates for every store host"
+  run install -d -m 755 "$SHOPME_STATE_DIR" "$SHOPME_LOG_DIR"
+  render_logrotate | write_file "$SHOPME_LOGROTATE_FILE" 644 public
+  if [ "$(init_system)" = systemd ]; then
+    render_sync_service | write_file "$SHOPME_SYSTEMD_DIR/shopme-sync-certs.service" 644 public
+    render_sync_timer | write_file "$SHOPME_SYSTEMD_DIR/shopme-sync-certs.timer" 644 public
+    run systemctl daemon-reload
+    run systemctl enable --now shopme-sync-certs.timer
+    info "systemd timer shopme-sync-certs.timer: every minute, log in $SHOPME_LOG_DIR/sync-certs.log"
+  else
+    render_sync_cron | write_file "$SHOPME_SYNC_CRON_FILE" 644 public
+    info "Cron job $SHOPME_SYNC_CRON_FILE: every minute, log in $SHOPME_LOG_DIR/sync-certs.log"
+  fi
+}
+
+# sync_log <message>: one line in the log file (and on screen unless --quiet).
+sync_log() {
+  local line
+  line="$(date -u +%Y-%m-%dT%H:%M:%SZ) $*"
+  if is_dry; then printf '+ log: %s\n' "$line"; return 0; fi
+  mkdir -p "$SHOPME_LOG_DIR" 2>/dev/null || true
+  printf '%s\n' "$line" >>"$SHOPME_LOG_DIR/sync-certs.log" 2>/dev/null || true
+  [ "${QUIET:-0}" = 1 ] || printf '%s\n' "$line"
+}
+
+# hosts_from_json: the host names of {"hosts":["a","b"]}, one per line.
+hosts_from_json() {
+  sed -e 's/^[^[]*\[//' -e 's/\].*$//' | tr ',' '\n' | sed -e 's/["[:space:]]//g' -e '/^$/d'
+}
+
+# fetch_hosts: the hosts the app serves, one per line (local endpoint, token from .env; the token never travels on a command line).
+fetch_hosts() {
+  if [ -n "${SHOPME_OVERRIDE_HOSTS+set}" ]; then local h; for h in $SHOPME_OVERRIDE_HOSTS; do printf '%s\n' "$h"; done; return 0; fi
+  local token
+  token=$(env_get "$OPT_DIR/.env" HOSTS_TOKEN)
+  [ -n "$token" ] || { sync_log "ERROR HOSTS_TOKEN is missing in $OPT_DIR/.env"; return 1; }
+  printf 'header = "Authorization: Bearer %s"\n' "$token" | curl -fsS --max-time 10 -K - "http://127.0.0.1:$OPT_PORT/__shopme/hosts" | hosts_from_json
+}
+
+# sync_backoff_seconds <failures>: 5 minutes, doubling, at most 6 hours.
+sync_backoff_seconds() {
+  local n=$1 s=300
+  while [ "$n" -gt 1 ] && [ "$s" -lt 21600 ]; do s=$((s * 2)); n=$((n - 1)); done
+  [ "$s" -le 21600 ] || s=21600
+  echo "$s"
+}
+
+sync_has_cert() { [ -f "$SHOPME_LETSENCRYPT_DIR/live/$1/fullchain.pem" ]; }
+
+# sync_wait_left <host>: seconds before the host may be tried again (0 when it may).
+sync_wait_left() {
+  local f="$SHOPME_STATE_DIR/failed/$1" next now
+  [ -f "$f" ] || { echo 0; return; }
+  next=$(awk '{print $2}' "$f" 2>/dev/null || echo 0)
+  now=$(date +%s)
+  [[ $next =~ ^[0-9]+$ ]] || next=0
+  if [ "$next" -gt "$now" ]; then echo $((next - now)); else echo 0; fi
+}
+
+# sync_record_failure <host> [seconds]: counts the failure and sets the next attempt (rate limits wait 6 hours).
+sync_record_failure() {
+  local host=$1 fixed=${2:-} f="$SHOPME_STATE_DIR/failed/$1" n=0 wait
+  is_dry && return 0
+  mkdir -p "$SHOPME_STATE_DIR/failed"
+  [ ! -f "$f" ] || n=$(awk '{print $1}' "$f" 2>/dev/null || echo 0)
+  [[ $n =~ ^[0-9]+$ ]] || n=0
+  n=$((n + 1))
+  wait=${fixed:-$(sync_backoff_seconds "$n")}
+  printf '%s %s\n' "$n" "$(($(date +%s) + wait))" >"$f"
+  SYNC_LAST_WAIT=$wait
+}
+
+# issue_host_cert <host>: its own site file, then certbot --nginx (HTTP-01). Returns non-zero and removes the site file on failure.
+issue_host_cert() {
+  local host=$1 site name="shopme-domain-$1" out="" rc=0
+  site=$(nginx_site_path "$name")
+  if [ -f "$site" ] && ! grep -q 'Managed by shopme-install.sh' "$site"; then sync_log "ERROR $host: $site exists and is not managed by this installer, left alone"; return 1; fi
+  render_nginx_site http "$host" "$OPT_PORT" | write_file "$site" 644 public || return 1
+  nginx_enable_site "$name" || return 1
+  if is_dry; then
+    run nginx -t
+    run certbot --nginx -d "$host" -m "${CONF_EMAIL:-admin@$host}" --agree-tos --no-eff-email --non-interactive --redirect
+    return 0
+  fi
+  if ! nginx -t >/dev/null 2>&1; then
+    sync_log "ERROR $host: nginx -t failed, site file removed"
+    rm -f "$site" "$SHOPME_NGINX_DIR/sites-enabled/$name.conf"
+    return 1
+  fi
+  out=$(certbot --nginx -d "$host" -m "${CONF_EMAIL:-admin@$host}" --agree-tos --no-eff-email --non-interactive --redirect 2>&1) || rc=$?
+  if [ "$rc" != 0 ]; then
+    rm -f "$site" "$SHOPME_NGINX_DIR/sites-enabled/$name.conf"
+    if printf '%s' "$out" | grep -Eqi 'too many (certificates|failed)|rate ?limit'; then SYNC_RATE_LIMITED=1; fi
+    sync_log "FAILED $host: $(printf '%s' "$out" | grep -Ei 'error|detail|too many|rate' | head -n2 | tr '\n' ' ')"
+    return 1
+  fi
+  return 0
+}
+
+# cmd_sync_certs: ask the app which hosts it serves and give each new one a certificate. Meant for a timer; safe to run by hand.
+cmd_sync_certs() {
+  preflight_platform
+  require_installed
+  load_conf
+  if [ "$CONF_PROXY" != nginx ] || [ "$CONF_DNS_MODE" != sync ]; then
+    info "Nothing to do: certificates are not managed per host in this installation (proxy: ${CONF_PROXY:-none}, mode: ${CONF_DNS_MODE:-none})."
+    return 0
+  fi
+  if ! is_dry; then
+    mkdir -p "$SHOPME_STATE_DIR"
+    exec 9>"$SHOPME_STATE_DIR/sync-certs.lock"
+    flock -n 9 || { info "Another sync-certs is running; skipping."; return 0; }
+  fi
+  if is_dry; then printf '+ GET http://127.0.0.1:%s/__shopme/hosts (token from %s/.env)\n' "$OPT_PORT" "$OPT_DIR"; fi
+  local hosts host pub4="" pub6="" tried=0 changed=0 left st
+  hosts=$(fetch_hosts) || { sync_log "ERROR could not read the host list from the app"; return 1; }
+  SYNC_RATE_LIMITED=0
+  for host in $hosts; do
+    valid_hostname "$host" || continue
+    case "$host" in *.localhost) continue ;; esac
+    sync_has_cert "$host" && continue
+    left=$(sync_wait_left "$host")
+    [ "$left" = 0 ] || continue
+    [ "$SYNC_RATE_LIMITED" = 0 ] || break
+    if [ "$tried" -ge "$SHOPME_SYNC_MAX_PER_RUN" ]; then sync_log "limit of $SHOPME_SYNC_MAX_PER_RUN certificates per run reached; the rest follows next minute"; break; fi
+    if [ -z "$pub4" ]; then pub4=$(public_ip 4); pub6=$(public_ip 6); fi
+    if [ -n "$pub4" ]; then
+      st=$(dns_status "$host" "$pub4" "$pub6")
+      if [ "$st" != ok ]; then
+        SYNC_LAST_WAIT=0; sync_record_failure "$host" 300
+        sync_log "WAIT $host: DNS is not pointing to this server yet ($st); next try in 5 minutes. Check the *.$CONF_MULTI A record."
+        continue
+      fi
+    fi
+    tried=$((tried + 1))
+    sync_log "requesting a certificate for $host"
+    if issue_host_cert "$host"; then
+      changed=1; rm -f "$SHOPME_STATE_DIR/failed/$host"
+      sync_log "OK $host is served over HTTPS"
+    else
+      SYNC_LAST_WAIT=0
+      if [ "$SYNC_RATE_LIMITED" = 1 ]; then sync_record_failure "$host" 21600; else sync_record_failure "$host"; fi
+      sync_log "will retry $host in ${SYNC_LAST_WAIT:-300} seconds"
+    fi
+  done
+  if [ "$changed" = 1 ] || is_dry; then
+    if run nginx -t; then run systemctl reload nginx; else sync_log "ERROR nginx -t failed after the new certificates; nginx was not reloaded"; return 1; fi
+  fi
+  return 0
+}
+
 cmd_renew() {
   preflight_platform
   load_conf
@@ -1642,7 +1891,11 @@ cmd_uninstall() {
   if [ -f "$OPT_DIR/docker-compose.yml" ] || is_dry; then
     if [ "$OPT_PURGE" = 1 ]; then run_dc down -v --remove-orphans; else run_dc down --remove-orphans; fi
   fi
-  run rm -f "$SHOPME_CRON_FILE"
+  run rm -f "$SHOPME_CRON_FILE" "$SHOPME_SYNC_CRON_FILE"
+  if [ -f "$SHOPME_SYSTEMD_DIR/shopme-sync-certs.timer" ] || is_dry; then
+    run systemctl disable --now shopme-sync-certs.timer
+    run rm -f "$SHOPME_SYSTEMD_DIR/shopme-sync-certs.timer" "$SHOPME_SYSTEMD_DIR/shopme-sync-certs.service" "$SHOPME_LOGROTATE_FILE"
+  fi
   local f removed=0
   for f in "$SHOPME_NGINX_DIR"/sites-enabled/shopme.conf "$SHOPME_NGINX_DIR"/sites-enabled/shopme-domain-*.conf \
            "$SHOPME_NGINX_DIR"/sites-available/shopme.conf "$SHOPME_NGINX_DIR"/sites-available/shopme-domain-*.conf \
@@ -1653,7 +1906,7 @@ cmd_uninstall() {
   done
   if [ "$CONF_PROXY" = nginx ] && { [ "$removed" = 1 ] || is_dry; }; then nginx_test_reload; fi
   if [ "$OPT_PURGE" = 1 ]; then
-    run rm -rf "$SHOPME_DNS_CRED_DIR"
+    run rm -rf "$SHOPME_DNS_CRED_DIR" "$SHOPME_STATE_DIR"
     run rm -rf "$OPT_DIR"
     info "ShopMe and all its data were removed. Certificates stay in /etc/letsencrypt (certbot delete --cert-name <name> removes them)."
   else
@@ -1678,6 +1931,7 @@ main() {
     status) cmd_doctor 0 ;;
     doctor) cmd_doctor 1 ;;
     add-domain) cmd_add_domain ;;
+    sync-certs) cmd_sync_certs ;;
     renew) cmd_renew ;;
     uninstall) cmd_uninstall ;;
   esac

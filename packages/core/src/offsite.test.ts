@@ -4,11 +4,12 @@ import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Readable } from 'node:stream';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   applyRetention, clampRetention, createDecryptor, createEncryptor, EndpointError, getStream, isoWeek, listObjects, makeClient, normalizePrefix, offsiteAlert, parseObjectName, patchFromInput, presetEndpoint, presetById,
-  putStream, STORAGE_PRESETS, testConnection, validateEndpoint, WrongPassphraseError, ENC_CHUNK, backoffMs, folderOf, rootOf, type RunRow, type S3Target, deleteObject,
+  OffsiteBackups, putStream, STORAGE_PRESETS, testConnection, validateEndpoint, WrongPassphraseError, ENC_CHUNK, backoffMs, folderOf, rootOf, type RunRow, type S3Target, deleteObject,
 } from './index';
 import { startFakeS3, type FakeS3 } from '../test-fixtures/fake-s3';
 
@@ -273,5 +274,47 @@ describe('banner condition', () => {
     expect(offsiteAlert({ ...dest, enabled: false }, true, [run({ status: 'failed' })], now)).toBeNull();
     expect(offsiteAlert(dest, false, [run({ status: 'failed' })], now)).toBeNull();
     expect(offsiteAlert(null, false, [], now)).toBeNull();
+  });
+});
+
+describe('restore download and store folders', () => {
+  const svcWith = (max: number, open: () => unknown) => {
+    const svc = new OffsiteBackups({ maxDownloadBytes: max } as never);
+    (svc as unknown as { open: () => unknown }).open = open;
+    return svc;
+  };
+  const tmp = () => path.join(mkdtempSync(path.join(tmpdir(), 'dl-')), 'sub', 'a.shopme');
+
+  it('refuses an archive larger than the limit before writing it when its size is known', async () => {
+    const file = tmp();
+    const svc = svcWith(100, async () => ({ stream: Readable.from([Buffer.alloc(500)]), kind: 'store', size: 500, filename: 'a.shopme' }));
+    await expect(svc.fetchToFile(1, 'k', file)).rejects.toThrow(/too large/);
+    expect(existsSync(file)).toBe(false);
+  });
+
+  it('stops a stream of unknown size (encrypted) at the limit and removes the partial file', async () => {
+    const file = tmp();
+    const svc = svcWith(1000, async () => ({ stream: Readable.from([Buffer.alloc(600), Buffer.alloc(600), Buffer.alloc(600)]), kind: 'store', size: null, filename: 'a.shopme' }));
+    await expect(svc.fetchToFile(1, 'k', file)).rejects.toThrow(/too large/);
+    expect(existsSync(file)).toBe(false);
+  });
+
+  it('writes an archive within the limit', async () => {
+    const file = tmp();
+    const svc = svcWith(1000, async () => ({ stream: Readable.from([Buffer.alloc(900)]), kind: 'store', size: 900, filename: 'a.shopme' }));
+    await svc.fetchToFile(1, 'k', file);
+    expect(readFileSync(file).length).toBe(900);
+  });
+
+  it('rejects a store folder that equals or starts with the platform root', async () => {
+    const form = { endpoint: 'https://8.8.8.8/', bucket: 'my-bucket', accessKeyId: 'AKIA1' };
+    const roots = [rootOf(null, ''), rootOf(null, 'acme/')];
+    for (const prefix of ['platform', '/platform/', 'platform/shop-1', 'acme/platform/x']) {
+      const r = await patchFromInput(null, { ...form, prefix }, 'k', false, roots);
+      expect('errors' in r && r.errors.map((e) => e.field)).toEqual(['prefix']);
+    }
+    for (const prefix of ['platforms', 'acme/backups', 'my-platform/x']) expect('patch' in (await patchFromInput(null, { ...form, prefix }, 'k', false, roots))).toBe(true);
+    // the platform's own destination is not restricted
+    expect('patch' in (await patchFromInput(null, { ...form, prefix: 'platform' }, 'k', false, []))).toBe(true);
   });
 });

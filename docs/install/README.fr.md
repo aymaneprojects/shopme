@@ -4,7 +4,7 @@ ShopMe est un processus Node.js plus PostgreSQL. En local, PostgreSQL est facult
 
 **Un serveur neuf et un nom de domaine ? [Installer sur un serveur en une commande](quick-install.fr.md)** : HTTPS, sauvegardes, mises à jour et contrôles inclus, sans guide à lire.
 
-Plusieurs boutiques sur une même installation ? Voir [Mode multi-boutique](multi-store.fr.md).
+Plusieurs boutiques sur une même installation ? C'est le mode par défaut sur un serveur (Docker Compose, installateur en une commande) : l'administration est sur `/admin` de votre domaine, la première boutique est servie sur ce même domaine et les suivantes sur `<identifiant>.<votre domaine>`, avec un seul enregistrement DNS générique. Mettez `MULTI_STORE=false` dans `.env` pour ne garder qu'une boutique. Voir [Mode multi-boutique](multi-store.fr.md).
 
 ## 1. Lancer en local (sans base de données)
 

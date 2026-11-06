@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
   accountCount, authenticateAccount, canCreateStores, createSession, destroySession, getAccount, getShop, handleOf, isTwoFactorEnabled, listAccountStores, listStaffSessions, needsSetup, publicAccount, publicStaff,
-  sendNotification, setSessionShop, setupStore, staffOfAccount, twoFactorEnrolmentRequired, SetupError, signChallenge, verifyChallenge, verifySecondFactor, schema, type Account, type Shop, type StaffUser,
+  recordInstallDomain, sendNotification, setSessionShop, setupStore, staffOfAccount, twoFactorEnrolmentRequired, SetupError, signChallenge, verifyChallenge, verifySecondFactor, schema, type Account, type Shop, type StaffUser,
 } from '@shopme/core';
 import { eq } from 'drizzle-orm';
 import { accountOf, authenticate, clearSessionCookie, requestedShopId, sessionToken, setSessionCookie } from '../plugins/auth';
@@ -49,6 +49,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
       if (body.data.theme && !startingThemeExists(app, body.data.theme)) return reply.code(422).send({ error: 'Unknown theme', issues: [{ field: 'theme', message: 'Unknown theme' }] });
       const { theme: startingTheme, ...setup } = body.data;
       const { shop, owner } = await setupStore(db, { ...setup, ...(multi && { perStoreStorage: true, platformOwner: true }) });
+      if (multi && app.ctx.config.installDomain) await recordInstallDomain(db, shop.id, app.ctx.config.installDomain);
       await app.ctx.locales.refresh(db);
       await app.ctx.stores.refresh(db);
       // Install the starting theme (Aurora unless another was chosen) now so the admin theme editor works before the storefront is ever visited.
@@ -56,7 +57,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
       const session = await createSession(db, { shopId: shop.id, staffUserId: owner.id, accountId: owner.accountId, ip: req.ip, userAgent: req.headers['user-agent'] });
       setSessionCookie(app, reply, session.token, session.expiresAt);
       const account = multi && owner.accountId != null ? await getAccount(db, owner.accountId) : null;
-      return reply.code(201).send({ user: publicStaff(owner), shop: publicShop(shop), ...(multi && { storeHandle: handleOf(shop), ...(account && { account: publicAccount(account) }) }) });
+      return reply.code(201).send({ user: publicStaff(owner), shop: publicShop(shop), ...(app.ctx.config.desktop && { desktop: true }), ...(multi && { storeHandle: handleOf(shop), ...(account && { account: publicAccount(account) }) }) });
     } catch (e) {
       if (e instanceof SetupError) return reply.code(409).send({ error: e.message });
       throw e;
@@ -113,7 +114,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
     const auth = await authenticate(req);
     if (!auth || auth.kind !== 'session') return reply.code(401).send({ error: 'Not authenticated' });
     const shop = await getShop(db, auth.shopId);
-    return { user: publicStaff(auth.user), shop: shop ? publicShop(shop) : null, twoFactorSetupRequired: auth.needs2fa === true };
+    return { user: publicStaff(auth.user), shop: shop ? publicShop(shop) : null, twoFactorSetupRequired: auth.needs2fa === true, ...(app.ctx.config.desktop && { desktop: true }) };
   });
 }
 
@@ -168,6 +169,6 @@ export async function finishLogin(app: FastifyInstance, req: FastifyRequest, rep
     sendNotification(db, app.ctx.mailer, shop, app.ctx.stores.storefrontBase(shop.id), 'staff_login_alert', account.email, { login: { email: account.email, ip: req.ip, device: deviceOf(ua), time } })
       .catch((err) => req.log.warn({ err }, 'login alert failed'));
   }
-  const out = { user: user ? publicStaff(user) : null, shop: shop ? publicShop(shop) : null, twoFactorSetupRequired: user ? await twoFactorEnrolmentRequired(db, user.shopId, account.id) : false };
+  const out = { user: user ? publicStaff(user) : null, shop: shop ? publicShop(shop) : null, twoFactorSetupRequired: user ? await twoFactorEnrolmentRequired(db, user.shopId, account.id) : false, ...(app.ctx.config.desktop && { desktop: true }) };
   return app.ctx.config.multiStore ? { ...out, account: publicAccount(account), storeHandle: shop ? handleOf(shop) : null } : out;
 }

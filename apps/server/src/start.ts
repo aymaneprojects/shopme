@@ -22,6 +22,8 @@ export interface StartServerOptions {
   logger?: boolean;
   /** Force single-store (false) or multi-store (true) mode instead of reading MULTI_STORE (the desktop app always runs one store). */
   multiStore?: boolean;
+  /** Embedded in the desktop app. */
+  desktop?: boolean;
 }
 
 export interface RunningServer {
@@ -44,7 +46,7 @@ export interface RunningServer {
 export async function startServer(opts: StartServerOptions = {}): Promise<RunningServer> {
   const config = loadConfig(opts.env ?? process.env, {
     baseDir: opts.baseDir,
-    overrides: { port: opts.port, host: opts.host, dataDir: opts.dataDir, appUrl: opts.appUrl, databaseUrl: opts.databaseUrl, storageDir: opts.storageDir, multiStore: opts.multiStore },
+    overrides: { port: opts.port, host: opts.host, dataDir: opts.dataDir, appUrl: opts.appUrl, databaseUrl: opts.databaseUrl, storageDir: opts.storageDir, multiStore: opts.multiStore, desktop: opts.desktop },
   });
   const paths = resolvePaths(opts.paths);
   const dbHandle = await createDb({ databaseUrl: config.databaseUrl, dataDir: config.dataDir });

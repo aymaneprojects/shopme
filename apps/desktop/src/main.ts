@@ -38,6 +38,7 @@ async function launchServer(): Promise<RunningServer> {
     host: '127.0.0.1', // local only: never exposed to the network
     dataDir,
     multiStore: false, // one store on the computer, whatever MULTI_STORE says
+    desktop: true,
 
     logger: true,
     paths: {

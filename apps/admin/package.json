@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "echo \"no lint yet\"",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "node --max-old-space-size=4096 ../../node_modules/typescript/lib/tsc.js -p tsconfig.json",
     "validate:graphql": "tsx scripts/validate-graphql.ts",
     "e2e": "tsx e2e/smoke.ts",
     "screenshots": "tsx e2e/smoke.ts --screenshots"

@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { mkdir, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { PassThrough, Readable } from 'node:stream';
+import { PassThrough, Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { AppConfig } from '../config';
@@ -11,7 +11,7 @@ import { shops } from '../db/schema';
 import { recordBackupResult } from '../services/activity';
 import { decryptSecret } from '../services/two-factor';
 import { backupsDir } from '../services/backups';
-import { exportStore } from '../services/store-export';
+import { exportStore, MAX_IMPORT_BYTES } from '../services/store-export';
 import type { Storage } from '../services/storage';
 import { createDecryptor, createEncryptor } from './crypto';
 import { applyRetention, type Retention } from './retention';
@@ -32,6 +32,8 @@ export interface OffsiteDeps {
   now?: () => Date;
   /** Tests: a client for the target (the default builds the guarded SDK client). */
   clientFor?: (t: S3Target) => S3Client;
+  /** Largest archive a restore downloads (default: the import limit). Tests lower it. */
+  maxDownloadBytes?: number;
 }
 
 export const stamp = (d: Date) => d.toISOString().replace(/[:.]/g, '-').replace(/-\d{3}Z$/, 'Z');
@@ -70,10 +72,17 @@ export class OffsiteBackups {
 
   async update(scope: OffsiteScope, input: DestinationInput): Promise<{ view: DestinationView } | { errors: FieldError[] }> {
     const cur = await getDestination(this.deps.db, scope);
-    const r = await patchFromInput(cur, input, this.key, this.allowPrivate);
+    const r = await patchFromInput(cur, input, this.key, this.allowPrivate, await this.reservedRoots(scope));
     if ('errors' in r) return r;
     await saveDestination(this.deps.db, scope, r.patch);
     return { view: await this.view(scope) };
+  }
+
+  /** Folders a store destination may not use: the platform root of the default layout and of the platform's own prefix. */
+  private async reservedRoots(scope: OffsiteScope): Promise<string[]> {
+    if (scope == null) return [];
+    const plat = await getDestination(this.deps.db, null);
+    return [...new Set([rootOf(null, ''), ...(plat?.prefix ? [rootOf(null, plat.prefix)] : [])])];
   }
 
   async remove(scope: OffsiteScope): Promise<void> { await deleteDestination(this.deps.db, scope); }
@@ -81,7 +90,7 @@ export class OffsiteBackups {
   /** Test the saved settings, or the form's values over them (a blank secret keeps the saved one). Nothing is saved. */
   async test(scope: OffsiteScope, input: DestinationInput = {}): Promise<ConnectionResult | { errors: FieldError[] }> {
     const cur = await getDestination(this.deps.db, scope);
-    const r = await patchFromInput(cur, input, this.key, this.allowPrivate);
+    const r = await patchFromInput(cur, input, this.key, this.allowPrivate, await this.reservedRoots(scope));
     if ('errors' in r) return r;
     const p = r.patch;
     const secretEnc = p.secretKeyEnc !== undefined ? p.secretKeyEnc : cur?.secretKeyEnc ?? null;
@@ -299,7 +308,12 @@ export class OffsiteBackups {
     const o = await this.open(scope, key);
     if (o.kind !== 'store') { o.stream.destroy(); throw new Error('Only store archives can be restored from here'); }
     await mkdir(path.dirname(file), { recursive: true });
-    try { await pipeline(o.stream, createWriteStream(file)); } catch (e) { await rm(file, { force: true }); throw e; }
+    // Never write more than the import accepts, whatever the object (or its decrypted stream) turns out to hold.
+    const max = this.deps.maxDownloadBytes ?? MAX_IMPORT_BYTES;
+    if (o.size != null && o.size > max) { o.stream.destroy(); throw new Error('This backup is too large to restore from here.'); }
+    let seen = 0;
+    const cap = new Transform({ transform(chunk: Buffer, _enc, cb) { seen += chunk.length; cb(seen > max ? new Error('This backup is too large to restore from here.') : null, chunk); } });
+    try { await pipeline(o.stream, cap, createWriteStream(file)); } catch (e) { await rm(file, { force: true }); throw e; }
   }
 
   async run(id: number) { return getRun(this.deps.db, id); }
