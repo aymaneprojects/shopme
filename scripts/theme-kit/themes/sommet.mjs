@@ -94,7 +94,7 @@ export default {
     },
     {
       id: 'reviews', type: 'testimonials',
-      settings: { heading: t('Out there with Sommet', 'Dehors avec Sommet'), color_scheme: 'scheme-2' },
+      settings: { heading: t('Out there with Sommet', 'Dehors avec Sommet'), color_scheme: 'scheme-1' },
       blocks: [
         { type: 'testimonial', settings: { quote: t('The pack carried everything for a three-day trek and never rubbed. Best straps I have used.', 'Le sac a tout porté pour trois jours de trek sans jamais frotter. Les meilleures bretelles que j’aie essayées.'), name: 'Julien P.', detail: t('Hiking backpack 30 L', 'Sac à dos de randonnée 30 L'), rating: 5 } },
         { type: 'testimonial', settings: { quote: t('Grip on wet rock is excellent and they dry in minutes after a stream crossing.', 'L’adhérence sur roche mouillée est excellente et elles sèchent en quelques minutes après un gué.'), name: 'Inès B.', detail: t('Trail running shoes', 'Chaussures de trail'), rating: 5 } },
