@@ -1,0 +1,45 @@
+{
+  "sections": {
+    "promise": {
+      "type": "safety-promise",
+      "blocks": {
+        "point-1": {
+          "type": "point",
+          "settings": {
+            "title": "Small parts",
+            "text": "Nothing that can come loose and be swallowed."
+          }
+        },
+        "point-2": {
+          "type": "point",
+          "settings": {
+            "title": "Materials",
+            "text": "Solid wood, organic cotton and water-based paint."
+          }
+        },
+        "point-3": {
+          "type": "point",
+          "settings": {
+            "title": "Ages",
+            "text": "The age on each toy is a safety limit, not a hint."
+          }
+        }
+      },
+      "block_order": [
+        "point-1",
+        "point-2",
+        "point-3"
+      ],
+      "settings": {
+        "eyebrow": "Toy safety",
+        "heading": "How we choose what we sell",
+        "text": "",
+        "product": "bunny-plush",
+        "color_scheme": "scheme-1"
+      }
+    }
+  },
+  "order": [
+    "promise"
+  ]
+}

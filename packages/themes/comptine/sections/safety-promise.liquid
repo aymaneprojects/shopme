@@ -1,0 +1,100 @@
+{%- assign s = section.settings -%}
+{%- assign pic = s.image | default: s.product.featured_image -%}
+<div class="k-section k-safe {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width k-safe__inner">
+    <div class="k-safe__media">
+      {%- if pic != blank -%}{{ pic | image_url: width: 900 | image_tag: loading: 'lazy', widths: '400, 600, 900', sizes: '(min-width: 990px) 40vw, 90vw', alt: '' }}{%- else -%}{{ 'lifestyle-1' | placeholder_svg_tag: 'k-safe__placeholder' }}{%- endif -%}
+    </div>
+    <div class="k-safe__body">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="k-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.text != blank -%}<p class="k-section__text">{{ s.text | escape }}</p>{%- endif -%}
+      <ul class="k-safe__list" role="list">
+        {%- for block in section.blocks -%}
+          <li class="k-safe__item" {{ block.shopify_attributes }}>
+            <span class="k-safe__tick">{% render 'icon', name: 'check', size: 18 %}</span>
+            <div><h3>{{ block.settings.title | escape }}</h3><p>{{ block.settings.text | escape }}</p></div>
+          </li>
+        {%- endfor -%}
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.safety_promise.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.safety_promise.settings.eyebrow",
+      "default": "Our promise"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.safety_promise.settings.heading",
+      "default": "Safe to chew, safe to drop"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.safety_promise.settings.text"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.safety_promise.settings.image"
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "t:sections.safety_promise.settings.product"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.safety_promise.settings.color_scheme"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "point",
+      "name": "t:sections.safety_promise.blocks.point.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.safety_promise.blocks.point.settings.title",
+          "default": "Tested twice"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.safety_promise.blocks.point.settings.text",
+          "default": "Every toy passes independent safety tests."
+        }
+      ]
+    }
+  ],
+  "max_blocks": 5,
+  "presets": [
+    {
+      "name": "t:sections.safety_promise.presets.safety_promise",
+      "blocks": [
+        {
+          "type": "point"
+        },
+        {
+          "type": "point"
+        },
+        {
+          "type": "point"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
