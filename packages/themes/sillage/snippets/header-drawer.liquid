@@ -1,0 +1,40 @@
+{%- doc -%}
+  Slide-in navigation of small screens: the menu, the account link and the language and country selectors.
+  @param {object} menu - the menu to show
+{%- enddoc -%}
+{%- assign show_account = false -%}
+{%- if shop.customer_accounts_enabled -%}{%- if customer or routes.account_login_url != blank -%}{%- assign show_account = true -%}{%- endif -%}{%- endif -%}
+<button type="button" class="k-icon-btn k-header__menu" aria-expanded="false" aria-controls="k-drawer-nav" data-nav-toggle>
+  <span class="visually-hidden">{{ 'accessibility.open_menu' | t }}</span>
+  {% render 'icon', name: 'menu' %}
+</button>
+<div class="k-overlay k-overlay--nav" data-nav-overlay></div>
+<nav class="k-drawer-nav" id="k-drawer-nav" aria-label="{{ menu.title | default: shop.name | escape }}" data-nav>
+  <button type="button" class="k-icon-btn k-nav__close" data-nav-close>
+    <span class="visually-hidden">{{ 'accessibility.close_menu' | t }}</span>
+    {% render 'icon', name: 'close' %}
+  </button>
+  {%- if menu != blank and menu.links.size > 0 -%}
+    <ul class="k-drawer-nav__list" role="list">
+      {%- for link in menu.links -%}
+        <li class="k-drawer-nav__item">
+          <a href="{{ link.url }}"{% if link.current %} aria-current="page"{% endif %}>{{ link.title | escape }}</a>
+          {%- if link.links.size > 0 -%}
+            <ul class="k-drawer-nav__sub" role="list">
+              {%- for child in link.links -%}
+                <li><a href="{{ child.url }}"{% if child.current %} aria-current="page"{% endif %}>{{ child.title | escape }}</a></li>
+              {%- endfor -%}
+            </ul>
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+    </ul>
+  {%- endif -%}
+  <div class="k-nav__extra">
+    {%- if show_account -%}
+      <a class="k-nav__account" href="{{ routes.account_url }}">{% render 'icon', name: 'user', size: 20 %} {% if customer %}{{ 'header.account' | t }}{% else %}{{ 'customer.login' | t }}{% endif %}</a>
+    {%- endif -%}
+    {%- render 'language-selector', uid: '-drawer' -%}
+    {%- render 'country-selector', uid: '-drawer' -%}
+  </div>
+</nav>

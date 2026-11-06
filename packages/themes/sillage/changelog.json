@@ -1,0 +1,31 @@
+{
+  "about": "What changed in each version of Sillage, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release of Sillage, an editorial theme for fashion and apparel.",
+          "Split header with half of the menu on each side of the logo, a search panel and a slide-in bag with a free shipping progress bar.",
+          "Bare product cards with a second photo on hover, colour swatches and a quick add bar.",
+          "Product page with a column of large photos beside sticky purchase details, options, subscriptions and low stock message.",
+          "Collection page with a filter bar, sorting and infinite scroll.",
+          "New sections: lookbook with shoppable looks, size guide and countdown timer.",
+          "Breadcrumbs, back to top button and an optional age check.",
+          "Section names, settings and storefront texts are translated to English and French."
+        ],
+        "fr": [
+          "Première version de Sillage, un thème éditorial pour la mode et le prêt-à-porter.",
+          "En-tête scindé avec la moitié du menu de chaque côté du logo, panneau de recherche et panier latéral avec barre de progression vers la livraison offerte.",
+          "Cartes produit épurées avec seconde photo au survol, pastilles de couleur et barre d’ajout rapide.",
+          "Page produit avec une colonne de grandes photos et des informations d’achat fixes : options, abonnements et message de stock faible.",
+          "Page collection avec barre de filtres, tri et défilement infini.",
+          "Nouvelles sections : lookbook avec looks à shopper, guide des tailles et compte à rebours.",
+          "Fil d’Ariane, bouton retour en haut et vérification d’âge facultative.",
+          "Les noms des sections, les réglages et les textes de la boutique sont traduits en anglais et en français."
+        ]
+      }
+    }
+  ]
+}

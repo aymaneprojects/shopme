@@ -17,8 +17,9 @@ import { lintThemeFile } from './theme-lint';
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const THEMES_DIR = path.resolve(here, '../../../packages/themes');
-const HANDLES = (process.env.THEME_ONLY ? [process.env.THEME_ONLY] : ['circuit', 'velours']) as ('circuit' | 'velours')[];
-const NAMES = { circuit: 'Circuit', velours: 'Velours' } as const;
+const ALL_HANDLES = ['circuit', 'velours', 'sillage', 'foyer', 'maroquin'] as const;
+const HANDLES = (process.env.THEME_ONLY ? [process.env.THEME_ONLY] : [...ALL_HANDLES]) as (typeof ALL_HANDLES)[number][];
+const NAMES = { circuit: 'Circuit', velours: 'Velours', sillage: 'Sillage', foyer: 'Foyer', maroquin: 'Maroquin' } as const;
 
 function walk(dir: string, base = dir, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {

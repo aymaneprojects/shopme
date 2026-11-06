@@ -1,0 +1,12 @@
+/* Header layout: logo on the left, menu next to it with mega panels, icons on the right */
+.k-header--mega .k-header__inner { grid-template-columns: auto 1fr auto; gap: 36px; }
+.k-header--mega .k-header__start { display: none; }
+.k-header--mega .k-menu__item { position: static; }
+.k-header--mega .k-menu__item > a { padding: 30px 12px; border-radius: 0; background: none; border-bottom: 2px solid transparent; }
+.k-header--mega .k-menu__item > a:hover, .k-header--mega .k-menu__item > a.is-active { background: none; border-bottom-color: var(--v-accent); }
+.k-header--mega .k-menu__list { justify-content: flex-start; }
+.k-header--mega .k-logo { justify-self: start; }
+@media (max-width: 989px) {
+  .k-header--mega .k-header__start { display: flex; }
+  .k-header--mega .k-header__inner { gap: 8px; }
+}

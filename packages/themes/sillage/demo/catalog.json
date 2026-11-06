@@ -1,0 +1,637 @@
+{
+  "storeName": "Sillage",
+  "currency": "EUR",
+  "menu": [
+    {
+      "title": {
+        "en": "New in",
+        "fr": "Nouveautés"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Knitwear",
+        "fr": "Maille"
+      },
+      "url": "/collections/knitwear"
+    },
+    {
+      "title": {
+        "en": "Shirts and tees",
+        "fr": "Chemises et t-shirts"
+      },
+      "url": "/collections/shirts-and-tees"
+    },
+    {
+      "title": {
+        "en": "Outerwear and trousers",
+        "fr": "Vestes et pantalons"
+      },
+      "url": "/collections/outerwear-and-trousers"
+    }
+  ],
+  "footerMenu": [
+    {
+      "title": {
+        "en": "Shop all",
+        "fr": "Tout voir"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Size guide",
+        "fr": "Guide des tailles"
+      },
+      "url": "/pages/size-guide"
+    },
+    {
+      "title": {
+        "en": "Search",
+        "fr": "Recherche"
+      },
+      "url": "/search"
+    }
+  ],
+  "pages": [
+    {
+      "handle": "size-guide",
+      "title": {
+        "en": "Size guide",
+        "fr": "Guide des tailles"
+      },
+      "template": "size-guide"
+    }
+  ],
+  "collections": [
+    {
+      "handle": "knitwear",
+      "title": {
+        "en": "Knitwear",
+        "fr": "Maille"
+      },
+      "description": {
+        "en": "Wool and cotton knits, soft and warm.",
+        "fr": "Mailles en laine et en coton, douces et chaudes."
+      },
+      "products": [
+        "heather-wool-cardigan",
+        "black-roll-neck-sweater"
+      ]
+    },
+    {
+      "handle": "shirts-and-tees",
+      "title": {
+        "en": "Shirts and tees",
+        "fr": "Chemises et t-shirts"
+      },
+      "description": {
+        "en": "Linen shirts and striped cotton tees.",
+        "fr": "Chemises en lin et t-shirts rayés en coton."
+      },
+      "products": [
+        "striped-tee-ecru-and-green",
+        "beige-linen-shirt"
+      ]
+    },
+    {
+      "handle": "outerwear-and-trousers",
+      "title": {
+        "en": "Outerwear and trousers",
+        "fr": "Vestes et pantalons"
+      },
+      "description": {
+        "en": "Raw denim and easy chinos.",
+        "fr": "Denim brut et chinos aisés."
+      },
+      "products": [
+        "raw-denim-jacket",
+        "olive-chino-trousers"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "handle": "heather-wool-cardigan",
+      "image": "produit-01.webp",
+      "vendor": "Sillage",
+      "type": {
+        "en": "Knitwear",
+        "fr": "Maille"
+      },
+      "tags": [
+        "knitwear",
+        "wool",
+        "new"
+      ],
+      "title": {
+        "en": "Heather Wool Cardigan",
+        "fr": "Cardigan en laine gris chiné"
+      },
+      "description": {
+        "en": "A mid-weight cardigan in a soft heather grey wool blend, with a relaxed fit and horn-effect buttons.",
+        "fr": "Un cardigan de poids moyen dans un mélange de laine gris chiné, coupe décontractée et boutons effet corne."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            "S",
+            "M",
+            "L",
+            "XL"
+          ]
+        },
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Heather grey",
+              "fr": "Gris chiné"
+            },
+            {
+              "en": "Olive",
+              "fr": "Olive"
+            }
+          ]
+        }
+      ],
+      "price": 129,
+      "variants": [
+        {
+          "stock": 14
+        },
+        {
+          "stock": 9
+        },
+        {
+          "stock": 4
+        },
+        {
+          "stock": 0
+        },
+        {
+          "stock": 12
+        },
+        {
+          "stock": 6
+        },
+        {
+          "stock": 3
+        },
+        {
+          "stock": 8
+        }
+      ]
+    },
+    {
+      "handle": "black-roll-neck-sweater",
+      "image": "produit-02.webp",
+      "vendor": "Sillage",
+      "type": {
+        "en": "Knitwear",
+        "fr": "Maille"
+      },
+      "tags": [
+        "knitwear",
+        "new"
+      ],
+      "title": {
+        "en": "Black Roll-Neck Sweater",
+        "fr": "Pull col roulé noir"
+      },
+      "description": {
+        "en": "A fine-gauge roll-neck in soft cotton and wool. It layers under everything and keeps its shape.",
+        "fr": "Un col roulé en jauge fine, coton et laine. Il se superpose à tout et garde sa forme."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            "S",
+            "M",
+            "L",
+            "XL"
+          ]
+        }
+      ],
+      "price": 98,
+      "variants": [
+        {
+          "stock": 20
+        },
+        {
+          "stock": 15
+        },
+        {
+          "stock": 11
+        },
+        {
+          "stock": 5
+        }
+      ]
+    },
+    {
+      "handle": "striped-tee-ecru-and-green",
+      "image": "produit-03.webp",
+      "vendor": "Sillage",
+      "type": {
+        "en": "T-shirts",
+        "fr": "T-shirts"
+      },
+      "tags": [
+        "tees",
+        "cotton"
+      ],
+      "title": {
+        "en": "Striped Tee, Ecru and Green",
+        "fr": "T-shirt rayé écru et vert"
+      },
+      "description": {
+        "en": "A boxy organic cotton tee with a wide ecru and olive stripe. Heavy jersey that softens with every wash.",
+        "fr": "Un t-shirt carré en coton bio à larges rayures écru et olive. Un jersey épais qui s’adoucit à chaque lavage."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            "S",
+            "M",
+            "L",
+            "XL"
+          ]
+        }
+      ],
+      "price": 45,
+      "variants": [
+        {
+          "stock": 30
+        },
+        {
+          "stock": 24
+        },
+        {
+          "stock": 18
+        },
+        {
+          "stock": 9
+        }
+      ]
+    },
+    {
+      "handle": "raw-denim-jacket",
+      "image": "produit-04.webp",
+      "vendor": "Sillage",
+      "type": {
+        "en": "Outerwear",
+        "fr": "Vestes"
+      },
+      "tags": [
+        "outerwear",
+        "denim",
+        "sale"
+      ],
+      "title": {
+        "en": "Raw Denim Jacket",
+        "fr": "Veste en jean brut"
+      },
+      "description": {
+        "en": "A structured jacket in 12 oz raw selvedge denim. It starts stiff and fades to your shape.",
+        "fr": "Une veste structurée en denim brut de 12 oz. Elle commence raide et se patine à votre silhouette."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            "S",
+            "M",
+            "L",
+            "XL"
+          ]
+        }
+      ],
+      "price": 139,
+      "compareAt": 169,
+      "variants": [
+        {
+          "stock": 7
+        },
+        {
+          "stock": 10
+        },
+        {
+          "stock": 5
+        },
+        {
+          "stock": 2
+        }
+      ]
+    },
+    {
+      "handle": "beige-linen-shirt",
+      "image": "produit-05.webp",
+      "vendor": "Sillage",
+      "type": {
+        "en": "Shirts",
+        "fr": "Chemises"
+      },
+      "tags": [
+        "shirts",
+        "linen"
+      ],
+      "title": {
+        "en": "Beige Linen Shirt",
+        "fr": "Chemise en lin beige"
+      },
+      "description": {
+        "en": "A relaxed shirt in washed European linen. Breathable, creased in the right way, with a soft collar.",
+        "fr": "Une chemise décontractée en lin européen lavé. Respirante, froissée comme il faut, avec un col souple."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            "S",
+            "M",
+            "L",
+            "XL"
+          ]
+        },
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Stone",
+              "fr": "Pierre"
+            },
+            {
+              "en": "Ecru",
+              "fr": "Écru"
+            }
+          ]
+        }
+      ],
+      "price": 89,
+      "variants": [
+        {
+          "stock": 12
+        },
+        {
+          "stock": 12
+        },
+        {
+          "stock": 9
+        },
+        {
+          "stock": 9
+        },
+        {
+          "stock": 6
+        },
+        {
+          "stock": 6
+        },
+        {
+          "stock": 3
+        },
+        {
+          "stock": 0
+        }
+      ]
+    },
+    {
+      "handle": "olive-chino-trousers",
+      "image": "produit-06.webp",
+      "vendor": "Sillage",
+      "type": {
+        "en": "Trousers",
+        "fr": "Pantalons"
+      },
+      "tags": [
+        "trousers",
+        "cotton"
+      ],
+      "title": {
+        "en": "Olive Chino Trousers",
+        "fr": "Pantalon chino olive"
+      },
+      "description": {
+        "en": "Straight-leg chinos in brushed cotton twill, with a mid rise and a clean front. Olive that goes with everything.",
+        "fr": "Chinos coupe droite en sergé de coton gratté, taille mi-haute et devant épuré. Un olive qui va avec tout."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            "38",
+            "40",
+            "42",
+            "44"
+          ]
+        }
+      ],
+      "price": 79,
+      "variants": [
+        {
+          "stock": 13
+        },
+        {
+          "stock": 16
+        },
+        {
+          "stock": 8
+        },
+        {
+          "stock": 5
+        }
+      ]
+    }
+  ],
+  "homepage": {
+    "en": {
+      "hero": {
+        "eyebrow": "Autumn / Winter",
+        "heading": "Dressed in quiet colours",
+        "text": "Soft knits, washed linen and easy shapes in olive and stone. Pieces made to be worn all season and kept for years.",
+        "button_label": "Shop the collection",
+        "button_2_label": "Find your size"
+      },
+      "hero.chip-1": {
+        "text": "Natural fibres"
+      },
+      "hero.chip-2": {
+        "text": "Free delivery from 80"
+      },
+      "hero.chip-3": {
+        "text": "30-day returns"
+      },
+      "new-in": {
+        "eyebrow": "New in",
+        "heading": "The new season",
+        "text": "Six pieces to build a wardrobe around."
+      },
+      "lookbook": {
+        "eyebrow": "The edit",
+        "heading": "Shop the look"
+      },
+      "lookbook.look-1": {
+        "title": "Weekend in wool",
+        "text": "A heather cardigan over a striped tee, olive trousers to finish."
+      },
+      "lookbook.look-2": {
+        "title": "Linen, layered",
+        "text": "A beige shirt under raw denim."
+      },
+      "lookbook.look-3": {
+        "title": "All black, one texture",
+        "text": "A roll-neck, nothing else needed."
+      },
+      "sale": {
+        "eyebrow": "Winter sale",
+        "heading": "Up to 30% off the autumn edit",
+        "text": "The last pieces of the season, at their best price.",
+        "ended_text": "The sale has ended. See you next season.",
+        "button_label": "Shop the sale"
+      },
+      "categories": {
+        "eyebrow": "Wardrobe",
+        "heading": "Shop by category"
+      },
+      "story": {
+        "eyebrow": "The atelier",
+        "heading": "Made slowly, worn for years",
+        "text": "<p>We work with small mills that spin and weave natural fibres, and with workshops that cut and sew in short runs. Fewer pieces, better materials, and colours that go with everything you already own.</p>",
+        "button_label": "Read our story"
+      },
+      "reviews": {
+        "heading": "Worn and loved"
+      },
+      "reviews.testimonial-1": {
+        "quote": "The cardigan is exactly the grey I was looking for, and the wool is so soft. I wear it every week.",
+        "detail": "Heather wool cardigan"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Great cut on the chinos, and the olive is beautiful. They fit true to size.",
+        "detail": "Olive chino trousers"
+      },
+      "reviews.testimonial-3": {
+        "quote": "Quick delivery, tidy packaging and an easy exchange when I needed a size up.",
+        "detail": "Linen shirt"
+      },
+      "newsletter": {
+        "heading": "Stay close to Sillage",
+        "text": "New arrivals, behind the scenes and 10% off your first order.",
+        "button_label": "Subscribe"
+      }
+    },
+    "fr": {
+      "hero": {
+        "eyebrow": "Automne / Hiver",
+        "heading": "Habillé de couleurs tranquilles",
+        "text": "Mailles douces, lin lavé et coupes aisées en olive et en pierre. Des pièces à porter toute la saison et à garder des années.",
+        "button_label": "Voir la collection",
+        "button_2_label": "Trouver ma taille"
+      },
+      "hero.chip-1": {
+        "text": "Fibres naturelles"
+      },
+      "hero.chip-2": {
+        "text": "Livraison offerte dès 80"
+      },
+      "hero.chip-3": {
+        "text": "Retours sous 30 jours"
+      },
+      "new-in": {
+        "eyebrow": "Nouveautés",
+        "heading": "La nouvelle saison",
+        "text": "Six pièces pour construire une garde-robe."
+      },
+      "lookbook": {
+        "eyebrow": "La sélection",
+        "heading": "Shopper le look"
+      },
+      "lookbook.look-1": {
+        "title": "Week-end en laine",
+        "text": "Un cardigan chiné sur un t-shirt rayé, un pantalon olive pour finir."
+      },
+      "lookbook.look-2": {
+        "title": "Lin en couches",
+        "text": "Une chemise beige sous le denim brut."
+      },
+      "lookbook.look-3": {
+        "title": "Tout en noir, une seule matière",
+        "text": "Un col roulé, rien d’autre."
+      },
+      "sale": {
+        "eyebrow": "Soldes d’hiver",
+        "heading": "Jusqu’à 30 % sur la sélection d’automne",
+        "text": "Les dernières pièces de la saison, au meilleur prix.",
+        "ended_text": "Les soldes sont terminés. À la saison prochaine.",
+        "button_label": "Voir la vente"
+      },
+      "categories": {
+        "eyebrow": "Garde-robe",
+        "heading": "Acheter par catégorie"
+      },
+      "story": {
+        "eyebrow": "L’atelier",
+        "heading": "Fait lentement, porté des années",
+        "text": "<p>Nous travaillons avec de petites filatures qui tissent des fibres naturelles, et avec des ateliers qui coupent et cousent en petites séries. Moins de pièces, de meilleures matières, et des couleurs qui vont avec tout ce que vous possédez déjà.</p>",
+        "button_label": "Lire notre histoire"
+      },
+      "reviews": {
+        "heading": "Portés et aimés"
+      },
+      "reviews.testimonial-1": {
+        "quote": "Le cardigan est exactement le gris que je cherchais, et la laine est très douce. Je le porte chaque semaine.",
+        "detail": "Cardigan en laine chiné"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Très belle coupe pour le chino, et l’olive est magnifique. La taille correspond bien.",
+        "detail": "Pantalon chino olive"
+      },
+      "reviews.testimonial-3": {
+        "quote": "Livraison rapide, emballage soigné et échange facile quand il m’a fallu une taille au-dessus.",
+        "detail": "Chemise en lin"
+      },
+      "newsletter": {
+        "heading": "Restez proche de Sillage",
+        "text": "Nouveautés, coulisses et 10 % sur votre première commande.",
+        "button_label": "S’abonner"
+      }
+    },
+    "images": {
+      "hero": {
+        "image": "hero.webp"
+      },
+      "story": {
+        "image": "ambiance.webp"
+      }
+    }
+  }
+}

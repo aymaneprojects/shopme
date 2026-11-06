@@ -1,0 +1,18 @@
+/* Kit features */
+.k-header--sticky.is-stuck { box-shadow: 0 8px 24px color-mix(in srgb, var(--v-ink) 8%, transparent); }
+.k-crumbs { padding-top: 22px; font-size: .84rem; color: var(--v-muted); } .k-crumbs ol { display: flex; flex-wrap: wrap; gap: 4px 0; margin: 0; padding: 0; list-style: none; }
+.k-crumbs li + li::before { content: '/'; margin: 0 10px; opacity: .5; } .k-crumbs a { color: var(--v-muted); text-decoration: none; } .k-crumbs a:hover { color: var(--v-accent); text-decoration: underline; } .k-crumbs [aria-current] { color: var(--v-ink); }
+.k-listing .k-crumbs { padding-top: 22px; } .k-pdp > .k-crumbs { padding: 0 0 20px; }
+.k-lowstock { margin: -4px 0 0; padding: 6px 12px; width: fit-content; border-radius: var(--round-sm); background: color-mix(in srgb, var(--v-sale) 10%, var(--v-bg)); color: var(--v-sale); font-size: .86rem; font-weight: 600; } .k-lowstock[hidden] { display: none; }
+.k-infinite { margin: 36px 0 0; text-align: center; color: var(--v-muted); }
+.k-top { position: fixed; z-index: 60; right: 20px; bottom: 20px; display: grid; place-items: center; width: 48px; height: 48px; padding: 0; border: 1px solid var(--v-line); border-radius: var(--pill); background: var(--v-card); color: var(--v-ink); cursor: pointer; opacity: 0; visibility: hidden; transform: translateY(12px); transition: opacity var(--anim), transform var(--anim), visibility 0s linear var(--anim); box-shadow: 0 10px 28px color-mix(in srgb, var(--v-ink) 16%, transparent); }
+.k-top.is-visible { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; } .k-top:hover { background: var(--v-accent); color: var(--v-on-accent); border-color: var(--v-accent); }
+.k-agegate { position: fixed; z-index: 400; inset: 0; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, var(--v-ink) 78%, transparent); backdrop-filter: blur(6px); } .k-agegate[hidden] { display: none; }
+.k-agegate__box { width: min(480px, 100%); padding: 40px 32px; text-align: center; background: var(--v-bg); color: var(--v-ink); border-radius: var(--round); box-shadow: 0 40px 90px color-mix(in srgb, #000 40%, transparent); }
+.k-agegate__title { margin: 0 0 10px; font-size: 1.7rem; } .k-agegate__text { margin: 0 0 24px; color: var(--v-muted); } .k-agegate__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.has-age-gate { overflow: hidden; }
+.k-countdown__inner { display: grid; gap: 18px; justify-items: center; text-align: center; padding-block: 8px; }
+.k-countdown__grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 6px 0 0; } .k-countdown__grid[hidden] { display: none; }
+.k-countdown__cell { display: grid; gap: 4px; min-width: 88px; padding: 16px 10px 12px; border: 1px solid color-mix(in srgb, currentColor 22%, transparent); border-radius: var(--round-sm); }
+.k-countdown__num { font: 500 clamp(2rem, 5vw, 3rem)/1 var(--f-heading); font-variant-numeric: tabular-nums; } .k-countdown__label { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; opacity: .75; }
+@media (max-width: 640px) { .k-countdown__cell { min-width: 66px; padding-inline: 6px; } .k-top { right: 12px; bottom: 12px; } }

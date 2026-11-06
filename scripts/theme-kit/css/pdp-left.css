@@ -1,0 +1,3 @@
+/* Product page: gallery on the left (sticky), thumbnails in a row below the photo */
+.k-pdp--left .k-gallery__thumbs { justify-content: flex-start; }
+.k-pdp--left .k-gallery__thumb { border-radius: var(--round-sm); }

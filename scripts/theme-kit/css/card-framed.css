@@ -1,0 +1,10 @@
+/* Product card: framed (a thin border, the photo inset, an offset shadow on hover) */
+.k-card--framed { gap: 0; padding: 12px; background: var(--v-card); border: 1px solid var(--v-ink); border-radius: 0; transition: transform var(--anim) ease, box-shadow var(--anim) ease; }
+.k-card--framed:hover, .k-card--framed:focus-within { transform: translate(-3px, -3px); box-shadow: 6px 6px 0 var(--v-accent); }
+.k-card--framed .k-card__frame { border-radius: 0; box-shadow: none; }
+.k-card--framed:hover .k-card__frame { box-shadow: none; }
+.k-card--framed .k-card__body { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--v-line); gap: 4px; }
+.k-card--framed .k-card__title { font: 600 .98rem/1.3 var(--f-heading); }
+.k-card--framed .k-quick__btn { left: 8px; right: 8px; bottom: 8px; border-radius: 0; border: 1px solid var(--v-ink); }
+.k-card--framed .k-badge { top: 8px; left: 8px; border-radius: 0; }
+.k-card--framed .k-badge--top-right { left: auto; right: 8px; }
