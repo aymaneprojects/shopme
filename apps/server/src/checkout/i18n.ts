@@ -29,6 +29,8 @@ const EN = {
   tipTitle: 'Add a tip', tipNone: 'No tip', tipCustom: 'Custom amount', tipLine: 'Tip', orderNote: 'Order notes (optional)',
   estDelivery: 'Estimated delivery {range}', test: 'Test gateway', test_hint: 'Sandbox payment: nothing is charged and the order is marked as a test.', redirect_hint: 'You will be redirected to a secure page to complete your payment.', weAccept: 'We accept',
   recurring: 'Then {price} {frequency}', subscriptionNote: 'This order starts a subscription. You can skip, pause or cancel it from your account.',
+  confirmationNo: 'Confirmation {name}', confirmedHeading: 'Your order is now confirmed', confirmedHeadingPending: 'We received your order', orderDetails: 'Order details', contactInfo: 'Contact information', billingTo: 'Billing address',
+  shippingMode: 'Shipping method', needHelp: 'Need help?', contactUs: 'Contact us', returnToStore: 'Continue shopping', termsAndPolicies: 'Terms and policies', sampleProduct: 'Sample product', sampleDefault: 'Default title',
   subscriptionStarted: 'Your subscription has started. Manage it at any time from your account.',
   fields: { firstName: 'First name', lastName: 'Last name', address1: 'Address', city: 'City', zip: 'Postal code', countryCode: 'Country' },
 };
@@ -64,6 +66,8 @@ const FR: Dict = {
   tipTitle: 'Ajouter un pourboire', tipNone: 'Aucun pourboire', tipCustom: 'Montant libre', tipLine: 'Pourboire', orderNote: 'Notes de commande (facultatif)',
   estDelivery: 'Livraison estimée {range}', test: 'Passerelle de test', test_hint: 'Paiement de test : rien n’est débité et la commande est marquée comme test.', redirect_hint: 'Vous serez redirigé vers une page sécurisée pour finaliser votre paiement.', weAccept: 'Nous acceptons',
   recurring: 'Puis {price} {frequency}', subscriptionNote: 'Cette commande démarre un abonnement. Vous pourrez sauter une livraison, le mettre en pause ou le résilier depuis votre compte.',
+  confirmationNo: 'Confirmation n° {name}', confirmedHeading: 'Votre commande est maintenant confirmée', confirmedHeadingPending: 'Nous avons bien reçu votre commande', orderDetails: 'Détails de la commande', contactInfo: 'Coordonnées', billingTo: 'Adresse de facturation',
+  shippingMode: "Mode d'expédition", needHelp: "Besoin d'aide ?", contactUs: 'Nous contacter', returnToStore: 'Retour à la boutique', termsAndPolicies: 'Conditions générales et politiques', sampleProduct: 'Produit exemple', sampleDefault: 'Titre par défaut',
   subscriptionStarted: 'Votre abonnement a démarré. Gérez-le à tout moment depuis votre compte.',
   fields: { firstName: 'Prénom', lastName: 'Nom', address1: 'Adresse', city: 'Ville', zip: 'Code postal', countryCode: 'Pays' },
 };

@@ -367,7 +367,7 @@ export const frShop: Record<keyof typeof enShop, string> = {
   "taxes.rateInvalid": "Saisissez un taux entre 0 et 100.",
   "taxes.rates": "Taux de taxe",
   "themes.current": "Thème actuel",
-  "themes.customize": "Personnaliser",
+  "themes.customize": "Modifier le thème",
   "themes.customizeTitle": "Personnaliser {name}",
   "themes.desktop": "Aperçu ordinateur",
   "themes.device": "Appareil d’aperçu",

@@ -201,6 +201,8 @@ const BundledListing = builder.objectRef<BundledThemeListing>('ShopmeBundledThem
     description: t.exposeString('description'),
     tags: t.stringList({ resolve: (b) => b.tags }),
     previews: t.field({ type: BundledPreviews, resolve: (b) => b.previews }),
+    templates: t.stringList({ description: 'Pages the theme has a template for (`index`, `product`, `customers/login`...).', resolve: (b) => b.templates }),
+    changelog: t.field({ type: [ReleaseNote], description: 'What changed in each version of the theme, newest first.', resolve: (b) => b.changelog }),
   }),
 });
 

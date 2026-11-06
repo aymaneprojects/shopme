@@ -7,7 +7,8 @@ import { translator, type T } from './i18n';
 export const esc = (v: unknown): string => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 const attr = (v: unknown) => esc(v);
 
-export interface PageCtx { shop: Shop; t: T; lang: string; money: (n: number) => string; /** Markup for the `<head>`: consent runtime and customer events configuration. */ head?: string }
+export interface PageCtx { shop: Shop; t: T; lang: string; money: (n: number) => string; /** Markup for the `<head>`: consent runtime and customer events configuration. */ head?: string;
+  /** The checkout editor's live preview: sample data, no scripts, links and forms do nothing; `select` is the block to outline. */ preview?: { select?: string } }
 
 export function pageCtx(shop: Shop, currency = shop.currency): PageCtx {
   const { t, lang } = translator(shop.locale);
@@ -30,11 +31,22 @@ function brandingOf(c: PageCtx) {
   return { style, logo, headerText: b.headerText, footerText: b.footerText };
 }
 
+/** Editor preview: nothing navigates or submits, and the block picked in the editor is outlined. */
+function previewScript(select: string | undefined): string {
+  const js = `(function(){var S={total:'.totals',cart:'.lines'},sel=${JSON.stringify(select ?? '')};
+document.addEventListener('click',function(e){var a=e.target.closest('a,button,[type=submit]');if(a){e.preventDefault();}},true);
+document.addEventListener('submit',function(e){e.preventDefault();},true);
+function mark(name){document.querySelectorAll('.co-sel').forEach(function(n){n.classList.remove('co-sel')});if(!name)return;
+var els=document.querySelectorAll(S[name]||'[data-co="'+name+'"]');els.forEach(function(n){n.classList.add('co-sel')});if(els[0])els[0].scrollIntoView({block:'nearest',behavior:'smooth'});}
+mark(sel);window.addEventListener('message',function(e){if(e.data&&e.data.shopmeSelect!==undefined)mark(e.data.shopmeSelect);});})();`;
+  return `<style>.co-sel{outline:2px solid #2563eb;outline-offset:4px;border-radius:6px}</style><script>${js}</script>`;
+}
+
 function layout(c: PageCtx, title: string, body: string, opts: { script?: boolean } = {}): string {
   const brand = brandingOf(c);
   return `<!doctype html><html lang="${c.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>${esc(title)} - ${esc(c.shop.name)}</title><link rel="stylesheet" href="/checkout-assets/checkout.css">${brand.style}${c.head ?? ''}</head>
-<body><a class="skip" href="#main">${esc(c.t('title'))}</a><header class="co-header"><a href="/">${brand.logo || esc(c.shop.name)}</a>${brand.headerText ? `<span class="note" style="margin-left:12px">${esc(brand.headerText)}</span>` : ''}</header>${body}${brand.footerText ? `<footer class="note" style="text-align:center;padding:16px">${esc(brand.footerText)}</footer>` : ''}${opts.script ? '<script src="/checkout-assets/checkout.js" defer></script>' : ''}</body></html>`;
+<body><a class="skip" href="#main">${esc(c.t('title'))}</a><header class="co-header" data-co="header"><a href="/" data-co="logo">${brand.logo || esc(c.shop.name)}</a>${brand.headerText ? `<span class="note" style="margin-left:12px">${esc(brand.headerText)}</span>` : ''}</header>${body}${brand.footerText || c.preview ? `<footer class="note co-footer" data-co="footer" style="text-align:center;padding:16px">${esc(brand.footerText)}${c.preview ? `<a href="/policies/terms-of-service" data-co="policies">${esc(c.t('termsAndPolicies'))}</a>` : ''}</footer>` : ''}${c.preview ? previewScript(c.preview.select) : opts.script ? '<script src="/checkout-assets/checkout.js" defer></script>' : ''}</body></html>`;
 }
 
 export function notFoundPage(c: PageCtx): string {
@@ -195,26 +207,27 @@ export function checkoutPage(c0: PageCtx, d: PageData): string {
  <button type="button" class="co-toggle" id="summary-toggle" aria-expanded="true" aria-controls="summary-body"><span data-label>${esc(t('hideSummary'))}</span><strong data-total>${esc(c.money(v.amountDue))}</strong></button>
  <div class="co-summary-body" id="summary-body">
   <div id="summary-lines">${summaryFragment(c, v)}</div>
-  <form method="post" action="/checkouts/${v.token}/discount" class="disc"><label class="field"><span class="visually-hidden">${esc(t('discountCode'))}</span><input id="discount-input" name="discountCode" placeholder="${attr(t('discountCode'))}" autocomplete="off"></label><button class="btn small" type="submit" data-discount-add>${esc(t('apply'))}</button></form>
+  <form method="post" action="/checkouts/${v.token}/discount" class="disc" data-co="discount"><label class="field"><span class="visually-hidden">${esc(t('discountCode'))}</span><input id="discount-input" name="discountCode" placeholder="${attr(t('discountCode'))}" autocomplete="off"></label><button class="btn small" type="submit" data-discount-add>${esc(t('apply'))}</button></form>
   <p class="msg" id="discount-msg" role="status">${esc(discountErr)}</p>
-  <form method="post" action="/checkouts/${v.token}/gift-card" class="disc"><label class="field"><span class="visually-hidden">${esc(t('giftCardCode'))}</span><input id="gift-input" name="giftCardCode" placeholder="${attr(t('giftCardCode'))}" autocomplete="off"></label><button class="btn small" type="submit" data-gift-add>${esc(t('apply'))}</button></form>
+  <form method="post" action="/checkouts/${v.token}/gift-card" class="disc" data-co="discount"><label class="field"><span class="visually-hidden">${esc(t('giftCardCode'))}</span><input id="gift-input" name="giftCardCode" placeholder="${attr(t('giftCardCode'))}" autocomplete="off"></label><button class="btn small" type="submit" data-gift-add>${esc(t('apply'))}</button></form>
   <p class="msg" id="gift-msg" role="status"></p>
  </div>
 </aside>
 <main class="co-main" id="main"><h1 class="visually-hidden">${esc(t('title'))}</h1>
 <div class="errors" id="errors" role="alert" aria-live="assertive">${d.errors.map((e) => `<p>${esc(e)}</p>`).join('')}</div>
 <form id="checkout-form" method="post" action="/checkouts/${v.token}/complete" novalidate>
- <h2 style="margin-top:0">${esc(t('contact'))}</h2>
+ <div data-co="contact"><h2 style="margin-top:0">${esc(t('contact'))}</h2>
  ${accountLine}${contactField}
- ${st.marketing === 'hidden' ? '' : `<label class="check"><input type="checkbox" name="acceptsMarketing" value="1"${d.marketing ? ' checked' : ''}> ${esc(t('marketing'))}</label>`}
- <h2>${esc(t(v.requiresShipping ? 'delivery' : 'billingAddress'))}</h2>${addressForm}
- ${v.requiresShipping ? `<h2>${esc(t('shippingMethod'))}</h2><div id="shipping-methods" aria-live="polite">${shippingFragment(c, v)}</div>` : ''}
- ${tipBox}${noteBox}
- <h2>${esc(t('payment'))}</h2>
+ ${st.marketing === 'hidden' ? '' : `<label class="check"><input type="checkbox" name="acceptsMarketing" value="1"${d.marketing ? ' checked' : ''}> ${esc(t('marketing'))}</label>`}</div>
+ <div data-co="address"><h2>${esc(t(v.requiresShipping ? 'delivery' : 'billingAddress'))}</h2>${addressForm}</div>
+ ${v.requiresShipping ? `<div data-co="shipping"><h2>${esc(t('shippingMethod'))}</h2><div id="shipping-methods" aria-live="polite">${shippingFragment(c, v)}</div></div>` : ''}
+ ${tipBox ? `<div data-co="tip">${tipBox}</div>` : ''}${noteBox ? `<div data-co="note">${noteBox}</div>` : ''}
+ <div data-co="payment"><h2>${esc(t('payment'))}</h2>
  ${creditBox}
  <p class="note" id="free-note"${free ? '' : ' hidden'}>${esc(t('noPayment'))}</p>
  <div id="payments"${free ? ' hidden' : ''}>${d.methods.length ? `<div class="options" role="radiogroup">${payOptions}</div>` : `<p class="note">${esc(t('noMethods'))}</p>`}</div>
- <button class="btn" id="submit" type="submit"${d.methods.length || free ? '' : ' disabled'}>${esc(t(d.stripe ? 'payNow' : 'placeOrder'))}</button>
+ </div>
+ <div data-co="action"><button class="btn" id="submit" type="submit"${d.methods.length || free ? '' : ' disabled'}>${esc(t(d.stripe ? 'payNow' : 'placeOrder'))}</button></div>
  <p style="margin-top:16px"><a href="/cart">&larr; ${esc(t('returnToCart'))}</a></p>
 </form></main></div>
 <script type="application/json" id="checkout-config">${JSON.stringify(config).replace(/</g, '\\u003c')}</script>`;
@@ -253,12 +266,24 @@ export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: stri
     gateway === 'bank_transfer' && !paid ? `<h3>${esc(t('bankDetails'))}</h3>${bankInstructions ? `<pre style="white-space:pre-wrap;font:inherit">${esc(bankInstructions)}</pre>` : `<p>${esc(t('bankDetailsMissing'))}</p>`}` : '',
     gateway === 'cod' ? `<p>${esc(t('codNote'))}</p>` : '',
   ].join('');
-  const body = `<main id="main" class="ty"><p style="margin:0;color:var(--muted)">${esc(t('orderNumber', { name: o2.name }))}</p>
-<h1>${esc(t('thankYou', { name: a?.firstName ?? '' }).replace(/\s+([,!])/, '$1'))}</h1>
-<p><span class="badge${paid ? ' ok' : ''}">${esc(t(paid ? 'paid' : 'pending'))}</span> ${esc(t(paid ? 'confirmed' : 'confirmedPending'))}. ${esc(t('emailSent', { email: o2.email ?? '' }))}</p>
-<section class="card"><h2>${esc(t('orderSummary'))}</h2><ul class="lines">${lines}</ul>${o.lines.some((l) => l.subscriptionContractId) ? `<p class="note subscription-note">${esc(t('subscriptionStarted'))}</p>` : ''}${totals}</section>
-<section class="card"><h2>${esc(t('paymentMethod'))}</h2><p>${esc(methodLabel)}</p>${notes}${custom?.instructions && !paid ? `<pre style="white-space:pre-wrap;font:inherit">${esc(custom.instructions)}</pre>` : ''}</section>
-${addr.length ? `<section class="card"><h2>${esc(t('shipTo'))}</h2><p>${addr.map(esc).join('<br>')}</p></section>` : ''}
-<p><a href="/">${esc(t('backToShop'))}</a></p></main>`;
+  const one = (x: NonNullable<typeof o.shippingAddress>) => [[x.firstName, x.lastName].filter(Boolean).join(' '), x.company, x.address1, x.address2, [x.zip, x.city].filter(Boolean).join(' '), x.province, x.country ?? x.countryCode, x.phone].filter(Boolean).map((v) => esc(v)).join('<br>');
+  const bill = o.billingAddress ?? a;
+  const ship = o.shippingLines[0];
+  const check = '<svg class="ty-check" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m7.5 12.5 3 3 6-6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const body = `<main id="main" class="ty co">
+<div class="co-main">
+<div class="ty-head" data-co="confirmation">${check}<div><p class="ty-note">${esc(t('confirmationNo', { name: o2.name }))}</p>
+<h1>${esc(t('thankYou', { name: a?.firstName ?? '' }).replace(/\s+([,!])/, '$1'))}</h1></div></div>
+<section class="card" data-co="status"><h2>${esc(t(paid ? 'confirmedHeading' : 'confirmedHeadingPending'))}</h2><p>${esc(t('emailSent', { email: o2.email ?? '' }))}</p>${notes}${custom?.instructions && !paid ? `<pre style="white-space:pre-wrap;font:inherit">${esc(custom.instructions)}</pre>` : ''}</section>
+<section class="card" data-co="details"><h2>${esc(t('orderDetails'))}</h2><div class="ty-grid">
+<div><h3>${esc(t('contactInfo'))}</h3><p>${esc(o2.email ?? '')}</p></div>
+<div><h3>${esc(t('paymentMethod'))}</h3><p>${esc(methodLabel)} <span class="badge${paid ? ' ok' : ''}">${esc(t(paid ? 'paid' : 'pending'))}</span></p></div>
+${a ? `<div><h3>${esc(t('shipTo'))}</h3><p>${one(a)}</p></div>` : ''}
+${bill ? `<div><h3>${esc(t('billingTo'))}</h3><p>${one(bill)}</p></div>` : ''}
+${ship ? `<div><h3>${esc(t('shippingMode'))}</h3><p>${esc(ship.title)}</p></div>` : ''}
+</div></section>
+<div class="ty-actions" data-co="action"><p class="ty-note">${esc(t('needHelp'))} <a href="/pages/contact">${esc(t('contactUs'))}</a></p><a class="btn" href="/">${esc(t('returnToStore'))}</a></div>
+</div>
+<aside class="co-summary" data-co="summary" aria-label="${esc(t('orderSummary'))}"><div class="co-summary-body"><ul class="lines">${lines}</ul>${o.lines.some((l) => l.subscriptionContractId) ? `<p class="note subscription-note">${esc(t('subscriptionStarted'))}</p>` : ''}${totals}</div></aside></main>`;
   return layout(c, t('confirmed'), body);
 }

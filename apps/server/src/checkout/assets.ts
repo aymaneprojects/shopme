@@ -64,6 +64,13 @@ h2{font-size:1.125rem;margin:32px 0 12px}
 .ty{max-width:760px;margin:0 auto;padding:32px 16px 64px}
 .card{border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin:20px 0}
 .card h2{margin-top:0}
+.ty.co{max-width:1100px;padding:0}
+.ty .co-main{padding:32px 40px 48px 16px}
+.ty-head{display:flex;gap:12px;align-items:center;margin-bottom:8px}.ty-note{margin:0;color:var(--muted);font-size:.875rem}.ty-head h1{margin:0;font-size:1.5rem}.ty-head p{margin:0}.ty-check{color:var(--primary);flex:none}
+.ty-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px}.ty-grid h3{margin:0 0 4px;font-size:.8125rem;font-weight:600}.ty-grid p{margin:0;font-size:.875rem;overflow-wrap:anywhere}
+.ty-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:8px}.ty-actions p{margin:0}.ty-actions .btn{text-decoration:none;display:inline-flex;width:auto;margin:0;padding:0 28px}
+.co-footer a{margin-left:12px}
+@media (max-width:640px){.ty-grid{grid-template-columns:1fr}.ty .co-main{padding:24px 16px}}
 .badge{display:inline-block;border-radius:99px;padding:2px 10px;font-size:.8125rem;background:#fef3c7;color:#92400e}.badge.ok{background:#dcfce7;color:#166534}
 `;
 

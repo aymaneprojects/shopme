@@ -2,14 +2,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '@shopme/ui';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../i18n';
 import type { Lang } from '../../i18n';
 import { SessionProvider } from '../../session';
 import { SetupPage } from '../Auth';
 import { CreateStorePage } from '../stores/CreateStore';
-import { ThemesPage } from './Themes';
+import { ThemesPage, addedLabel } from './Themes';
+import { ThemeStoreAllPage, ThemeStoreDetailPage, ThemeStoreFreePage, ThemeStorePreviewPage } from './ThemeStore';
 
 // jsdom has no <dialog> modal support.
 beforeAll(() => {
@@ -20,12 +21,12 @@ afterEach(() => { vi.unstubAllGlobals(); window.history.pushState({}, '', '/'); 
 
 const preview = (h: string, k: string) => `/admin/api/theme-previews/${h}-${k}.webp`;
 const bundled = [
-  { handle: 'aurora', name: 'Aurora', version: '1.2.0', author: 'ShopMe contributors', description: 'A clean, versatile storefront.', tags: ['General', 'Minimal'], previews: { desktop: preview('aurora', 'desktop'), mobile: preview('aurora', 'mobile') } },
-  { handle: 'fixture-tea', name: 'Fixture Tea', version: '1.0.0', author: 'ShopMe contributors', description: 'A tiny theme used by the tests.', tags: ['Food', 'Whimsical'], previews: { desktop: preview('fixture-tea', 'desktop'), mobile: null } },
+  { handle: 'aurora', name: 'Aurora', version: '1.2.0', author: 'ShopMe contributors', description: 'A clean, versatile storefront.', tags: ['General', 'Minimal'], templates: ['index', 'product', 'customers/login'], changelog: [{ version: '1.2.0', date: '2026-11-05', notes: ['Account pages.'] }], previews: { desktop: preview('aurora', 'desktop'), mobile: preview('aurora', 'mobile') } },
+  { handle: 'fixture-tea', name: 'Fixture Tea', version: '1.0.0', author: 'ShopMe contributors', description: 'A tiny theme used by the tests.', tags: ['Food', 'Whimsical'], templates: ['index', 'customers/login'], changelog: [{ version: '1.0.0', date: null, notes: ['First release.'] }], previews: { desktop: preview('fixture-tea', 'desktop'), mobile: null } },
 ];
 const libraryThemes = [
-  { id: 'gid://shopify/OnlineStoreTheme/1', name: 'Aurora', role: 'MAIN', shopmeBundledTheme: { handle: 'aurora', name: 'Aurora', installedVersion: '1.2.0', bundledVersion: '1.2.0', updateAvailable: false } },
-  { id: 'gid://shopify/OnlineStoreTheme/2', name: 'Imported', role: 'UNPUBLISHED', shopmeBundledTheme: null },
+  { id: 'gid://shopify/OnlineStoreTheme/1', name: 'Aurora', role: 'MAIN', createdAt: '2026-11-04T05:36:00Z', shopmeBundledTheme: { handle: 'aurora', name: 'Aurora', installedVersion: '1.2.0', bundledVersion: '1.2.0', updateAvailable: false } },
+  { id: 'gid://shopify/OnlineStoreTheme/2', name: 'Imported', role: 'UNPUBLISHED', createdAt: '2026-11-05T05:35:00Z', shopmeBundledTheme: null },
 ];
 
 function mockApi(extra: (url: string, body: { query?: string; variables?: Record<string, unknown> } | null) => unknown | undefined = () => undefined) {
@@ -53,82 +54,131 @@ const wrap = (lang: Lang, ui: React.ReactNode) => render(
   <I18nProvider initial={lang}><ToastProvider><QueryClientProvider client={client()}><SessionProvider><MemoryRouter>{ui}</MemoryRouter></SessionProvider></QueryClientProvider></ToastProvider></I18nProvider>,
 );
 const dialogTitled = async (title: string) => (await screen.findByRole('heading', { name: title })).closest('dialog') as HTMLElement;
-/** The gallery card of a theme (Aurora also has a card in the theme library above). */
-const card = async (name: string) => {
-  const gallery = (await screen.findByRole('heading', { name: /^(Free ShopMe themes|Thèmes ShopMe gratuits)$/ })).closest('section') as HTMLElement;
-  return (await within(gallery).findByRole('heading', { name, level: 3 })).closest('li') as HTMLElement;
-};
+/** The "Discover themes" card of a theme. */
+const discoverCard = async (name: string) => (await screen.findByRole('heading', { name, level: 3 })).closest('li') as HTMLElement;
 
-describe('Free ShopMe themes (Online Store > Themes)', () => {
-  it('shows a card per bundled theme with description and tags, and "In your library" for the installed ones', async () => {
+describe('Online Store > Themes', () => {
+  it('shows the live theme, the drafts and the themes to discover (not the ones already in the library)', async () => {
     mockApi();
     wrap('en', <ThemesPage />);
-    expect(await screen.findByRole('heading', { name: 'Free ShopMe themes' })).toBeInTheDocument();
-    const auroraCard = await card('Aurora');
-    expect(within(auroraCard).getByText('A clean, versatile storefront.')).toBeInTheDocument();
-    expect(within(auroraCard).getByText('General')).toBeInTheDocument();
-    expect(within(auroraCard).getByText('In your library')).toBeInTheDocument();
-    expect(within(auroraCard).queryByRole('button', { name: 'Add to theme library' })).toBeNull();
-    expect(within(auroraCard).getByRole('button', { name: 'Preview' })).toBeInTheDocument();
-    expect(auroraCard.querySelector('img')).toHaveAttribute('src', '/admin/api/theme-previews/aurora-desktop.webp');
-
-    const tea = await card('Fixture Tea');
-    expect(within(tea).getByText('Food')).toBeInTheDocument();
-    expect(within(tea).getByText('Whimsical')).toBeInTheDocument(); // an unknown tag is shown as the theme wrote it
-    expect(within(tea).queryByText('In your library')).toBeNull();
-    expect(within(tea).getByRole('button', { name: 'Add to theme library' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Theme drafts' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Aurora', level: 2 })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Customize' })).toHaveLength(2); // the live theme and the draft
+    // the draft row: name, "Added", Publish with its menu
+    const draft = (await screen.findByText('Imported')).closest('li') as HTMLElement;
+    expect(within(draft).getByRole('button', { name: 'Publish' })).toBeInTheDocument();
+    expect(within(draft).getByRole('button', { name: 'More publish options' })).toBeInTheDocument();
+    expect(within(draft).getByRole('button', { name: 'Customize' })).toBeInTheDocument();
+    // discover: Fixture Tea only (Aurora is in the library), then the "explore" tile
+    const tea = await discoverCard('Fixture Tea');
+    expect(within(tea).getByText('by ShopMe contributors')).toBeInTheDocument();
+    expect(within(tea).getByRole('button', { name: 'Add' })).toBeInTheDocument();
+    expect(tea.querySelector('img')).toHaveAttribute('src', '/admin/api/theme-previews/fixture-tea-desktop.webp');
+    expect(screen.queryByRole('heading', { name: 'Aurora', level: 3 })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Explore more themes', level: 3 })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Visit the theme store' })).toHaveLength(2);
   });
 
-  it('is in French, with the tags translated', async () => {
+  it('is in French, like the reference screens', async () => {
     const calls = mockApi();
     wrap('fr', <ThemesPage />);
-    expect(await screen.findByRole('heading', { name: 'Thèmes ShopMe gratuits' })).toBeInTheDocument();
-    const tea = await card('Fixture Tea');
-    expect(within(tea).getByText('Alimentation')).toBeInTheDocument();
-    expect(within(tea).getByRole('button', { name: 'Ajouter à la bibliothèque de thèmes' })).toBeInTheDocument();
-    expect(within(tea).getByRole('button', { name: 'Aperçu' })).toBeInTheDocument();
-    expect(within(await card('Aurora')).getByText('Dans votre bibliothèque')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Brouillons de thèmes' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Découvrir des thèmes' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Modifier le thème' })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Importer' })).toBeInTheDocument();
+    expect(within(await discoverCard('Fixture Tea')).getByRole('button', { name: 'Ajouter' })).toBeInTheDocument();
     expect(calls.find((c) => c.body?.query?.includes('BundledThemes'))!.body!.variables).toEqual({ locale: 'fr' });
   });
 
-  it('adds a theme to the library', async () => {
+  it('adds a theme to the library from the discover grid', async () => {
     const calls = mockApi();
     const user = userEvent.setup();
     wrap('en', <ThemesPage />);
-    await user.click(within(await card('Fixture Tea')).getByRole('button', { name: 'Add to theme library' }));
+    await user.click(within(await discoverCard('Fixture Tea')).getByRole('button', { name: 'Add' }));
     await waitFor(() => expect(calls.some((c) => c.body?.query?.includes('ThemeInstallBundled'))).toBe(true));
     expect(calls.find((c) => c.body?.query?.includes('ThemeInstallBundled'))!.body!.variables).toEqual({ handle: 'fixture-tea' });
     expect(await screen.findByText('Fixture Tea was added to your theme library')).toBeInTheDocument();
   });
 
-  it('opens an enlarged preview with a desktop / mobile toggle', async () => {
+  it('offers the zip import in the Import menu', async () => {
     mockApi();
     const user = userEvent.setup();
     wrap('en', <ThemesPage />);
-    await user.click(within(await card('Aurora')).getByRole('button', { name: 'Preview' }));
-    const dialog = await dialogTitled('Preview: Aurora');
-    const desktop = within(dialog).getByRole('button', { name: 'Desktop' });
-    const mobile = within(dialog).getByRole('button', { name: 'Mobile' });
-    expect(desktop).toHaveAttribute('aria-pressed', 'true');
-    expect(dialog.querySelector('img')).toHaveAttribute('src', '/admin/api/theme-previews/aurora-desktop.webp');
-    await user.click(mobile);
-    expect(mobile).toHaveAttribute('aria-pressed', 'true');
-    expect(dialog.querySelector('img')).toHaveAttribute('src', '/admin/api/theme-previews/aurora-mobile.webp');
-    expect(within(dialog).getByText('In your library')).toBeInTheDocument();
-    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await user.click(await screen.findByRole('button', { name: 'Import' }));
+    expect(await screen.findByRole('menuitem', { name: 'Upload a zip file' })).toBeInTheDocument();
   });
 
-  it('adds a theme from its preview, and shows a placeholder when it has no image', async () => {
-    const calls = mockApi((_u, b) => (b?.query?.includes('BundledThemes') ? { shopmeBundledThemes: [{ ...bundled[1]!, previews: { desktop: null, mobile: null } }] } : undefined));
+  it('writes when a theme was added: the weekday for a recent one, the date otherwise', () => {
+    const now = Date.parse('2026-11-06T12:00:00Z');
+    expect(addedLabel('2026-11-04T05:36:00Z', 'en', now)).toMatch(/Wednesday/);
+    expect(addedLabel('2026-05-04T05:36:00Z', 'fr', now)).toBe('4 mai 2026');
+    expect(addedLabel(undefined, 'en', now)).toBe('');
+  });
+});
+
+describe('theme store', () => {
+  const store = (path: string, ui: React.ReactNode, lang: Lang = 'en') => render(
+    <I18nProvider initial={lang}><ToastProvider><QueryClientProvider client={client()}><SessionProvider><MemoryRouter initialEntries={[path]}><Routes>
+      <Route path="/online-store/themes/store" element={ui} /><Route path="/online-store/themes/store/free" element={ui} />
+      <Route path="/online-store/themes/store/:handle" element={ui} /><Route path="/online-store/themes/store/:handle/preview" element={ui} />
+    </Routes></MemoryRouter></SessionProvider></QueryClientProvider></ToastProvider></I18nProvider>,
+  );
+
+  it('lists the free themes with their count, filters by industry and sorts by name', async () => {
+    mockApi();
     const user = userEvent.setup();
-    wrap('en', <ThemesPage />);
-    const tea = await card('Fixture Tea');
-    expect(tea.querySelector('img')).toBeNull();
-    expect(within(tea).getByText('No preview yet')).toBeInTheDocument();
-    await user.click(within(tea).getByRole('button', { name: 'Preview' }));
-    const dialog = await dialogTitled('Preview: Fixture Tea');
-    await user.click(within(dialog).getByRole('button', { name: 'Add to theme library' }));
+    store('/online-store/themes/store/free', <ThemeStoreFreePage />);
+    expect(await screen.findByRole('heading', { name: 'Browse free themes' })).toBeInTheDocument();
+    expect(await screen.findByText('2 themes')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remove the filter Free' })).toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: 'Food' }));
+    expect(screen.getByText('1 theme')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Fixture Tea', level: 2 })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Aurora', level: 2 })).toBeNull();
+    await user.click(screen.getByRole('checkbox', { name: 'Food' }));
+    await user.selectOptions(screen.getByLabelText('Sort'), 'name');
+    const names = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+    expect(names).toEqual(['Aurora', 'Fixture Tea']);
+  });
+
+  it('browse is in French and has no "free" filter on the all-themes page', async () => {
+    mockApi();
+    store('/online-store/themes/store', <ThemeStoreAllPage />, 'fr');
+    expect(await screen.findByRole('heading', { name: 'Parcourir tous les thèmes' })).toBeInTheDocument();
+    expect(screen.queryByText('Filtré par :')).toBeNull();
+    expect(await screen.findByRole('checkbox', { name: 'Alimentation' })).toBeInTheDocument();
+  });
+
+  it('shows the details of a theme: description, included pages, changelog; adds it from there', async () => {
+    const calls = mockApi();
+    const user = userEvent.setup();
+    store('/online-store/themes/store/fixture-tea', <ThemeStoreDetailPage />);
+    expect(await screen.findByRole('heading', { name: 'Fixture Tea', level: 1 })).toBeInTheDocument();
+    expect(screen.getByText('A tiny theme used by the tests.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View demo' })).toHaveAttribute('href', '/online-store/themes/store/fixture-tea/preview');
+    expect(screen.getByRole('heading', { name: 'Version 1.0.0' })).toBeInTheDocument();
+    expect(screen.getByText('First release.')).toBeInTheDocument();
+    expect(screen.getByText('Home page')).toBeInTheDocument();
+    expect(screen.getByText('Login')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add to theme library' }));
     await waitFor(() => expect(calls.some((c) => c.body?.query?.includes('ThemeInstallBundled'))).toBe(true));
+  });
+
+  it('previews a theme on desktop and mobile', async () => {
+    mockApi();
+    const user = userEvent.setup();
+    const { container } = store('/online-store/themes/store/aurora/preview', <ThemeStorePreviewPage />);
+    expect(await screen.findByRole('region', { name: 'Aurora' })).toBeInTheDocument();
+    expect(container.querySelector('main img')).toHaveAttribute('src', '/admin/api/theme-previews/aurora-desktop.webp');
+    await user.click(screen.getByRole('button', { name: 'Mobile' }));
+    expect(container.querySelector('main img')).toHaveAttribute('src', '/admin/api/theme-previews/aurora-mobile.webp');
+    expect(screen.getByText('In your library')).toBeInTheDocument();
+  });
+
+  it('says so when the theme does not exist', async () => {
+    mockApi();
+    store('/online-store/themes/store/nope', <ThemeStoreDetailPage />);
+    expect(await screen.findByText('This theme is not available.')).toBeInTheDocument();
   });
 });
 
