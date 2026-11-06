@@ -9,7 +9,7 @@ export default {
   header: { layout: 'mega', sticky: true },
   card: { style: 'framed', ratio: 'square', align: 'left', quickAdd: true },
   product: {
-    layout: 'rail',
+    layout: 'rail', ratio: 'square',
     benefits: [
       { icon: 'shield', text: t('Full-grain leather, guaranteed for two years', 'Cuir pleine fleur, garanti deux ans') },
       { icon: 'scissors', text: t('Hand-stitched in small batches', 'Cousu main en petites séries') },

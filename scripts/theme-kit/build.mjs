@@ -225,6 +225,7 @@ export async function compose(options) {
     '@N@': o.name,
     '@CARD@': o.card.style,
     '@PDP@': o.product.layout,
+    '@GALLERY_RATIO@': o.product.ratio === 'square' ? '1 / 1' : '4 / 5',
     '@FILTERS@': o.collection.layout === 'sidebar' ? 'side' : 'bar',
     '@INFINITE@': String(o.collection.infiniteScroll === true),
     '@ARCH@': arched ? 'calc(var(--round) * 6)' : 'var(--round)',

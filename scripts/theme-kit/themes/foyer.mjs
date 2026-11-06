@@ -9,7 +9,7 @@ export default {
   header: { layout: 'centered', sticky: true },
   card: { style: 'rounded', ratio: 'square', align: 'left', quickAdd: true },
   product: {
-    layout: 'left',
+    layout: 'left', ratio: 'square',
     benefits: [
       { icon: 'package', text: t('Packed with care, delivered in 3 to 5 days', 'Emballé avec soin, livré en 3 à 5 jours') },
       { icon: 'leaf', text: t('Natural materials, made to last', 'Matières naturelles, faites pour durer') },

@@ -36,7 +36,7 @@ collection layout, only the fonts it uses (the woff2 files come from `packages/t
 | `header.sticky`, `announcement` | sticky header; text and colour scheme of the announcement bar |
 | `card.style` | `minimal` (bare photo, small caps), `rounded` (soft tile that lifts), `framed` (thin border, offset shadow), `arched` (arch above the photo) |
 | `card.ratio`, `card.align`, `card.quickAdd` | `portrait`, `square`, `landscape`; `left`, `center`; `true`, `false` |
-| `product.layout` | `left` (thumbnails under the photo), `rail` (vertical rail of thumbnails), `stacked` (all photos in a column, details stay in view); `product.benefits` the three reassurance lines |
+| `product.layout`, `product.ratio` | `left` (thumbnails under the photo), `rail` (vertical rail of thumbnails), `stacked` (all photos in a column, details stay in view); `ratio` is `portrait` or `square` (the frame of the main photo); `product.benefits` the three reassurance lines |
 | `collection.layout` | `sidebar` (filter groups listed open on the left) or `topbar` (drop-downs in a row); `columns`, `perPage`, `infiniteScroll` |
 | `fonts` | `heading`, `body`, `accent`, `extra`: from `dm-sans`, `manrope`, `inter`, `space-grotesk`, `playfair-display`, `lora` |
 | `type` | `h1`, `h2` (percent of the base size), `headingWeight`, `headingCase`, `lineHeight`, `baseSize` |
