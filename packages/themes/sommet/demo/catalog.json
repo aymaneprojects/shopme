@@ -1,0 +1,767 @@
+{
+  "storeName": "Sommet",
+  "currency": "EUR",
+  "menu": [
+    {
+      "title": {
+        "en": "Hike",
+        "fr": "Rando"
+      },
+      "url": "/collections/hike",
+      "children": [
+        {
+          "title": {
+            "en": "Carry",
+            "fr": "Porter"
+          },
+          "url": "/collections/hike",
+          "children": [
+            {
+              "title": {
+                "en": "Hiking backpack 30 L",
+                "fr": "Sac à dos de randonnée 30 L"
+              },
+              "url": "/products/hiking-backpack-30l"
+            },
+            {
+              "title": {
+                "en": "Folding trekking poles",
+                "fr": "Bâtons de marche pliants"
+              },
+              "url": "/products/folding-trekking-poles"
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Explore",
+            "fr": "Explorer"
+          },
+          "url": "/collections/all",
+          "children": [
+            {
+              "title": {
+                "en": "All hiking gear",
+                "fr": "Tout pour la rando"
+              },
+              "url": "/collections/hike"
+            },
+            {
+              "title": {
+                "en": "Our promise",
+                "fr": "Notre promesse"
+              },
+              "url": "/pages/trail-promise"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Run",
+        "fr": "Course"
+      },
+      "url": "/collections/run",
+      "children": [
+        {
+          "title": {
+            "en": "Run",
+            "fr": "Courir"
+          },
+          "url": "/collections/run",
+          "children": [
+            {
+              "title": {
+                "en": "Trail running shoes",
+                "fr": "Chaussures de trail"
+              },
+              "url": "/products/trail-running-shoes"
+            },
+            {
+              "title": {
+                "en": "Light windbreaker jacket",
+                "fr": "Veste coupe-vent légère"
+              },
+              "url": "/products/light-windbreaker-jacket"
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Explore",
+            "fr": "Explorer"
+          },
+          "url": "/collections/all",
+          "children": [
+            {
+              "title": {
+                "en": "All running gear",
+                "fr": "Tout pour la course"
+              },
+              "url": "/collections/run"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Camp",
+        "fr": "Bivouac"
+      },
+      "url": "/collections/camp",
+      "children": [
+        {
+          "title": {
+            "en": "Camp",
+            "fr": "Bivouac"
+          },
+          "url": "/collections/camp",
+          "children": [
+            {
+              "title": {
+                "en": "LED headlamp",
+                "fr": "Lampe frontale"
+              },
+              "url": "/products/led-headlamp"
+            },
+            {
+              "title": {
+                "en": "Insulated steel bottle",
+                "fr": "Gourde isotherme en acier"
+              },
+              "url": "/products/insulated-steel-bottle"
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Explore",
+            "fr": "Explorer"
+          },
+          "url": "/collections/all",
+          "children": [
+            {
+              "title": {
+                "en": "All camping gear",
+                "fr": "Tout pour le bivouac"
+              },
+              "url": "/collections/camp"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": {
+        "en": "Our promise",
+        "fr": "Notre promesse"
+      },
+      "url": "/pages/trail-promise"
+    }
+  ],
+  "footerMenu": [
+    {
+      "title": {
+        "en": "Shop all",
+        "fr": "Tout voir"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Our promise",
+        "fr": "Notre promesse"
+      },
+      "url": "/pages/trail-promise"
+    },
+    {
+      "title": {
+        "en": "Search",
+        "fr": "Recherche"
+      },
+      "url": "/search"
+    }
+  ],
+  "pages": [
+    {
+      "handle": "trail-promise",
+      "title": {
+        "en": "Our promise",
+        "fr": "Notre promesse"
+      },
+      "template": "trail-promise"
+    }
+  ],
+  "collections": [
+    {
+      "handle": "hike",
+      "title": {
+        "en": "Hike",
+        "fr": "Rando"
+      },
+      "description": {
+        "en": "Packs, poles and layers for long days.",
+        "fr": "Sacs, bâtons et couches pour les longues journées."
+      },
+      "products": [
+        "hiking-backpack-30l",
+        "folding-trekking-poles",
+        "light-windbreaker-jacket",
+        "led-headlamp"
+      ]
+    },
+    {
+      "handle": "run",
+      "title": {
+        "en": "Run",
+        "fr": "Course"
+      },
+      "description": {
+        "en": "Shoes, layers and bottles built for speed.",
+        "fr": "Chaussures, couches et gourdes conçues pour la vitesse."
+      },
+      "products": [
+        "trail-running-shoes",
+        "light-windbreaker-jacket",
+        "insulated-steel-bottle"
+      ]
+    },
+    {
+      "handle": "camp",
+      "title": {
+        "en": "Camp",
+        "fr": "Bivouac"
+      },
+      "description": {
+        "en": "Light, heat and water when the sun goes down.",
+        "fr": "Lumière, chaleur et eau quand le soleil se couche."
+      },
+      "products": [
+        "led-headlamp",
+        "insulated-steel-bottle",
+        "hiking-backpack-30l"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "handle": "hiking-backpack-30l",
+      "image": "produit-01.webp",
+      "extraImages": [
+        "hero.webp",
+        "ambiance.webp"
+      ],
+      "vendor": "Sommet",
+      "type": {
+        "en": "Packs",
+        "fr": "Sacs"
+      },
+      "tags": [
+        "hike",
+        "backpack",
+        "new"
+      ],
+      "title": {
+        "en": "Hiking Backpack 30 L",
+        "fr": "Sac à dos de randonnée 30 L"
+      },
+      "description": {
+        "en": "A 30 litre day pack with a ventilated back, padded hip belt, two bottle pockets and a rain cover in its own pocket. 980 g.",
+        "fr": "Un sac de 30 litres pour la journée avec dos ventilé, ceinture rembourrée, deux poches à gourde et housse de pluie dans sa poche. 980 g."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Navy",
+              "fr": "Bleu nuit"
+            },
+            {
+              "en": "Orange",
+              "fr": "Orange"
+            }
+          ]
+        }
+      ],
+      "price": 129,
+      "variants": [
+        {
+          "stock": 14
+        },
+        {
+          "stock": 9
+        }
+      ]
+    },
+    {
+      "handle": "insulated-steel-bottle",
+      "image": "produit-02.webp",
+      "vendor": "Sommet",
+      "type": {
+        "en": "Bottles",
+        "fr": "Gourdes"
+      },
+      "tags": [
+        "run",
+        "camp",
+        "bottle",
+        "gift"
+      ],
+      "title": {
+        "en": "Insulated Steel Bottle",
+        "fr": "Gourde isotherme en acier"
+      },
+      "description": {
+        "en": "Double-wall stainless steel that keeps drinks cold for 24 hours or hot for 12. Leak-proof lid, fits standard bottle pockets.",
+        "fr": "Acier inoxydable double paroi : boissons fraîches 24 heures ou chaudes 12 heures. Bouchon étanche, se glisse dans les poches à gourde."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Contenance"
+          },
+          "values": [
+            "500 ml",
+            "750 ml"
+          ]
+        }
+      ],
+      "price": 29,
+      "variants": [
+        {
+          "stock": 40
+        },
+        {
+          "stock": 26
+        }
+      ]
+    },
+    {
+      "handle": "light-windbreaker-jacket",
+      "image": "produit-03.webp",
+      "vendor": "Sommet",
+      "type": {
+        "en": "Jackets",
+        "fr": "Vestes"
+      },
+      "tags": [
+        "hike",
+        "run",
+        "jacket"
+      ],
+      "title": {
+        "en": "Light Windbreaker Jacket",
+        "fr": "Veste coupe-vent légère"
+      },
+      "description": {
+        "en": "A 190 g windbreaker that packs into its own pocket. Wind-proof, showerproof and cut long in the back for a pack.",
+        "fr": "Un coupe-vent de 190 g qui se range dans sa poche. Protège du vent, résiste aux averses et coupé long dans le dos pour le sac."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            "S",
+            "M",
+            "L",
+            "XL"
+          ]
+        }
+      ],
+      "price": 89,
+      "compareAt": 109,
+      "variants": [
+        {
+          "stock": 8
+        },
+        {
+          "stock": 14
+        },
+        {
+          "stock": 11
+        },
+        {
+          "stock": 6
+        }
+      ]
+    },
+    {
+      "handle": "trail-running-shoes",
+      "image": "produit-04.webp",
+      "vendor": "Sommet",
+      "type": {
+        "en": "Shoes",
+        "fr": "Chaussures"
+      },
+      "tags": [
+        "run",
+        "shoes",
+        "new"
+      ],
+      "title": {
+        "en": "Trail Running Shoes",
+        "fr": "Chaussures de trail"
+      },
+      "description": {
+        "en": "Grippy lugged outsole, a rock plate and quick-dry mesh for mud, roots and stream crossings. 270 g each.",
+        "fr": "Semelle crantée adhérente, protège-pierres et maille à séchage rapide pour la boue, les racines et les gués. 270 g chacune."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Pointure"
+          },
+          "values": [
+            "40",
+            "41",
+            "42",
+            "43",
+            "44",
+            "45"
+          ]
+        }
+      ],
+      "price": 139,
+      "variants": [
+        {
+          "stock": 6
+        },
+        {
+          "stock": 10
+        },
+        {
+          "stock": 12
+        },
+        {
+          "stock": 11
+        },
+        {
+          "stock": 7
+        },
+        {
+          "stock": 3
+        }
+      ]
+    },
+    {
+      "handle": "folding-trekking-poles",
+      "image": "produit-05.webp",
+      "vendor": "Sommet",
+      "type": {
+        "en": "Poles",
+        "fr": "Bâtons"
+      },
+      "tags": [
+        "hike",
+        "poles"
+      ],
+      "title": {
+        "en": "Folding Trekking Poles",
+        "fr": "Bâtons de marche pliants"
+      },
+      "description": {
+        "en": "A pair of carbon poles that fold to 38 cm in seconds, with cork grips and a quick-lock strap. 480 g the pair.",
+        "fr": "Une paire de bâtons en carbone qui se plie à 38 cm en quelques secondes, avec poignées liège et dragonne à verrouillage rapide. 480 g la paire."
+      },
+      "options": [],
+      "price": 79,
+      "variants": [
+        {
+          "stock": 21
+        }
+      ]
+    },
+    {
+      "handle": "led-headlamp",
+      "image": "produit-06.webp",
+      "vendor": "Sommet",
+      "type": {
+        "en": "Lights",
+        "fr": "Éclairage"
+      },
+      "tags": [
+        "camp",
+        "light",
+        "gift"
+      ],
+      "title": {
+        "en": "LED Headlamp",
+        "fr": "Lampe frontale"
+      },
+      "description": {
+        "en": "A rechargeable headlamp with 400 lumens, a red night mode and a battery that lasts a full night descent. 85 g.",
+        "fr": "Une lampe frontale rechargeable de 400 lumens avec mode nuit rouge et une batterie qui tient toute une descente de nuit. 85 g."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Black",
+              "fr": "Noir"
+            },
+            {
+              "en": "Orange",
+              "fr": "Orange"
+            }
+          ]
+        }
+      ],
+      "price": 39,
+      "variants": [
+        {
+          "stock": 30
+        },
+        {
+          "stock": 18
+        }
+      ]
+    }
+  ],
+  "homepage": {
+    "en": {
+      "hero": {
+        "eyebrow": "Hike. Run. Camp.",
+        "heading": "Go higher",
+        "text": "Light, tough gear for long days outside, tested on the trails before it reaches you.",
+        "button_label": "Shop the gear",
+        "button_2_label": "By activity"
+      },
+      "hero.chip-1": {
+        "text": "Five-year guarantee"
+      },
+      "hero.chip-2": {
+        "text": "60-day trail returns"
+      },
+      "hero.chip-3": {
+        "text": "Light by design"
+      },
+      "activities": {
+        "eyebrow": "Pick your day",
+        "heading": "Shop by activity"
+      },
+      "activities.activity-1": {
+        "title": "Hike",
+        "text": "Packs, poles and layers for long days."
+      },
+      "activities.activity-2": {
+        "title": "Run",
+        "text": "Shoes and bottles built for speed."
+      },
+      "activities.activity-3": {
+        "title": "Camp",
+        "text": "Light and heat when the sun goes down."
+      },
+      "gear": {
+        "eyebrow": "Just landed",
+        "heading": "Fresh gear"
+      },
+      "specs": {
+        "eyebrow": "Tech specs",
+        "heading": "Compare before you go",
+        "label_1": "Weight",
+        "label_2": "Best for",
+        "label_3": "Weather rating",
+        "label_4": "Warranty",
+        "button_label": "View"
+      },
+      "specs.item-1": {
+        "badge": "Best seller",
+        "value_1": "980 g",
+        "value_2": "Day hikes, 30 L",
+        "value_3": "Rain cover included",
+        "value_4": "5 years"
+      },
+      "specs.item-2": {
+        "value_1": "190 g",
+        "value_2": "Ridge lines and wind",
+        "value_3": "Wind and showerproof",
+        "value_4": "5 years"
+      },
+      "specs.item-3": {
+        "badge": "New",
+        "value_1": "270 g each",
+        "value_2": "Rocky and muddy trails",
+        "value_3": "Quick-dry mesh",
+        "value_4": "2 years"
+      },
+      "promise": {
+        "eyebrow": "Trail tested",
+        "heading": "Tested where it counts",
+        "text": "Every piece goes through a season of real use before it reaches the shop. If it fails on a trail, it does not ship.",
+        "button_label": "Our promise"
+      },
+      "promise.stat-1": {
+        "value": "500 km",
+        "label": "walked by every prototype"
+      },
+      "promise.stat-2": {
+        "value": "3 seasons",
+        "label": "of field testing"
+      },
+      "promise.stat-3": {
+        "value": "5 years",
+        "label": "guarantee on every piece"
+      },
+      "story": {
+        "eyebrow": "On the trail",
+        "heading": "Built by people who run in the rain",
+        "text": "<p>Sommet started with a few friends who were tired of kit that failed halfway up a mountain. We design for the first hour and the tenth, and we repair what we sell.</p>",
+        "button_label": "Read our story"
+      },
+      "reviews": {
+        "heading": "Out there with Sommet"
+      },
+      "reviews.testimonial-1": {
+        "quote": "The pack carried everything for a three-day trek and never rubbed. Best straps I have used.",
+        "detail": "Hiking backpack 30 L"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Grip on wet rock is excellent and they dry in minutes after a stream crossing.",
+        "detail": "Trail running shoes"
+      },
+      "reviews.testimonial-3": {
+        "quote": "Bright enough for a night descent and light enough to forget it is on my head.",
+        "detail": "LED headlamp"
+      },
+      "newsletter": {
+        "heading": "Join the summit list",
+        "text": "Trail guides, new gear and 10% off your first order.",
+        "button_label": "Subscribe"
+      }
+    },
+    "fr": {
+      "hero": {
+        "eyebrow": "Rando. Course. Bivouac.",
+        "heading": "Visez plus haut",
+        "text": "Un équipement léger et solide pour les longues journées dehors, testé sur les sentiers avant de vous parvenir.",
+        "button_label": "Voir l’équipement",
+        "button_2_label": "Par activité"
+      },
+      "hero.chip-1": {
+        "text": "Garantie cinq ans"
+      },
+      "hero.chip-2": {
+        "text": "Retours sous 60 jours"
+      },
+      "hero.chip-3": {
+        "text": "Léger par conception"
+      },
+      "activities": {
+        "eyebrow": "Choisissez votre journée",
+        "heading": "Acheter par activité"
+      },
+      "activities.activity-1": {
+        "title": "Rando",
+        "text": "Sacs, bâtons et couches pour les longues journées."
+      },
+      "activities.activity-2": {
+        "title": "Course",
+        "text": "Chaussures et gourdes conçues pour la vitesse."
+      },
+      "activities.activity-3": {
+        "title": "Bivouac",
+        "text": "De la lumière et de la chaleur quand le soleil se couche."
+      },
+      "gear": {
+        "eyebrow": "Tout juste arrivé",
+        "heading": "Équipement tout neuf"
+      },
+      "specs": {
+        "eyebrow": "Fiche technique",
+        "heading": "Comparez avant de partir",
+        "label_1": "Poids",
+        "label_2": "Idéal pour",
+        "label_3": "Protection météo",
+        "label_4": "Garantie",
+        "button_label": "Voir"
+      },
+      "specs.item-1": {
+        "badge": "Meilleure vente",
+        "value_1": "980 g",
+        "value_2": "Randos à la journée, 30 L",
+        "value_3": "Housse de pluie incluse",
+        "value_4": "5 ans"
+      },
+      "specs.item-2": {
+        "value_1": "190 g",
+        "value_2": "Crêtes et vent",
+        "value_3": "Coupe-vent, résiste aux averses",
+        "value_4": "5 ans"
+      },
+      "specs.item-3": {
+        "badge": "Nouveau",
+        "value_1": "270 g chacune",
+        "value_2": "Sentiers rocheux et boueux",
+        "value_3": "Maille à séchage rapide",
+        "value_4": "2 ans"
+      },
+      "promise": {
+        "eyebrow": "Testé sur le terrain",
+        "heading": "Testé là où ça compte",
+        "text": "Chaque pièce traverse une saison d’usage réel avant d’arriver en boutique. Si elle lâche sur un sentier, elle n’est pas vendue.",
+        "button_label": "Notre promesse"
+      },
+      "promise.stat-1": {
+        "value": "500 km",
+        "label": "parcourus par chaque prototype"
+      },
+      "promise.stat-2": {
+        "value": "3 saisons",
+        "label": "de tests sur le terrain"
+      },
+      "promise.stat-3": {
+        "value": "5 ans",
+        "label": "de garantie sur chaque pièce"
+      },
+      "story": {
+        "eyebrow": "Sur le sentier",
+        "heading": "Conçu par des gens qui courent sous la pluie",
+        "text": "<p>Sommet est né de quelques amis lassés d’un équipement qui lâche à mi-pente. Nous concevons pour la première heure comme pour la dixième, et nous réparons ce que nous vendons.</p>",
+        "button_label": "Lire notre histoire"
+      },
+      "reviews": {
+        "heading": "Dehors avec Sommet"
+      },
+      "reviews.testimonial-1": {
+        "quote": "Le sac a tout porté pour trois jours de trek sans jamais frotter. Les meilleures bretelles que j’aie essayées.",
+        "detail": "Sac à dos de randonnée 30 L"
+      },
+      "reviews.testimonial-2": {
+        "quote": "L’adhérence sur roche mouillée est excellente et elles sèchent en quelques minutes après un gué.",
+        "detail": "Chaussures de trail"
+      },
+      "reviews.testimonial-3": {
+        "quote": "Assez puissante pour une descente de nuit et assez légère pour l’oublier sur la tête.",
+        "detail": "Lampe frontale"
+      },
+      "newsletter": {
+        "heading": "Rejoignez la liste Sommet",
+        "text": "Guides de sentiers, nouveautés et 10 % sur votre première commande.",
+        "button_label": "S’abonner"
+      }
+    },
+    "images": {
+      "hero": {
+        "image": "hero.webp"
+      },
+      "story": {
+        "image": "ambiance.webp"
+      }
+    }
+  }
+}

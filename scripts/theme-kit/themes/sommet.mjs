@@ -63,7 +63,7 @@ export default {
         { type: 'activity', settings: { title: t('Camp', 'Bivouac'), text: t('Light and heat when the sun goes down.', 'De la lumière et de la chaleur quand le soleil se couche.'), product: 'led-headlamp', link: '/collections/camp' } },
       ],
     },
-    { id: 'gear', type: 'featured-collection', settings: { eyebrow: t('New season', 'Nouvelle saison'), heading: t('Fresh gear', 'Équipement tout neuf'), text: '', collection: 'all', products_to_show: 4, columns: '4', show_view_all: true, color_scheme: 'scheme-1' } },
+    { id: 'gear', type: 'featured-collection', settings: { eyebrow: t('Just landed', 'Tout juste arrivé'), heading: t('Fresh gear', 'Équipement tout neuf'), text: '', collection: 'all', products_to_show: 4, columns: '4', show_view_all: true, color_scheme: 'scheme-1' } },
     {
       id: 'specs', type: 'spec-compare',
       settings: { eyebrow: t('Tech specs', 'Fiche technique'), heading: t('Compare before you go', 'Comparez avant de partir'), label_1: t('Weight', 'Poids'), label_2: t('Best for', 'Idéal pour'), label_3: t('Weather rating', 'Protection météo'), label_4: t('Warranty', 'Garantie'), button_label: t('View', 'Voir'), color_scheme: 'scheme-4' },

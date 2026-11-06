@@ -1,0 +1,101 @@
+{%- assign s = section.settings -%}
+<div class="k-section k-acts {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width">
+    <div class="k-section__head k-acts__head">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="k-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+    </div>
+    <ul class="k-acts__grid k-acts__grid--{{ section.blocks.size }}" role="list">
+      {%- for block in section.blocks -%}
+        {%- assign a = block.settings -%}
+        {%- assign pic = a.image | default: a.product.featured_image -%}
+        <li class="k-act" {{ block.shopify_attributes }}>
+          <a class="k-act__link{% if a.image == blank %} k-act__link--product{% endif %}" href="{{ a.link | default: a.product.url | default: routes.collections_url }}">
+            {%- if pic != blank -%}{{ pic | image_url: width: 900 | image_tag: loading: 'lazy', widths: '400, 640, 900', sizes: '(min-width: 990px) 30vw, 90vw', alt: '' }}{%- else -%}{{ 'lifestyle-1' | placeholder_svg_tag: 'k-act__placeholder' }}{%- endif -%}
+            <span class="k-act__num" aria-hidden="true">{{ forloop.index | prepend: '0' }}</span>
+            <span class="k-act__label"><span class="k-act__title">{{ a.title | escape }}</span><span class="k-act__text">{{ a.text | escape }}</span></span>
+            <span class="k-act__go">{% render 'icon', name: 'arrow-right', size: 18 %}</span>
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.activity_tiles.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.activity_tiles.settings.eyebrow",
+      "default": "Pick your day"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.activity_tiles.settings.heading",
+      "default": "Shop by activity"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.activity_tiles.settings.color_scheme"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "activity",
+      "name": "t:sections.activity_tiles.blocks.activity.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.activity_tiles.blocks.activity.settings.title",
+          "default": "Hike"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.activity_tiles.blocks.activity.settings.text",
+          "default": "Packs, poles and layers for long days."
+        },
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "t:sections.activity_tiles.blocks.activity.settings.image"
+        },
+        {
+          "type": "product",
+          "id": "product",
+          "label": "t:sections.activity_tiles.blocks.activity.settings.product"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:sections.activity_tiles.blocks.activity.settings.link"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "t:sections.activity_tiles.presets.activity_tiles",
+      "blocks": [
+        {
+          "type": "activity"
+        },
+        {
+          "type": "activity"
+        },
+        {
+          "type": "activity"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

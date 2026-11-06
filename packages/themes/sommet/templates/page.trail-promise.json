@@ -1,0 +1,46 @@
+{
+  "sections": {
+    "promise": {
+      "type": "trail-promise",
+      "blocks": {
+        "stat-1": {
+          "type": "stat",
+          "settings": {
+            "value": "500 km",
+            "label": "walked by every prototype"
+          }
+        },
+        "stat-2": {
+          "type": "stat",
+          "settings": {
+            "value": "3 seasons",
+            "label": "of field testing"
+          }
+        },
+        "stat-3": {
+          "type": "stat",
+          "settings": {
+            "value": "5 years",
+            "label": "guarantee on every piece"
+          }
+        }
+      },
+      "block_order": [
+        "stat-1",
+        "stat-2",
+        "stat-3"
+      ],
+      "settings": {
+        "eyebrow": "Trail tested",
+        "heading": "Our promise",
+        "text": "Every piece goes through a season of real use before it reaches the shop. If it fails on a trail, it does not ship.",
+        "button_label": "Shop the gear",
+        "button_link": "/collections/all",
+        "color_scheme": "scheme-3"
+      }
+    }
+  },
+  "order": [
+    "promise"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "t:sections.groups.header",
+  "type": "header",
+  "sections": {
+    "announcement": {
+      "type": "announcement-bar",
+      "settings": {
+        "show": true,
+        "text": "Free delivery from 75. Five-year guarantee. 60-day trail returns.",
+        "link": "",
+        "color_scheme": "scheme-3"
+      }
+    },
+    "header": {
+      "type": "header",
+      "settings": {
+        "menu": "main-menu",
+        "sticky": true,
+        "transparent_home": false
+      }
+    }
+  },
+  "order": [
+    "announcement",
+    "header"
+  ]
+}

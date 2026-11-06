@@ -1,0 +1,150 @@
+{%- assign s = section.settings -%}
+<div class="k-section k-specs {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width">
+    <div class="k-section__head">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="k-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+    </div>
+    <div class="k-specs__scroll">
+      <table class="k-specs__table k-specs__table--{{ section.blocks.size }}">
+        <thead>
+          <tr>
+            <th scope="col"><span class="visually-hidden">{{ s.heading | escape }}</span></th>
+            {%- for block in section.blocks -%}
+              {%- assign p = block.settings.product -%}
+              <th scope="col" class="k-specs__prod" {{ block.shopify_attributes }}>
+                {%- if block.settings.badge != blank -%}<span class="k-specs__badge">{{ block.settings.badge | escape }}</span>{%- endif -%}
+                {%- if p.featured_image != blank -%}<a class="k-specs__img" href="{{ p.url }}">{{ p.featured_image | image_url: width: 400 | image_tag: loading: 'lazy', widths: '200, 400', sizes: '220px', alt: p.title }}</a>{%- endif -%}
+                <span class="k-specs__name">{{ p.title | escape }}</span>
+                <span class="k-specs__price">{% render 'price', product: p %}</span>
+                {%- if p != blank -%}<a class="button button--small" href="{{ p.url }}">{{ s.button_label | escape }}</a>{%- endif -%}
+              </th>
+            {%- endfor -%}
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">{{ s.label_1 | escape }}</th>{%- for block in section.blocks -%}<td>{{ block.settings.value_1 | escape }}</td>{%- endfor -%}</tr>
+          <tr><th scope="row">{{ s.label_2 | escape }}</th>{%- for block in section.blocks -%}<td>{{ block.settings.value_2 | escape }}</td>{%- endfor -%}</tr>
+          <tr><th scope="row">{{ s.label_3 | escape }}</th>{%- for block in section.blocks -%}<td>{{ block.settings.value_3 | escape }}</td>{%- endfor -%}</tr>
+          <tr><th scope="row">{{ s.label_4 | escape }}</th>{%- for block in section.blocks -%}<td>{{ block.settings.value_4 | escape }}</td>{%- endfor -%}</tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.spec_compare.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.spec_compare.settings.eyebrow",
+      "default": "Tech specs"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.spec_compare.settings.heading",
+      "default": "Compare before you go"
+    },
+    {
+      "type": "text",
+      "id": "label_1",
+      "label": "t:sections.spec_compare.settings.label_1",
+      "default": "Weight"
+    },
+    {
+      "type": "text",
+      "id": "label_2",
+      "label": "t:sections.spec_compare.settings.label_2",
+      "default": "Best for"
+    },
+    {
+      "type": "text",
+      "id": "label_3",
+      "label": "t:sections.spec_compare.settings.label_3",
+      "default": "Weather rating"
+    },
+    {
+      "type": "text",
+      "id": "label_4",
+      "label": "t:sections.spec_compare.settings.label_4",
+      "default": "Warranty"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.spec_compare.settings.button_label",
+      "default": "View"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.spec_compare.settings.color_scheme"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "item",
+      "name": "t:sections.spec_compare.blocks.item.name",
+      "settings": [
+        {
+          "type": "product",
+          "id": "product",
+          "label": "t:sections.spec_compare.blocks.item.settings.product"
+        },
+        {
+          "type": "text",
+          "id": "badge",
+          "label": "t:sections.spec_compare.blocks.item.settings.badge",
+          "default": "Best seller"
+        },
+        {
+          "type": "text",
+          "id": "value_1",
+          "label": "t:sections.spec_compare.blocks.item.settings.value_1",
+          "default": "640 g"
+        },
+        {
+          "type": "text",
+          "id": "value_2",
+          "label": "t:sections.spec_compare.blocks.item.settings.value_2",
+          "default": "Day hikes"
+        },
+        {
+          "type": "text",
+          "id": "value_3",
+          "label": "t:sections.spec_compare.blocks.item.settings.value_3",
+          "default": "Showerproof"
+        },
+        {
+          "type": "text",
+          "id": "value_4",
+          "label": "t:sections.spec_compare.blocks.item.settings.value_4",
+          "default": "5 years"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "t:sections.spec_compare.presets.spec_compare",
+      "blocks": [
+        {
+          "type": "item"
+        },
+        {
+          "type": "item"
+        },
+        {
+          "type": "item"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

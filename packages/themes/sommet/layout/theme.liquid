@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="{{ settings.color_primary }}">
+    {%- if settings.favicon -%}
+      <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+      <link rel="apple-touch-icon" href="{{ settings.favicon | image_url: width: 180, height: 180 }}">
+    {%- endif -%}
+    {%- liquid
+      assign doc_title = page_title
+      assign template_key = template.name | split: '/' | last
+      case template_key
+        when 'cart', 'search', 'list-collections', '404', 'password', 'login', 'register', 'account', 'order', 'addresses', 'activate_account', 'reset_password'
+          assign title_key = 'page_titles.' | append: template_key
+          assign doc_title = title_key | t | append: ' - ' | append: shop.name | escape
+      endcase
+    -%}
+    <title>{{ doc_title }}</title>
+    {%- if page_description != blank %}
+      <meta name="description" content="{{ page_description | escape }}">
+    {%- endif %}
+    <link rel="canonical" href="{{ canonical_url }}">
+    {%- if localization.available_languages.size > 1 -%}
+      {%- for language in localization.available_languages -%}
+        <link rel="alternate" hreflang="{{ language.iso_code }}" href="{{ language.url }}">
+      {%- endfor -%}
+      {%- for language in localization.available_languages -%}{%- if language.primary -%}<link rel="alternate" hreflang="x-default" href="{{ language.url }}">{%- endif -%}{%- endfor -%}
+    {%- else -%}
+      {%- for language in localization.available_languages -%}
+        <link rel="alternate" hreflang="{{ language.iso_code | replace: '_', '-' }}" href="{{ canonical_url }}">
+      {%- endfor -%}
+      <link rel="alternate" hreflang="x-default" href="{{ canonical_url }}">
+    {%- endif -%}
+    <meta property="og:site_name" content="{{ shop.name | escape }}">
+    <meta property="og:title" content="{{ page_title | escape }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    {%- render 'css-variables' -%}
+    {{ 'sommet.css' | asset_url | stylesheet_tag }}
+    {{ content_for_header }}
+    <script src="{{ 'sommet.js' | asset_url }}" defer></script>
+  </head>
+  <body class="template-{{ template_key }}{% if settings.anim_reveal and request.design_mode == false %} has-reveal{% endif %}{% if settings.anim_card_zoom == false %} no-card-zoom{% endif %}">
+    <a class="skip-link" href="#main">{{ 'accessibility.skip_to_content' | t }}</a>
+    {% sections 'header-group' %}
+    <main id="main" tabindex="-1">
+      {{ content_for_layout }}
+    </main>
+    {% sections 'footer-group' %}
+    {% sections 'footer-utilities-group' %}
+    {% sections 'overlay-group' %}
+    {%- render 'cookie-banner' -%}
+    {%- render 'age-gate' -%}
+    {%- render 'back-to-top' -%}
+    <script>
+      window.sommet = {
+        moneyFormat: {{ shop.money_format | json }},
+        currency: {{ shop.currency | json }},
+        root: {{ routes.root_url | json }},
+        reveal: {{ settings.anim_reveal | default: false | json }},
+        search: { predictive: {{ settings.search_predictive | default: true | json }} },
+        routes: { cart: {{ routes.cart_url | json }}, cartAdd: '/cart/add.js', cartChange: '/cart/change.js', cartJson: '/cart.js' },
+        strings: {
+          added: {{ 'products.added_to_cart' | t | json }}, error: {{ 'general.error' | t | json }}, soldOut: {{ 'products.sold_out' | t | json }}, addToCart: {{ 'products.add_to_cart' | t | json }},
+          viewCart: {{ 'products.view_cart' | t | json }}, perDelivery: {{ 'products.purchase_options.per_delivery' | t: price: '[price]' | json }}, savePercent: {{ 'products.purchase_options.save_percent' | t: percent: '[percent]' | json }},
+          shade: {{ 'products.shade' | t | json }}, inStock: {{ 'products.in_stock' | t | json }}
+        }
+      };
+    </script>
+  </body>
+</html>
