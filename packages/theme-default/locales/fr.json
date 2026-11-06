@@ -144,7 +144,8 @@
       "code_label": "Code à 6 chiffres",
       "code_submit": "Se connecter avec le code",
       "code_resend": "Envoyer un nouveau code",
-      "or": "ou"
+      "or": "ou",
+      "subtitle": "Se connecter ou créer un compte"
     },
     "register_page": {
       "title": "Créer un compte",
@@ -271,6 +272,15 @@
           "other": "Tous les {{ count }} ans"
         }
       }
+    },
+    "nav": {
+      "label": "Compte",
+      "orders": "Commandes",
+      "profile": "Profil"
+    },
+    "profile": {
+      "title": "Profil",
+      "phone": "Téléphone"
     }
   },
   "blog": {

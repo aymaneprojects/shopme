@@ -41,6 +41,7 @@ import { frAccountPages } from './fr-account-pages';
 import { frThemeUpdate } from './fr-theme-update';
 import { frThemeGallery } from './fr-theme-gallery';
 import { frThemeStore } from './fr-theme-store';
+import { frCheckoutEditor } from './fr-checkout-editor';
 
 import { frMultistore } from './fr-multistore';
 import { frAuth } from './fr-auth';
@@ -174,6 +175,7 @@ export const fr: Record<Key, string> = {
   ...frThemeUpdate,
   ...frThemeGallery,
   ...frThemeStore,
+  ...frCheckoutEditor,
   ...frFidelity,
   ...frMultistore,
   ...frEmail,

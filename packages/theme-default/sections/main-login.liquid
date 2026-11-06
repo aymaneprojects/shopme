@@ -23,6 +23,7 @@
 
   <section class="customer__login" id="login" aria-labelledby="login-title">
     <h1 class="page-title" id="login-title">{%- if s.heading != blank -%}{{ s.heading | escape }}{%- else -%}{{ 'customer.login_page.title' | t }}{%- endif -%}</h1>
+    <p class="customer__lead">{{ 'customer.login_page.subtitle' | t }}</p>
     {%- if s.text != blank -%}<div class="rte customer__intro">{{ s.text }}</div>{%- endif -%}
     {%- if customer_accounts.password_login -%}
     {%- form 'customer_login', class: 'customer__form' -%}

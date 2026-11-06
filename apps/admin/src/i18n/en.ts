@@ -40,6 +40,7 @@ import { enSubscriptions } from './en-subscriptions';
 import { enThemeUpdate } from './en-theme-update';
 import { enThemeGallery } from './en-theme-gallery';
 import { enThemeStore } from './en-theme-store';
+import { enCheckoutEditor } from './en-checkout-editor';
 import { enMultistore } from './en-multistore';
 import { enAuth } from './en-auth';
 import { enEmail } from './en-email';
@@ -172,6 +173,7 @@ export const en = {
   ...enThemeUpdate,
   ...enThemeGallery,
   ...enThemeStore,
+  ...enCheckoutEditor,
   ...enFidelity,
   ...enMultistore,
   ...enEmail,

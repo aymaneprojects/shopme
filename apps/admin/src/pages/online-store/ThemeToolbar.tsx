@@ -11,7 +11,7 @@ import type { Key } from '../../i18n';
 import { EditorMenu } from './EditorMenu';
 
 /** The "more" menu and Publish button at the right of the editor's top bar. */
-export function ThemeToolbar({ themeId, name, role, dirty, previewUrl, onShortcuts, docsUrl, supportUrl, version, author }: { themeId: string; name: string; role?: string; dirty: boolean; previewUrl: string; onShortcuts?: () => void; /** The theme's documentation page (`theme_documentation_url` of its schema). */ docsUrl?: string; /** Where to get help with the theme (`theme_support_url`). */ supportUrl?: string; version?: string; /** `theme_author` of the schema. */ author?: string }) {
+export function ThemeToolbar({ themeId, name, role, dirty, previewUrl, onShortcuts, docsUrl, supportUrl, version, author, hidePublish }: { /** Hides Publish (the checkout and accounts editor publishes configurations, not themes). */ hidePublish?: boolean; themeId: string; name: string; role?: string; dirty: boolean; previewUrl: string; onShortcuts?: () => void; /** The theme's documentation page (`theme_documentation_url` of its schema). */ docsUrl?: string; /** Where to get help with the theme (`theme_support_url`). */ supportUrl?: string; version?: string; /** `theme_author` of the schema. */ author?: string }) {
   const t = useT();
   const toast = useToast();
   const qc = useQueryClient();
@@ -40,7 +40,7 @@ export function ThemeToolbar({ themeId, name, role, dirty, previewUrl, onShortcu
           ]}
           footer={<><p className="text-[13px]"><span className="font-semibold">{name}</span>{version && <span className="ml-1 text-muted">{version}</span>}</p><p className="text-xs text-muted">{author ? t('fid.editor.by', { author }) : role ? t(`themes.role.${role}` as Key) : ''}</p></>} />
       )}
-      <Button size="sm" disabled={live || dirty} loading={publish.isPending} title={dirty ? t('editor.saveFirst') : undefined} onClick={() => publish.mutate()}>{t('themes.publish')}</Button>
+      {!hidePublish && <Button size="sm" disabled={live || dirty} loading={publish.isPending} title={dirty ? t('editor.saveFirst') : undefined} onClick={() => publish.mutate()}>{t('themes.publish')}</Button>}
     </>
   );
 }

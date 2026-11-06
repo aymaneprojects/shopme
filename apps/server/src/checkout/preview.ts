@@ -31,7 +31,10 @@ export function sampleCheckout(c: PageCtx, shop: Shop, settings: CheckoutView['s
 
 /** A paid order with one sample product, for the thank-you page. */
 export function sampleOrder(c: PageCtx, shop: Shop): OrderSummary {
-  const addr = { ...SAMPLE_ADDRESS, countryCode: shop.country ?? '', country: null, kind: 'shipping' };
+  const code = shop.country ?? '';
+  let country: string | null = null;
+  try { country = code ? new Intl.DisplayNames([shop.locale || 'en'], { type: 'region' }).of(code) ?? null : null; } catch { /* unknown code */ }
+  const addr = { ...SAMPLE_ADDRESS, countryCode: code, country, kind: 'shipping' };
   return {
     order: { name: '#1001', email: 'alex.martin@example.com', financialStatus: 'PAID', taxesIncluded: false, currency: shop.currency, presentmentCurrency: shop.currency, presentmentMoney: null, subtotal: 2500, totalShipping: 500, totalTax: 0, totalDiscounts: 0, totalTip: 0, total: 3000 },
     lines: [{ title: c.t('sampleProduct'), variantTitle: null, quantity: 1, imageUrl: null, unitPrice: 2500, discountedTotal: 2500, presentmentUnitPrice: null, presentmentDiscountedTotal: null, sellingPlanName: null, subscriptionContractId: null }],

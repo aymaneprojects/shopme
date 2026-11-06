@@ -6,8 +6,7 @@ import type { ComponentType, ReactNode } from 'react';
 import { useState } from 'react';
 import { UserErrors, gql, mutate } from '../../api';
 import { RowCard, Section } from '../../components/SettingsKit';
-import { ACCOUNT_PAGES_THEME, CUSTOMER_ACCOUNTS_SETTINGS, CUSTOMER_ACCOUNTS_SETTINGS_UPDATE } from '../../graphql';
-import { gidToNum } from '../../format';
+import { CHECKOUT_CONFIGURATIONS, CUSTOMER_ACCOUNTS_SETTINGS, CUSTOMER_ACCOUNTS_SETTINGS_UPDATE } from '../../graphql';
 import { useI18n } from '../../i18n';
 
 type Mode = 'DISABLED' | 'OPTIONAL' | 'REQUIRED';
@@ -43,14 +42,13 @@ function ControlRow({ icon: Icon, title, description, control }: { icon: Compone
   );
 }
 
-/** Opens the theme editor of the live theme on the customer login page (the page selector lists the other account pages). */
+/** Opens the checkout and customer accounts editor of the active configuration on the sign-in page (its page selector lists the other account pages). */
 function useCustomizeAccountPages() {
-  const { t } = useI18n();
   const toast = useToast();
   const nav = useNavigate();
   return useMutation({
-    mutationFn: async () => (await gql<{ themes: { nodes: Array<{ id: string; role: string }> } }>(ACCOUNT_PAGES_THEME)).themes.nodes.find((n) => n.role === 'MAIN') ?? null,
-    onSuccess: (theme) => (theme ? nav(`/online-store/themes/${gidToNum(theme.id)}/editor?template=${encodeURIComponent('customers/login')}`) : toast(t('acct.noTheme'), 'critical')),
+    mutationFn: async () => (await gql<{ shopmeCheckoutConfigurations: Array<{ id: string; active: boolean }> }>(CHECKOUT_CONFIGURATIONS)).shopmeCheckoutConfigurations.find((c) => c.active) ?? null,
+    onSuccess: (config) => nav(config ? `/settings/checkout/${encodeURIComponent(config.id)}?page=login` : '/settings/checkout'),
     onError: (e) => toast(e.message, 'critical'),
   });
 }

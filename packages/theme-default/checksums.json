@@ -7,6 +7,7 @@
    "6e3c0e7173a80bc434ac706e80f91564",
    "6f44a2c862bbb6a14cf136302317187f",
    "74a4346ad7c7ebb15a2015839bbdedf1",
+   "74f3159a1ded80510dfb6418c9689549",
    "80a49d9bd2813d966900197ee0edc6a0",
    "8b548a1a9c6ce90606e5a8825ea551be",
    "8d809c3073de4929d26318c2fa5a397f",
@@ -69,6 +70,7 @@
   "config/settings_schema.json": [
    "3e0605cb698b468ee4e7638ed1031b48",
    "429015b07e1aca5e3e24608a95042c29",
+   "c7099716864970063101aee6117b143c",
    "d1925718e4c4295ea18b9afc17388eb2",
    "f41c06099156dc23fe6833919bf1566b",
    "fe416ff50615c968a719b9ae9b44c4e6"
@@ -95,6 +97,7 @@
    "aad0e769adbd4f4fff79729361722e88",
    "b2700a07b3ecf105bf4964b53e60d909",
    "b6f928644d03f67e1659373144ac6500",
+   "d278b7ed2c033fe8cc523dd28b847a28",
    "d7dc5117d6c2bd58d77e3c21f27d363a",
    "f49cb3554e056f40f3f11e24fab32591",
    "f6b49b1512b177fc7889aa6c4f541a88"
@@ -110,6 +113,7 @@
    "047f43e44db7e032e15a10a190869483",
    "161af3945ac978b8e257e4121abba354",
    "2f7b0d991cc6bd0f906cabde9145b5bd",
+   "4bbec69bd773b9fd0643b38c36843d18",
    "5b67e54c58d1260702f74149c8fffdb9",
    "70fd9c53869297059e4a97348987700d",
    "73e21230e1d53992528ee9bf3edb9a3a",
@@ -262,6 +266,7 @@
    "13705ae88a84df0c6aeceef7f04dde0c",
    "5fde12f39b2b4c6c11f15f62b7dc901b",
    "64191715508d766d490972ddd677c2c3",
+   "80d895d895d0ae4a146c0656e6c137e5",
    "93160f7a8f56ce003ed7e7fca4ad49ba",
    "f7b7a9cc237417d2ec5d3e9a38662b89"
   ],
@@ -270,6 +275,7 @@
    "51beb44dd0b9fa21939b2dc8b466a127"
   ],
   "sections/main-addresses.liquid": [
+   "2432fdf0a38420cb1347143c6a05e8d8",
    "ca07aae20fe9e7bf2a3023a808750ea4",
    "f7e9da4f4850c17bc7fc8a8218beda0e"
   ],
@@ -296,6 +302,7 @@
   ],
   "sections/main-login.liquid": [
    "459d692dcafea979139854d8100718bd",
+   "753aff7ba4ab43e9c4de77400b62faea",
    "d6bcd6456d5e5d70d037e01a790bbd4d",
    "e9f2d64be0c4dea223b284ce85f637ff"
   ],
@@ -304,7 +311,8 @@
    "37a3e02a70d498710012bfc76aca3536",
    "570f46722e51e1dc71dd374de4952c09",
    "7faf9117796e2b7d8a9873fe106449e3",
-   "87363363fa2c45702b94ffe8e7f6f7df"
+   "87363363fa2c45702b94ffe8e7f6f7df",
+   "d4fa2e8656e513e0731817afd20679c9"
   ],
   "sections/main-page.liquid": [
    "a1df27147fb23fc13bf3eeb07c9031c7"
@@ -398,6 +406,9 @@
   "sections/video.liquid": [
    "2651097e3ab87683c381c0f2ae85003c",
    "44e971e5d2deaab900eac26391dec54c"
+  ],
+  "snippets/account-nav.liquid": [
+   "45af558e053967e57c3b9524ba724cf4"
   ],
   "snippets/address-fields.liquid": [
    "5626ce14b36ad4d16e60a31a66d8ad2d"

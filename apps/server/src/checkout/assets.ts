@@ -147,3 +147,24 @@ form.addEventListener('submit',function(e){
 });
 })();
 `;
+
+/** The checkout editor's preview: clicks and submits do nothing, a click on a block tells the editor, and the editor's pick is outlined. */
+export const PREVIEW_JS = `(function(){
+var S={total:'.totals',cart:'.lines'},sel=(document.currentScript&&document.currentScript.getAttribute('data-select'))||'';
+document.addEventListener('click',function(e){
+  if(e.target.closest('a,button,[type=submit]'))e.preventDefault();
+  var b=e.target.closest('[data-co]');
+  if(b&&window.parent!==window)window.parent.postMessage({shopmeClick:b.getAttribute('data-co')},'*');
+},true);
+document.addEventListener('submit',function(e){e.preventDefault();},true);
+function mark(name){
+  document.querySelectorAll('.co-sel').forEach(function(n){n.classList.remove('co-sel')});
+  if(!name)return;
+  var els=document.querySelectorAll(S[name]||'[data-co="'+name+'"]');
+  els.forEach(function(n){n.classList.add('co-sel')});
+  if(els[0])els[0].scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+mark(sel);
+window.addEventListener('message',function(e){if(e.data&&e.data.shopmeSelect!==undefined)mark(e.data.shopmeSelect);});
+})();
+`;

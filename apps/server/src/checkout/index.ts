@@ -11,7 +11,7 @@ import type { SubscriptionNotifyJob } from '../subscriptions';
 import { CART_COOKIE, customerOf, primaryShop } from '../storefront/env';
 import { requestOrigin } from '../stores';
 import { pageDescriptor, privacyEnvFor, privacyHead } from '../storefront/privacy';
-import { CSS, JS } from './assets';
+import { CSS, JS, PREVIEW_JS } from './assets';
 import { countryName, PROVINCES } from './geo';
 import { checkoutPage, discountMessage, inCurrency, notFoundPage, pageCtx, shippingFragment, summaryFragment, thankYouPage, type PageCtx } from './views';
 
@@ -163,6 +163,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
 
   app.get('/checkout-assets/checkout.css', async (_r, reply) => reply.header('cache-control', 'public, max-age=300').type('text/css; charset=utf-8').send(CSS));
   app.get('/checkout-assets/checkout.js', async (_r, reply) => reply.header('cache-control', 'public, max-age=300').type('text/javascript; charset=utf-8').send(JS));
+  app.get('/checkout-assets/preview.js', async (_r, reply) => reply.header('cache-control', 'public, max-age=300').type('text/javascript; charset=utf-8').send(PREVIEW_JS));
 
   // Stripe needs the exact bytes for signature verification: this scope keeps the JSON body as a string.
   await app.register(async (scope) => {

@@ -31,15 +31,9 @@ function brandingOf(c: PageCtx) {
   return { style, logo, headerText: b.headerText, footerText: b.footerText };
 }
 
-/** Editor preview: nothing navigates or submits, and the block picked in the editor is outlined. */
+/** Editor preview: nothing navigates or submits, and the block picked in the editor is outlined (`/checkout-assets/preview.js`, a file so the admin's script policy accepts it). */
 function previewScript(select: string | undefined): string {
-  const js = `(function(){var S={total:'.totals',cart:'.lines'},sel=${JSON.stringify(select ?? '')};
-document.addEventListener('click',function(e){var a=e.target.closest('a,button,[type=submit]');if(a){e.preventDefault();}},true);
-document.addEventListener('submit',function(e){e.preventDefault();},true);
-function mark(name){document.querySelectorAll('.co-sel').forEach(function(n){n.classList.remove('co-sel')});if(!name)return;
-var els=document.querySelectorAll(S[name]||'[data-co="'+name+'"]');els.forEach(function(n){n.classList.add('co-sel')});if(els[0])els[0].scrollIntoView({block:'nearest',behavior:'smooth'});}
-mark(sel);window.addEventListener('message',function(e){if(e.data&&e.data.shopmeSelect!==undefined)mark(e.data.shopmeSelect);});})();`;
-  return `<style>.co-sel{outline:2px solid #2563eb;outline-offset:4px;border-radius:6px}</style><script>${js}</script>`;
+  return `<style>.co-sel{outline:2px solid #2563eb;outline-offset:4px;border-radius:6px}</style><script src="/checkout-assets/preview.js" data-select="${attr(select ?? '')}" defer></script>`;
 }
 
 function layout(c: PageCtx, title: string, body: string, opts: { script?: boolean } = {}): string {
