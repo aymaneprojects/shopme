@@ -359,7 +359,7 @@ body:not(.no-card-zoom) .k-card:hover .k-card__img { transform: scale(1.04); }
   .k-header--mega .k-header__inner { gap: 8px; }
 }
 /* Product card: framed (a thin border, the photo inset, an offset shadow on hover) */
-.k-card--framed { gap: 0; padding: 12px; background: var(--v-card); border: 1px solid var(--v-ink); border-radius: 0; transition: transform var(--anim) ease, box-shadow var(--anim) ease; }
+.k-card--framed { height: 100%; align-content: start; gap: 0; padding: 12px; background: var(--v-card); border: 1px solid var(--v-ink); border-radius: 0; transition: transform var(--anim) ease, box-shadow var(--anim) ease; }
 .k-card--framed:hover, .k-card--framed:focus-within { transform: translate(-3px, -3px); box-shadow: 6px 6px 0 var(--v-accent); }
 .k-card--framed .k-card__frame { border-radius: 0; box-shadow: none; }
 .k-card--framed:hover .k-card__frame { box-shadow: none; }

@@ -358,7 +358,7 @@ body:not(.no-card-zoom) .k-card:hover .k-card__img { transform: scale(1.04); }
 .k-header--centered .k-menu__sub { left: 50%; transform: translateX(-50%); }
 @media (max-width: 989px) { .k-header--centered .k-header__inner { min-height: 64px; } }
 /* Product card: rounded (a soft tile that lifts on hover) */
-.k-card--rounded { gap: 0; padding: 10px 10px 20px; background: var(--v-card); border-radius: var(--round); box-shadow: 0 1px 2px color-mix(in srgb, var(--v-ink) 8%, transparent), 0 10px 24px color-mix(in srgb, var(--v-ink) 5%, transparent); transition: transform var(--anim) ease, box-shadow var(--anim) ease; }
+.k-card--rounded { height: 100%; align-content: start; gap: 0; padding: 10px 10px 20px; background: var(--v-card); border-radius: var(--round); box-shadow: 0 1px 2px color-mix(in srgb, var(--v-ink) 8%, transparent), 0 10px 24px color-mix(in srgb, var(--v-ink) 5%, transparent); transition: transform var(--anim) ease, box-shadow var(--anim) ease; }
 .k-card--rounded:hover, .k-card--rounded:focus-within { transform: translateY(-4px); box-shadow: 0 24px 48px color-mix(in srgb, var(--v-ink) 14%, transparent); }
 .k-card--rounded .k-card__frame { border-radius: max(calc(var(--round) - 8px), 6px); box-shadow: none; }
 .k-card--rounded:hover .k-card__frame { box-shadow: none; }
