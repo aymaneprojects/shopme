@@ -79,19 +79,18 @@ describe('key figures bar', () => {
 
 describe('setup guide', () => {
   const fresh: TaskSignals = { passwordProtected: true, payments: { bankTransfer: false, cod: false, stripe: false, stripeConfigured: false }, customDomain: false, emailDone: false, productCount: 0, theme: null, shippingMethods: 0, offsite: { configured: false, enabled: false } };
-  beforeEach(() => localStorage.clear());
-  const guide = (signals: TaskSignals, onLaunch = () => undefined) => <SetupGuide shopId={7} done={detectTasks(signals)} onLaunch={onLaunch} storeUrl="https://shop.test/" />;
+  const guide = (signals: TaskSignals, onLaunch = () => undefined) => <SetupGuide done={detectTasks(signals)} onLaunch={onLaunch} />;
 
-  it('shows one card per task with a progress card, finished tasks last with a check', () => {
+  it('lists the pending tasks only, and ends with a card that counts the done ones and resumes with the last pending task', () => {
     wrap(guide({ ...fresh, productCount: 2, passwordProtected: false }));
-    expect(screen.getByTestId('guide-progress')).toHaveTextContent('2 of 8 tasks done');
     const cards = screen.getAllByRole('listitem').filter((li) => li.hasAttribute('data-task'));
-    expect(cards).toHaveLength(8);
-    expect(cards.map((c) => c.getAttribute('data-task'))).toEqual(['payments', 'domain', 'email', 'theme', 'shipping', 'backup', 'launch', 'product']);
-    expect(within(cards[7]!).getByRole('img', { name: 'Done' })).toBeInTheDocument();
-    expect(within(cards[0]!).queryByRole('img', { name: 'Done' })).toBeNull();
+    expect(cards.map((c) => c.getAttribute('data-task'))).toEqual(['payments', 'domain', 'email', 'theme', 'shipping', 'backup']);
+    const progress = screen.getByTestId('guide-progress');
+    expect(cards[5]).toBe(progress);
+    expect(progress).toHaveTextContent('2 of 8 tasks done');
+    expect(progress).toHaveTextContent('Next task: Back up off the server');
+    expect(within(progress).getByRole('link', { name: 'Resume' })).toHaveAttribute('href', '/settings/backup');
     expect(within(cards[0]!).getByRole('link', { name: 'Set up payments' })).toHaveAttribute('href', '/settings/payments');
-    expect(within(cards[6]!).getByRole('link', { name: 'View your online store' })).toHaveAttribute('href', 'https://shop.test/');
   });
 
   it('runs the launch action from the first card of a protected store', async () => {
@@ -102,20 +101,9 @@ describe('setup guide', () => {
     expect(onLaunch).toHaveBeenCalledOnce();
   });
 
-  it('is dismissed from its own link and restored from the small link it leaves behind, across visits', async () => {
-    const user = userEvent.setup();
-    const { unmount } = wrap(guide(fresh));
-    await user.click(screen.getByRole('button', { name: 'Hide guide' }));
-    expect(screen.queryByTestId('guide-progress')).toBeNull();
-    expect(screen.queryAllByRole('listitem')).toHaveLength(0);
-    expect(localStorage.getItem('shopme.home.guide.hidden.7')).toBe('1');
-
-    unmount();
-    wrap(guide(fresh));
-    expect(screen.queryByTestId('guide-progress')).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Show setup guide' }));
-    expect(screen.getByTestId('guide-progress')).toBeInTheDocument();
-    expect(localStorage.getItem('shopme.home.guide.hidden.7')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Hide guide' })).toBeInTheDocument();
+  it('shows only the progress message once every task is done', () => {
+    wrap(guide({ ...fresh, passwordProtected: false, payments: { ...fresh.payments!, cod: true }, customDomain: true, emailDone: true, productCount: 1, theme: { createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-02-01T00:00:00Z' }, shippingMethods: 1, offsite: { configured: true, enabled: true } }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.getByTestId('guide-progress')).toHaveTextContent('8 of 8 tasks done');
   });
 });

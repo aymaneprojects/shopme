@@ -13,7 +13,6 @@ import type { Key } from '../../i18n';
 import { CURRENCIES, TIMEZONES } from '../../lib/countries';
 import { SETTINGS_SECTIONS } from '../../lib/settingsNav';
 import { useMulti } from '../../session';
-import { StoreDomains } from './StoreDomains';
 import { EmailBanner } from '../../components/EmailSetup';
 
 /** Settings pages sit in a narrow centered column under a large title; sub-pages draw their own header. */
@@ -32,7 +31,7 @@ export function SettingsLayout() {
             <div ref={setSlot} className="flex items-center gap-2" />
           </div>
         )}
-        {pathname !== '/settings/emails' && <EmailBanner />}
+        {pathname !== '/settings/emails' && !pathname.startsWith('/settings/notifications') && !pathname.startsWith('/settings/domains/') && <EmailBanner />}
         <Outlet />
       </div>
     </SettingsSlot.Provider>
@@ -85,60 +84,6 @@ function ShopPanelForm({ shop, fields, children }: { shop: ShopData; fields: Arr
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setForm(initial); setError(null); }} />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
       <div className="flex flex-col gap-4">{children(form, (p) => setForm((f) => ({ ...f, ...p })), shop)}</div>
-    </>
-  );
-}
-
-/** Settings > Domains: the store's own domains (multi-store), or the installation's primary domain (single-store). */
-export function DomainsSettings() {
-  return useMulti() ? <StoreDomains /> : <SingleStoreDomains />;
-}
-
-function SingleStoreDomains() {
-  const { t } = useI18n();
-  const toast = useToast();
-  const qc = useQueryClient();
-  const q = useShopSettings();
-  const [connect, setConnect] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const save = useMutation({
-    mutationFn: (primaryDomain: string) => mutate(SHOP_UPDATE, { input: { primaryDomain } }, 'shopmeShopUpdate'),
-    onSuccess: () => { toast(t('settings.saved')); setConnect(null); setError(null); void qc.invalidateQueries({ queryKey: ['shop-settings'] }); },
-    onError: (e) => setError(e instanceof UserErrors ? e.errors.map((x) => x.message).join(' · ') : e.message),
-  });
-  if (q.isLoading) return <Skeleton className="h-32" />;
-  if (q.error) return <Banner>{q.error.message}</Banner>;
-  const shop = q.data!.shop;
-  const custom = shop.primaryDomain && shop.primaryDomain.host !== shop.myshopifyDomain ? shop.primaryDomain.host : '';
-  const rows = [...(custom ? [{ host: custom, primary: true, custom: true }] : []), { host: shop.myshopifyDomain, primary: !custom, custom: false }];
-  return (
-    <>
-      <SettingsActions><Button variant="primary" onClick={() => { setError(null); setConnect(custom); }}>{t('settings.connectDomain')}</Button></SettingsActions>
-      <div className="overflow-hidden rounded-lg bg-canvas shadow-card">
-        <div className="grid grid-cols-[1fr_8rem_auto] gap-3 border-b border-line bg-surface px-4 py-2 text-[13px] text-muted"><span>{t('settings.domain')}</span><span>{t('field.status')}</span><span className="w-20" /></div>
-        <ul className="divide-y divide-line">
-          {rows.map((r) => (
-            <li key={r.host} className="grid grid-cols-[1fr_8rem_auto] items-center gap-3 px-4 py-3 text-[13px]">
-              <span className="flex min-w-0 items-center gap-2"><Globe className="size-4 shrink-0 text-muted" /><span className="truncate font-medium">{r.host}</span>{r.primary && <Badge>{t('settings.primaryBadge')}</Badge>}</span>
-              <span><Badge tone="success">{t('settings.connected')}</Badge></span>
-              <span className="flex w-20 justify-end gap-1">{r.custom && <><Button size="sm" onClick={() => { setError(null); setConnect(r.host); }}>{t('common.edit')}</Button><Button size="sm" variant="danger" loading={save.isPending} onClick={() => save.mutate('')}>{t('settings.disconnect')}</Button></>}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <p className="mt-3 text-center text-[13px] text-muted">{t('settings.domainsHelp')}</p>
-      <Modal open={connect !== null} onClose={() => setConnect(null)} closeLabel={t('common.close')} title={t('settings.connectDomain')}
-        footer={<><Button onClick={() => setConnect(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={save.isPending} disabled={!connect?.includes('.')} onClick={() => save.mutate(connect!)}>{t('settings.connect')}</Button></>}>
-        <div className="flex flex-col gap-3">
-          {error && <Banner>{error}</Banner>}
-          <Input label={t('settings.primaryDomain')} placeholder="shop.example.com" value={connect ?? ''} onChange={(e) => setConnect(e.target.value.trim().toLowerCase())} />
-          <ol className="list-decimal space-y-1 pl-5 text-[13px] text-muted">
-            <li>{t('settings.dns1')}</li>
-            <li>{t('settings.dns2', { host: shop.myshopifyDomain })}</li>
-            <li>{t('settings.dns3')}</li>
-          </ol>
-        </div>
-      </Modal>
     </>
   );
 }

@@ -66,7 +66,7 @@ export const frBtnCustomers: Record<keyof typeof enBtnCustomers, string> = {
   'bc.mo.externalId': 'Identifiant externe', 'bc.mo.externalIdHelp': 'L’identifiant de l’entrée dans un autre système. Il doit être unique pour ce type.', 'bc.menus.drag': 'Glisser pour réordonner',
 
   // statistiques
-  'bc.analytics.refreshed': 'Actualisé à {time}', 'bc.analytics.currency': 'Devise', 'bc.analytics.fulfilled': 'Commandes expédiées', 'bc.analytics.live': 'Vue en direct',
+  'bc.analytics.refreshed': 'Dernière actualisation : {time}', 'bc.analytics.currency': 'Devise', 'bc.analytics.fulfilled': 'Commandes expédiées', 'bc.analytics.live': 'Vue en direct',
   'bc.reports.lastViewed': 'Consulté le', 'bc.reports.createdBy': 'Créé par', 'bc.reports.pin': 'Épingler {name}', 'bc.reports.unpin': 'Désépingler {name}', 'bc.reports.range': '{from}-{to} sur {n}',
   'bc.explore.new': 'Nouvelle exploration', 'bc.explore.category': 'Exploration', 'bc.explore.you': 'Vous', 'bc.explore.untitled': 'Nouvelle exploration', 'bc.explore.save': 'Enregistrer', 'bc.explore.saved': 'Exploration enregistrée', 'bc.explore.saveTitle': 'Enregistrer l’exploration',
   'bc.explore.rename': 'Renommer', 'bc.explore.deleteTitle': 'Supprimer cette exploration ?', 'bc.explore.deleteBody': 'Le rapport enregistré est supprimé. Vos données ne sont pas touchées.', 'bc.explore.notFound': 'Cette exploration n’existe pas.',

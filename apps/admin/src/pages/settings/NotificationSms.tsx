@@ -1,6 +1,7 @@
 import { Banner, Button, Card, Input, Skeleton, Switch, Textarea, useToast } from '@shopme/ui';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
+import { ChevronRight, Package } from 'lucide-react';
 import { Link } from 'react-router';
 import { mutate } from '../../api';
 import { Section } from '../../components/SettingsKit';
@@ -41,10 +42,13 @@ export function FulfillmentRequestRow() {
   const save = useSaveConfig<NotificationsConfig>('NOTIFICATIONS');
   if (!cfg.data) return null;
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-canvas px-4 py-3 shadow-card">
-      <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium">{t('bs.fulfilRequest')}</span><span className="block text-[13px] text-muted">{t('bs.fulfilRequestDesc')}</span></span>
-      <Link to="/settings/notifications/fulfillment_request" className="btn btn-secondary btn-sm">{t('common.edit')}</Link>
-      <Switch label={<span className="sr-only">{t('bs.fulfilRequest')}</span>} checked={cfg.data.fulfillmentRequest.enabled} onChange={(v) => save.mutate({ ...cfg.data!, fulfillmentRequest: { enabled: v } })} />
+    <div className="flex items-center hover:bg-hover">
+      <Link to="/settings/notifications/fulfillment_request" className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-4">
+        <Package className="size-4 shrink-0 text-muted" aria-hidden />
+        <span className="min-w-0 flex-1"><span className="block text-[13px] font-medium">{t('bs.fulfilRequest')}</span><span className="block text-[13px] text-muted">{t('bs.fulfilRequestDesc')}</span></span>
+      </Link>
+      <div className="shrink-0 pl-2"><Switch label={<span className="sr-only">{t('bs.fulfilRequest')}</span>} checked={cfg.data.fulfillmentRequest.enabled} onChange={(v) => save.mutate({ ...cfg.data!, fulfillmentRequest: { enabled: v } })} /></div>
+      <Link to="/settings/notifications/fulfillment_request" tabIndex={-1} aria-hidden className="shrink-0 py-3 pl-3 pr-4"><ChevronRight className="size-4 text-muted" /></Link>
     </div>
   );
 }

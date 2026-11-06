@@ -201,7 +201,7 @@ export function AnalyticsPage() {
   const cells = useCells(sales.data?.currencyCode ?? (cur || shop.currency));
   const to = (name: ReportName) => ({ pathname: `/analytics/reports/${name}`, search: f.sp.toString() });
   const money = (key: string): Column => ({ key, label: '', type: 'money' });
-  const breakdown = ['gross', 'discounts', 'refunds', 'shipping', 'taxes', 'total'] as const;
+  const breakdown = ['gross', 'discounts', 'refunds', 'net', 'shipping', 'taxes', 'total'] as const;
   const err = sales.error ?? aov.error ?? ret.error ?? products.error ?? ords.error;
   const topProducts = (products.data?.rows ?? []).slice(0, 5);
   const salesCol = sales.data?.columns.find((c) => c.key === 'total');
@@ -213,14 +213,14 @@ export function AnalyticsPage() {
   return (
     <>
       <PageHeader
-        title={t('analytics.title')} subtitle={<Refreshed at={refreshedAt} fetching={fetching} />}
+        title={t('analytics.title')} badges={<Refreshed at={refreshedAt} fetching={fetching} />}
         actions={<>
           <Dropdown align="right" icon label={t('qa.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
+            { key: 'reports', label: t('analytics.viewReports'), onSelect: () => nav('/analytics/reports') },
             { key: 'live', label: t('bc.analytics.live'), onSelect: () => nav('/analytics/live') },
             { key: 'csv', label: t('analytics.exportCsv'), onSelect: () => { window.location.href = csv; } },
           ]} />
           <Button onClick={() => setGoalsOpen(true)}><Target className="size-4" />{t('bc.goal.button')}</Button>
-          <Link to="/analytics/reports" className="btn btn-secondary">{t('analytics.viewReports')}</Link>
           <Link to="/analytics/explorations/new" className="btn btn-primary">{t('bc.explore.new')}</Link>
         </>}
       />
@@ -236,19 +236,21 @@ export function AnalyticsPage() {
           <Kpi to={`${to('ORDERS_OVER_TIME').pathname}?${f.sp}`} label={t('analytics.col.orders')} cur={ords.data?.totals.orders} before={ordsPrev.data?.totals.orders} cells={cells} col={{ key: 'orders', label: '', type: 'int' }} spark={columnValues(ords.data, 'orders')} />
         </div>
         <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
-          <Card title={t('analytics.report.SALES_OVER_TIME')}>
+          <Card title={t('ax.dash.sales')}>
             <p className="-mt-1 mb-2 text-xl font-semibold">{salesCol && sales.data ? cells.cell(salesCol, sales.data.totals.total ?? 0) : '—'}</p>
             <SeriesChart name="SALES_OVER_TIME" rep={sales.data} prev={salesPrev.data} f={f} cells={cells} loading={sales.isLoading} />
           </Card>
           <Card title={t('analytics.breakdown')}>
             <ul className="-mx-2 text-[13px]">
               {breakdown.map((k, i) => {
-                const c = sales.data?.columns.find((x) => x.key === k);
+                const c = sales.data?.columns.find((x) => x.key === (k === 'net' ? 'gross' : k));
+                const tot = sales.data?.totals;
+                const value = k === 'net' ? (tot?.gross ?? 0) - (tot?.discounts ?? 0) - (tot?.refunds ?? 0) : tot?.[k] ?? 0;
                 return (
                   <li key={k} className={cx('rounded-md', i % 2 === 1 && 'bg-surface')}>
                     <Link to={to('SALES_OVER_TIME')} className="flex items-center justify-between gap-2 px-2 py-2 hover:underline">
                       <span className={cx(k !== 'total' && 'text-accent')}>{t(`analytics.col.${k}` as Key)}</span>
-                      <span className="tabular-nums">{c && sales.data ? cells.cell(c, sales.data.totals[k] ?? 0) : '—'}</span>
+                      <span className="tabular-nums">{c && sales.data ? cells.cell(c, value) : '—'}</span>
                     </Link>
                   </li>
                 );
@@ -256,8 +258,8 @@ export function AnalyticsPage() {
             </ul>
           </Card>
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card title={t('analytics.report.SALES_BY_CHANNEL')} actions={<Link to={to('SALES_BY_CHANNEL')} className="text-[13px] text-accent hover:underline">{t('analytics.viewReport')}</Link>}>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Card title={t('ax.dash.channel')} actions={<Link to={to('SALES_BY_CHANNEL')} className="text-[13px] text-accent hover:underline">{t('analytics.viewReport')}</Link>}>
             {channels.isLoading ? <Skeleton className="h-32" /> : topChannels.length === 0 ? <p className="py-8 text-center text-[13px] text-muted">{t('analytics.noData')}</p> : (
               <ul className="flex flex-col gap-2.5 text-[13px]">
                 {topChannels.map((r, i) => (
@@ -269,11 +271,10 @@ export function AnalyticsPage() {
               </ul>
             )}
           </Card>
-          <Card title={t('analytics.report.AVERAGE_ORDER_VALUE')}>
+          <Card title={t('ax.dash.aov')}>
             <SeriesChart name="AVERAGE_ORDER_VALUE" rep={aov.data} prev={aovPrev.data} f={f} cells={cells} loading={aov.isLoading} />
           </Card>
-        </div>
-        <Card title={t('analytics.report.SALES_BY_PRODUCT')} actions={<Link to={to('SALES_BY_PRODUCT')} className="text-[13px] text-accent hover:underline">{t('analytics.viewReport')}</Link>}>
+        <Card title={t('ax.dash.product')} actions={<Link to={to('SALES_BY_PRODUCT')} className="text-[13px] text-accent hover:underline">{t('analytics.viewReport')}</Link>}>
           {products.isLoading ? <Skeleton className="h-32" /> : topProducts.length === 0 ? <p className="py-8 text-center text-[13px] text-muted">{t('analytics.noData')}</p> : (
             <ul className="divide-y divide-line text-[13px]">
               {topProducts.map((r, i) => (
@@ -282,6 +283,7 @@ export function AnalyticsPage() {
             </ul>
           )}
         </Card>
+        </div>
       </div>
       <GoalsDialog open={goalsOpen} onClose={() => setGoalsOpen(false)} />
     </>

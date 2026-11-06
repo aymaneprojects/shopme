@@ -52,7 +52,10 @@ const FADE = 'radial-gradient(closest-side, #000 62%, transparent 100%)'; // the
 const TILT = 0.38; // radians: the north pole leans towards the viewer
 const SIN_T = Math.sin(TILT), COS_T = Math.cos(TILT);
 
-function draw(canvas: HTMLCanvasElement, dots: Dots, rotation: number) {
+/** A point of interest on the globe (degrees); `n` sets its size relative to the others. */
+export interface GlobeMarker { lat: number; lon: number; n: number; color?: string }
+
+function draw(canvas: HTMLCanvasElement, dots: Dots, rotation: number, markers: GlobeMarker[] = []) {
   const g = canvas.getContext('2d');
   if (!g) return;
   const { width: w, height: h } = canvas;
@@ -72,11 +75,24 @@ function draw(canvas: HTMLCanvasElement, dots: Dots, rotation: number) {
     g.fill();
   }
   g.globalAlpha = 1;
+  const max = Math.max(1, ...markers.map((m) => m.n));
+  const accent = getComputedStyle(canvas.parentElement ?? canvas).getPropertyValue('--color-accent').trim() || '#2563eb';
+  for (const m of markers) {
+    g.fillStyle = m.color ?? accent;
+    const lat = (m.lat * Math.PI) / 180, d = (m.lon * Math.PI) / 180 - rotation, cl = Math.cos(lat);
+    if (SIN_T * Math.sin(lat) + COS_T * cl * Math.cos(d) <= 0.02) continue;
+    const x = cl * Math.sin(d), y = COS_T * Math.sin(lat) - SIN_T * cl * Math.cos(d), rad = dot * (2.5 + 4 * Math.sqrt(m.n / max));
+    g.globalAlpha = 0.25; g.beginPath(); g.arc(cx + x * r, cy - y * r, rad * 2, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = 1; g.beginPath(); g.arc(cx + x * r, cy - y * r, rad, 0, Math.PI * 2); g.fill();
+  }
+  g.globalAlpha = 1;
 }
 
 /** Large, quiet dotted globe. Rotates slowly unless the visitor prefers reduced motion, in which case it is drawn once. */
-export function DottedGlobe({ className }: { className?: string }) {
+export function DottedGlobe({ className, markers }: { className?: string; markers?: GlobeMarker[] }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const marks = useRef<GlobeMarker[]>([]);
+  marks.current = markers ?? [];
   useEffect(() => {
     const canvas = ref.current;
     if (!canvas) return;
@@ -87,7 +103,7 @@ export function DottedGlobe({ className }: { className?: string }) {
       const k = Math.min(window.devicePixelRatio || 1, 2), s = canvas.clientWidth;
       if (s && canvas.width !== Math.round(s * k)) { canvas.width = canvas.height = Math.round(s * k); }
     };
-    const paint = () => { if (dots) { fit(); draw(canvas, dots, spin); } };
+    const paint = () => { if (dots) { fit(); draw(canvas, dots, spin, marks.current); } };
     const tick = (now: number) => {
       if (!live) return;
       if (now - last > 33) { spin += ((now - last) / 1000) * 0.05; last = now; paint(); }

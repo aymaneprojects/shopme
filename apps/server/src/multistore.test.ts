@@ -12,7 +12,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { authenticateAccount, beginTwoFactorSetup, confirmTwoFactor, totpCode, createAccount, createStaffUser, exportStore, inviteStaff, recordDeliveries, registerCustomer, saveUpload, schema as s, type DbHandle } from '@shopme/core';
 import { schema as gqlSchema } from './admin/graphql/schema';
-import { setTxtResolver } from './admin/stores-routes';
+import { setDnsLookups, setTxtResolver } from './admin/stores-routes';
 import { activeShopIds } from './jobs';
 import { createTestApp, type TestApp } from './test-utils';
 
@@ -529,6 +529,33 @@ describe('domains', () => {
     expect(served.body).toContain(MARK);
     expect((await req({ method: 'PUT', url: `/admin/store/${B}/api/store/domains/primary`, cookie: bob, payload: { id: null } })).statusCode).toBe(200);
     expect((await req({ url: '/', host: BH })).statusCode).toBe(200);
+  });
+});
+
+describe('domain DNS check', () => {
+  it('compares the routing and ownership records with what DNS answers', async () => {
+    const add = await req({ method: 'POST', url: `/admin/store/${B}/api/store/domains`, cookie: bob, payload: { host: 'dns.beta.example' } });
+    expect(add.statusCode, add.body).toBe(201);
+    const d = add.json().domains.find((x: { host: string }) => x.host === 'dns.beta.example');
+    setDnsLookups({ cname: async () => { throw new Error('ENODATA'); }, a: async () => [] });
+    setTxtResolver(async () => []);
+    const url = `/admin/store/${B}/api/store/domain-dns?host=DNS.beta.example.`;
+    const todo = (await req({ url, cookie: bob })).json();
+    expect(todo.propagated).toBe(false);
+    expect(todo.records.map((r: { id: string; type: string; ok: boolean; current: string[] }) => [r.id, r.type, r.ok, r.current])).toEqual([['routing', 'CNAME', false, []], ['verify', 'TXT', false, []]]);
+    expect(todo.records[1].value).toBe(d.verificationValue);
+    expect(todo.records[0].value).toBe(todo.target);
+    setDnsLookups({ cname: async () => [`${todo.target}.`], a: async () => [] });
+    setTxtResolver(async () => [[d.verificationValue]]);
+    expect((await req({ url, cookie: bob })).json().propagated).toBe(true);
+    // A bare domain is pointed with an A record.
+    setDnsLookups({ cname: async () => [], a: async (n) => (n === 'beta.example' ? ['203.0.113.9'] : ['203.0.113.9']) });
+    const bareDomain = (await req({ url: `/admin/store/${B}/api/store/domain-dns?host=beta.example`, cookie: bob })).json();
+    expect(bareDomain.records[0]).toMatchObject({ type: 'A', value: '203.0.113.9', ok: true });
+    expect((await req({ url: `/admin/store/${B}/api/store/domain-dns?host=nope`, cookie: bob })).statusCode).toBe(422);
+    expect((await req({ url })).statusCode).toBe(401);
+    setDnsLookups(undefined);
+    setTxtResolver(undefined);
   });
 });
 
