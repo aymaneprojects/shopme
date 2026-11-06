@@ -1,0 +1,207 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "settings": {
+        "layout": "reverse",
+        "color_scheme": "scheme-1",
+        "eyebrow": "Art, prints and objects",
+        "heading": "Bring a wall to life",
+        "text": "Paintings, prints and sculpture chosen like an exhibition: few pieces, each given room to breathe.",
+        "button_label": "View the collection",
+        "button_link": "/collections/all",
+        "button_2_label": "Sizes and frames",
+        "button_2_link": "/pages/sizes-and-frames"
+      }
+    },
+    "collection": {
+      "type": "featured-collection",
+      "settings": {
+        "eyebrow": "Now showing",
+        "heading": "The collection",
+        "text": "",
+        "collection": "all",
+        "products_to_show": 6,
+        "columns": "3",
+        "show_view_all": true,
+        "color_scheme": "scheme-1"
+      }
+    },
+    "artist": {
+      "type": "artist-feature",
+      "settings": {
+        "eyebrow": "Featured artist",
+        "name": "Lise Marchand",
+        "meta": "Painter, born 1984, lives in Lyon",
+        "quote": "I paint what is left when the colour has stopped explaining itself.",
+        "bio": "<p>Lise works in oil and earth pigments on large linen canvases. Her abstract fields of ochre, rust and clay are built in thin layers over several months.</p>",
+        "product": "earth-tones-painting",
+        "button_label": "View the work",
+        "color_scheme": "scheme-2"
+      }
+    },
+    "frames": {
+      "type": "frame-guide",
+      "blocks": {
+        "format-1": {
+          "type": "format",
+          "settings": {
+            "label": "Small",
+            "width": 30,
+            "height": 40,
+            "text": "Shelves, desks and small walls"
+          }
+        },
+        "format-2": {
+          "type": "format",
+          "settings": {
+            "label": "Medium",
+            "width": 50,
+            "height": 70,
+            "text": "Above a console or a bed"
+          }
+        },
+        "format-3": {
+          "type": "format",
+          "settings": {
+            "label": "Large",
+            "width": 70,
+            "height": 100,
+            "text": "Above a sofa, as a statement"
+          }
+        },
+        "format-4": {
+          "type": "format",
+          "settings": {
+            "label": "Gallery",
+            "width": 100,
+            "height": 140,
+            "text": "Tall walls and open spaces"
+          }
+        }
+      },
+      "block_order": [
+        "format-1",
+        "format-2",
+        "format-3",
+        "format-4"
+      ],
+      "settings": {
+        "eyebrow": "Sizes and frames",
+        "heading": "Find the right size for your wall",
+        "text": "A good rule: the work should fill about two thirds of the free wall above a sofa or a console.",
+        "finishes": "Frames in black oak, natural oak or white",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "room": {
+      "type": "image-with-text",
+      "settings": {
+        "layout": "right",
+        "color_scheme": "scheme-3",
+        "eyebrow": "In the room",
+        "heading": "Hang it, lean it, live with it",
+        "text": "<p>A framed print can be hung or simply leaned on a shelf. Every frame is made to order from solid oak, with museum-grade glass and a hanging kit included.</p>",
+        "button_label": "See framed prints",
+        "button_link": "/collections/prints-and-photography",
+        "product": "botanical-print"
+      }
+    },
+    "reviews": {
+      "type": "testimonials",
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Better in the flesh than on screen. The colours are deeper and the frame is beautifully made.",
+            "name": "Sophie L.",
+            "detail": "Earth tones painting",
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Wrapped like a museum piece and it arrived without a mark. It anchors the whole living room.",
+            "name": "Marc D.",
+            "detail": "Landscape photograph",
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The size guide saved me from ordering too small. The etching looks perfect above the desk.",
+            "name": "Clara N.",
+            "detail": "Black and white etching",
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ],
+      "settings": {
+        "heading": "From our collectors",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "faq": {
+      "type": "collapsible-content",
+      "blocks": {
+        "row-1": {
+          "type": "row",
+          "settings": {
+            "question": "Are the works original?",
+            "answer": "<p>Paintings and sculptures are unique originals. Prints and photographs are limited editions, numbered and signed on the back.</p>"
+          }
+        },
+        "row-2": {
+          "type": "row",
+          "settings": {
+            "question": "How are works shipped?",
+            "answer": "<p>Framed pieces travel in a rigid crate with corner protection. Everything is insured against loss and damage.</p>"
+          }
+        },
+        "row-3": {
+          "type": "row",
+          "settings": {
+            "question": "Can I return a work?",
+            "answer": "<p>Yes, within 14 days in its original packaging. We refund the full price once it is back with us.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "row-1",
+        "row-2",
+        "row-3"
+      ],
+      "settings": {
+        "heading": "Before you order",
+        "open_first": true,
+        "color_scheme": ""
+      }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {
+        "heading": "Private view",
+        "text": "New works and exhibition news, before anyone else.",
+        "button_label": "Subscribe",
+        "color_scheme": "scheme-2"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "collection",
+    "artist",
+    "frames",
+    "room",
+    "reviews",
+    "faq",
+    "newsletter"
+  ]
+}

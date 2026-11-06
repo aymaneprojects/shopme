@@ -22,7 +22,7 @@ const themeDir = (handle: string) => path.join(ROOT, 'packages/themes', handle);
 
 describe('theme kit', () => {
   it('lists the themes built with it', () => {
-    expect(HANDLES).toEqual(['foyer', 'maroquin', 'sillage']);
+    expect(HANDLES).toEqual(['cimaise', 'comptine', 'foyer', 'maroquin', 'pelage', 'sillage']);
   });
 
   it.each(HANDLES)('%s: the committed folder is what the kit generates (run node scripts/theme-kit/build.mjs)', async (handle) => {
@@ -39,7 +39,8 @@ describe('theme kit', () => {
 
   it('gives the three themes different headers, cards, product pages and home pages', async () => {
     const all = await Promise.all(HANDLES.map((h) => kit.loadOptions(h)));
-    for (const key of ['header', 'card', 'product'] as const) expect(new Set(all.map((o) => JSON.stringify(o[key]?.layout ?? o[key]?.style))).size).toBe(all.length);
+    // Only three headers, four card styles and three product pages exist: what differs is the combination with the collection layout.
+    expect(new Set(all.map((o) => [o.header.layout, o.card.style, o.product.layout, o.collection.layout].join('|'))).size).toBe(all.length);
     expect(new Set(all.map((o) => JSON.stringify(o.home.map((s: { type: string }) => s.type)))).size).toBe(all.length);
     expect(new Set(all.map((o) => o.colors.accent)).size).toBe(all.length);
     expect(new Set(all.map((o) => o.fonts.heading + o.fonts.body)).size).toBe(all.length);

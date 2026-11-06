@@ -1,0 +1,653 @@
+{
+  "storeName": "Cimaise",
+  "currency": "EUR",
+  "menu": [
+    {
+      "title": {
+        "en": "Shop all",
+        "fr": "Tout voir"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Paintings",
+        "fr": "Peintures"
+      },
+      "url": "/collections/paintings"
+    },
+    {
+      "title": {
+        "en": "Prints and photography",
+        "fr": "Tirages et photographie"
+      },
+      "url": "/collections/prints-and-photography"
+    },
+    {
+      "title": {
+        "en": "Objects",
+        "fr": "Objets"
+      },
+      "url": "/collections/objects"
+    }
+  ],
+  "footerMenu": [
+    {
+      "title": {
+        "en": "Shop all",
+        "fr": "Tout voir"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Sizes and frames",
+        "fr": "Formats et cadres"
+      },
+      "url": "/pages/sizes-and-frames"
+    },
+    {
+      "title": {
+        "en": "Search",
+        "fr": "Recherche"
+      },
+      "url": "/search"
+    }
+  ],
+  "pages": [
+    {
+      "handle": "sizes-and-frames",
+      "title": {
+        "en": "Sizes and frames",
+        "fr": "Formats et cadres"
+      },
+      "template": "sizes-and-frames"
+    }
+  ],
+  "collections": [
+    {
+      "handle": "paintings",
+      "title": {
+        "en": "Paintings",
+        "fr": "Peintures"
+      },
+      "description": {
+        "en": "Original paintings, one of a kind.",
+        "fr": "Peintures originales, pièces uniques."
+      },
+      "products": [
+        "earth-tones-painting",
+        "small-blue-painting"
+      ]
+    },
+    {
+      "handle": "prints-and-photography",
+      "title": {
+        "en": "Prints and photography",
+        "fr": "Tirages et photographie"
+      },
+      "description": {
+        "en": "Framed limited editions, numbered and signed.",
+        "fr": "Éditions limitées encadrées, numérotées et signées."
+      },
+      "products": [
+        "botanical-print",
+        "landscape-photograph",
+        "black-white-etching"
+      ]
+    },
+    {
+      "handle": "objects",
+      "title": {
+        "en": "Objects",
+        "fr": "Objets"
+      },
+      "description": {
+        "en": "Sculpture to live with.",
+        "fr": "De la sculpture pour vivre avec."
+      },
+      "products": [
+        "ceramic-sculpture"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "handle": "earth-tones-painting",
+      "image": "produit-01.webp",
+      "extraImages": [
+        "ambiance.webp"
+      ],
+      "vendor": "Cimaise",
+      "type": {
+        "en": "Paintings",
+        "fr": "Peintures"
+      },
+      "tags": [
+        "painting",
+        "abstract",
+        "new"
+      ],
+      "title": {
+        "en": "Earth Tones Painting",
+        "fr": "Tableau aux tons terre"
+      },
+      "description": {
+        "en": "An abstract oil painting in ochre, rust and clay, built in thin layers on linen. Signed on the back and delivered with a certificate.",
+        "fr": "Une peinture à l’huile abstraite en ocre, rouille et argile, construite en couches minces sur lin. Signée au dos et livrée avec un certificat."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Format"
+          },
+          "values": [
+            "60 x 80 cm",
+            "90 x 120 cm"
+          ]
+        },
+        {
+          "name": {
+            "en": "Frame",
+            "fr": "Cadre"
+          },
+          "values": [
+            {
+              "en": "Black oak",
+              "fr": "Chêne noir"
+            },
+            {
+              "en": "Natural oak",
+              "fr": "Chêne naturel"
+            }
+          ]
+        }
+      ],
+      "price": 640,
+      "variants": [
+        {
+          "stock": 3
+        },
+        {
+          "stock": 2
+        },
+        {
+          "stock": 2
+        },
+        {
+          "stock": 1
+        }
+      ]
+    },
+    {
+      "handle": "botanical-print",
+      "image": "produit-02.webp",
+      "vendor": "Cimaise",
+      "type": {
+        "en": "Prints",
+        "fr": "Tirages"
+      },
+      "tags": [
+        "print",
+        "botanical"
+      ],
+      "title": {
+        "en": "Framed Botanical Print",
+        "fr": "Affiche botanique encadrée"
+      },
+      "description": {
+        "en": "A pressed-fern study printed on heavy cotton paper in a limited edition of 150, framed in solid oak behind museum glass.",
+        "fr": "Une étude de fougères séchées imprimée sur papier coton épais en édition limitée de 150, encadrée en chêne massif sous verre muséal."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Format"
+          },
+          "values": [
+            "A3",
+            "A2"
+          ]
+        },
+        {
+          "name": {
+            "en": "Frame",
+            "fr": "Cadre"
+          },
+          "values": [
+            {
+              "en": "Black oak",
+              "fr": "Chêne noir"
+            },
+            {
+              "en": "Natural oak",
+              "fr": "Chêne naturel"
+            }
+          ]
+        }
+      ],
+      "price": 95,
+      "compareAt": 120,
+      "variants": [
+        {
+          "stock": 12
+        },
+        {
+          "stock": 9
+        },
+        {
+          "stock": 7
+        },
+        {
+          "stock": 4
+        }
+      ]
+    },
+    {
+      "handle": "ceramic-sculpture",
+      "image": "produit-03.webp",
+      "vendor": "Cimaise",
+      "type": {
+        "en": "Sculpture",
+        "fr": "Sculpture"
+      },
+      "tags": [
+        "sculpture",
+        "ceramic"
+      ],
+      "title": {
+        "en": "Ceramic Sculpture",
+        "fr": "Sculpture en céramique"
+      },
+      "description": {
+        "en": "A hand-built stoneware form with a matte glaze, made to be turned and looked at from every side. Each piece is unique.",
+        "fr": "Une forme en grès montée à la main, émail mat, faite pour être tournée et regardée sous tous les angles. Chaque pièce est unique."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            {
+              "en": "Small",
+              "fr": "Petite"
+            },
+            {
+              "en": "Large",
+              "fr": "Grande"
+            }
+          ]
+        }
+      ],
+      "price": 220,
+      "variants": [
+        {
+          "stock": 4
+        },
+        {
+          "stock": 2
+        }
+      ]
+    },
+    {
+      "handle": "landscape-photograph",
+      "image": "produit-04.webp",
+      "vendor": "Cimaise",
+      "type": {
+        "en": "Photography",
+        "fr": "Photographie"
+      },
+      "tags": [
+        "photography",
+        "landscape"
+      ],
+      "title": {
+        "en": "Framed Landscape Photograph",
+        "fr": "Photographie de paysage encadrée"
+      },
+      "description": {
+        "en": "A quiet landscape at first light, printed on fine art paper in an edition of 50 and framed in oak with an off-white mount.",
+        "fr": "Un paysage calme à la première lumière, imprimé sur papier beaux-arts en édition de 50 et encadré en chêne avec passe-partout blanc cassé."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Format"
+          },
+          "values": [
+            "50 x 70 cm",
+            "70 x 100 cm"
+          ]
+        },
+        {
+          "name": {
+            "en": "Frame",
+            "fr": "Cadre"
+          },
+          "values": [
+            {
+              "en": "Black oak",
+              "fr": "Chêne noir"
+            },
+            {
+              "en": "White",
+              "fr": "Blanc"
+            }
+          ]
+        }
+      ],
+      "price": 180,
+      "variants": [
+        {
+          "stock": 8
+        },
+        {
+          "stock": 6
+        },
+        {
+          "stock": 5
+        },
+        {
+          "stock": 3
+        }
+      ]
+    },
+    {
+      "handle": "small-blue-painting",
+      "image": "produit-05.webp",
+      "vendor": "Cimaise",
+      "type": {
+        "en": "Paintings",
+        "fr": "Peintures"
+      },
+      "tags": [
+        "painting",
+        "minimal"
+      ],
+      "title": {
+        "en": "Small Blue Painting",
+        "fr": "Petit tableau bleu"
+      },
+      "description": {
+        "en": "A minimalist study in deep blue on a small wooden panel. It looks best alone on a wide wall, or hung low above a shelf.",
+        "fr": "Une étude minimaliste en bleu profond sur un petit panneau de bois. Elle se montre au mieux seule sur un grand mur, ou accrochée bas au-dessus d’une étagère."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Frame",
+            "fr": "Cadre"
+          },
+          "values": [
+            {
+              "en": "Unframed",
+              "fr": "Sans cadre"
+            },
+            {
+              "en": "Black oak",
+              "fr": "Chêne noir"
+            }
+          ]
+        }
+      ],
+      "price": 240,
+      "compareAt": 280,
+      "variants": [
+        {
+          "stock": 5
+        },
+        {
+          "stock": 3
+        }
+      ]
+    },
+    {
+      "handle": "black-white-etching",
+      "image": "produit-06.webp",
+      "vendor": "Cimaise",
+      "type": {
+        "en": "Prints",
+        "fr": "Tirages"
+      },
+      "tags": [
+        "print",
+        "etching"
+      ],
+      "title": {
+        "en": "Black and White Etching",
+        "fr": "Gravure noir et blanc"
+      },
+      "description": {
+        "en": "A hand-pulled etching in deep black ink on cream paper, from an edition of 40. Numbered and signed in pencil.",
+        "fr": "Une gravure tirée à la main à l’encre noire profonde sur papier crème, d’une édition de 40. Numérotée et signée au crayon."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Format"
+          },
+          "values": [
+            "A3",
+            "A2"
+          ]
+        },
+        {
+          "name": {
+            "en": "Frame",
+            "fr": "Cadre"
+          },
+          "values": [
+            {
+              "en": "Black oak",
+              "fr": "Chêne noir"
+            },
+            {
+              "en": "White",
+              "fr": "Blanc"
+            }
+          ]
+        }
+      ],
+      "price": 150,
+      "variants": [
+        {
+          "stock": 6
+        },
+        {
+          "stock": 4
+        },
+        {
+          "stock": 4
+        },
+        {
+          "stock": 2
+        }
+      ]
+    }
+  ],
+  "homepage": {
+    "en": {
+      "hero": {
+        "eyebrow": "Art, prints and objects",
+        "heading": "Bring a wall to life",
+        "text": "Paintings, prints and sculpture chosen like an exhibition: few pieces, each given room to breathe.",
+        "button_label": "View the collection",
+        "button_2_label": "Sizes and frames"
+      },
+      "collection": {
+        "eyebrow": "Now showing",
+        "heading": "The collection"
+      },
+      "artist": {
+        "eyebrow": "Featured artist",
+        "meta": "Painter, born 1984, lives in Lyon",
+        "quote": "I paint what is left when the colour has stopped explaining itself.",
+        "bio": "<p>Lise works in oil and earth pigments on large linen canvases. Her abstract fields of ochre, rust and clay are built in thin layers over several months.</p>",
+        "button_label": "View the work"
+      },
+      "frames": {
+        "eyebrow": "Sizes and frames",
+        "heading": "Find the right size for your wall",
+        "text": "A good rule: the work should fill about two thirds of the free wall above a sofa or a console.",
+        "finishes": "Frames in black oak, natural oak or white"
+      },
+      "frames.format-1": {
+        "label": "Small",
+        "text": "Shelves, desks and small walls"
+      },
+      "frames.format-2": {
+        "label": "Medium",
+        "text": "Above a console or a bed"
+      },
+      "frames.format-3": {
+        "label": "Large",
+        "text": "Above a sofa, as a statement"
+      },
+      "frames.format-4": {
+        "label": "Gallery",
+        "text": "Tall walls and open spaces"
+      },
+      "room": {
+        "eyebrow": "In the room",
+        "heading": "Hang it, lean it, live with it",
+        "text": "<p>A framed print can be hung or simply leaned on a shelf. Every frame is made to order from solid oak, with museum-grade glass and a hanging kit included.</p>",
+        "button_label": "See framed prints"
+      },
+      "reviews": {
+        "heading": "From our collectors"
+      },
+      "reviews.testimonial-1": {
+        "quote": "Better in the flesh than on screen. The colours are deeper and the frame is beautifully made.",
+        "detail": "Earth tones painting"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Wrapped like a museum piece and it arrived without a mark. It anchors the whole living room.",
+        "detail": "Landscape photograph"
+      },
+      "reviews.testimonial-3": {
+        "quote": "The size guide saved me from ordering too small. The etching looks perfect above the desk.",
+        "detail": "Black and white etching"
+      },
+      "faq": {
+        "heading": "Before you order"
+      },
+      "faq.row-1": {
+        "question": "Are the works original?",
+        "answer": "<p>Paintings and sculptures are unique originals. Prints and photographs are limited editions, numbered and signed on the back.</p>"
+      },
+      "faq.row-2": {
+        "question": "How are works shipped?",
+        "answer": "<p>Framed pieces travel in a rigid crate with corner protection. Everything is insured against loss and damage.</p>"
+      },
+      "faq.row-3": {
+        "question": "Can I return a work?",
+        "answer": "<p>Yes, within 14 days in its original packaging. We refund the full price once it is back with us.</p>"
+      },
+      "newsletter": {
+        "heading": "Private view",
+        "text": "New works and exhibition news, before anyone else.",
+        "button_label": "Subscribe"
+      }
+    },
+    "fr": {
+      "hero": {
+        "eyebrow": "Art, tirages et objets",
+        "heading": "Donnez vie à un mur",
+        "text": "Peintures, tirages et sculptures choisis comme une exposition : peu de pièces, chacune avec l’espace pour respirer.",
+        "button_label": "Voir la collection",
+        "button_2_label": "Formats et cadres"
+      },
+      "collection": {
+        "eyebrow": "À l’affiche",
+        "heading": "La collection"
+      },
+      "artist": {
+        "eyebrow": "Artiste à l’honneur",
+        "meta": "Peintre, née en 1984, vit à Lyon",
+        "quote": "Je peins ce qui reste quand la couleur a cessé de s’expliquer.",
+        "bio": "<p>Lise travaille l’huile et les pigments de terre sur de grandes toiles de lin. Ses champs abstraits d’ocre, de rouille et d’argile se construisent en couches minces sur plusieurs mois.</p>",
+        "button_label": "Voir l’œuvre"
+      },
+      "frames": {
+        "eyebrow": "Formats et cadres",
+        "heading": "Trouvez le bon format pour votre mur",
+        "text": "Une bonne règle : l’œuvre doit occuper environ les deux tiers du mur libre au-dessus d’un canapé ou d’une console.",
+        "finishes": "Cadres en chêne noir, chêne naturel ou blanc"
+      },
+      "frames.format-1": {
+        "label": "Petit",
+        "text": "Étagères, bureaux et petits murs"
+      },
+      "frames.format-2": {
+        "label": "Moyen",
+        "text": "Au-dessus d’une console ou d’un lit"
+      },
+      "frames.format-3": {
+        "label": "Grand",
+        "text": "Au-dessus d’un canapé, comme une affirmation"
+      },
+      "frames.format-4": {
+        "label": "Galerie",
+        "text": "Murs hauts et espaces ouverts"
+      },
+      "room": {
+        "eyebrow": "Dans la pièce",
+        "heading": "Accrochez-la, posez-la, vivez avec",
+        "text": "<p>Un tirage encadré s’accroche ou se pose simplement sur une étagère. Chaque cadre est fabriqué sur commande en chêne massif, avec verre de qualité muséale et kit d’accrochage inclus.</p>",
+        "button_label": "Voir les tirages encadrés"
+      },
+      "reviews": {
+        "heading": "De nos collectionneurs"
+      },
+      "reviews.testimonial-1": {
+        "quote": "Encore mieux en vrai qu’à l’écran. Les couleurs sont plus profondes et le cadre est superbement fait.",
+        "detail": "Tableau aux tons terre"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Emballé comme une pièce de musée et arrivé sans une marque. Il structure tout le salon.",
+        "detail": "Photographie de paysage"
+      },
+      "reviews.testimonial-3": {
+        "quote": "Le guide des formats m’a évité de commander trop petit. La gravure est parfaite au-dessus du bureau.",
+        "detail": "Gravure noir et blanc"
+      },
+      "faq": {
+        "heading": "Avant de commander"
+      },
+      "faq.row-1": {
+        "question": "Les œuvres sont-elles originales ?",
+        "answer": "<p>Les peintures et sculptures sont des originaux uniques. Les tirages et photographies sont des éditions limitées, numérotées et signées au dos.</p>"
+      },
+      "faq.row-2": {
+        "question": "Comment les œuvres sont-elles expédiées ?",
+        "answer": "<p>Les pièces encadrées voyagent en caisse rigide avec protection des angles. Tout est assuré contre la perte et la casse.</p>"
+      },
+      "faq.row-3": {
+        "question": "Puis-je retourner une œuvre ?",
+        "answer": "<p>Oui, sous 14 jours dans son emballage d’origine. Nous remboursons le prix complet dès son retour.</p>"
+      },
+      "newsletter": {
+        "heading": "Vernissage privé",
+        "text": "Nouvelles œuvres et actualités des expositions, avant tout le monde.",
+        "button_label": "S’abonner"
+      }
+    },
+    "images": {
+      "hero": {
+        "image": "hero.webp"
+      },
+      "artist": {
+        "image": "ambiance.webp"
+      },
+      "room": {
+        "image": "ambiance.webp"
+      }
+    }
+  }
+}

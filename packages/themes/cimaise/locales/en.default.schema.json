@@ -1,0 +1,937 @@
+{
+  "settings_schema": {
+    "colors": {
+      "name": "Colors",
+      "settings": {
+        "color_primary": "Accent",
+        "color_background": "Background",
+        "color_surface": "Surface",
+        "color_text": "Text",
+        "color_sale": "Sale price",
+        "color_card": "Cards and panels"
+      }
+    },
+    "color_schemes": {
+      "name": "Color schemes",
+      "paragraphs": {
+        "color_schemes_can_be_applied_to_sections_and_blo": "Color schemes can be applied to sections and blocks. A section without a scheme uses the theme colors."
+      },
+      "definition": {
+        "settings": {
+          "name": "Name",
+          "background": "Background",
+          "text": "Text",
+          "surface": "Surface",
+          "border": "Border",
+          "button": "Button",
+          "button_label": "Button label",
+          "card": "Cards"
+        }
+      }
+    },
+    "brand": {
+      "name": "Brand",
+      "settings": {
+        "logo": "Logo",
+        "logo_width": "Logo width",
+        "favicon": "Favicon"
+      }
+    },
+    "typography": {
+      "name": "Typography",
+      "settings": {
+        "type_body_font": "Body font",
+        "type_heading_font": "Heading font",
+        "type_accent_font": "Accent font",
+        "type_base_size": "Base size"
+      },
+      "options": {
+        "type_body_font": {
+          "system_sans": "System sans-serif",
+          "system_serif": "System serif",
+          "dm_sans": "DM Sans",
+          "manrope": "Manrope",
+          "playfair_display": "Playfair Display",
+          "lora": "Lora",
+          "space_grotesk": "Space Grotesk",
+          "inter": "Inter"
+        },
+        "type_heading_font": {
+          "system_sans": "System sans-serif",
+          "system_serif": "System serif",
+          "dm_sans": "DM Sans",
+          "manrope": "Manrope",
+          "playfair_display": "Playfair Display",
+          "lora": "Lora",
+          "space_grotesk": "Space Grotesk",
+          "inter": "Inter"
+        },
+        "type_accent_font": {
+          "system_sans": "System sans-serif",
+          "system_serif": "System serif",
+          "dm_sans": "DM Sans",
+          "manrope": "Manrope",
+          "playfair_display": "Playfair Display",
+          "lora": "Lora",
+          "space_grotesk": "Space Grotesk",
+          "inter": "Inter"
+        }
+      }
+    },
+    "text_presets": {
+      "name": "Text presets",
+      "paragraphs": {
+        "text_presets_set_the_font_size_weight_line_heigh": "Text presets set the font, size, weight, line height and letter case of each text style. Sizes are a percentage of the base size."
+      },
+      "headers": {
+        "paragraph": "Paragraph",
+        "heading_1": "Heading 1",
+        "heading_2": "Heading 2",
+        "heading_3": "Heading 3",
+        "heading_4": "Heading 4",
+        "heading_5": "Heading 5",
+        "heading_6": "Heading 6"
+      },
+      "settings": {
+        "preset_paragraph_font": "Font",
+        "preset_paragraph_size": "Size",
+        "preset_paragraph_weight": "Weight",
+        "preset_paragraph_line_height": "Line height",
+        "preset_paragraph_case": "Letter case",
+        "preset_h1_font": "Font",
+        "preset_h1_size": "Size",
+        "preset_h1_weight": "Weight",
+        "preset_h1_line_height": "Line height",
+        "preset_h1_case": "Letter case",
+        "preset_h2_font": "Font",
+        "preset_h2_size": "Size",
+        "preset_h2_weight": "Weight",
+        "preset_h2_line_height": "Line height",
+        "preset_h2_case": "Letter case",
+        "preset_h3_font": "Font",
+        "preset_h3_size": "Size",
+        "preset_h3_weight": "Weight",
+        "preset_h3_line_height": "Line height",
+        "preset_h3_case": "Letter case",
+        "preset_h4_font": "Font",
+        "preset_h4_size": "Size",
+        "preset_h4_weight": "Weight",
+        "preset_h4_line_height": "Line height",
+        "preset_h4_case": "Letter case",
+        "preset_h5_font": "Font",
+        "preset_h5_size": "Size",
+        "preset_h5_weight": "Weight",
+        "preset_h5_line_height": "Line height",
+        "preset_h5_case": "Letter case",
+        "preset_h6_font": "Font",
+        "preset_h6_size": "Size",
+        "preset_h6_weight": "Weight",
+        "preset_h6_line_height": "Line height",
+        "preset_h6_case": "Letter case"
+      },
+      "options": {
+        "preset_paragraph_font": {
+          "body": "Body",
+          "heading": "Heading",
+          "accent": "Accent"
+        },
+        "preset_paragraph_case": {
+          "none": "As typed",
+          "uppercase": "Uppercase",
+          "capitalize": "Capitalize"
+        },
+        "preset_h1_font": {
+          "body": "Body",
+          "heading": "Heading",
+          "accent": "Accent"
+        },
+        "preset_h1_case": {
+          "none": "As typed",
+          "uppercase": "Uppercase",
+          "capitalize": "Capitalize"
+        },
+        "preset_h2_font": {
+          "body": "Body",
+          "heading": "Heading",
+          "accent": "Accent"
+        },
+        "preset_h2_case": {
+          "none": "As typed",
+          "uppercase": "Uppercase",
+          "capitalize": "Capitalize"
+        },
+        "preset_h3_font": {
+          "body": "Body",
+          "heading": "Heading",
+          "accent": "Accent"
+        },
+        "preset_h3_case": {
+          "none": "As typed",
+          "uppercase": "Uppercase",
+          "capitalize": "Capitalize"
+        },
+        "preset_h4_font": {
+          "body": "Body",
+          "heading": "Heading",
+          "accent": "Accent"
+        },
+        "preset_h4_case": {
+          "none": "As typed",
+          "uppercase": "Uppercase",
+          "capitalize": "Capitalize"
+        },
+        "preset_h5_font": {
+          "body": "Body",
+          "heading": "Heading",
+          "accent": "Accent"
+        },
+        "preset_h5_case": {
+          "none": "As typed",
+          "uppercase": "Uppercase",
+          "capitalize": "Capitalize"
+        },
+        "preset_h6_font": {
+          "body": "Body",
+          "heading": "Heading",
+          "accent": "Accent"
+        },
+        "preset_h6_case": {
+          "none": "As typed",
+          "uppercase": "Uppercase",
+          "capitalize": "Capitalize"
+        }
+      }
+    },
+    "layout": {
+      "name": "Layout",
+      "settings": {
+        "page_width": "Page width",
+        "corner_radius": "Corner radius",
+        "section_spacing": "Section spacing"
+      }
+    },
+    "product_cards": {
+      "name": "Product cards",
+      "settings": {
+        "show_vendor": "Show the brand",
+        "card_image_ratio": "Image ratio",
+        "card_text_align": "Text alignment",
+        "card_show_quick_add": "Show a quick add button",
+        "card_show_swatches": "Show colour swatches"
+      },
+      "options": {
+        "card_image_ratio": {
+          "square": "Square",
+          "portrait": "Portrait",
+          "landscape": "Landscape"
+        },
+        "card_text_align": {
+          "left": "Left",
+          "center": "Center"
+        }
+      }
+    },
+    "shade_swatches": {
+      "name": "Colour swatches",
+      "settings": {
+        "swatches_enabled": "Show color options as swatches",
+        "swatch_shape": "Shape",
+        "swatch_size": "Size",
+        "swatch_option_names": "Option names shown as swatches",
+        "swatch_colors": "Colour names and values"
+      },
+      "options": {
+        "swatch_shape": {
+          "circle": "Circle",
+          "rounded": "Rounded",
+          "square": "Square"
+        }
+      },
+      "info": {
+        "swatch_option_names": "Comma-separated, not case sensitive.",
+        "swatch_colors": "Name:#hex pairs separated by commas, for example Olive:#6b705c,Camel:#b88a5a. Colours that are not listed use a built-in value."
+      }
+    },
+    "buttons": {
+      "name": "Buttons",
+      "settings": {
+        "button_radius": "Corner radius",
+        "button_border_width": "Border width",
+        "button_height": "Height",
+        "button_uppercase": "Uppercase labels",
+        "button_font": "Font"
+      },
+      "options": {
+        "button_font": {
+          "body": "Body",
+          "heading": "Heading",
+          "accent": "Accent"
+        }
+      }
+    },
+    "badges": {
+      "name": "Badges",
+      "settings": {
+        "badge_show_sale": "Show a sale badge",
+        "badge_sale_percent": "Show the saving as a percentage",
+        "badge_show_sold_out": "Show a sold-out badge",
+        "badge_position": "Position",
+        "badge_sold_out_color": "Sold-out badge color"
+      },
+      "options": {
+        "badge_position": {
+          "top_left": "Top left",
+          "top_right": "Top right",
+          "bottom_left": "Bottom left"
+        }
+      }
+    },
+    "cart": {
+      "name": "Cart",
+      "settings": {
+        "cart_show_free_shipping": "Show the free shipping progress bar",
+        "free_shipping_threshold": "Free shipping threshold",
+        "cart_show_note": "Show the order note",
+        "cart_show_thumbnails": "Show product images",
+        "cart_show_vendor": "Show the brand",
+        "cart_show_continue": "Show the continue shopping link"
+      }
+    },
+    "search": {
+      "name": "Search",
+      "settings": {
+        "search_predictive": "Predictive search",
+        "search_show_image": "Show product images in suggestions",
+        "search_show_price": "Show prices in suggestions",
+        "search_suggestions_limit": "Suggestions per type"
+      }
+    },
+    "inputs": {
+      "name": "Inputs",
+      "settings": {
+        "input_radius": "Corner radius",
+        "input_border_width": "Border width",
+        "input_height": "Height"
+      }
+    },
+    "price": {
+      "name": "Price",
+      "settings": {
+        "price_show_compare_at": "Show the compare-at price",
+        "price_show_from": "Show \"From\" for products with several prices"
+      }
+    },
+    "icons": {
+      "name": "Icons",
+      "settings": {
+        "icon_stroke_width": "Stroke width",
+        "icon_size": "Size"
+      }
+    },
+    "animations": {
+      "name": "Animations",
+      "settings": {
+        "anim_reveal": "Reveal sections as they scroll into view",
+        "anim_card_zoom": "Zoom product images on hover",
+        "anim_duration": "Animation duration"
+      }
+    },
+    "features": {
+      "name": "Store features",
+      "settings": {
+        "show_breadcrumbs": "Show breadcrumbs",
+        "show_back_to_top": "Show a back to top button",
+        "stock_counter": "Show a low stock message",
+        "stock_threshold": "Show it when this many or fewer are left",
+        "age_gate_enabled": "Ask visitors for their age",
+        "age_gate_min_age": "Minimum age"
+      },
+      "info": {
+        "age_gate_enabled": "A popup asks each visitor once. It is not shown in the theme editor."
+      }
+    }
+  },
+  "shared": {
+    "color_scheme": "Color scheme",
+    "left": "Left",
+    "center": "Center"
+  },
+  "blocks": {},
+  "sections": {
+    "announcement_bar": {
+      "name": "Announcement bar",
+      "settings": {
+        "show": "Show the announcement bar",
+        "text": "Text",
+        "link": "Link",
+        "color_scheme": "Color scheme"
+      },
+      "info": {
+        "text": "Leave blank to use the theme's default message."
+      },
+      "presets": {
+        "announcement_bar": "Announcement bar"
+      }
+    },
+    "cart_drawer": {
+      "name": "Cart drawer",
+      "settings": {
+        "show_note": "Show the order note"
+      }
+    },
+    "collapsible_content": {
+      "name": "FAQ",
+      "settings": {
+        "heading": "Heading",
+        "open_first": "Open the first question",
+        "color_scheme": "Color scheme"
+      },
+      "info": {
+        "heading": "Leave texts blank to use the theme's default content in the shopper's language."
+      },
+      "blocks": {
+        "row": {
+          "name": "Question",
+          "settings": {
+            "question": "Question",
+            "answer": "Answer"
+          }
+        }
+      },
+      "presets": {
+        "faq": "FAQ"
+      }
+    },
+    "collection_list": {
+      "name": "Collection list",
+      "settings": {
+        "heading": "Heading",
+        "collections": "Collections",
+        "columns": "Columns on large screens",
+        "color_scheme": "Color scheme",
+        "eyebrow": "Eyebrow"
+      },
+      "info": {
+        "heading": "Leave blank to use the theme's default heading.",
+        "collections": "Leave empty to show your collections automatically."
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      },
+      "presets": {
+        "collection_list": "Collection list"
+      }
+    },
+    "custom_liquid": {
+      "name": "Custom Liquid",
+      "settings": {
+        "custom_liquid": "Liquid code",
+        "color_scheme": "Color scheme"
+      },
+      "presets": {
+        "custom_liquid": "Custom Liquid"
+      }
+    },
+    "featured_collection": {
+      "name": "Featured collection",
+      "settings": {
+        "eyebrow": "Eyebrow",
+        "heading": "Heading",
+        "text": "Introduction",
+        "collection": "Collection",
+        "products_to_show": "Products to show",
+        "columns": "Columns on large screens",
+        "show_view_all": "Show the view all button",
+        "color_scheme": "Color scheme"
+      },
+      "info": {
+        "heading": "Leave blank to use the theme's default heading."
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      },
+      "presets": {
+        "featured_collection": "Featured collection"
+      }
+    },
+    "groups": {
+      "footer": "Footer",
+      "footer_utilities": "Footer utilities",
+      "header": "Header",
+      "overlays": "Overlays"
+    },
+    "footer_utilities": {
+      "name": "Footer utilities",
+      "settings": {
+        "show_copyright": "Show the copyright line",
+        "show_powered_by": "Show the powered-by line",
+        "show_language_selector": "Show the language selector",
+        "show_country_selector": "Show the country and currency selector",
+        "color_scheme": "Color scheme"
+      }
+    },
+    "footer": {
+      "name": "Footer",
+      "settings": {
+        "menu": "Menu",
+        "menu_heading": "Menu heading",
+        "show_description": "Show the store description",
+        "show_newsletter": "Show the newsletter form",
+        "color_scheme": "Color scheme"
+      },
+      "info": {
+        "menu_heading": "Leave blank to use the theme's default heading."
+      }
+    },
+    "header": {
+      "name": "Header",
+      "settings": {
+        "menu": "Menu",
+        "sticky": "Sticky header",
+        "transparent_home": "Soft background on the home page"
+      }
+    },
+    "hero": {
+      "name": "Hero",
+      "headers": {
+        "content": "Content",
+        "media": "Media",
+        "appearance": "Appearance"
+      },
+      "settings": {
+        "eyebrow": "Eyebrow",
+        "heading": "Heading",
+        "text": "Text",
+        "button_label": "Primary button label",
+        "button_link": "Primary button link",
+        "button_2_label": "Secondary button label",
+        "button_2_link": "Secondary button link",
+        "image": "Image",
+        "product": "Featured product",
+        "layout": "Layout",
+        "color_scheme": "Color scheme"
+      },
+      "info": {
+        "eyebrow": "Leave texts blank to use the theme's default content in the shopper's language.",
+        "product": "Its photo is used when no image is chosen."
+      },
+      "options": {
+        "layout": {
+          "split": "Text and image",
+          "center": "Centered",
+          "full": "Full-width image",
+          "reverse": "Image and text, reversed"
+        }
+      },
+      "blocks": {
+        "chip": {
+          "name": "Highlight",
+          "settings": {
+            "icon": "Icon",
+            "text": "Text"
+          },
+          "options": {
+            "icon": {
+              "leaf": "Leaf",
+              "drop": "Drop",
+              "sparkle": "Sparkle",
+              "heart": "Heart",
+              "sun": "Sun",
+              "moon": "Moon",
+              "truck": "Delivery",
+              "refresh": "Returns",
+              "shield": "Protection",
+              "package": "Parcel",
+              "gift": "Gift",
+              "clock": "Clock",
+              "tag": "Tag",
+              "home": "Home",
+              "scissors": "Scissors",
+              "ruler": "Ruler",
+              "check": "Check"
+            }
+          }
+        }
+      },
+      "presets": {
+        "hero": "Hero"
+      }
+    },
+    "image_with_text": {
+      "name": "Image with text",
+      "settings": {
+        "image": "Image",
+        "eyebrow": "Eyebrow",
+        "heading": "Heading",
+        "text": "Text",
+        "button_label": "Button label",
+        "button_link": "Button link",
+        "layout": "Image position",
+        "color_scheme": "Color scheme"
+      },
+      "info": {
+        "eyebrow": "Leave texts blank to use the theme's default content in the shopper's language."
+      },
+      "options": {
+        "layout": {
+          "left": "Left",
+          "right": "Right"
+        }
+      },
+      "presets": {
+        "image_with_text": "Image with text"
+      }
+    },
+    "main_404": {
+      "name": "Not found"
+    },
+    "main_account": {
+      "name": "Customer account"
+    },
+    "customer": {
+      "headers": {
+        "content": "Content",
+        "layout": "Layout"
+      },
+      "settings": {
+        "heading": "Heading",
+        "text": "Introduction text",
+        "show_store_credit": "Show the store credit balance",
+        "show_default_address": "Show the default address",
+        "orders_per_page": "Orders per page",
+        "details_position": "Account details",
+        "align": "Alignment",
+        "width": "Width",
+        "columns": "Addresses per row",
+        "show_recover_link": "Show the forgotten password link",
+        "show_register_link": "Show the link to create an account",
+        "show_sku": "Show the SKU column",
+        "show_addresses": "Show the shipping and billing addresses",
+        "show_shipments": "Show shipments and tracking",
+        "show_name_fields": "Ask for first and last name",
+        "show_marketing": "Show the marketing email opt-in",
+        "show_login_link": "Show the link to log in"
+      },
+      "info": {
+        "heading": "Leave empty to use the default title in the customer's language.",
+        "show_store_credit": "Only shown when store credit is turned on and the customer has a balance.",
+        "text_default": "Leave empty to use the default text.",
+        "order_heading": "The order number is added after it. Leave empty for the default title."
+      },
+      "options": {
+        "details_position": {
+          "side": "Beside the orders",
+          "below": "Below the orders"
+        },
+        "width": {
+          "narrow": "Narrow",
+          "page": "Page width"
+        }
+      }
+    },
+    "main_activate_account": {
+      "name": "Activate account"
+    },
+    "main_addresses": {
+      "name": "Customer addresses",
+      "options": {
+        "columns": {
+          "1": "1",
+          "2": "2",
+          "3": "3"
+        }
+      }
+    },
+    "main_article": {
+      "name": "Article",
+      "settings": {
+        "show_author": "Show author",
+        "show_navigation": "Show previous and next links"
+      }
+    },
+    "main_blog": {
+      "name": "Blog posts",
+      "settings": {
+        "articles_per_page": "Articles per page",
+        "show_image": "Show image",
+        "show_author": "Show author"
+      }
+    },
+    "main_cart": {
+      "name": "Cart"
+    },
+    "main_collection": {
+      "name": "Collection",
+      "settings": {
+        "products_per_page": "Products per page",
+        "columns": "Columns on large screens",
+        "show_description": "Show the collection description",
+        "infinite_scroll": "Load more products while scrolling"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      },
+      "info": {
+        "infinite_scroll": "Next pages are added to the grid as the shopper reaches the end. Pagination stays available without JavaScript."
+      }
+    },
+    "main_contact": {
+      "name": "Contact form"
+    },
+    "main_list_collections": {
+      "name": "Collections list"
+    },
+    "main_login": {
+      "name": "Customer login"
+    },
+    "main_order": {
+      "name": "Customer order"
+    },
+    "main_page": {
+      "name": "Page"
+    },
+    "main_password": {
+      "name": "Password page"
+    },
+    "main_product": {
+      "name": "Product",
+      "settings": {
+        "show_vendor": "Show the brand",
+        "show_summary": "Show a short summary under the price",
+        "show_badge": "Show a sale badge on the photo"
+      },
+      "blocks": {
+        "benefit": {
+          "name": "Benefit",
+          "settings": {
+            "icon": "Icon",
+            "text": "Text"
+          },
+          "options": {
+            "icon": {
+              "leaf": "Leaf",
+              "drop": "Drop",
+              "sparkle": "Sparkle",
+              "heart": "Heart",
+              "truck": "Delivery",
+              "check": "Check",
+              "refresh": "Returns",
+              "shield": "Protection",
+              "package": "Parcel",
+              "gift": "Gift",
+              "clock": "Clock",
+              "tag": "Tag",
+              "home": "Home",
+              "scissors": "Scissors",
+              "ruler": "Ruler"
+            }
+          },
+          "info": {
+            "text": "Leave blank to use the theme's default text."
+          }
+        },
+        "accordion": {
+          "name": "Accordion",
+          "settings": {
+            "heading": "Heading",
+            "text": "Text",
+            "show_description": "Show the product description",
+            "open": "Open by default"
+          },
+          "info": {
+            "heading": "Leave texts blank to use the theme's default content in the shopper's language."
+          }
+        },
+        "details": {
+          "name": "Details from a metafield",
+          "settings": {
+            "heading": "Heading",
+            "namespace": "Metafield namespace",
+            "key": "Metafield key",
+            "open": "Open by default"
+          },
+          "info": {
+            "heading": "Leave blank to use the theme's default heading.",
+            "key": "Shown only when the product has this metafield."
+          }
+        }
+      }
+    },
+    "main_register": {
+      "name": "Create account"
+    },
+    "main_reset_password": {
+      "name": "Reset password"
+    },
+    "main_search": {
+      "name": "Search results",
+      "settings": {
+        "products_per_page": "Results per page",
+        "columns": "Columns on large screens"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      }
+    },
+    "newsletter": {
+      "name": "Newsletter",
+      "settings": {
+        "heading": "Heading",
+        "text": "Text",
+        "button_label": "Button label",
+        "color_scheme": "Color scheme"
+      },
+      "info": {
+        "heading": "Leave texts blank to use the theme's default content in the shopper's language."
+      },
+      "presets": {
+        "newsletter": "Newsletter"
+      }
+    },
+    "product_recommendations": {
+      "name": "Product recommendations",
+      "settings": {
+        "heading": "Heading",
+        "products_to_show": "Products to show",
+        "columns": "Columns on large screens"
+      },
+      "info": {
+        "heading": "Leave blank to use the theme's default heading."
+      },
+      "options": {
+        "columns": {
+          "3": "3",
+          "4": "4"
+        }
+      },
+      "presets": {
+        "product_recommendations": "Product recommendations"
+      }
+    },
+    "rich_text": {
+      "name": "Rich text",
+      "settings": {
+        "eyebrow": "Eyebrow",
+        "heading": "Heading",
+        "text": "Text",
+        "button_label": "Button label",
+        "button_link": "Button link",
+        "align": "Alignment",
+        "color_scheme": "Color scheme"
+      },
+      "options": {
+        "align": {
+          "left": "Left",
+          "center": "Center"
+        }
+      },
+      "presets": {
+        "rich_text": "Rich text"
+      }
+    },
+    "testimonials": {
+      "name": "Testimonials",
+      "settings": {
+        "heading": "Heading",
+        "color_scheme": "Color scheme"
+      },
+      "info": {
+        "heading": "Leave texts blank to use the theme's default content in the shopper's language."
+      },
+      "blocks": {
+        "testimonial": {
+          "name": "Testimonial",
+          "settings": {
+            "quote": "Quote",
+            "name": "Name",
+            "detail": "Detail",
+            "avatar": "Photo",
+            "rating": "Stars"
+          },
+          "info": {
+            "detail": "For example \"Verified buyer\" or the product bought."
+          }
+        }
+      },
+      "presets": {
+        "testimonials": "Testimonials"
+      }
+    },
+    "countdown": {
+      "name": "Countdown timer",
+      "settings": {
+        "eyebrow": "Eyebrow",
+        "heading": "Heading",
+        "text": "Text",
+        "end_date": "End date",
+        "ended_text": "Message when the offer has ended",
+        "button_label": "Button label",
+        "button_link": "Button link",
+        "color_scheme": "Color scheme"
+      },
+      "info": {
+        "end_date": "Format: 2027-01-31T23:59 (year, month, day, T, hour and minute)."
+      },
+      "presets": {
+        "countdown": "Countdown timer"
+      }
+    },
+    "artist_feature": {
+      "name": "Featured artist",
+      "settings": {
+        "eyebrow": "Eyebrow",
+        "name": "Artist name",
+        "meta": "Line under the name",
+        "bio": "Biography",
+        "quote": "Quote",
+        "image": "Photo",
+        "product": "Featured work (its photo is used when there is no photo)",
+        "button_label": "Button label",
+        "color_scheme": "Color scheme"
+      },
+      "presets": {
+        "artist_feature": "Featured artist"
+      }
+    },
+    "frame_guide": {
+      "name": "Frame and size guide",
+      "settings": {
+        "eyebrow": "Eyebrow",
+        "heading": "Heading",
+        "text": "Text",
+        "finishes": "Frame finishes",
+        "color_scheme": "Color scheme"
+      },
+      "blocks": {
+        "format": {
+          "name": "Size",
+          "settings": {
+            "label": "Name",
+            "width": "Width (cm)",
+            "height": "Height (cm)",
+            "text": "Where it works"
+          }
+        }
+      },
+      "presets": {
+        "frame_guide": "Frame and size guide"
+      }
+    }
+  }
+}
