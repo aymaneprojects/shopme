@@ -1,6 +1,8 @@
 import nodemailer from 'nodemailer';
 
-export interface Mail { to: string; subject: string; text: string; html?: string; from?: string; replyTo?: string; /** Display name to use when `from` is empty (the store name; multi-store mailer). */ fromName?: string }
+export interface Mail { to: string; subject: string; text: string; html?: string; from?: string; replyTo?: string; /** Display name to use when `from` is empty (the store name; multi-store mailer). */ fromName?: string;
+  /** Store the message belongs to (picks its sending settings). Empty: the installation's own mail. */ shopId?: number;
+  /** Promotional mail (abandoned cart, newsletters): carries List-Unsubscribe headers. Transactional mail does not. */ marketing?: boolean }
 export interface Mailer { send(mail: Mail): Promise<void> }
 interface Logger { info(obj: unknown, msg?: string): void }
 

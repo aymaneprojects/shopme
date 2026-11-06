@@ -24,7 +24,7 @@ const PAGES: Array<{ key: Key; to: string; icon: ComponentType<{ className?: str
   { key: 'settings.accounts', to: '/settings/accounts', icon: Settings, group: 'cmd.settings' }, { key: 'settings.privacy', to: '/settings/privacy', icon: Settings, group: 'cmd.settings' }, { key: 'settings.events', to: '/settings/events', icon: Settings, group: 'cmd.settings' },
   { key: 'settings.shipping', to: '/settings/shipping', icon: Settings, group: 'cmd.settings' }, { key: 'settings.taxes', to: '/settings/taxes', icon: Settings, group: 'cmd.settings' },
   { key: 'settings.domains', to: '/settings/domains', icon: Settings, group: 'cmd.settings' }, { key: 'settings.languages', to: '/settings/languages', icon: Settings, group: 'cmd.settings' },
-  { key: 'settings.users', to: '/settings/users', icon: Settings, group: 'cmd.settings' }, { key: 'settings.notifications', to: '/settings/notifications', icon: Settings, group: 'cmd.settings' },
+  { key: 'settings.users', to: '/settings/users', icon: Settings, group: 'cmd.settings' }, { key: 'settings.notifications', to: '/settings/notifications', icon: Settings, group: 'cmd.settings' }, { key: 'settings.emails', to: '/settings/emails', icon: Settings, group: 'cmd.settings' },
   { key: 'settings.policies', to: '/settings/policies', icon: Settings, group: 'cmd.settings' }, { key: 'settings.webhooks', to: '/settings/webhooks', icon: Settings, group: 'cmd.settings' },
 ];
 const SCOPES: Array<{ id: Scope; key: Key }> = [{ id: 'customers', key: 'cmd.customers' }, { id: 'orders', key: 'cmd.orders' }, { id: 'products', key: 'cmd.products' }, { id: 'channels', key: 'fid.cmd.channels' }, { id: 'pages', key: 'cmd.pages' }];

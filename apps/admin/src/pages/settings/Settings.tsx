@@ -14,6 +14,7 @@ import { CURRENCIES, TIMEZONES } from '../../lib/countries';
 import { SETTINGS_SECTIONS } from '../../lib/settingsNav';
 import { useMulti } from '../../session';
 import { StoreDomains } from './StoreDomains';
+import { EmailBanner } from '../../components/EmailSetup';
 
 /** Settings pages sit in a narrow centered column under a large title; sub-pages draw their own header. */
 export function SettingsLayout() {
@@ -31,6 +32,7 @@ export function SettingsLayout() {
             <div ref={setSlot} className="flex items-center gap-2" />
           </div>
         )}
+        {pathname !== '/settings/emails' && <EmailBanner />}
         <Outlet />
       </div>
     </SettingsSlot.Provider>

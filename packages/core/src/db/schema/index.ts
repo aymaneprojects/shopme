@@ -22,3 +22,4 @@ export * from './b2b';
 export * from './analytics';
 export * from './subscriptions';
 export * from './multistore';
+export * from './email';

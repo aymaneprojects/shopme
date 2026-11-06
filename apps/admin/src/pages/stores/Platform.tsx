@@ -7,6 +7,8 @@ import { StoreAvatar } from '../../components/AccountMenu';
 import { PageHeader } from '../../components/PageHeader';
 import { useI18n } from '../../i18n';
 import { useSession } from '../../session';
+import { PlatformEmail } from '../../components/EmailSetup';
+import { Section } from '../../components/SettingsKit';
 
 interface PlatformStore { id: number; name: string; handle: string; status: 'ACTIVE' | 'SUSPENDED'; ownerEmail: string | null; primaryDomain: string | null; createdAt: string; staffCount: number; host: string | null; url: string; adminPath: string }
 interface PlatformData { stores: PlatformStore[]; settings: { storeCreation: 'OWNER' | 'EVERYONE' } }
@@ -91,6 +93,7 @@ export function PlatformPage() {
               ))}
             </fieldset>
           </Card>
+          <Section title={t('email.platform.title')} description={t('email.platform.desc')}><Card><PlatformEmail defaultTo={state.status === 'account' ? state.multi.account.email : ''} /></Card></Section>
         </div>
       )}
       <Modal open={!!deleting} onClose={() => setDeleting(null)} closeLabel={t('common.close')} title={t('ms.platform.deleteTitle', { name: deleting?.name ?? '' })}

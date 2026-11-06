@@ -222,7 +222,7 @@ for (const handle of THEME_HANDLES) {
     async function check(locale: 'en' | 'fr') {
       const enLeaves = leaves(loadJson(handle, 'locales/en.default.json'));
       const frLeaves = leaves(loadJson(handle, 'locales/fr.json'));
-      const frSeeds = loadJson(handle, 'locales/fr.json').seed_defaults as Record<string, string>;
+      const frSeeds = (loadJson(handle, 'locales/fr.json') as Record<string, unknown>).seed_defaults as Record<string, string>;
       const seeds = Object.keys(frSeeds);
       const shopData = new Set(['Search', 'Contact', 'Home', 'About us', 'Coffee', 'Tea', 'Products', 'Shipping and returns', 'Filter']);
       const leakedUi = Object.keys(enLeaves).filter((k) => enLeaves[k] !== frLeaves[k] && !shopData.has(enLeaves[k]!) && !enLeaves[k]!.includes('{{') && enLeaves[k]!.length >= 5 && !/^(general\.date_format)$/.test(k));

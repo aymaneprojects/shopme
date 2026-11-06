@@ -139,9 +139,11 @@ visitor becomes the platform owner).
   `https://admin.example.com/webhooks/stripe/<handle>`; ShopMe checks each event with that store's secret. A store
   without keys uses the installation's `STRIPE_*` keys (events on that shared account are matched to the store that
   owns the payment).
-- E-mail: stores share the SMTP account (`SMTP_URL`). Messages go out from `MAIL_FROM` with the store's sender name
-  (Settings > Notifications) as display name, and replies go to the store's own address, so no store can send as a
-  domain the installation does not control.
+- E-mail: each store has its own e-mail settings, DKIM keys and outbox (Settings > E-mails) and signs with its own
+  domain. Until a store's domain passes its SPF and DKIM checks, it sends from `no-reply@<STORE_BASE_DOMAIN>` with the
+  store's name as display name and its address as Reply-To; the platform owner authenticates that domain once in the
+  platform area. A store that has not chosen a mode uses the installation's `SMTP_URL` when there is one (messages then
+  go out from `MAIL_FROM`). See [Sending e-mail](email.md).
 
 ## Files, backups and exports
 

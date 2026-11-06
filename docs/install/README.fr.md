@@ -39,8 +39,11 @@ fichier `.env` placé à côté de `docker-compose.yml` :
 | `POSTGRES_PASSWORD` | À changer (défaut : `shopme`) pour tout serveur public. |
 | `APP_URL` | URL publique, par ex. `https://boutique.exemple.fr`. |
 | `SESSION_SECRET` | Facultatif ; généré et conservé dans le volume de données s'il est vide. |
-| `SMTP_URL` | Envoi d'e-mails. Sans lui, les e-mails sont écrits dans les journaux. |
+| `SMTP_URL` | Relais SMTP facultatif de toute l'installation. Sans lui, les boutiques envoient directement depuis le serveur (voir [Envoi d'e-mails](email.fr.md)). |
+| `PUBLIC_IP` | IP publique du serveur pour les enregistrements DNS des e-mails, facultative, quand elle ne peut pas être détectée. |
 | `STRIPE_*` | Clés Stripe (quand le paiement sera disponible). |
+
+Les e-mails de commande, d'expédition et de mot de passe ont besoin de trois lignes DNS chez votre fournisseur de domaine pour arriver en boîte de réception : Réglages > E-mails les affiche. Voir [Envoi d'e-mails](email.fr.md).
 
 Un récepteur d'e-mails local est disponible avec `docker compose --profile dev up -d` (`SMTP_URL=smtp://mailpit:1025`,
 interface sur le port 8025).

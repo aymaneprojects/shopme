@@ -3,6 +3,7 @@ import type { Account, AppConfig, Db, DbHandle, JobQueue, Mailer, Storage, Staff
 import type { LocaleCache } from './locale-cache';
 import type { ServerPaths } from './paths';
 import type { StoreRegistry } from './stores';
+import type { EmailService } from './email/service';
 
 /** Everything a route/service needs. Created once in buildApp and available as `app.ctx`. */
 export interface AppContext {
@@ -11,6 +12,8 @@ export interface AppContext {
   dbHandle: DbHandle;
   queue: JobQueue;
   mailer: Mailer;
+  /** Sending settings, DKIM, checks and the outbox (direct delivery or relay). `mailer` is its front door. */
+  email: EmailService;
   /** The storage root. Store code uses `storageFor(shopId)` (the store's own folder in multi-store mode). */
   storage: Storage;
   storageFor(shopId: number): Storage;

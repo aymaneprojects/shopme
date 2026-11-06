@@ -25,7 +25,8 @@ import { registerWebhooks } from './webhooks';
 import { installHostRouting, registerTlsAsk, StoreRegistry } from './stores';
 import { registerStoresRoutes } from './admin/stores-routes';
 import { registerThemeRoutes } from './admin/themes-routes';
-import { createPlatformMailer } from './mailer';
+import { EmailService } from './email/service';
+import { registerEmailRoutes } from './email/routes';
 import { installStoreAccessCheck } from './plugins/auth';
 
 export const APP_VERSION = '0.1.0';
@@ -71,10 +72,12 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   const ctx: AppContext = {
     config, db: dbHandle.db, dbHandle, paths: resolvePaths(opts.paths), log: app.log,
     queue: createInProcessQueue(app.log),
-    mailer: createPlatformMailer(config, app.log),
+    mailer: undefined as never, email: undefined as never,
     storage, storageFor: (shopId) => stores.storageFor(shopId), stores,
     locales, appVersion: APP_VERSION,
   };
+  ctx.email = new EmailService(ctx);
+  ctx.mailer = ctx.email.mailer();
   app.decorate('ctx', ctx);
   if (dbHandle.driver === 'postgres') await ensureSearchExtensions(ctx.db); // pg_trgm for typo tolerance when the server allows it
   app.decorateRequest('auth', null);
@@ -104,6 +107,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   registerAuthRoutes(app);
   registerStoresRoutes(app);
   registerThemeRoutes(app);
+  registerEmailRoutes(app);
   registerTwoFactorRoutes(app);
   registerReportRoutes(app);
   registerLabelRoutes(app);

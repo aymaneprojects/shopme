@@ -11,6 +11,8 @@ import { MARKETING_PAGE, ORDERS_COUNT, PAYMENT_SETTINGS, SHOPME_DASHBOARD, SHOP_
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useStoreInfo } from '../lib/storeInfo';
+import { EmailBanner } from '../components/EmailSetup';
+import { fetchEmailHealth } from '../lib/emailApi';
 import { useMulti, useShop } from '../session';
 
 interface Dash { totalSales: Money; ordersCount: number; averageOrderValue: Money; salesByDay: Array<{ date: string; sales: { amount: string } }>; topProducts: Array<{ title: string; quantity: number }> }
@@ -86,6 +88,16 @@ function DomainArt() {
     </svg>
   );
 }
+function EmailArt() {
+  return (
+    <svg viewBox="0 0 240 120" className="h-full w-full" aria-hidden>
+      <rect x="62" y="30" width="116" height="68" rx="8" fill={ART.card} stroke={ART.line} strokeWidth="1.5" />
+      <path d="m66 36 54 36 54-36" fill="none" stroke={ART.main} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="170" cy="40" r="14" fill={ART.main} /><path d="m163 40 5 5 9-10" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function PolicyArt() {
   return (
     <svg viewBox="0 0 240 120" className="h-full w-full" aria-hidden>
@@ -130,10 +142,12 @@ export function HomePage() {
   const toProcess = useQuery({ queryKey: ['orders-count', 'to-process'], queryFn: () => gql<{ ordersCount: { count: number } }>(ORDERS_COUNT, { query: 'fulfillment_status:unfulfilled status:open' }) });
   const pay = useQuery({ queryKey: ['home-payments'], retry: false, queryFn: () => gql<{ shopmePaymentSettings: { bankTransfer: { enabled: boolean }; cod: { enabled: boolean }; stripe: { enabled: boolean; stripeConfigured: boolean } } }>(PAYMENT_SETTINGS) });
   const pol = useQuery({ queryKey: ['home-policies'], retry: false, queryFn: () => gql<{ shop: { shopPolicies: Array<{ body: string }> } }>(SHOP_POLICIES) });
+  const mail = useQuery({ queryKey: ['email-health'], retry: false, staleTime: 60_000, queryFn: fetchEmailHealth });
   const p = pay.data?.shopmePaymentSettings;
   const steps = [
     { to: '/settings/payments', art: <PaymentArt />, title: t('home.setupPayments'), body: t('home.setupPayments.body'), done: !!p && (p.bankTransfer.enabled || p.cod.enabled || (p.stripe.enabled && p.stripe.stripeConfigured)) },
     { to: '/settings/domains', art: <DomainArt />, title: t('home.setupDomain'), body: t('home.setupDomain.body'), done: store.customDomain },
+    { to: '/settings/emails', art: <EmailArt />, title: t('home.setupEmail'), body: t('home.setupEmail.body'), done: !!mail.data && mail.data.done },
     { to: '/settings/policies', art: <PolicyArt />, title: t('home.setupPolicies'), body: t('home.setupPolicies.body'), done: !!pol.data && pol.data.shop.shopPolicies.some((x) => x.body.trim() !== '') },
   ];
   const [range, setRange] = useState('LAST_7_DAYS');
@@ -148,6 +162,7 @@ export function HomePage() {
 
   return (
     <>
+      <div className="mx-auto max-w-[860px]"><EmailBanner /></div>
       <div className="mx-auto flex max-w-[860px] flex-col items-center">
         <div className="mb-6 self-start">
           <span className="inline-flex h-7 items-center gap-2 rounded-full bg-canvas px-3 text-[13px] shadow-card" role="status">
@@ -169,7 +184,7 @@ export function HomePage() {
         <Button className="mt-5 !rounded-full" onClick={() => nav('/orders?tab=unfulfilled')}>{t('home.processOrders')}{toProcess.data && <Badge tone={toProcess.data.ordersCount.count ? 'attention' : 'neutral'}>{toProcess.data.ordersCount.count}</Badge>}</Button>
       </div>
       {steps.some((s) => !s.done) && (
-        <div className="mx-auto mt-12 grid max-w-[860px] gap-4 sm:grid-cols-3" aria-label={t('home.nextSteps')}>
+        <div className="mx-auto mt-12 grid max-w-[860px] gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label={t('home.nextSteps')}>
           {steps.map((s) => <StepCard key={s.to} {...s} />)}
         </div>
       )}

@@ -8,6 +8,7 @@ import { ThemePicker, useBundledThemesRest } from '../components/ThemeGallery';
 import { LANGS, useI18n } from '../i18n';
 import { useSession } from '../session';
 import type { Shop, User } from '../session';
+import { EmailPanelLite } from '../components/EmailSetupLite';
 
 function AuthLayout({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   const { lang, setLang } = useI18n();
@@ -96,10 +97,13 @@ export function SetupPage() {
   // Starting theme: Aurora unless another bundled theme is picked (the picker only appears when there is a choice).
   const [theme, setTheme] = useState('aurora');
   const themes = useBundledThemesRest().data?.themes ?? [];
+  const [created, setCreated] = useState<{ user: User; shop: Shop } | null>(null);
   const { error, busy, submit } = useSubmit(
     () => rest<{ user: User; shop: Shop }>('/setup', { body: { ...f, locale: lang, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, ...(themes.length > 1 && { theme }) } }),
-    signedIn,
+    setCreated,
   );
+  // Optional last step: the 3 DNS lines for e-mail. The session already exists (the server set the cookie); opening the store happens on "continue" or "skip".
+  if (created) return <AuthLayout title={t('setup.email.title')} subtitle={t('setup.email.subtitle')}><EmailPanelLite onDone={() => signedIn(created)} email={f.email} /></AuthLayout>;
   return (
     <AuthLayout title={t('setup.title')} subtitle={t('setup.subtitle')}>
       <form onSubmit={submit} className="flex flex-col gap-3">

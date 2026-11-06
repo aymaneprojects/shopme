@@ -137,6 +137,9 @@ export async function runScenario({ baseUrl, root }) {
       await page.getByLabel('Pays').selectOption('FR');
       await shot('01-setup');
       await page.getByRole('button', { name: 'Créer la boutique' }).click();
+      // Optional last step: the e-mail DNS lines (no domain on a local address, so the step only explains that); skip it.
+      await vis(page.getByRole('heading', { name: 'Vos e-mails' }));
+      await page.getByRole('button', { name: 'Passer pour l’instant' }).click();
       await vis(page.getByRole('navigation', { name: /Main|Principale/ }));
       await vis(page.getByText('Bienvenue, Camille'));
       // Continue in English; the FR/EN switch is exercised again in step 8.

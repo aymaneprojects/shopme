@@ -3,6 +3,7 @@
 ## Install and operate
 
 - [Install and deploy](install/README.md) (also in [French](install/README.fr.md)): local run, Docker Compose, VPS with HTTPS, backups, upgrades.
+- [Sending e-mail](install/email.md) (also in [French](install/email.fr.md)): direct sending from your server or an SMTP relay, the DNS records, checks and limits.
 - [Caddyfile](install/Caddyfile): reverse proxy example used by the VPS guide.
 - [Desktop apps](install/desktop.md): Windows, macOS and Linux apps (beta), attached to each GitHub Release.
 

@@ -17,6 +17,10 @@ const schema = z.object({
   STORAGE_DIR: opt(z.string()),
   SMTP_URL: opt(z.string().regex(/^smtps?:\/\//, 'must start with smtp:// or smtps://')),
   MAIL_FROM: opt(z.string()),
+  /** Public IP address(es) of this server for e-mail DNS records (IPv4 and/or IPv6, comma separated). Detected through DNS when empty. */
+  PUBLIC_IP: opt(z.string().regex(/^[0-9a-fA-F:.,\s]+$/, 'must be an IP address, or an IPv4 and an IPv6 address separated by a comma')),
+  /** Allow SMTP relay hosts and MX hosts on private or loopback addresses (development only). */
+  EMAIL_ALLOW_PRIVATE_HOSTS: z.preprocess(emptyToUndef, z.enum(['true', 'false']).default('false')),
   STRIPE_SECRET_KEY: opt(z.string()),
   STRIPE_PUBLISHABLE_KEY: opt(z.string()),
   STRIPE_WEBHOOK_SECRET: opt(z.string()),
@@ -47,6 +51,10 @@ export interface AppConfig {
   sessionSecret: string;
   smtpUrl?: string;
   mailFrom: string;
+  /** `PUBLIC_IP`: the address(es) this server sends e-mail from, when it cannot be detected. */
+  publicIp?: string;
+  /** `EMAIL_ALLOW_PRIVATE_HOSTS=true`: relay and MX hosts may be private or loopback addresses. */
+  emailAllowPrivateHosts: boolean;
   stripe: { secretKey?: string; publishableKey?: string; webhookSecret?: string };
   trustedOrigins: string[];
   trustProxy: boolean;
@@ -94,6 +102,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     sessionSecret,
     smtpUrl: e.SMTP_URL,
     mailFrom: e.MAIL_FROM ?? 'ShopMe <no-reply@localhost>',
+    publicIp: e.PUBLIC_IP,
+    emailAllowPrivateHosts: e.EMAIL_ALLOW_PRIVATE_HOSTS === 'true',
     stripe: { secretKey: e.STRIPE_SECRET_KEY, publishableKey: e.STRIPE_PUBLISHABLE_KEY, webhookSecret: e.STRIPE_WEBHOOK_SECRET },
     trustedOrigins: (e.TRUSTED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
     trustProxy: e.TRUST_PROXY === 'true',

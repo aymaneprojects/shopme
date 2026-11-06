@@ -39,8 +39,11 @@ and health checks; migrations run when the app starts. Configure through a `.env
 | `POSTGRES_PASSWORD` | Change from the default (`shopme`) for any public server. |
 | `APP_URL` | Public URL, e.g. `https://shop.example.com`. |
 | `SESSION_SECRET` | Optional; generated and stored in the data volume when empty. |
-| `SMTP_URL` | Outgoing email. Without it, emails are logged to the console. |
+| `SMTP_URL` | Optional installation-wide SMTP relay. Without it, stores send directly from the server (see [Sending e-mail](email.md)). |
+| `PUBLIC_IP` | Optional public IP of the server for the e-mail DNS records, when it cannot be detected. |
 | `STRIPE_*` | Stripe keys (when checkout is available). |
+
+Order, shipping and password e-mails need three DNS lines at your domain provider to reach the inbox: Settings > E-mails shows them. See [Sending e-mail](email.md).
 
 A local mail catcher is available with `docker compose --profile dev up -d` (set `SMTP_URL=smtp://mailpit:1025`, UI on port 8025).
 
