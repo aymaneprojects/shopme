@@ -7,6 +7,7 @@ import { ApiError, rest } from '../api';
 import { LANGS, useI18n } from '../i18n';
 import { useSession } from '../session';
 import type { Shop, User } from '../session';
+import { EmailPanelLite } from '../components/EmailSetupLite';
 
 function AuthLayout({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   const { lang, setLang } = useI18n();
@@ -92,10 +93,13 @@ export function SetupPage() {
   const fr = lang === 'fr';
   const [f, setF] = useState({ shopName: '', firstName: '', lastName: '', email: '', password: '', currency: fr ? 'EUR' : 'USD', country: fr ? 'FR' : 'US' });
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  const [created, setCreated] = useState<{ user: User; shop: Shop } | null>(null);
   const { error, busy, submit } = useSubmit(
     () => rest<{ user: User; shop: Shop }>('/setup', { body: { ...f, locale: lang, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone } }),
-    signedIn,
+    setCreated,
   );
+  // Optional last step: the 3 DNS lines for e-mail. The session already exists (the server set the cookie); opening the store happens on "continue" or "skip".
+  if (created) return <AuthLayout title={t('setup.email.title')} subtitle={t('setup.email.subtitle')}><EmailPanelLite onDone={() => signedIn(created)} email={f.email} /></AuthLayout>;
   return (
     <AuthLayout title={t('setup.title')} subtitle={t('setup.subtitle')}>
       <form onSubmit={submit} className="flex flex-col gap-3">

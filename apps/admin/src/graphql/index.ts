@@ -16,6 +16,7 @@ import * as orders from './orders';
 import * as platform from './platform';
 import * as products from './products';
 import * as settings from './settings';
+import * as email from './email';
 import * as views from './views';
 import * as wave8c from './wave8c';
 import * as timeline from './timeline';
@@ -35,7 +36,7 @@ import * as subscriptions from './subscriptions';
 import * as fidelity from './fidelity';
 
 /** Every operation string, keyed by export name. Used by `pnpm validate:graphql`. */
-export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...content, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog, ...views, ...wave8c, ...timeline, ...shipping, ...transfers, ...metaobjects, ...discountCodes, ...markets, ...privacy, ...btnOrders, ...buttonsProducts, ...btnSettings, ...btnCustomers, ...finalOps, ...postage, ...accountPages, ...subscriptions, ...fidelity };
+export const operations: Record<string, string> = { ...common, ...blogs, ...drafts, ...staff, ...products, ...collections, ...inventory, ...orders, ...customers, ...content, ...discounts, ...commerce, ...settings, ...onlineStore, ...dashboard, ...platform, ...catalog, ...views, ...wave8c, ...timeline, ...shipping, ...transfers, ...metaobjects, ...discountCodes, ...markets, ...privacy, ...btnOrders, ...buttonsProducts, ...btnSettings, ...btnCustomers, ...finalOps, ...postage, ...accountPages, ...subscriptions, ...fidelity, ...email };
 
 export * from './common';
 export * from './catalog';
@@ -72,3 +73,4 @@ export * from './postage';
 export * from './account-pages';
 export * from './subscriptions';
 export * from './fidelity';
+export * from './email';

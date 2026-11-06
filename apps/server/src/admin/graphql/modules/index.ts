@@ -66,3 +66,4 @@ import './product-channels';
 import './label-purchase';
 import './selling-plans';
 import './subscriptions';
+import './email';

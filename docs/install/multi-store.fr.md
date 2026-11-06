@@ -146,9 +146,12 @@ aussitôt (le premier visiteur devient propriétaire de la plateforme).
   Le point de terminaison du webhook est `https://admin.exemple.fr/webhooks/stripe/<identifiant>` ; ShopMe vérifie
   chaque événement avec le secret de cette boutique. Une boutique sans clés utilise les clés `STRIPE_*` de
   l'installation (les événements de ce compte partagé sont rattachés à la boutique à laquelle appartient le paiement).
-- E-mails : les boutiques partagent le compte SMTP (`SMTP_URL`). Les messages partent de `MAIL_FROM` avec le nom
-  d'expéditeur de la boutique (Paramètres > Notifications) comme nom affiché, et les réponses arrivent à l'adresse de la
-  boutique : aucune boutique ne peut envoyer au nom d'un domaine que l'installation ne contrôle pas.
+- E-mails : chaque boutique a ses propres réglages e-mail, clés DKIM et boîte d'envoi (Réglages > E-mails) et signe avec
+  son propre domaine. Tant que le domaine d'une boutique ne passe pas ses contrôles SPF et DKIM, elle envoie depuis
+  `no-reply@<STORE_BASE_DOMAIN>` avec le nom de la boutique comme nom affiché et son adresse en adresse de réponse ; le
+  propriétaire de la plateforme authentifie ce domaine une fois dans l'espace plateforme. Une boutique qui n'a pas choisi
+  de mode utilise le `SMTP_URL` de l'installation quand il existe (les messages partent alors de `MAIL_FROM`). Voir
+  [Envoi d'e-mails](email.fr.md).
 
 ## Fichiers, sauvegardes et exports
 

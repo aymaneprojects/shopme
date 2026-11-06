@@ -40,6 +40,16 @@ export function registerJobs(ctx: AppContext): () => void {
   ctx.queue.every('auto-backup', 3600_000, backup);
   if (ctx.config.env !== 'test') ctx.queue.enqueue('store.auto-backup', {}, { delayMs: 90_000, maxAttempts: 1 });
   registerBulkJobs(ctx, schema);
+  // E-mail: delivery of queued messages, the retry clock, re-checks of DNS records, and the cleanup of old outbox rows.
+  ctx.queue.register<{ id: number }>('email.deliver', async (j) => { await ctx.email.deliver(j.id); });
+  ctx.queue.every('email-outbox-sweep', 60_000, async () => { await ctx.email.sweep(); });
+  if (ctx.config.env !== 'test') {
+    ctx.queue.every('email-recheck', 10 * 60_000, async () => { await ctx.email.recheckDue(await activeShopIds(ctx)); });
+    ctx.queue.every('email-outbox-purge', 24 * 3600_000, async () => { await ctx.email.purge(); });
+    // Zero configuration: shortly after start, detect the public IP and create the DKIM keys so the DNS lines are ready.
+    ctx.queue.register('email.warmup', async () => { await ctx.email.recheckDue(await activeShopIds(ctx)); });
+    ctx.queue.enqueue('email.warmup', {}, { delayMs: 15_000, maxAttempts: 1 });
+  }
   // `productDuplicate(synchronous: false)`: copy in the background and keep the outcome on the job row.
   ctx.queue.register<{ shopId: number; jobId: number; productId: number; newTitle: string; newStatus?: string | null; includeImages?: boolean | null; includeTranslations?: boolean | null; includeInventory?: boolean | null; includeSkus?: boolean | null; includeBarcodes?: boolean | null }>('product.duplicate', async (j) => {
     const r = await duplicateProduct(ctx.db, j.shopId, j.productId, { newTitle: j.newTitle, newStatus: j.newStatus, includeImages: j.includeImages, includeTranslations: j.includeTranslations, includeInventory: j.includeInventory, includeSkus: j.includeSkus, includeBarcodes: j.includeBarcodes });

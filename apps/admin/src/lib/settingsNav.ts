@@ -1,4 +1,4 @@
-import { ArchiveRestore, Radio, Store, Bell, Lock, MousePointerClick, ShoppingBag, UserRound, Braces, CreditCard, Download, Globe, Languages, MapPin, Receipt, ScrollText, Settings, ShieldCheck, Truck, Users, Webhook } from 'lucide-react';
+import { ArchiveRestore, Mail, Radio, Store, Bell, Lock, MousePointerClick, ShoppingBag, UserRound, Braces, CreditCard, Download, Globe, Languages, MapPin, Receipt, ScrollText, Settings, ShieldCheck, Truck, Users, Webhook } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { Key } from '../i18n';
 import type { Permission } from './permissions';
@@ -20,6 +20,7 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'domains', key: 'settings.domains', icon: Globe },
   { id: 'events', key: 'settings.events', icon: MousePointerClick },
   { id: 'notifications', key: 'settings.notifications', icon: Bell },
+  { id: 'emails', key: 'settings.emails', icon: Mail },
   { id: 'metafields', key: 'settings.metafields', icon: Braces },
   { id: 'languages', key: 'settings.languages', icon: Languages },
   { id: 'privacy', key: 'settings.privacy', icon: Lock },

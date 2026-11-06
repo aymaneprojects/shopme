@@ -151,6 +151,7 @@ const getStoreRouter = () => (storeRouter ??= createBrowserRouter(
           { path: 'backup', element: L(() => import('./pages/settings/Backup'), 'BackupSettings') },
           { path: 'users', element: L(() => import('./pages/settings/Team'), 'UsersSettings') },
           { path: 'users/roles', element: L(() => import('./pages/settings/Team'), 'RolesSettings') },
+          { path: 'emails', element: L(() => import('./pages/settings/Emails'), 'EmailsSettings') },
           { path: 'notifications', element: L(() => import('./pages/settings/Notifications'), 'NotificationsSettings') },
           { path: 'notifications/customer', element: L(() => import('./pages/settings/Notifications'), 'CustomerNotificationsPage') },
           { path: 'notifications/staff', element: L(() => import('./pages/settings/Notifications'), 'StaffNotificationsPage') },
