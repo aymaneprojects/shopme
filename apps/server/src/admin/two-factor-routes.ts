@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import QRCode from 'qrcode';
 import { z } from 'zod';
 import {
-  beginTwoFactorSetup, confirmTwoFactor, disableTwoFactor, getSecuritySettings, getShop, listStaffSessions, otpauthUri, regenerateRecoveryCodes, revokeOtherStaffSessions, revokeStaffSession,
+  beginTwoFactorSetup, confirmTwoFactor, disableTwoFactor, getSecuritySettings, getShop, listPasskeys, listStaffSessions, otpauthUri, publicPasskey, regenerateRecoveryCodes, revokeOtherStaffSessions, revokeStaffSession,
   setRequireTwoFactor, twoFactorStatus, verifyStaffPassword, type StaffUser,
 } from '@shopme/core';
 import { authenticate, invalidateSecurityPolicy, sessionToken } from '../plugins/auth';
@@ -33,8 +33,8 @@ export function registerTwoFactorRoutes(app: FastifyInstance) {
   app.get('/admin/api/auth/security', async (req, reply) => {
     const m = await member(req, reply);
     if (!m) return;
-    const [twoFactor, policy, sessions] = await Promise.all([twoFactorStatus(db, m.accountId), getSecuritySettings(db, m.shopId), listStaffSessions(db, m.accountId, sessionToken(req))]);
-    return { twoFactor, require2fa: policy.require2fa, canManagePolicy: m.user.role !== 'staff', sessions: sessions.map((s) => ({ ...s, userAgent: s.userAgent ?? '' })) };
+    const [twoFactor, policy, sessions, passkeys] = await Promise.all([twoFactorStatus(db, m.accountId), getSecuritySettings(db, m.shopId), listStaffSessions(db, m.accountId, sessionToken(req)), listPasskeys(db, m.accountId)]);
+    return { twoFactor, passkeys: passkeys.map(publicPasskey), requireSecureLogin: m.user.requireSecureLogin, require2fa: policy.require2fa, canManagePolicy: m.user.role !== 'staff', sessions: sessions.map((s) => ({ ...s, userAgent: s.userAgent ?? '' })) };
   });
 
   app.post('/admin/api/auth/2fa/setup', async (req, reply) => {

@@ -1,4 +1,4 @@
-import { boolean, index, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgTable, text, uniqueIndex } from 'drizzle-orm/pg-core';
 import { createdAt, pk, ref, shopIdCol, timestamps, ts } from './_helpers';
 import { shops } from './shop';
 
@@ -27,6 +27,31 @@ export const accountTwoFactor = pgTable('account_two_factor', {
   enabled: boolean('enabled').notNull().default(false),
   recoveryCodes: text('recovery_codes').array().notNull().default([]),
   enabledAt: ts('enabled_at'),
+  createdAt: createdAt(),
+});
+
+/** WebAuthn passkey of an account. `publicKey` is the base64url COSE key; `credentialId` the base64url credential id (unique installation-wide). */
+export const accountPasskeys = pgTable('account_passkeys', {
+  id: pk(),
+  accountId: ref('account_id').notNull().references(() => platformAccounts.id, { onDelete: 'cascade' }),
+  credentialId: text('credential_id').notNull(),
+  publicKey: text('public_key').notNull(),
+  counter: integer('counter').notNull().default(0),
+  transports: text('transports').array().notNull().default([]),
+  deviceType: text('device_type').notNull().default('singleDevice'),
+  backedUp: boolean('backed_up').notNull().default(false),
+  name: text('name').notNull().default(''),
+  createdAt: createdAt(),
+  lastUsedAt: ts('last_used_at'),
+}, (t) => [uniqueIndex('account_passkeys_credential_idx').on(t.credentialId), index('account_passkeys_account_idx').on(t.accountId)]);
+
+/** E-mail sign-in code of an account (one live code at a time): SHA-256 of the 6 digits, expiry, wrong tries so far and when it was sent (resend cooldown). */
+export const accountLoginCodes = pgTable('account_login_codes', {
+  accountId: ref('account_id').primaryKey().references(() => platformAccounts.id, { onDelete: 'cascade' }),
+  codeHash: text('code_hash').notNull(),
+  expiresAt: ts('expires_at').notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  sentAt: ts('sent_at').notNull(),
   createdAt: createdAt(),
 });
 

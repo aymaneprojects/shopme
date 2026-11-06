@@ -52,12 +52,12 @@ builder.queryFields((t) => ({
 builder.mutationFields((t) => ({
   shopmeStaffInvite: t.field({
     type: Payload,
-    args: { email: t.arg.string({ required: true }), role: t.arg.string({ required: true }), roleId: t.arg.id(), permissions: t.arg.stringList(), firstName: t.arg.string(), lastName: t.arg.string() },
+    args: { email: t.arg.string({ required: true }), role: t.arg.string({ required: true }), roleId: t.arg.id(), permissions: t.arg.stringList(), firstName: t.arg.string(), lastName: t.arg.string(), requireSecureLogin: t.arg.boolean({ description: 'The member must sign in with a passkey or two-step verification.' }) },
     resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'write_users');
       const denied = await mayManage(ctx, 0, a.role.toLowerCase());
       if (denied) return { staffMember: null, userErrors: [{ field: ['role'], message: denied.message }] };
-      const r = await inviteStaff(ctx.db, ctx.shopId, { email: a.email, role: a.role.toLowerCase(), roleId: a.roleId ? parseId(String(a.roleId), 'ShopmeStaffRole') : null, permissions: lower(a.permissions), firstName: a.firstName, lastName: a.lastName });
+      const r = await inviteStaff(ctx.db, ctx.shopId, { email: a.email, role: a.role.toLowerCase(), roleId: a.roleId ? parseId(String(a.roleId), 'ShopmeStaffRole') : null, permissions: lower(a.permissions), firstName: a.firstName, lastName: a.lastName, requireSecureLogin: a.requireSecureLogin ?? undefined });
       if (!r.ok) return { staffMember: null, userErrors: r.errors };
       const shop = (await getShop(ctx.db, ctx.shopId))!;
       const inviteUrl = `${ctx.app.config.appUrl.replace(/\/$/, '')}/admin/invite/${r.value.token}`;

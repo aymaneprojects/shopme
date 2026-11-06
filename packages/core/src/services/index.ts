@@ -35,6 +35,8 @@ export * from './theme-zip';
 export * from './theme-update';
 export * from './net-guard';
 export * from './two-factor';
+export * from './passkeys';
+export * from './device-code';
 export * from './locales';
 export * from './translations';
 export * from './store-export';

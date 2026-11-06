@@ -125,14 +125,16 @@ export async function runScenario({ baseUrl, root }) {
     // ---------------------------------------------------------------- 1. setup wizard
     await step('1 setup wizard', async () => {
       await page.goto(`${baseUrl}/admin`);
-      await vis(page.getByRole('heading', { name: 'Set up your store' }));
+      await vis(page.getByRole('heading', { name: 'Create your store' }));
       await page.getByLabel('Language').selectOption('fr');
-      await vis(page.getByRole('heading', { name: 'Configurez votre boutique' }));
-      await page.getByLabel('Nom de la boutique').fill('Maison Lumière');
+      await vis(page.getByRole('heading', { name: 'Créez votre boutique' }));
+      // Two steps in one card: the account, then the store.
       await page.getByLabel('Prénom').fill(OWNER.first);
       await page.getByLabel('Nom', { exact: true }).fill(OWNER.last);
       await page.getByLabel('E-mail').fill(OWNER.email);
       await page.getByLabel('Mot de passe').fill(OWNER.password);
+      await page.getByRole('button', { name: 'Continuer' }).click();
+      await page.getByLabel('Nom de la boutique').fill('Maison Lumière');
       await page.getByLabel('Devise').selectOption('EUR');
       await page.getByLabel('Pays').selectOption('FR');
       await shot('01-setup');
@@ -691,12 +693,15 @@ export async function runScenario({ baseUrl, root }) {
       await vis(admin.getByRole('heading', { name: 'Log in' }));
       // the session is really gone server-side
       assert.equal((await admin.request.get(`${baseUrl}/admin/api/auth/me`)).status(), 401);
+      // E-mail first, then the password (no verification code here: the e2e server cannot send e-mail).
       await admin.getByLabel('Email').fill(OWNER.email);
+      await admin.getByRole('button', { name: 'Continue with email' }).click();
+      await vis(admin.getByTestId('login-email'));
       await admin.getByLabel('Password').fill('wrong password here');
-      await admin.getByRole('button', { name: 'Log in' }).click();
+      await admin.getByRole('button', { name: 'Log in', exact: true }).click();
       await vis(admin.getByText('Incorrect email or password.'));
       await admin.getByLabel('Password').fill(OWNER.password);
-      await admin.getByRole('button', { name: 'Log in' }).click();
+      await admin.getByRole('button', { name: 'Log in', exact: true }).click();
       await vis(admin.getByText(/^Good (morning|afternoon|evening), Camille!$/));
     });
 
@@ -919,8 +924,10 @@ export async function runScenario({ baseUrl, root }) {
       assert.equal((await enabled.json()).recoveryCodes.length, 10);
       await api.post(`${baseUrl}/admin/api/auth/logout`, { data: {} });
       await admin.goto(`${baseUrl}/admin`);
-      await vis(admin.locator('input[type="password"]'));
+      await vis(admin.locator('input[type="email"]'));
       await admin.locator('input[type="email"]').fill(OWNER.email);
+      await admin.locator('button[type="submit"]').click();
+      await vis(admin.locator('input[type="password"]'));
       await admin.locator('input[type="password"]').fill(OWNER.password);
       await admin.locator('button[type="submit"]').click();
       const codeInput = admin.locator('input[autocomplete="one-time-code"]');

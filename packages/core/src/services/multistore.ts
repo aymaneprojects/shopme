@@ -49,7 +49,11 @@ export const accountCount = async (db: Executor) => (await db.select({ n: count(
 
 // ---- platform settings ------------------------------------------------------------------------------------------------------
 
-export interface PlatformConfig { /** Who may create stores: only the platform owner, or every signed-in account. */ storeCreation: 'OWNER' | 'EVERYONE' }
+export interface PlatformConfig {
+  /** Who may create stores: only the platform owner, or every signed-in account. */ storeCreation: 'OWNER' | 'EVERYONE';
+  /** Footer links of the sign-in screens (https URLs). Unset: the ShopMe docs for help, no terms or privacy link. */
+  helpUrl?: string; termsUrl?: string; privacyUrl?: string;
+}
 const DEFAULT_PLATFORM: PlatformConfig = { storeCreation: 'OWNER' };
 
 export async function getPlatformConfig(db: Executor): Promise<PlatformConfig> {
@@ -60,6 +64,7 @@ export async function getPlatformConfig(db: Executor): Promise<PlatformConfig> {
 export async function updatePlatformConfig(db: Executor, input: Partial<PlatformConfig>): Promise<PlatformConfig> {
   const next = { ...(await getPlatformConfig(db)), ...input };
   if (next.storeCreation !== 'OWNER' && next.storeCreation !== 'EVERYONE') next.storeCreation = 'OWNER';
+  for (const k of ['helpUrl', 'termsUrl', 'privacyUrl'] as const) if (next[k] != null && !/^https?:\/\/\S+$/i.test(next[k]!)) delete next[k];
   await db.insert(platformSettings).values({ key: 'config', value: next }).onConflictDoUpdate({ target: platformSettings.key, set: { value: next, updatedAt: new Date() } });
   return next;
 }

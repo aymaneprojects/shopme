@@ -42,6 +42,7 @@ import { frThemeUpdate } from './fr-theme-update';
 import { frThemeGallery } from './fr-theme-gallery';
 
 import { frMultistore } from './fr-multistore';
+import { frAuth } from './fr-auth';
 import { frEmail } from './fr-email';
 import { frOffsite } from './fr-offsite';
 export const fr: Record<Key, string> = {
@@ -57,8 +58,8 @@ export const fr: Record<Key, string> = {
   'nav.menu': 'Ouvrir le menu', 'nav.notFound': 'Page introuvable',
   'shell.search': 'Rechercher', 'shell.searchPlaceholder': 'Rechercher', 'shell.account': 'Menu du compte', 'cmd.pages': 'Pages', 'cmd.products': 'Produits', 'cmd.orders': 'Commandes', 'cmd.customers': 'Clients', 'cmd.empty': 'Aucun résultat', 'cmd.hint': 'Saisissez pour rechercher', 'cmd.dismiss': 'Fermer', 'cmd.settings': 'Paramètres', 'theme.light': 'Thème clair', 'theme.dark': 'Thème sombre', 'theme.system': 'Suivre le système', 'shell.logout': 'Se déconnecter',
 
-  'login.title': 'Connexion', 'login.subtitle': 'Connectez-vous pour gérer votre boutique.', 'login.submit': 'Se connecter', 'login.invalid': 'E-mail ou mot de passe incorrect.',
-  'setup.title': 'Configurez votre boutique', 'setup.subtitle': 'Créez le compte propriétaire et les informations de base de la boutique.', 'setup.shopName': 'Nom de la boutique',
+  'login.submit': 'Se connecter', 'login.invalid': 'E-mail ou mot de passe incorrect.',
+  'setup.shopName': 'Nom de la boutique',
   'setup.currency': 'Devise', 'setup.country': 'Pays', 'setup.passwordHelp': 'Au moins 8 caractères.', 'setup.submit': 'Créer la boutique',
 
   'soon.title': 'Disponible dans la prochaine version', 'soon.body': 'Cette section n’est pas encore disponible. Elle est prévue dans une prochaine version.',
@@ -175,4 +176,5 @@ export const fr: Record<Key, string> = {
   ...frMultistore,
   ...frEmail,
   ...frOffsite,
+  ...frAuth,
 };

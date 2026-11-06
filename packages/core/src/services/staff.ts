@@ -55,7 +55,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 /** Not a valid argon2 hash: nobody can log in until the invitation is accepted. */
 const NO_PASSWORD = '!invited';
 
-export interface StaffInviteInput { email: string; role: string; /** Custom role: its permissions are copied to the member. */ roleId?: number | null; permissions?: string[] | null; firstName?: string | null; lastName?: string | null }
+export interface StaffInviteInput { email: string; role: string; /** Custom role: its permissions are copied to the member. */ roleId?: number | null; permissions?: string[] | null; firstName?: string | null; lastName?: string | null; /** The member must use a passkey or two-step verification to sign in. */ requireSecureLogin?: boolean }
 
 /** Create (or re-send) an invitation. Returns the member and the plaintext accept token (shown once, mailed by the caller). */
 export async function inviteStaff(db: Db, shopId: number, input: StaffInviteInput): Promise<Result<{ staff: StaffMemberRow; token: string }>> {
@@ -72,7 +72,7 @@ export async function inviteStaff(db: Db, shopId: number, input: StaffInviteInpu
     if (!r) return errR(['roleId'], 'Role does not exist', 'NOT_FOUND');
     roleId = r.id; permissions = r.permissions;
   }
-  const fields = { role: input.role, roleId, permissions: normalizePermissions(permissions), inviteTokenHash: sha256(token), inviteExpiresAt: new Date(Date.now() + INVITE_TTL_MS), ...(input.firstName != null && { firstName: input.firstName }), ...(input.lastName != null && { lastName: input.lastName }) };
+  const fields = { role: input.role, roleId, permissions: normalizePermissions(permissions), inviteTokenHash: sha256(token), inviteExpiresAt: new Date(Date.now() + INVITE_TTL_MS), ...(input.requireSecureLogin != null && { requireSecureLogin: input.requireSecureLogin }), ...(input.firstName != null && { firstName: input.firstName }), ...(input.lastName != null && { lastName: input.lastName }) };
   const [existing] = await db.select().from(staffUsers).where(and(eq(staffUsers.shopId, shopId), eq(staffUsers.email, email))).limit(1);
   let id: number;
   if (existing) {
@@ -98,7 +98,7 @@ export async function getInvite(db: Executor, token: string): Promise<InviteInfo
  * (multi-store mode) and an account with the invited e-mail exists: then `password` must be that account's password, and the
  * member joins it, so one sign-in reaches every store of the person.
  */
-export async function acceptInvite(db: Db, token: string, input: { password: string; firstName?: string | null; lastName?: string | null; linkExisting?: boolean }): Promise<Result<StaffUser>> {
+export async function acceptInvite(db: Db, token: string, input: { password: string; firstName?: string | null; lastName?: string | null; linkExisting?: boolean; /** Multi-store, joining with an existing account: its second factor (null when it has none). Called once the password matched. */ secondFactor?: (accountId: number) => Promise<'ok' | 'required' | 'invalid' | 'locked'> }): Promise<Result<StaffUser>> {
   if (input.password.length < MIN_PASSWORD_LENGTH) return errR(['password'], `Password must be at least ${MIN_PASSWORD_LENGTH} characters`, 'TOO_SHORT');
   const valid = and(eq(staffUsers.inviteTokenHash, sha256(token)), eq(staffUsers.active, true), gt(staffUsers.inviteExpiresAt, new Date()));
   const [pending] = await db.select().from(staffUsers).where(valid).limit(1);
@@ -111,6 +111,10 @@ export async function acceptInvite(db: Db, token: string, input: { password: str
     if (existing.length) {
       for (const a of existing) if (await verifyPassword(a.passwordHash, input.password)) { accountId = a.id; break; }
       if (accountId == null) return errR(['password'], 'An account already uses this e-mail: enter its password to join this store', 'ACCOUNT_EXISTS');
+      const second = input.secondFactor ? await input.secondFactor(accountId) : 'ok';
+      if (second === 'required') return errR(['code'], 'Enter your two-step verification code to join this store', 'TWO_FACTOR_REQUIRED');
+      if (second === 'invalid') return errR(['code'], 'Invalid code', 'INVALID_CODE');
+      if (second === 'locked') return errR(['code'], 'Too many attempts. Try again later.', 'INVALID_CODE');
     }
   }
   return db.transaction(async (tx) => {

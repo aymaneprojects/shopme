@@ -10,6 +10,9 @@ export const CURRENT_STAFF_MEMBER = /* GraphQL */ `
 export const STAFF_INVITE = /* GraphQL */ `
   mutation StaffInvite($email: String!, $role: String!, $permissions: [String!]!) { shopmeStaffInvite(email: $email, role: $role, permissions: $permissions) { staffMember { id } userErrors { field message } } }
 `;
+export const STAFF_INVITE_SECURE = /* GraphQL */ `
+  mutation StaffInviteSecure($email: String!, $role: String!, $roleId: ID, $permissions: [String!]!, $secure: Boolean) { shopmeStaffInvite(email: $email, role: $role, roleId: $roleId, permissions: $permissions, requireSecureLogin: $secure) { staffMember { id } userErrors { field message } } }
+`;
 export const STAFF_UPDATE = /* GraphQL */ `
   mutation StaffUpdate($id: ID!, $role: String, $permissions: [String!]) { shopmeStaffUpdate(id: $id, role: $role, permissions: $permissions) { staffMember { id } userErrors { field message } } }
 `;

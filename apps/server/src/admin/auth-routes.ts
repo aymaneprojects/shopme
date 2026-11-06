@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import {
-  accountCount, authenticateAccount, canCreateStores, createSession, destroySession, getAccount, getShop, handleOf, isTwoFactorEnabled, listAccountStores, listStaffSessions, needsSetup, publicAccount, publicStaff,
+  accountCount, authenticateAccount, canCreateStores, countPasskeys, createSession, destroySession, getAccount, getShop, handleOf, isTwoFactorEnabled, listAccountStores, listStaffSessions, needsSetup, publicAccount, publicStaff,
   recordInstallDomain, sendNotification, setSessionShop, setupStore, staffOfAccount, twoFactorEnrolmentRequired, SetupError, signChallenge, verifyChallenge, verifySecondFactor, schema, type Account, type Shop, type StaffUser,
 } from '@shopme/core';
 import { eq } from 'drizzle-orm';
@@ -9,6 +9,7 @@ import { accountOf, authenticate, clearSessionCookie, requestedShopId, sessionTo
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { FailureLimiter } from '../plugins/rate-limit';
 import { applyStartingTheme, startingThemeExists } from './starting-theme';
+import { emailCodeStep, registerLoginMethodRoutes } from './login-methods-routes';
 
 const setupBody = z.object({
   shopName: z.string().trim().min(1).max(120),
@@ -79,8 +80,17 @@ export function registerAuthRoutes(app: FastifyInstance) {
     }
     keys.forEach((k) => limiter.reset(k));
     if (await isTwoFactorEnabled(db, account.id)) return { twoFactorRequired: true, challenge: signChallenge(app.ctx.config.sessionSecret, account.id) };
+    // A member invited with "secure sign-in method" who already has a passkey signs in with it, not with a password alone.
+    if (user?.requireSecureLogin && (await countPasskeys(db, account.id)) > 0) {
+      return reply.code(403).send({ error: 'This account must sign in with a passkey or two-step verification.', passkeyRequired: true });
+    }
+    // A device this account has not used yet confirms itself with a code mailed to the account (only when e-mail can be delivered).
+    const step = await emailCodeStep(app, req, account, user);
+    if (step) return step;
     return finishLogin(app, req, reply, account, user);
   });
+
+  registerLoginMethodRoutes(app, limiter, { finishLogin, memberFor });
 
   /** Second login step: the signed challenge from the password step plus a TOTP or recovery code. */
   app.post('/admin/api/auth/login/2fa', async (req, reply) => {
@@ -122,7 +132,7 @@ export function registerAuthRoutes(app: FastifyInstance) {
  * The staff membership a sign-in opens: single-store, the account's (only) store; multi-store, the store the request names
  * (its own host or admin URL) when the account works there, else its first store, else none.
  */
-async function memberFor(req: FastifyRequest, account: Account): Promise<StaffUser | null> {
+export async function memberFor(req: FastifyRequest, account: Account): Promise<StaffUser | null> {
   const members = await staffOfAccount(req.server.ctx.db, account.id);
   if (!req.server.ctx.config.multiStore) return members[0] ?? null;
   const wanted = await requestedShopId(req);
@@ -169,6 +179,6 @@ export async function finishLogin(app: FastifyInstance, req: FastifyRequest, rep
     sendNotification(db, app.ctx.mailer, shop, app.ctx.stores.storefrontBase(shop.id), 'staff_login_alert', account.email, { login: { email: account.email, ip: req.ip, device: deviceOf(ua), time } })
       .catch((err) => req.log.warn({ err }, 'login alert failed'));
   }
-  const out = { user: user ? publicStaff(user) : null, shop: shop ? publicShop(shop) : null, twoFactorSetupRequired: user ? await twoFactorEnrolmentRequired(db, user.shopId, account.id) : false, ...(app.ctx.config.desktop && { desktop: true }) };
+  const out = { user: user ? publicStaff(user) : null, shop: shop ? publicShop(shop) : null, twoFactorSetupRequired: user ? (await twoFactorEnrolmentRequired(db, user.shopId, account.id)) || (user.requireSecureLogin && !(await isTwoFactorEnabled(db, account.id)) && (await countPasskeys(db, account.id)) === 0) : false, ...(app.ctx.config.desktop && { desktop: true }) };
   return app.ctx.config.multiStore ? { ...out, account: publicAccount(account), storeHandle: shop ? handleOf(shop) : null } : out;
 }

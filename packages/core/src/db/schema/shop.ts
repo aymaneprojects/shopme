@@ -63,6 +63,8 @@ export const staffUsers = pgTable('staff_users', {
   inviteTokenHash: text('invite_token_hash'),
   inviteExpiresAt: ts('invite_expires_at'),
   lastLoginAt: ts('last_login_at'),
+  /** The member must sign in with a passkey or two-step verification (set when invited, see Settings > Users). */
+  requireSecureLogin: boolean('require_secure_login').notNull().default(false),
   /** Activity feed (bell): entries newer than this are unread. */
   activityReadAt: ts('activity_read_at'),
   ...timestamps(),

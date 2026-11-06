@@ -13,14 +13,14 @@ import { frequencyLabel } from '../services/subscriptions/pricing';
 
 export const NOTIFICATION_KEYS = [
   'order_confirmation', 'staff_new_order', 'shipping_confirmation', 'shipping_update', 'order_cancelled', 'refund',
-  'customer_account_welcome', 'customer_account_invite', 'password_reset', 'draft_order_invoice', 'contact_form', 'staff_invite', 'staff_login_alert', 'gift_card_issued', 'pickup_ready', 'pickup_picked_up', 'local_delivery_out', 'local_delivery_delivered', 'local_delivery_missed', 'fulfillment_request', 'abandoned_checkout', 'store_credit_account_credit',
+  'customer_account_welcome', 'customer_account_invite', 'password_reset', 'draft_order_invoice', 'contact_form', 'staff_invite', 'staff_login_alert', 'login_code', 'password_reset_code', 'gift_card_issued', 'pickup_ready', 'pickup_picked_up', 'local_delivery_out', 'local_delivery_delivered', 'local_delivery_missed', 'fulfillment_request', 'abandoned_checkout', 'store_credit_account_credit',
   'subscription_confirmation', 'subscription_upcoming_renewal', 'subscription_payment_failed', 'subscription_cancelled',
 ] as const;
 export type NotificationKey = (typeof NOTIFICATION_KEYS)[number];
 export const isNotificationKey = (k: string): k is NotificationKey => (NOTIFICATION_KEYS as readonly string[]).includes(k);
 
 type Lang = { subject: string; body: string };
-interface Def { name: string; description: string; audience: 'customer' | 'staff'; variables: string[]; en: Lang; fr: Lang }
+interface Def { name: string; description: string; audience: 'customer' | 'staff'; variables: string[]; en: Lang; fr: Lang; /** The body is the whole message: no shop header band around it. */ bare?: boolean }
 
 // ---- default bodies (inner HTML, Liquid). The shop header/footer is added around them by `layout`. ---------------------------
 
@@ -117,6 +117,16 @@ const DEFS: Record<NotificationKey, Def> = {
     name: 'Staff sign-in alert', description: 'Sent to a staff member when their account signs in to the admin.', audience: 'staff', variables: ['shop.name', 'login.email', 'login.ip', 'login.device', 'login.time'],
     en: { subject: 'New sign-in to {{ shop.name }}', body: '<p style="margin-top:0">Your account {{ login.email }} just signed in to the admin of {{ shop.name }}.</p><p style="color:#64748b">Time: {{ login.time }}<br>IP address: {{ login.ip }}<br>Device: {{ login.device }}</p><p>If this was not you, change your password and sign out the other sessions in Settings, Security.</p>' },
     fr: { subject: 'Nouvelle connexion à {{ shop.name }}', body: '<p style="margin-top:0">Votre compte {{ login.email }} vient de se connecter à l\'administration de {{ shop.name }}.</p><p style="color:#64748b">Heure : {{ login.time }}<br>Adresse IP : {{ login.ip }}<br>Appareil : {{ login.device }}</p><p>Si ce n\'était pas vous, changez votre mot de passe et déconnectez les autres sessions dans Paramètres, Sécurité.</p>' },
+  },
+  login_code: {
+    name: 'Sign-in verification code', description: 'Sent to a staff member to confirm a sign-in from a new device.', audience: 'staff', bare: true, variables: ['shop.name', 'login.code', 'login.minutes', 'login.date'],
+    en: { subject: 'Your {{ shop.name }} verification code: {{ login.code }}', body: `<p style="text-align:right;color:#475569;font-size:13px;margin:0 0 28px">{{ login.date }}</p><h1 style="font-size:26px;font-weight:400;margin:0 0 20px;color:#0f172a">Your verification code</h1><div style="height:10px;background:#1A3591"></div><p style="margin:24px 0 8px;font-size:14px;line-height:1.5">We received a request to sign in to your account. Use this one-time code to continue:</p><p style="margin:12px 0 24px;font-size:36px;letter-spacing:8px;font-weight:600;color:#0f172a">{{ login.code }}</p><hr style="border:0;border-top:1px solid #cbd5e1;margin:0 0 16px"><p style="margin:0;font-size:13px;line-height:1.5;color:#334155">This code expires in {{ login.minutes }} minutes. Do not share it with anyone.</p><p style="margin:32px 0 0;font-size:13px;color:#64748b">{{ shop.name }}</p>` },
+    fr: { subject: 'Votre code de vérification {{ shop.name }} : {{ login.code }}', body: `<p style="text-align:right;color:#475569;font-size:13px;margin:0 0 28px">{{ login.date }}</p><h1 style="font-size:26px;font-weight:400;margin:0 0 20px;color:#0f172a">Votre code de vérification</h1><div style="height:10px;background:#1A3591"></div><p style="margin:24px 0 8px;font-size:14px;line-height:1.5">Nous avons reçu une demande de connexion à votre compte. Utilisez ce code à usage unique pour continuer :</p><p style="margin:12px 0 24px;font-size:36px;letter-spacing:8px;font-weight:600;color:#0f172a">{{ login.code }}</p><hr style="border:0;border-top:1px solid #cbd5e1;margin:0 0 16px"><p style="margin:0;font-size:13px;line-height:1.5;color:#334155">Ce code expire dans {{ login.minutes }} minutes. Ne le communiquez à personne.</p><p style="margin:32px 0 0;font-size:13px;color:#64748b">{{ shop.name }}</p>` },
+  },
+  password_reset_code: {
+    name: 'Password reset code', description: 'Sent to a staff member who asks to reset their password.', audience: 'staff', bare: true, variables: ['shop.name', 'login.code', 'login.minutes', 'login.date'],
+    en: { subject: 'Your {{ shop.name }} password reset code: {{ login.code }}', body: `<p style="text-align:right;color:#475569;font-size:13px;margin:0 0 28px">{{ login.date }}</p><h1 style="font-size:26px;font-weight:400;margin:0 0 20px;color:#0f172a">Your password reset code</h1><div style="height:10px;background:#1A3591"></div><p style="margin:24px 0 8px;font-size:14px;line-height:1.5">We received a request to reset the password of your account. Use this one-time code to continue:</p><p style="margin:12px 0 24px;font-size:36px;letter-spacing:8px;font-weight:600;color:#0f172a">{{ login.code }}</p><hr style="border:0;border-top:1px solid #cbd5e1;margin:0 0 16px"><p style="margin:0;font-size:13px;line-height:1.5;color:#334155">This code expires in {{ login.minutes }} minutes. Do not share it with anyone. If you did not ask for this, ignore this message.</p><p style="margin:32px 0 0;font-size:13px;color:#64748b">{{ shop.name }}</p>` },
+    fr: { subject: 'Votre code de réinitialisation {{ shop.name }} : {{ login.code }}', body: `<p style="text-align:right;color:#475569;font-size:13px;margin:0 0 28px">{{ login.date }}</p><h1 style="font-size:26px;font-weight:400;margin:0 0 20px;color:#0f172a">Votre code de réinitialisation</h1><div style="height:10px;background:#1A3591"></div><p style="margin:24px 0 8px;font-size:14px;line-height:1.5">Nous avons reçu une demande de réinitialisation du mot de passe de votre compte. Utilisez ce code à usage unique pour continuer :</p><p style="margin:12px 0 24px;font-size:36px;letter-spacing:8px;font-weight:600;color:#0f172a">{{ login.code }}</p><hr style="border:0;border-top:1px solid #cbd5e1;margin:0 0 16px"><p style="margin:0;font-size:13px;line-height:1.5;color:#334155">Ce code expire dans {{ login.minutes }} minutes. Ne le communiquez à personne. Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.</p><p style="margin:32px 0 0;font-size:13px;color:#64748b">{{ shop.name }}</p>` },
   },
   gift_card_issued: {
     name: 'Gift card', description: 'Sent to the recipient (or the buyer) when a gift card is issued.', audience: 'customer',
@@ -253,7 +263,10 @@ export async function renderNotification(db: Executor, shop: Shop, appUrl: strin
   const ctx = { shop: { name: shop.name, email: shop.email, url: shopUrl(shop, appUrl) }, ...vars };
   const subject = (await plain.parseAndRender(o.subject, ctx)).replace(/\s+/g, ' ').trim();
   const inner = await html.parseAndRender(o.body, ctx);
-  return { subject, html: layout(shop, inner), text: htmlToText(inner) };
+  const page = DEFS[key].bare
+    ? `<!doctype html><html><body style="margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif;color:#0f172a"><div style="max-width:560px;margin:0 auto;padding:32px 24px">${inner}</div></body></html>`
+    : layout(shop, inner);
+  return { subject, html: page, text: htmlToText(inner) };
 }
 
 // ---- sender and sending -----------------------------------------------------------------------------------------------------
@@ -411,6 +424,7 @@ export function sampleVars(shop: Shop, appUrl: string): Record<string, unknown> 
     account_url: `${base}/account`, activation_url: `${base}/account/activate/sample-token`, reset_url: `${base}/account/reset/sample-token`,
     draft: { name: '#D1', subtotal: money(5500), total: money(6490), line_items: items }, invoice_url: `${base}/draft_orders/sample-token/pay`, custom_message: null,
     contact: { name: 'Ada Lovelace', email: 'ada@example.com', phone: '+33 1 23 45 67 89', message: 'Hello, do you ship to Canada?' },
+    login: { code: '482913', minutes: 10, date: new Date().toLocaleDateString(langOf(shop) === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) },
     invite: { url: `${base}/admin/invite/sample-token`, email: 'new.staff@example.com', role: 'staff', inviter: 'The owner' },
     gift_card: { balance: money(5000), initial_value: money(5000), code: 'ABCD-EFGH-JKLM-NPQR', last_characters: 'npqr', url: `${base}/gift_cards/sample-token`, message: 'Happy birthday!', recipient_name: 'Ada', sender_email: 'friend@example.com', expires_on: null },
     store_credit: { amount: money(2000), balance: money(3500), expires_on: null },

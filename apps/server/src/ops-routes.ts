@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import {
-  acceptInvite, completeDraftOrder, createCart, createSession, exportCustomerData, getDraftOrderByToken, getInvite, getShop, handleOf, publicStaff, schema as s, type DraftOrder, type Shop,
+  acceptInvite, completeDraftOrder, createCart, createSession, exportCustomerData, getDraftOrderByToken, getInvite, getShop, handleOf, isTwoFactorEnabled, publicStaff, sha256, verifySecondFactor, schema as s, type DraftOrder, type Shop,
 } from '@shopme/core';
 import { and, eq, inArray } from 'drizzle-orm';
 import { renderMoneyFormat } from '@shopme/shopify-compat';
@@ -11,7 +11,7 @@ import { FailureLimiter } from './plugins/rate-limit';
 import { CART_COOKIE, primaryShop } from './storefront/env';
 
 const esc = (v: unknown) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-const acceptBody = z.object({ token: z.string().min(10).max(200), password: z.string().min(8).max(200), firstName: z.string().trim().max(100).optional(), lastName: z.string().trim().max(100).optional() });
+const acceptBody = z.object({ token: z.string().min(10).max(200), password: z.string().min(8).max(200), firstName: z.string().trim().max(100).optional(), lastName: z.string().trim().max(100).optional(), /** Joining with an existing account that has two-step verification: its code. */ code: z.string().trim().min(6).max(20).optional() });
 
 /** REST endpoints of the ops features: staff invitations, GDPR export and the draft order invoice (payment) link. */
 export async function registerOpsRoutes(app: FastifyInstance): Promise<void> {
@@ -33,9 +33,27 @@ export async function registerOpsRoutes(app: FastifyInstance): Promise<void> {
   app.post('/admin/api/staff/accept-invite', async (req, reply) => {
     const body = acceptBody.safeParse(req.body);
     if (!body.success) return reply.code(422).send({ error: 'Invalid input', issues: body.error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })) });
-    if (limiter.isLimited(`ip:${req.ip}`)) return reply.code(429).send({ error: 'Too many attempts. Try again later.' });
-    const r = await acceptInvite(db, body.data.token, { ...body.data, linkExisting: config.multiStore });
-    if (!r.ok) { limiter.fail(`ip:${req.ip}`); return reply.code(422).send({ error: r.errors[0]!.message, issues: r.errors }); }
+    // Wrong passwords and wrong codes count against the address and against the invitation itself, like a normal sign-in.
+    const keys = [`ip:${req.ip}`, `invite:${sha256(body.data.token)}`];
+    const limited = keys.find((k) => limiter.isLimited(k));
+    if (limited) return reply.code(429).header('retry-after', String(limiter.retryAfter(limited))).send({ error: 'Too many attempts. Try again later.' });
+    const { code, ...input } = body.data;
+    // Multi-store: joining with an existing account must clear that account's second factor too, or the password alone would open a session.
+    const r = await acceptInvite(db, input.token, {
+      ...input, linkExisting: config.multiStore,
+      secondFactor: async (accountId) => {
+        if (!(await isTwoFactorEnabled(db, accountId))) return 'ok';
+        if (!code) return 'required';
+        return (await verifySecondFactor(db, config.sessionSecret, accountId, code)) ? 'ok' : 'invalid';
+      },
+    });
+    if (!r.ok) {
+      const first = r.errors[0]!;
+      if (first.code === 'TWO_FACTOR_REQUIRED') return reply.code(401).send({ error: first.message, twoFactorRequired: true });
+      keys.forEach((k) => limiter.fail(k));
+      return reply.code(422).send({ error: first.message, issues: r.errors });
+    }
+    keys.forEach((k) => limiter.reset(k));
     const session = await createSession(db, { shopId: r.value.shopId, staffUserId: r.value.id, accountId: r.value.accountId, ip: req.ip, userAgent: req.headers['user-agent'] });
     setSessionCookie(app, reply, session.token, session.expiresAt);
     const shop = await getShop(db, r.value.shopId);
