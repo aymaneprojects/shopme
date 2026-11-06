@@ -141,11 +141,11 @@ export async function runScenario({ baseUrl, root }) {
       await vis(page.getByRole('heading', { name: 'Vos e-mails' }));
       await page.getByRole('button', { name: 'Passer pour l’instant' }).click();
       await vis(page.getByRole('navigation', { name: /Main|Principale/ }));
-      await vis(page.getByText('Bienvenue, Camille'));
+      await vis(page.getByText(/^(Bonjour|Bon après-midi|Bonsoir) Camille$/));
       // Continue in English; the FR/EN switch is exercised again in step 8.
       await page.getByRole('button', { name: 'Menu du compte' }).click();
       await page.getByRole('menuitem', { name: /English/ }).click();
-      await vis(page.getByText('Welcome, Camille'));
+      await vis(page.getByText(/^Good (morning|afternoon|evening), Camille$/));
     });
 
     // ---------------------------------------------------------------- 2. settings
@@ -674,12 +674,11 @@ export async function runScenario({ baseUrl, root }) {
 
     await step('7h dashboard shows the sale', async () => {
       await admin.goto(`${baseUrl}/admin`);
-      await vis(admin.getByText('Welcome').first());
+      await vis(admin.getByText(/^Good (morning|afternoon|evening), Camille$/));
       await admin.waitForTimeout(1000);
       const dash = await text(admin.locator('main'));
-      assert.match(dash, /Sales €35\.50/);
+      assert.match(dash, /Total sales €35\.50/);
       assert.match(dash, /Orders 1/);
-      assert.match(dash, /Average order value €35\.50/);
       assert.match(dash, /Top products Bougie parfumée 1/);
       await shot('18-admin-dashboard');
     });
@@ -698,13 +697,13 @@ export async function runScenario({ baseUrl, root }) {
       await vis(admin.getByText('Incorrect email or password.'));
       await admin.getByLabel('Password').fill(OWNER.password);
       await admin.getByRole('button', { name: 'Log in' }).click();
-      await vis(admin.getByText('Welcome, Camille'));
+      await vis(admin.getByText(/^Good (morning|afternoon|evening), Camille$/));
     });
 
     await step('8b language switch EN <-> FR', async () => {
       await admin.getByRole('button', { name: 'Account menu' }).click();
       await admin.getByRole('menuitem', { name: /Français/ }).click();
-      await vis(admin.getByText('Bienvenue, Camille'));
+      await vis(admin.getByText(/^(Bonjour|Bon après-midi|Bonsoir) Camille$/));
       const nav = await text(admin.locator('nav').first());
       for (const w of ['Accueil', 'Commandes', 'Produits', 'Clients', 'Réductions', 'Boutique en ligne', 'Paramètres']) assert.ok(nav.includes(w), `French nav has ${w}: ${nav}`);
       await admin.goto(`${baseUrl}/admin/orders`);

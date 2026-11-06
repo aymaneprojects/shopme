@@ -106,7 +106,7 @@ try {
   }
   // 6. Commerce, settings and online-store pages: each renders its heading, then data or an error banner while the API is partly missing.
   const pages: Array<[string, string, string?]> = [
-    ['/', 'Welcome', 'home'], ['/orders', 'Orders', 'orders'], ['/customers', 'Customers'], ['/customers/new', 'New customer'], ['/discounts', 'Discounts'],
+    ['/', 'Good', 'home'], ['/orders', 'Orders', 'orders'], ['/customers', 'Customers'], ['/customers/new', 'New customer'], ['/discounts', 'Discounts'],
     ['/discounts/new?type=order', 'Amount off order'], ['/settings/general', 'Settings', 'settings'], ['/settings/payments', 'Settings'], ['/settings/shipping', 'Settings'],
     ['/settings/taxes', 'Settings'], ['/settings/domains', 'Settings'], ['/settings/languages', 'Settings'], ['/online-store', 'Online Store'],
     ['/online-store/pages', 'Online Store'], ['/online-store/pages/new', 'Add page'], ['/online-store/navigation', 'Online Store'],

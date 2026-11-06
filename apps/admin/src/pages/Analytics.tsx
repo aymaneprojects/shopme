@@ -14,7 +14,7 @@ import { EXPLORATIONS, REPORT_CURRENCIES, REPORT_PIN, REPORT_STATES, REPORT_VIEW
 import { useI18n } from '../i18n';
 import type { Key } from '../i18n';
 import { en } from '../i18n/en';
-import { CHART_COLUMN, PRESETS, REPORTS, REPORT_CATEGORY, SNAPSHOT_REPORTS, TIME_REPORTS, comparisonRange, delta, fillSeries, presetRange } from '../lib/analytics';
+import { CHART_COLUMN, PRESETS, REPORTS, REPORT_CATEGORY, SNAPSHOT_REPORTS, TIME_REPORTS, comparisonRange, delta, fillSeries, presetRange, todayIn } from '../lib/analytics';
 import type { Compare, Preset, Range, ReportName } from '../lib/analytics';
 import { cumulate, emptyQuery, matchesFilter, parseReportQuery } from '../lib/report-query';
 import type { QueryFilter, QueryOp, ReportQuery } from '../lib/report-query';
@@ -26,7 +26,7 @@ type Viz = 'LINE' | 'BAR' | 'TABLE';
 interface Column { key: string; label: string; type: 'text' | 'date' | 'int' | 'money' | 'percent' }
 interface Report { name: string; currencyCode: string; from: string; to: string; columns: Column[]; rows: Array<Array<string | number | null>>; totals: Record<string, number> }
 
-export const todayIn = (tz: string) => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()); } catch { return new Date().toISOString().slice(0, 10); } };
+export { todayIn };
 
 function useReport(name: ReportName, range: Range | null, groupBy: Group, currency = '') {
   return useQuery({
