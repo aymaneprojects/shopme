@@ -1,0 +1,192 @@
+{%- liquid
+  assign s = section.settings
+  assign item = s.product | default: collections.all.products.first
+  assign image = item.featured_image
+  assign focal = ''
+  if image.presentation.focal_point != blank
+    assign focal = 'object-position: ' | append: image.presentation.focal_point
+  endif
+-%}
+<div class="section-pad spec-sheet spec-sheet--{{ s.layout }} {% render 'scheme-class', scheme: s.color_scheme %}{% if s.texture != blank and s.texture != 'none' %} texture texture--{{ s.texture }}{% endif %}">
+  <div class="page-width spec-sheet__inner">
+    <div class="spec-sheet__stage">
+      <div class="spec-sheet__rings" aria-hidden="true"></div>
+      {%- if item != blank and image -%}
+        <a class="spec-sheet__image" href="{{ item.url }}" tabindex="-1" aria-hidden="true">
+          {{ image | image_url: width: 900 | image_tag: loading: 'lazy', widths: '450, 700, 900', sizes: '(min-width: 990px) 40vw, 80vw', alt: '', style: focal }}
+        </a>
+      {%- else -%}
+        <span class="spec-sheet__image">{{ 'product-1' | placeholder_svg_tag: 'spec-sheet__placeholder' }}</span>
+      {%- endif -%}
+    </div>
+    <div class="spec-sheet__body">
+      {%- if s.eyebrow != blank -%}<p class="eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="section-title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.text != blank -%}<div class="rte">{{ s.text }}</div>{%- endif -%}
+      {%- if section.blocks.size > 0 -%}
+        <dl class="spec-sheet__list">
+          {%- for block in section.blocks -%}
+            <div class="spec-sheet__row" {{ block.shopify_attributes }}>
+              <dt>{{ block.settings.label | escape }}</dt>
+              <dd>{{ block.settings.value | escape }}</dd>
+            </div>
+          {%- endfor -%}
+        </dl>
+      {%- endif -%}
+      {%- if item != blank -%}
+        <div class="spec-sheet__buy">
+          <div>
+            <p class="spec-sheet__product">{{ item.title | escape }}</p>
+            {% render 'price', product: item %}
+          </div>
+          {%- assign cta = s.button_label -%}
+          {%- if cta == blank -%}{%- assign cta = 'products.view_details' | t -%}{%- endif -%}
+          <a class="button" href="{{ item.url }}">{{ cta | escape }}</a>
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.spec_sheet.name",
+  "tag": "section",
+  "max_blocks": 8,
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.spec_sheet.settings.eyebrow",
+      "default": "Signature piece"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.spec_sheet.settings.heading",
+      "default": "Calibre Nº 7"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:sections.spec_sheet.settings.text",
+      "default": "<p>Assembled over three hundred hours by a single watchmaker, this piece is the quiet summit of our craft.</p>"
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "t:sections.spec_sheet.settings.product",
+      "info": "t:sections.spec_sheet.info.product"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.spec_sheet.settings.button_label",
+      "default": ""
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "t:sections.spec_sheet.settings.layout",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:shared.left"
+        },
+        {
+          "value": "right",
+          "label": "t:shared.right"
+        }
+      ],
+      "default": "left",
+      "variant": "segmented"
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.spec_sheet.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.spec_sheet.options.texture.none"
+        },
+        {
+          "value": "lines",
+          "label": "t:sections.spec_sheet.options.texture.lines"
+        },
+        {
+          "value": "noir",
+          "label": "t:sections.spec_sheet.options.texture.noir"
+        },
+        {
+          "value": "guilloche",
+          "label": "t:sections.spec_sheet.options.texture.guilloche"
+        }
+      ],
+      "default": "noir"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": "scheme-1"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "spec",
+      "name": "t:sections.spec_sheet.blocks.spec.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:sections.spec_sheet.blocks.spec.settings.label",
+          "default": "Movement"
+        },
+        {
+          "type": "text",
+          "id": "value",
+          "label": "t:sections.spec_sheet.blocks.spec.settings.value",
+          "default": "Automatic"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.spec_sheet.presets.spec_sheet",
+      "category": "product",
+      "blocks": [
+        {
+          "type": "spec",
+          "settings": {
+            "label": "Movement",
+            "value": "Automatic, 28,800 vph"
+          }
+        },
+        {
+          "type": "spec",
+          "settings": {
+            "label": "Case",
+            "value": "18 k rose gold, 39 mm"
+          }
+        },
+        {
+          "type": "spec",
+          "settings": {
+            "label": "Water resistance",
+            "value": "50 metres"
+          }
+        },
+        {
+          "type": "spec",
+          "settings": {
+            "label": "Power reserve",
+            "value": "72 hours"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

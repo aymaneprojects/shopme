@@ -1,0 +1,7 @@
+{%- doc -%}
+  Previous and next buttons that scroll the carousel list (`data-carousel`) of the same section.
+{%- enddoc -%}
+<div class="carousel-arrows">
+  <button type="button" class="icon-button" data-carousel-prev aria-label="{{ 'carousel.previous' | t }}">{% render 'icon', name: 'arrow-left' %}</button>
+  <button type="button" class="icon-button" data-carousel-next aria-label="{{ 'carousel.next' | t }}">{% render 'icon', name: 'arrow-right' %}</button>
+</div>

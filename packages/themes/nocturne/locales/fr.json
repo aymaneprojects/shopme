@@ -1,0 +1,518 @@
+{
+  "accessibility": {
+    "skip_to_content": "Aller au contenu",
+    "cart_count": "Panier, {{ count }} articles",
+    "open_menu": "Ouvrir le menu",
+    "close_menu": "Fermer le menu",
+    "search": "Rechercher",
+    "gallery": "Images du produit",
+    "quantity": "Quantité"
+  },
+  "general": {
+    "home": "Accueil",
+    "error": "Une erreur est survenue. Veuillez réessayer.",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "pagination": "Pagination",
+    "view_all": "Tout voir",
+    "continue_shopping": "Continuer vos achats",
+    "copyright": "© {{ year }} {{ shop }}",
+    "powered_by": "Propulsé par ShopMe",
+    "page_not_found": "Page introuvable",
+    "page_not_found_text": "La page que vous cherchez n'existe pas ou a été déplacée.",
+    "back_to_store": "Retour à la boutique",
+    "empty_collections": "Aucune collection pour le moment.",
+    "no_products": "Aucun produit trouvé.",
+    "date_format": "%d/%m/%Y",
+    "close": "Fermer",
+    "discover": "Découvrir"
+  },
+  "header": {
+    "cart": "Panier",
+    "search": "Recherche",
+    "account": "Compte"
+  },
+  "products": {
+    "add_to_cart": "Ajouter au panier",
+    "sold_out": "Épuisé",
+    "sale": "Promo",
+    "added_to_cart": "Ajouté au panier",
+    "view_cart": "Voir le panier",
+    "from_price": "À partir de {{ price }}",
+    "regular_price": "Prix normal",
+    "sale_price": "Prix promo",
+    "quantity": "Quantité",
+    "description": "Description",
+    "unavailable": "Indisponible",
+    "gift_card": {
+      "recipient_email": "E-mail du destinataire (facultatif)",
+      "recipient_name": "Nom du destinataire (facultatif)",
+      "message": "Message (facultatif)"
+    },
+    "purchase_options": {
+      "title": "Options d'achat",
+      "one_time": "Achat unique",
+      "delivery": "Fréquence de livraison",
+      "per_delivery": "{{ price }} par livraison",
+      "save_percent": "Économisez {{ percent }} %",
+      "subscription_note": "Sautez une livraison, mettez en pause ou résiliez à tout moment depuis votre compte.",
+      "required": "Ce produit est vendu uniquement sur abonnement."
+    },
+    "in_stock": "En stock",
+    "availability": "Disponibilité",
+    "sku": "Référence",
+    "details": "Détails",
+    "view_details": "Voir la pièce"
+  },
+  "collection": {
+    "sort_by": "Trier par",
+    "filter": "Filtrer",
+    "availability": "Disponibilité",
+    "in_stock": "En stock",
+    "out_of_stock": "Rupture de stock",
+    "apply": "Appliquer",
+    "clear": "Tout effacer",
+    "product_count": {
+      "one": "{{ count }} produit",
+      "other": "{{ count }} produits"
+    },
+    "eyebrow": "Collection",
+    "price": "Prix",
+    "product_type": "Catégorie",
+    "vendor": "Créateur",
+    "price_from": "De",
+    "price_to": "À",
+    "price_range": "de {{ from }} à {{ to }}",
+    "remove_filter": "Retirer ce filtre",
+    "active_filters": "Filtres actifs",
+    "show_results": "Voir {{ count }} pièces",
+    "sort": {
+      "manual": "Sélection",
+      "best_selling": "Meilleures ventes",
+      "title_ascending": "Nom, A-Z",
+      "title_descending": "Nom, Z-A",
+      "price_ascending": "Prix croissant",
+      "price_descending": "Prix décroissant",
+      "created_ascending": "Plus anciens d’abord",
+      "created_descending": "Plus récents d’abord"
+    }
+  },
+  "cart": {
+    "title": "Votre panier",
+    "empty": "Votre panier est vide",
+    "product": "Produit",
+    "price": "Prix",
+    "quantity": "Quantité",
+    "total": "Total",
+    "remove": "Supprimer",
+    "subtotal": "Sous-total",
+    "note": "Note de commande",
+    "taxes_shipping": "Taxes et frais de livraison calculés à la commande.",
+    "discount": "Réduction",
+    "checkout": "Commander",
+    "update": "Mettre à jour",
+    "decrease": "Diminuer la quantité de {{ title }}",
+    "increase": "Augmenter la quantité de {{ title }}",
+    "recurring": "Abonnement : {{ price }} par livraison",
+    "eyebrow": "Votre sélection",
+    "item_count": {
+      "one": "{{ count }} pièce",
+      "other": "{{ count }} pièces"
+    },
+    "view_cart": "Voir le panier",
+    "free_shipping_left": "Encore {{ amount }} pour la livraison offerte",
+    "free_shipping_reached": "Livraison offerte débloquée",
+    "free_shipping_progress": "Progression vers la livraison offerte"
+  },
+  "search": {
+    "title": "Recherche",
+    "placeholder": "Rechercher dans la boutique",
+    "submit": "Rechercher",
+    "results": {
+      "one": "{{ count }} résultat pour « {{ terms }} »",
+      "other": "{{ count }} résultats pour « {{ terms }} »"
+    },
+    "no_results": "Aucun résultat pour « {{ terms }} ». Essayez une autre recherche.",
+    "predictive": {
+      "products": "Produits",
+      "collections": "Collections",
+      "pages": "Pages",
+      "articles": "Articles",
+      "queries": "Suggestions",
+      "none": "Aucune suggestion pour « {terms} »",
+      "all": "Rechercher « {terms} »"
+    },
+    "corrected": "Résultats pour « {{ terms }} »",
+    "type": {
+      "product": "Produit",
+      "page": "Page",
+      "article": "Article"
+    },
+    "eyebrow": "Recherche"
+  },
+  "password": {
+    "title": "Ouverture prochaine",
+    "message": "Cette boutique est protégée par un mot de passe.",
+    "label": "Mot de passe",
+    "submit": "Entrer",
+    "wrong": "Mot de passe incorrect"
+  },
+  "footer": {
+    "menu": "Menu du pied de page",
+    "boutique": "La Maison",
+    "explore": "Explorer"
+  },
+  "customer": {
+    "login": "Se connecter",
+    "logout": "Se déconnecter",
+    "register": "Créer un compte",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "password_confirmation": "Confirmer le mot de passe",
+    "first_name": "Prénom",
+    "last_name": "Nom",
+    "login_page": {
+      "title": "Connexion",
+      "forgot": "Mot de passe oublié ?",
+      "submit": "Se connecter",
+      "no_account": "Nouveau client ?",
+      "code_title": "Se connecter avec un code par e-mail",
+      "code_text": "Nous vous envoyons un code à 6 chiffres. Aucun mot de passe nécessaire.",
+      "code_send": "Recevoir un code par e-mail",
+      "code_sent": "Si l'adresse est valide, un code est en route. Il reste valable 10 minutes.",
+      "code_label": "Code à 6 chiffres",
+      "code_submit": "Se connecter avec le code",
+      "code_resend": "Envoyer un nouveau code",
+      "or": "ou"
+    },
+    "register_page": {
+      "title": "Créer un compte",
+      "submit": "Créer mon compte",
+      "have_account": "Vous avez déjà un compte ?",
+      "marketing": "Recevoir les actualités et offres par e-mail"
+    },
+    "recover": {
+      "title": "Réinitialiser votre mot de passe",
+      "text": "Saisissez votre e-mail : nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+      "submit": "Envoyer l'e-mail",
+      "cancel": "Annuler",
+      "success": "Si un compte existe pour cette adresse e-mail, nous vous avons envoyé un message avec un lien pour continuer."
+    },
+    "reset": {
+      "title": "Choisir un nouveau mot de passe",
+      "submit": "Enregistrer le mot de passe"
+    },
+    "activate": {
+      "title": "Activer votre compte",
+      "text": "Choisissez un mot de passe pour activer votre compte.",
+      "submit": "Activer le compte"
+    },
+    "account_page": {
+      "title": "Mon compte",
+      "welcome": "Bonjour {{ name }}",
+      "order_history": "Historique des commandes",
+      "no_orders": "Vous n'avez pas encore passé de commande.",
+      "details": "Détails du compte",
+      "view_addresses": "Voir les adresses ({{ count }})",
+      "default_address": "Adresse par défaut",
+      "order": "Commande",
+      "date": "Date",
+      "payment_status": "Paiement",
+      "fulfillment_status": "Expédition",
+      "total": "Total",
+      "store_credit": "Crédit en magasin",
+      "store_credit_balance": "Solde : {{ amount }}"
+    },
+    "order_page": {
+      "title": "Commande {{ name }}",
+      "placed_on": "Passée le {{ date }}",
+      "cancelled": "Annulée le {{ date }}",
+      "product": "Produit",
+      "sku": "Référence",
+      "price": "Prix",
+      "quantity": "Quantité",
+      "total": "Total",
+      "subtotal": "Sous-total",
+      "discount": "Réduction",
+      "shipping": "Livraison",
+      "taxes": "Taxes",
+      "order_total": "Total",
+      "billing_address": "Adresse de facturation",
+      "shipping_address": "Adresse de livraison",
+      "shipments": "Expéditions",
+      "tracking": "Suivi",
+      "back": "Retour au compte",
+      "actions": "Actions sur la commande",
+      "reorder": "Acheter à nouveau",
+      "cancel": "Annuler la commande",
+      "cancel_until": "Vous pouvez annuler cette commande jusqu'au {{ date }}.",
+      "cancel_confirm": "Annuler cette commande ? Les articles retournent en stock et tout paiement est remboursé.",
+      "return_title": "Demander un retour",
+      "return_text": "Choisissez les articles à retourner. Nous examinons chaque demande.",
+      "return_submit": "Demander le retour",
+      "return_note": "Note (facultatif)",
+      "return_max": "sur {{ max }}",
+      "notice_cancel_ok": "Votre commande a été annulée.",
+      "notice_cancel_failed": "Cette commande ne peut plus être annulée.",
+      "notice_return_ok": "Votre demande de retour a été envoyée. Nous revenons vers vous.",
+      "notice_return_failed": "La demande de retour n'a pas pu être créée."
+    },
+    "addresses": {
+      "title": "Adresses",
+      "add": "Ajouter une adresse",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "save": "Enregistrer l'adresse",
+      "default": "Par défaut",
+      "set_default": "Définir comme adresse par défaut",
+      "company": "Société",
+      "address1": "Adresse",
+      "address2": "Appartement, bâtiment, etc.",
+      "city": "Ville",
+      "country": "Pays/région",
+      "province": "État/province",
+      "zip": "Code postal",
+      "phone": "Téléphone",
+      "confirm_delete": "Supprimer cette adresse ?",
+      "none": "Aucune adresse enregistrée.",
+      "back": "Retour au compte"
+    },
+    "subscriptions": {
+      "title": "Abonnements",
+      "next_order": "Prochaine commande le {{ date }} : {{ total }}",
+      "skip": "Sauter la prochaine commande",
+      "pause": "Mettre en pause",
+      "resume": "Reprendre",
+      "cancel": "Résilier",
+      "cancel_confirm": "Résilier cet abonnement ? Aucun autre paiement ne sera prélevé.",
+      "statuses": {
+        "active": "Actif",
+        "paused": "En pause",
+        "cancelled": "Résilié",
+        "expired": "Terminé",
+        "failed": "Problème de paiement"
+      },
+      "frequency": {
+        "day": {
+          "one": "Chaque jour",
+          "other": "Tous les {{ count }} jours"
+        },
+        "week": {
+          "one": "Chaque semaine",
+          "other": "Toutes les {{ count }} semaines"
+        },
+        "month": {
+          "one": "Chaque mois",
+          "other": "Tous les {{ count }} mois"
+        },
+        "year": {
+          "one": "Chaque année",
+          "other": "Tous les {{ count }} ans"
+        }
+      }
+    }
+  },
+  "blog": {
+    "read_more": "Lire la suite",
+    "by": "Par {{ author }}",
+    "published": "Publié le {{ date }}",
+    "tags": "Étiquettes",
+    "all": "Tous",
+    "no_articles": "Aucun article pour le moment.",
+    "next": "Article suivant",
+    "previous": "Article précédent",
+    "back": "Retour à {{ blog }}",
+    "feed": "Flux Atom",
+    "eyebrow": "Journal"
+  },
+  "contact": {
+    "title": "Nous contacter",
+    "name": "Nom",
+    "email": "E-mail",
+    "phone": "Téléphone (facultatif)",
+    "message": "Message",
+    "submit": "Envoyer",
+    "success": "Merci de nous avoir contactés. Nous vous répondrons dès que possible."
+  },
+  "newsletter": {
+    "title": "Restons en contact",
+    "label": "Adresse e-mail",
+    "submit": "S'abonner",
+    "success": "Merci pour votre inscription !"
+  },
+  "localization": {
+    "language": "Langue",
+    "update": "Changer de langue",
+    "country": "Pays ou région",
+    "update_country": "Changer de pays"
+  },
+  "gift_card": {
+    "title": "Votre carte cadeau {{ shop }}",
+    "balance": "Solde",
+    "initial_value": "Valeur initiale : {{ amount }}",
+    "code": "Code de la carte cadeau",
+    "expires_on": "Valable jusqu'au {{ date }}",
+    "expired": "Cette carte cadeau a expiré le {{ date }}.",
+    "disabled": "Cette carte cadeau a été désactivée.",
+    "shop_now": "Commencer mes achats",
+    "how_to": "Saisissez le code dans le champ Carte cadeau lors du paiement. Le solde est utilisé jusqu'au montant de votre commande."
+  },
+  "privacy": {
+    "banner": {
+      "title": "Consentement aux cookies",
+      "accept": "Tout accepter",
+      "reject": "Refuser",
+      "manage": "Gérer les préférences",
+      "save": "Enregistrer les préférences",
+      "preferences_title": "Préférences en matière de cookies",
+      "analytics": "Statistiques",
+      "analytics_help": "Nous aide à comprendre comment la boutique est utilisée.",
+      "marketing": "Marketing",
+      "marketing_help": "Nous permet, ainsi qu'à nos partenaires, de proposer des offres pertinentes.",
+      "preferences": "Préférences",
+      "preferences_help": "Mémorise vos choix, comme la langue ou la région.",
+      "privacy_policy": "Politique de confidentialité"
+    },
+    "footer": {
+      "cookie_preferences": "Préférences cookies",
+      "opt_out": "Ne pas vendre ni partager mes informations personnelles"
+    }
+  },
+  "slideshow": {
+    "label": "Diaporama",
+    "previous": "Diapositive précédente",
+    "next": "Diapositive suivante",
+    "go_to": "Aller à la diapositive {{ number }}",
+    "pause": "Mettre le diaporama en pause",
+    "play": "Lancer le diaporama"
+  },
+  "carousel": {
+    "previous": "Défiler vers la gauche",
+    "next": "Défiler vers la droite"
+  },
+  "blog_posts": {
+    "empty": "Choisissez un blog dans les réglages de la section pour afficher ses derniers articles."
+  },
+  "featured_product": {
+    "view_details": "Voir tous les détails",
+    "empty": "Choisissez un produit dans les réglages de la section."
+  },
+  "popup": {
+    "close": "Fermer"
+  },
+  "media": {
+    "video": "Vidéo"
+  },
+  "product": {
+    "breadcrumb": "Fil d’Ariane",
+    "all_products": "Toutes les pièces",
+    "show_image": "Afficher l’image {{ number }}"
+  },
+  "badges": {
+    "new": "Nouveau",
+    "limited_edition": "Édition limitée",
+    "handmade": "Fait main"
+  },
+  "seed_defaults": {
+    "<p>Add details here.</p>": "<p>Ajoutez vos détails ici.</p>",
+    "<p>Assembled over three hundred hours by a single watchmaker, this piece is the quiet summit of our craft.</p>": "<p>Assemblée en trois cents heures par un seul horloger, cette pièce est le sommet discret de notre art.</p>",
+    "<p>Engraving is complimentary. Add your wording at checkout and our engraver will confirm it with you.</p>": "<p>La gravure est offerte. Indiquez votre texte lors de la commande, notre graveur le validera avec vous.</p>",
+    "<p>Every piece leaves our atelier only when our master craftsmen are certain it will outlive us.</p>": "<p>Chaque pièce ne quitte notre atelier que lorsque nos maîtres artisans sont certains qu’elle nous survivra.</p>",
+    "<p>Finished by hand in our atelier. Keep in the pouch provided, away from moisture, and bring it to us once a year for a complimentary service.</p>": "<p>Terminé à la main dans notre atelier. Conservez-le dans son écrin, à l’abri de l’humidité, et confiez-le-nous une fois par an pour une révision offerte.</p>",
+    "<p>Finished by hand, one piece at a time.</p>": "<p>Terminé à la main, une pièce à la fois.</p>",
+    "<p>Insured delivery in two to four days. Free returns within thirty days, in their original packaging.</p>": "<p>Livraison assurée en deux à quatre jours. Retours gratuits sous trente jours, dans leur emballage d’origine.</p>",
+    "<p>Join the Private Circle and receive an invitation to our next private viewing.</p>": "<p>Rejoignez le Cercle privé et recevez une invitation à notre prochaine présentation privée.</p>",
+    "<p>Keep each piece in its pouch, away from moisture. We offer a free annual service for ten years.</p>": "<p>Rangez chaque pièce dans son écrin, à l’abri de l’humidité. Nous offrons une révision annuelle gratuite pendant dix ans.</p>",
+    "<p>Our craftsmen spend up to three hundred hours on a single piece. Nothing leaves until it is flawless.</p>": "<p>Nos artisans consacrent jusqu’à trois cents heures à une seule pièce. Rien ne sort avant d’être irréprochable.</p>",
+    "<p>Previews of new pieces, invitations to private viewings and the occasional story from the atelier.</p>": "<p>Avant-premières, invitations aux présentations privées et, parfois, un récit venu de l’atelier.</p>",
+    "<p>Recycled gold and traceable stones.</p>": "<p>Or recyclé et pierres traçables.</p>",
+    "<p>Serviced for life by our atelier.</p>": "<p>Entretenu à vie par notre atelier.</p>",
+    "<p>We reply within one business day.</p>": "<p>Nous répondons sous un jour ouvré.</p>",
+    "<p>Yes. Each piece carries its serial number and is delivered with a signed certificate of authenticity.</p>": "<p>Oui. Chaque pièce porte son numéro de série et est livrée avec un certificat d’authenticité signé.</p>",
+    "18 k rose gold, 39 mm": "Or rose 18 k, 39 mm",
+    "50 metres": "50 mètres",
+    "72 hours": "72 heures",
+    "A free annual service for a decade.": "Une révision annuelle offerte pendant dix ans.",
+    "A house of patience": "Une maison de patience",
+    "A personal message, engraved by hand.": "Un message personnel, gravé à la main.",
+    "A quiet masterpiece: nothing is shouted, everything is felt.": "Un chef-d’œuvre discret : rien n’est crié, tout est ressenti.",
+    "A signature piece for every occasion.": "Une pièce signature pour chaque occasion.",
+    "A single bench and a promise: nothing leaves unfinished.": "Un seul établi et une promesse : rien ne sort inachevé.",
+    "Are your pieces numbered and certified?": "Vos pièces sont-elles numérotées et certifiées ?",
+    "At your service": "À votre service",
+    "Automatic": "Automatique",
+    "Automatic, 28,800 vph": "Automatique, 28 800 alt./h",
+    "Be the first to see what comes next": "Soyez le premier à découvrir la suite",
+    "Browse": "Parcourir",
+    "Calibre Nº 7": "Calibre Nº 7",
+    "Can I have a piece engraved?": "Puis-je faire graver une pièce ?",
+    "Carbon-neutral workshop": "Atelier neutre en carbone",
+    "Case": "Boîtier",
+    "Certified and numbered": "Certifié et numéroté",
+    "Client since 2019": "Client depuis 2019",
+    "Collector, Geneva": "Collectionneuse, Genève",
+    "Complimentary engraving": "Gravure offerte",
+    "Complimentary shipping and engraving on every order": "Livraison et gravure offertes sur chaque commande",
+    "Craftsmanship and care": "Savoir-faire et entretien",
+    "Delivery and returns": "Livraison et retours",
+    "Details": "Détails",
+    "Discover the collection": "Découvrir la collection",
+    "Every piece comes with its signed certificate.": "Chaque pièce est livrée avec son certificat signé.",
+    "Fine jewelry": "Haute joaillerie",
+    "Fine jewelry and watchmaking": "Haute joaillerie et horlogerie",
+    "Gem-setting joins watchmaking under one roof.": "Le sertissage rejoint l’horlogerie sous un même toit.",
+    "Hand-finished in our atelier": "Terminé à la main dans notre atelier",
+    "Handcrafted": "Fait main",
+    "Helena V.": "Hélène V.",
+    "Heritage": "Héritage",
+    "How do I care for my jewelry or watch?": "Comment entretenir mon bijou ou ma montre ?",
+    "In their words": "Ils en parlent",
+    "Independent magazine": "Magazine indépendant",
+    "Insured delivery": "Livraison assurée",
+    "Journal": "Journal",
+    "Julien M.": "Julien M.",
+    "Lookbook": "Lookbook",
+    "Made by hand, finished by eye": "Façonné à la main, jugé à l’œil",
+    "Made to last": "Conçu pour durer",
+    "Movement": "Mouvement",
+    "My engagement ring arrived like a small ceremony.": "Ma bague de fiançailles est arrivée comme une petite cérémonie.",
+    "Notes from the atelier": "Notes de l’atelier",
+    "Numbered pieces": "Pièces numérotées",
+    "Objects of desire": "Objets de désir",
+    "Our craft": "Notre savoir-faire",
+    "Our first in-house movement, still running today.": "Notre premier mouvement maison, qui fonctionne encore aujourd’hui.",
+    "Our story": "Notre histoire",
+    "Pieces made by hand in our atelier, numbered, certified and made to be passed on.": "Des pièces faites à la main dans notre atelier, numérotées, certifiées et faites pour se transmettre.",
+    "Pieces to pair with it": "Pièces à associer",
+    "Power reserve": "Réserve de marche",
+    "Precision you can feel.": "Une précision que l’on ressent.",
+    "Press and clients": "Presse et clients",
+    "Previews and invitations, never more than twice a month.": "Avant-premières et invitations, jamais plus de deux fois par mois.",
+    "Questions, answered": "Vos questions, nos réponses",
+    "Rare pieces for the home.": "Des pièces rares pour la maison.",
+    "Read our story": "Lire notre histoire",
+    "Recycled gold, traceable stones, repairs for life.": "Or recyclé, pierres traçables, réparations à vie.",
+    "Responsibly sourced": "Approvisionnement responsable",
+    "Selected pieces": "Pièces sélectionnées",
+    "Shop by collection": "Acheter par collection",
+    "Signature piece": "Pièce signature",
+    "Since 1887, in no hurry": "Depuis 1887, sans se presser",
+    "Speak with a concierge": "Parler à un conseiller",
+    "Ten-year guarantee": "Garantie dix ans",
+    "The art of time, set in eternity": "L’art du temps, serti d’éternité",
+    "The atelier": "L’atelier",
+    "The Calibre No. 1": "Le Calibre nº 1",
+    "The Collection": "La Collection",
+    "The finishing rivals houses three times its size.": "Une finition qui rivalise avec des maisons trois fois plus grandes.",
+    "The first workbench": "Le premier établi",
+    "The jewelry atelier": "L’atelier de joaillerie",
+    "The Private Circle": "Le Cercle privé",
+    "The Watch Review": "La Revue de l’Horloger",
+    "Three worlds, one signature": "Trois univers, une signature",
+    "Timepieces": "Horlogerie",
+    "Tracked, insured and signed for, worldwide.": "Suivie, assurée et remise contre signature, partout.",
+    "Water resistance": "Étanchéité",
+    "Welcome to the House": "Bienvenue dans la Maison",
+    "You may also admire": "Vous aimerez aussi"
+  }
+}

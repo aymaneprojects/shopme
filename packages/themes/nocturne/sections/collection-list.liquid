@@ -1,0 +1,144 @@
+{%- liquid
+  assign s = section.settings
+  assign list = s.collections
+  assign shown = 0
+-%}
+<div class="section-pad collection-list {% render 'scheme-class', scheme: s.color_scheme %}{% if s.texture != blank and s.texture != 'none' %} texture texture--{{ s.texture }}{% endif %}">
+  <div class="page-width">
+    <div class="section-head{% if s.layout == 'carousel' %}{% else %} section-head--center{% endif %}">
+      <div>
+        {%- if s.eyebrow != blank -%}<p class="eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+        {%- if s.heading != blank -%}<h2 class="section-title">{{ s.heading | escape }}</h2>{%- endif -%}
+      </div>
+      {%- if s.layout == 'carousel' -%}{%- render 'carousel-arrows' -%}{%- endif -%}
+    </div>
+    {%- if list.size == 0 -%}
+      <ul class="grid grid--cols-{{ s.columns }} grid--mobile-1 collection-tiles collection-tiles--{{ s.layout }}"{% if s.layout == 'carousel' %} data-carousel{% endif %} role="list">
+        {%- for collection in collections limit: s.max_collections -%}
+          <li>{% render 'collection-tile', tile_collection: collection, show_count: s.show_count, index: forloop.index %}</li>
+        {%- endfor -%}
+      </ul>
+    {%- else -%}
+      <ul class="grid grid--cols-{{ s.columns }} grid--mobile-1 collection-tiles collection-tiles--{{ s.layout }}"{% if s.layout == 'carousel' %} data-carousel{% endif %} role="list">
+        {%- for collection in list -%}
+          <li>{% render 'collection-tile', tile_collection: collection, show_count: s.show_count, index: forloop.index %}</li>
+        {%- endfor -%}
+      </ul>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.collection_list.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.collection_list.settings.eyebrow",
+      "default": "Browse"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.collection_list.settings.heading",
+      "default": "Shop by collection"
+    },
+    {
+      "type": "collection_list",
+      "id": "collections",
+      "label": "t:sections.collection_list.settings.collections",
+      "info": "t:sections.collection_list.info.collections"
+    },
+    {
+      "type": "range",
+      "id": "max_collections",
+      "label": "t:sections.collection_list.settings.max_collections",
+      "min": 2,
+      "max": 8,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "t:sections.collection_list.settings.columns",
+      "options": [
+        {
+          "value": "2",
+          "label": "t:sections.collection_list.options.columns.2"
+        },
+        {
+          "value": "3",
+          "label": "t:sections.collection_list.options.columns.3"
+        },
+        {
+          "value": "4",
+          "label": "t:sections.collection_list.options.columns.4"
+        }
+      ],
+      "default": "3"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "t:sections.collection_list.settings.layout",
+      "options": [
+        {
+          "value": "grid",
+          "label": "t:sections.collection_list.options.layout.grid"
+        },
+        {
+          "value": "carousel",
+          "label": "t:sections.collection_list.options.layout.carousel"
+        }
+      ],
+      "default": "grid",
+      "variant": "segmented"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_count",
+      "label": "t:sections.collection_list.settings.show_count",
+      "default": false
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.collection_list.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.collection_list.options.texture.none"
+        },
+        {
+          "value": "lines",
+          "label": "t:sections.collection_list.options.texture.lines"
+        },
+        {
+          "value": "noir",
+          "label": "t:sections.collection_list.options.texture.noir"
+        },
+        {
+          "value": "guilloche",
+          "label": "t:sections.collection_list.options.texture.guilloche"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.collection_list.presets.collection_list",
+      "category": "collection"
+    }
+  ]
+}
+{% endschema %}

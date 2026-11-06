@@ -1,0 +1,310 @@
+{%- liquid
+  assign s = section.settings
+  assign has_filters = false
+  if s.enable_filters and collection.filters.size > 0
+    assign has_filters = true
+  endif
+  assign active_count = 0
+  for filter in collection.filters
+    if filter.type == 'price_range'
+      if filter.min_value.value > 0 or filter.max_value.value < filter.range_max
+        assign active_count = active_count | plus: 1
+      endif
+    else
+      assign active_count = active_count | plus: filter.active_values.size
+    endif
+  endfor
+-%}
+<div class="section-pad collection collection--filters-{{ s.filter_layout }} {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width">
+    <header class="collection__header{% if s.show_image and collection.image %} collection__header--image{% endif %}">
+      {%- if s.show_image and collection.image -%}
+        <div class="collection__banner">
+          {%- assign focal = '' -%}
+          {%- if collection.image.presentation.focal_point != blank -%}{%- assign focal = 'object-position: ' | append: collection.image.presentation.focal_point -%}{%- endif -%}
+          {{ collection.image | image_url: width: 1800 | image_tag: loading: 'eager', widths: '750, 1100, 1500, 1800', sizes: '100vw', alt: '', style: focal }}
+        </div>
+      {%- endif -%}
+      <div class="collection__intro">
+        <p class="eyebrow">{{ 'collection.eyebrow' | t }}</p>
+        <h1 class="page-title">{{ collection.title | escape }}</h1>
+        {%- if s.show_description and collection.description != blank -%}
+          <div class="collection__description rte">{{ collection.description }}</div>
+        {%- endif -%}
+      </div>
+    </header>
+
+    <div class="collection__layout">
+      <form id="collection-form" class="collection__controls" method="get" action="{{ collection.url }}" data-auto-submit>
+        <div class="collection__toolbar">
+          {%- if has_filters -%}
+            <button type="button" class="button button--outline button--small collection__filter-toggle" data-filters-toggle aria-expanded="false" aria-controls="collection-filters">
+              {% render 'icon', name: 'filter' %}<span>{{ 'collection.filter' | t }}{% if active_count > 0 %} ({{ active_count }}){% endif %}</span>
+            </button>
+          {%- endif -%}
+          <p class="collection__count" role="status">{{ 'collection.product_count' | t: count: collection.products_count }}</p>
+          {%- if s.show_sort -%}
+            <label class="collection__sort">
+              <span class="collection__sort-label">{{ 'collection.sort_by' | t }}</span>
+              <select name="sort_by" class="select">
+                {%- for option in collection.sort_options -%}
+                  {%- assign sort_key = 'collection.sort.' | append: option.value | replace: '-', '_' -%}
+                  <option value="{{ option.value }}"{% if option.value == collection.sort_by %} selected{% endif %}>{{ sort_key | t }}</option>
+                {%- endfor -%}
+              </select>
+            </label>
+          {%- endif -%}
+          <noscript><button type="submit" class="button button--small">{{ 'collection.apply' | t }}</button></noscript>
+        </div>
+
+        {%- if has_filters -%}
+          <aside class="filters" id="collection-filters" data-filters aria-label="{{ 'collection.filter' | t }}">
+            <div class="filters__head">
+              <h2 class="filters__title">{{ 'collection.filter' | t }}</h2>
+              <button type="button" class="icon-button" data-filters-close><span class="visually-hidden">{{ 'general.close' | t }}</span>{% render 'icon', name: 'close' %}</button>
+            </div>
+            <div class="filters__groups">
+              {%- for filter in collection.filters -%}
+                {%- liquid
+                  case filter.param_name
+                    when 'filter.v.availability'
+                      assign filter_label = 'collection.availability' | t
+                    when 'filter.v.price'
+                      assign filter_label = 'collection.price' | t
+                    when 'filter.p.product_type'
+                      assign filter_label = 'collection.product_type' | t
+                    when 'filter.p.vendor'
+                      assign filter_label = 'collection.vendor' | t
+                    else
+                      assign filter_label = filter.label
+                  endcase
+                  assign group_open = false
+                  if filter.type == 'price_range'
+                    if filter.min_value.value > 0 or filter.max_value.value < filter.range_max
+                      assign group_open = true
+                    endif
+                  elsif filter.active_values.size > 0
+                    assign group_open = true
+                  endif
+                -%}
+                <details class="filter"{% if s.filter_layout != 'top' %}{% if group_open or forloop.first %} open{% endif %}{% endif %}>
+                  <summary class="filter__summary"><span>{{ filter_label | escape }}</span>{% render 'icon', name: 'chevron-down' %}</summary>
+                  <div class="filter__body">
+                    {%- if filter.type == 'price_range' -%}
+                      <div class="price-range">
+                        <label class="price-range__field">
+                          <span>{{ 'collection.price_from' | t }}</span>
+                          <input class="input" type="number" inputmode="numeric" min="0" step="1" name="{{ filter.param_name }}.gte" placeholder="0"{% if filter.min_value.value > 0 %} value="{{ filter.min_value.value | divided_by: 100.0 | floor }}"{% endif %}>
+                        </label>
+                        <label class="price-range__field">
+                          <span>{{ 'collection.price_to' | t }}</span>
+                          <input class="input" type="number" inputmode="numeric" min="0" step="1" name="{{ filter.param_name }}.lte" placeholder="{{ filter.range_max | divided_by: 100.0 | ceil }}"{% if filter.max_value.value < filter.range_max %} value="{{ filter.max_value.value | divided_by: 100.0 | ceil }}"{% endif %}>
+                        </label>
+                        <span class="price-range__currency">{{ cart.currency.iso_code | default: shop.currency }}</span>
+                      </div>
+                    {%- else -%}
+                      <ul class="filter__list" role="list">
+                        {%- for value in filter.values -%}
+                          {%- liquid
+                            assign value_label = value.label
+                            if filter.param_name == 'filter.v.availability'
+                              if value.value == '1'
+                                assign value_label = 'collection.in_stock' | t
+                              else
+                                assign value_label = 'collection.out_of_stock' | t
+                              endif
+                            endif
+                          -%}
+                          <li>
+                            <label class="check{% if value.count == 0 and value.active == false %} is-disabled{% endif %}">
+                              <input type="checkbox" name="{{ value.param_name }}" value="{{ value.value }}"{% if value.active %} checked{% endif %}{% if value.count == 0 and value.active == false %} disabled{% endif %}>
+                              <span class="check__box" aria-hidden="true"></span>
+                              <span class="check__label">{{ value_label | escape }} <span class="check__count">({{ value.count }})</span></span>
+                            </label>
+                          </li>
+                        {%- endfor -%}
+                      </ul>
+                    {%- endif -%}
+                  </div>
+                </details>
+              {%- endfor -%}
+            </div>
+            <div class="filters__foot">
+              <button type="submit" class="button button--block">{{ 'collection.show_results' | t: count: collection.products_count }}</button>
+              {%- if active_count > 0 -%}<a class="link-arrow" href="{{ collection.url }}?sort_by={{ collection.sort_by }}">{{ 'collection.clear' | t }}</a>{%- endif -%}
+            </div>
+          </aside>
+          <div class="filters-overlay" data-filters-close></div>
+        {%- endif -%}
+      </form>
+
+      <div class="collection__results">
+        {%- if active_count > 0 -%}
+          <ul class="active-filters" role="list" aria-label="{{ 'collection.active_filters' | t }}">
+            {%- for filter in collection.filters -%}
+              {%- if filter.type == 'price_range' -%}
+                {%- if filter.min_value.value > 0 or filter.max_value.value < filter.range_max -%}
+                  {%- assign price_from = filter.min_value.value | money_without_trailing_zeros -%}
+                  {%- assign price_to = filter.max_value.value | money_without_trailing_zeros -%}
+                  <li><a class="chip chip--remove" href="{{ filter.url_to_remove }}">{{ 'collection.price_range' | t: from: price_from, to: price_to }}<span class="visually-hidden"> {{ 'collection.remove_filter' | t }}</span><span aria-hidden="true">&times;</span></a></li>
+                {%- endif -%}
+              {%- else -%}
+                {%- for value in filter.active_values -%}
+                  {%- liquid
+                    assign value_label = value.label
+                    if filter.param_name == 'filter.v.availability'
+                      if value.value == '1'
+                        assign value_label = 'collection.in_stock' | t
+                      else
+                        assign value_label = 'collection.out_of_stock' | t
+                      endif
+                    endif
+                  -%}
+                  <li><a class="chip chip--remove" href="{{ value.url_to_remove }}">{{ value_label | escape }}<span class="visually-hidden"> {{ 'collection.remove_filter' | t }}</span><span aria-hidden="true">&times;</span></a></li>
+                {%- endfor -%}
+              {%- endif -%}
+            {%- endfor -%}
+            <li><a class="link-arrow" href="{{ collection.url }}?sort_by={{ collection.sort_by }}">{{ 'collection.clear' | t }}</a></li>
+          </ul>
+        {%- endif -%}
+
+        {%- paginate collection.products by s.products_per_page -%}
+          {%- if collection.products.size > 0 -%}
+            <ul class="grid grid--cols-{{ s.columns }} grid--mobile-{{ s.mobile_columns }}" role="list">
+              {%- for product in collection.products -%}
+                <li>{% render 'product-card', card_product: product, index: forloop.index %}</li>
+              {%- endfor -%}
+            </ul>
+          {%- else -%}
+            <div class="empty-state">
+              <p class="empty">{{ 'general.no_products' | t }}</p>
+              {%- if active_count > 0 -%}<a class="button button--outline" href="{{ collection.url }}">{{ 'collection.clear' | t }}</a>{%- endif -%}
+            </div>
+          {%- endif -%}
+          {% render 'pagination', paginate: paginate %}
+        {%- endpaginate -%}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_collection.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.main_collection.headers.header"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_image",
+      "label": "t:sections.main_collection.settings.show_image",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "t:sections.main_collection.settings.show_description",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.main_collection.headers.products"
+    },
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "t:sections.main_collection.settings.products_per_page",
+      "min": 4,
+      "max": 48,
+      "step": 4,
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "t:sections.main_collection.settings.columns",
+      "options": [
+        {
+          "value": "2",
+          "label": "t:sections.main_collection.options.columns.2"
+        },
+        {
+          "value": "3",
+          "label": "t:sections.main_collection.options.columns.3"
+        },
+        {
+          "value": "4",
+          "label": "t:sections.main_collection.options.columns.4"
+        },
+        {
+          "value": "5",
+          "label": "t:sections.main_collection.options.columns.5"
+        }
+      ],
+      "default": "4"
+    },
+    {
+      "type": "select",
+      "id": "mobile_columns",
+      "label": "t:sections.main_collection.settings.mobile_columns",
+      "options": [
+        {
+          "value": "1",
+          "label": "t:sections.main_collection.options.mobile_columns.1"
+        },
+        {
+          "value": "2",
+          "label": "t:sections.main_collection.options.mobile_columns.2"
+        }
+      ],
+      "default": "2",
+      "variant": "segmented"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.main_collection.headers.filtering_and_sorting"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_filters",
+      "label": "t:sections.main_collection.settings.enable_filters",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "filter_layout",
+      "label": "t:sections.main_collection.settings.filter_layout",
+      "options": [
+        {
+          "value": "sidebar",
+          "label": "t:sections.main_collection.options.filter_layout.sidebar"
+        },
+        {
+          "value": "top",
+          "label": "t:sections.main_collection.options.filter_layout.top"
+        },
+        {
+          "value": "drawer",
+          "label": "t:sections.main_collection.options.filter_layout.drawer"
+        }
+      ],
+      "default": "top"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_sort",
+      "label": "t:sections.main_collection.settings.show_sort",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ]
+}
+{% endschema %}

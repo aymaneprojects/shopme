@@ -1,0 +1,185 @@
+{%- liquid
+  assign s = section.settings
+  assign has_media = false
+  assign media_type = 'image'
+  if s.video_url != blank
+    assign media_type = 'video'
+    assign has_media = true
+  elsif s.image
+    assign has_media = true
+  endif
+-%}
+<div class="hero hero--{{ s.height }} hero--{{ s.text_align }}{% unless has_media %} hero--no-media{% endunless %}{% if s.show_dial %} hero--dial{% endif %}{% if s.show_frame %} hero--frame{% endif %} {% render 'scheme-class', scheme: s.color_scheme %}" style="--hero-overlay: {{ s.overlay | divided_by: 100.0 }};">
+  {%- if has_media -%}
+    <div class="hero__media">
+      {%- render 'media', media_type: media_type, image: s.image, mobile_image: s.mobile_image, use_mobile: true, video_url: s.video_url, eager: true, sizes: '100vw' -%}
+    </div>
+  {%- endif -%}
+  {%- render 'section-link', url: s.section_link, label: s.heading -%}
+  <div class="page-width hero__content">
+    {%- if s.eyebrow != blank -%}<p class="eyebrow hero__eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+    {%- if s.heading != blank -%}<h1 class="hero__heading">{{ s.heading | escape }}</h1>{%- endif -%}
+    {%- if s.subheading != blank -%}<p class="hero__text">{{ s.subheading | escape }}</p>{%- endif -%}
+    {%- if s.button_label != blank or s.button2_label != blank -%}
+      <div class="hero__actions">
+        {%- if s.button_label != blank -%}<a class="button" href="{{ s.button_link | default: routes.all_products_collection_url }}">{{ s.button_label | escape }}</a>{%- endif -%}
+        {%- if s.button2_label != blank -%}<a class="button button--ghost" href="{{ s.button2_link | default: routes.all_products_collection_url }}">{{ s.button2_label | escape }}</a>{%- endif -%}
+      </div>
+    {%- endif -%}
+  </div>
+  <p class="hero__scroll" aria-hidden="true"><span></span></p>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.hero.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.hero.headers.content"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.hero.settings.eyebrow",
+      "default": "Fine jewelry and watchmaking"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.hero.settings.heading",
+      "default": "The art of time, set in eternity"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "t:sections.hero.settings.subheading",
+      "default": "Pieces made by hand in our atelier, numbered, certified and made to be passed on."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.hero.settings.button_label",
+      "default": "Discover the collection"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:sections.hero.settings.button_link"
+    },
+    {
+      "type": "text",
+      "id": "button2_label",
+      "label": "t:sections.hero.settings.button2_label",
+      "default": "Our story"
+    },
+    {
+      "type": "url",
+      "id": "button2_link",
+      "label": "t:sections.hero.settings.button2_link"
+    },
+    {
+      "type": "url",
+      "id": "section_link",
+      "label": "t:sections.hero.settings.section_link"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.hero.headers.media"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.hero.settings.image"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_image",
+      "label": "t:sections.hero.settings.mobile_image"
+    },
+    {
+      "type": "text",
+      "id": "video_url",
+      "label": "t:sections.hero.settings.video_url",
+      "default": ""
+    },
+    {
+      "type": "range",
+      "id": "overlay",
+      "label": "t:sections.hero.settings.overlay",
+      "min": 0,
+      "max": 90,
+      "step": 5,
+      "unit": "%",
+      "default": 45
+    },
+    {
+      "type": "header",
+      "content": "t:sections.hero.headers.layout"
+    },
+    {
+      "type": "select",
+      "id": "height",
+      "label": "t:sections.hero.settings.height",
+      "options": [
+        {
+          "value": "medium",
+          "label": "t:sections.hero.options.height.medium"
+        },
+        {
+          "value": "tall",
+          "label": "t:sections.hero.options.height.tall"
+        },
+        {
+          "value": "full",
+          "label": "t:sections.hero.options.height.full"
+        }
+      ],
+      "default": "tall",
+      "variant": "segmented"
+    },
+    {
+      "type": "select",
+      "id": "text_align",
+      "label": "t:sections.hero.settings.text_align",
+      "options": [
+        {
+          "value": "center",
+          "label": "t:shared.center"
+        },
+        {
+          "value": "left",
+          "label": "t:shared.left"
+        }
+      ],
+      "default": "center",
+      "variant": "segmented"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_dial",
+      "label": "t:sections.hero.settings.show_dial",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_frame",
+      "label": "t:sections.hero.settings.show_frame",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.hero.presets.hero",
+      "category": "banner"
+    }
+  ]
+}
+{% endschema %}

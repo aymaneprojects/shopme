@@ -1,0 +1,87 @@
+{%- if section.settings.enabled -%}
+  <div class="popup {% render 'scheme-class', scheme: section.settings.color_scheme %}" data-popup data-delay="{{ section.settings.delay }}" data-days="{{ section.settings.days }}" data-key="{{ section.id }}-{{ section.settings.heading | handle }}"{% if request.design_mode %} data-preview{% endif %} role="dialog" aria-modal="true" aria-labelledby="Popup-{{ section.id }}" hidden>
+    <div class="popup__card">
+      <button type="button" class="icon-button popup__close" data-popup-close aria-label="{{ 'popup.close' | t }}">{% render 'icon', name: 'close' %}</button>
+      {%- if section.settings.image -%}
+        <div class="popup__media">
+          {%- assign focal = '' -%}
+          {%- if section.settings.image.presentation.focal_point != blank -%}{%- assign focal = 'object-position: ' | append: section.settings.image.presentation.focal_point -%}{%- endif -%}
+          {{ section.settings.image | image_url: width: 800 | image_tag: loading: 'lazy', alt: '', style: focal }}
+        </div>
+      {%- endif -%}
+      <div class="popup__body">
+        {%- if section.settings.heading != blank -%}<h2 id="Popup-{{ section.id }}" class="section-title">{{ section.settings.heading | escape }}</h2>{%- endif -%}
+        {%- if section.settings.text != blank -%}<div class="rte">{{ section.settings.text }}</div>{%- endif -%}
+        {%- if section.settings.button_label != blank -%}<a class="button" href="{{ section.settings.button_link | default: routes.all_products_collection_url }}">{{ section.settings.button_label | escape }}</a>{%- endif -%}
+      </div>
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.popup.name",
+  "tag": "div",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "enabled",
+      "label": "t:sections.popup.settings.enabled",
+      "default": false
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.popup.settings.heading",
+      "default": "Welcome to the House"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:sections.popup.settings.text",
+      "default": "<p>Join the Private Circle and receive an invitation to our next private viewing.</p>"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.popup.settings.image"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.popup.settings.button_label",
+      "default": "Discover the collection"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:sections.popup.settings.button_link"
+    },
+    {
+      "type": "range",
+      "id": "delay",
+      "label": "t:sections.popup.settings.delay",
+      "min": 0,
+      "max": 60,
+      "step": 1,
+      "unit": "s",
+      "default": 5
+    },
+    {
+      "type": "range",
+      "id": "days",
+      "label": "t:sections.popup.settings.days",
+      "min": 1,
+      "max": 90,
+      "step": 1,
+      "default": 7
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ]
+}
+{% endschema %}

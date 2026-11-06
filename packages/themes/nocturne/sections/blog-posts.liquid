@@ -1,0 +1,111 @@
+{%- assign blog = section.settings.blog -%}
+<div class="section-pad {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width">
+    <div class="section-head">
+      <div>
+        {%- if section.settings.eyebrow != blank -%}<p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>{%- endif -%}
+        {%- if section.settings.heading != blank -%}<h2 class="section-title">{{ section.settings.heading | escape }}</h2>{%- endif -%}
+      </div>
+      {%- if blog != blank -%}
+        {%- if section.settings.layout == 'carousel' -%}{%- render 'carousel-arrows' -%}{%- else -%}<a class="link-arrow" href="{{ blog.url }}">{{ 'general.view_all' | t }}</a>{%- endif -%}
+      {%- endif -%}
+    </div>
+    {%- if blog == blank or blog.articles_count == 0 -%}
+      <p class="empty">{{ 'blog_posts.empty' | t }}</p>
+    {%- else -%}
+      <ul class="post-list post-list--{{ section.settings.layout }}"{% if section.settings.layout == 'carousel' %} data-carousel{% endif %} role="list">
+        {%- for article in blog.articles limit: section.settings.posts_to_show -%}
+          <li>{% render 'article-card', article: article, show_image: section.settings.show_image, show_date: section.settings.show_date, show_author: section.settings.show_author, show_excerpt: section.settings.show_excerpt %}</li>
+        {%- endfor -%}
+      </ul>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.blog_posts.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.blog_posts.settings.eyebrow",
+      "default": "Journal"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.blog_posts.settings.heading",
+      "default": "Notes from the atelier"
+    },
+    {
+      "type": "blog",
+      "id": "blog",
+      "label": "t:sections.blog_posts.settings.blog"
+    },
+    {
+      "type": "range",
+      "id": "posts_to_show",
+      "label": "t:sections.blog_posts.settings.posts_to_show",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 3
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "t:sections.blog_posts.settings.layout",
+      "options": [
+        {
+          "value": "grid",
+          "label": "t:sections.blog_posts.options.layout.grid"
+        },
+        {
+          "value": "carousel",
+          "label": "t:sections.blog_posts.options.layout.carousel"
+        }
+      ],
+      "default": "grid",
+      "variant": "segmented"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_image",
+      "label": "t:sections.blog_posts.settings.show_image",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_date",
+      "label": "t:sections.blog_posts.settings.show_date",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_author",
+      "label": "t:sections.blog_posts.settings.show_author",
+      "default": false
+    },
+    {
+      "type": "checkbox",
+      "id": "show_excerpt",
+      "label": "t:sections.blog_posts.settings.show_excerpt",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.blog_posts.presets.blog_posts",
+      "category": "blog"
+    }
+  ]
+}
+{% endschema %}
