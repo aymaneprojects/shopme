@@ -10,10 +10,12 @@ export interface GraphQLContext {
   shopId: number;
   auth: AuthInfo;
   request: FastifyRequest;
+  /** Base of the store's storefront links: APP_URL (single-store), the store's permanent host (multi-store). */
+  storeUrl: string;
 }
 
 export const createGraphQLContext = (request: FastifyRequest, auth: AuthInfo): GraphQLContext =>
-  ({ app: request.server.ctx, db: request.server.ctx.db, shopId: auth.shopId, auth, request });
+  ({ app: request.server.ctx, db: request.server.ctx.db, shopId: auth.shopId, auth, request, storeUrl: request.server.ctx.stores.storefrontBase(auth.shopId) });
 
 /** Throw an ACCESS_DENIED error unless the caller holds `scope` (or `write_x` for `read_x`). Staff sessions hold all. */
 export function requireScope(ctx: GraphQLContext, scope: string): void {

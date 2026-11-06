@@ -1,0 +1,30 @@
+# Caddy in front of a multi-store installation (see multi-store.md).
+#   admin.example.com              the platform admin (APP_URL=https://admin.example.com)
+#   <handle>.shops.example.com     every store's permanent host (STORE_BASE_DOMAIN=shops.example.com, wildcard DNS)
+#   shop.brand.com, ...            stores' own domains, added and verified in Settings > Domains
+# Certificates for store hosts are issued on demand, and only for hosts ShopMe confirms it serves: Caddy asks
+# GET /__shopme/tls-ask?domain=<host> first and gives up unless the answer is 200.
+{
+	on_demand_tls {
+		ask http://shopme:3000/__shopme/tls-ask
+	}
+}
+
+admin.example.com {
+	encode zstd gzip
+	reverse_proxy shopme:3000
+}
+
+# Every other host that reaches this server over HTTPS: store hosts and stores' own domains.
+https:// {
+	tls {
+		on_demand
+	}
+	encode zstd gzip
+	reverse_proxy shopme:3000
+}
+
+# Plain HTTP redirects to HTTPS (Caddy does this for named sites; this covers the on-demand ones).
+http:// {
+	redir https://{host}{uri} permanent
+}

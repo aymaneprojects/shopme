@@ -51,7 +51,7 @@ AbandonedCheckout.implement({
   fields: (t) => ({
     id: t.id({ resolve: (c) => toGid('AbandonedCheckout', c.row.id) }),
     name: t.string({ resolve: (c) => `#${c.row.id}` }),
-    abandonedCheckoutUrl: t.field({ type: 'URL', resolve: (c, _a, ctx) => recoveryUrl(c.shop, ctx.app.config.appUrl, c.row.token) }),
+    abandonedCheckoutUrl: t.field({ type: 'URL', resolve: (c, _a, ctx) => recoveryUrl(c.shop, ctx.storeUrl, c.row.token) }),
     completedAt: t.field({ type: 'DateTime', nullable: true, resolve: (c) => c.row.completedAt }),
     createdAt: t.field({ type: 'DateTime', resolve: (c) => c.row.createdAt }),
     updatedAt: t.field({ type: 'DateTime', resolve: (c) => c.row.updatedAt }),
@@ -136,7 +136,7 @@ builder.mutationFields((t) => ({
       const row = id ? await getAbandonedCheckout(ctx.db, ctx.shopId, id) : null;
       if (!row) return { abandonedCheckout: null, userErrors: [{ field: ['id'], message: 'Checkout does not exist' }] };
       const shop = await shopOf(ctx);
-      if (!(await sendRecoveryEmail(ctx.db, ctx.app.mailer, shop, ctx.app.config.appUrl, row))) return { abandonedCheckout: await load(ctx, row), userErrors: [{ field: ['id'], message: 'This checkout cannot be emailed (no email, no items or already completed)' }] };
+      if (!(await sendRecoveryEmail(ctx.db, ctx.app.mailer, shop, ctx.storeUrl, row))) return { abandonedCheckout: await load(ctx, row), userErrors: [{ field: ['id'], message: 'This checkout cannot be emailed (no email, no items or already completed)' }] };
       return { abandonedCheckout: await load(ctx, (await getAbandonedCheckout(ctx.db, ctx.shopId, row.id))!), userErrors: [] };
     },
   }),

@@ -301,7 +301,7 @@ export const enShop = {
   "payments.notConfigured": "Not configured",
   "payments.stripe": "Stripe",
   "payments.stripeEnable": "Accept card payments with Stripe",
-  "payments.stripeHint": "Configure the Stripe keys in the server environment, then restart the server.",
+  "payments.stripeHint": "Add the keys of the store’s Stripe account below, or set the server’s STRIPE_* variables.",
   "settings.contactEmail": "Contact email",
   "settings.defaultDomain": "Default domain",
   "settings.dns1": "Buy or open the DNS settings of your domain at your registrar.",

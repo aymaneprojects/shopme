@@ -13,7 +13,7 @@ import { detectThemeOrigins } from './theme-update';
 export const EXPORT_FORMAT = 'shopme-export';
 export const EXPORT_FORMAT_VERSION = 1;
 /** Rows of these tables are not exported: credentials, sessions, transient and rebuildable data. */
-const EXCLUDED = new Set(['sessions', 'staff_users', 'staff_two_factor', 'api_tokens', 'customer_tokens', 'jobs', 'webhook_deliveries', 'visits', 'bulk_operations', 'discount_code_bulk_creations', 'customer_login_codes', 'storefront_events']);
+const EXCLUDED = new Set(['sessions', 'staff_users', 'staff_two_factor', 'platform_accounts', 'account_two_factor', 'platform_settings', 'shop_secrets', 'shop_domains', 'api_tokens', 'customer_tokens', 'jobs', 'webhook_deliveries', 'visits', 'bulk_operations', 'discount_code_bulk_creations', 'customer_login_codes', 'storefront_events']);
 
 export interface ExportManifest {
   format: typeof EXPORT_FORMAT; formatVersion: number; appVersion: string; schemaVersion: number; createdAt: string;
@@ -91,8 +91,9 @@ export async function exportStore(db: Db, storage: Storage, shopId: number, file
     shop: { name: shop.name, currency: shop.currency, locale: shop.locale }, tables: counts, files,
   };
   add('manifest.json', strToU8(JSON.stringify(manifest, null, 2)));
-  const { id: _id, ...shopRow } = shop;
-  void _id;
+  // Identity on this installation (handle, status, file folder) stays with the installation, like the primary domain on import.
+  const { id: _id, handle: _h, status: _st, storagePrefix: _sp, ...shopRow } = shop;
+  void _id; void _h; void _st; void _sp;
   add('data/shop.json', strToU8(JSON.stringify(shopRow)));
   zip.end();
   await Promise.race([once(out, 'close'), failed]);
@@ -143,8 +144,8 @@ export async function importStore(db: Db, storage: Storage, shopId: number, file
     for (const t of [...tables].reverse()) { await tx.delete(t.table).where(shopEq(t, shopId)); opts.progress?.(++done, total); }
     const shopRow = entries['data/shop.json'] ? (JSON.parse(strFromU8(entries['data/shop.json'])) as Record<string, unknown>) : null;
     if (shopRow) {
-      const { primaryDomain: _pd, ...rest } = shopRow;
-      void _pd;
+      const { primaryDomain: _pd, handle: _h, status: _st, storagePrefix: _sp, ...rest } = shopRow;
+      void _pd; void _h; void _st; void _sp;
       const known = getTableColumns(shops) as Record<string, { dataType: string }>;
       const set = Object.fromEntries(Object.entries(rest).filter(([k]) => k in known && k !== 'id').map(([k, v]) => [k, known[k]!.dataType === 'date' ? toDate(v) : v]));
       await tx.update(shops).set(set).where(eq(shops.id, shopId));

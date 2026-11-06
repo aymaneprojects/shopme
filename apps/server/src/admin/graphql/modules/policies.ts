@@ -27,7 +27,7 @@ ShopPolicy.implement({
 
 const policiesFor = async (ctx: GraphQLContext): Promise<Policy[]> => {
   const shop = (await getShop(ctx.db, ctx.shopId))!;
-  const baseUrl = shopUrl(shop, ctx.app.config.appUrl);
+  const baseUrl = shopUrl(shop, ctx.storeUrl);
   return policiesOf(shop).map((p) => ({ ...p, baseUrl }));
 };
 registerNode('ShopPolicy', async (ctx, id) => (await policiesFor(ctx)).find((p) => p.id === id) ?? null);
@@ -56,7 +56,7 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_shop');
       const shop = (await getShop(ctx.db, ctx.shopId))!;
       const r = await updatePolicy(ctx.db, shop, shopPolicy.type, shopPolicy.body);
-      return r.ok ? { shopPolicy: { ...r.value, baseUrl: shopUrl(shop, ctx.app.config.appUrl) }, userErrors: [] } : { shopPolicy: null, userErrors: r.errors };
+      return r.ok ? { shopPolicy: { ...r.value, baseUrl: shopUrl(shop, ctx.storeUrl) }, userErrors: [] } : { shopPolicy: null, userErrors: r.errors };
     },
   }),
   shopmeCookieBannerUpdate: t.field({

@@ -197,6 +197,20 @@
       "when": 1793916060517,
       "tag": "0027_transfer_linked_purchase_order",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1793924002897,
+      "tag": "0028_multi_store",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1793924003897,
+      "tag": "0029_drop_staff_two_factor",
+      "breakpoints": true
     }
   ]
 }

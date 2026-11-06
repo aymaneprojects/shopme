@@ -24,9 +24,10 @@ export function localizeHtml(html: string, prefix: string): string {
 export function registerLocalizationRoutes(scope: FastifyInstance, ctx: AppContext): void {
   scope.post('/localization', async (req, reply) => {
     const body = (req.body ?? {}) as Record<string, unknown>;
-    const shop = await primaryShop(ctx);
+    const shop = await primaryShop(ctx, req);
     const code = typeof body.language_code === 'string' ? normalizeLocale(body.language_code) : null;
-    const wanted = shop && code ? ctx.locales.locales.find((l) => l.locale === code) : undefined;
+    const shopLocales = shop ? ctx.locales.of(shop.id) : null;
+    const wanted = shopLocales && code ? shopLocales.locales.find((l) => l.locale === code) : undefined;
     let back = typeof body.return_to === 'string' ? body.return_to : '/';
     if (!back.startsWith('/') || back.startsWith('//') || back.includes('\\')) back = '/';
     // Country (and so currency): remembered in a cookie, and the open cart is re-priced for it.
@@ -43,10 +44,10 @@ export function registerLocalizationRoutes(scope: FastifyInstance, ctx: AppConte
     if (!wanted) return reply.redirect(back, 302);
     // Drop a prefix the page already had, then add the new one.
     const m = /^\/([A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})?)(?=[/?#]|$)/.exec(back);
-    if (m && ctx.locales.locales.some((l) => l.locale.toLowerCase() === m[1]!.toLowerCase() && !l.primary)) back = back.slice(m[0].length) || '/';
+    if (m && shopLocales!.locales.some((l) => l.locale.toLowerCase() === m[1]!.toLowerCase() && !l.primary)) back = back.slice(m[0].length) || '/';
     if (back.startsWith('?')) back = `/${back}`;
     reply.setCookie('localization', wanted.locale, { path: '/', maxAge: 365 * 24 * 3600, sameSite: 'lax' });
-    const prefix = ctx.locales.prefixOf(wanted.locale);
+    const prefix = shopLocales!.prefixOf(wanted.locale);
     return reply.redirect(back === '/' ? prefix || '/' : prefix + (back.startsWith('/?') ? back.slice(1) : back), 302);
   });
 }

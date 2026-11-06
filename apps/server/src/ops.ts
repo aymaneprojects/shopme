@@ -14,7 +14,7 @@ export const EVENT_SETTLE_MS = 300;
  * Returns the unsubscribe function (called when the app closes).
  */
 export function registerOpsJobs(ctx: AppContext): () => void {
-  const { db, queue, config } = ctx;
+  const { db, queue } = ctx;
   const host = (url: string) => new URL(url).host;
 
   queue.register<EventJob>('webhook.fanout', async (e) => {
@@ -22,15 +22,16 @@ export function registerOpsJobs(ctx: AppContext): () => void {
   });
   queue.register<{ shopId: number; id: number }>('webhook.deliver', async ({ shopId, id }) => {
     const shop = await getShop(db, shopId);
-    if (!shop) return;
-    const delay = await attemptDelivery(db, shop, id, { shopDomain: host(shopUrl(shop, config.appUrl)) });
+    // A suspended store (multi-store) sends nothing; its due deliveries are picked up again by the sweep once it is resumed.
+    if (!shop || shop.status === 'SUSPENDED') return;
+    const delay = await attemptDelivery(db, shop, id, { shopDomain: host(shopUrl(shop, ctx.stores.storefrontBase(shop.id))) });
     if (delay != null) queue.enqueue('webhook.deliver', { shopId, id }, { delayMs: delay });
   });
   queue.register<EventJob>('notify.order-event', async (e) => {
     const shop = await getShop(db, e.shopId);
     if (!shop || e.subjectId == null || !e.verb) return;
     const mail = await orderEventMail(db, shop, e.verb, e.subjectId, e.data);
-    if (mail) { await sendNotification(db, ctx.mailer, shop, config.appUrl, mail.key, mail.to, mail.vars, { onSent: (m) => recordOrderEmail(db, e.shopId, e.subjectId!, mail.key, mail.to, { subject: m.subject, html: m.html ?? m.text }) }); await sendSms(shop, mail.key, mail.phone, mail.vars); }
+    if (mail) { await sendNotification(db, ctx.mailer, shop, ctx.stores.storefrontBase(shop.id), mail.key, mail.to, mail.vars, { onSent: (m) => recordOrderEmail(db, e.shopId, e.subjectId!, mail.key, mail.to, { subject: m.subject, html: m.html ?? m.text }) }); await sendSms(shop, mail.key, mail.phone, mail.vars); }
   });
   queue.register<EventJob>('activity.low-stock', async (e) => { if (e.subjectId != null) await recordLowStockForOrder(db, e.shopId, e.subjectId); });
   queue.every('webhook-sweep', 30_000, async () => {

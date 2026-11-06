@@ -20,6 +20,8 @@ export interface StartServerOptions {
   paths?: Partial<ServerPaths>;
   /** false silences logs. */
   logger?: boolean;
+  /** Force single-store (false) or multi-store (true) mode instead of reading MULTI_STORE (the desktop app always runs one store). */
+  multiStore?: boolean;
 }
 
 export interface RunningServer {
@@ -42,7 +44,7 @@ export interface RunningServer {
 export async function startServer(opts: StartServerOptions = {}): Promise<RunningServer> {
   const config = loadConfig(opts.env ?? process.env, {
     baseDir: opts.baseDir,
-    overrides: { port: opts.port, host: opts.host, dataDir: opts.dataDir, appUrl: opts.appUrl, databaseUrl: opts.databaseUrl, storageDir: opts.storageDir },
+    overrides: { port: opts.port, host: opts.host, dataDir: opts.dataDir, appUrl: opts.appUrl, databaseUrl: opts.databaseUrl, storageDir: opts.storageDir, multiStore: opts.multiStore },
   });
   const paths = resolvePaths(opts.paths);
   const dbHandle = await createDb({ databaseUrl: config.databaseUrl, dataDir: config.dataDir });
@@ -64,12 +66,12 @@ export async function startServer(opts: StartServerOptions = {}): Promise<Runnin
       async exportStore(file) {
         const id = await shopId();
         if (id === null) throw new Error('The store is not set up yet.');
-        await exportStore(dbHandle.db, app.ctx.storage, id, file, { appVersion: app.ctx.appVersion });
+        await exportStore(dbHandle.db, app.ctx.storageFor(id), id, file, { appVersion: app.ctx.appVersion });
       },
       async importStore(file) {
         const id = await shopId();
         if (id === null) return 'Set up the store first (create the owner account), then import.';
-        const r = await importStore(dbHandle.db, app.ctx.storage, id, file);
+        const r = await importStore(dbHandle.db, app.ctx.storageFor(id), id, file);
         if (r.ok) await app.ctx.locales.refresh(dbHandle.db);
         return r.ok ? null : r.error;
       },

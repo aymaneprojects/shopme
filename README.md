@@ -19,7 +19,7 @@
 
 ## What is ShopMe
 
-ShopMe is a self-hostable e-commerce platform for one shop per installation. It runs Shopify-format Liquid themes and
+ShopMe is a self-hostable e-commerce platform: one shop per installation, or several with the multi-store mode. It runs Shopify-format Liquid themes and
 implements a compatible subset of the Shopify Admin GraphQL API. Everything runs in one Node.js process with PostgreSQL,
 or with an embedded database for local use.
 
@@ -39,6 +39,7 @@ or with an embedded database for local use.
 - **Migration and data:** a Shopify migration importer (command line and admin page, through the Admin API), CSV import and export, and `.shopme` store archives for moving a whole store.
 - **API:** Admin GraphQL API (compatible subset), documented in [docs/spec](docs/spec/README.md).
 - **Deployment:** zero-setup local mode with embedded PostgreSQL (PGlite), Docker Compose with PostgreSQL 17, and desktop apps (beta).
+- **Multi-store mode (optional, `MULTI_STORE=true`):** one account and several stores on one installation, with a store switcher and "Create a store" in the account menu. Each store is isolated and answers on its own host (`<handle>.<base domain>` and its own verified domains), with its own Stripe keys, sender name, files and backups; a platform owner lists, suspends and deletes stores. See [docs/install/multi-store.md](docs/install/multi-store.md).
 
 **Not in v0.1:** Storefront GraphQL API, OAuth apps and an app platform, multi-currency and markets, EU VAT and OSS, shipping
 labels and carrier rates (including French carriers), local pickup, bulk operations, a REST Admin API, exchanges, customer
@@ -112,6 +113,7 @@ They are unsigned for now (expect a security prompt on first launch). See [docs/
 ## Deploy on your server
 
 [docs/install](docs/install/README.md) covers Docker Compose on a VPS with HTTPS through Caddy, backups, restores and upgrades.
+[docs/install/multi-store.md](docs/install/multi-store.md) covers the multi-store mode: wildcard DNS, custom domains, Caddy with on-demand certificates, and per-store backups.
 
 ## Architecture
 
@@ -121,7 +123,7 @@ They are unsigned for now (expect a security prompt on first launch). See [docs/
 - **Admin:** React and Vite single-page app, built and served by the server at `/admin`.
 - **Theme engine:** LiquidJS-based theme renderer.
 - **Background jobs:** in-process queue, so Redis is not required.
-- **Tenancy:** one shop per installation. Tables keep a `shop_id` so a hosted multi-shop offer stays possible later.
+- **Tenancy:** one shop per installation by default. With `MULTI_STORE=true`, accounts reach several stores; every table keeps a `shop_id`, the store is resolved from the request host (storefront) or the admin URL (`/admin/store/<handle>`), and each request is checked against the account's staff membership in that store.
 
 ## Compatibility
 

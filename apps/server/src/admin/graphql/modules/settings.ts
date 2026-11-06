@@ -6,8 +6,7 @@
 import {
   createShippingRate, createShippingZone, createTaxRate, deleteShippingRate, deleteShippingZone, deleteTaxRate, getShippingRate, getShippingZone, getTaxRate, listShippingZones, listStaff,
   listTaxRates, paymentSettingsOf, shopAddressOf, storefrontOf, updatePaymentSettings, updateShippingRate, updateShippingZone, updateShopSettings, updateTaxRate,
-  type ShippingRate, type ShippingRateInput, type ShippingZone, type TaxRate,
-} from '@shopme/core';
+  type ShippingRate, type ShippingRateInput, type ShippingZone, type TaxRate, getShopStripeKeys, isVerifiedShopDomain } from '@shopme/core';
 import { parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
@@ -91,10 +90,10 @@ const PaymentsInput = builder.inputType('ShopmePaymentSettingsInput', {
   }),
 });
 const PaymentsPayload = definePayload<{ paymentSettings: PaymentsShape | null }>('ShopmePaymentSettingsUpdatePayload', (t) => ({ paymentSettings: t.field({ type: Payments, nullable: true, resolve: (p) => p.paymentSettings }) }));
-const stripeConfigured = (ctx: GraphQLContext) => !!(ctx.app.config.stripe.secretKey && ctx.app.config.stripe.publishableKey);
+const stripeConfigured = async (ctx: GraphQLContext) => !!(ctx.app.config.stripe.secretKey && ctx.app.config.stripe.publishableKey) || !!(await getShopStripeKeys(ctx.db, ctx.shopId, ctx.app.config.sessionSecret));
 const paymentsOf = async (ctx: GraphQLContext): Promise<PaymentsShape> => {
   const p = paymentSettingsOf(await shopOf(ctx));
-  return { bankTransfer: p.manual.bankTransfer, cod: p.manual.cod, stripe: { enabled: p.stripe.enabled, configured: stripeConfigured(ctx) } };
+  return { bankTransfer: p.manual.bankTransfer, cod: p.manual.cod, stripe: { enabled: p.stripe.enabled, configured: await stripeConfigured(ctx) } };
 };
 
 /* ------------------------------ shipping zones ------------------------------ */
@@ -205,6 +204,10 @@ builder.mutationFields((t) => ({
     type: ShopUpdatePayload, args: { input: t.arg({ type: ShopInput, required: true }) },
     resolve: async (_r, { input: i }, ctx) => {
       requireScope(ctx, 'write_shop');
+      // Multi-store: a store may only point at a domain it verified (Settings > Domains), never at another store's host.
+      if (ctx.app.config.multiStore && i.primaryDomain && !(await isVerifiedShopDomain(ctx.db, ctx.shopId, i.primaryDomain.trim()))) {
+        return { shop: null, userErrors: [{ field: ['input', 'primaryDomain'], message: 'Add and verify this domain in Settings > Domains first' }] };
+      }
       const r = await updateShopSettings(ctx.db, ctx.shopId, {
         name: i.name, email: i.email, description: i.description, currency: i.currencyCode, timezone: i.ianaTimezone, weightUnit: i.weightUnit as string | null | undefined, locale: i.locale,
         address: i.address ? { ...i.address, countryCode: i.address.countryCode ?? undefined } : undefined, moneyFormat: i.moneyFormat, moneyWithCurrencyFormat: i.moneyWithCurrencyFormat,
@@ -212,6 +215,7 @@ builder.mutationFields((t) => ({
         storefrontPasswordMessage: i.storefrontPasswordMessage, primaryDomain: i.primaryDomain,
         b2bOnly: i.b2bOnly, homepageTitle: i.homepageTitle, socialSharingImage: i.socialSharingImage,
       }, staffId(ctx));
+      if (r.ok && i.primaryDomain !== undefined) await ctx.app.stores.refresh(ctx.db);
       return r.ok ? { shop: r.value, userErrors: [] } : { shop: null, userErrors: r.errors.map((e) => ({ ...e, field: ['input', ...(e.field ?? [])] })) };
     },
   }),
@@ -219,7 +223,7 @@ builder.mutationFields((t) => ({
     type: PaymentsPayload, args: { input: t.arg({ type: PaymentsInput, required: true }) },
     resolve: async (_r, { input }, ctx) => {
       requireScope(ctx, 'write_shop');
-      const r = await updatePaymentSettings(ctx.db, ctx.shopId, input, stripeConfigured(ctx));
+      const r = await updatePaymentSettings(ctx.db, ctx.shopId, input, await stripeConfigured(ctx));
       return r.ok ? { paymentSettings: await paymentsOf(ctx), userErrors: [] } : { paymentSettings: null, userErrors: r.errors.map((e) => ({ ...e, field: ['input', ...(e.field ?? [])] })) };
     },
   }),

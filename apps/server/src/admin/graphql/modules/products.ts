@@ -78,7 +78,7 @@ Product_.implement({
     templateSuffix: t.exposeString('templateSuffix', { nullable: true }),
     isGiftCard: t.exposeBoolean('isGiftCard'),
     seo: t.field({ type: SEO, resolve: (p) => ({ title: p.seoTitle, description: p.seoDescription }) }),
-    onlineStoreUrl: t.field({ type: 'URL', nullable: true, resolve: (p, _a, ctx) => (p.status === 'ACTIVE' && p.publishedAt ? `${ctx.app.config.appUrl}/products/${p.handle}` : null) }),
+    onlineStoreUrl: t.field({ type: 'URL', nullable: true, resolve: (p, _a, ctx) => (p.status === 'ACTIVE' && p.publishedAt ? `${ctx.storeUrl}/products/${p.handle}` : null) }),
     options: t.field({
       type: [ProductOption], args: { first: t.arg.int() },
       resolve: async (p, a, ctx) => { const o = await getProductOptions(ctx.db, ctx.shopId, p.id); return a.first ? o.slice(0, a.first) : o; },

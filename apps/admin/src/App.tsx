@@ -6,7 +6,7 @@ import { Navigate, createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import { PageFallback, Shell } from './components/Shell';
 import { I18nProvider, useT } from './i18n';
-import { LoginPage, SetupPage } from './pages/Auth';
+import { InvitePage, LoginPage, SetupPage } from './pages/Auth';
 import { CollectionEditPage } from './pages/CollectionEdit';
 import { CollectionsPage } from './pages/Collections';
 import { InventoryPage } from './pages/Inventory';
@@ -15,7 +15,9 @@ import { HomePage } from './pages/Home';
 import { ProductsPage } from './pages/Products';
 import { ComingSoon } from './pages/Simple';
 import { SecuritySettings } from './pages/settings/Security';
-import { SessionProvider, useSession } from './session';
+import { INVITE_PATH_RE, SessionProvider, useSession } from './session';
+import { adminBase } from './api';
+import { AccountShell } from './pages/stores/AccountShell';
 import { Spinner } from '@shopme/ui';
 
 
@@ -25,7 +27,10 @@ const L = (load: () => Promise<Record<string, unknown>>, name: string) => {
   return <Suspense fallback={<PageFallback />}><C /></Suspense>;
 };
 
-const router = createBrowserRouter(
+type AppRouter = ReturnType<typeof createBrowserRouter>;
+let storeRouter: AppRouter | null = null;
+/** The store admin. Its base is `/admin`, or `/admin/store/<handle>` in multi-store mode (one store per tab). */
+const getStoreRouter = () => (storeRouter ??= createBrowserRouter(
   [{
     element: <Shell />,
     children: [
@@ -164,17 +169,34 @@ const router = createBrowserRouter(
       { path: '*', element: <ComingSoon titleKey="nav.notFound" /> },
     ],
   }],
+  { basename: adminBase() },
+));
+
+let accountRouter: AppRouter | null = null;
+/** Multi-store, no store open: the account's stores, "Create a store" and the platform owner's area. */
+const getAccountRouter = () => (accountRouter ??= createBrowserRouter(
+  [{
+    element: <AccountShell />,
+    children: [
+      { path: '/stores', element: L(() => import('./pages/stores/Stores'), 'StoresPage') },
+      { path: '/stores/new', element: L(() => import('./pages/stores/CreateStore'), 'CreateStorePage') },
+      { path: '/platform', element: L(() => import('./pages/stores/Platform'), 'PlatformPage') },
+      { path: '*', element: <Navigate to="/stores" replace /> },
+    ],
+  }],
   { basename: '/admin' },
-);
+));
 
 function Gate() {
   const { state } = useSession();
   const t = useT();
   if (state.status === 'loading') return <div className="grid min-h-screen place-items-center" role="status" aria-label={t('common.loading')}><Spinner /></div>;
   if (state.status === 'setup') return <SetupPage />;
-  if (state.status === 'anonymous') return <LoginPage />;
+  const invite = INVITE_PATH_RE.exec(window.location.pathname);
+  if (state.status === 'anonymous') return invite ? <InvitePage token={decodeURIComponent(invite[1]!)} /> : <LoginPage />;
+  if (state.status === 'account') return <RouterProvider router={getAccountRouter()} />;
   if (state.twoFactorSetupRequired) return <div className="mx-auto max-w-2xl p-4 md:p-8"><SecuritySettings forced /></div>;
-  return <RouterProvider router={router} />;
+  return <RouterProvider router={getStoreRouter()} />;
 }
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false, staleTime: 10_000 } } });

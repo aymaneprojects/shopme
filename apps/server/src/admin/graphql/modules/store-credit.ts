@@ -80,10 +80,10 @@ async function notifyCredit(ctx: GraphQLContext, account: StoreCreditAccountRow,
   const [shop, customer] = await Promise.all([getShop(ctx.db, ctx.shopId), getCustomer(ctx.db, ctx.shopId, account.customerId)]);
   if (!shop || !customer?.email) return;
   const balance = await liveBalance(ctx.db, account.id);
-  await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.app.config.appUrl, 'store_credit_account_credit', customer.email, {
+  await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.storeUrl, 'store_credit_account_credit', customer.email, {
     customer: { first_name: customer.firstName ?? '', last_name: customer.lastName ?? '', email: customer.email },
     store_credit: { amount: moneyOf(shop, amount, account.currency), balance: moneyOf(shop, balance, account.currency), expires_on: expiresAt ? expiresAt.toISOString().slice(0, 10) : null },
-    account_url: `${ctx.app.config.appUrl}/account`,
+    account_url: `${ctx.storeUrl}/account`,
   });
 }
 

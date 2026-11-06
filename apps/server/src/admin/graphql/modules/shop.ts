@@ -39,12 +39,12 @@ Shop.implement({
     primaryDomain: t.field({
       type: Domain,
       resolve: (s, _a, ctx) => {
-        const url = s.primaryDomain ? `https://${s.primaryDomain}` : ctx.app.config.appUrl;
+        const url = s.primaryDomain ? `https://${s.primaryDomain}` : ctx.storeUrl;
         return { host: new URL(url).host, url, sslEnabled: url.startsWith('https://') };
       },
     }),
-    myshopifyDomain: t.string({ resolve: (_s, _a, ctx) => new URL(ctx.app.config.appUrl).host }),
-    url: t.field({ type: 'URL', resolve: (s, _a, ctx) => (s.primaryDomain ? `https://${s.primaryDomain}` : ctx.app.config.appUrl) }),
+    myshopifyDomain: t.string({ resolve: (_s, _a, ctx) => new URL(ctx.storeUrl).host }),
+    url: t.field({ type: 'URL', resolve: (s, _a, ctx) => (s.primaryDomain ? `https://${s.primaryDomain}` : ctx.storeUrl) }),
     createdAt: t.field({ type: 'DateTime', resolve: (s) => s.createdAt }),
   }),
 });

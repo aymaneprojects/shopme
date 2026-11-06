@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, CircleHelp, Code, Eye, Keyboard, Languages, MoreHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { mutate } from '../../api';
+import { apiUrl, mutate } from '../../api';
 import { gidToNum } from '../../format';
 import { THEME_PUBLISH } from '../../graphql';
 import { useT } from '../../i18n';

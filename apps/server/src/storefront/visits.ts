@@ -20,7 +20,7 @@ export function registerVisitTracking(scope: FastifyInstance, ctx: AppContext): 
     if (req.method !== 'GET' || BOT.test(req.headers['user-agent'] ?? 'bot') || req.headers.purpose === 'prefetch') return;
     const path = req.url.split('?')[0]!;
     if (path === '/password' || path.startsWith('/cdn/') || path.startsWith('/.shopme/') || /[?&](sections|section_id)=/.test(req.url)) return;
-    const shop = await primaryShop(ctx);
+    const shop = await primaryShop(ctx, req);
     // Consent: counted only where analytics may run (no consent needed in the visitor's region, or given). Do-Not-Track and GPC are always honoured.
     if (!shop || req.headers.dnt === '1' || req.headers['sec-gpc'] === '1' || !(await analyticsAllowed(ctx, req, shop))) return;
     const given = req.cookies[VISIT_COOKIE];
@@ -31,7 +31,7 @@ export function registerVisitTracking(scope: FastifyInstance, ctx: AppContext): 
   scope.addHook('onResponse', async (req, reply) => {
     const id = ids.get(req);
     if (!id || reply.statusCode !== 200 || !String(reply.getHeader('content-type') ?? '').includes('text/html')) return;
-    const shop = await primaryShop(ctx);
+    const shop = await primaryShop(ctx, req);
     if (!shop) return;
     let referrer: string | null = null;
     try { const u = new URL(String(req.headers.referer ?? '')); if (u.host !== req.headers.host) referrer = u.host; } catch { /* none */ }

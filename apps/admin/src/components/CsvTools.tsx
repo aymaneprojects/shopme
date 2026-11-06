@@ -2,7 +2,7 @@ import { Banner, Button, ExportDialog, Modal } from '@shopme/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { Link } from 'react-router';
-import { upload } from '../api';
+import { apiUrl, upload } from '../api';
 import { useI18n } from '../i18n';
 import type { Key } from '../i18n';
 import { canConfirm, idleImport, importReducer } from '../lib/csv-import';
@@ -14,7 +14,7 @@ import type { Job } from '../lib/jobs';
 /** Export URL for a kind; `query` and `ids` narrow the order exports to a filter or a selection. */
 export const exportHref = (kind: ImportKind | 'orders' | 'draft_orders', params: { query?: string; ids?: string } = {}) => {
   const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
-  return `/admin/api/export/${kind}.csv${qs ? `?${qs}` : ''}`;
+  return apiUrl(`/export/${kind}.csv${qs ? `?${qs}` : ''}`);
 };
 export function startDownload(href: string) {
   const a = document.createElement('a');

@@ -4,14 +4,14 @@ import { BarChart3, Check, Lock, Megaphone, Package, Rocket, Search, ShoppingCar
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { gql, mutate } from '../api';
+import { apiUrl, gql, mutate } from '../api';
 import { selectCls, useFormat } from '../components/shared';
 import type { Money } from '../components/shared';
 import { MARKETING_PAGE, ORDERS_COUNT, PAYMENT_SETTINGS, SHOPME_DASHBOARD, SHOP_POLICIES, STORE_ACCESS_UPDATE } from '../graphql';
 import { useT } from '../i18n';
 import type { Key } from '../i18n';
 import { useStoreInfo } from '../lib/storeInfo';
-import { useShop } from '../session';
+import { useMulti, useShop } from '../session';
 
 interface Dash { totalSales: Money; ordersCount: number; averageOrderValue: Money; salesByDay: Array<{ date: string; sales: { amount: string } }>; topProducts: Array<{ title: string; quantity: number }> }
 const RANGES = ['TODAY', 'LAST_7_DAYS', 'LAST_30_DAYS'];
@@ -44,9 +44,12 @@ export const openPalette = () => window.dispatchEvent(new Event('shopme:open-pal
 function StorePreview({ protectedStore }: { protectedStore: boolean }) {
   const t = useT();
   // The page is fetched and its scripts removed before it goes into the frame: a sandboxed frame that still holds scripts logs a console error for each of them.
+  const multi = useMulti();
   const page = useQuery({ queryKey: ['store-preview'], staleTime: 60_000, retry: false, queryFn: async () => {
-    const html = await (await fetch('/', { credentials: 'same-origin' })).text();
-    return html.replace(/<script\b[\s\S]*?<\/script>/gi, '').replace(/<head([^>]*)>/i, '<head$1><base href="/">');
+    // Multi-store: the storefront lives on the store's own host; the admin API renders its home page for the thumbnail.
+    const html = await (await fetch(multi ? apiUrl('/store/home-preview') : '/', { credentials: 'same-origin' })).text();
+    const page = html.replace(/<script\b[\s\S]*?<\/script>/gi, '');
+    return multi ? page : page.replace(/<head([^>]*)>/i, '<head$1><base href="/">');
   } });
   return (
     <div className="relative mx-auto h-[184px] w-[290px] overflow-hidden rounded-xl bg-canvas shadow-card ring-1 ring-line" role="img" aria-label={t('home.preview.label')}>

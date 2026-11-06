@@ -48,3 +48,25 @@ export function makeStorageKey(filename: string, now = new Date()): string {
   const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
   return `${now.getUTCFullYear()}/${mm}/${randomToken(6)}-${base}${ext}`;
 }
+
+/** Folder that holds the stores' own upload folders (`shops/<id>/...`) inside the storage root. */
+export const SHOP_FOLDER = 'shops';
+
+/**
+ * One store's view of the storage root. With a prefix (multi-store layout) every key lives under `<prefix>/` and URLs carry it;
+ * without one (single-store layout) keys stay at the root and keys inside `shops/` are refused, so no store reaches another's folder.
+ */
+export function scopedStorage(root: Storage, prefix: string | null): Storage {
+  const full = (key: string) => {
+    assertSafeKey(key);
+    if (prefix) return `${prefix}/${key}`;
+    if (key === SHOP_FOLDER || key.startsWith(`${SHOP_FOLDER}/`)) throw new Error(`Unsafe storage key: ${key}`);
+    return key;
+  };
+  return {
+    put: (key, data) => root.put(full(key), data),
+    open: (key) => root.open(full(key)),
+    delete: (key) => root.delete(full(key)),
+    url: (key) => root.url(full(key)),
+  };
+}

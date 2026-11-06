@@ -1,5 +1,5 @@
 #!/usr/bin/env tsx
-import { createDb, createLocalStorage, getPrimaryShop, loadConfig, runMigrations, setupStore } from '@shopme/core';
+import { createDb, createLocalStorage, getPrimaryShop, getShopByHandle, loadConfig, runMigrations, scopedStorage, setupStore } from '@shopme/core';
 import { ShopifyClient, DEFAULT_API_VERSION, type ShopifyAuth } from './shopify-client';
 import { importFromShopify, PHASES, type Phase } from './shopify-import';
 
@@ -12,6 +12,7 @@ const USAGE = `Usage: pnpm --filter @shopme/migrate shopify -- --shop <domain> (
   --theme-settings         also copy the live theme's config/settings_data.json
   --data-dir <dir>         ShopMe data dir (default ./data, or env DATA_DIR); --database-url <url> for PostgreSQL
   --owner-email/--owner-password   create the store first when this data dir has none
+  --store <handle>         multi-store installation: the store to import into (default: the first store)
   --verbose                print progress lines when not on a terminal
   --api-version <v>        default ${DEFAULT_API_VERSION}`;
 
@@ -45,7 +46,9 @@ async function main() {
   try {
     await runMigrations(handle);
     const client = new ShopifyClient({ shop, auth, apiVersion: (a['api-version'] as string) || DEFAULT_API_VERSION, onThrottle: (ms) => process.stderr.write(`  (rate limit: waiting ${ms}ms)\n`) });
-    let store = await getPrimaryShop(handle.db);
+    const wanted = typeof a['store'] === 'string' ? a['store'] : null;
+    let store = wanted ? await getShopByHandle(handle.db, wanted) : await getPrimaryShop(handle.db);
+    if (wanted && !store) { console.error(`No store with the handle "${wanted}" in this installation.`); process.exit(2); }
     if (!store) {
       if (!a['owner-email'] || !a['owner-password']) { console.error('No store in this data directory yet: pass --owner-email and --owner-password to create it (or complete setup in the admin first).'); process.exit(2); }
       const info = (await client.query<{ shop: { name: string; currencyCode: string } }>('{ shop { name currencyCode } }', {}, 5)).shop;
@@ -53,7 +56,7 @@ async function main() {
     }
     let last = '';
     const summary = await importFromShopify({
-      db: handle.db, shopId: store.id, storage: createLocalStorage(config.storageDir), client, only: a['theme-settings'] ? [...(only ?? PHASES.filter((p) => p !== 'theme')), 'theme'] : only,
+      db: handle.db, shopId: store.id, storage: scopedStorage(createLocalStorage(config.storageDir), store.storagePrefix), client, only: a['theme-settings'] ? [...(only ?? PHASES.filter((p) => p !== 'theme')), 'theme'] : only,
       onProgress: (e) => {
         const line = `${e.phase}: ${e.processed}${e.total ? `/${e.total}` : ''}`;
         if (line !== last && process.stderr.isTTY) process.stderr.write(`\r${line}      `);

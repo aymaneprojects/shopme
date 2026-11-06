@@ -33,7 +33,7 @@ const AccountsV2 = builder.objectRef<{ settings: CustomerAccountsSettings; url: 
 });
 const absolute = (ctx: GraphQLContext, shop: Parameters<typeof accountUrlOf>[0]) => {
   const u = accountUrlOf(shop);
-  return /^https?:/.test(u) ? u : `${ctx.app.config.appUrl.replace(/\/$/, '')}${u}`;
+  return /^https?:/.test(u) ? u : `${ctx.storeUrl.replace(/\/$/, '')}${u}`;
 };
 builder.objectFields(Shop, (t) => ({
   customerAccounts: t.field({ type: AccountsSetting, resolve: (s) => customerAccountsSettingsOf(s).mode }),
@@ -90,7 +90,7 @@ builder.mutationFields((t) => ({
       const id = parseId(String(a.customerId), 'Customer');
       const r = id ? await inviteCustomer(ctx.db, ctx.shopId, id) : null;
       if (!r?.ok) return { accountActivationUrl: null, userErrors: r ? r.errors : [{ field: ['customerId'], message: 'Customer does not exist' }] };
-      return { accountActivationUrl: `${ctx.app.config.appUrl.replace(/\/$/, '')}/account/activate/${r.value.customer.id}/${r.value.token}`, userErrors: [] };
+      return { accountActivationUrl: `${ctx.storeUrl.replace(/\/$/, '')}/account/activate/${r.value.customer.id}/${r.value.token}`, userErrors: [] };
     },
   }),
   customerSendAccountInviteEmail: t.field({
@@ -102,8 +102,8 @@ builder.mutationFields((t) => ({
       const r = id ? await inviteCustomer(ctx.db, ctx.shopId, id) : null;
       if (!r?.ok) return { customer: null, userErrors: r ? r.errors : [{ field: ['customerId'], message: 'Customer does not exist' }] };
       const shop = await shopOf(ctx);
-      const url = `${ctx.app.config.appUrl.replace(/\/$/, '')}/account/activate/${r.value.customer.id}/${r.value.token}`;
-      if (r.value.customer.email) await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.app.config.appUrl, 'customer_account_invite', r.value.customer.email, { customer: { first_name: r.value.customer.firstName ?? '', email: r.value.customer.email }, activation_url: url }, { force: true });
+      const url = `${ctx.storeUrl.replace(/\/$/, '')}/account/activate/${r.value.customer.id}/${r.value.token}`;
+      if (r.value.customer.email) await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.storeUrl, 'customer_account_invite', r.value.customer.email, { customer: { first_name: r.value.customer.firstName ?? '', email: r.value.customer.email }, activation_url: url }, { force: true });
       return { customer: r.value.customer, userErrors: [] };
     },
   }),

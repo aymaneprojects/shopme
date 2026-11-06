@@ -12,6 +12,8 @@ import { useI18n } from '../../i18n';
 import type { Key } from '../../i18n';
 import { CURRENCIES, TIMEZONES } from '../../lib/countries';
 import { SETTINGS_SECTIONS } from '../../lib/settingsNav';
+import { useMulti } from '../../session';
+import { StoreDomains } from './StoreDomains';
 
 /** Settings pages sit in a narrow centered column under a large title; sub-pages draw their own header. */
 export function SettingsLayout() {
@@ -85,7 +87,12 @@ function ShopPanelForm({ shop, fields, children }: { shop: ShopData; fields: Arr
   );
 }
 
+/** Settings > Domains: the store's own domains (multi-store), or the installation's primary domain (single-store). */
 export function DomainsSettings() {
+  return useMulti() ? <StoreDomains /> : <SingleStoreDomains />;
+}
+
+function SingleStoreDomains() {
   const { t } = useI18n();
   const toast = useToast();
   const qc = useQueryClient();

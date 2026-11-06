@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowUpDown, Download, FileText, MoreHorizontal, Pin, PinOff, RefreshCw, Search, SlidersHorizontal, StickyNote, Target } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router';
-import { gql, mutate } from '../api';
+import { apiUrl, gql, mutate } from '../api';
 import { AnnotationsPanel, GoalsDialog, GoalsStrip, QueryBox, RangeSlider, useAnnotations } from '../components/AnalyticsParts';
 import { BarChart, LineChart, Sparkline } from '../components/Charts';
 import type { Series } from '../components/Charts';
@@ -205,7 +205,7 @@ export function AnalyticsPage() {
   const err = sales.error ?? aov.error ?? ret.error ?? products.error ?? ords.error;
   const topProducts = (products.data?.rows ?? []).slice(0, 5);
   const salesCol = sales.data?.columns.find((c) => c.key === 'total');
-  const csv = `/admin/api/reports/SALES_OVER_TIME.csv?from=${f.range.from}&to=${f.range.to}&groupBy=${f.groupBy}`;
+  const csv = apiUrl(`/reports/SALES_OVER_TIME.csv?from=${f.range.from}&to=${f.range.to}&groupBy=${f.groupBy}`);
   const topChannels = (channels.data?.rows ?? []).slice(0, 5);
   const channelMax = Math.max(1, ...topChannels.map((r) => Number(r[2] ?? 0)));
   const refreshedAt = Math.max(sales.dataUpdatedAt, ords.dataUpdatedAt, aov.dataUpdatedAt);
@@ -399,7 +399,7 @@ export function ReportPage() {
   const parsedWhere = whereText ? parseReportQuery(`WHERE ${whereText}`) : null;
   const filters: QueryFilter[] = parsedWhere?.ok ? parsedWhere.query.where : [];
   const kpis = rep ? rep.columns.filter((c) => (c.type === 'money' || c.type === 'int' || (c.type === 'percent' && c.key in rep.totals)) && c.key in rep.totals).slice(0, 4) : [];
-  const csv = `/admin/api/reports/${name}.csv?from=${f.range.from}&to=${f.range.to}&groupBy=${f.groupBy}`;
+  const csv = apiUrl(`/reports/${name}.csv?from=${f.range.from}&to=${f.range.to}&groupBy=${f.groupBy}`);
   const metricCol = rep?.columns.find((c) => c.key === metricKey);
   const marksQ = useAnnotations(name, f.range.from, f.range.to);
   const marks = notes ? (marksQ.data ?? []).map((a) => ({ day: a.day, text: a.text })) : [];

@@ -5,8 +5,7 @@
  */
 import {
   applyCustomsDefaults, shippingByMarket, generatePolicies, applyTaxPreset, carrierProviders, configOf, createRole, deleteRole, getShop, getStaff, importStaff, listLocalDeliveries, listRoles, markLocalDelivery, sendNotification,
-  setLocaleDomain, smsTemplateError, sendSms, TAX_PRESETS, taxRegions, updateConfig, updateRole, writeBackup, schema, type ConfigKey, CONFIG_KEYS,
-} from '@shopme/core';
+  setLocaleDomain, smsTemplateError, sendSms, TAX_PRESETS, taxRegions, updateConfig, updateRole, writeBackup, schema, type ConfigKey, CONFIG_KEYS, isVerifiedShopDomain, deleteStoreData } from '@shopme/core';
 import { eq } from 'drizzle-orm';
 import { parseId, toGid } from '@shopme/shopify-compat';
 import { builder } from '../builder';
@@ -103,7 +102,7 @@ builder.mutationFields((t) => ({
       for (const r of rows) {
         if (!r.ok || !r.token || !r.staff) continue;
         try {
-          await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.app.config.appUrl, 'staff_invite', r.staff.email, {
+          await sendNotification(ctx.db, ctx.app.mailer, shop, ctx.storeUrl, 'staff_invite', r.staff.email, {
             invite: { url: `${ctx.app.config.appUrl.replace(/\/$/, '')}/admin/invite/${r.token}`, email: r.staff.email, role: r.staff.role, inviter: me ? [me.firstName, me.lastName].filter(Boolean).join(' ') || me.email : null },
           });
         } catch (e) { ctx.app.log.error({ err: e }, 'staff import invite email failed'); }
@@ -156,7 +155,7 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_shop');
       const shop = (await getShop(ctx.db, ctx.shopId))!;
       const { sampleVars } = await import('@shopme/core');
-      const ok = await sendSms(shop, a.key, a.to, sampleVars(shop, ctx.app.config.appUrl));
+      const ok = await sendSms(shop, a.key, a.to, sampleVars(shop, ctx.storeUrl));
       return ok ? { value: { sent: true }, userErrors: [] } : { value: null, userErrors: [{ field: ['to'], message: 'The SMS was not sent: check the gateway URL, the phone number and that this SMS is switched on' }] };
     },
   }),
@@ -165,6 +164,9 @@ builder.mutationFields((t) => ({
     type: JsonPayload, args: { locale: t.arg.string({ required: true }), domain: t.arg.string() },
     resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'write_locales');
+      if (ctx.app.config.multiStore && a.domain?.trim() && !(await isVerifiedShopDomain(ctx.db, ctx.shopId, a.domain.trim()))) {
+        return { value: null, userErrors: [{ field: ['domain'], message: 'Add and verify this domain in Settings > Domains first' }] };
+      }
       const r = await setLocaleDomain(ctx.db, ctx.shopId, a.locale, a.domain ?? null);
       if (r.ok) await ctx.app.locales.refresh(ctx.db);
       return r.ok ? { value: r.value, userErrors: [] } : { value: null, userErrors: r.errors };
@@ -182,9 +184,15 @@ builder.mutationFields((t) => ({
       const shop = (await getShop(ctx.db, ctx.shopId))!;
       if (a.confirmName.trim() !== shop.name) return { value: null, userErrors: [{ field: ['confirmName'], message: 'The name does not match the store name' }] };
       const name = `final-${new Date().toISOString().replace(/[:.]/g, '-')}.shopme`;
-      try { await writeBackup(ctx.db, ctx.app.storage, ctx.shopId, ctx.app.config.dataDir, name, ctx.app.appVersion); }
+      try { await writeBackup(ctx.db, ctx.app.storageFor(ctx.shopId), ctx.shopId, ctx.app.stores.dataDirFor(ctx.shopId), name, ctx.app.appVersion); }
       catch (e) { ctx.app.log.error({ err: e }, 'final export failed'); return { value: null, userErrors: [{ field: null, message: 'The final export failed, so nothing was deleted' }] }; }
-      await ctx.db.delete(schema.shops).where(eq(schema.shops.id, ctx.shopId));
+      if (ctx.app.config.multiStore) {
+        // Every row of this store only (the other stores of the installation stay), then its files.
+        const storage = ctx.app.storageFor(ctx.shopId);
+        const r = await deleteStoreData(ctx.db, ctx.shopId);
+        for (const k of r?.keys ?? []) await storage.delete(k).catch(() => undefined);
+        await ctx.app.stores.refresh(ctx.db);
+      } else await ctx.db.delete(schema.shops).where(eq(schema.shops.id, ctx.shopId));
       await ctx.app.locales.refresh(ctx.db).catch(() => undefined);
       return { value: { deleted: true, backup: name }, userErrors: [] };
     },

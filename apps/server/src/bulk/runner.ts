@@ -28,15 +28,15 @@ class Sink {
 }
 
 export function registerBulkJobs(ctx: AppContext, schema: GraphQLSchema): void {
-  const { db, queue, storage } = ctx;
+  const { db, queue } = ctx;
 
-  const gqlContext = (job: BulkJob): GraphQLContext => ({ app: ctx, db, shopId: job.shopId, auth: job.auth, request: undefined as never });
+  const gqlContext = (job: BulkJob): GraphQLContext => ({ app: ctx, db, shopId: job.shopId, auth: job.auth, request: undefined as never, storeUrl: ctx.stores.storefrontBase(job.shopId) });
 
   async function savePart(op: { id: number; shopId: number }, sink: Sink, kind: 'result' | 'partial') {
     const body = sink.body;
     if (!body) return { key: null, size: null };
     const key = `bulk/${op.shopId}/${op.id}-${randomToken(18)}${kind === 'partial' ? '-partial' : ''}.jsonl`;
-    await storage.put(key, body);
+    await ctx.storageFor(op.shopId).put(key, body);
     return { key, size: body.length };
   }
 
@@ -93,7 +93,7 @@ export function registerBulkJobs(ctx: AppContext, schema: GraphQLSchema): void {
   async function runMutation(job: BulkJob, text: string, inputKey: string, sink: Sink) {
     const doc = parse(text);
     const gctx = gqlContext(job);
-    const stream = await storage.open(inputKey);
+    const stream = await ctx.storageFor(job.shopId).open(inputKey);
     if (!stream) throw new Stop('INTERNAL_SERVER_ERROR', 'The staged variables file is gone.');
     const chunks: Buffer[] = [];
     for await (const c of stream) chunks.push(Buffer.from(c));
@@ -136,12 +136,12 @@ export function registerBulkJobs(ctx: AppContext, schema: GraphQLSchema): void {
       status: outcome, errorCode, objectCount: sink.objects, rootObjectCount: sink.roots,
       ...(outcome === 'COMPLETED' ? { resultKey: saved.key, resultSize: saved.size } : { partialKey: saved.key }),
     });
-    if (op.inputKey) await storage.delete(op.inputKey).catch(() => undefined);
+    if (op.inputKey) await ctx.storageFor(job.shopId).delete(op.inputKey).catch(() => undefined);
   });
 
   // A restart loses in-flight runs (the queue is in-process): fail them so a new operation can start.
   void failStaleBulkOperations(db).catch(() => undefined);
-  queue.every('bulk-expire', 3600_000, async () => { await purgeExpiredBulkResults(db, storage); });
+  queue.every('bulk-expire', 3600_000, async () => { await purgeExpiredBulkResults(db, (shopId) => ctx.storageFor(shopId)); });
 }
 
 /** Validate the mutation of `bulkOperationRunMutation`: one mutation operation with exactly one root field. Returns an error message or null. */

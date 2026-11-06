@@ -45,7 +45,7 @@ builder.mutationFields((t) => ({
       if (!/^https?:\/\//i.test(a.source)) return { theme: null, userErrors: nope(['source'], 'Source must be an http(s) URL to a zip file', 'INVALID') };
       const got = await fetchSafely(a.source, MAX_THEME_ZIP_BYTES).catch(() => null);
       if (!got) return { theme: null, userErrors: nope(['source'], 'The theme could not be downloaded from the source URL', 'THEME_CREATE_FAILED') };
-      const r = await createThemeFromZip(ctx.db, ctx.app.storage, ctx.shopId, got.data, { name: a.name, role: a.role, staffId: staffId(ctx) });
+      const r = await createThemeFromZip(ctx.db, ctx.app.storageFor(ctx.shopId), ctx.shopId, got.data, { name: a.name, role: a.role, staffId: staffId(ctx) });
       return r.ok ? { theme: r.value.theme, userErrors: [] } : { theme: null, userErrors: r.errors };
     },
   }),
@@ -54,7 +54,7 @@ builder.mutationFields((t) => ({
     resolve: async (_r, a, ctx) => {
       requireScope(ctx, 'write_themes');
       const id = themeId(a.id);
-      const r = id ? await deleteTheme(ctx.db, ctx.app.storage, ctx.shopId, id) : null;
+      const r = id ? await deleteTheme(ctx.db, ctx.app.storageFor(ctx.shopId), ctx.shopId, id) : null;
       if (!r) return { deletedThemeId: null, userErrors: nope(['id'], 'Theme does not exist') };
       return r.ok ? { deletedThemeId: toGid('OnlineStoreTheme', id!), userErrors: [] } : { deletedThemeId: null, userErrors: r.errors };
     },
@@ -96,7 +96,7 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_themes');
       const id = themeId(a.themeId);
       if (!id) return { files: null, userErrors: nope(['themeId'], 'Theme does not exist') };
-      const r = await deleteThemeFiles(ctx.db, ctx.app.storage, ctx.shopId, id, a.files, staffId(ctx));
+      const r = await deleteThemeFiles(ctx.db, ctx.app.storageFor(ctx.shopId), ctx.shopId, id, a.files, staffId(ctx));
       if (!r.ok) return { files: null, userErrors: r.errors };
       const now = new Date();
       return { files: r.value.map((path) => ({ path, checksum: null, sizeBytes: 0, updatedAt: now }) as unknown as ThemeFile), userErrors: [] };
@@ -170,7 +170,7 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_themes');
       const id = themeId(a.id);
       if (!id) return { result: null, userErrors: nope(['id'], 'Theme does not exist') };
-      const r = await updateThemeToBundled(ctx.db, ctx.app.storage, ctx.shopId, id, ctx.app.paths.themeDefaultDir, { staffId: staffId(ctx) });
+      const r = await updateThemeToBundled(ctx.db, ctx.app.storageFor(ctx.shopId), ctx.shopId, id, ctx.app.paths.themeDefaultDir, { staffId: staffId(ctx) });
       return r.ok ? { result: r.value, userErrors: [] } : { result: null, userErrors: r.errors };
     },
   }),

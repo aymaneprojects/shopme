@@ -46,7 +46,7 @@ const urlset = (origin: string, entries: Entry[]) => `${XML}<urlset xmlns="http:
 /** `/collections/<handle>.atom`: Atom feed of the first 50 products (shape of the reference store's feed). Null when the collection does not exist. */
 export async function collectionAtom(ctx: AppContext, shop: Shop, handle: string): Promise<string | null> {
   const { db } = ctx;
-  const origin = ctx.config.appUrl;
+  const origin = ctx.stores.publicOrigin(shop.id);
   const base = await getCollection(db, shop.id, handle);
   if (!base) return null;
   const listing = await listProducts(db, shop.id, { collectionId: base.isAll ? undefined : base.id }, { sort: 'manual' }, false);
@@ -102,7 +102,7 @@ ${items.map(entry).join('\n')}
 export function registerSeoRoutes(app: FastifyInstance, ctx: AppContext, content: ReturnType<typeof createContent>): void {
   const { db } = ctx;
   const { withShop } = content;
-  const origin = ctx.config.appUrl;
+  const originOf = (shopId: number) => ctx.stores.publicOrigin(shopId);
 
   async function entries(shopId: number, type: string): Promise<Entry[]> {
     switch (type) {
@@ -131,20 +131,22 @@ export function registerSeoRoutes(app: FastifyInstance, ctx: AppContext, content
       db.select({ n: sql<number>`count(*)::int` }).from(s.products).where(and(eq(s.products.shopId, shop.id), productListedOnStorefront)),
       db.select({ n: sql<number>`count(*)::int` }).from(s.collections).where(and(eq(s.collections.shopId, shop.id), sql`${s.collections.publishedAt} is not null`)),
     ]);
+    const origin = originOf(shop.id);
     const host = new URL(origin).host;
+    const myshopify = ctx.stores.multi ? new URL(ctx.stores.platformOrigin(shop.id)).host : host;
     return reply.type('application/json; charset=utf-8').send({
-      id: shop.id, name: shop.name, country: shop.country, currency: shop.currency, domain: host, url: origin, myshopify_domain: host, description: String((shop.settings as Record<string, unknown>).description ?? ''),
+      id: shop.id, name: shop.name, country: shop.country, currency: shop.currency, domain: host, url: origin, myshopify_domain: myshopify, description: String((shop.settings as Record<string, unknown>).description ?? ''),
       ships_to_countries: [shop.country], money_format: shop.moneyFormat, published_collections_count: c?.n ?? 0, published_products_count: p?.n ?? 0, shopify_pay_enabled_card_brands: [], offers_shop_pay_installments: false,
     });
   }));
 
-  app.get('/robots.txt', async (_req, reply) => reply.type('text/plain; charset=utf-8').send(robotsTxt(origin)));
+  app.get('/robots.txt', async (req, reply) => reply.type('text/plain; charset=utf-8').send(robotsTxt(req.hostShopId != null ? originOf(req.hostShopId) : ctx.config.appUrl)));
 
   app.get('/sitemap.xml', withShop(async (_req, reply, shop) => {
     const children: string[] = [];
     for (const type of ['products', 'collections', 'pages', 'blogs', 'metaobjects']) {
       const n = (await entries(shop.id, type)).length;
-      for (let i = 1; i <= Math.max(1, Math.ceil(n / PER_FILE)) && n > 0; i++) children.push(`${origin}/sitemap_${type}_${i}.xml`);
+      for (let i = 1; i <= Math.max(1, Math.ceil(n / PER_FILE)) && n > 0; i++) children.push(`${originOf(shop.id)}/sitemap_${type}_${i}.xml`);
     }
     return reply.type('application/xml; charset=utf-8').send(`${XML}<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${children.map((c) => `<sitemap><loc>${xmlEscape(c)}</loc></sitemap>`).join('')}</sitemapindex>`);
   }));
@@ -158,6 +160,6 @@ export function registerSeoRoutes(app: FastifyInstance, ctx: AppContext, content
     const all = await entries(shop.id, type);
     const slice = all.slice((page - 1) * PER_FILE, page * PER_FILE);
     if (!slice.length && page > 1) return reply.code(400).type('application/xml; charset=utf-8').send('');
-    return reply.type('application/xml; charset=utf-8').send(urlset(origin, page === 1 && type === 'pages' ? [{ loc: '/' }, ...slice] : slice));
+    return reply.type('application/xml; charset=utf-8').send(urlset(originOf(shop.id), page === 1 && type === 'pages' ? [{ loc: '/' }, ...slice] : slice));
   }));
 }

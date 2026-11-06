@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createTestApp, setupAndLogin, type TestApp } from '../../../src/test-utils';
+import { createTestApp, setupAndLogin, verifiedDomainForTests, type TestApp } from '../../../src/test-utils';
+import { getPrimaryShop } from '@shopme/core';
 import { makeGql, makeGqlOk } from '../helpers';
 import { seedCatalog } from '../seed';
 import { seedOrder, shopIdOf } from '../seed-sales';
@@ -76,6 +77,7 @@ describe('discounts, settings, content and dashboard API', () => {
   });
 
   it('updates shop details and payment settings', async () => {
+    await verifiedDomainForTests(t.app, (await getPrimaryShop(t.dbHandle.db))!.id, 'shop.example.com'); // multi-store: only a verified domain can be primary
     const r = await g(`mutation { shopmeShopUpdate(input: { name: "Boutique", ianaTimezone: "Europe/Paris", weightUnit: GRAMS, taxesIncluded: true, taxShipping: true, description: "Hello",
       address: { address1: "1 Rue X", city: "Paris", zip: "75001", countryCode: FR, phone: "+33123456789" }, storefrontPasswordEnabled: true, storefrontPassword: "secret", storefrontPasswordMessage: "Soon", primaryDomain: "shop.example.com" }) {
       shop { name ianaTimezone weightUnit unitSystem taxesIncluded shopmeTaxShipping description primaryDomain { host } billingAddress { address1 city countryCodeV2 } shopmeStorefront { passwordEnabled password passwordMessage } }

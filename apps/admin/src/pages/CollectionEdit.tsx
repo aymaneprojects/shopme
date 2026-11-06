@@ -22,6 +22,7 @@ import { fromField } from '../lib/metafields';
 import { useI18n } from '../i18n';
 import { defaultRule, isRuleValid, toRuleInput } from '../lib/collection-rules';
 import type { RuleSet } from '../lib/collection-rules';
+import { useStorefrontUrl } from '../lib/storefront-url';
 
 interface ApiCollection {
   id: string; title: string; handle: string; descriptionHtml: string; sortOrder: string; templateSuffix: string | null; updatedAt: string;
@@ -59,6 +60,7 @@ export function CollectionEditPage() {
 
 function CollectionFormView({ id, initial: initialProp }: { id: string | null; initial: CollectionForm }) {
   const { t } = useI18n();
+  const storefront = useStorefrontUrl();
   const nav = useNavigate();
   const toast = useToast();
   const qc = useQueryClient();
@@ -138,7 +140,7 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
         actions={id && <>
           <ButtonGroup>
             <Button icon aria-label={t('collection.duplicate')} loading={duplicate.isPending} onClick={() => duplicate.mutate()}><Copy className="size-4" /></Button>
-            <Button icon aria-label={t('collection.view')} onClick={() => { window.open(`/collections/${form.handle || initial.handle}`, '_blank', 'noopener'); }}><Eye className="size-4" /></Button>
+            <Button icon aria-label={t('collection.view')} onClick={() => { window.open(storefront(`/collections/${form.handle || initial.handle}`), '_blank', 'noopener'); }}><Eye className="size-4" /></Button>
             <Button icon className="text-critical" aria-label={t('common.delete')} onClick={() => setConfirmDelete(true)}><Trash2 className="size-4" /></Button>
           </ButtonGroup>
           <PrevNext kind="collections" gid={id} />
@@ -174,7 +176,7 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
           <Card title={t('collection.type')} actions={id && (
             <Dropdown align="right" variant="plain" size="sm" icon label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
               { key: 'duplicate', icon: <Copy className="size-4" />, label: t('collection.duplicate'), onSelect: () => duplicate.mutate() },
-              { key: 'view', icon: <Eye className="size-4" />, label: t('collection.view'), onSelect: () => { window.open(`/collections/${form.handle || initial.handle}`, '_blank', 'noopener'); } },
+              { key: 'view', icon: <Eye className="size-4" />, label: t('collection.view'), onSelect: () => { window.open(storefront(`/collections/${form.handle || initial.handle}`), '_blank', 'noopener'); } },
               { key: 'delete', icon: <Trash2 className="size-4" />, label: t('common.delete'), danger: true, separatorBefore: true, onSelect: () => setConfirmDelete(true) },
             ]} />
           )}>

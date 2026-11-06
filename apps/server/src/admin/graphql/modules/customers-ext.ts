@@ -67,7 +67,7 @@ builder.objectFields(Customer_, (t) => ({
       return days < 1 ? 'less than a day' : days < 30 ? `${days} day${days > 1 ? 's' : ''}` : days < 365 ? `${Math.floor(days / 30)} month${days >= 60 ? 's' : ''}` : `${Math.floor(days / 365)} year${days >= 730 ? 's' : ''}`;
     },
   }),
-  unsubscribeUrl: t.field({ type: 'URL', resolve: (c, _a, ctx) => `${ctx.app.config.appUrl}/account/unsubscribe?customer=${c.id}` }),
+  unsubscribeUrl: t.field({ type: 'URL', resolve: (c, _a, ctx) => `${ctx.storeUrl}/account/unsubscribe?customer=${c.id}` }),
 }));
 
 /* ------------------------------ address book ------------------------------ */

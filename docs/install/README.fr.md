@@ -2,6 +2,8 @@
 
 ShopMe est un processus Node.js plus PostgreSQL. En local, PostgreSQL est facultatif : une base embarquée est utilisée.
 
+Plusieurs boutiques sur une même installation ? Voir [Mode multi-boutique](multi-store.fr.md).
+
 ## 1. Lancer en local (sans base de données)
 
 Prérequis : Node.js 22 et pnpm 9 (`corepack enable`).

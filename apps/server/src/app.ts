@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance } from 'fastify';
-import { createInProcessQueue, createLocalStorage, createMailer, ensureSearchExtensions, type AppConfig, type DbHandle } from '@shopme/core';
+import { createInProcessQueue, createLocalStorage, ensureSearchExtensions, type AppConfig, type DbHandle } from '@shopme/core';
 import { registerAuthRoutes } from './admin/auth-routes';
 import { registerBackupRoutes } from './admin/backup-routes';
 import { registerReportRoutes } from './admin/report-routes';
@@ -22,6 +22,10 @@ import { installOriginCheck } from './plugins/auth';
 import { registerSecurity } from './security';
 import { registerStorefront } from './storefront';
 import { registerWebhooks } from './webhooks';
+import { installHostRouting, registerTlsAsk, StoreRegistry } from './stores';
+import { registerStoresRoutes } from './admin/stores-routes';
+import { createPlatformMailer } from './mailer';
+import { installStoreAccessCheck } from './plugins/auth';
 
 export const APP_VERSION = '0.1.0';
 
@@ -55,27 +59,37 @@ export function robotsHeader(path: string, status: number): string | null {
 /** Build the Fastify app without listening (used by startServer and by tests via `app.inject`). */
 export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> {
   const { config, dbHandle } = opts;
-  const locales = new LocaleCache();
-  const app = Fastify({ logger: loggerOptions(config, opts.logger ?? true), trustProxy: config.trustProxy, bodyLimit: 2 * 1024 * 1024, routerOptions: { maxParamLength: 600 }, rewriteUrl: (req) => locales.rewrite(req) });
+  const storage = createLocalStorage(config.storageDir);
+  const stores = new StoreRegistry(config, storage);
+  const locales = new LocaleCache(stores);
+  const app = Fastify({
+    logger: loggerOptions(config, opts.logger ?? true), trustProxy: config.trustProxy, bodyLimit: 2 * 1024 * 1024, routerOptions: { maxParamLength: 600 },
+    rewriteUrl: (req) => locales.rewrite(req, stores.rewriteAdmin(req, req.url ?? '/')),
+  });
 
   const ctx: AppContext = {
     config, db: dbHandle.db, dbHandle, paths: resolvePaths(opts.paths), log: app.log,
     queue: createInProcessQueue(app.log),
-    mailer: createMailer({ smtpUrl: config.smtpUrl, from: config.mailFrom, logger: app.log }),
-    storage: createLocalStorage(config.storageDir),
+    mailer: createPlatformMailer(config, app.log),
+    storage, storageFor: (shopId) => stores.storageFor(shopId), stores,
     locales, appVersion: APP_VERSION,
   };
   app.decorate('ctx', ctx);
   if (dbHandle.driver === 'postgres') await ensureSearchExtensions(ctx.db); // pg_trgm for typo tolerance when the server allows it
   app.decorateRequest('auth', null);
+  await stores.refresh(ctx.db);
+  const stopStores = stores.startAutoRefresh(ctx.db, app.log);
 
   await app.register(cookie, { secret: config.sessionSecret });
+  installHostRouting(app);
+  registerTlsAsk(app);
   registerSecurity(app);
   app.addHook('onSend', async (req, reply) => {
     const robots = robotsHeader(req.url.split('?')[0]!, reply.statusCode);
     if (robots && !reply.hasHeader('x-robots-tag')) reply.header('x-robots-tag', robots);
   });
   installOriginCheck(app);
+  installStoreAccessCheck(app);
 
   app.get('/healthz', async (_req, reply) => {
     try {
@@ -87,6 +101,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   });
 
   registerAuthRoutes(app);
+  registerStoresRoutes(app);
   registerTwoFactorRoutes(app);
   registerReportRoutes(app);
   registerLabelRoutes(app);
@@ -103,6 +118,6 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
   await registerStorefront(app); // last: owns "/" and (later) catch-all storefront routes
   const stopEvents = registerJobs(ctx);
 
-  app.addHook('onClose', async () => { stopEvents(); await ctx.queue.stop(); });
+  app.addHook('onClose', async () => { stopEvents(); stopStores(); await ctx.queue.stop(); });
   return app;
 }

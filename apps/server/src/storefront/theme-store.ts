@@ -98,7 +98,7 @@ export class ThemeStore {
     const main = await ensureMainTheme(db, shopId);
     let sig = await this.signature(main.id);
     if (sig.startsWith('0:')) {
-      await ensureDefaultTheme(db, shopId, this.ctx.paths.themeDefaultDir, this.ctx.storage);
+      await ensureDefaultTheme(db, shopId, this.ctx.paths.themeDefaultDir, this.ctx.storageFor(shopId));
       sig = await this.signature(main.id);
     }
     const hit = this.cache.get(shopId);

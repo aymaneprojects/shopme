@@ -19,7 +19,7 @@ interface ImportJob { jobId: number; shopId: number; file: string }
 
 async function authed(req: FastifyRequest, reply: FastifyReply): Promise<AuthInfo | null> {
   const auth = await authenticate(req);
-  if (!auth) { reply.code(401).send({ error: 'Not authenticated' }); return null; }
+  if (!auth) { reply.code(req.authDenied ? 403 : 401).send({ error: req.authDenied ? 'You do not have access to this store' : 'Not authenticated' }); return null; }
   if (!auth.scopes.includes('*') && !auth.scopes.includes('write_shop')) { reply.code(403).send({ error: 'Access denied. Required access: write_shop' }); return null; }
   return auth;
 }
@@ -36,21 +36,22 @@ const view = (j: NonNullable<Awaited<ReturnType<typeof getJob>>>) => ({ id: j.id
  * Jobs are polled at GET /admin/api/jobs/:id.
  */
 export function registerBackupRoutes(app: FastifyInstance) {
-  const { db, storage, queue, config } = app.ctx;
-  const dir = backupsDir(config.dataDir);
+  const { db, queue, config, stores } = app.ctx;
+  // Each store has its own backups folder (multi-store); single-store mode keeps DATA_DIR/backups.
+  const dirOf = (shopId: number) => backupsDir(stores.dataDirFor(shopId));
 
   queue.register<ExportJob>('store.export', async (j) => {
     const rep = new JobReporter(db, j.jobId);
     try {
-      const m: ExportManifest = await writeBackup(db, storage, j.shopId, config.dataDir, j.name, app.ctx.appVersion, (d, t) => void rep.progress(d, t, 'export'));
-      rep.result.details = { file: j.name, bytes: (await stat(path.join(dir, j.name))).size, tables: m.tables, files: m.files };
+      const m: ExportManifest = await writeBackup(db, app.ctx.storageFor(j.shopId), j.shopId, stores.dataDirFor(j.shopId), j.name, app.ctx.appVersion, (d, t) => void rep.progress(d, t, 'export'));
+      rep.result.details = { file: j.name, bytes: (await stat(path.join(dirOf(j.shopId), j.name))).size, tables: m.tables, files: m.files };
       await rep.finish();
     } catch (e) { await rep.finish(e instanceof Error ? e.message : 'Export failed'); }
   });
   queue.register<ImportJob>('store.import', async (j) => {
     const rep = new JobReporter(db, j.jobId);
     try {
-      const r = await importStore(db, storage, j.shopId, j.file, { progress: (d, t) => void rep.progress(d, t, 'import') });
+      const r = await importStore(db, app.ctx.storageFor(j.shopId), j.shopId, j.file, { progress: (d, t) => void rep.progress(d, t, 'import') });
       if (!r.ok) { await rep.finish(r.error); return; }
       rep.count('created', Object.values(r.value.tables).reduce((a, b) => a + b, 0));
       rep.result.details = { tables: r.value.tables, files: r.value.files, exportedWith: r.value.manifest.appVersion, exportedAt: r.value.manifest.createdAt };
@@ -67,9 +68,9 @@ export function registerBackupRoutes(app: FastifyInstance) {
     return jobId;
   };
 
-  const download = async (reply: FastifyReply, name: string) => {
+  const download = async (reply: FastifyReply, shopId: number, name: string) => {
     if (!isBackupName(name)) return reply.code(404).send({ error: 'Not found' });
-    const file = path.join(dir, name);
+    const file = path.join(dirOf(shopId), name);
     const st = await stat(file).catch(() => null);
     if (!st) return reply.code(404).send({ error: 'Not found' });
     return reply.type('application/zip').header('content-length', st.size).header('content-disposition', `attachment; filename="${name.replace(/^export-\d+-[A-Za-z0-9_-]+/, 'shopme-store')}"`).header('cache-control', 'no-store').send(createReadStream(file));
@@ -87,13 +88,13 @@ export function registerBackupRoutes(app: FastifyInstance) {
     const job = await getJob(db, auth.shopId, Number((req.params as { jobId: string }).jobId));
     const file = (job?.result as { details?: { file?: string } } | null)?.details?.file;
     if (!job || job.status !== 'COMPLETED' || !file) return reply.code(404).send({ error: 'Export not ready' });
-    return download(reply, file);
+    return download(reply, auth.shopId, file);
   });
 
   app.get('/admin/api/store/backups', async (req, reply) => {
     const auth = await authed(req, reply);
     if (!auth) return;
-    return { settings: await getBackupSettings(db, auth.shopId), directory: dir, backups: (await listBackups(config.dataDir)).filter((b) => b.automatic) };
+    return { settings: await getBackupSettings(db, auth.shopId), directory: dirOf(auth.shopId), backups: (await listBackups(stores.dataDirFor(auth.shopId))).filter((b) => b.automatic) };
   });
   app.put('/admin/api/store/backups/settings', async (req, reply) => {
     const auth = await authed(req, reply);
@@ -109,14 +110,14 @@ export function registerBackupRoutes(app: FastifyInstance) {
   app.get('/admin/api/store/backups/:name', async (req, reply) => {
     const auth = await authed(req, reply);
     if (!auth) return;
-    return download(reply, (req.params as { name: string }).name);
+    return download(reply, auth.shopId, (req.params as { name: string }).name);
   });
   app.delete('/admin/api/store/backups/:name', async (req, reply) => {
     const auth = await authed(req, reply);
     if (!auth) return;
     const name = (req.params as { name: string }).name;
     if (!isBackupName(name)) return reply.code(404).send({ error: 'Not found' });
-    await rm(path.join(dir, name), { force: true });
+    await rm(path.join(dirOf(auth.shopId), name), { force: true });
     return { ok: true };
   });
 

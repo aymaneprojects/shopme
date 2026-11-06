@@ -37,6 +37,8 @@ async function launchServer(): Promise<RunningServer> {
   const base = {
     host: '127.0.0.1', // local only: never exposed to the network
     dataDir,
+    multiStore: false, // one store on the computer, whatever MULTI_STORE says
+
     logger: true,
     paths: {
       adminDist: path.join(resources, 'admin'),

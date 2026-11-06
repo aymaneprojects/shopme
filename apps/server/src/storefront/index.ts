@@ -10,7 +10,7 @@ import { registerGiftCardRoutes } from './gift-cards';
 import { registerPrivacyRoutes } from './privacy';
 import { registerSeoRoutes } from './seo';
 import { registerVisitTracking } from './visits';
-import { primaryShop } from './env';
+import { getPrimaryShop } from '@shopme/core';
 import { createContent } from './pages';
 import { ThemeStore } from './theme-store';
 
@@ -44,6 +44,7 @@ export async function registerStorefront(app: FastifyInstance): Promise<void> {
     content.register(scope);
   });
 
-  // Install the default theme right away when a shop already exists (seeded or set up before this start).
-  void primaryShop(ctx).then((shop) => (shop ? store.main(shop.id) : undefined)).catch((e) => ctx.log.warn({ err: e }, 'default theme install failed'));
+  // Install the default theme right away when a shop already exists (seeded or set up before this start); every store in multi-store mode.
+  const ids = ctx.config.multiStore ? ctx.stores.all().map((x) => x.id) : [(await getPrimaryShop(ctx.db))?.id].filter((x): x is number => x != null);
+  void (async () => { for (const id of ids) await store.main(id); })().catch((e) => ctx.log.warn({ err: e }, 'default theme install failed'));
 }

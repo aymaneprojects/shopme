@@ -108,10 +108,12 @@ export async function failStaleBulkOperations(db: Executor): Promise<void> {
 }
 
 /** Mark old results EXPIRED and delete their files. */
-export async function purgeExpiredBulkResults(db: Executor, storage: Storage, now = new Date()): Promise<number> {
+/** `storage`: one storage, or the storage of each shop (multi-store layout). */
+export async function purgeExpiredBulkResults(db: Executor, storage: Storage | ((shopId: number) => Storage), now = new Date()): Promise<number> {
   const old = await db.select().from(bulkOperations).where(and(inArray(bulkOperations.status, ['COMPLETED', 'FAILED', 'CANCELED']), lt(bulkOperations.completedAt, new Date(now.getTime() - BULK_RESULT_TTL_MS))));
   for (const o of old) {
-    for (const k of [o.resultKey, o.partialKey, o.inputKey]) if (k) await storage.delete(k).catch(() => undefined);
+    const st = typeof storage === 'function' ? storage(o.shopId) : storage;
+    for (const k of [o.resultKey, o.partialKey, o.inputKey]) if (k) await st.delete(k).catch(() => undefined);
     await db.update(bulkOperations).set({ status: o.status === 'COMPLETED' ? 'EXPIRED' : o.status, resultKey: null, partialKey: null, inputKey: null }).where(eq(bulkOperations.id, o.id));
   }
   return old.length;

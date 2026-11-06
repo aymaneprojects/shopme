@@ -140,12 +140,12 @@ builder.mutationFields((t) => ({
     type: StagedPayload, args: { input: t.arg({ type: [StagedUploadInput], required: true }) },
     resolve: (_r, { input }, ctx) => {
       requireScope(ctx, 'write_files');
-      const base = ctx.app.config.appUrl;
+      const base = ctx.storeUrl;
       const targets = input.map((i) => {
         // Bulk mutation variables are private to the shop and never listed as files; every target also carries its storage `key` (the `stagedUploadPath` of bulk mutations).
         const key = i.resource === 'BULK_MUTATION_VARIABLES' ? `tmp/${ctx.shopId}/bulk/${randomToken(12)}/${makeStorageKey(i.filename).split('/').pop()}` : makeStorageKey(i.filename);
         const token = signStagedToken(ctx.app.config.sessionSecret, { s: ctx.shopId, k: key, f: i.filename, m: i.mimeType, e: Date.now() + 3600_000 });
-        return { url: `${base}/admin/api/staged/${token}`, resourceUrl: `${base}/files/${key}`, parameters: [{ name: 'content_type', value: i.mimeType }, { name: 'filename', value: i.filename }, { name: 'key', value: key }] };
+        return { url: `${ctx.app.config.appUrl}/admin/api/staged/${token}`, resourceUrl: `${base}${ctx.app.storageFor(ctx.shopId).url(key)}`, parameters: [{ name: 'content_type', value: i.mimeType }, { name: 'filename', value: i.filename }, { name: 'key', value: key }] };
       });
       return { stagedTargets: targets, userErrors: [] };
     },

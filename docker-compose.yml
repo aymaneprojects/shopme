@@ -22,6 +22,10 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       # Set to true when a reverse proxy (Caddy, nginx) sits in front.
       TRUST_PROXY: ${TRUST_PROXY:-false}
+      # Several stores on this installation (docs/install/multi-store.md). Off by default.
+      MULTI_STORE: ${MULTI_STORE:-false}
+      STORE_BASE_DOMAIN: ${STORE_BASE_DOMAIN:-}
+      ADMIN_HOST: ${ADMIN_HOST:-}
     volumes:
       - shopme-data:/data # uploads + generated session secret
     healthcheck:

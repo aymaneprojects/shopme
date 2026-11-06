@@ -196,7 +196,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
   }
 
   const withShop = (fn: (req: FastifyRequest, reply: FastifyReply, shop: Shop) => Promise<unknown>) => async (req: FastifyRequest, reply: FastifyReply) => {
-    const shop = await primaryShop(ctx);
+    const shop = await primaryShop(ctx, req);
     if (!shop) return reply.code(503).type('text/html; charset=utf-8').send('<!doctype html><meta charset="utf-8"><title>ShopMe</title><body style="font-family:system-ui;max-width:36rem;margin:4rem auto"><h1>Store not set up</h1><p><a href="/admin/">Open the admin</a> to finish setup.</p></body>');
     return fn(req, reply, shop);
   };
@@ -209,7 +209,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     app.addHook('onRequest', async (req, reply) => {
       const path = req.url.split('?')[0]!;
       if (path === '/password' || path === '/robots.txt' || path.startsWith('/cdn/')) return;
-      const shop = await primaryShop(ctx);
+      const shop = await primaryShop(ctx, req);
       if (!shop) return;
       const pw = passwordOf(shop);
       if (!pw.enabled) return;
@@ -223,7 +223,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     app.addHook('onRequest', async (req, reply) => {
       const path = req.url.split('?')[0]!;
       if (path === '/password' || path === '/robots.txt' || path.startsWith('/cdn/') || path.startsWith('/account') || path.startsWith('/admin')) return;
-      const shop = await primaryShop(ctx);
+      const shop = await primaryShop(ctx, req);
       if (!shop || (shop.settings as Record<string, unknown>).b2bOnly !== true) return;
       if (await authenticate(req)) return;
       const customer = await customerOf(ctx, req, shop);
@@ -287,7 +287,7 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
         if (!p) return reply.code(404).type(m[2] === 'js' ? 'text/javascript; charset=utf-8' : 'application/json; charset=utf-8').send('');
         if (m[2] === 'js') return reply.type('text/javascript; charset=utf-8').send(JSON.stringify(productJs(p)));
         if (m[2] === 'json') return reply.type('application/json; charset=utf-8').send(productJson(p, market.currency));
-        return reply.type('application/json; charset=utf-8').send({ version: '1.0', type: 'link', title: p.title, provider_name: shop.name, provider_url: ctx.config.appUrl, thumbnail_url: p.featured_image?.src ?? null });
+        return reply.type('application/json; charset=utf-8').send({ version: '1.0', type: 'link', title: p.title, provider_name: shop.name, provider_url: ctx.stores.publicOrigin(shop.id), thumbnail_url: p.featured_image?.src ?? null });
       }
       return productPage(req, reply, shop, await makeEnv(ctx, req, shop), raw);
     }));
@@ -447,12 +447,15 @@ export function createContent(ctx: AppContext, store: ThemeStore) {
     app.get('/cdn/shop/t/:themeId/assets/*', async (req, reply) => {
       const { themeId, '*': name } = req.params as { themeId: string; '*': string };
       if (name.includes('..')) return reply.code(404).send('');
-      const [row] = await db.select({ body: s.themeFiles.body, storageKey: s.themeFiles.storageKey, type: s.themeFiles.contentType, checksum: s.themeFiles.checksum }).from(s.themeFiles).where(and(eq(s.themeFiles.themeId, Number(themeId) || 0), eq(s.themeFiles.path, `assets/${name}`))).limit(1);
+      // Multi-store: only the assets of the store that owns this host.
+      const owner = ctx.config.multiStore ? req.hostShopId ?? 0 : null;
+      const [row] = await db.select({ body: s.themeFiles.body, storageKey: s.themeFiles.storageKey, type: s.themeFiles.contentType, checksum: s.themeFiles.checksum, shopId: s.themeFiles.shopId }).from(s.themeFiles)
+        .where(and(eq(s.themeFiles.themeId, Number(themeId) || 0), eq(s.themeFiles.path, `assets/${name}`), owner === null ? undefined : eq(s.themeFiles.shopId, owner))).limit(1);
       if (!row || (row.body === null && !row.storageKey)) return reply.code(404).send('');
       const ext = name.split('.').pop()?.toLowerCase() ?? '';
       const versioned = 'v' in (req.query as object);
       // Text files live in the database; binaries (images, fonts) in object storage.
-      const payload = row.body ?? (await app.ctx.storage.open(row.storageKey!));
+      const payload = row.body ?? (await app.ctx.storageFor(row.shopId).open(row.storageKey!));
       if (payload === null) return reply.code(404).send('');
       return reply.header('cache-control', versioned ? 'public, max-age=31536000, immutable' : 'public, max-age=300').header('etag', `"${createHash('md5').update(row.checksum).digest('hex')}"`).type(ASSET_TYPES[ext] ?? row.type).send(payload);
     });

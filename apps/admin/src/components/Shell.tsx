@@ -1,20 +1,18 @@
-import { Dropdown, Skeleton, cx, useToast } from '@shopme/ui';
-import { BarChart3, Rocket, Check, Gift, Repeat, ShoppingBasket, Home, Monitor, Moon, Sun, Languages, LogOut, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, CircleHelp, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Building2, Activity, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Banner, Dropdown, Skeleton, cx, useToast } from '@shopme/ui';
+import { BarChart3, Rocket, Gift, Repeat, ShoppingBasket, Home, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Building2, Activity, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
+import { Suspense, useEffect, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { gql } from '../api';
 import { ORDERS_COUNT } from '../graphql';
 import { NavLink, Outlet, useLocation } from 'react-router';
-import { LANGS, useI18n } from '../i18n';
+import { useI18n } from '../i18n';
 import type { Key } from '../i18n';
-import { getTheme, setTheme } from '../lib/theme';
 import { useStoreInfo } from '../lib/storeInfo';
-import type { Theme } from '../lib/theme';
 import { NAV_PERMISSION, useStaffAccess } from '../lib/permissions';
 import { SETTINGS_SECTIONS } from '../lib/settingsNav';
-import { useSession, useShop } from '../session';
-import { ActivityBell } from './ActivityBell';
+import { useMulti, useShop } from '../session';
+import { AccountMenu, StoreAvatar } from './AccountMenu';
 import { CommandPalette } from './CommandPalette';
 import { LearnMore } from './LearnMore';
 
@@ -161,7 +159,6 @@ function SettingsNavLinks({ onNavigate, collapsed }: { onNavigate: () => void; c
   const needle = term.trim().toLocaleLowerCase();
   const sections = SETTINGS_SECTIONS.filter((s) => can(s.perm)).filter((s) => !needle || t(s.key).toLocaleLowerCase().includes(needle));
   const host = store.host || (typeof location === 'undefined' ? '' : location.host);
-  const initial = (shop.name[0] ?? 'S').toUpperCase();
   const copy = () => { void navigator.clipboard?.writeText(store.url || location.origin).then(() => toast(t('settings.nav.copied'))).catch(() => undefined); };
   return (
     <nav aria-label={t('nav.settings')} className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
@@ -177,7 +174,7 @@ function SettingsNavLinks({ onNavigate, collapsed }: { onNavigate: () => void; c
               className="h-8 w-full rounded-lg border-0 bg-white/10 pl-8 pr-2 text-[13px] text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] outline-none placeholder:text-frame-muted focus:bg-white/15 focus-visible:shadow-[0_0_0_2px_var(--color-focus-ring)]" />
           </label>
           <div className="mb-1 flex items-center gap-2 rounded-lg bg-white/10 py-1.5 pl-2 pr-1 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]">
-            <span className="grid size-6 shrink-0 place-items-center rounded-md bg-primary-top text-xs font-semibold text-white" aria-hidden>{initial}</span>
+            <StoreAvatar name={shop.name} handle={shop.handle} />
             <span className="min-w-0 flex-1 leading-4"><span className="block truncate text-[13px] font-semibold text-white">{shop.name}</span><span className="block truncate text-[11px] text-frame-muted">{host}</span></span>
             <Dropdown align="right" icon variant="plain" label={t('settings.nav.storeMenu')} menuClassName="!text-fg" className="!size-6 !min-h-0 shrink-0 !text-frame-text hover:!bg-frame-hover" trigger={<MoreHorizontal className="size-4" />}
               items={[
@@ -218,59 +215,12 @@ function RouteProgress() {
   return key ? <div className="route-progress" aria-hidden><span key={key} style={{ animationDuration: '550ms' }} /></div> : null;
 }
 
-/** Account menu at the bottom of the sidebar: the store, the signed-in user, language and theme, help and sign out. */
-function AccountMenu({ collapsed, userBlock }: { collapsed: boolean; userBlock?: boolean }) {
-  const { t, lang, setLang } = useI18n();
-  const { logout } = useSession();
-  const { shop, user } = useShop();
-  const [open, setOpen] = useState(false);
-  const [theme, setThemeState] = useState<Theme>(getTheme);
-  const box = useRef<HTMLDivElement>(null);
-  const pick = (v: Theme) => { setTheme(v); setThemeState(v); };
-  const themes: Array<[Theme, string, ComponentType<{ className?: string }>]> = [['light', t('theme.light'), Sun], ['dark', t('theme.dark'), Moon], ['system', t('theme.system'), Monitor]];
-  useEffect(() => {
-    if (!open) return;
-    const down = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); box.current?.querySelector('button')?.focus(); } };
-    document.addEventListener('mousedown', down); document.addEventListener('keydown', key);
-    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key); };
-  }, [open]);
-  const initial = (shop.name[0] ?? 'S').toUpperCase();
-  const row = 'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13px] hover:bg-hover';
-  return (
-    <div ref={box} className="relative mt-2 flex items-center gap-1">
-      <button type="button" aria-haspopup="menu" aria-expanded={open} aria-label={t('shell.account')} title={collapsed ? shop.name : undefined} onClick={() => setOpen(!open)}
-        className={cx('flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 text-[13px] text-frame-text hover:bg-frame-hover', userBlock && !collapsed ? 'h-10' : 'h-9', collapsed && 'justify-center')}>
-        {userBlock && !collapsed
-          ? <><span className="grid size-6 shrink-0 place-items-center rounded-md bg-primary-top text-[10px] font-semibold text-white">{(((user.firstName?.[0] ?? '') + (user.lastName?.[0] ?? '')) || (user.email[0] ?? 'U')).toUpperCase()}</span>
-            <span className="min-w-0 flex-1 text-left leading-4"><span className="block truncate font-semibold text-white">{[user.firstName, user.lastName].filter(Boolean).join(' ') || user.email}</span><span className="block truncate text-[11px] text-frame-muted">{user.email}</span></span></>
-          : <><span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary text-[11px] font-semibold text-white">{initial}</span>
-            {!collapsed && <span className="min-w-0 flex-1 truncate text-left">{shop.name}</span>}</>}
-      </button>
-      {!collapsed && <ActivityBell />}
-      {open && (
-        <div role="menu" aria-label={t('shell.account')} className="anim-fade absolute bottom-11 left-0 z-50 w-64 rounded-xl border border-line bg-canvas p-1.5 text-fg shadow-pop">
-          <div role="menuitem" aria-current="true" className={cx(row, 'bg-hover')}>
-            <span className="grid size-5 shrink-0 place-items-center rounded-md bg-primary text-[11px] font-semibold text-white">{initial}</span><span className="min-w-0 flex-1 truncate font-medium">{shop.name}</span><Check className="size-4" />
-          </div>
-          <div className="my-1.5 border-t border-line" />
-          <div className="flex items-center gap-2.5 px-2 py-1.5 text-[13px]"><span className="grid size-5 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-semibold text-on-primary">{(user.email[0] ?? 'U').toUpperCase()}</span><span className="min-w-0 flex-1 truncate">{user.email}</span></div>
-          <a role="menuitem" href="https://github.com/aymaneprojects/shopme#readme" target="_blank" rel="noreferrer" className={row}><CircleHelp className="size-4 text-muted" />{t('shell.help')}</a>
-          <button type="button" role="menuitem" className={row} onClick={() => void logout()}><LogOut className="size-4 text-muted" />{t('shell.logout')}</button>
-          <div className="my-1.5 border-t border-line" />
-          {/* Admin preferences of this browser: language and theme, as two compact segmented rows. */}
-          <div className="flex items-center gap-2 px-2 py-1 text-[13px]" role="group" aria-label={t('fid.shell.language')}>
-            <Languages className="size-4 shrink-0 text-muted" aria-hidden />
-            <span className="flex flex-1 rounded-lg bg-surface p-0.5">{LANGS.map((l) => <button key={l.id} type="button" role="menuitem" aria-current={lang === l.id} className={cx('flex-1 rounded-md px-2 py-0.5 text-xs font-medium', lang === l.id ? 'bg-canvas shadow-card' : 'text-muted hover:text-fg')} onClick={() => setLang(l.id)}>{l.label}</button>)}</span>
-          </div>
-          <div className="flex items-center gap-2 px-2 py-1 text-[13px]" role="group" aria-label={t('fid.shell.theme')}>
-            <Sun className="size-4 shrink-0 text-muted" aria-hidden />
-            <span className="flex flex-1 rounded-lg bg-surface p-0.5">{themes.map(([id, label, Icon]) => <button key={id} type="button" role="menuitem" aria-current={theme === id} aria-label={label} title={label} className={cx('grid flex-1 place-items-center rounded-md py-1', theme === id ? 'bg-canvas shadow-card' : 'text-muted hover:text-fg')} onClick={() => pick(id)}><Icon className="size-3.5" /></button>)}</span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+/** Multi-store: a suspended store keeps a read-only admin; say so on every page. */
+function SuspendedBanner() {
+  const { t } = useI18n();
+  const multi = useMulti();
+  if (!multi?.suspended) return null;
+  return <div className="mb-4"><Banner tone="warning" role="status">{t('ms.suspendedBanner')}</Banner></div>;
 }
 
 export function Shell() {
@@ -325,6 +275,7 @@ export function Shell() {
         {open && <div className="anim-fade fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setOpen(false)} aria-hidden />}
         <div className="mb-1 mr-1 min-w-0 flex-1 overflow-y-auto rounded-xl bg-page text-fg max-md:mx-1 md:ml-0" id="sheet">
           <main className={cx('mx-auto w-full p-4 md:px-5 md:py-5', WIDE_ROUTE.test(pathname) ? 'max-w-none md:px-3 md:py-3' : 'max-w-[1100px]')}>
+            <SuspendedBanner />
             <div key={pathname.split('/').slice(0, 2).join('/')} className="anim-view"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></div>
             <ShellLearnMore pathname={pathname} />
           </main>

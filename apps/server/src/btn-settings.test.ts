@@ -10,7 +10,7 @@ import {
   type ConfigKey, type Mail,
 } from '@shopme/core';
 import { signPaymentWebhook } from '@shopme/payments';
-import { createTestApp, SETUP_BODY, type TestApp } from './test-utils';
+import { createTestApp, SETUP_BODY, type TestApp, verifiedDomainForTests } from './test-utils';
 import { makeGql, makeGqlOk } from '../test/conformance/helpers';
 
 const ADDRESS = { email: 'Buyer@Example.com', firstName: 'Ada', lastName: 'Lovelace', address1: '1 Rue de Rivoli', city: 'Paris', zip: '75001', countryCode: 'FR', phone: '+33 6 12 34 56 78' };
@@ -354,6 +354,7 @@ describe('gift cards, policies, languages, local delivery', () => {
     await g(`mutation { shopLocaleEnable(locale: "fr") { shopLocale { locale } userErrors { message } } }`);
     await g(`mutation { shopLocaleUpdate(locale: "fr", shopLocale: { published: true }) { userErrors { message } } }`);
     expect((await setLocaleDomain(db(), shopId, 'fr', 'not a host')).ok).toBe(false);
+    await verifiedDomainForTests(t.app, shopId, 'fr.example.com'); // multi-store: a store may only use a domain it verified
     const ok = await g(`mutation { shopmeLocaleDomainUpdate(locale: "fr", domain: "FR.example.com") { value userErrors { message } } }`);
     expect(ok.shopmeLocaleDomainUpdate.value.domain).toBe('fr.example.com');
     const dup = await setLocaleDomain(db(), shopId, 'en', 'fr.example.com');

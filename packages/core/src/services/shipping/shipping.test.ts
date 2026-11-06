@@ -1,7 +1,7 @@
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDb, createLocalStorage, getPrimaryShop, resolveMigrationsDir, runMigrations, schema as s, seedDemo, setupStore, type DbHandle } from '../../index';
 import { matchShippingRates } from '../pricing';
@@ -29,9 +29,9 @@ describe('migration of existing zones and rates', () => {
     writeFileSync(path.join(partial, 'meta', '_journal.json'), JSON.stringify(old));
     h = await createDb({ memory: true });
     await h.migrate(partial);
-    // Raw shop row: `setupStore` needs tables (markets) that later migrations create.
-    const [shop] = await h.db.insert(s.shops).values({ name: 'M', email: 'm@example.com', currency: 'EUR', country: 'FR', locale: 'en', timezone: 'UTC' }).returning({ id: s.shops.id });
-    shopId = shop!.id;
+    // Raw shop row: `setupStore` needs tables (markets) that later migrations create, and the current `shops` columns do not all exist yet.
+    const res = await h.db.execute(sql`insert into shops (name, email, currency, country, locale, timezone) values ('M', 'm@example.com', 'EUR', 'FR', 'en', 'UTC') returning id`);
+    shopId = Number(((res as { rows?: { id: unknown }[] }).rows ?? (res as unknown as { id: unknown }[]))[0]!.id);
     await h.db.insert(s.locations).values([{ shopId, name: 'Shop location', countryCode: 'FR' }, { shopId, name: 'Warehouse', countryCode: 'FR', priority: 1 }, { shopId, name: 'Retail only', fulfillsOnlineOrders: false, countryCode: 'FR' }, { shopId, name: 'Closed', isActive: false, countryCode: 'FR' }]);
     const [eu, rowZone, prov] = await h.db.insert(s.shippingZones).values([{ shopId, name: 'Europe' }, { shopId, name: 'World' }, { shopId, name: 'Quebec' }]).returning();
     await h.db.insert(s.shippingZoneCountries).values([

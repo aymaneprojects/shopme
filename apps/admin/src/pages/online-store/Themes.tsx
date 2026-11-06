@@ -5,13 +5,14 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
-import { gql, mutate, upload, UserErrors } from '../../api';
+import { apiUrl, gql, mutate, upload, UserErrors } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
 import { gidToNum } from '../../format';
 import { THEMES, THEME_DELETE, THEME_DUPLICATE, THEME_PUBLISH, THEME_UPDATE, THEME_UPDATE_TO_BUNDLED } from '../../graphql';
 import { useT } from '../../i18n';
 import type { Key } from '../../i18n';
 import { ThemeUpdateDialog, ThemeUpdateResultDialog, type BundledThemeStatus, type ThemeUpdateResult } from './ThemeUpdate';
+import { useStorefrontUrl } from '../../lib/storefront-url';
 
 const TABS: Array<{ to: string; key: Key; end?: boolean }> = [
   { to: '/online-store', key: 'store.themes', end: true }, { to: '/online-store/blog-posts', key: 'store.blogPosts' }, { to: '/online-store/blogs', key: 'store.blogs' },
@@ -31,11 +32,12 @@ export function OnlineStoreLayout() {
   const { pathname } = useLocation();
   const active = [...TABS].reverse().find((x) => (x.end ? pathname === x.to : pathname.startsWith(x.to))) ?? TABS[0]!;
   const isIndex = pathname.replace(/\/$/, '') === '/online-store';
+  const storefront = useStorefrontUrl();
   const detail = pathname.split('/').filter(Boolean).length >= 3;
   return (
     <>
       {!detail && <>
-      <PageHeader title={t(isIndex ? 'nav.onlineStore' : active.key)} actions={<><span id="store-header-actions" className="contents" />{isIndex && <a href="/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 field-control font-medium hover:bg-surface"><ExternalLink className="size-4" />{t('store.view')}</a>}</>} />
+      <PageHeader title={t(isIndex ? 'nav.onlineStore' : active.key)} actions={<><span id="store-header-actions" className="contents" />{isIndex && <a href={storefront('/')} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 field-control font-medium hover:bg-surface"><ExternalLink className="size-4" />{t('store.view')}</a>}</>} />
       <nav aria-label={t('nav.onlineStore')} className="mb-4 flex gap-1 overflow-x-auto border-b border-line">
         {TABS.map((x) => <NavLink key={x.to} to={x.to} end={x.end} className={({ isActive }) => cx('-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium', isActive ? 'border-accent text-accent' : 'border-transparent text-muted hover:text-fg')}>{t(x.key)}</NavLink>)}
       </nav></>}
@@ -73,7 +75,7 @@ function ThemeCard({ theme, live, busy, onAction }: { theme: Theme; live: boolea
           <Dropdown align="right" label={t('common.moreActions')} trigger={<MoreHorizontal className="size-4" />} items={[
             { key: 'rename', label: t('themes.rename'), onSelect: () => onAction('rename', theme) },
             { key: 'duplicate', label: t('themes.duplicate'), onSelect: () => onAction('duplicate', theme) },
-            { key: 'download', label: t('themes.download'), onSelect: () => { window.location.href = `/admin/api/themes/${num}/download.zip`; } },
+            { key: 'download', label: t('themes.download'), onSelect: () => { window.location.href = apiUrl(`/themes/${num}/download.zip`); } },
             { key: 'delete', label: t('common.delete'), danger: true, disabled: live, onSelect: () => onAction('delete', theme) },
           ]} />
         </div>

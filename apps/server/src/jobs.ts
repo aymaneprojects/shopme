@@ -1,4 +1,5 @@
-import { JobReporter, duplicateProduct, getPrimaryShop, purgeExpiredSessions, purgeOldVisits, recordBackupResult, runScheduledBackup } from '@shopme/core';
+import { JobReporter, duplicateProduct, getPrimaryShop, purgeExpiredSessions, purgeOldVisits, recordBackupResult, runScheduledBackup, schema as s } from '@shopme/core';
+import { eq } from 'drizzle-orm';
 import type { AppContext } from './context';
 import { registerCommerceJobs } from './commerce-jobs';
 import { registerOpsJobs } from './ops';
@@ -10,20 +11,30 @@ import { registerPrivacyJobs } from './privacy-jobs';
  * Register background jobs on the in-process queue (ctx.queue). Feature agents add their handlers here,
  * e.g. `ctx.queue.register('webhook.deliver', ...)`. The queue interface lets this move to a worker later.
  */
+/** Stores the background jobs work for: the store (single-store), every store that is not suspended (multi-store). */
+export async function activeShopIds(ctx: AppContext): Promise<number[]> {
+  if (!ctx.config.multiStore) { const shop = await getPrimaryShop(ctx.db); return shop ? [shop.id] : []; }
+  return (await ctx.db.select({ id: s.shops.id }).from(s.shops).where(eq(s.shops.status, 'ACTIVE')).orderBy(s.shops.id)).map((r) => r.id);
+}
+
 export function registerJobs(ctx: AppContext): () => void {
   ctx.queue.every('purge-expired-sessions', 60 * 60 * 1000, async () => { await purgeExpiredSessions(ctx.db); });
   ctx.queue.every('purge-old-visits', 24 * 3600_000, async () => { await purgeOldVisits(ctx.db); });
   // Automatic backups: checked hourly (and once shortly after start); only runs when enabled and the newest one is older than the interval.
+  // Single-store: the store; multi-store: every active store, each into its own backups folder.
   const backup = async () => {
-    const shop = await getPrimaryShop(ctx.db);
-    if (!shop) return;
-    try {
-      const name = await runScheduledBackup(ctx.db, ctx.storage, shop.id, ctx.config.dataDir, ctx.appVersion);
-      if (name) await recordBackupResult(ctx.db, shop.id, { ok: true, name });
-    } catch (e) {
-      await recordBackupResult(ctx.db, shop.id, { ok: false, error: e instanceof Error ? e.message.slice(0, 300) : 'Backup failed' });
-      throw e;
+    const ids = await activeShopIds(ctx);
+    let failed: unknown = null;
+    for (const id of ids) {
+      try {
+        const name = await runScheduledBackup(ctx.db, ctx.storageFor(id), id, ctx.stores.dataDirFor(id), ctx.appVersion);
+        if (name) await recordBackupResult(ctx.db, id, { ok: true, name });
+      } catch (e) {
+        await recordBackupResult(ctx.db, id, { ok: false, error: e instanceof Error ? e.message.slice(0, 300) : 'Backup failed' });
+        failed ??= e;
+      }
     }
+    if (failed) throw failed;
   };
   ctx.queue.register('store.auto-backup', backup);
   ctx.queue.every('auto-backup', 3600_000, backup);

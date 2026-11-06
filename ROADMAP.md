@@ -10,7 +10,7 @@ v0.1.0 code; partially done items are split so the open part stays visible.
 
 ## Phase 0.5 - Foundation
 - [x] Single-container architecture: one Fastify process (`apps/server`) + PostgreSQL; embedded PGlite for zero-setup local runs
-- [x] Complete MVP database schema (Drizzle migrations), single store per installation (`shop_id` kept for a future ShopMe Cloud)
+- [x] Complete MVP database schema (Drizzle migrations), single store per installation (`shop_id` on every table; several stores with the multi-store mode)
 - [x] Staff auth (sessions, API tokens), Admin GraphQL scaffolding, uploads, in-process job queue
 - [x] Docker image + Compose, install guides
 
@@ -69,6 +69,8 @@ v0.1.0 code; partially done items are split so the open part stays visible.
 - [x] Desktop apps: Windows `.exe`, macOS `.dmg` and Linux `.AppImage` (beta; Electron + embedded server + PGlite), built by GitHub Actions
 - [x] Export / import a whole store (e.g. build it in the desktop app, then move it to a server)
 - [ ] Documentation site (the docs are in the repository under `docs/`)
+- [x] Multi-store mode (`MULTI_STORE=true`): accounts reaching several stores, store switcher and "Create a store", stores resolved by host with their own domains, a platform owner area (suspend, resume, delete), per-store Stripe keys, sender, files and backups, and an isolation test suite
+- [ ] Multi-store: per-store quotas, one database or storage bucket per store, a public sign-up page
 
 ## Later
-- [ ] "ShopMe Cloud": a hosted offer
+- [ ] "ShopMe Cloud": a hosted offer (builds on the multi-store mode)
