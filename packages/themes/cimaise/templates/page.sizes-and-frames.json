@@ -1,0 +1,61 @@
+{
+  "sections": {
+    "frames": {
+      "type": "frame-guide",
+      "blocks": {
+        "format-1": {
+          "type": "format",
+          "settings": {
+            "label": "A4",
+            "width": 21,
+            "height": 30,
+            "text": "Desks and shelves"
+          }
+        },
+        "format-2": {
+          "type": "format",
+          "settings": {
+            "label": "A3",
+            "width": 30,
+            "height": 40,
+            "text": "Small walls"
+          }
+        },
+        "format-3": {
+          "type": "format",
+          "settings": {
+            "label": "A2",
+            "width": 50,
+            "height": 70,
+            "text": "Above a console"
+          }
+        },
+        "format-4": {
+          "type": "format",
+          "settings": {
+            "label": "A1",
+            "width": 70,
+            "height": 100,
+            "text": "Above a sofa"
+          }
+        }
+      },
+      "block_order": [
+        "format-1",
+        "format-2",
+        "format-3",
+        "format-4"
+      ],
+      "settings": {
+        "eyebrow": "Sizes and frames",
+        "heading": "A guide to scale",
+        "text": "Each rectangle is drawn to scale. Choose the one closest to the wall you have in mind.",
+        "finishes": "Frames in black oak, natural oak or white",
+        "color_scheme": "scheme-1"
+      }
+    }
+  },
+  "order": [
+    "frames"
+  ]
+}

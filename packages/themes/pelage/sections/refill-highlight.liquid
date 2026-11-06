@@ -1,0 +1,131 @@
+{%- assign s = section.settings -%}
+{%- assign p = s.product -%}
+<div class="k-section k-refill {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width k-refill__inner">
+    <div class="k-refill__body">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="k-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.text != blank -%}<p class="k-section__text">{{ s.text | escape }}</p>{%- endif -%}
+      <ul class="k-refill__perks" role="list">
+        {%- for block in section.blocks -%}
+          <li {{ block.shopify_attributes }}>{% render 'icon', name: block.settings.icon, size: 20 %}<span>{{ block.settings.text | escape }}</span></li>
+        {%- endfor -%}
+      </ul>
+      {%- if p != blank -%}
+        {%- for group in p.selling_plan_groups -%}
+          {%- for plan in group.selling_plans -%}<span class="k-refill__plan">{{ plan.name | escape }}</span>{%- endfor -%}
+        {%- endfor -%}
+        <a class="button k-refill__button" href="{{ p.url }}">{{ s.button_label | escape }}</a>
+      {%- endif -%}
+    </div>
+    {%- if p != blank -%}
+      <a class="k-refill__card" href="{{ p.url }}">
+        {%- if p.featured_image != blank -%}{{ p.featured_image | image_url: width: 700 | image_tag: loading: 'lazy', widths: '350, 500, 700', sizes: '(min-width: 990px) 30vw, 80vw', alt: p.title }}{%- endif -%}
+        <span class="k-refill__title">{{ p.title | escape }}</span>
+        <span class="k-refill__price">{% render 'price', product: p %}</span>
+      </a>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.refill_highlight.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.refill_highlight.settings.eyebrow",
+      "default": "Never run out"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.refill_highlight.settings.heading",
+      "default": "Subscribe to the food they love"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.refill_highlight.settings.text"
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "t:sections.refill_highlight.settings.product",
+      "info": "t:sections.refill_highlight.info.product"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.refill_highlight.settings.button_label",
+      "default": "Choose a delivery rhythm"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.refill_highlight.settings.color_scheme"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "perk",
+      "name": "t:sections.refill_highlight.blocks.perk.name",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:sections.refill_highlight.blocks.perk.settings.icon",
+          "options": [
+            {
+              "value": "refresh",
+              "label": "t:sections.refill_highlight.blocks.perk.options.icon.refresh"
+            },
+            {
+              "value": "truck",
+              "label": "t:sections.refill_highlight.blocks.perk.options.icon.truck"
+            },
+            {
+              "value": "tag",
+              "label": "t:sections.refill_highlight.blocks.perk.options.icon.tag"
+            },
+            {
+              "value": "clock",
+              "label": "t:sections.refill_highlight.blocks.perk.options.icon.clock"
+            },
+            {
+              "value": "heart",
+              "label": "t:sections.refill_highlight.blocks.perk.options.icon.heart"
+            }
+          ],
+          "default": "refresh"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.refill_highlight.blocks.perk.settings.text",
+          "default": "Skip, pause or cancel any time"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "t:sections.refill_highlight.presets.refill_highlight",
+      "blocks": [
+        {
+          "type": "perk"
+        },
+        {
+          "type": "perk"
+        },
+        {
+          "type": "perk"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,80 @@
+{%- assign s = section.settings -%}
+{%- assign pic = s.image | default: s.product.featured_image -%}
+<div class="k-section k-artist {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width k-artist__inner">
+    <div class="k-artist__media">
+      {%- if pic != blank -%}{{ pic | image_url: width: 1000 | image_tag: loading: 'lazy', widths: '500, 800, 1000', sizes: '(min-width: 990px) 45vw, 90vw', alt: s.name }}{%- else -%}{{ 'lifestyle-1' | placeholder_svg_tag: 'k-artist__placeholder' }}{%- endif -%}
+    </div>
+    <div class="k-artist__body">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      <h2 class="k-artist__name">{{ s.name | escape }}</h2>
+      {%- if s.meta != blank -%}<p class="k-artist__meta">{{ s.meta | escape }}</p>{%- endif -%}
+      {%- if s.quote != blank -%}<blockquote class="k-artist__quote">{{ s.quote | escape }}</blockquote>{%- endif -%}
+      {%- if s.bio != blank -%}<div class="k-artist__bio rte">{{ s.bio }}</div>{%- endif -%}
+      {%- if s.product != blank -%}<a class="k-artist__link" href="{{ s.product.url }}">{{ s.button_label | escape }} {% render 'icon', name: 'arrow-right', size: 16 %}</a>{%- endif -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.artist_feature.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.artist_feature.settings.eyebrow",
+      "default": "Featured artist"
+    },
+    {
+      "type": "text",
+      "id": "name",
+      "label": "t:sections.artist_feature.settings.name",
+      "default": "Name of the artist"
+    },
+    {
+      "type": "text",
+      "id": "meta",
+      "label": "t:sections.artist_feature.settings.meta",
+      "default": "Painter, born 1984"
+    },
+    {
+      "type": "richtext",
+      "id": "bio",
+      "label": "t:sections.artist_feature.settings.bio"
+    },
+    {
+      "type": "textarea",
+      "id": "quote",
+      "label": "t:sections.artist_feature.settings.quote"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.artist_feature.settings.image"
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "t:sections.artist_feature.settings.product"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.artist_feature.settings.button_label",
+      "default": "View the work"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.artist_feature.settings.color_scheme"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.artist_feature.presets.artist_feature"
+    }
+  ]
+}
+{% endschema %}

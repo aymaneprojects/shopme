@@ -1,0 +1,126 @@
+{%- assign s = section.settings -%}
+<div class="page-width{% if s.width != 'page' %} page-width--narrow{% endif %} section-pad customer customer--{{ s.align | default: 'left' }} {% render 'scheme-class', scheme: s.color_scheme %}">
+  <h1 class="page-title">{%- if s.heading != blank -%}{{ s.heading | escape }}{%- else -%}{{ 'customer.register_page.title' | t }}{%- endif -%}</h1>
+  {%- if s.text != blank -%}<div class="rte customer__intro">{{ s.text }}</div>{%- endif -%}
+  {%- form 'create_customer', class: 'customer__form' -%}
+    {%- if form.errors -%}
+      <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+    {%- endif -%}
+    {%- if s.show_name_fields -%}
+      <div class="field">
+        <label for="RegisterFirstName">{{ 'customer.first_name' | t }}</label>
+        <input id="RegisterFirstName" type="text" name="customer[first_name]" value="{{ form.first_name | escape }}" autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label for="RegisterLastName">{{ 'customer.last_name' | t }}</label>
+        <input id="RegisterLastName" type="text" name="customer[last_name]" value="{{ form.last_name | escape }}" autocomplete="family-name">
+      </div>
+    {%- endif -%}
+    <div class="field">
+      <label for="RegisterEmail">{{ 'customer.email' | t }}</label>
+      <input id="RegisterEmail" type="email" name="customer[email]" value="{{ form.email | escape }}" autocomplete="email" autocapitalize="off" required>
+    </div>
+    <div class="field">
+      <label for="RegisterPassword">{{ 'customer.password' | t }}</label>
+      <input id="RegisterPassword" type="password" name="customer[password]" autocomplete="new-password" minlength="8" required>
+    </div>
+    {%- if s.show_marketing -%}
+      <label class="field field--check">
+        <input type="checkbox" name="customer[accepts_marketing]" value="true">
+        <span>{{ 'customer.register_page.marketing' | t }}</span>
+      </label>
+    {%- endif -%}
+    <div class="customer__actions">
+      <button class="button" type="submit">{{ 'customer.register_page.submit' | t }}</button>
+    </div>
+  {%- endform -%}
+  {%- if s.show_login_link -%}
+    <p class="customer__alt">{{ 'customer.register_page.have_account' | t }} <a href="{{ routes.account_login_url | default: '/account/login' }}">{{ 'customer.login' | t }}</a></p>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_register.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.customer.headers.content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.customer.settings.heading",
+      "info": "t:sections.customer.info.heading"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:sections.customer.settings.text"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_name_fields",
+      "label": "t:sections.customer.settings.show_name_fields",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_marketing",
+      "label": "t:sections.customer.settings.show_marketing",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_login_link",
+      "label": "t:sections.customer.settings.show_login_link",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.customer.headers.layout"
+    },
+    {
+      "type": "select",
+      "id": "align",
+      "label": "t:sections.customer.settings.align",
+      "variant": "segmented",
+      "default": "left",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:shared.left"
+        },
+        {
+          "value": "center",
+          "label": "t:shared.center"
+        }
+      ]
+    },
+    {
+      "type": "select",
+      "id": "width",
+      "label": "t:sections.customer.settings.width",
+      "variant": "segmented",
+      "default": "narrow",
+      "options": [
+        {
+          "value": "narrow",
+          "label": "t:sections.customer.options.width.narrow"
+        },
+        {
+          "value": "page",
+          "label": "t:sections.customer.options.width.page"
+        }
+      ]
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ]
+}
+{% endschema %}

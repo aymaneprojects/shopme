@@ -1,0 +1,87 @@
+{%- liquid
+  assign s = section.settings
+  assign picked = s.collections
+  assign heading = s.heading
+  if heading == blank
+    assign heading = 'home.concerns_heading' | t
+  endif
+-%}
+<div class="k-section {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width">
+    <div class="k-section__head k-section__head--center">
+      <p class="k-eyebrow">{%- if s.eyebrow != blank -%}{{ s.eyebrow | escape }}{%- else -%}{{ 'home.concerns_eyebrow' | t }}{%- endif -%}</p>
+      <h2 class="k-section__title">{{ heading | escape }}</h2>
+    </div>
+    <ul class="k-tiles k-tiles--{{ s.columns }}" role="list">
+      {%- if picked.size > 0 -%}
+        {%- for collection in picked limit: 9 -%}
+          <li>{% render 'collection-tile', tile_collection: collection, index: forloop.index %}</li>
+        {%- endfor -%}
+      {%- else -%}
+        {%- for collection in collections limit: 9 -%}
+          {%- if collection.handle != 'all' and collection.handle != 'frontpage' -%}
+            <li>{% render 'collection-tile', tile_collection: collection, index: forloop.index %}</li>
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
+    </ul>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.collection_list.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.collection_list.settings.eyebrow"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.collection_list.settings.heading",
+      "info": "t:sections.collection_list.info.heading"
+    },
+    {
+      "type": "collection_list",
+      "id": "collections",
+      "label": "t:sections.collection_list.settings.collections",
+      "info": "t:sections.collection_list.info.collections"
+    },
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "t:sections.collection_list.settings.columns",
+      "default": "3",
+      "options": [
+        {
+          "value": "2",
+          "label": "t:sections.collection_list.options.columns.2"
+        },
+        {
+          "value": "3",
+          "label": "t:sections.collection_list.options.columns.3"
+        },
+        {
+          "value": "4",
+          "label": "t:sections.collection_list.options.columns.4"
+        }
+      ]
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.collection_list.settings.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.collection_list.presets.collection_list",
+      "category": "collection"
+    }
+  ]
+}
+{% endschema %}

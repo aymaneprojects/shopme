@@ -1,0 +1,46 @@
+{
+  "sections": {
+    "refill": {
+      "type": "refill-highlight",
+      "blocks": {
+        "perk-1": {
+          "type": "perk",
+          "settings": {
+            "icon": "heart",
+            "text": "Reviewed by a vet before it is listed"
+          }
+        },
+        "perk-2": {
+          "type": "perk",
+          "settings": {
+            "icon": "tag",
+            "text": "Save on every delivery"
+          }
+        },
+        "perk-3": {
+          "type": "perk",
+          "settings": {
+            "icon": "clock",
+            "text": "Skip, pause or cancel any time"
+          }
+        }
+      },
+      "block_order": [
+        "perk-1",
+        "perk-2",
+        "perk-3"
+      ],
+      "settings": {
+        "eyebrow": "Vet approved",
+        "heading": "How we choose and how we refill",
+        "text": "A vet reviews every product, and the food you use daily can arrive on repeat.",
+        "product": "grain-free-kibble",
+        "button_label": "See the food",
+        "color_scheme": "scheme-1"
+      }
+    }
+  },
+  "order": [
+    "refill"
+  ]
+}

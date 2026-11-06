@@ -1,0 +1,5 @@
+{%- doc -%}
+  Prints the CSS class of a color scheme (nothing when no scheme is chosen).
+  @param {string} [scheme] - the scheme id, such as scheme-1
+{%- enddoc -%}
+{%- if scheme != blank -%}color-{{ scheme }}{%- endif -%}

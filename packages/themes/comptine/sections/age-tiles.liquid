@@ -1,0 +1,103 @@
+{%- assign s = section.settings -%}
+<div class="k-section k-ages {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width">
+    <div class="k-section__head k-section__head--center">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="k-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+    </div>
+    <ul class="k-ages__list" role="list">
+      {%- for block in section.blocks -%}
+        <li {{ block.shopify_attributes }}>
+          <a class="k-age {% render 'scheme-class', scheme: block.settings.color_scheme %}" href="{{ block.settings.link | default: routes.all_products_collection_url }}">
+            <span class="k-age__range">{{ block.settings.range | escape }}</span>
+            <span class="k-age__unit">{{ block.settings.unit | escape }}</span>
+            <span class="k-age__text">{{ block.settings.text | escape }}</span>
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.age_tiles.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.age_tiles.settings.eyebrow",
+      "default": "Shop by age"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.age_tiles.settings.heading",
+      "default": "Toys for every size of explorer"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.age_tiles.settings.color_scheme"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "age",
+      "name": "t:sections.age_tiles.blocks.age.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "range",
+          "label": "t:sections.age_tiles.blocks.age.settings.range",
+          "default": "0-12"
+        },
+        {
+          "type": "text",
+          "id": "unit",
+          "label": "t:sections.age_tiles.blocks.age.settings.unit",
+          "default": "months"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.age_tiles.blocks.age.settings.text",
+          "default": "Soft things to hold and chew."
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:sections.age_tiles.blocks.age.settings.link"
+        },
+        {
+          "type": "color_scheme",
+          "id": "color_scheme",
+          "label": "t:sections.age_tiles.blocks.age.settings.color_scheme",
+          "default": "scheme-1"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 5,
+  "presets": [
+    {
+      "name": "t:sections.age_tiles.presets.age_tiles",
+      "blocks": [
+        {
+          "type": "age"
+        },
+        {
+          "type": "age"
+        },
+        {
+          "type": "age"
+        },
+        {
+          "type": "age"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

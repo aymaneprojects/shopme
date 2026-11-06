@@ -1,0 +1,261 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "chip-1": {
+          "type": "chip",
+          "settings": {
+            "icon": "shield",
+            "text": "Safety tested"
+          }
+        },
+        "chip-2": {
+          "type": "chip",
+          "settings": {
+            "icon": "leaf",
+            "text": "Natural materials"
+          }
+        },
+        "chip-3": {
+          "type": "chip",
+          "settings": {
+            "icon": "gift",
+            "text": "Gift wrapping"
+          }
+        }
+      },
+      "block_order": [
+        "chip-1",
+        "chip-2",
+        "chip-3"
+      ],
+      "settings": {
+        "layout": "full",
+        "color_scheme": "scheme-3",
+        "eyebrow": "Toys and little things",
+        "heading": "Play, the way it should be",
+        "text": "Wooden toys, soft friends and good books, picked for curious hands and made to be passed on.",
+        "button_label": "Shop all toys",
+        "button_link": "/collections/all",
+        "button_2_label": "Shop by age",
+        "button_2_link": "/collections"
+      }
+    },
+    "ages": {
+      "type": "age-tiles",
+      "blocks": {
+        "age-1": {
+          "type": "age",
+          "settings": {
+            "range": "0-1",
+            "unit": "year",
+            "text": "Rattles and soft friends to hold.",
+            "link": "/collections/babies",
+            "color_scheme": "scheme-2"
+          }
+        },
+        "age-2": {
+          "type": "age",
+          "settings": {
+            "range": "1-3",
+            "unit": "years",
+            "text": "Blocks and trains to stack and push.",
+            "link": "/collections/building-and-play",
+            "color_scheme": "scheme-4"
+          }
+        },
+        "age-3": {
+          "type": "age",
+          "settings": {
+            "range": "3-5",
+            "unit": "years",
+            "text": "Stories and scooters for big days.",
+            "link": "/collections/stories-and-outdoors",
+            "color_scheme": "scheme-3"
+          }
+        },
+        "age-4": {
+          "type": "age",
+          "settings": {
+            "range": "5+",
+            "unit": "years",
+            "text": "Little builders and big readers.",
+            "link": "/collections/all",
+            "color_scheme": "scheme-5"
+          }
+        }
+      },
+      "block_order": [
+        "age-1",
+        "age-2",
+        "age-3",
+        "age-4"
+      ],
+      "settings": {
+        "eyebrow": "Shop by age",
+        "heading": "A toy for every size of explorer",
+        "color_scheme": ""
+      }
+    },
+    "favourites": {
+      "type": "featured-collection",
+      "settings": {
+        "eyebrow": "Playtime favourites",
+        "heading": "Gift ideas they will actually use",
+        "text": "Six toys that get played with long after the party.",
+        "collection": "all",
+        "products_to_show": 4,
+        "columns": "4",
+        "show_view_all": true,
+        "color_scheme": "scheme-1"
+      }
+    },
+    "promise": {
+      "type": "safety-promise",
+      "blocks": {
+        "point-1": {
+          "type": "point",
+          "settings": {
+            "title": "Tested twice",
+            "text": "Every toy is checked for small parts, strength and sharp edges."
+          }
+        },
+        "point-2": {
+          "type": "point",
+          "settings": {
+            "title": "Child-safe finishes",
+            "text": "Water-based paints and varnishes, free of harmful substances."
+          }
+        },
+        "point-3": {
+          "type": "point",
+          "settings": {
+            "title": "Built to be handed down",
+            "text": "Solid beech and tight stitching, made to last through several siblings."
+          }
+        }
+      },
+      "block_order": [
+        "point-1",
+        "point-2",
+        "point-3"
+      ],
+      "settings": {
+        "eyebrow": "Our promise",
+        "heading": "Safe to chew, safe to drop",
+        "text": "Little ones test everything with their mouths and their elbows. So do we, before a toy reaches you.",
+        "color_scheme": "scheme-2"
+      }
+    },
+    "gifts": {
+      "type": "image-with-text",
+      "settings": {
+        "layout": "left",
+        "color_scheme": "scheme-4",
+        "eyebrow": "Gift ideas",
+        "heading": "Wrapped, ribboned and ready",
+        "text": "<p>Choose a toy, tick the box and we wrap it in recycled paper with a hand-tied ribbon. Add a short card and we write it for you.</p>",
+        "button_label": "Browse gifts",
+        "button_link": "/collections/all",
+        "product": "wooden-train"
+      }
+    },
+    "reviews": {
+      "type": "testimonials",
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The blocks have been rebuilt into a castle every single day for a month. Sturdy and the colours are lovely.",
+            "name": "Camille R.",
+            "detail": "Rainbow wooden blocks",
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The bunny is now part of the family. Soft, washable and it survived the washing machine.",
+            "name": "Thomas L.",
+            "detail": "Bunny plush",
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Arrived gift wrapped and my niece did not want to let go of the train. Perfect present.",
+            "name": "Inès B.",
+            "detail": "Wooden train",
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ],
+      "settings": {
+        "heading": "Parents say",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "faq": {
+      "type": "collapsible-content",
+      "blocks": {
+        "row-1": {
+          "type": "row",
+          "settings": {
+            "question": "How do I pick the right age?",
+            "answer": "<p>Each toy shows the age it suits. If you are unsure, send us a line with the age and interests and we will suggest something.</p>"
+          }
+        },
+        "row-2": {
+          "type": "row",
+          "settings": {
+            "question": "How do I clean wooden toys?",
+            "answer": "<p>Wipe with a damp cloth and let them dry in the air. Do not soak them, the wood would swell.</p>"
+          }
+        },
+        "row-3": {
+          "type": "row",
+          "settings": {
+            "question": "Can I exchange a toy?",
+            "answer": "<p>Yes, within 30 days if it is unused and in its box. We send the new one as soon as the first is back.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "row-1",
+        "row-2",
+        "row-3"
+      ],
+      "settings": {
+        "heading": "Good to know",
+        "open_first": true,
+        "color_scheme": ""
+      }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {
+        "heading": "Little letters",
+        "text": "New toys, birthday ideas and 10% off your first order.",
+        "button_label": "Subscribe",
+        "color_scheme": "scheme-5"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "ages",
+    "favourites",
+    "promise",
+    "gifts",
+    "reviews",
+    "faq",
+    "newsletter"
+  ]
+}

@@ -1,0 +1,114 @@
+{%- assign s = section.settings -%}
+<div class="k-section k-frames {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width">
+    <div class="k-section__head">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="k-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.text != blank -%}<p class="k-section__text">{{ s.text | escape }}</p>{%- endif -%}
+    </div>
+    <ul class="k-frames__list" role="list">
+      {%- for block in section.blocks -%}
+        {%- assign b = block.settings -%}
+        <li class="k-frame" {{ block.shopify_attributes }}>
+          <span class="k-frame__stage"><span class="k-frame__shape" style="width: {{ b.width | times: 1.2 }}px; aspect-ratio: {{ b.width }} / {{ b.height }};"></span></span>
+          <span class="k-frame__label">{{ b.label | escape }}</span>
+          <span class="k-frame__dim">{{ b.width }} x {{ b.height }} cm</span>
+          <span class="k-frame__text">{{ b.text | escape }}</span>
+        </li>
+      {%- endfor -%}
+    </ul>
+    {%- if s.finishes != blank -%}<p class="k-frames__finishes">{% render 'icon', name: 'ruler', size: 18 %} {{ s.finishes | escape }}</p>{%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.frame_guide.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.frame_guide.settings.eyebrow",
+      "default": "Sizes and frames"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.frame_guide.settings.heading",
+      "default": "Choose the right size for your wall"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.frame_guide.settings.text"
+    },
+    {
+      "type": "text",
+      "id": "finishes",
+      "label": "t:sections.frame_guide.settings.finishes",
+      "default": "Black oak, natural oak, white"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.frame_guide.settings.color_scheme"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "format",
+      "name": "t:sections.frame_guide.blocks.format.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:sections.frame_guide.blocks.format.settings.label",
+          "default": "Small"
+        },
+        {
+          "type": "range",
+          "id": "width",
+          "label": "t:sections.frame_guide.blocks.format.settings.width",
+          "min": 20,
+          "max": 120,
+          "step": 5,
+          "default": 30
+        },
+        {
+          "type": "range",
+          "id": "height",
+          "label": "t:sections.frame_guide.blocks.format.settings.height",
+          "min": 20,
+          "max": 160,
+          "step": 5,
+          "default": 40
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.frame_guide.blocks.format.settings.text",
+          "default": "Shelves and desks"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 5,
+  "presets": [
+    {
+      "name": "t:sections.frame_guide.presets.frame_guide",
+      "blocks": [
+        {
+          "type": "format"
+        },
+        {
+          "type": "format"
+        },
+        {
+          "type": "format"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

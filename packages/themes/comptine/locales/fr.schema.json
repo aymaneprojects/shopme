@@ -1,0 +1,936 @@
+{
+  "settings_schema": {
+    "colors": {
+      "name": "Couleurs",
+      "settings": {
+        "color_primary": "Accent",
+        "color_background": "Arrière-plan",
+        "color_surface": "Surface",
+        "color_text": "Texte",
+        "color_sale": "Prix soldé",
+        "color_card": "Cartes et panneaux"
+      }
+    },
+    "color_schemes": {
+      "name": "Palettes de couleurs",
+      "paragraphs": {
+        "color_schemes_can_be_applied_to_sections_and_blo": "Les palettes de couleurs s’appliquent aux sections et aux blocs. Une section sans palette utilise les couleurs du thème."
+      },
+      "definition": {
+        "settings": {
+          "name": "Nom",
+          "background": "Arrière-plan",
+          "text": "Texte",
+          "surface": "Surface",
+          "border": "Bordure",
+          "button": "Bouton",
+          "button_label": "Libellé du bouton",
+          "card": "Cartes"
+        }
+      }
+    },
+    "brand": {
+      "name": "Marque",
+      "settings": {
+        "logo": "Logo",
+        "logo_width": "Largeur du logo",
+        "favicon": "Favicon"
+      }
+    },
+    "typography": {
+      "name": "Typographie",
+      "settings": {
+        "type_body_font": "Police du texte",
+        "type_heading_font": "Police des titres",
+        "type_accent_font": "Police d’accent",
+        "type_base_size": "Taille de base"
+      },
+      "options": {
+        "type_body_font": {
+          "system_sans": "Sans empattement système",
+          "system_serif": "Avec empattement système",
+          "dm_sans": "DM Sans",
+          "manrope": "Manrope",
+          "playfair_display": "Playfair Display",
+          "lora": "Lora"
+        },
+        "type_heading_font": {
+          "system_sans": "Sans empattement système",
+          "system_serif": "Avec empattement système",
+          "dm_sans": "DM Sans",
+          "manrope": "Manrope",
+          "playfair_display": "Playfair Display",
+          "lora": "Lora"
+        },
+        "type_accent_font": {
+          "system_sans": "Sans empattement système",
+          "system_serif": "Avec empattement système",
+          "dm_sans": "DM Sans",
+          "manrope": "Manrope",
+          "playfair_display": "Playfair Display",
+          "lora": "Lora"
+        }
+      }
+    },
+    "text_presets": {
+      "name": "Styles de texte",
+      "paragraphs": {
+        "text_presets_set_the_font_size_weight_line_heigh": "Les styles de texte définissent la police, la taille, l’épaisseur, l’interligne et la casse de chaque style. Les tailles sont un pourcentage de la taille de base."
+      },
+      "headers": {
+        "paragraph": "Paragraphe",
+        "heading_1": "Titre 1",
+        "heading_2": "Titre 2",
+        "heading_3": "Titre 3",
+        "heading_4": "Titre 4",
+        "heading_5": "Titre 5",
+        "heading_6": "Titre 6"
+      },
+      "settings": {
+        "preset_paragraph_font": "Police",
+        "preset_paragraph_size": "Taille",
+        "preset_paragraph_weight": "Épaisseur",
+        "preset_paragraph_line_height": "Interligne",
+        "preset_paragraph_case": "Casse",
+        "preset_h1_font": "Police",
+        "preset_h1_size": "Taille",
+        "preset_h1_weight": "Épaisseur",
+        "preset_h1_line_height": "Interligne",
+        "preset_h1_case": "Casse",
+        "preset_h2_font": "Police",
+        "preset_h2_size": "Taille",
+        "preset_h2_weight": "Épaisseur",
+        "preset_h2_line_height": "Interligne",
+        "preset_h2_case": "Casse",
+        "preset_h3_font": "Police",
+        "preset_h3_size": "Taille",
+        "preset_h3_weight": "Épaisseur",
+        "preset_h3_line_height": "Interligne",
+        "preset_h3_case": "Casse",
+        "preset_h4_font": "Police",
+        "preset_h4_size": "Taille",
+        "preset_h4_weight": "Épaisseur",
+        "preset_h4_line_height": "Interligne",
+        "preset_h4_case": "Casse",
+        "preset_h5_font": "Police",
+        "preset_h5_size": "Taille",
+        "preset_h5_weight": "Épaisseur",
+        "preset_h5_line_height": "Interligne",
+        "preset_h5_case": "Casse",
+        "preset_h6_font": "Police",
+        "preset_h6_size": "Taille",
+        "preset_h6_weight": "Épaisseur",
+        "preset_h6_line_height": "Interligne",
+        "preset_h6_case": "Casse"
+      },
+      "options": {
+        "preset_paragraph_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_paragraph_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h1_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h1_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h2_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h2_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h3_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h3_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h4_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h4_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h5_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h5_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        },
+        "preset_h6_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "preset_h6_case": {
+          "none": "Comme saisi",
+          "uppercase": "Majuscules",
+          "capitalize": "Initiales en majuscule"
+        }
+      }
+    },
+    "layout": {
+      "name": "Disposition",
+      "settings": {
+        "page_width": "Largeur de page",
+        "corner_radius": "Rayon des angles",
+        "section_spacing": "Espacement des sections"
+      }
+    },
+    "product_cards": {
+      "name": "Cartes produit",
+      "settings": {
+        "show_vendor": "Afficher la marque",
+        "card_image_ratio": "Ratio de l’image",
+        "card_text_align": "Alignement du texte",
+        "card_show_quick_add": "Afficher un bouton d’ajout rapide",
+        "card_show_swatches": "Afficher les pastilles de couleur"
+      },
+      "options": {
+        "card_image_ratio": {
+          "square": "Carré",
+          "portrait": "Portrait",
+          "landscape": "Paysage"
+        },
+        "card_text_align": {
+          "left": "Gauche",
+          "center": "Centre"
+        }
+      }
+    },
+    "shade_swatches": {
+      "name": "Pastilles de couleur",
+      "settings": {
+        "swatches_enabled": "Afficher les options de couleur sous forme de pastilles",
+        "swatch_shape": "Forme",
+        "swatch_size": "Taille",
+        "swatch_option_names": "Noms d’options affichés en pastilles",
+        "swatch_colors": "Noms et valeurs des couleurs"
+      },
+      "options": {
+        "swatch_shape": {
+          "circle": "Cercle",
+          "rounded": "Arrondi",
+          "square": "Carré"
+        }
+      },
+      "info": {
+        "swatch_option_names": "Séparés par des virgules, sans tenir compte de la casse.",
+        "swatch_colors": "Paires Nom:#hex séparées par des virgules, par exemple Olive:#6b705c,Camel:#b88a5a. Les couleurs non listées utilisent une valeur intégrée."
+      }
+    },
+    "buttons": {
+      "name": "Boutons",
+      "settings": {
+        "button_radius": "Rayon des angles",
+        "button_border_width": "Épaisseur de la bordure",
+        "button_height": "Hauteur",
+        "button_uppercase": "Libellés en majuscules",
+        "button_font": "Police"
+      },
+      "options": {
+        "button_font": {
+          "body": "Texte",
+          "heading": "Titre",
+          "accent": "Accent"
+        }
+      }
+    },
+    "badges": {
+      "name": "Badges",
+      "settings": {
+        "badge_show_sale": "Afficher un badge de promotion",
+        "badge_sale_percent": "Afficher l’économie en pourcentage",
+        "badge_show_sold_out": "Afficher un badge d’épuisement",
+        "badge_position": "Position",
+        "badge_sold_out_color": "Couleur du badge d’épuisement"
+      },
+      "options": {
+        "badge_position": {
+          "top_left": "En haut à gauche",
+          "top_right": "En haut à droite",
+          "bottom_left": "En bas à gauche"
+        }
+      }
+    },
+    "cart": {
+      "name": "Panier",
+      "settings": {
+        "cart_show_free_shipping": "Afficher la barre de progression de la livraison offerte",
+        "free_shipping_threshold": "Seuil de livraison offerte",
+        "cart_show_note": "Afficher la note de commande",
+        "cart_show_thumbnails": "Afficher les images des produits",
+        "cart_show_vendor": "Afficher la marque",
+        "cart_show_continue": "Afficher le lien « Continuer mes achats »"
+      }
+    },
+    "search": {
+      "name": "Recherche",
+      "settings": {
+        "search_predictive": "Recherche prédictive",
+        "search_show_image": "Afficher les images des produits dans les suggestions",
+        "search_show_price": "Afficher les prix dans les suggestions",
+        "search_suggestions_limit": "Suggestions par type"
+      }
+    },
+    "inputs": {
+      "name": "Champs de saisie",
+      "settings": {
+        "input_radius": "Rayon des angles",
+        "input_border_width": "Épaisseur de la bordure",
+        "input_height": "Hauteur"
+      }
+    },
+    "price": {
+      "name": "Prix",
+      "settings": {
+        "price_show_compare_at": "Afficher le prix barré",
+        "price_show_from": "Afficher « À partir de » pour les produits à plusieurs prix"
+      }
+    },
+    "icons": {
+      "name": "Icônes",
+      "settings": {
+        "icon_stroke_width": "Épaisseur du trait",
+        "icon_size": "Taille"
+      }
+    },
+    "animations": {
+      "name": "Animations",
+      "settings": {
+        "anim_reveal": "Faire apparaître les sections au défilement",
+        "anim_card_zoom": "Zoomer sur les images des produits au survol",
+        "anim_duration": "Durée des animations"
+      }
+    },
+    "features": {
+      "name": "Fonctions de la boutique",
+      "settings": {
+        "show_breadcrumbs": "Afficher le fil d’Ariane",
+        "show_back_to_top": "Afficher un bouton retour en haut",
+        "stock_counter": "Afficher un message de stock faible",
+        "stock_threshold": "L’afficher quand il en reste autant ou moins",
+        "age_gate_enabled": "Demander son âge au visiteur",
+        "age_gate_min_age": "Âge minimum"
+      },
+      "info": {
+        "age_gate_enabled": "Une fenêtre interroge chaque visiteur une seule fois. Elle n’apparaît pas dans l’éditeur de thème."
+      }
+    }
+  },
+  "shared": {
+    "color_scheme": "Palette de couleurs",
+    "left": "Gauche",
+    "center": "Centre"
+  },
+  "blocks": {},
+  "sections": {
+    "announcement_bar": {
+      "name": "Barre d’annonces",
+      "settings": {
+        "show": "Afficher la barre d’annonces",
+        "text": "Texte",
+        "link": "Lien",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "text": "Laissez vide pour utiliser le message par défaut du thème."
+      },
+      "presets": {
+        "announcement_bar": "Barre d’annonces"
+      }
+    },
+    "cart_drawer": {
+      "name": "Panier latéral",
+      "settings": {
+        "show_note": "Afficher la note de commande"
+      }
+    },
+    "collapsible_content": {
+      "name": "FAQ",
+      "settings": {
+        "heading": "Titre",
+        "open_first": "Ouvrir la première question",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "heading": "Laissez les textes vides pour utiliser le contenu par défaut du thème, dans la langue du visiteur."
+      },
+      "blocks": {
+        "row": {
+          "name": "Question",
+          "settings": {
+            "question": "Question",
+            "answer": "Réponse"
+          }
+        }
+      },
+      "presets": {
+        "faq": "FAQ"
+      }
+    },
+    "collection_list": {
+      "name": "Liste de collections",
+      "settings": {
+        "heading": "Titre",
+        "collections": "Collections",
+        "columns": "Colonnes sur grand écran",
+        "color_scheme": "Palette de couleurs",
+        "eyebrow": "Sur-titre"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut du thème.",
+        "collections": "Laissez vide pour afficher vos collections automatiquement."
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      },
+      "presets": {
+        "collection_list": "Liste de collections"
+      }
+    },
+    "custom_liquid": {
+      "name": "Liquid personnalisé",
+      "settings": {
+        "custom_liquid": "Code Liquid",
+        "color_scheme": "Palette de couleurs"
+      },
+      "presets": {
+        "custom_liquid": "Liquid personnalisé"
+      }
+    },
+    "featured_collection": {
+      "name": "Collection à la une",
+      "settings": {
+        "eyebrow": "Sur-titre",
+        "heading": "Titre",
+        "text": "Introduction",
+        "collection": "Collection",
+        "products_to_show": "Produits à afficher",
+        "columns": "Colonnes sur grand écran",
+        "show_view_all": "Afficher le bouton « Tout voir »",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut du thème."
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      },
+      "presets": {
+        "featured_collection": "Collection à la une"
+      }
+    },
+    "groups": {
+      "footer": "Pied de page",
+      "footer_utilities": "Utilitaires du pied de page",
+      "header": "En-tête",
+      "overlays": "Superpositions"
+    },
+    "footer_utilities": {
+      "name": "Informations légales du pied de page",
+      "settings": {
+        "show_copyright": "Afficher la ligne de copyright",
+        "show_powered_by": "Afficher la mention « propulsé par »",
+        "show_language_selector": "Afficher le sélecteur de langue",
+        "show_country_selector": "Afficher le sélecteur de pays et de devise",
+        "color_scheme": "Palette de couleurs"
+      }
+    },
+    "footer": {
+      "name": "Pied de page",
+      "settings": {
+        "menu": "Menu",
+        "menu_heading": "Titre du menu",
+        "show_description": "Afficher la description de la boutique",
+        "show_newsletter": "Afficher le formulaire de newsletter",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "menu_heading": "Laissez vide pour utiliser le titre par défaut du thème."
+      }
+    },
+    "header": {
+      "name": "En-tête",
+      "settings": {
+        "menu": "Menu",
+        "sticky": "En-tête fixe",
+        "transparent_home": "Fond doux sur la page d’accueil"
+      }
+    },
+    "hero": {
+      "name": "Bannière",
+      "headers": {
+        "content": "Contenu",
+        "media": "Média",
+        "appearance": "Apparence"
+      },
+      "settings": {
+        "eyebrow": "Sur-titre",
+        "heading": "Titre",
+        "text": "Texte",
+        "button_label": "Libellé du bouton principal",
+        "button_link": "Lien du bouton principal",
+        "button_2_label": "Libellé du bouton secondaire",
+        "button_2_link": "Lien du bouton secondaire",
+        "image": "Image",
+        "product": "Produit à la une",
+        "layout": "Disposition",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "eyebrow": "Laissez les textes vides pour utiliser le contenu par défaut du thème, dans la langue du visiteur.",
+        "product": "Sa photo est utilisée quand aucune image n’est choisie."
+      },
+      "options": {
+        "layout": {
+          "split": "Texte et image",
+          "center": "Centré",
+          "full": "Image pleine largeur",
+          "reverse": "Image et texte, inversés"
+        }
+      },
+      "blocks": {
+        "chip": {
+          "name": "Atout",
+          "settings": {
+            "icon": "Icône",
+            "text": "Texte"
+          },
+          "options": {
+            "icon": {
+              "leaf": "Feuille",
+              "drop": "Goutte",
+              "sparkle": "Éclat",
+              "heart": "Cœur",
+              "sun": "Soleil",
+              "moon": "Lune",
+              "truck": "Livraison",
+              "refresh": "Retours",
+              "shield": "Protection",
+              "package": "Colis",
+              "gift": "Cadeau",
+              "clock": "Horloge",
+              "tag": "Étiquette",
+              "home": "Maison",
+              "scissors": "Ciseaux",
+              "ruler": "Règle",
+              "check": "Coche"
+            }
+          }
+        }
+      },
+      "presets": {
+        "hero": "Bannière"
+      }
+    },
+    "image_with_text": {
+      "name": "Image avec texte",
+      "settings": {
+        "image": "Image",
+        "eyebrow": "Sur-titre",
+        "heading": "Titre",
+        "text": "Texte",
+        "button_label": "Libellé du bouton",
+        "button_link": "Lien du bouton",
+        "layout": "Position de l’image",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "eyebrow": "Laissez les textes vides pour utiliser le contenu par défaut du thème, dans la langue du visiteur."
+      },
+      "options": {
+        "layout": {
+          "left": "Gauche",
+          "right": "Droite"
+        }
+      },
+      "presets": {
+        "image_with_text": "Image avec texte"
+      }
+    },
+    "main_404": {
+      "name": "Page introuvable"
+    },
+    "main_account": {
+      "name": "Compte client"
+    },
+    "customer": {
+      "headers": {
+        "content": "Contenu",
+        "layout": "Mise en page"
+      },
+      "settings": {
+        "heading": "Titre",
+        "text": "Texte d’introduction",
+        "show_store_credit": "Afficher le solde du crédit en magasin",
+        "show_default_address": "Afficher l’adresse par défaut",
+        "orders_per_page": "Commandes par page",
+        "details_position": "Informations du compte",
+        "align": "Alignement",
+        "width": "Largeur",
+        "columns": "Adresses par ligne",
+        "show_recover_link": "Afficher le lien « Mot de passe oublié »",
+        "show_register_link": "Afficher le lien pour créer un compte",
+        "show_sku": "Afficher la colonne SKU",
+        "show_addresses": "Afficher les adresses de livraison et de facturation",
+        "show_shipments": "Afficher les expéditions et le suivi",
+        "show_name_fields": "Demander le prénom et le nom",
+        "show_marketing": "Proposer l’inscription aux e-mails marketing",
+        "show_login_link": "Afficher le lien pour se connecter"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut dans la langue du client.",
+        "show_store_credit": "Affiché uniquement si le crédit en magasin est activé et que le client a un solde.",
+        "text_default": "Laissez vide pour utiliser le texte par défaut.",
+        "order_heading": "Le numéro de commande est ajouté à la suite. Laissez vide pour le titre par défaut."
+      },
+      "options": {
+        "details_position": {
+          "side": "À côté des commandes",
+          "below": "Sous les commandes"
+        },
+        "width": {
+          "narrow": "Étroite",
+          "page": "Largeur de page"
+        }
+      }
+    },
+    "main_activate_account": {
+      "name": "Activation du compte"
+    },
+    "main_addresses": {
+      "name": "Adresses du client",
+      "options": {
+        "columns": {
+          "1": "1",
+          "2": "2",
+          "3": "3"
+        }
+      }
+    },
+    "main_article": {
+      "name": "Article",
+      "settings": {
+        "show_author": "Afficher l’auteur",
+        "show_navigation": "Afficher les liens précédent et suivant"
+      }
+    },
+    "main_blog": {
+      "name": "Articles du blog",
+      "settings": {
+        "articles_per_page": "Articles par page",
+        "show_image": "Afficher l’image",
+        "show_author": "Afficher l’auteur"
+      }
+    },
+    "main_cart": {
+      "name": "Panier"
+    },
+    "main_collection": {
+      "name": "Collection",
+      "settings": {
+        "products_per_page": "Produits par page",
+        "columns": "Colonnes sur grand écran",
+        "show_description": "Afficher la description de la collection",
+        "infinite_scroll": "Charger d’autres produits au défilement"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      },
+      "info": {
+        "infinite_scroll": "Les pages suivantes s’ajoutent à la grille quand le visiteur arrive en bas. La pagination reste disponible sans JavaScript."
+      }
+    },
+    "main_contact": {
+      "name": "Formulaire de contact"
+    },
+    "main_list_collections": {
+      "name": "Liste des collections"
+    },
+    "main_login": {
+      "name": "Connexion client"
+    },
+    "main_order": {
+      "name": "Commande client"
+    },
+    "main_page": {
+      "name": "Page"
+    },
+    "main_password": {
+      "name": "Page de mot de passe"
+    },
+    "main_product": {
+      "name": "Produit",
+      "settings": {
+        "show_vendor": "Afficher la marque",
+        "show_summary": "Afficher un court résumé sous le prix",
+        "show_badge": "Afficher un badge de promotion sur la photo"
+      },
+      "blocks": {
+        "benefit": {
+          "name": "Bienfait",
+          "settings": {
+            "icon": "Icône",
+            "text": "Texte"
+          },
+          "options": {
+            "icon": {
+              "leaf": "Feuille",
+              "drop": "Goutte",
+              "sparkle": "Éclat",
+              "heart": "Cœur",
+              "truck": "Livraison",
+              "check": "Coche",
+              "refresh": "Retours",
+              "shield": "Protection",
+              "package": "Colis",
+              "gift": "Cadeau",
+              "clock": "Horloge",
+              "tag": "Étiquette",
+              "home": "Maison",
+              "scissors": "Ciseaux",
+              "ruler": "Règle"
+            }
+          },
+          "info": {
+            "text": "Laissez vide pour utiliser le texte par défaut du thème."
+          }
+        },
+        "accordion": {
+          "name": "Accordéon",
+          "settings": {
+            "heading": "Titre",
+            "text": "Texte",
+            "show_description": "Afficher la description du produit",
+            "open": "Ouvert par défaut"
+          },
+          "info": {
+            "heading": "Laissez les textes vides pour utiliser le contenu par défaut du thème, dans la langue du visiteur."
+          }
+        },
+        "details": {
+          "name": "Détails depuis un métachamp",
+          "settings": {
+            "heading": "Titre",
+            "namespace": "Espace de noms du métachamp",
+            "key": "Clé du métachamp",
+            "open": "Ouvert par défaut"
+          },
+          "info": {
+            "heading": "Laissez vide pour utiliser le titre par défaut du thème.",
+            "key": "Affiché uniquement si le produit possède ce métachamp."
+          }
+        }
+      }
+    },
+    "main_register": {
+      "name": "Création de compte"
+    },
+    "main_reset_password": {
+      "name": "Réinitialisation du mot de passe"
+    },
+    "main_search": {
+      "name": "Résultats de recherche",
+      "settings": {
+        "products_per_page": "Résultats par page",
+        "columns": "Colonnes sur grand écran"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      }
+    },
+    "newsletter": {
+      "name": "Newsletter",
+      "settings": {
+        "heading": "Titre",
+        "text": "Texte",
+        "button_label": "Libellé du bouton",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "heading": "Laissez les textes vides pour utiliser le contenu par défaut du thème, dans la langue du visiteur."
+      },
+      "presets": {
+        "newsletter": "Newsletter"
+      }
+    },
+    "product_recommendations": {
+      "name": "Recommandations de produits",
+      "settings": {
+        "heading": "Titre",
+        "products_to_show": "Produits à afficher",
+        "columns": "Colonnes sur grand écran"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut du thème."
+      },
+      "options": {
+        "columns": {
+          "3": "3",
+          "4": "4"
+        }
+      },
+      "presets": {
+        "product_recommendations": "Recommandations de produits"
+      }
+    },
+    "rich_text": {
+      "name": "Texte enrichi",
+      "settings": {
+        "eyebrow": "Sur-titre",
+        "heading": "Titre",
+        "text": "Texte",
+        "button_label": "Libellé du bouton",
+        "button_link": "Lien du bouton",
+        "align": "Alignement",
+        "color_scheme": "Palette de couleurs"
+      },
+      "options": {
+        "align": {
+          "left": "Gauche",
+          "center": "Centre"
+        }
+      },
+      "presets": {
+        "rich_text": "Texte enrichi"
+      }
+    },
+    "testimonials": {
+      "name": "Témoignages",
+      "settings": {
+        "heading": "Titre",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "heading": "Laissez les textes vides pour utiliser le contenu par défaut du thème, dans la langue du visiteur."
+      },
+      "blocks": {
+        "testimonial": {
+          "name": "Témoignage",
+          "settings": {
+            "quote": "Citation",
+            "name": "Nom",
+            "detail": "Détail",
+            "avatar": "Photo",
+            "rating": "Étoiles"
+          },
+          "info": {
+            "detail": "Par exemple « Achat vérifié » ou le produit acheté."
+          }
+        }
+      },
+      "presets": {
+        "testimonials": "Témoignages"
+      }
+    },
+    "countdown": {
+      "name": "Compte à rebours",
+      "settings": {
+        "eyebrow": "Sur-titre",
+        "heading": "Titre",
+        "text": "Texte",
+        "end_date": "Date de fin",
+        "ended_text": "Message une fois l’offre terminée",
+        "button_label": "Texte du bouton",
+        "button_link": "Lien du bouton",
+        "color_scheme": "Palette de couleurs"
+      },
+      "info": {
+        "end_date": "Format : 2027-01-31T23:59 (année, mois, jour, T, heure et minute)."
+      },
+      "presets": {
+        "countdown": "Compte à rebours"
+      }
+    },
+    "age_tiles": {
+      "name": "Acheter par âge",
+      "settings": {
+        "eyebrow": "Sur-titre",
+        "heading": "Titre",
+        "color_scheme": "Palette de couleurs"
+      },
+      "blocks": {
+        "age": {
+          "name": "Tranche d’âge",
+          "settings": {
+            "range": "Tranche d’âge",
+            "unit": "Unité",
+            "text": "Texte",
+            "link": "Lien",
+            "color_scheme": "Palette de couleurs"
+          }
+        }
+      },
+      "presets": {
+        "age_tiles": "Acheter par âge"
+      }
+    },
+    "safety_promise": {
+      "name": "Promesse sécurité",
+      "settings": {
+        "eyebrow": "Sur-titre",
+        "heading": "Titre",
+        "text": "Texte",
+        "image": "Photo",
+        "product": "Produit (sa photo est utilisée sans photo)",
+        "color_scheme": "Palette de couleurs"
+      },
+      "blocks": {
+        "point": {
+          "name": "Promesse",
+          "settings": {
+            "title": "Titre",
+            "text": "Texte"
+          }
+        }
+      },
+      "presets": {
+        "safety_promise": "Promesse sécurité"
+      }
+    }
+  }
+}

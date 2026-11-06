@@ -1,0 +1,31 @@
+{
+  "about": "What changed in each version of Comptine, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release of Comptine, a cheerful and rounded theme for children and toys.",
+          "Centred logo header with a search panel and a slide-in bag with a free shipping progress bar.",
+          "Arched product tiles with a second photo, colour swatches and a quick add button.",
+          "Product page with a vertical rail of thumbnails, options, subscriptions and a low stock message.",
+          "Collection page with filter drop-downs, sorting and infinite scroll.",
+          "New sections: shop by age, safety promise, and a countdown timer.",
+          "Five pastel colour schemes, breadcrumbs, back to top button and an optional age check.",
+          "Section names, settings and storefront texts are translated to English and French."
+        ],
+        "fr": [
+          "Première version de Comptine, un thème gai et arrondi pour les enfants et les jouets.",
+          "En-tête à logo centré avec panneau de recherche et panier latéral avec barre de progression vers la livraison offerte.",
+          "Tuiles produit en arche avec seconde photo, pastilles de couleur et bouton d’ajout rapide.",
+          "Page produit avec rail vertical de miniatures, options, abonnements et message de stock faible.",
+          "Page collection avec filtres déroulants, tri et défilement infini.",
+          "Nouvelles sections : acheter par âge, promesse sécurité, et compte à rebours.",
+          "Cinq palettes pastel, fil d’Ariane, bouton retour en haut et vérification d’âge facultative.",
+          "Les noms des sections, les réglages et les textes de la boutique sont traduits en anglais et en français."
+        ]
+      }
+    }
+  ]
+}

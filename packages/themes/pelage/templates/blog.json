@@ -1,0 +1,15 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-blog",
+      "settings": {
+        "articles_per_page": 9,
+        "show_image": true,
+        "show_author": true
+      }
+    }
+  },
+  "order": [
+    "main"
+  ]
+}
