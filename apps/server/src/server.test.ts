@@ -169,7 +169,7 @@ describe('startServer (programmatic API)', () => {
       expect(server.port).toBeGreaterThan(0);
       expect(server.url).toBe(`http://127.0.0.1:${server.port}`);
       const res = await fetch(`${server.url}/healthz`);
-      expect(await res.json()).toEqual({ status: 'ok', db: process.env.TEST_DATABASE_URL ? 'postgres' : 'pglite' });
+      expect(await res.json()).toEqual({ status: 'ok', db: 'pglite' });
       expect(server.config.appUrl).toBe(`http://localhost:${server.port}`);
     } finally {
       await server.close();
