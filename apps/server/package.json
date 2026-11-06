@@ -11,6 +11,7 @@
     "lint": "echo \"no lint yet\"",
     "test": "vitest run",
     "test:multi": "vitest run --config vitest.multistore.config.ts",
+    "test:pg": "vitest run --maxWorkers=2 && vitest run --config vitest.multistore.config.ts --maxWorkers=2",
     "test:isolation": "vitest run src/multistore.test.ts",
     "typecheck": "tsc -p tsconfig.json"
   },

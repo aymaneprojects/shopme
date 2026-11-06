@@ -13,7 +13,7 @@ describe('auth flow', () => {
 
   it('healthz', async () => {
     const r = await t.app.inject('/healthz');
-    expect(r.json()).toEqual({ status: 'ok', db: 'pglite' });
+    expect(r.json()).toEqual({ status: 'ok', db: process.env.TEST_DATABASE_URL ? 'postgres' : 'pglite' });
   });
 
   it('setup -> me -> logout -> login', async () => {
@@ -169,7 +169,7 @@ describe('startServer (programmatic API)', () => {
       expect(server.port).toBeGreaterThan(0);
       expect(server.url).toBe(`http://127.0.0.1:${server.port}`);
       const res = await fetch(`${server.url}/healthz`);
-      expect(await res.json()).toEqual({ status: 'ok', db: 'pglite' });
+      expect(await res.json()).toEqual({ status: 'ok', db: process.env.TEST_DATABASE_URL ? 'postgres' : 'pglite' });
       expect(server.config.appUrl).toBe(`http://localhost:${server.port}`);
     } finally {
       await server.close();

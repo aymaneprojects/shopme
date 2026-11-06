@@ -75,7 +75,7 @@ export function scoreRisk(f: { email: string | null; billingCountry: string | nu
 /** A simple risk read from our own data only (no third party): geography, order value, order frequency, email domain, payment failures, past fraud cancellations. */
 export async function orderRisk(db: Executor, shopId: number, order: Order, d: OrderDetail): Promise<OrderRisk> {
   const since = new Date(order.createdAt.getTime() - 86_400_000);
-  const [avg] = await db.select({ v: sql<number>`coalesce(avg(${orders.total}), 0)::float` }).from(orders).where(and(eq(orders.shopId, shopId), sql`${orders.id} <> ${order.id}`, sql`${orders.createdAt} < ${order.createdAt}`));
+  const [avg] = await db.select({ v: sql<number>`coalesce(avg(${orders.total}), 0)::float` }).from(orders).where(and(eq(orders.shopId, shopId), sql`${orders.id} <> ${order.id}`, lt(orders.createdAt, order.createdAt)));
   const email = order.email?.toLowerCase() ?? null;
   const same = email ? await db.select({ id: orders.id, createdAt: orders.createdAt, cancelReason: orders.cancelReason }).from(orders).where(and(eq(orders.shopId, shopId), sql`lower(${orders.email}) = ${email}`, sql`${orders.id} <> ${order.id}`)) : [];
   const failed = d.transactions.filter((t) => t.status === 'FAILURE' || t.status === 'ERROR').length;

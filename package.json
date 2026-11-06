@@ -14,6 +14,7 @@
     "db:generate": "pnpm --filter @shopme/core db:generate",
     "lint": "turbo run lint",
     "test": "turbo run test",
+    "test:pg": "TEST_DATABASE_URL=${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/postgres} pnpm --filter @shopme/core --filter @shopme/migrate --filter @shopme/server --workspace-concurrency=1 test:pg",
     "typecheck": "turbo run typecheck",
     "e2e": "node e2e/run.mjs",
     "screenshots": "node scripts/screenshots.mjs",

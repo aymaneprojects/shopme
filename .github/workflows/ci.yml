@@ -26,6 +26,34 @@ jobs:
       # The server suite again with the installation in multi-store mode (the isolation suite runs in both passes).
       - run: pnpm --filter @shopme/server test:multi
 
+  # The core and server suites (single-store and multi-store) against a real PostgreSQL 17, the engine of server installs.
+  # Each test file gets its own database cloned from a migrated template (see TEST_DATABASE_URL in packages/core/src/db/client.ts).
+  test-postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:pg
+
   e2e:
     runs-on: ubuntu-latest
     steps:

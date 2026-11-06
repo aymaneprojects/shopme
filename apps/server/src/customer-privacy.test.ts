@@ -166,7 +166,7 @@ describe('customer privacy on the storefront', () => {
   });
 
   it('counts visits only where analytics may run', async () => {
-    const visits = async () => (await db().select().from(s.visits)).length;
+    const visits = async () => { await new Promise((r) => setTimeout(r, 200)); return (await db().select().from(s.visits)).length; }; // stored after the reply
     const before = await visits();
     await page('/', { 'user-agent': 'Mozilla/5.0 Firefox' });
     await t.app.inject({ url: '/', headers: { 'user-agent': 'Mozilla/5.0 Firefox' } });
