@@ -17,7 +17,8 @@ export function formBody(req: FastifyRequest): Record<string, any> {
 export function returnPath(req: FastifyRequest, fallback = '/'): string {
   const body = (req.body ?? {}) as Record<string, unknown>;
   const asked = String(body.return_to ?? body.return_url ?? '');
-  if (asked.startsWith('/') && !asked.startsWith('//')) return asked;
+  // A backslash (or a control character) makes browsers read `/\evil.example` as `//evil.example`: not a local path.
+  if (asked.startsWith('/') && !asked.startsWith('//') && !/[\\\u0000-\u001f]/.test(asked)) return asked;
   try {
     const ref = new URL(String(req.headers.referer ?? ''));
     if (ref.host === req.headers.host) return ref.pathname;

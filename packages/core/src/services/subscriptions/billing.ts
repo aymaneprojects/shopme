@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, count, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Db, Executor } from '../../db/client';
 import { customers, inventoryItems, inventoryLevels, productVariants, subscriptionBillingAttempts, subscriptionContractLines, subscriptionContracts, taxRates, type ContractDiscount } from '../../db/schema';
 import { addEvent } from '../events';
@@ -127,7 +127,11 @@ export async function billSubscriptionContract(db: Db, shop: Shop, contractId: n
   if (c.status !== 'ACTIVE') return { status: 'skipped', reason: 'not_active' };
   const lines = await listContractLines(db, shop.id, [c.id]);
   const cycle = c.cyclesCompleted + 1;
-  const key = opts.idempotencyKey ?? `cycle-${cycle}-attempt-${c.failedAttempts + 1}`;
+  // The attempt number counts the failed attempts of this cycle on record, not `failedAttempts` (which pausing/reactivating resets):
+  // otherwise a reactivated contract would reuse the key of an earlier failed attempt and stay "busy" forever.
+  const [done] = opts.idempotencyKey ? [{ n: 0 }] : await db.select({ n: count() }).from(subscriptionBillingAttempts)
+    .where(and(eq(subscriptionBillingAttempts.contractId, c.id), eq(subscriptionBillingAttempts.cycleIndex, cycle), eq(subscriptionBillingAttempts.status, 'FAILED')));
+  const key = opts.idempotencyKey ?? `cycle-${cycle}-attempt-${(done?.n ?? 0) + 1}`;
   if (c.billingPolicy.maxCycles != null && c.cyclesCompleted >= c.billingPolicy.maxCycles) {
     await db.update(subscriptionContracts).set({ status: 'EXPIRED', updatedAt: now }).where(eq(subscriptionContracts.id, c.id));
     await addEvent(db, shop.id, { subjectType: CONTRACT_SUBJECT, subjectId: c.id, verb: 'subscription_contracts/expired', message: 'Subscription completed its last billing cycle' });
@@ -189,8 +193,9 @@ export async function billSubscriptionContract(db: Db, shop: Shop, contractId: n
   }
 
   const b = c.billingPolicy;
-  let next = addInterval(c.nextBillingDate, b.interval, b.intervalCount);
-  while (next <= now) next = addInterval(next, b.interval, b.intervalCount);
+  const anchor = c.createdAt.getUTCDate();
+  let next = addInterval(c.nextBillingDate, b.interval, b.intervalCount, anchor);
+  while (next <= now) next = addInterval(next, b.interval, b.intervalCount, anchor);
   const expired = b.maxCycles != null && cycle >= b.maxCycles;
   const [row] = await db.transaction(async (tx) => {
     await tx.update(subscriptionBillingAttempts).set({ status: 'SUCCEEDED', orderId: res.orderId, paymentId: payment.paymentId ?? null, completedAt: now }).where(eq(subscriptionBillingAttempts.id, attempt.id));

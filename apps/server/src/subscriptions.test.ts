@@ -495,3 +495,16 @@ describe('discount purchase type: subscriptions and the first N payments', () =>
     expect((await db().select().from(s.discounts).where(eq(s.discounts.title, 'SUB20')))[0]!.usageCount).toBe(1); // renewals are not new uses
   });
 });
+
+describe('billing after a reactivation', () => {
+  it('bills a reactivated contract whose earlier attempt of the cycle failed (the attempt key is not reused)', async () => {
+    const cart = await cartWith([{ id: sku['HMC-250-FL'], quantity: 1, selling_plan: planIds[1] }]);
+    const { token } = await checkout(cart, 'reactivated@example.com', 'bank_transfer');
+    const [order] = await db().select().from(s.orders).where(eq(s.orders.cartToken, token));
+    const c = await contractOfOrder(order!.id);
+    // One failed attempt on record, then pause and resume reset `failedAttempts` to 0.
+    await db().insert(s.subscriptionBillingAttempts).values({ shopId, contractId: c.id, idempotencyKey: `cycle-${c.cyclesCompleted + 1}-attempt-1`, status: 'FAILED', cycleIndex: c.cyclesCompleted + 1, billingDate: c.nextBillingDate });
+    const out = await runDueBilling(t.app, new Date(c.nextBillingDate.getTime() + 60_000));
+    expect(out.filter((o) => 'contract' in o && o.contract.id === c.id)).toEqual([expect.objectContaining({ status: 'ordered' })]);
+  });
+});

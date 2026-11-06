@@ -399,7 +399,8 @@ render_caddyfile() {
 # nginx_proxy_block <port>: the shared location blocks.
 nginx_proxy_block() {
   cat <<EOF
-    client_max_body_size 64m;
+    # Store archives (import, off-site restore) may be large; the app enforces its own limits.
+    client_max_body_size 2g;
 
     # Only Caddy-style on-demand TLS needs this; it is not meant for the public.
     location = /__shopme/tls-ask { return 404; }
@@ -409,7 +410,8 @@ nginx_proxy_block() {
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        # The app trusts this header (TRUST_PROXY): set it from the real peer, never append to what a client sent.
+        proxy_set_header X-Forwarded-For \$remote_addr;
         proxy_set_header X-Forwarded-Proto \$scheme;
         proxy_set_header Connection "";
         proxy_read_timeout 120s;

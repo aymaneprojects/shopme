@@ -10,6 +10,7 @@ const input = z.object({
   manualPublicIp: z.string().max(100).nullable().optional(), dmarcReportEmail: z.string().max(200).nullable().optional(),
 });
 
+const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const page = (title: string, body: string) => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>body{font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem;color:#1f2937}button{font:inherit;padding:.6rem 1.1rem;border-radius:.4rem;border:0;background:#1e40af;color:#fff;cursor:pointer}</style></head><body>${body}</body></html>`;
 
 /**
@@ -35,8 +36,8 @@ export function registerEmailRoutes(app: FastifyInstance) {
       const shop = await getShop(app.ctx.db, t.shopId);
       const fr = (shop?.locale ?? 'en').toLowerCase().startsWith('fr');
       return reply.type('text/html').send(page(fr ? 'Se désabonner' : 'Unsubscribe', fr
-        ? `<h1>Se désabonner</h1><p>Vous ne recevrez plus d’e-mails promotionnels de ${shop?.name ?? 'cette boutique'}.</p><form method="post"><button>Confirmer</button></form>`
-        : `<h1>Unsubscribe</h1><p>You will no longer receive promotional e-mails from ${shop?.name ?? 'this store'}.</p><form method="post"><button>Confirm</button></form>`));
+        ? `<h1>Se désabonner</h1><p>Vous ne recevrez plus d’e-mails promotionnels de ${esc(shop?.name ?? 'cette boutique')}.</p><form method="post"><button>Confirmer</button></form>`
+        : `<h1>Unsubscribe</h1><p>You will no longer receive promotional e-mails from ${esc(shop?.name ?? 'this store')}.</p><form method="post"><button>Confirm</button></form>`));
     });
     scope.post('/unsubscribe/:token', async (req, reply) => {
       const ok = await email().unsubscribe((req.params as { token: string }).token);

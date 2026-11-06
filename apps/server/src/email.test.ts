@@ -176,6 +176,12 @@ describe('direct delivery', () => {
     const token = /\/unsubscribe\/([^>\s]+)>/.exec(lu)![1]!;
     await db().insert(s.customers).values({ shopId, email: 'cart@single.example.org', emailMarketingState: 'SUBSCRIBED' });
     expect((await t.app.inject({ method: 'GET', url: `/unsubscribe/${token}` })).statusCode).toBe(200);
+    // The store name is HTML-escaped on the confirmation page.
+    await db().update(s.shops).set({ name: '<img src=x onerror=alert(1)>' }).where(eq(s.shops.id, shopId));
+    const confirmPage = (await t.app.inject({ method: 'GET', url: `/unsubscribe/${token}` })).body;
+    await db().update(s.shops).set({ name: shop.name }).where(eq(s.shops.id, shopId));
+    expect(confirmPage).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(confirmPage).not.toContain('<img src=x');
     expect((await t.app.inject({ method: 'POST', url: `/unsubscribe/${token}`, headers: { 'content-type': 'application/x-www-form-urlencoded' }, payload: 'List-Unsubscribe=One-Click' })).statusCode).toBe(200);
     const [c] = await db().select().from(s.customers).where(and(eq(s.customers.shopId, shopId), eq(s.customers.email, 'cart@single.example.org')));
     expect(c!.emailMarketingState).toBe('UNSUBSCRIBED');

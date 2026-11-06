@@ -274,6 +274,13 @@ describe('customer privacy on the storefront', () => {
       expect(await stateOf('single@example.com')).toMatchObject({ emailMarketingState: 'SUBSCRIBED', emailMarketingOptInLevel: 'SINGLE_OPT_IN', acceptsMarketing: true });
     });
 
+    it('only redirects form posts to local paths (a backslash is not one)', async () => {
+      const post = (return_to: string) => t.app.inject({ method: 'POST', url: '/contact', headers: { 'content-type': 'application/x-www-form-urlencoded' }, payload: new URLSearchParams({ form_type: 'customer', 'contact[email]': 'redirect@example.com', return_to }).toString() });
+      expect(String((await post('/\\evil.example')).headers.location)).toMatch(/^\/(\?|#|$)/);
+      expect(String((await post('//evil.example')).headers.location)).toMatch(/^\/(\?|#|$)/);
+      expect(String((await post('/pages/about')).headers.location)).toMatch(/^\/pages\/about\?/);
+    });
+
     it('keeps the newsletter subscription pending until the emailed link is opened (double opt-in)', async () => {
       await g('mutation { shopmePrivacySettingsUpdate(input: { doubleOptIn: true }) { settings { doubleOptIn } userErrors { message } } }');
       sent.length = 0;

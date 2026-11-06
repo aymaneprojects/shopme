@@ -33,6 +33,10 @@ describe('selling plan arithmetic', () => {
   it('steps billing dates and clamps month ends', () => {
     expect(addInterval(new Date('2026-01-31T10:00:00Z'), 'MONTH', 1).toISOString()).toBe('2026-02-28T10:00:00.000Z');
     expect(addInterval(new Date('2028-02-29T00:00:00Z'), 'YEAR', 1).toISOString()).toBe('2029-02-28T00:00:00.000Z');
+    // A contract of the 31st goes back to the 31st after a short month instead of drifting to the 28th for good.
+    expect(addInterval(new Date('2026-02-28T10:00:00Z'), 'MONTH', 1, 31).toISOString()).toBe('2026-03-31T10:00:00.000Z');
+    expect(addInterval(new Date('2026-03-31T10:00:00Z'), 'MONTH', 1, 31).toISOString()).toBe('2026-04-30T10:00:00.000Z');
+    expect(addInterval(new Date('2026-02-15T10:00:00Z'), 'MONTH', 1, 31).toISOString()).toBe('2026-03-15T10:00:00.000Z');
     expect(addInterval(new Date('2026-11-05T00:00:00Z'), 'WEEK', 2).toISOString()).toBe('2026-11-19T00:00:00.000Z');
     expect(frequencyLabel('en', { interval: 'WEEK', intervalCount: 2 })).toBe('every 2 weeks');
     expect(frequencyLabel('fr', { interval: 'WEEK', intervalCount: 2 })).toBe('toutes les 2 semaines');

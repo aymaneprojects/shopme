@@ -224,12 +224,12 @@ export async function changeContractStatus(db: Db, shopId: number, id: number, a
   if (action === 'activate') {
     // A date that passed while paused moves to the next one in the schedule.
     let next = c.nextBillingDate;
-    while (next <= now) next = addInterval(next, b.interval, b.intervalCount);
+    while (next <= now) next = addInterval(next, b.interval, b.intervalCount, c.createdAt.getUTCDate());
     Object.assign(set, { pausedAt: null, failedAttempts: 0, retryAt: null, nextBillingDate: next });
     data.nextBillingDate = next.toISOString();
   }
   if (action === 'skip') {
-    set.nextBillingDate = addInterval(c.nextBillingDate, b.interval, b.intervalCount);
+    set.nextBillingDate = addInterval(c.nextBillingDate, b.interval, b.intervalCount, c.createdAt.getUTCDate());
     Object.assign(data, { skippedDate: c.nextBillingDate.toISOString(), nextBillingDate: set.nextBillingDate.toISOString() });
   }
   return txResult(db, async (tx) => {

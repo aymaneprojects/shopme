@@ -58,13 +58,15 @@ export function allocationPrice(price: number, plan: PlanPricingShape, convert?:
 /** Unit price per billing for a contract line at `cycle`. */
 export const contractLinePrice = (basePrice: number, policies: PlanPricingPolicy[], deliveries: number, cycle: number): number => adjustedPrice(basePrice, policyForCycle(policies, cycle)) * Math.max(1, deliveries);
 
-/** `date` plus `count` intervals, in UTC; month and year steps keep the day of month, clamped to the month's length (31 Jan + 1 month = 28/29 Feb). */
-export function addInterval(date: Date, interval: SellingPlanInterval, count: number): Date {
+/** `date` plus `count` intervals, in UTC; month and year steps keep the day of month, clamped to the month's length (31 Jan + 1 month = 28/29 Feb); with `anchorDay` (the day the contract started on), the step after a clamped date returns to that day (28 Feb + 1 month = 31 Mar). */
+export function addInterval(date: Date, interval: SellingPlanInterval, count: number, anchorDay?: number): Date {
   const d = new Date(date.getTime());
   if (interval === 'DAY') { d.setUTCDate(d.getUTCDate() + count); return d; }
   if (interval === 'WEEK') { d.setUTCDate(d.getUTCDate() + 7 * count); return d; }
   const months = interval === 'MONTH' ? count : 12 * count;
-  const day = d.getUTCDate();
+  // A date that was clamped to a short month's last day (28 Feb for a contract of the 31st) goes back to the anchor day when the month allows.
+  const endOfMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  const day = anchorDay && d.getUTCDate() === endOfMonth ? Math.max(d.getUTCDate(), anchorDay) : d.getUTCDate();
   d.setUTCDate(1);
   d.setUTCMonth(d.getUTCMonth() + months);
   const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();

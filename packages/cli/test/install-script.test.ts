@@ -170,6 +170,11 @@ describe('nginx rendering', () => {
     expect(out).toContain('listen 80;');
     expect(out).toContain('proxy_pass http://127.0.0.1:3200;');
     expect(out).toContain('X-Forwarded-Proto $scheme');
+    // A client-sent X-Forwarded-For must never be forwarded (the app trusts the header for rate limits).
+    expect(out).toContain('proxy_set_header X-Forwarded-For $remote_addr;');
+    expect(out).not.toContain('proxy_add_x_forwarded_for');
+    // Store archives are accepted up to 2 GB by the app.
+    expect(out).toContain('client_max_body_size 2g;');
     expect(out).toContain('Managed by shopme-install.sh');
     expect(out).not.toContain('443');
   });
