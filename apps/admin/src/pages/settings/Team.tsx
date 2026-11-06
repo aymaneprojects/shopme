@@ -1,6 +1,6 @@
 import { Badge, Banner, Button, Checkbox, ConfirmDialog, Input, Modal, Select, Skeleton, Textarea, useToast } from '@shopme/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useLocation } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { ShieldCheck } from 'lucide-react';
 import { SettingsActions } from '../../components/SettingsKit';
 import { useRef, useState } from 'react';
@@ -34,6 +34,7 @@ export function UsersSettings() {
   const toast = useToast();
   const qc = useQueryClient();
   const { user } = useShop();
+  const nav = useNavigate();
   const q = useQuery({ queryKey: ['staff'], queryFn: () => gql<{ staffMembers: { nodes: Member[] } }>(STAFF_MEMBERS_EXT) });
   const roles = useRoles();
   const [edit, setEdit] = useState<Draft | null>(null);
@@ -80,7 +81,7 @@ export function UsersSettings() {
       <SettingsActions>
         <Button onClick={exportCsv} disabled={members.length === 0}>{t('common.export')}</Button>
         <Button onClick={() => setImporting(true)}>{t('bs.import')}</Button>
-        <Button variant="primary" onClick={() => { setError(null); setEdit({ id: null, email: '', role: 'staff', roleId: '', permissions: ['products', 'orders'] }); }}>{t('users.addButton')}</Button>
+        <Button variant="primary" onClick={() => nav('/settings/users/new')}>{t('users.addButton')}</Button>
       </SettingsActions>
       {q.isLoading && <Skeleton className="h-24" />}
       {q.error && <Banner>{q.error.message}</Banner>}

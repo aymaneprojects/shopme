@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { getSecuritySettings, isTwoFactorEnabled, resolveAccountSession, resolveApiToken, resolveSession, scopesFor, staffInShop, type Account } from '@shopme/core';
+import { countPasskeys, getSecuritySettings, isTwoFactorEnabled, resolveAccountSession, resolveApiToken, resolveSession, scopesFor, staffInShop, type Account } from '@shopme/core';
 import type { AuthInfo } from '../context';
 
 export const SESSION_COOKIE = 'shopme_session';
@@ -26,7 +26,7 @@ export async function authenticate(req: FastifyRequest): Promise<AuthInfo | null
   if (!config.multiStore) {
     const user = await resolveSession(db, token);
     if (!user) return null;
-    const needs2fa = await enrolmentRequired(req, user.shopId, user.accountId);
+    const needs2fa = await enrolmentRequired(req, user.shopId, user.accountId, user);
     return (req.auth = { kind: 'session', shopId: user.shopId, user, scopes: needs2fa ? [] : scopesFor(user), needs2fa });
   }
   // Multi-store: the session belongs to an account; the URL (or the store's own host) picks the store, checked on every request.
@@ -37,7 +37,7 @@ export async function authenticate(req: FastifyRequest): Promise<AuthInfo | null
   if (shopId == null || shopId < 0) { if (shopId != null) req.authDenied = true; return null; }
   const user = await staffInShop(db, sess.account.id, shopId);
   if (!user) { req.authDenied = true; return null; }
-  const needs2fa = await enrolmentRequired(req, shopId, sess.account.id);
+  const needs2fa = await enrolmentRequired(req, shopId, sess.account.id, user);
   return (req.auth = { kind: 'session', shopId, user, scopes: needs2fa ? [] : scopesFor(user), needs2fa, account: sess.account });
 }
 
@@ -74,8 +74,10 @@ const policyCache = new Map<number, { at: number; required: boolean }>();
 /** Drop the cached "shop requires 2FA" flag (after the policy changes). */
 export const invalidateSecurityPolicy = () => policyCache.clear();
 
-async function enrolmentRequired(req: FastifyRequest, shopId: number, accountId: number | null): Promise<boolean> {
+async function enrolmentRequired(req: FastifyRequest, shopId: number, accountId: number | null, user: { requireSecureLogin: boolean }): Promise<boolean> {
   const { db } = req.server.ctx;
+  // A member invited with "secure sign-in method" must have two-step verification or a passkey before anything else opens.
+  if (user.requireSecureLogin && !(await isTwoFactorEnabled(db, accountId)) && (await countPasskeys(db, accountId)) === 0) return true;
   let hit = policyCache.get(shopId);
   if (!hit || Date.now() - hit.at > 10_000) {
     hit = { at: Date.now(), required: (await getSecuritySettings(db, shopId)).require2fa };

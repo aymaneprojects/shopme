@@ -1,14 +1,18 @@
 import { Badge, Banner, Button, Card, Input, Skeleton, Switch, useToast } from '@shopme/ui';
+import { Fingerprint, Trash2 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { rest } from '../../api';
+import { useAuthMethods } from '../../components/AuthShell';
 import { useFormat } from '../../components/shared';
 import { useI18n } from '../../i18n';
+import { isCancelled, passkeysUsable, registerPasskey } from '../../lib/passkeys';
 import { useSession } from '../../session';
 import { UsersTabs } from './Team';
 
 interface SessionRow { id: string; ip: string | null; userAgent: string; createdAt: string; current: boolean }
-interface Security { twoFactor: { enabled: boolean; recoveryCodesLeft: number }; require2fa: boolean; canManagePolicy: boolean; sessions: SessionRow[] }
+interface PasskeyRow { id: number; name: string; createdAt: string; lastUsedAt: string | null; backedUp: boolean }
+interface Security { twoFactor: { enabled: boolean; recoveryCodesLeft: number }; passkeys: PasskeyRow[]; requireSecureLogin: boolean; require2fa: boolean; canManagePolicy: boolean; sessions: SessionRow[] }
 interface Setup { secret: string; otpauthUri: string; qrSvg: string }
 
 const deviceOf = (ua: string) => {
@@ -87,6 +91,57 @@ function TwoFactorCard({ data, onChange }: { data: Security; onChange: () => voi
   );
 }
 
+/** Passkeys of the account: list, add (the password is asked again) and delete. */
+function PasskeysCard({ data, onChange }: { data: Security; onChange: () => void }) {
+  const { t } = useI18n();
+  const fmt = useFormat();
+  const toast = useToast();
+  const { refresh } = useSession();
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const usable = passkeysUsable(useAuthMethods().data?.passkeys.rpId);
+  const add = useMutation({
+    mutationFn: () => registerPasskey(password, name.trim() || t('security.passkeyNamePlaceholder')),
+    onSuccess: () => { setAdding(false); setName(''); setPassword(''); setError(null); toast(t('security.passkeyAdded')); onChange(); void refresh(); },
+    onError: (e) => { if (!isCancelled(e)) setError(e.message); },
+  });
+  const remove = useMutation({
+    mutationFn: (id: number) => rest(`/auth/passkeys/${id}`, { method: 'DELETE' }),
+    onSuccess: () => { toast(t('security.passkeyDeleted')); onChange(); void refresh(); }, onError: (e) => toast(e.message, 'critical'),
+  });
+  return (
+    <Card title={t('security.passkeys')} actions={<Button size="sm" onClick={() => { setAdding(true); setError(null); }} disabled={adding}><Fingerprint className="size-4" />{t('security.passkeyAdd')}</Button>}>
+      <div className="flex flex-col gap-3">
+        <p className="text-[13px] text-muted">{t('security.passkeysHelp')}</p>
+        {adding && (
+          <form className="flex flex-col gap-3 rounded-md bg-surface p-3" onSubmit={(e) => { e.preventDefault(); add.mutate(); }}>
+            {error && <Banner>{error}</Banner>}
+            <Input label={t('security.passkeyName')} value={name} placeholder={t('security.passkeyNamePlaceholder')} maxLength={60} onChange={(e) => setName(e.target.value)} />
+            <Input label={t('security.passkeyPassword')} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+            <div className="flex gap-2"><Button type="submit" variant="primary" loading={add.isPending}>{t('security.passkeyAdd')}</Button><Button onClick={() => { setAdding(false); setPassword(''); }}>{t('common.cancel')}</Button></div>
+          </form>
+        )}
+        {data.passkeys.length === 0 ? <p className="text-[13px] text-muted">{t('security.passkeyNone')}</p> : (
+          <ul className="divide-y divide-line">
+            {data.passkeys.map((p) => (
+              <li key={p.id} className="flex items-center gap-2 py-2 text-[13px]">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium">{p.name || t('security.passkeys')} {p.backedUp && <Badge tone="info">{t('security.passkeySynced')}</Badge>}</div>
+                  <div className="text-xs text-muted">{t('security.passkeyCreated', { date: fmt.date(p.createdAt) })} · {p.lastUsedAt ? t('security.passkeyLastUsed', { date: fmt.date(p.lastUsedAt) }) : t('security.passkeyNever')}</div>
+                </div>
+                <Button size="sm" variant="danger" icon aria-label={t('security.passkeyDelete', { name: p.name })} loading={remove.isPending && remove.variables === p.id} onClick={() => remove.mutate(p.id)}><Trash2 className="size-4" /></Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {!usable && <p className="text-[13px] text-muted">{t('security.passkeyUnsupported')}</p>}
+      </div>
+    </Card>
+  );
+}
+
 /** Security of the signed-in account: two-step verification, shop policy and active sessions. `forced` is the enrolment-required screen. */
 export function SecuritySettings({ forced = false }: { forced?: boolean }) {
   const { t } = useI18n();
@@ -102,10 +157,11 @@ export function SecuritySettings({ forced = false }: { forced?: boolean }) {
   return (
     <div className="flex flex-col gap-4">
       {!forced && <UsersTabs />}
-      {forced && <Banner>{t('security.setupRequired')}</Banner>}
+      {forced && <Banner>{t(d?.requireSecureLogin ? 'security.secureRequired' : 'security.setupRequired')}</Banner>}
       {q.isLoading && <Skeleton className="h-40" />}
       {q.error && <Banner>{q.error.message}</Banner>}
       {d && <TwoFactorCard data={d} onChange={refetch} />}
+      {d && <PasskeysCard data={d} onChange={refetch} />}
       {d?.canManagePolicy && !forced && (
         <Card title={t('security.require')}>
           <div className="flex flex-col gap-2"><p className="text-[13px] text-muted">{t('security.requireHelp')}</p><Switch checked={d.require2fa} onChange={(v) => policy.mutate(v)} label={t('security.require')} /></div>

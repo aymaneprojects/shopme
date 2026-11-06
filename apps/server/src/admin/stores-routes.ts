@@ -142,7 +142,8 @@ export function registerStoresRoutes(app: FastifyInstance) {
   });
   app.put('/admin/api/platform/settings', async (req, reply) => {
     if (!(await owner(req, reply))) return;
-    const body = z.object({ storeCreation: z.enum(['OWNER', 'EVERYONE']) }).safeParse(req.body);
+    const url = z.string().trim().max(500).optional();
+    const body = z.object({ storeCreation: z.enum(['OWNER', 'EVERYONE']).optional(), helpUrl: url, termsUrl: url, privacyUrl: url }).safeParse(req.body);
     if (!body.success) return reply.code(422).send({ error: 'storeCreation must be OWNER or EVERYONE' });
     return { settings: await updatePlatformConfig(db, body.data) };
   });

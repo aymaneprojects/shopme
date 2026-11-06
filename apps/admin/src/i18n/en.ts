@@ -39,6 +39,7 @@ import { enSubscriptions } from './en-subscriptions';
 import { enThemeUpdate } from './en-theme-update';
 import { enThemeGallery } from './en-theme-gallery';
 import { enMultistore } from './en-multistore';
+import { enAuth } from './en-auth';
 import { enEmail } from './en-email';
 import { enOffsite } from './en-offsite';
 export const en = {
@@ -54,8 +55,8 @@ export const en = {
   'nav.menu': 'Open menu', 'nav.notFound': 'Page not found',
   'shell.search': 'Search', 'shell.searchPlaceholder': 'Search', 'shell.account': 'Account menu', 'cmd.pages': 'Pages', 'cmd.products': 'Products', 'cmd.orders': 'Orders', 'cmd.customers': 'Customers', 'cmd.empty': 'No results', 'cmd.hint': 'Type to search', 'cmd.dismiss': 'Dismiss', 'cmd.settings': 'Settings', 'theme.light': 'Light theme', 'theme.dark': 'Dark theme', 'theme.system': 'Match system', 'shell.logout': 'Log out',
 
-  'login.title': 'Log in', 'login.subtitle': 'Sign in to manage your store.', 'login.submit': 'Log in', 'login.invalid': 'Incorrect email or password.',
-  'setup.title': 'Set up your store', 'setup.subtitle': 'Create the owner account and basic store details.', 'setup.shopName': 'Store name',
+  'login.submit': 'Log in', 'login.invalid': 'Incorrect email or password.',
+  'setup.shopName': 'Store name',
   'setup.currency': 'Currency', 'setup.country': 'Country', 'setup.passwordHelp': 'At least 8 characters.', 'setup.submit': 'Create store',
 
   'soon.title': 'Coming in the next version', 'soon.body': 'This area is not available yet. It is planned for an upcoming release.',
@@ -171,6 +172,7 @@ export const en = {
   ...enMultistore,
   ...enEmail,
   ...enOffsite,
+  ...enAuth,
 } as const;
 
 export type Key = keyof typeof en;

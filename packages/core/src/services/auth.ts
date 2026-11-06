@@ -174,3 +174,9 @@ export async function resolveApiToken(db: Executor, token: string) {
   if (row) await db.update(apiTokens).set({ lastUsedAt: new Date() }).where(eq(apiTokens.id, row.id));
   return row ?? null;
 }
+
+/** Set a new password on an account and sign it out everywhere (its trusted browsers stop matching too, they are bound to the password). */
+export async function setAccountPassword(db: Executor, accountId: number, password: string): Promise<void> {
+  await db.update(platformAccounts).set({ passwordHash: await hashPassword(password), updatedAt: new Date() }).where(eq(platformAccounts.id, accountId));
+  await db.delete(sessions).where(and(eq(sessions.accountId, accountId), eq(sessions.kind, 'staff')));
+}

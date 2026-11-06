@@ -137,6 +137,9 @@ describe('starting theme choice', () => {
     const calls = mockApi((url) => (url.endsWith('/setup/status') ? { needsSetup: true } : url.endsWith('/api/setup') ? { user: { id: 1 }, shop: { id: 1 } } : undefined));
     const user = userEvent.setup();
     wrap('en', <SetupPage />);
+    await user.type(await screen.findByLabelText('Email'), 'me@example.com');
+    await user.type(screen.getByLabelText('Password'), 'long enough pw');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
     const group = await screen.findByRole('group', { name: 'Starting theme' });
     const aurora = within(group).getByRole('radio', { name: /Aurora/ });
     const tea = within(group).getByRole('radio', { name: /Fixture Tea/ });
@@ -145,9 +148,7 @@ describe('starting theme choice', () => {
     await user.click(tea);
     expect(tea).toBeChecked();
     await user.type(screen.getByLabelText(/Store name/), 'My shop');
-    await user.type(screen.getByLabelText('Email'), 'me@example.com');
-    await user.type(screen.getByLabelText('Password'), 'long enough pw');
-    await user.click(screen.getByRole('button', { name: /Create|Set up|Start/i }));
+    await user.click(screen.getByRole('button', { name: /Create store/i }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith('/api/setup') && c.body)).toBe(true));
     expect(calls.find((c) => c.url.endsWith('/api/setup'))!.body).toMatchObject({ shopName: 'My shop', theme: 'fixture-tea' });
   });
@@ -156,6 +157,9 @@ describe('starting theme choice', () => {
     mockApi((url) => (url.endsWith('/setup/status') ? { needsSetup: true } : undefined));
     const user = userEvent.setup();
     wrap('fr', <SetupPage />);
+    await user.type(await screen.findByLabelText('E-mail'), 'me@example.com');
+    await user.type(screen.getByLabelText('Mot de passe'), 'long enough pw');
+    await user.click(screen.getByRole('button', { name: 'Continuer' }));
     const group = await screen.findByRole('group', { name: 'Thème de départ' });
     const teaCard = within(group).getByRole('radio', { name: /Fixture Tea/ }).closest('li') as HTMLElement;
     await user.click(within(teaCard).getByRole('button', { name: 'Aperçu' }));
@@ -169,13 +173,14 @@ describe('starting theme choice', () => {
     const calls = mockApi((url) => (url.endsWith('/setup/status') ? { needsSetup: true } : url.includes('/bundled-themes') ? { themes: [bundled[0]] } : url.endsWith('/api/setup') ? { user: { id: 1 }, shop: { id: 1 } } : undefined));
     const user = userEvent.setup();
     wrap('en', <SetupPage />);
+    await user.type(await screen.findByLabelText('Email'), 'me@example.com');
+    await user.type(screen.getByLabelText('Password'), 'long enough pw');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
     await screen.findByLabelText(/Store name/);
     await waitFor(() => expect(calls.some((c) => c.url.includes('/bundled-themes'))).toBe(true));
     expect(screen.queryByRole('group', { name: 'Starting theme' })).toBeNull();
     await user.type(screen.getByLabelText(/Store name/), 'My shop');
-    await user.type(screen.getByLabelText('Email'), 'me@example.com');
-    await user.type(screen.getByLabelText('Password'), 'long enough pw');
-    await user.click(screen.getByRole('button', { name: /Create|Set up|Start/i }));
+    await user.click(screen.getByRole('button', { name: /Create store/i }));
     await waitFor(() => expect(calls.some((c) => c.url.endsWith('/api/setup') && c.body)).toBe(true));
     expect(calls.find((c) => c.url.endsWith('/api/setup'))!.body).not.toHaveProperty('theme');
   });

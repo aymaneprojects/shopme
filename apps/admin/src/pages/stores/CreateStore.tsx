@@ -1,10 +1,10 @@
-import { Banner, Button, Card, Input, Select } from '@shopme/ui';
+import { Banner, Input, Select } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
-import { Globe, PlusCircle } from 'lucide-react';
+import { Globe, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ApiError, rest } from '../../api';
-import { PageHeader } from '../../components/PageHeader';
+import { AuthShell } from '../../components/AuthShell';
 import { ThemePicker, useBundledThemesRest } from '../../components/ThemeGallery';
 import { LANGS, useI18n } from '../../i18n';
 import type { Lang } from '../../i18n';
@@ -53,31 +53,30 @@ export function CreateStorePage() {
     }
   };
   const problem = check.data && !check.data.available ? t(check.data.code === 'TAKEN' ? 'ms.create.handleTaken' : check.data.code === 'RESERVED' ? 'ms.create.handleReserved' : 'ms.create.handleInvalid') : null;
+  const size = themes.length > 1 ? 'xwide' : 'wide';
   return (
-    <>
-      <PageHeader back="/stores" title={t('ms.createStore')} />
+    <AuthShell variant="signup" size={size} title={t('ms.createStore')} subtitle={t('ms.create.subtitle')}>
       {!allowed && <Banner tone="info">{t('ms.create.denied')}</Banner>}
       {allowed && (
-        <form onSubmit={submit} className="mx-auto flex max-w-xl flex-col gap-4">
+        <form onSubmit={submit} className="flex flex-col gap-5">
           {error && <Banner>{error}</Banner>}
-          <Card>
-            <div className="flex flex-col gap-3">
-              <Input label={t('ms.create.name')} required maxLength={120} autoFocus value={f.shopName} onChange={(e) => setF({ ...f, shopName: e.target.value })} />
-              <div>
-                {customHandle
-                  ? <Input label={t('ms.create.handle')} required maxLength={40} pattern="[a-z0-9](?:[a-z0-9-]*[a-z0-9])?" value={f.handle} onChange={(e) => setF({ ...f, handle: e.target.value.toLowerCase() })} error={problem ?? undefined} help={t('ms.create.handleHelp')} />
-                  : null}
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] text-muted" aria-live="polite">
-                  <Globe className="size-4 shrink-0" aria-hidden />
-                  {check.data?.host ? <span><span className="sr-only">{t('ms.create.address')} </span><span className="font-medium text-fg">{check.data.host}</span></span> : <span>{t('ms.create.addressHint')}</span>}
-                  {!customHandle && problem && <span className="text-critical">{problem}</span>}
-                  {!customHandle && <button type="button" className="text-accent underline" onClick={() => setCustomHandle(true)}>{t('ms.create.editHandle')}</button>}
-                </div>
-                <p className="mt-1 text-xs text-muted">{t('ms.create.handleNote')}</p>
+          <div className="flex flex-col gap-3">
+            <Input label={t('ms.create.name')} required maxLength={120} autoFocus value={f.shopName} onChange={(e) => setF({ ...f, shopName: e.target.value })} />
+            <div>
+              {customHandle
+                ? <Input label={t('ms.create.handle')} required maxLength={40} pattern="[a-z0-9](?:[a-z0-9-]*[a-z0-9])?" value={f.handle} onChange={(e) => setF({ ...f, handle: e.target.value.toLowerCase() })} error={problem ?? undefined} help={t('ms.create.handleHelp')} />
+                : null}
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] text-muted" aria-live="polite">
+                <Globe className="size-4 shrink-0" aria-hidden />
+                {check.data?.host ? <span><span className="sr-only">{t('ms.create.address')} </span><span className="font-medium text-fg">{check.data.host}</span></span> : <span>{t('ms.create.addressHint')}</span>}
+                {!customHandle && problem && <span className="text-critical">{problem}</span>}
+                {!customHandle && <button type="button" className="auth-link" onClick={() => setCustomHandle(true)}>{t('ms.create.editHandle')}</button>}
               </div>
+              <p className="mt-1 text-xs text-muted">{t('ms.create.handleNote')}</p>
             </div>
-          </Card>
-          <Card title={t('ms.create.regional')}>
+          </div>
+          <fieldset className="flex flex-col gap-3">
+            <legend className="mb-2 text-[15px] font-semibold">{t('ms.create.regional')}</legend>
             <div className="grid gap-3 sm:grid-cols-3">
               <Select label={t('setup.country')} value={f.country} onChange={(e) => setF({ ...f, country: e.target.value, currency: COUNTRY_CURRENCY[e.target.value] ?? 'EUR' })}>
                 {countryOptions(lang).map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
@@ -85,15 +84,15 @@ export function CreateStorePage() {
               <Select label={t('setup.currency')} value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select>
               <Select label={t('ms.create.language')} value={f.locale} onChange={(e) => setF({ ...f, locale: e.target.value as Lang })}>{LANGS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}</Select>
             </div>
-            <p className="mt-3 text-[13px] text-muted">{t('ms.create.starter')}</p>
-          </Card>
-          {themes.length > 1 && <Card><ThemePicker themes={themes} value={theme} onChange={setTheme} /></Card>}
-          <div className="flex justify-end gap-2">
-            <a href="/admin/stores" className="btn btn-secondary">{t('common.cancel')}</a>
-            <Button type="submit" variant="primary" loading={busy} disabled={!f.shopName.trim() || !!problem}><PlusCircle className="size-4" />{t('ms.create.submit')}</Button>
+            <p className="text-[13px] text-muted">{t('ms.create.starter')}</p>
+          </fieldset>
+          {themes.length > 1 && <ThemePicker themes={themes} value={theme} onChange={setTheme} />}
+          <div className="flex flex-col gap-2 sm:flex-row-reverse">
+            <button type="submit" disabled={busy || !f.shopName.trim() || !!problem} className="auth-btn auth-btn-dark auth-btn-pill">{busy && <Loader2 className="size-4 animate-spin" aria-hidden />}{t('ms.create.submit')}</button>
+            <a href="/admin/stores" className="auth-btn auth-btn-light sm:max-w-[140px]">{t('common.cancel')}</a>
           </div>
         </form>
       )}
-    </>
+    </AuthShell>
   );
 }

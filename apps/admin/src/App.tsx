@@ -150,6 +150,7 @@ const getStoreRouter = () => (storeRouter ??= createBrowserRouter(
           { path: 'security', element: <SecuritySettings /> },
           { path: 'backup', element: L(() => import('./pages/settings/Backup'), 'BackupSettings') },
           { path: 'users', element: L(() => import('./pages/settings/Team'), 'UsersSettings') },
+          { path: 'users/new', element: L(() => import('./pages/settings/AddUsers'), 'AddUsersPage') },
           { path: 'users/roles', element: L(() => import('./pages/settings/Team'), 'RolesSettings') },
           { path: 'emails', element: L(() => import('./pages/settings/Emails'), 'EmailsSettings') },
           { path: 'notifications', element: L(() => import('./pages/settings/Notifications'), 'NotificationsSettings') },
@@ -176,11 +177,10 @@ const getStoreRouter = () => (storeRouter ??= createBrowserRouter(
 let accountRouter: AppRouter | null = null;
 /** Multi-store, no store open: the account's stores, "Create a store" and the platform owner's area. */
 const getAccountRouter = () => (accountRouter ??= createBrowserRouter(
-  [{
+  [{ path: '/stores/new', element: L(() => import('./pages/stores/CreateStore'), 'CreateStorePage') }, {
     element: <AccountShell />,
     children: [
       { path: '/stores', element: L(() => import('./pages/stores/Stores'), 'StoresPage') },
-      { path: '/stores/new', element: L(() => import('./pages/stores/CreateStore'), 'CreateStorePage') },
       { path: '/platform', element: L(() => import('./pages/stores/Platform'), 'PlatformPage') },
       { path: '*', element: <Navigate to="/stores" replace /> },
     ],

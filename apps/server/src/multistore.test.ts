@@ -10,7 +10,7 @@ import {
   type GraphQLField, type GraphQLInputType,
 } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { authenticateAccount, createAccount, createStaffUser, exportStore, inviteStaff, recordDeliveries, registerCustomer, saveUpload, schema as s, type DbHandle } from '@shopme/core';
+import { authenticateAccount, beginTwoFactorSetup, confirmTwoFactor, totpCode, createAccount, createStaffUser, exportStore, inviteStaff, recordDeliveries, registerCustomer, saveUpload, schema as s, type DbHandle } from '@shopme/core';
 import { schema as gqlSchema } from './admin/graphql/schema';
 import { setTxtResolver } from './admin/stores-routes';
 import { activeShopIds } from './jobs';
@@ -566,5 +566,52 @@ describe('platform owner', () => {
     const handle = (await req({ url: '/admin/api/account/stores/handle?name=Beta%20Shop', cookie: alice })).json();
     expect(handle).toMatchObject({ handle: 'beta-shop-2', available: true, host: 'beta-shop-2.shops.test' });
     expect((await req({ url: '/admin/api/account/stores/handle?handle=admin', cookie: alice })).json().available).toBe(false);
+  });
+});
+
+describe('accepting an invitation with an existing account that has two-step verification', () => {
+  const join = (token: string, payload: Record<string, unknown>, ip: string) =>
+    t.app.inject({ method: 'POST', url: '/admin/api/staff/accept-invite', headers: { host: ADMIN }, remoteAddress: ip, payload: { token, password: 'carol-password', ...payload } });
+  let third = 0;
+  let secret = '';
+
+  it('needs the second factor before the member joins or a session opens', async () => {
+    const made = await req({ method: 'POST', url: '/admin/api/account/stores', cookie: alice, payload: { shopName: 'Third Store', currency: 'EUR', country: 'FR', locale: 'en' } });
+    expect(made.statusCode, made.body).toBe(201);
+    third = (await db.select().from(s.shops).where(eq(s.shops.handle, 'third-store')))[0]!.id;
+    const carolAccount = (await authenticateAccount(db, 'carol@example.com', 'carol-password'))!;
+    const begun = (await beginTwoFactorSetup(db, t.app.ctx.config.sessionSecret, carolAccount.id))!;
+    secret = begun.secret;
+    expect(await confirmTwoFactor(db, t.app.ctx.config.sessionSecret, carolAccount.id, totpCode(secret))).not.toBeNull();
+
+    const inv = await inviteStaff(db, third, { email: 'carol@example.com', role: 'admin' });
+    const token = inv.ok ? inv.value.token : '';
+    // Password only: no session, no membership.
+    const noCode = await join(token, {}, '10.2.0.1');
+    expect(noCode.statusCode).toBe(401);
+    expect(noCode.json()).toMatchObject({ twoFactorRequired: true });
+    expect(noCode.cookies.find((c) => c.name === 'shopme_session')).toBeUndefined();
+    expect((await db.select().from(s.staffUsers).where(eq(s.staffUsers.shopId, third))).find((u) => u.email === 'carol@example.com')?.accountId).toBeNull();
+    // A wrong code does not join either.
+    const bad = await join(token, { code: '000000' }, '10.2.0.1');
+    expect(bad.statusCode).toBe(422);
+    expect(bad.cookies.find((c) => c.name === 'shopme_session')).toBeUndefined();
+    // The right code joins and opens the session.
+    const good = await join(token, { code: totpCode(secret) }, '10.2.0.1');
+    expect(good.statusCode, good.body).toBe(200);
+    expect(good.cookies.find((c) => c.name === 'shopme_session')).toBeDefined();
+  });
+
+  it('limits wrong passwords and wrong codes like a sign-in does', async () => {
+    const inv = await inviteStaff(db, shopA, { email: 'dave@example.com', role: 'staff', permissions: ['orders'] });
+    await createAccount(db, { email: 'dave@example.com', password: 'dave-password' });
+    const token = inv.ok ? inv.value.token : '';
+    const codes: number[] = [];
+    for (let i = 0; i < 12; i++) codes.push((await join(token, { password: 'wrong-password' }, '10.2.0.2')).statusCode);
+    expect(codes.slice(0, 10).every((c) => c === 422)).toBe(true);
+    expect(codes.slice(10)).toEqual([429, 429]);
+    // The correct password is refused too while limited (per invitation and per address).
+    expect((await join(token, { password: 'dave-password' }, '10.2.0.2')).statusCode).toBe(429);
+    expect((await join(token, { password: 'dave-password' }, '10.2.0.3')).statusCode).toBe(429);
   });
 });
