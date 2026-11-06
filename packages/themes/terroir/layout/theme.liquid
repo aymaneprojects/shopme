@@ -49,7 +49,7 @@
         reveal: {{ settings.anim_reveal | default: false | json }},
         cartType: {{ settings.cart_type | default: 'drawer' | json }},
         search: { predictive: {{ settings.search_predictive | default: true | json }} },
-        routes: { cart: {{ routes.cart_url | json }}, cartAdd: '/cart/add.js', cartChange: '/cart/change.js', cartJson: '/cart.js', search: {{ routes.search_url | json }} },
+        routes: { cart: {{ routes.cart_url | json }}, cartAdd: {{ routes.cart_add_url | append: '.js' | json }}, cartChange: {{ routes.cart_change_url | append: '.js' | json }}, cartJson: {{ routes.cart_url | append: '.js' | json }}, search: {{ routes.search_url | json }} },
         strings: {
           added: {{ 'products.added_to_cart' | t | json }}, viewCart: {{ 'products.view_cart' | t | json }}, error: {{ 'general.error' | t | json }},
           soldOut: {{ 'products.sold_out' | t | json }}, addToCart: {{ 'products.add_to_cart' | t | json }}, unavailable: {{ 'products.unavailable' | t | json }}, inStock: {{ 'products.in_stock' | t | json }},

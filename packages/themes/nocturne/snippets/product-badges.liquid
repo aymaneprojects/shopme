@@ -18,8 +18,8 @@
     {%- endif -%}
   {%- elsif product.compare_at_price > product.price and settings.badge_show_sale != false and stock != false -%}
     <li class="badge badge--sale">
-      {%- if settings.badge_sale_percent -%}
-        {%- assign saved = product.compare_at_price | minus: product.price | times: 100 | divided_by: product.compare_at_price -%}
+      {%- if settings.badge_sale_percent and product.price_varies == false -%}
+        {%- assign saved = product.compare_at_price | minus: product.price | times: 100 | divided_by: product.compare_at_price | floor -%}
         -{{ saved }}%
       {%- else -%}
         {{ 'products.sale' | t }}

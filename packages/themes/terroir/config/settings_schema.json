@@ -7,6 +7,9 @@
     "theme_documentation_url": "https://github.com/aymaneprojects/shopme",
     "theme_support_url": "https://github.com/aymaneprojects/shopme/issues",
     "shopme_description": "A warm, earthy theme for fine food, coffee and tea, bakeries and local producers: cream, terracotta and olive, rounded type, textured sections, recipe and origin storytelling and product badges driven by tags.",
+    "shopme_descriptions": {
+      "fr": "Un thème chaleureux et terrien pour l’épicerie fine, le café et le thé, les boulangeries et les producteurs locaux : crème, terracotta et olive, typographie arrondie, sections texturées, recettes et histoires d’origine, badges pilotés par les étiquettes."
+    },
     "shopme_tags": [
       "Food",
       "Coffee",
