@@ -10,6 +10,7 @@ import {
 } from '@shopme/core';
 import { authenticate } from '../plugins/auth';
 import type { AuthInfo } from '../context';
+import { registerOffsiteRoutes } from './offsite-routes';
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024 * 1024;
 const stamp = () => new Date().toISOString().replace(/[:.]/g, '-').replace(/-\d{3}Z$/, 'Z');
@@ -48,7 +49,7 @@ export function registerBackupRoutes(app: FastifyInstance) {
       await rep.finish();
     } catch (e) { await rep.finish(e instanceof Error ? e.message : 'Export failed'); }
   });
-  queue.register<ImportJob>('store.import', async (j) => {
+  const runImport = async (j: ImportJob) => {
     const rep = new JobReporter(db, j.jobId);
     try {
       const r = await importStore(db, app.ctx.storageFor(j.shopId), j.shopId, j.file, { progress: (d, t) => void rep.progress(d, t, 'import') });
@@ -59,7 +60,10 @@ export function registerBackupRoutes(app: FastifyInstance) {
       await rep.finish();
     } catch (e) { await rep.finish(e instanceof Error ? e.message : 'Import failed'); }
     finally { await rm(j.file, { force: true }); }
-  });
+  };
+  queue.register<ImportJob>('store.import', runImport);
+  const storeHasData = async (shopId: number) => (await Promise.all([schema.products, schema.orders, schema.customers].map(async (t) => (await db.select({ n: sql<number>`count(*)::int` }).from(t).where(eq(t.shopId, shopId)))[0]!.n))).some((n) => n > 0);
+  registerOffsiteRoutes(app, { authed, storeHasData, runImport });
 
   const startExport = async (auth: AuthInfo, prefix: 'export' | 'backup') => {
     const jobId = await createJob(db, auth.shopId, `store.${prefix === 'export' ? 'export' : 'backup'}`);
@@ -134,8 +138,7 @@ export function registerBackupRoutes(app: FastifyInstance) {
       await pipeline(part.file, createWriteStream(file));
       if (part.file.truncated) { await rm(file, { force: true }); return reply.code(413).send({ error: 'File too large' }); }
       const confirm = (part.fields.confirm as { value?: unknown } | undefined)?.value;
-      const counts = await Promise.all([schema.products, schema.orders, schema.customers].map(async (t) => (await db.select({ n: sql<number>`count(*)::int` }).from(t).where(eq(t.shopId, auth.shopId)))[0]!.n));
-      if (counts.some((n) => n > 0) && confirm !== 'replace') {
+      if ((await storeHasData(auth.shopId)) && confirm !== 'replace') {
         await rm(file, { force: true });
         return reply.code(409).send({ error: 'This store already has products, orders or customers. Importing replaces them: send confirm=replace to continue.', needsConfirm: true });
       }

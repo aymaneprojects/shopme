@@ -21,6 +21,10 @@ const schema = z.object({
   PUBLIC_IP: opt(z.string().regex(/^[0-9a-fA-F:.,\s]+$/, 'must be an IP address, or an IPv4 and an IPv6 address separated by a comma')),
   /** Allow SMTP relay hosts and MX hosts on private or loopback addresses (development only). */
   EMAIL_ALLOW_PRIVATE_HOSTS: z.preprocess(emptyToUndef, z.enum(['true', 'false']).default('false')),
+  /** Allow off-site backup endpoints on private or loopback addresses (a MinIO on the local network). */
+  BACKUP_ALLOW_PRIVATE_ENDPOINTS: z.preprocess(emptyToUndef, z.enum(['true', 'false']).default('false')),
+  /** `pg_dump` binary used for the database dump of off-site backups (default: `pg_dump` from the PATH, when there is one). */
+  PG_DUMP_PATH: opt(z.string()),
   STRIPE_SECRET_KEY: opt(z.string()),
   STRIPE_PUBLISHABLE_KEY: opt(z.string()),
   STRIPE_WEBHOOK_SECRET: opt(z.string()),
@@ -55,6 +59,10 @@ export interface AppConfig {
   publicIp?: string;
   /** `EMAIL_ALLOW_PRIVATE_HOSTS=true`: relay and MX hosts may be private or loopback addresses. */
   emailAllowPrivateHosts: boolean;
+  /** `BACKUP_ALLOW_PRIVATE_ENDPOINTS=true`: off-site backup endpoints may be private or loopback addresses. */
+  backupAllowPrivateEndpoints: boolean;
+  /** `PG_DUMP_PATH`: the `pg_dump` binary for database dumps (undefined: look for `pg_dump` on the PATH). */
+  pgDumpPath?: string;
   stripe: { secretKey?: string; publishableKey?: string; webhookSecret?: string };
   trustedOrigins: string[];
   trustProxy: boolean;
@@ -104,6 +112,8 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     mailFrom: e.MAIL_FROM ?? 'ShopMe <no-reply@localhost>',
     publicIp: e.PUBLIC_IP,
     emailAllowPrivateHosts: e.EMAIL_ALLOW_PRIVATE_HOSTS === 'true',
+    backupAllowPrivateEndpoints: e.BACKUP_ALLOW_PRIVATE_ENDPOINTS === 'true',
+    pgDumpPath: e.PG_DUMP_PATH,
     stripe: { secretKey: e.STRIPE_SECRET_KEY, publishableKey: e.STRIPE_PUBLISHABLE_KEY, webhookSecret: e.STRIPE_WEBHOOK_SECRET },
     trustedOrigins: (e.TRUSTED_ORIGINS ?? '').split(',').map((s) => s.trim()).filter(Boolean),
     trustProxy: e.TRUST_PROXY === 'true',

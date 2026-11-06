@@ -43,9 +43,13 @@ fichier `.env` placé à côté de `docker-compose.yml` :
 | `SESSION_SECRET` | Facultatif ; généré et conservé dans le volume de données s'il est vide. |
 | `SMTP_URL` | Relais SMTP facultatif de toute l'installation. Sans lui, les boutiques envoient directement depuis le serveur (voir [Envoi d'e-mails](email.fr.md)). |
 | `PUBLIC_IP` | IP publique du serveur pour les enregistrements DNS des e-mails, facultative, quand elle ne peut pas être détectée. |
+| `BACKUP_ALLOW_PRIVATE_ENDPOINTS` | Facultatif ; `true` autorise un bucket de sauvegarde hors site sur une adresse privée (un MinIO local). |
+| `PG_DUMP_PATH` | Facultatif : exécutable `pg_dump` pour l'export de la base des sauvegardes hors site. |
 | `STRIPE_*` | Clés Stripe (quand le paiement sera disponible). |
 
 Les e-mails de commande, d'expédition et de mot de passe ont besoin de trois lignes DNS chez votre fournisseur de domaine pour arriver en boîte de réception : Réglages > E-mails les affiche. Voir [Envoi d'e-mails](email.fr.md).
+
+Des sauvegardes qui survivent à la perte du serveur : Réglages > Sauvegarde peut envoyer chaque sauvegarde programmée, chiffrée si vous le souhaitez, vers un bucket compatible S3 (Backblaze B2, Scaleway, OVHcloud, Wasabi, Cloudflare R2, Amazon S3, MinIO). Voir [Sauvegardes hors site](backups.fr.md).
 
 Un récepteur d'e-mails local est disponible avec `docker compose --profile dev up -d` (`SMTP_URL=smtp://mailpit:1025`,
 interface sur le port 8025).

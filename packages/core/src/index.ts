@@ -7,3 +7,4 @@ export * from './queue';
 export * from './email';
 export * from './services';
 export * from './seed-demo';
+export * from './offsite';

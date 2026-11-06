@@ -28,7 +28,11 @@ export function registerJobs(ctx: AppContext): () => void {
     for (const id of ids) {
       try {
         const name = await runScheduledBackup(ctx.db, ctx.storageFor(id), id, ctx.stores.dataDirFor(id), ctx.appVersion);
-        if (name) await recordBackupResult(ctx.db, id, { ok: true, name });
+        if (name) {
+          await recordBackupResult(ctx.db, id, { ok: true, name });
+          // Off-site copy: its own failures are kept on the destination's history and retried, they never fail the local backup.
+          await ctx.offsite.afterScheduledBackup(id, name).catch((e) => ctx.log.warn(`Off-site backup: ${e instanceof Error ? e.message.slice(0, 200) : 'failed'}`));
+        }
       } catch (e) {
         await recordBackupResult(ctx.db, id, { ok: false, error: e instanceof Error ? e.message.slice(0, 300) : 'Backup failed' });
         failed ??= e;
@@ -39,6 +43,8 @@ export function registerJobs(ctx: AppContext): () => void {
   ctx.queue.register('store.auto-backup', backup);
   ctx.queue.every('auto-backup', 3600_000, backup);
   if (ctx.config.env !== 'test') ctx.queue.enqueue('store.auto-backup', {}, { delayMs: 90_000, maxAttempts: 1 });
+  // Off-site backups: retries that are due, interrupted uploads, and the daily platform backup.
+  if (ctx.config.env !== 'test') ctx.queue.every('offsite-backup-sweep', 60_000, async () => { await ctx.offsite.sweep(); });
   registerBulkJobs(ctx, schema);
   // E-mail: delivery of queued messages, the retry clock, re-checks of DNS records, and the cleanup of old outbox rows.
   ctx.queue.register<{ id: number }>('email.deliver', async (j) => { await ctx.email.deliver(j.id); });

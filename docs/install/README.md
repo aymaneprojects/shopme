@@ -43,9 +43,13 @@ and health checks; migrations run when the app starts. Configure through a `.env
 | `SESSION_SECRET` | Optional; generated and stored in the data volume when empty. |
 | `SMTP_URL` | Optional installation-wide SMTP relay. Without it, stores send directly from the server (see [Sending e-mail](email.md)). |
 | `PUBLIC_IP` | Optional public IP of the server for the e-mail DNS records, when it cannot be detected. |
+| `BACKUP_ALLOW_PRIVATE_ENDPOINTS` | Optional; `true` lets the off-site backup bucket be on a private address (a local MinIO). |
+| `PG_DUMP_PATH` | Optional `pg_dump` binary for the database dump of off-site backups. |
 | `STRIPE_*` | Stripe keys (when checkout is available). |
 
 Order, shipping and password e-mails need three DNS lines at your domain provider to reach the inbox: Settings > E-mails shows them. See [Sending e-mail](email.md).
+
+Backups that survive the loss of the server: Settings > Backup can send every scheduled backup, encrypted if you wish, to an S3-compatible bucket (Backblaze B2, Scaleway, OVHcloud, Wasabi, Cloudflare R2, Amazon S3, MinIO). See [Off-site backups](backups.md).
 
 A local mail catcher is available with `docker compose --profile dev up -d` (set `SMTP_URL=smtp://mailpit:1025`, UI on port 8025).
 

@@ -5,26 +5,10 @@ import { useRef, useState } from 'react';
 import { ApiError, apiUrl, rest } from '../../api';
 import { useFormat } from '../../components/shared';
 import { useI18n } from '../../i18n';
+import { JobBar, mb, useStoreJob } from '../../lib/storeJob';
+import { OffsiteAlertBanner, OffsiteCard } from '../../components/OffsiteBackup';
 
-interface StoreJob { id: number; status: string; done: boolean; error: string | null; result: { progress?: { processed: number; total: number | null }; details?: { file?: string; bytes?: number } } | null }
 interface Backups { settings: { enabled: boolean; intervalHours: number; keep: number }; directory: string; backups: Array<{ name: string; bytes: number; createdAt: string }> }
-
-const mb = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} kB`);
-
-/** Polls a store job until it is done. */
-function useStoreJob(id: number | null) {
-  return useQuery({
-    queryKey: ['store-job', id], enabled: id !== null, gcTime: 0,
-    queryFn: async () => (await rest<{ job: StoreJob }>(`/store/jobs/${id}`)).job,
-    refetchInterval: (q) => (q.state.data?.done || q.state.error ? false : 700),
-  });
-}
-
-function JobBar({ job }: { job?: StoreJob }) {
-  const p = job?.result?.progress;
-  const pct = p?.total ? Math.round((p.processed / p.total) * 100) : 5;
-  return <div role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} className="h-2 overflow-hidden rounded-full bg-line"><div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} /></div>;
-}
 
 function ExportCard() {
   const { t } = useI18n();
@@ -145,8 +129,10 @@ export function BackupSettings() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-[13px] text-muted">{t('backup.intro')}</p>
+      <OffsiteAlertBanner />
       <ExportCard />
       <AutoCard />
+      <OffsiteCard scope="store" />
       <ImportCard />
     </div>
   );

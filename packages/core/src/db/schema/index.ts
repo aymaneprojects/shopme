@@ -23,3 +23,4 @@ export * from './analytics';
 export * from './subscriptions';
 export * from './multistore';
 export * from './email';
+export * from './offsite';

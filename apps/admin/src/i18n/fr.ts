@@ -42,6 +42,7 @@ import { frThemeGallery } from './fr-theme-gallery';
 
 import { frMultistore } from './fr-multistore';
 import { frEmail } from './fr-email';
+import { frOffsite } from './fr-offsite';
 export const fr: Record<Key, string> = {
   'common.back': 'Retour', 'common.cancel': 'Annuler', 'common.close': 'Fermer', 'common.delete': 'Supprimer', 'common.loading': 'Chargement…',
   'common.moreActions': 'Autres actions', 'common.next': 'Suivant', 'common.previous': 'Précédent', 'common.remove': 'Retirer',
@@ -171,4 +172,5 @@ export const fr: Record<Key, string> = {
   ...frFidelity,
   ...frMultistore,
   ...frEmail,
+  ...frOffsite,
 };

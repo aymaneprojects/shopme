@@ -120,6 +120,7 @@ lancement). Voir [docs/install/desktop.fr.md](docs/install/desktop.fr.md).
 
 [docs/install](docs/install/README.fr.md) couvre Docker Compose sur un VPS avec HTTPS via Caddy, les sauvegardes, les
 restaurations et les mises à jour.
+[docs/install/backups.fr.md](docs/install/backups.fr.md) couvre les sauvegardes hors site : bucket compatible S3, chiffrement, rotation et restauration.
 [docs/install/email.fr.md](docs/install/email.fr.md) couvre les e-mails : envoi depuis votre propre serveur avec DKIM, les trois lignes DNS, ou un relais SMTP.
 [docs/install/multi-store.fr.md](docs/install/multi-store.fr.md) couvre le mode multi-boutique : DNS générique, domaines
 propres, Caddy avec certificats à la demande et sauvegardes par boutique.

@@ -1,5 +1,5 @@
 import type { FastifyBaseLogger } from 'fastify';
-import type { Account, AppConfig, Db, DbHandle, JobQueue, Mailer, Storage, StaffUser } from '@shopme/core';
+import type { Account, AppConfig, Db, DbHandle, JobQueue, Mailer, OffsiteBackups, Storage, StaffUser } from '@shopme/core';
 import type { LocaleCache } from './locale-cache';
 import type { ServerPaths } from './paths';
 import type { StoreRegistry } from './stores';
@@ -14,6 +14,8 @@ export interface AppContext {
   mailer: Mailer;
   /** Sending settings, DKIM, checks and the outbox (direct delivery or relay). `mailer` is its front door. */
   email: EmailService;
+  /** Off-site backups: destinations, uploads, retention, listing and restore. */
+  offsite: OffsiteBackups;
   /** The storage root. Store code uses `storageFor(shopId)` (the store's own folder in multi-store mode). */
   storage: Storage;
   storageFor(shopId: number): Storage;
