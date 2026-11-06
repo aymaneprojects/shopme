@@ -71,7 +71,7 @@ export function IndexTable<T>({ rows, rowId, columns, loading, selected, onSelec
                       { key: 'none', label: deselectLabel, onSelect: () => onSelectedChange!([]) },
                     ]} />
                     {inline.map((a) => a.menu
-                      ? <Dropdown key={a.key} variant="secondary" size="sm" className="chip" chevron trigger={a.label} menuClassName="min-w-48" items={a.menu.map((m) => ({ key: m.key, label: m.label, icon: m.icon, disabled: m.disabled, danger: m.danger, separatorBefore: m.separatorBefore, onSelect: () => m.onRun(selected!) }))} />
+                      ? <Dropdown key={a.key} variant="secondary" size="sm" className="chip" disabled={a.disabled} chevron trigger={a.label} menuClassName="min-w-48" items={a.menu.map((m) => ({ key: m.key, label: m.label, icon: m.icon, disabled: m.disabled, danger: m.danger, separatorBefore: m.separatorBefore, onSelect: () => m.onRun(selected!) }))} />
                       : <Button key={a.key} size="sm" variant="secondary" disabled={a.disabled} className={cx('chip', a.danger && 'text-critical')} onClick={() => a.onRun(selected!)}>{a.label}</Button>)}
                     {overflow.length > 0 && (
                       <Dropdown variant="secondary" size="sm" icon className="chip" label={moreLabel} trigger={<MoreHorizontal className="size-4" />} menuClassName="min-w-56"
@@ -107,7 +107,18 @@ export function IndexTable<T>({ rows, rowId, columns, loading, selected, onSelec
               const id = rowId(row);
               const on = !!selected?.includes(id);
               return (
-                <tr key={id} data-click={onRowClick ? 'true' : undefined} data-selected={on ? 'true' : undefined} className={cx('min-h-11 border-b border-line last:border-0', onRowClick && 'cursor-pointer')} onClick={() => onRowClick?.(row)}>
+                <tr key={id} data-click={onRowClick ? 'true' : undefined} data-selected={on ? 'true' : undefined} className={cx('min-h-11 border-b border-line last:border-0', onRowClick && 'cursor-pointer focus-visible:bg-surface')}
+                  tabIndex={onRowClick ? 0 : undefined}
+                  onClick={(e) => {
+                    // Cell controls own their actions; clicking one must not also open the row.
+                    if (e.defaultPrevented || (e.target as Element).closest('a, button, input, select, textarea, label, summary, [role="button"], [role="link"], [contenteditable="true"]')) return;
+                    onRowClick?.(row);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!onRowClick || e.target !== e.currentTarget || e.defaultPrevented || (e.key !== 'Enter' && e.key !== ' ')) return;
+                    e.preventDefault();
+                    onRowClick(row);
+                  }}>
                   {selectable && (
                     <td className="w-10 px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
                       <Checkbox aria-label={id} checked={on} onChange={() => toggle(id)} />

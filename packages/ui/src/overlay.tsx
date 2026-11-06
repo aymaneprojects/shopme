@@ -7,6 +7,7 @@ import type { ButtonProps } from './basics';
 /** Modal built on the native <dialog> element (focus trap, Escape, inert backdrop). Fades and scales in. */
 export function Modal({ open, onClose, title, children, footer, footerStart, closeLabel = 'Close', wide, medium, xl, plain }: { /** Mid-size dialog (about 32rem). */ medium?: boolean; /** Large dialog (about 64rem), e.g. an image preview. */ xl?: boolean; open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; /** Left-aligned footer content, e.g. a selected count. */ footerStart?: ReactNode; closeLabel?: string; wide?: boolean; /** Compact dialog without divider lines (confirmations). */ plain?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -15,13 +16,13 @@ export function Modal({ open, onClose, title, children, footer, footerStart, clo
   }, [open]);
   return (
     <dialog
-      ref={ref} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}
+      ref={ref} aria-labelledby={titleId} onClose={onClose} onClick={(e) => e.target === ref.current && onClose()}
       className={cx('modal m-auto w-[calc(100%-2rem)] rounded-xl border-0 bg-canvas p-0 text-fg shadow-pop', xl ? 'max-w-5xl' : wide ? 'max-w-2xl' : medium ? 'max-w-lg' : 'max-w-md')}
     >
       {open && (
         <div className="flex max-h-[85vh] flex-col">
           <header className={cx('flex items-center justify-between px-4 py-3', !plain && 'border-b border-line')}>
-            <h2 className="text-[13px] font-semibold">{title}</h2>
+            <h2 id={titleId} className="text-[13px] font-semibold">{title}</h2>
             <Button variant="plain" size="sm" icon aria-label={closeLabel} onClick={onClose} className="btn-neutral"><X className="size-4" /></Button>
           </header>
           <div className={cx('overflow-y-auto p-4', plain && 'pt-1')}>{children}</div>
