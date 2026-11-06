@@ -18,5 +18,5 @@ const { url, close } = await startServer({ port: 0, dataDir: '/path/to/data' });
 ```
 
 Paths (migrations, admin build, default theme) are resolved relative to the package, never `process.cwd()`;
-override with the `paths` option or `MIGRATIONS_DIR`, `ADMIN_DIST_DIR`, `THEME_DEFAULT_DIR`.
+override with the `paths` option or `MIGRATIONS_DIR`, `ADMIN_DIST_DIR`, `THEME_DEFAULT_DIR`, `THEMES_DIR`, `THEME_PREVIEWS_DIR`.
 See [docs/dev/foundation.md](../../docs/dev/foundation.md).

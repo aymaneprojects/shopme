@@ -23,7 +23,7 @@ store itself (no third-party requests). They are free software under the SIL Ope
 
 The version is `theme_version` in `config/settings_schema.json`. Shops keep the Aurora they installed; when ShopMe ships a newer
 version, Online Store > Themes offers "Update theme", which creates a new unpublished copy with the merchant's settings, templates,
-section groups, edited texts and own files carried over (see `docs/spec/theme-format.md`, section 14).
+section groups, edited texts and own files carried over (see `docs/spec/theme-format.md`, section 14). Other bundled themes live in `packages/themes` (see its README).
 
 - `changelog.json`: what changed in each version, in English and French, shown as "What's new". Add an entry with every version bump.
 - `checksums.json`: the MD5 of every file Aurora has shipped, to tell merchant edits apart in themes installed before ShopMe

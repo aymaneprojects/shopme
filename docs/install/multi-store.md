@@ -37,7 +37,7 @@ TRUST_PROXY=true
 
 Restart. On a new installation the setup wizard creates the first account (the platform owner) and its first store.
 Further stores come from "Create a store" in the account menu: name (the handle and address are previewed), country,
-currency and language. The new store gets the Aurora theme and the starter menus, and its creator becomes its owner.
+currency, language and starting theme (one of the bundled themes, Aurora by default). The new store gets that theme, published, and the starter menus, and its creator becomes its owner.
 Other people get an account when a store owner invites them (Settings > Users); an invited person who already has an
 account joins with that account by typing its password.
 

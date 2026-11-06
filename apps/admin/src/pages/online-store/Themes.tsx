@@ -8,8 +8,9 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { apiUrl, gql, mutate, upload, UserErrors } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
 import { gidToNum } from '../../format';
-import { THEMES, THEME_DELETE, THEME_DUPLICATE, THEME_PUBLISH, THEME_UPDATE, THEME_UPDATE_TO_BUNDLED } from '../../graphql';
-import { useT } from '../../i18n';
+import { BUNDLED_THEMES, THEMES, THEME_DELETE, THEME_DUPLICATE, THEME_INSTALL_BUNDLED, THEME_PUBLISH, THEME_UPDATE, THEME_UPDATE_TO_BUNDLED } from '../../graphql';
+import { ThemeGalleryCard, ThemePreviewDialog, type BundledThemeCard } from '../../components/ThemeGallery';
+import { useI18n, useT } from '../../i18n';
 import type { Key } from '../../i18n';
 import { ThemeUpdateDialog, ThemeUpdateResultDialog, type BundledThemeStatus, type ThemeUpdateResult } from './ThemeUpdate';
 import { useStorefrontUrl } from '../../lib/storefront-url';
@@ -85,7 +86,7 @@ function ThemeCard({ theme, live, busy, onAction }: { theme: Theme; live: boolea
 }
 
 export function ThemesPage() {
-  const t = useT();
+  const { t, lang } = useI18n();
   const nav = useNavigate();
   const toast = useToast();
   const qc = useQueryClient();
@@ -101,6 +102,16 @@ export function ThemesPage() {
   const remove = useMutation({ mutationFn: (id: string) => mutate(THEME_DELETE, { id }, 'themeDelete'), onSuccess: () => done('themes.deleted'), onError: fail });
   const send = useMutation({ mutationFn: (f: File) => upload('/themes/upload', f), onSuccess: () => done('themes.uploaded'), onError: fail });
   const [updated, setUpdated] = useState<ThemeUpdateResult | null>(null);
+  const [preview, setPreview] = useState<BundledThemeCard | null>(null);
+  const free = useQuery({ queryKey: ['bundled-themes', lang], staleTime: 60_000, queryFn: () => gql<{ shopmeBundledThemes?: BundledThemeCard[] }>(BUNDLED_THEMES, { locale: lang }) });
+  const add = useMutation({
+    mutationFn: (th: BundledThemeCard) => mutate(THEME_INSTALL_BUNDLED, { handle: th.handle }, 'shopmeThemeInstallBundled').then(() => th),
+    onSuccess: (th) => { toast(t('themes.free.added', { name: th.name })); setPreview(null); void qc.invalidateQueries({ queryKey: ['themes'] }); },
+    onError: (e: Error) => {
+      const code = e instanceof UserErrors ? (e.errors[0] as { code?: string } | undefined)?.code : undefined;
+      toast(code === 'NOT_FOUND' ? t('themes.free.notFound') : e.message, 'critical');
+    },
+  });
   const update = useMutation({
     mutationFn: (id: string) => mutate<ThemeUpdateResult>(THEME_UPDATE_TO_BUNDLED, { id }, 'shopmeThemeUpdateToBundled'),
     onSuccess: (r) => { setDialog(null); setUpdated(r); void qc.invalidateQueries({ queryKey: ['themes'] }); },
@@ -115,6 +126,8 @@ export function ThemesPage() {
   const themes = q.data?.themes.nodes ?? [];
   const current = themes.find((x) => x.role === 'MAIN') ?? themes[0];
   const others = themes.filter((x) => x !== current);
+  const inLibrary = new Set(themes.map((x) => x.shopmeBundledTheme?.handle).filter(Boolean));
+  const gallery = free.data?.shopmeBundledThemes ?? [];
   const act = (a: Action, th: Theme) => {
     if (a === 'customize') nav(`/online-store/themes/${gidToNum(th.id)}/editor`);
     else if (a === 'publish') publish.mutate(th.id);
@@ -141,6 +154,17 @@ export function ThemesPage() {
         <section aria-labelledby="th-library"><h2 id="th-library" className="mb-2 text-[13px] font-semibold">{t('themes.library')}</h2>
           <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{others.map((th) => <ThemeCard key={th.id} theme={th} live={false} busy={publish.isPending && publish.variables === th.id} onAction={act} />)}</ul></section>
       )}
+      {gallery.length > 0 && (
+        <section aria-labelledby="th-free"><h2 id="th-free" className="text-[13px] font-semibold">{t('themes.free.title')}</h2>
+          <p className="mb-2 text-[13px] text-muted">{t('themes.free.intro')}</p>
+          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {gallery.map((th) => <ThemeGalleryCard key={th.handle} theme={th} installed={inLibrary.has(th.handle)} busy={add.isPending && add.variables?.handle === th.handle} onAdd={() => add.mutate(th)} onPreview={() => setPreview(th)} />)}
+          </ul></section>
+      )}
+      <ThemePreviewDialog theme={preview} onClose={() => setPreview(null)}
+        footer={preview && (inLibrary.has(preview.handle)
+          ? <Badge tone="success">{t('themes.free.inLibrary')}</Badge>
+          : <Button variant="primary" loading={add.isPending} onClick={() => add.mutate(preview)}>{t('themes.free.add')}</Button>)} />
       <Modal open={dialog?.kind === 'rename' || dialog?.kind === 'duplicate'} onClose={() => setDialog(null)} closeLabel={t('common.close')} title={t(dialog?.kind === 'duplicate' ? 'themes.duplicate' : 'themes.rename')}
         footer={<><Button onClick={() => setDialog(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={rename.isPending || duplicate.isPending} onClick={submit}>{t('save.save')}</Button></>}>
         <Input label={t('themes.name')} value={name} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} />

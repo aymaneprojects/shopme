@@ -38,6 +38,7 @@ import { frPostage } from './fr-postage';
 import { frLiveMap } from './fr-live-map';
 import { frAccountPages } from './fr-account-pages';
 import { frThemeUpdate } from './fr-theme-update';
+import { frThemeGallery } from './fr-theme-gallery';
 
 import { frMultistore } from './fr-multistore';
 export const fr: Record<Key, string> = {
@@ -165,6 +166,7 @@ export const fr: Record<Key, string> = {
   ...frAccountPages,
   ...frSubscriptions,
   ...frThemeUpdate,
+  ...frThemeGallery,
   ...frFidelity,
   ...frMultistore,
 };

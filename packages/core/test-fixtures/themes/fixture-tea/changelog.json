@@ -1,0 +1,13 @@
+{
+  "about": "What changed in each version of Fixture Tea. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": ["First version."],
+        "fr": ["Première version."]
+      }
+    }
+  ]
+}

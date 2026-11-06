@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { ApiError, rest } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
+import { ThemePicker, useBundledThemesRest } from '../../components/ThemeGallery';
 import { LANGS, useI18n } from '../../i18n';
 import type { Lang } from '../../i18n';
 import { CURRENCIES, countryOptions } from '../../lib/countries';
@@ -28,6 +29,8 @@ export function CreateStorePage() {
   const allowed = state.status === 'account' && state.multi.canCreateStores;
   const [f, setF] = useState({ shopName: '', handle: '', country: lang === 'fr' ? 'FR' : 'US', currency: lang === 'fr' ? 'EUR' : 'USD', locale: lang as Lang });
   const [customHandle, setCustomHandle] = useState(false);
+  const [theme, setTheme] = useState('aurora');
+  const themes = useBundledThemesRest().data?.themes ?? [];
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const name = useDebounced(f.shopName.trim(), 250);
@@ -42,7 +45,7 @@ export function CreateStorePage() {
     e.preventDefault();
     setBusy(true); setError(null);
     try {
-      const r = await rest<{ store: { adminPath: string } }>('/account/stores', { body: { shopName: f.shopName.trim(), handle: f.handle.trim().toLowerCase() || undefined, country: f.country, currency: f.currency, locale: f.locale, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone } });
+      const r = await rest<{ store: { adminPath: string } }>('/account/stores', { body: { shopName: f.shopName.trim(), handle: f.handle.trim().toLowerCase() || undefined, country: f.country, currency: f.currency, locale: f.locale, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, ...(themes.length > 1 && { theme }) } });
       window.location.assign(r.store.adminPath);
     } catch (err) {
       setError(err instanceof ApiError && err.status === 403 ? t('ms.create.denied') : err instanceof Error ? err.message : String(err));
@@ -84,6 +87,7 @@ export function CreateStorePage() {
             </div>
             <p className="mt-3 text-[13px] text-muted">{t('ms.create.starter')}</p>
           </Card>
+          {themes.length > 1 && <Card><ThemePicker themes={themes} value={theme} onChange={setTheme} /></Card>}
           <div className="flex justify-end gap-2">
             <a href="/admin/stores" className="btn btn-secondary">{t('common.cancel')}</a>
             <Button type="submit" variant="primary" loading={busy} disabled={!f.shopName.trim() || !!problem}><PlusCircle className="size-4" />{t('ms.create.submit')}</Button>

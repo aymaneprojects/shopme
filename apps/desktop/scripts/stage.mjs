@@ -87,5 +87,11 @@ cpSync(path.join(repo, 'packages/theme-default'), path.join(res, 'theme'), {
   recursive: true,
   filter: (src) => !/[\\/](node_modules|src|tsconfig\.json)$/.test(src),
 });
+// The other bundled themes (packages/themes/<handle>/) and their preview images (packages/themes/previews/).
+mkdirSync(path.join(res, 'themes'), { recursive: true });
+cpSync(path.join(repo, 'packages/themes'), path.join(res, 'themes'), {
+  recursive: true,
+  filter: (src) => !/[\\/]node_modules$/.test(src),
+});
 cpSync(path.join(root, 'build', 'icon.png'), path.join(res, 'icon.png'));
 console.log('staged', stage);

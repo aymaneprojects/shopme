@@ -37,6 +37,7 @@ import { enLiveMap } from './en-live-map';
 import { enAccountPages } from './en-account-pages';
 import { enSubscriptions } from './en-subscriptions';
 import { enThemeUpdate } from './en-theme-update';
+import { enThemeGallery } from './en-theme-gallery';
 import { enMultistore } from './en-multistore';
 export const en = {
   'common.back': 'Back', 'common.cancel': 'Cancel', 'common.close': 'Close', 'common.delete': 'Delete', 'common.loading': 'Loading…',
@@ -163,6 +164,7 @@ export const en = {
   ...enAccountPages,
   ...enSubscriptions,
   ...enThemeUpdate,
+  ...enThemeGallery,
   ...enFidelity,
   ...enMultistore,
 } as const;

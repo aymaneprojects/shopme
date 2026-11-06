@@ -24,6 +24,7 @@ import { registerStorefront } from './storefront';
 import { registerWebhooks } from './webhooks';
 import { installHostRouting, registerTlsAsk, StoreRegistry } from './stores';
 import { registerStoresRoutes } from './admin/stores-routes';
+import { registerThemeRoutes } from './admin/themes-routes';
 import { createPlatformMailer } from './mailer';
 import { installStoreAccessCheck } from './plugins/auth';
 
@@ -102,6 +103,7 @@ export async function buildApp(opts: BuildAppOptions): Promise<FastifyInstance> 
 
   registerAuthRoutes(app);
   registerStoresRoutes(app);
+  registerThemeRoutes(app);
   registerTwoFactorRoutes(app);
   registerReportRoutes(app);
   registerLabelRoutes(app);
