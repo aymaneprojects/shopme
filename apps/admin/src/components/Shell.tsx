@@ -1,6 +1,6 @@
 import { Banner, Dropdown, Skeleton, cx, useToast } from '@shopme/ui';
 import { BarChart3, Rocket, Gift, Repeat, ShoppingBasket, Home, Menu, Percent, Search, Settings, ShoppingCart, Store, Tag, Users, Warehouse, FolderTree, FilePlus2, ArrowLeft, FileText, Copy, ExternalLink, MoreHorizontal, PanelLeft, ClipboardList, ArrowLeftRight, Boxes, Building2, Activity, Globe, BookOpen, Megaphone, Truck, ChevronRight } from 'lucide-react';
-import { Fragment, Suspense, useEffect, useState } from 'react';
+import { Fragment, Suspense, useEffect, useRef, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { gql } from '../api';
@@ -233,8 +233,21 @@ export function Shell() {
   const { t } = useI18n();
   const { pathname } = useLocation();
   const [open, setOpen] = useState(false);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const menuClose = useRef<HTMLButtonElement>(null);
+  const closeMenu = () => { setOpen(false); menuTrigger.current?.focus(); };
+  useEffect(() => { if (open) menuClose.current?.focus(); }, [open]);
   const [palette, setPalette] = useState(false);
-  const [collapsed, setCollapsedState] = useState(readCollapsed);
+  const [sidebarCollapsed, setCollapsedState] = useState(readCollapsed);
+  const [desktop, setDesktop] = useState(() => typeof matchMedia !== 'function' || matchMedia('(min-width: 768px)').matches);
+  const collapsed = desktop && sidebarCollapsed;
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const media = window.matchMedia('(min-width: 768px)');
+    const update = () => { setDesktop(media.matches); setOpen(false); };
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
   const setCollapsed = (v: boolean) => { setCollapsedState(v); try { localStorage.setItem(COLLAPSE_KEY, v ? '1' : '0'); } catch { /* storage unavailable */ } };
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
@@ -258,18 +271,22 @@ export function Shell() {
   const inSettings = pathname.startsWith('/settings');
   const mac = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.platform);
   return (
-    <div className="flex h-screen flex-col bg-frame text-frame-text" style={collapsed ? ({ '--w-sidebar': '3.5rem' } as React.CSSProperties) : inSettings ? ({ '--w-sidebar': '16rem' } as React.CSSProperties) : undefined}>
+    <div className="flex h-dvh flex-col bg-frame text-frame-text md:grid md:grid-cols-[var(--w-sidebar)_minmax(0,1fr)] md:grid-rows-[3rem_minmax(0,1fr)]" style={collapsed ? ({ '--w-sidebar': '3.5rem' } as React.CSSProperties) : inSettings ? ({ '--w-sidebar': '16rem' } as React.CSSProperties) : undefined}>
       <RouteProgress />
       <header className="flex h-12 shrink-0 items-center gap-2 px-3">
-        <button type="button" className="btn btn-plain btn-icon !text-frame-text hover:!bg-frame-hover md:hidden" aria-label={t('nav.menu')} onClick={() => setOpen(true)}><Menu className="size-5" /></button>
-        <div className="flex items-center gap-2">
+        <button ref={menuTrigger} type="button" className="btn btn-plain btn-icon !text-frame-text hover:!bg-frame-hover md:hidden" aria-label={t('nav.menu')} aria-expanded={open} aria-controls="admin-sidebar" onClick={() => setOpen(true)}><Menu className="size-5" /></button>
+        <div className={cx('flex items-center gap-2', collapsed && 'md:hidden')}>
           <Logo className="size-6" />
           <span className="hidden text-[13px] font-semibold text-white sm:inline">ShopMe</span>
         </div>
         <button type="button" className="btn btn-plain btn-icon !hidden !text-frame-text hover:!bg-frame-hover md:!inline-flex" aria-label={collapsed ? t('shell.expand') : t('shell.collapse')} aria-pressed={collapsed} onClick={() => setCollapsed(!collapsed)}><PanelLeft className="size-[18px]" /></button>
               </header>
-      <div className="flex min-h-0 flex-1">
-        <aside className={cx('fixed inset-y-0 left-0 z-40 flex w-[var(--w-sidebar)] flex-col bg-frame px-2 pb-3 pt-14 transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 md:pt-1', open ? 'translate-x-0' : '-translate-x-full')}>
+      <div className="flex min-h-0 flex-1 md:contents">
+        <aside id="admin-sidebar" onKeyDown={(e) => { if (open && e.key === 'Escape' && !e.defaultPrevented) { e.preventDefault(); closeMenu(); } }} className={cx('fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-frame px-2 pb-3 pt-14 transition-[transform,visibility] duration-200 ease-out md:static md:col-start-1 md:row-start-2 md:z-auto md:min-h-0 md:w-[var(--w-sidebar)] md:translate-x-0 md:pt-1', open ? 'translate-x-0' : '-translate-x-full max-md:invisible')}>
+          <div className="absolute inset-x-3 top-3 flex items-center justify-between md:hidden">
+            <div className="flex items-center gap-2"><Logo className="size-6" /><span className="font-semibold text-white">ShopMe</span></div>
+            <button ref={menuClose} type="button" aria-label={t('common.close')} onClick={closeMenu} className="btn btn-plain btn-icon !text-frame-text hover:!bg-frame-hover"><span aria-hidden className="text-xl leading-none">×</span></button>
+          </div>
           {!inSettings && <button type="button" onClick={() => { setOpen(false); setPalette(true); }} aria-label={t('shell.search')} aria-keyshortcuts="Control+K Meta+K" title={collapsed ? t('shell.search') : undefined}
             className={cx('mb-2 flex h-8 w-full items-center gap-2 rounded-lg bg-white/10 px-2.5 text-[13px] text-frame-muted shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] hover:bg-white/15', collapsed && 'justify-center px-0')}>
             <Search className="size-4 shrink-0" />
@@ -278,8 +295,8 @@ export function Shell() {
           {inSettings ? <SettingsNavLinks onNavigate={() => setOpen(false)} collapsed={collapsed} /> : <NavLinks onNavigate={() => setOpen(false)} collapsed={collapsed} />}
           <AccountMenu collapsed={collapsed} userBlock={inSettings} />
         </aside>
-        {open && <div className="anim-fade fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setOpen(false)} aria-hidden />}
-        <div className="mb-1 mr-1 min-w-0 flex-1 overflow-y-auto rounded-xl bg-page text-fg max-md:mx-1 md:ml-0" id="sheet">
+        {open && <div className="anim-fade fixed inset-0 z-30 bg-black/50 md:hidden" onClick={closeMenu} aria-hidden />}
+        <div className="mb-1 mr-1 min-h-0 min-w-0 flex-1 overflow-y-auto rounded-xl bg-page text-fg max-md:mx-1 md:col-start-2 md:row-start-1 md:row-span-2 md:ml-0 md:mt-1" id="sheet">
           <main className={cx('mx-auto w-full p-4 md:px-5 md:py-5', WIDE_ROUTE.test(pathname) ? 'max-w-none md:px-3 md:py-3' : 'max-w-[1100px]')}>
             <SuspendedBanner />
             <div key={pathname.split('/').slice(0, 2).join('/')} className="anim-view"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></div>

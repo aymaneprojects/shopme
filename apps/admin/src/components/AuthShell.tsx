@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { ChevronDown } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { rest } from '../api';
 import { LANGS, useI18n } from '../i18n';
@@ -26,9 +27,12 @@ export function AuthShell({ variant = 'login', title, subtitle, size, children }
     <div className="auth-page">
       <header className="flex items-center justify-between px-4 pt-6 sm:px-10 sm:pt-10">
         <div className="flex items-center gap-2.5 text-lg font-semibold text-white"><Logo className="size-8" /><span>ShopMe</span></div>
-        <select aria-label={t('auth.language')} value={lang} onChange={(e) => setLang(e.target.value as 'en' | 'fr')} className="rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[13px] text-white [&>option]:text-black">
+        <div className="relative">
+        <select aria-label={t('auth.language')} value={lang} onChange={(e) => setLang(e.target.value as 'en' | 'fr')} className="auth-language">
           {LANGS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
         </select>
+        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2" aria-hidden />
+        </div>
       </header>
       <main className="flex flex-1 flex-col items-center justify-center px-4 py-8">
         {signup && (
