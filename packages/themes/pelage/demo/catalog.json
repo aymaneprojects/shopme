@@ -1,0 +1,656 @@
+{
+  "storeName": "Pelage",
+  "currency": "EUR",
+  "menu": [
+    {
+      "title": {
+        "en": "Shop all",
+        "fr": "Tout voir"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Dogs",
+        "fr": "Chiens"
+      },
+      "url": "/collections/dogs"
+    },
+    {
+      "title": {
+        "en": "Cats",
+        "fr": "Chats"
+      },
+      "url": "/collections/cats"
+    },
+    {
+      "title": {
+        "en": "Bowls and food",
+        "fr": "Gamelles et nourriture"
+      },
+      "url": "/collections/bowls-and-food"
+    }
+  ],
+  "footerMenu": [
+    {
+      "title": {
+        "en": "Shop all",
+        "fr": "Tout voir"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Vet approved",
+        "fr": "Validé par des vétérinaires"
+      },
+      "url": "/pages/vet-approved"
+    },
+    {
+      "title": {
+        "en": "Search",
+        "fr": "Recherche"
+      },
+      "url": "/search"
+    }
+  ],
+  "pages": [
+    {
+      "handle": "vet-approved",
+      "title": {
+        "en": "Vet approved",
+        "fr": "Validé par des vétérinaires"
+      },
+      "template": "vet-approved"
+    }
+  ],
+  "collections": [
+    {
+      "handle": "dogs",
+      "title": {
+        "en": "Dogs",
+        "fr": "Chiens"
+      },
+      "description": {
+        "en": "Beds, leads and toys that stand up to enthusiasm.",
+        "fr": "Paniers, laisses et jouets qui résistent à l’enthousiasme."
+      },
+      "products": [
+        "dog-bed",
+        "leather-lead",
+        "rope-toy"
+      ]
+    },
+    {
+      "handle": "cats",
+      "title": {
+        "en": "Cats",
+        "fr": "Chats"
+      },
+      "description": {
+        "en": "Somewhere to climb, scratch and sleep.",
+        "fr": "Un endroit pour grimper, griffer et dormir."
+      },
+      "products": [
+        "cat-tree"
+      ]
+    },
+    {
+      "handle": "bowls-and-food",
+      "title": {
+        "en": "Bowls and food",
+        "fr": "Gamelles et nourriture"
+      },
+      "description": {
+        "en": "Heavy bowls and food they will finish.",
+        "fr": "Des gamelles lourdes et une nourriture qu’ils finiront."
+      },
+      "products": [
+        "ceramic-bowl",
+        "grain-free-kibble"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "handle": "dog-bed",
+      "image": "produit-01.webp",
+      "extraImages": [
+        "ambiance.webp"
+      ],
+      "vendor": "Pelage",
+      "type": {
+        "en": "Beds",
+        "fr": "Paniers"
+      },
+      "tags": [
+        "dogs",
+        "bed",
+        "new"
+      ],
+      "title": {
+        "en": "Washable Dog Bed",
+        "fr": "Panier lavable pour chien"
+      },
+      "description": {
+        "en": "A deep, supportive bed with a removable cover in tough woven fabric. The cover goes in the washing machine and the base keeps its shape.",
+        "fr": "Un panier profond et enveloppant avec une housse amovible en tissu tissé résistant. La housse passe en machine et la base garde sa forme."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            "M",
+            "L"
+          ]
+        },
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Sage",
+              "fr": "Sauge"
+            },
+            {
+              "en": "Oat",
+              "fr": "Avoine"
+            }
+          ]
+        }
+      ],
+      "price": 79,
+      "variants": [
+        {
+          "stock": 12
+        },
+        {
+          "stock": 7
+        },
+        {
+          "stock": 9
+        },
+        {
+          "stock": 4
+        }
+      ]
+    },
+    {
+      "handle": "ceramic-bowl",
+      "image": "produit-02.webp",
+      "vendor": "Pelage",
+      "type": {
+        "en": "Bowls",
+        "fr": "Gamelles"
+      },
+      "tags": [
+        "bowl",
+        "dogs",
+        "cats"
+      ],
+      "title": {
+        "en": "Ceramic Bowl",
+        "fr": "Gamelle en céramique"
+      },
+      "description": {
+        "en": "A heavy glazed bowl that does not slide across the floor. Dishwasher safe, with a wide base and a gently sloped inside.",
+        "fr": "Une gamelle lourde et émaillée qui ne glisse pas sur le sol. Passe au lave-vaisselle, base large et intérieur légèrement incliné."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            {
+              "en": "Small",
+              "fr": "Petit"
+            },
+            {
+              "en": "Large",
+              "fr": "Grand"
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Ochre",
+              "fr": "Ocre"
+            },
+            {
+              "en": "Sage",
+              "fr": "Sauge"
+            }
+          ]
+        }
+      ],
+      "price": 22,
+      "compareAt": 27,
+      "variants": [
+        {
+          "stock": 30
+        },
+        {
+          "stock": 15
+        },
+        {
+          "stock": 22
+        },
+        {
+          "stock": 6
+        }
+      ]
+    },
+    {
+      "handle": "leather-lead",
+      "image": "produit-03.webp",
+      "vendor": "Pelage",
+      "type": {
+        "en": "Leads",
+        "fr": "Laisses"
+      },
+      "tags": [
+        "dogs",
+        "lead",
+        "leather"
+      ],
+      "title": {
+        "en": "Leather Lead",
+        "fr": "Laisse en cuir"
+      },
+      "description": {
+        "en": "A soft vegetable-tanned leather lead that gets better with use. Solid brass clip and a comfortable loop handle.",
+        "fr": "Une laisse en cuir tanné végétal qui s’assouplit à l’usage. Mousqueton en laiton massif et poignée confortable."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Length",
+            "fr": "Longueur"
+          },
+          "values": [
+            "1,2 m",
+            "1,8 m"
+          ]
+        },
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Tan",
+              "fr": "Fauve"
+            },
+            {
+              "en": "Charcoal",
+              "fr": "Anthracite"
+            }
+          ]
+        }
+      ],
+      "price": 34,
+      "variants": [
+        {
+          "stock": 14
+        },
+        {
+          "stock": 9
+        },
+        {
+          "stock": 11
+        },
+        {
+          "stock": 5
+        }
+      ]
+    },
+    {
+      "handle": "rope-toy",
+      "image": "produit-04.webp",
+      "vendor": "Pelage",
+      "type": {
+        "en": "Toys",
+        "fr": "Jouets"
+      },
+      "tags": [
+        "dogs",
+        "toy"
+      ],
+      "title": {
+        "en": "Rope Toy",
+        "fr": "Jouet en corde"
+      },
+      "description": {
+        "en": "A knotted cotton rope for tugging and chewing. Strong, washable and kind to teeth and gums.",
+        "fr": "Une corde en coton nouée pour tirer et mâchouiller. Solide, lavable et douce pour les dents et les gencives."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            {
+              "en": "Small",
+              "fr": "Petit"
+            },
+            {
+              "en": "Large",
+              "fr": "Grand"
+            }
+          ]
+        }
+      ],
+      "price": 12,
+      "variants": [
+        {
+          "stock": 40
+        },
+        {
+          "stock": 25
+        }
+      ]
+    },
+    {
+      "handle": "cat-tree",
+      "image": "produit-05.webp",
+      "vendor": "Pelage",
+      "type": {
+        "en": "Cat furniture",
+        "fr": "Mobilier pour chats"
+      },
+      "tags": [
+        "cats",
+        "furniture"
+      ],
+      "title": {
+        "en": "Compact Cat Tree",
+        "fr": "Arbre à chat compact"
+      },
+      "description": {
+        "en": "A small cat tree for small homes with two sisal posts, a cosy cave and a top perch. Stable, with a wide base.",
+        "fr": "Un petit arbre à chat pour les petits logements avec deux poteaux en sisal, une niche douillette et un perchoir. Stable, base large."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Oat",
+              "fr": "Avoine"
+            },
+            {
+              "en": "Sage",
+              "fr": "Sauge"
+            }
+          ]
+        }
+      ],
+      "price": 89,
+      "compareAt": 109,
+      "variants": [
+        {
+          "stock": 8
+        },
+        {
+          "stock": 5
+        }
+      ]
+    },
+    {
+      "handle": "grain-free-kibble",
+      "image": "produit-06.webp",
+      "vendor": "Pelage",
+      "type": {
+        "en": "Food",
+        "fr": "Nourriture"
+      },
+      "tags": [
+        "food",
+        "dogs",
+        "refill"
+      ],
+      "title": {
+        "en": "Grain-Free Kibble",
+        "fr": "Croquettes sans céréales"
+      },
+      "description": {
+        "en": "A complete grain-free kibble with chicken and sweet potato, made with a vet nutritionist. Available as a one-off bag or on subscription.",
+        "fr": "Des croquettes complètes sans céréales au poulet et à la patate douce, conçues avec un vétérinaire nutritionniste. En sachet ponctuel ou par abonnement."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Bag",
+            "fr": "Sachet"
+          },
+          "values": [
+            "2 kg",
+            "7 kg"
+          ]
+        }
+      ],
+      "price": 29,
+      "variants": [
+        {
+          "stock": 36
+        },
+        {
+          "stock": 18
+        }
+      ]
+    }
+  ],
+  "homepage": {
+    "en": {
+      "hero": {
+        "eyebrow": "For pets and the people they own",
+        "heading": "Good things for good dogs and cats",
+        "text": "Sturdy beds, honest food and toys that survive a Tuesday. Chosen with vets, tested by our own pets.",
+        "button_label": "Shop all",
+        "button_2_label": "Shop by pet"
+      },
+      "hero.chip-1": {
+        "text": "Vet approved"
+      },
+      "hero.chip-2": {
+        "text": "Natural materials"
+      },
+      "hero.chip-3": {
+        "text": "Refills on repeat"
+      },
+      "pets": {
+        "eyebrow": "Shop by pet",
+        "heading": "Who are we shopping for?"
+      },
+      "pets.pet-1": {
+        "title": "For dogs",
+        "text": "Beds, leads, bowls and tough toys."
+      },
+      "pets.pet-2": {
+        "title": "For cats",
+        "text": "Climb, scratch, nap, repeat."
+      },
+      "favourites": {
+        "eyebrow": "Pet favourites",
+        "heading": "Treats for the whole household",
+        "text": "The things our customers reorder most."
+      },
+      "refill": {
+        "eyebrow": "Never run out",
+        "heading": "Dinner on repeat, delivered on time",
+        "text": "Pick the rhythm that matches how fast your pet eats. Change it, skip a box or stop any time.",
+        "button_label": "Choose a delivery rhythm"
+      },
+      "refill.perk-1": {
+        "text": "Save on every delivery"
+      },
+      "refill.perk-2": {
+        "text": "Free delivery on refills"
+      },
+      "refill.perk-3": {
+        "text": "Skip, pause or cancel any time"
+      },
+      "vet": {
+        "eyebrow": "Vet approved",
+        "heading": "Chosen with people who know animals",
+        "text": "<p>Every food, bed and toy is reviewed by a vet before it joins the shop. We look at ingredients, stitching, stuffing and what happens when a puppy gets hold of it.</p>",
+        "button_label": "Our standards"
+      },
+      "reviews": {
+        "heading": "Said by owners"
+      },
+      "reviews.testimonial-1": {
+        "quote": "The bed is thick and washable and our old lab finally sleeps through the night.",
+        "detail": "Washable dog bed"
+      },
+      "reviews.testimonial-2": {
+        "quote": "The cat tree is small enough for our flat and she has claimed every level already.",
+        "detail": "Compact cat tree"
+      },
+      "reviews.testimonial-3": {
+        "quote": "The kibble subscription arrives every five weeks and I have not thought about it since.",
+        "detail": "Grain-free kibble"
+      },
+      "faq": {
+        "heading": "Before you order"
+      },
+      "faq.row-1": {
+        "question": "How do I change my refill rhythm?",
+        "answer": "<p>Open your account, pick the subscription and choose a new rhythm. You can also skip the next delivery or stop it.</p>"
+      },
+      "faq.row-2": {
+        "question": "How do I choose the right bed size?",
+        "answer": "<p>Measure your dog from nose to base of tail while they sleep stretched out, then add 10 cm.</p>"
+      },
+      "faq.row-3": {
+        "question": "Can I return opened food?",
+        "answer": "<p>If your pet will not eat it, tell us within 14 days and we refund the bag, opened or not.</p>"
+      },
+      "newsletter": {
+        "heading": "Pet post",
+        "text": "New arrivals, care tips and 10% off your first order.",
+        "button_label": "Subscribe"
+      }
+    },
+    "fr": {
+      "hero": {
+        "eyebrow": "Pour les animaux et leurs humains",
+        "heading": "De bonnes choses pour les bons chiens et chats",
+        "text": "Des paniers solides, une nourriture honnête et des jouets qui survivent à un mardi. Choisis avec des vétérinaires, testés par nos propres animaux.",
+        "button_label": "Tout voir",
+        "button_2_label": "Par animal"
+      },
+      "hero.chip-1": {
+        "text": "Validé par des vétérinaires"
+      },
+      "hero.chip-2": {
+        "text": "Matières naturelles"
+      },
+      "hero.chip-3": {
+        "text": "Réassort récurrent"
+      },
+      "pets": {
+        "eyebrow": "Par animal",
+        "heading": "Pour qui faisons-nous les courses ?"
+      },
+      "pets.pet-1": {
+        "title": "Pour chiens",
+        "text": "Paniers, laisses, gamelles et jouets solides."
+      },
+      "pets.pet-2": {
+        "title": "Pour chats",
+        "text": "Grimper, griffer, dormir, recommencer."
+      },
+      "favourites": {
+        "eyebrow": "Les préférés",
+        "heading": "Des gâteries pour toute la maison",
+        "text": "Ce que nos clients recommandent le plus."
+      },
+      "refill": {
+        "eyebrow": "Jamais à court",
+        "heading": "Le dîner en boucle, livré à l’heure",
+        "text": "Choisissez le rythme qui correspond à l’appétit de votre animal. Changez-le, sautez un colis ou arrêtez à tout moment.",
+        "button_label": "Choisir un rythme de livraison"
+      },
+      "refill.perk-1": {
+        "text": "Économisez à chaque livraison"
+      },
+      "refill.perk-2": {
+        "text": "Livraison offerte sur les réassorts"
+      },
+      "refill.perk-3": {
+        "text": "Sautez, suspendez ou annulez à tout moment"
+      },
+      "vet": {
+        "eyebrow": "Validé par des vétérinaires",
+        "heading": "Choisi avec ceux qui connaissent les animaux",
+        "text": "<p>Chaque aliment, panier et jouet est examiné par un vétérinaire avant d’entrer en boutique. Nous regardons les ingrédients, les coutures, le rembourrage et ce qui se passe quand un chiot s’en empare.</p>",
+        "button_label": "Nos exigences"
+      },
+      "reviews": {
+        "heading": "Dit par les propriétaires"
+      },
+      "reviews.testimonial-1": {
+        "quote": "Le panier est épais et lavable, et notre vieux labrador dort enfin toute la nuit.",
+        "detail": "Panier lavable pour chien"
+      },
+      "reviews.testimonial-2": {
+        "quote": "L’arbre à chat est assez petit pour notre appartement et elle a déjà adopté tous les niveaux.",
+        "detail": "Arbre à chat compact"
+      },
+      "reviews.testimonial-3": {
+        "quote": "Les croquettes arrivent toutes les cinq semaines et je n’y ai plus pensé depuis.",
+        "detail": "Croquettes sans céréales"
+      },
+      "faq": {
+        "heading": "Avant de commander"
+      },
+      "faq.row-1": {
+        "question": "Comment changer le rythme de mon réassort ?",
+        "answer": "<p>Ouvrez votre compte, choisissez l’abonnement et sélectionnez un nouveau rythme. Vous pouvez aussi sauter la prochaine livraison ou l’arrêter.</p>"
+      },
+      "faq.row-2": {
+        "question": "Comment choisir la bonne taille de panier ?",
+        "answer": "<p>Mesurez votre chien du nez à la base de la queue quand il dort allongé, puis ajoutez 10 cm.</p>"
+      },
+      "faq.row-3": {
+        "question": "Puis-je retourner de la nourriture ouverte ?",
+        "answer": "<p>Si votre animal n’en veut pas, prévenez-nous sous 14 jours et nous remboursons le sachet, ouvert ou non.</p>"
+      },
+      "newsletter": {
+        "heading": "Courrier des animaux",
+        "text": "Nouveautés, conseils de soin et 10 % sur votre première commande.",
+        "button_label": "S’abonner"
+      }
+    },
+    "images": {
+      "hero": {
+        "image": "hero.webp"
+      },
+      "vet": {
+        "image": "ambiance.webp"
+      },
+      "pets.pet-2": {
+        "image": "ambiance.webp"
+      }
+    }
+  }
+}

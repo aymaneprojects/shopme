@@ -1,0 +1,28 @@
+{%- doc -%}
+  Product gallery as a column of large photos (two columns on wide screens, the first photo spans both). The information column stays in view beside it.
+  @param {product} product
+  @param {object} first_image
+  @param {string} first_alt
+  @param {string} first_focal
+  @param {boolean} show_badge
+{%- enddoc -%}
+<div class="k-gallery k-gallery--stack" role="group" aria-label="{{ 'accessibility.gallery' | t }}">
+  {%- if product.images.size > 0 -%}
+    <ul class="k-gallery__stack" role="list">
+      {%- for image in product.images -%}
+        {%- assign focal = '' -%}
+        {%- if image.presentation.focal_point != blank -%}{%- assign focal = 'object-position: ' | append: image.presentation.focal_point -%}{%- endif -%}
+        <li class="k-gallery__shot" data-gallery-image data-src="{{ image | image_url: width: 1200 }}">
+          {%- if forloop.first -%}
+            {{ image | image_url: width: 1400 | image_tag: loading: 'eager', widths: '600, 900, 1400', sizes: '(min-width: 990px) 56vw, 100vw', alt: image.alt | default: product.title, style: focal }}
+            {%- if show_badge and product.compare_at_price > product.price -%}<span class="k-badge k-badge--sale k-badge--top-left">{{ 'products.sale' | t }}</span>{%- endif -%}
+          {%- else -%}
+            {{ image | image_url: width: 1000 | image_tag: loading: 'lazy', widths: '500, 800, 1000', sizes: '(min-width: 990px) 28vw, 100vw', alt: image.alt | default: product.title, style: focal }}
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+    </ul>
+  {%- else -%}
+    <div class="k-gallery__main" data-main-image>{{ 'product-1' | placeholder_svg_tag: 'k-gallery__placeholder' }}</div>
+  {%- endif -%}
+</div>

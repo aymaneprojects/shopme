@@ -1,0 +1,175 @@
+{%- assign s = section.settings -%}
+{%- assign date_format = 'general.date_format' | t -%}
+<div class="page-width section-pad customer {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="section-head">
+    <h1 class="page-title">{%- if s.heading != blank -%}{{ s.heading | escape }}{%- else -%}{{ 'customer.account_page.title' | t }}{%- endif -%}</h1>
+    <a class="link-arrow" href="{{ routes.account_logout_url }}">{{ 'customer.logout' | t }}</a>
+  </div>
+  {%- if s.text != blank -%}<div class="rte customer__intro">{{ s.text }}</div>{%- endif -%}
+
+  <div class="customer__layout{% if s.details_position == 'below' %} customer__layout--stacked{% endif %}">
+    <section aria-labelledby="orders-title">
+      <h2 id="orders-title">{{ 'customer.account_page.order_history' | t }}</h2>
+      {%- if customer.orders_count == 0 -%}
+        <p class="empty">{{ 'customer.account_page.no_orders' | t }}</p>
+      {%- else -%}
+        {%- paginate customer.orders by s.orders_per_page -%}
+          <table class="customer__table">
+            <thead>
+              <tr>
+                <th scope="col">{{ 'customer.account_page.order' | t }}</th>
+                <th scope="col">{{ 'customer.account_page.date' | t }}</th>
+                <th scope="col">{{ 'customer.account_page.payment_status' | t }}</th>
+                <th scope="col">{{ 'customer.account_page.fulfillment_status' | t }}</th>
+                <th scope="col" class="customer__num">{{ 'customer.account_page.total' | t }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {%- for order in customer.orders -%}
+                <tr>
+                  <th scope="row"><a href="{{ order.customer_url }}">{{ order.name }}</a></th>
+                  <td>{{ order.created_at | date: date_format }}</td>
+                  <td>{{ order.financial_status_label }}</td>
+                  <td>{{ order.fulfillment_status_label }}</td>
+                  <td class="customer__num">{{ order.total_price | money }}</td>
+                </tr>
+              {%- endfor -%}
+            </tbody>
+          </table>
+          {% render 'pagination', paginate: paginate %}
+        {%- endpaginate -%}
+      {%- endif -%}
+
+      {%- if customer.subscription_contracts.size > 0 -%}
+        <h2 id="subscriptions" class="customer__subtitle">{{ 'customer.subscriptions.title' | t }}</h2>
+        <ul class="subscriptions" role="list">
+          {%- for sub in customer.subscription_contracts -%}
+            <li class="subscription subscription--{{ sub.status }}">
+              <div class="subscription__head">
+                <strong>{{ sub.name }}</strong>
+                <span class="subscription__status">{{ 'customer.subscriptions.statuses.' | append: sub.status | t }}</span>
+                <span class="subscription__frequency">{{ 'customer.subscriptions.frequency.' | append: sub.billing_interval | t: count: sub.billing_interval_count }}</span>
+              </div>
+              <ul class="subscription__lines" role="list">
+                {%- for line in sub.lines -%}
+                  <li>{{ line.title | escape }}{% if line.variant_title %} - {{ line.variant_title | escape }}{% endif %} &times; {{ line.quantity }}{% if line.selling_plan_name %} <span class="subscription__plan">({{ line.selling_plan_name | escape }})</span>{% endif %}</li>
+                {%- endfor -%}
+              </ul>
+              {%- if sub.next_billing_date -%}
+                {%- assign next_date = sub.next_billing_date | date: date_format -%}
+                {%- assign next_total = sub.total | money -%}
+                <p class="subscription__next">{{ 'customer.subscriptions.next_order' | t: date: next_date, total: next_total }}</p>
+              {%- endif -%}
+              <div class="subscription__actions">
+                {%- if sub.can_skip -%}
+                  <form method="post" action="{{ sub.skip_url }}"><button type="submit" class="button button--outline button--small">{{ 'customer.subscriptions.skip' | t }}</button></form>
+                {%- endif -%}
+                {%- if sub.can_pause -%}
+                  <form method="post" action="{{ sub.pause_url }}"><button type="submit" class="button button--outline button--small">{{ 'customer.subscriptions.pause' | t }}</button></form>
+                {%- endif -%}
+                {%- if sub.can_resume -%}
+                  <form method="post" action="{{ sub.resume_url }}"><button type="submit" class="button button--small">{{ 'customer.subscriptions.resume' | t }}</button></form>
+                {%- endif -%}
+                {%- if sub.can_cancel -%}
+                  {%- assign cancel_confirm = 'customer.subscriptions.cancel_confirm' | t -%}
+                  <form method="post" action="{{ sub.cancel_url }}" data-confirm="{{ cancel_confirm | escape }}"><button type="submit" class="button button--outline button--small subscription__cancel">{{ 'customer.subscriptions.cancel' | t }}</button></form>
+                {%- endif -%}
+              </div>
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </section>
+
+    <aside aria-labelledby="details-title">
+      {%- if s.show_store_credit and customer.store_credit_account -%}
+        <div class="customer__credit">
+          <h2>{{ 'customer.account_page.store_credit' | t }}</h2>
+          <p><strong>{{ customer.store_credit_account.balance | money }}</strong></p>
+        </div>
+      {%- endif -%}
+      <h2 id="details-title">{{ 'customer.account_page.details' | t }}</h2>
+      <p><strong>{{ customer.name | escape }}</strong><br>{{ customer.email | escape }}</p>
+      {%- if s.show_default_address and customer.default_address -%}
+        <h3>{{ 'customer.account_page.default_address' | t }}</h3>
+        <p>{{ customer.default_address.name | escape }}<br>
+          {{ customer.default_address.street | escape }}<br>
+          {{ customer.default_address.zip | escape }} {{ customer.default_address.city | escape }}<br>
+          {{ customer.default_address.country | escape }}</p>
+      {%- endif -%}
+      <a class="button button--outline button--small" href="{{ routes.account_addresses_url }}">{{ 'customer.account_page.view_addresses' | t: count: customer.addresses_count }}</a>
+    </aside>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_account.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.customer.headers.content"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.customer.settings.heading",
+      "info": "t:sections.customer.info.heading"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:sections.customer.settings.text"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_store_credit",
+      "label": "t:sections.customer.settings.show_store_credit",
+      "info": "t:sections.customer.info.show_store_credit",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_default_address",
+      "label": "t:sections.customer.settings.show_default_address",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.customer.headers.layout"
+    },
+    {
+      "type": "range",
+      "id": "orders_per_page",
+      "label": "t:sections.customer.settings.orders_per_page",
+      "min": 5,
+      "max": 50,
+      "step": 5,
+      "default": 10
+    },
+    {
+      "type": "select",
+      "id": "details_position",
+      "label": "t:sections.customer.settings.details_position",
+      "default": "side",
+      "options": [
+        {
+          "value": "side",
+          "label": "t:sections.customer.options.details_position.side"
+        },
+        {
+          "value": "below",
+          "label": "t:sections.customer.options.details_position.below"
+        }
+      ]
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ]
+}
+{% endschema %}

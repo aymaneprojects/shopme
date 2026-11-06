@@ -1,0 +1,239 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "chip-1": {
+          "type": "chip",
+          "settings": {
+            "icon": "heart",
+            "text": "Vet approved"
+          }
+        },
+        "chip-2": {
+          "type": "chip",
+          "settings": {
+            "icon": "leaf",
+            "text": "Natural materials"
+          }
+        },
+        "chip-3": {
+          "type": "chip",
+          "settings": {
+            "icon": "refresh",
+            "text": "Refills on repeat"
+          }
+        }
+      },
+      "block_order": [
+        "chip-1",
+        "chip-2",
+        "chip-3"
+      ],
+      "settings": {
+        "layout": "split",
+        "color_scheme": "scheme-2",
+        "eyebrow": "For pets and the people they own",
+        "heading": "Good things for good dogs and cats",
+        "text": "Sturdy beds, honest food and toys that survive a Tuesday. Chosen with vets, tested by our own pets.",
+        "button_label": "Shop all",
+        "button_link": "/collections/all",
+        "button_2_label": "Shop by pet",
+        "button_2_link": "/collections"
+      }
+    },
+    "pets": {
+      "type": "pet-tiles",
+      "blocks": {
+        "pet-1": {
+          "type": "pet",
+          "settings": {
+            "title": "For dogs",
+            "text": "Beds, leads, bowls and tough toys.",
+            "link": "/collections/dogs",
+            "product": "dog-bed"
+          }
+        },
+        "pet-2": {
+          "type": "pet",
+          "settings": {
+            "title": "For cats",
+            "text": "Climb, scratch, nap, repeat.",
+            "link": "/collections/cats",
+            "product": "cat-tree"
+          }
+        }
+      },
+      "block_order": [
+        "pet-1",
+        "pet-2"
+      ],
+      "settings": {
+        "eyebrow": "Shop by pet",
+        "heading": "Who are we shopping for?",
+        "color_scheme": ""
+      }
+    },
+    "favourites": {
+      "type": "featured-collection",
+      "settings": {
+        "eyebrow": "Pet favourites",
+        "heading": "Treats for the whole household",
+        "text": "The things our customers reorder most.",
+        "collection": "all",
+        "products_to_show": 6,
+        "columns": "3",
+        "show_view_all": true,
+        "color_scheme": "scheme-1"
+      }
+    },
+    "refill": {
+      "type": "refill-highlight",
+      "blocks": {
+        "perk-1": {
+          "type": "perk",
+          "settings": {
+            "icon": "tag",
+            "text": "Save on every delivery"
+          }
+        },
+        "perk-2": {
+          "type": "perk",
+          "settings": {
+            "icon": "truck",
+            "text": "Free delivery on refills"
+          }
+        },
+        "perk-3": {
+          "type": "perk",
+          "settings": {
+            "icon": "clock",
+            "text": "Skip, pause or cancel any time"
+          }
+        }
+      },
+      "block_order": [
+        "perk-1",
+        "perk-2",
+        "perk-3"
+      ],
+      "settings": {
+        "eyebrow": "Never run out",
+        "heading": "Dinner on repeat, delivered on time",
+        "text": "Pick the rhythm that matches how fast your pet eats. Change it, skip a box or stop any time.",
+        "product": "grain-free-kibble",
+        "button_label": "Choose a delivery rhythm",
+        "color_scheme": "scheme-3"
+      }
+    },
+    "vet": {
+      "type": "image-with-text",
+      "settings": {
+        "layout": "right",
+        "color_scheme": "scheme-1",
+        "eyebrow": "Vet approved",
+        "heading": "Chosen with people who know animals",
+        "text": "<p>Every food, bed and toy is reviewed by a vet before it joins the shop. We look at ingredients, stitching, stuffing and what happens when a puppy gets hold of it.</p>",
+        "button_label": "Our standards",
+        "button_link": "/pages/vet-approved",
+        "product": "rope-toy"
+      }
+    },
+    "reviews": {
+      "type": "testimonials",
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The bed is thick and washable and our old lab finally sleeps through the night.",
+            "name": "Hélène M.",
+            "detail": "Washable dog bed",
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The cat tree is small enough for our flat and she has claimed every level already.",
+            "name": "Paul V.",
+            "detail": "Compact cat tree",
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The kibble subscription arrives every five weeks and I have not thought about it since.",
+            "name": "Aurélie D.",
+            "detail": "Grain-free kibble",
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ],
+      "settings": {
+        "heading": "Said by owners",
+        "color_scheme": "scheme-2"
+      }
+    },
+    "faq": {
+      "type": "collapsible-content",
+      "blocks": {
+        "row-1": {
+          "type": "row",
+          "settings": {
+            "question": "How do I change my refill rhythm?",
+            "answer": "<p>Open your account, pick the subscription and choose a new rhythm. You can also skip the next delivery or stop it.</p>"
+          }
+        },
+        "row-2": {
+          "type": "row",
+          "settings": {
+            "question": "How do I choose the right bed size?",
+            "answer": "<p>Measure your dog from nose to base of tail while they sleep stretched out, then add 10 cm.</p>"
+          }
+        },
+        "row-3": {
+          "type": "row",
+          "settings": {
+            "question": "Can I return opened food?",
+            "answer": "<p>If your pet will not eat it, tell us within 14 days and we refund the bag, opened or not.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "row-1",
+        "row-2",
+        "row-3"
+      ],
+      "settings": {
+        "heading": "Before you order",
+        "open_first": true,
+        "color_scheme": ""
+      }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {
+        "heading": "Pet post",
+        "text": "New arrivals, care tips and 10% off your first order.",
+        "button_label": "Subscribe",
+        "color_scheme": "scheme-3"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "pets",
+    "favourites",
+    "refill",
+    "vet",
+    "reviews",
+    "faq",
+    "newsletter"
+  ]
+}

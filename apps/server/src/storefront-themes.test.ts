@@ -17,9 +17,9 @@ import { lintThemeFile } from './theme-lint';
  */
 const here = path.dirname(fileURLToPath(import.meta.url));
 const THEMES_DIR = path.resolve(here, '../../../packages/themes');
-const ALL_HANDLES = ['circuit', 'velours', 'sillage', 'foyer', 'maroquin', 'comptine'] as const;
+const ALL_HANDLES = ['circuit', 'velours', 'sillage', 'foyer', 'maroquin', 'comptine', 'pelage'] as const;
 const HANDLES = (process.env.THEME_ONLY ? [process.env.THEME_ONLY] : [...ALL_HANDLES]) as (typeof ALL_HANDLES)[number][];
-const NAMES = { circuit: 'Circuit', velours: 'Velours', sillage: 'Sillage', foyer: 'Foyer', maroquin: 'Maroquin', comptine: 'Comptine' } as const;
+const NAMES = { circuit: 'Circuit', velours: 'Velours', sillage: 'Sillage', foyer: 'Foyer', maroquin: 'Maroquin', comptine: 'Comptine', pelage: 'Pelage' } as const;
 
 /** What each theme composed by the kit (scripts/theme-kit/themes) is made of. */
 const KIT = {
@@ -27,6 +27,7 @@ const KIT = {
   foyer: { header: 'centered', card: 'rounded', pdp: 'left', filters: 'bar', infinite: false, homeMarker: 'k-rooms', sections: ['room-tiles', 'materials'], templates: ['page.care-guide'] },
   maroquin: { header: 'mega', card: 'framed', pdp: 'rail', filters: 'side', infinite: false, homeMarker: 'k-craft', sections: ['craft-steps', 'gift-guide'], templates: ['page.leather-care'] },
   comptine: { header: 'centered', card: 'arched', pdp: 'rail', filters: 'bar', infinite: true, homeMarker: 'k-ages', sections: ['age-tiles', 'safety-promise'], templates: ['page.toy-safety'] },
+  pelage: { header: 'split', card: 'rounded', pdp: 'stacked', filters: 'side', infinite: false, homeMarker: 'k-pets', sections: ['pet-tiles', 'refill-highlight'], templates: ['page.vet-approved'] },
 } as const;
 
 function walk(dir: string, base = dir, out: string[] = []): string[] {

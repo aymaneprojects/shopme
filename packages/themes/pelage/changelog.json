@@ -1,0 +1,31 @@
+{
+  "about": "What changed in each version of Pelage, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release of Pelage, a friendly theme for pets in sage and ochre.",
+          "Split header with the menu on both sides of the logo, a search panel and a slide-in bag with a free shipping progress bar.",
+          "Soft rounded product tiles with a second photo and colour swatches.",
+          "Product page with every photo in a column, options, subscriptions and a low stock message.",
+          "Collection page with filters in a side column, sorting and pagination.",
+          "New sections: shop by pet, refill highlight that uses the purchase options, and a countdown timer.",
+          "Breadcrumbs, back to top button and an optional age check.",
+          "Section names, settings and storefront texts are translated to English and French."
+        ],
+        "fr": [
+          "Première version de Pelage, un thème convivial pour les animaux de compagnie en sauge et ocre.",
+          "En-tête scindé avec le menu de part et d’autre du logo, panneau de recherche et panier latéral avec barre de progression vers la livraison offerte.",
+          "Tuiles produit arrondies et douces avec seconde photo et pastilles de couleur.",
+          "Page produit avec toutes les photos en colonne, options, abonnements et message de stock faible.",
+          "Page collection avec filtres en colonne latérale, tri et pagination.",
+          "Nouvelles sections : acheter par animal, réassort en vedette qui utilise les options d’achat, et compte à rebours.",
+          "Fil d’Ariane, bouton retour en haut et vérification d’âge facultative.",
+          "Les noms des sections, les réglages et les textes de la boutique sont traduits en anglais et en français."
+        ]
+      }
+    }
+  ]
+}
