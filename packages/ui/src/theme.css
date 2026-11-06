@@ -44,7 +44,7 @@
 
 @layer base {
   :root { color-scheme: dark; }
-  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="light"], .auth-light { color-scheme: light; }
   @media (prefers-color-scheme: light) { :root[data-theme="system"] { color-scheme: light; } }
   body { background: var(--color-frame); color: var(--color-text); font-family: var(--font-sans); font-size: var(--text-base); line-height: 1.4; -webkit-font-smoothing: antialiased;  }
   :focus-visible { outline: 2px solid var(--color-focus-ring); outline-offset: 2px; }
@@ -81,10 +81,10 @@
   }
   :root[data-theme="light"] .btn-primary { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 0 0 1px rgb(0 0 0 / 0.2); }
   .btn-primary:hover:not(:disabled) { filter: brightness(1.12); }
-  .btn-primary:active:not(:disabled) { background: var(--color-primary-pressed); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(124 156 255 / 0.25); }
+  .btn-primary:active:not(:disabled) { background: var(--color-primary-pressed); box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.4), 0 0 0 1px color-mix(in srgb, var(--color-primary) 80%, black); }
 
   .btn-secondary { color: var(--color-text); background: linear-gradient(180deg, var(--color-raised), var(--color-surface)); box-shadow: var(--shadow-btn); }
-  .btn-secondary:hover:not(:disabled) { background: linear-gradient(180deg, color-mix(in srgb, var(--color-raised) 80%, white), color-mix(in srgb, var(--color-surface) 70%, var(--color-raised))); }
+  .btn-secondary:hover:not(:disabled) { background: var(--color-surface); }
   .btn-secondary:active:not(:disabled) { background: var(--color-surface); box-shadow: var(--shadow-pressed); }
 
   .btn-plain { color: var(--color-accent); background: transparent; }
@@ -130,10 +130,10 @@
   .field-control {
     min-height: var(--h-input); padding: 0 10px; border-radius: var(--radius-md);
     background: var(--color-field); color: var(--color-text); font-size: 13px;
-    box-shadow: inset 0 0 0 1px var(--color-border), inset 0 1px 1px rgb(0 0 0 / 0.12);
+    box-shadow: inset 0 0 0 1px var(--color-border), inset 0 1px 1px rgb(0 0 0 / 0.035);
   }
   textarea.field-control { padding: 7px 10px; line-height: 1.45; }
-  .field-control:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--color-text-muted), inset 0 1px 1px rgb(0 0 0 / 0.12); }
+  .field-control:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--color-text-muted), inset 0 1px 1px rgb(0 0 0 / 0.035); }
   .field-control:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -1px; box-shadow: none; }
   .field-control[aria-invalid="true"] { box-shadow: inset 0 0 0 1px var(--color-critical); background: color-mix(in srgb, var(--color-critical-subtle) 45%, var(--color-field)); }
   .field-control:disabled { opacity: 0.6; background: var(--color-surface); }
@@ -179,7 +179,7 @@
   .tip { position: absolute; z-index: 60; padding: 4px 8px; border-radius: 6px; background: var(--color-ink); color: var(--color-ink-text); font-size: 12px; font-weight: 500; white-space: nowrap; pointer-events: none; animation: sm-fade-in 120ms ease-out; }
 
   /* Index table */
-  .itable tbody tr { transition: background-color var(--dur-fast); }
+  .itable tbody tr { transition: background-color var(--dur-fast) var(--ease-out); }
   .itable tbody tr[data-click="true"]:hover { background: var(--color-surface); }
   .itable tbody tr[data-selected="true"] { background: var(--color-primary-subtle); }
 
