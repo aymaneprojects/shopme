@@ -1,0 +1,220 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "chip-1": {
+          "type": "chip",
+          "settings": {
+            "icon": "shield",
+            "text": "Two-year guarantee"
+          }
+        },
+        "chip-2": {
+          "type": "chip",
+          "settings": {
+            "icon": "scissors",
+            "text": "Hand-stitched"
+          }
+        },
+        "chip-3": {
+          "type": "chip",
+          "settings": {
+            "icon": "refresh",
+            "text": "Repairs for life"
+          }
+        }
+      },
+      "block_order": [
+        "chip-1",
+        "chip-2",
+        "chip-3"
+      ],
+      "settings": {
+        "layout": "split",
+        "color_scheme": "scheme-1",
+        "eyebrow": "Leather goods",
+        "heading": "Leather that gets better with time",
+        "text": "Bags, shoes and small leather goods in camel, black and cream. Full-grain hides, stitched by hand and made to be repaired, not replaced.",
+        "button_label": "Discover the collection",
+        "button_link": "/collections/all",
+        "button_2_label": "The gift guide",
+        "button_2_link": "/collections/all?filter.v.price.lte=100",
+        "product": "camel-leather-tote"
+      }
+    },
+    "essentials": {
+      "type": "featured-collection",
+      "settings": {
+        "eyebrow": "The essentials",
+        "heading": "Pieces for every day",
+        "text": "Six classics, made in the same leather and the same colours.",
+        "collection": "all",
+        "products_to_show": 6,
+        "columns": "3",
+        "show_view_all": true,
+        "color_scheme": ""
+      }
+    },
+    "craft": {
+      "type": "craft-steps",
+      "blocks": {
+        "step-1": {
+          "type": "step",
+          "settings": {
+            "title": "Choose the hide",
+            "text": "Full-grain leather from a tannery we have worked with for years, vegetable-tanned for a rich patina."
+          }
+        },
+        "step-2": {
+          "type": "step",
+          "settings": {
+            "title": "Cut by hand",
+            "text": "Each panel is cut around the best part of the hide, never stamped out."
+          }
+        },
+        "step-3": {
+          "type": "step",
+          "settings": {
+            "title": "Stitch and edge",
+            "text": "Saddle-stitched with waxed thread, edges burnished until they glow."
+          }
+        },
+        "step-4": {
+          "type": "step",
+          "settings": {
+            "title": "Check and send",
+            "text": "Every piece is inspected by the person who made it, then signed and packed."
+          }
+        }
+      },
+      "block_order": [
+        "step-1",
+        "step-2",
+        "step-3",
+        "step-4"
+      ],
+      "settings": {
+        "eyebrow": "The workshop",
+        "heading": "How a bag is made",
+        "layout": "left",
+        "color_scheme": "scheme-4",
+        "product": "camel-leather-tote"
+      }
+    },
+    "gifts": {
+      "type": "gift-guide",
+      "blocks": {
+        "budget-1": {
+          "type": "budget",
+          "settings": {
+            "label": "Under 100",
+            "text": "Wallets, belts and small leather goods.",
+            "link": "/collections/all?filter.v.price.lte=100",
+            "color_scheme": "scheme-1"
+          }
+        },
+        "budget-2": {
+          "type": "budget",
+          "settings": {
+            "label": "100 to 200",
+            "text": "Sneakers, loafers and everyday bags.",
+            "link": "/collections/all?filter.v.price.gte=100&filter.v.price.lte=200",
+            "color_scheme": "scheme-4"
+          }
+        },
+        "budget-3": {
+          "type": "budget",
+          "settings": {
+            "label": "Over 200",
+            "text": "The pieces that last a lifetime.",
+            "link": "/collections/all?filter.v.price.gte=200",
+            "color_scheme": "scheme-3"
+          }
+        }
+      },
+      "block_order": [
+        "budget-1",
+        "budget-2",
+        "budget-3"
+      ],
+      "settings": {
+        "eyebrow": "Gift guide",
+        "heading": "Find the right gift",
+        "text": "Choose a budget and we will show you what fits.",
+        "color_scheme": ""
+      }
+    },
+    "repair": {
+      "type": "rich-text",
+      "settings": {
+        "align": "center",
+        "color_scheme": "scheme-1",
+        "eyebrow": "For life",
+        "heading": "Repair, resole, restore",
+        "text": "<p>Send a piece back after ten years and we will clean it, stitch it and polish it for the cost of the postage. Good leather deserves a long life.</p>",
+        "button_label": "Our repair promise",
+        "button_link": "/pages/leather-care"
+      }
+    },
+    "reviews": {
+      "type": "testimonials",
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The tote has the most beautiful colour and the stitching is flawless. It is already softening nicely.",
+            "name": "Hélène V.",
+            "detail": "Camel leather tote",
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Comfortable from the first day. The loafers fit true to size and look better each week.",
+            "name": "Antoine M.",
+            "detail": "Leather loafers",
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "A lovely belt, solid brass buckle, and it arrived in a beautiful box. A perfect gift.",
+            "name": "Laure G.",
+            "detail": "Leather belt",
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ],
+      "settings": {
+        "heading": "Carried and trusted",
+        "color_scheme": "scheme-4"
+      }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {
+        "heading": "The Maroquin letter",
+        "text": "New pieces, workshop notes and care advice, once a month.",
+        "button_label": "Subscribe",
+        "color_scheme": "scheme-4"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "essentials",
+    "craft",
+    "gifts",
+    "repair",
+    "reviews",
+    "newsletter"
+  ]
+}

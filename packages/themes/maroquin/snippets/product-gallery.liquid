@@ -1,0 +1,32 @@
+{%- doc -%}
+  Product gallery with a main image and thumbnails (the thumbnails switch the main image). CSS decides whether they sit below or in a rail.
+  @param {product} product
+  @param {object} first_image
+  @param {string} first_alt
+  @param {string} first_focal
+  @param {boolean} show_badge
+{%- enddoc -%}
+    <div class="k-gallery" role="group" aria-label="{{ 'accessibility.gallery' | t }}">
+      <div class="k-gallery__main" data-main-image>
+        {%- if first_image -%}
+          {{ first_image | image_url: width: 1200 | image_tag: loading: 'eager', widths: '600, 900, 1200', sizes: '(min-width: 990px) 54vw, 100vw', alt: first_alt, style: first_focal }}
+        {%- else -%}
+          {{ 'product-1' | placeholder_svg_tag: 'k-gallery__placeholder' }}
+        {%- endif -%}
+        {%- if show_badge and product.compare_at_price > product.price -%}<span class="k-badge k-badge--sale k-badge--top-left">{{ 'products.sale' | t }}</span>{%- endif -%}
+      </div>
+      {%- if product.images.size > 1 -%}
+        <ul class="k-gallery__thumbs" role="list">
+          {%- for image in product.images -%}
+            {%- assign thumb_focal = '' -%}
+            {%- if image.presentation.focal_point != blank -%}{%- assign thumb_focal = image.presentation.focal_point -%}{%- endif -%}
+            <li>
+              <button type="button" class="k-gallery__thumb{% if forloop.first %} is-active{% endif %}" data-thumb data-src="{{ image | image_url: width: 1200 }}" data-alt="{{ image.alt | default: product.title | escape }}" data-focal="{{ thumb_focal }}" aria-label="{{ 'products.show_image' | t: number: forloop.index }}" aria-pressed="{% if forloop.first %}true{% else %}false{% endif %}">
+                {{ image | image_url: width: 160 | image_tag: loading: 'lazy', alt: '', style: thumb_focal }}
+              </button>
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </div>
+

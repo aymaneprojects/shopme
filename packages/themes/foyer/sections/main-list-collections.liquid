@@ -1,0 +1,22 @@
+<div class="page-width k-listing">
+  <header class="k-listing__head">
+    <h1 class="k-listing__title">{{ 'general.all_collections' | t }}</h1>
+  </header>
+  {%- if collections.size > 0 -%}
+    <ul class="k-tiles k-tiles--3" role="list">
+      {%- for collection in collections -%}
+        <li>{% render 'collection-tile', tile_collection: collection, index: forloop.index %}</li>
+      {%- endfor -%}
+    </ul>
+  {%- else -%}
+    <p class="empty">{{ 'general.empty_collections' | t }}</p>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_list_collections.name",
+  "tag": "section",
+  "settings": []
+}
+{% endschema %}

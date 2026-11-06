@@ -1,0 +1,82 @@
+{%- assign s = section.settings -%}
+<div class="page-width k-listing k-listing--bar">
+  {%- if settings.show_breadcrumbs -%}{% render 'breadcrumbs', collection: collection %}{%- endif -%}
+  <header class="k-listing__head">
+    <h1 class="k-listing__title">{{ collection.title | escape }}</h1>
+    {%- if s.show_description and collection.description != blank -%}<div class="k-listing__desc rte">{{ collection.description }}</div>{%- endif -%}
+    <p class="k-listing__count">{{ 'collection.product_count' | t: count: collection.products_count }}</p>
+  </header>
+  <div class="k-listing__layout">
+    <div class="k-listing__tools">
+      {% render 'filters', filters: collection.filters, sort_options: collection.sort_options, sort_by: collection.sort_by, action: collection.url, layout: 'bar' %}
+    </div>
+    <div class="k-listing__main">
+      {%- paginate collection.products by s.products_per_page -%}
+        {%- if collection.products.size > 0 -%}
+          <ul class="k-grid k-grid--{{ s.columns }}" role="list"{% if s.infinite_scroll %} data-infinite{% if paginate.next %} data-infinite-next="{{ paginate.next.url }}"{% endif %}{% endif %}>
+            {%- for product in collection.products -%}
+              <li>{% render 'product-card', card_product: product %}</li>
+            {%- endfor -%}
+          </ul>
+          {%- if s.infinite_scroll and paginate.next -%}
+            <p class="k-infinite" data-infinite-status hidden>{{ 'collection.loading_more' | t }}</p>
+          {%- endif -%}
+        {%- else -%}
+          <p class="empty">{{ 'general.no_products' | t }}</p>
+        {%- endif -%}
+        {% render 'pagination', paginate: paginate %}
+      {%- endpaginate -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_collection.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "range",
+      "id": "products_per_page",
+      "label": "t:sections.main_collection.settings.products_per_page",
+      "min": 4,
+      "max": 48,
+      "step": 4,
+      "default": 12
+    },
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "t:sections.main_collection.settings.columns",
+      "default": "3",
+      "options": [
+        {
+          "value": "2",
+          "label": "t:sections.main_collection.options.columns.2"
+        },
+        {
+          "value": "3",
+          "label": "t:sections.main_collection.options.columns.3"
+        },
+        {
+          "value": "4",
+          "label": "t:sections.main_collection.options.columns.4"
+        }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "t:sections.main_collection.settings.show_description",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "infinite_scroll",
+      "label": "t:sections.main_collection.settings.infinite_scroll",
+      "info": "t:sections.main_collection.info.infinite_scroll",
+      "default": false
+    }
+  ]
+}
+{% endschema %}

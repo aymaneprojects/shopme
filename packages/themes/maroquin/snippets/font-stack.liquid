@@ -1,0 +1,13 @@
+{%- doc -%}
+  Prints the CSS font stack of a font choice from the theme settings.
+  @param {string} font - system-sans | system-serif | system-mono | dm-sans | manrope | playfair-display | lora
+{%- enddoc -%}
+{%- case font -%}
+  {%- when 'system-serif' -%}Georgia, 'Times New Roman', serif
+  {%- when 'system-mono' -%}ui-monospace, 'SF Mono', Menlo, Consolas, monospace
+  {%- when 'dm-sans' -%}'Maroquin DM Sans', system-ui, sans-serif
+  {%- when 'manrope' -%}'Maroquin Manrope', system-ui, sans-serif
+  {%- when 'playfair-display' -%}'Maroquin Playfair', Georgia, serif
+  {%- when 'lora' -%}'Maroquin Lora', Georgia, serif
+  {%- else -%}system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif
+{%- endcase -%}

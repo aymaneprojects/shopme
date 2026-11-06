@@ -1,0 +1,87 @@
+<div class="k-drawer-wrap" data-cart-region data-section-id="{{ section.id }}">
+  <div class="k-overlay" data-drawer-close></div>
+  <aside class="k-drawer" id="k-cart-drawer" role="dialog" aria-modal="true" aria-labelledby="k-drawer-title" tabindex="-1" data-cart-drawer>
+    <header class="k-drawer__head">
+      <h2 id="k-drawer-title">{{ 'cart.title' | t }}</h2>
+      <span class="k-drawer__count">{{ 'cart.items_count' | t: count: cart.item_count }}</span>
+      <button type="button" class="k-icon-btn" data-drawer-close>
+        <span class="visually-hidden">{{ 'cart.close' | t }}</span>
+        {% render 'icon', name: 'close' %}
+      </button>
+    </header>
+    {% render 'free-shipping-bar', class: 'k-ship--drawer' %}
+    {%- if cart.item_count == 0 -%}
+      <div class="k-drawer__empty">
+        {% render 'icon', name: 'bag', size: 44 %}
+        <p>{{ 'cart.empty' | t }}</p>
+        <a class="button" href="{{ routes.all_products_collection_url }}">{{ 'general.continue_shopping' | t }}</a>
+      </div>
+    {%- else -%}
+      <ul class="k-drawer__lines" role="list">
+        {%- for item in cart.items -%}
+          <li class="k-line" data-line="{{ forloop.index }}">
+            {%- if settings.cart_show_thumbnails != false -%}
+              <a class="k-line__image" href="{{ item.url }}" tabindex="-1" aria-hidden="true">
+                {%- if item.image -%}{{ item.image | image_url: width: 200 | image_tag: loading: 'lazy', alt: '' }}{%- else -%}{{ 'product-1' | placeholder_svg_tag: 'k-line__placeholder' }}{%- endif -%}
+              </a>
+            {%- endif -%}
+            <div class="k-line__body">
+              {%- if settings.cart_show_vendor and item.vendor != blank -%}<p class="k-line__vendor">{{ item.vendor | escape }}</p>{%- endif -%}
+              <a class="k-line__title" href="{{ item.url }}">{{ item.product.title | escape }}</a>
+              {%- unless item.product.has_only_default_variant -%}
+                <p class="k-line__meta">{%- for option in item.options_with_values -%}{{ option.value | escape }}{% unless forloop.last %} &middot; {% endunless %}{%- endfor -%}</p>
+              {%- endunless -%}
+              {%- if item.selling_plan_allocation -%}
+                {%- assign per_delivery = item.selling_plan_allocation.per_delivery_price | money -%}
+                <p class="k-line__plan">{{ item.selling_plan_allocation.selling_plan.name | escape }} &middot; {{ 'cart.recurring' | t: price: per_delivery }}</p>
+              {%- endif -%}
+              <div class="k-line__row">
+                <div class="k-qty">
+                  <button type="button" class="k-qty__btn" data-qty-step="-1" data-line="{{ forloop.index }}" aria-label="{{ 'cart.decrease' | t: title: item.product.title }}">{% render 'icon', name: 'minus', size: 14 %}</button>
+                  <input class="k-qty__input" type="number" value="{{ item.quantity }}" min="0" inputmode="numeric" data-line-qty data-line="{{ forloop.index }}" aria-label="{{ 'accessibility.quantity' | t }}">
+                  <button type="button" class="k-qty__btn" data-qty-step="1" data-line="{{ forloop.index }}" aria-label="{{ 'cart.increase' | t: title: item.product.title }}">{% render 'icon', name: 'plus', size: 14 %}</button>
+                </div>
+                <p class="k-line__price">
+                  {%- if item.original_line_price != item.final_line_price -%}<s>{{ item.original_line_price | money }}</s> {% endif -%}
+                  {{ item.final_line_price | money }}
+                </p>
+              </div>
+              <button type="button" class="k-link-btn" data-remove-line="{{ forloop.index }}">{{ 'cart.remove' | t }}</button>
+            </div>
+          </li>
+        {%- endfor -%}
+      </ul>
+      <footer class="k-drawer__foot">
+        {%- if section.settings.show_note and settings.cart_show_note != false -%}
+          <details class="k-drawer__note">
+            <summary>{{ 'cart.note' | t }}</summary>
+            <textarea name="note" rows="2" data-cart-note aria-label="{{ 'cart.note' | t }}">{{ cart.note }}</textarea>
+          </details>
+        {%- endif -%}
+        {%- for application in cart.cart_level_discount_applications -%}
+          <p class="k-drawer__row"><span>{{ 'cart.discount' | t }}: {{ application.title | escape }}</span> <span>-{{ application.total_allocated_amount | money }}</span></p>
+        {%- endfor -%}
+        <p class="k-drawer__row k-drawer__subtotal"><span>{{ 'cart.subtotal' | t }}</span> <strong>{{ cart.total_price | money_with_currency }}</strong></p>
+        <p class="k-drawer__hint">{{ 'cart.taxes_shipping' | t }}</p>
+        <a class="button button--block" href="/checkout">{{ 'cart.checkout' | t }}</a>
+        <a class="k-link-btn k-drawer__view" href="{{ routes.cart_url }}">{{ 'products.view_cart' | t }}</a>
+      </footer>
+    {%- endif -%}
+  </aside>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.cart_drawer.name",
+  "tag": "div",
+  "class": "cart-drawer-section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_note",
+      "label": "t:sections.cart_drawer.settings.show_note",
+      "default": true
+    }
+  ]
+}
+{% endschema %}

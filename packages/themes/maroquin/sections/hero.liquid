@@ -1,0 +1,284 @@
+{%- liquid
+  assign s = section.settings
+  assign eyebrow = s.eyebrow
+  if eyebrow == blank
+    assign eyebrow = 'home.hero_eyebrow' | t
+  endif
+  assign heading = s.heading
+  if heading == blank
+    assign heading = 'home.hero_heading' | t
+  endif
+  assign text = s.text
+  if text == blank
+    assign text = 'home.hero_text' | t
+  endif
+  assign button_label = s.button_label
+  if button_label == blank
+    assign button_label = 'home.hero_button' | t
+  endif
+  assign button_2_label = s.button_2_label
+  if button_2_label == blank
+    assign button_2_label = 'home.hero_button_2' | t
+  endif
+  assign spot = s.product
+  assign focal = ''
+  if s.image.presentation.focal_point != blank
+    assign focal = 'object-position: ' | append: s.image.presentation.focal_point
+  elsif spot.featured_image.presentation.focal_point != blank
+    assign focal = 'object-position: ' | append: spot.featured_image.presentation.focal_point
+  endif
+-%}
+<div class="k-hero k-hero--{{ s.layout }} {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width k-hero__inner">
+    <div class="k-hero__copy">
+      <p class="k-eyebrow">{{ eyebrow | escape }}</p>
+      <h1 class="k-hero__heading">{{ heading | escape }}</h1>
+      <p class="k-hero__text">{{ text | escape }}</p>
+      <div class="k-hero__actions">
+        <a class="button" href="{{ s.button_link | default: routes.all_products_collection_url }}">{{ button_label | escape }}</a>
+        <a class="button button--outline" href="{{ s.button_2_link | default: routes.collections_url }}">{{ button_2_label | escape }}</a>
+      </div>
+      {%- if section.blocks.size > 0 -%}
+        <ul class="k-chips" role="list">
+          {%- for block in section.blocks -%}
+            {%- assign chip_text = block.settings.text -%}
+            {%- if chip_text == blank -%}{%- assign chip_text = 'home.chip_' | append: forloop.index | t -%}{%- endif -%}
+            <li {{ block.shopify_attributes }}>{% render 'icon', name: block.settings.icon, size: 16 %} {{ chip_text | escape }}</li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </div>
+    <div class="k-hero__visual">
+      <div class="k-arch">
+        {%- if s.image != blank -%}
+          {% render 'media', media_type: 'image', image: s.image, eager: true, sizes: '(min-width: 990px) 40vw, 90vw' %}
+        {%- elsif spot != blank and spot.featured_image != blank -%}
+          {{ spot.featured_image | image_url: width: 900 | image_tag: loading: 'eager', alt: spot.title, style: focal }}
+        {%- else -%}
+          <span class="k-arch__art" aria-hidden="true"></span>
+        {%- endif -%}
+      </div>
+      {%- if spot != blank -%}
+        <a class="k-hero__product" href="{{ spot.url }}">
+          <span class="k-hero__product-title">{{ spot.title | escape }}</span>
+          {% render 'price', product: spot %}
+        </a>
+      {%- endif -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.hero.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.hero.headers.content"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.hero.settings.eyebrow",
+      "info": "t:sections.hero.info.eyebrow"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.hero.settings.heading"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.hero.settings.text"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.hero.settings.button_label"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:sections.hero.settings.button_link"
+    },
+    {
+      "type": "text",
+      "id": "button_2_label",
+      "label": "t:sections.hero.settings.button_2_label"
+    },
+    {
+      "type": "url",
+      "id": "button_2_link",
+      "label": "t:sections.hero.settings.button_2_link"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.hero.headers.media"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.hero.settings.image"
+    },
+    {
+      "type": "product",
+      "id": "product",
+      "label": "t:sections.hero.settings.product",
+      "info": "t:sections.hero.info.product"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.hero.headers.appearance"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "t:sections.hero.settings.layout",
+      "default": "split",
+      "variant": "segmented",
+      "options": [
+        {
+          "value": "split",
+          "label": "t:sections.hero.options.layout.split"
+        },
+        {
+          "value": "center",
+          "label": "t:sections.hero.options.layout.center"
+        },
+        {
+          "value": "full",
+          "label": "t:sections.hero.options.layout.full"
+        },
+        {
+          "value": "reverse",
+          "label": "t:sections.hero.options.layout.reverse"
+        }
+      ]
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.hero.settings.color_scheme",
+      "default": "scheme-1"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "chip",
+      "name": "t:sections.hero.blocks.chip.name",
+      "limit": 4,
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:sections.hero.blocks.chip.settings.icon",
+          "default": "leaf",
+          "options": [
+            {
+              "value": "leaf",
+              "label": "t:sections.hero.blocks.chip.options.icon.leaf"
+            },
+            {
+              "value": "drop",
+              "label": "t:sections.hero.blocks.chip.options.icon.drop"
+            },
+            {
+              "value": "sparkle",
+              "label": "t:sections.hero.blocks.chip.options.icon.sparkle"
+            },
+            {
+              "value": "heart",
+              "label": "t:sections.hero.blocks.chip.options.icon.heart"
+            },
+            {
+              "value": "sun",
+              "label": "t:sections.hero.blocks.chip.options.icon.sun"
+            },
+            {
+              "value": "moon",
+              "label": "t:sections.hero.blocks.chip.options.icon.moon"
+            },
+            {
+              "value": "truck",
+              "label": "t:sections.hero.blocks.chip.options.icon.truck"
+            },
+            {
+              "value": "refresh",
+              "label": "t:sections.hero.blocks.chip.options.icon.refresh"
+            },
+            {
+              "value": "shield",
+              "label": "t:sections.hero.blocks.chip.options.icon.shield"
+            },
+            {
+              "value": "package",
+              "label": "t:sections.hero.blocks.chip.options.icon.package"
+            },
+            {
+              "value": "gift",
+              "label": "t:sections.hero.blocks.chip.options.icon.gift"
+            },
+            {
+              "value": "clock",
+              "label": "t:sections.hero.blocks.chip.options.icon.clock"
+            },
+            {
+              "value": "tag",
+              "label": "t:sections.hero.blocks.chip.options.icon.tag"
+            },
+            {
+              "value": "home",
+              "label": "t:sections.hero.blocks.chip.options.icon.home"
+            },
+            {
+              "value": "scissors",
+              "label": "t:sections.hero.blocks.chip.options.icon.scissors"
+            },
+            {
+              "value": "ruler",
+              "label": "t:sections.hero.blocks.chip.options.icon.ruler"
+            },
+            {
+              "value": "check",
+              "label": "t:sections.hero.blocks.chip.options.icon.check"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.hero.blocks.chip.settings.text"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.hero.presets.hero",
+      "category": "banner",
+      "blocks": [
+        {
+          "type": "chip",
+          "settings": {
+            "icon": "leaf"
+          }
+        },
+        {
+          "type": "chip",
+          "settings": {
+            "icon": "drop"
+          }
+        },
+        {
+          "type": "chip",
+          "settings": {
+            "icon": "heart"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,265 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "blocks": {
+        "chip-1": {
+          "type": "chip",
+          "settings": {
+            "icon": "leaf",
+            "text": "Natural materials"
+          }
+        },
+        "chip-2": {
+          "type": "chip",
+          "settings": {
+            "icon": "package",
+            "text": "Careful packing"
+          }
+        },
+        "chip-3": {
+          "type": "chip",
+          "settings": {
+            "icon": "home",
+            "text": "Made to last"
+          }
+        }
+      },
+      "block_order": [
+        "chip-1",
+        "chip-2",
+        "chip-3"
+      ],
+      "settings": {
+        "layout": "reverse",
+        "color_scheme": "scheme-1",
+        "eyebrow": "Home and decor",
+        "heading": "Soft things for slow rooms",
+        "text": "Linen, wool, stoneware and wicker, chosen to make a home feel lived in. Warm colours, honest materials, nothing shouting.",
+        "button_label": "Shop the collection",
+        "button_link": "/collections/all",
+        "button_2_label": "Shop by room",
+        "button_2_link": "/collections",
+        "product": "boucle-cushion"
+      }
+    },
+    "rooms": {
+      "type": "room-tiles",
+      "blocks": {
+        "room-1": {
+          "type": "room",
+          "settings": {
+            "title": "Living room",
+            "link": "/collections/textiles",
+            "product": "braided-wool-throw"
+          }
+        },
+        "room-2": {
+          "type": "room",
+          "settings": {
+            "title": "Bedroom",
+            "link": "/collections/lighting-and-storage",
+            "product": "linen-table-lamp"
+          }
+        },
+        "room-3": {
+          "type": "room",
+          "settings": {
+            "title": "Table and shelf",
+            "link": "/collections/ceramics-and-candles",
+            "product": "matte-ceramic-vase"
+          }
+        },
+        "room-4": {
+          "type": "room",
+          "settings": {
+            "title": "Small gifts",
+            "link": "/collections/ceramics-and-candles",
+            "product": "stoneware-candle"
+          }
+        }
+      },
+      "block_order": [
+        "room-1",
+        "room-2",
+        "room-3",
+        "room-4"
+      ],
+      "settings": {
+        "eyebrow": "Room by room",
+        "heading": "Find your corner",
+        "color_scheme": ""
+      }
+    },
+    "favourites": {
+      "type": "featured-collection",
+      "settings": {
+        "eyebrow": "Our favourites",
+        "heading": "Things to live with",
+        "text": "Six pieces our customers keep coming back for.",
+        "collection": "all",
+        "products_to_show": 6,
+        "columns": "3",
+        "show_view_all": true,
+        "color_scheme": "scheme-1"
+      }
+    },
+    "materials": {
+      "type": "materials",
+      "blocks": {
+        "material-1": {
+          "type": "material",
+          "settings": {
+            "icon": "leaf",
+            "title": "Washed linen",
+            "text": "Softened by stone washing, it gets better with every wash."
+          }
+        },
+        "material-2": {
+          "type": "material",
+          "settings": {
+            "icon": "sun",
+            "title": "Warm light",
+            "text": "Linen shades that turn a lamp into a glow."
+          }
+        },
+        "material-3": {
+          "type": "material",
+          "settings": {
+            "icon": "drop",
+            "title": "Matte stoneware",
+            "text": "Hand-glazed, food safe and different every time."
+          }
+        },
+        "material-4": {
+          "type": "material",
+          "settings": {
+            "icon": "refresh",
+            "title": "Natural wicker",
+            "text": "Woven by hand from sustainably grown willow."
+          }
+        }
+      },
+      "block_order": [
+        "material-1",
+        "material-2",
+        "material-3",
+        "material-4"
+      ],
+      "settings": {
+        "eyebrow": "Good to know",
+        "heading": "Materials we trust",
+        "text": "Everything we sell is made from materials that look better with age.",
+        "color_scheme": "scheme-4"
+      }
+    },
+    "story": {
+      "type": "image-with-text",
+      "settings": {
+        "layout": "right",
+        "color_scheme": "scheme-1",
+        "eyebrow": "Our story",
+        "heading": "A home is built slowly",
+        "text": "<p>Foyer started with a single cushion and a stubborn idea: that the things in your home should be pleasant to touch. We work with small studios and weavers, and we only sell what we would keep ourselves.</p>",
+        "button_label": "Read our story",
+        "button_link": "/pages/about-us"
+      }
+    },
+    "reviews": {
+      "type": "testimonials",
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The throw is even softer than it looks. It lives on our sofa now and nobody is allowed to move it.",
+            "name": "Marion D.",
+            "detail": "Braided wool throw",
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Beautifully packed and the vase is a gorgeous matte clay. It looks wonderful with dried flowers.",
+            "name": "Julien P.",
+            "detail": "Matte ceramic vase",
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The lamp gives the softest light for the bedroom. Exactly the warmth I wanted.",
+            "name": "Salomé T.",
+            "detail": "Linen table lamp",
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ],
+      "settings": {
+        "heading": "Said about the shop",
+        "color_scheme": "scheme-2"
+      }
+    },
+    "faq": {
+      "type": "collapsible-content",
+      "blocks": {
+        "row-1": {
+          "type": "row",
+          "settings": {
+            "question": "How are fragile items packed?",
+            "answer": "<p>Ceramics and candles travel in recycled paper and a double-walled box. If anything arrives damaged, send us a photo and we replace it.</p>"
+          }
+        },
+        "row-2": {
+          "type": "row",
+          "settings": {
+            "question": "How do I care for linen and wool?",
+            "answer": "<p>Wash linen at 30 degrees and air dry. Wool throws prefer a gentle cycle or a dry clean once a year.</p>"
+          }
+        },
+        "row-3": {
+          "type": "row",
+          "settings": {
+            "question": "Can I return something that does not suit my home?",
+            "answer": "<p>Yes, within 30 days in its original packaging. We refund the full price once it is back with us.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "row-1",
+        "row-2",
+        "row-3"
+      ],
+      "settings": {
+        "heading": "Before you order",
+        "open_first": true,
+        "color_scheme": ""
+      }
+    },
+    "newsletter": {
+      "type": "newsletter",
+      "settings": {
+        "heading": "Letters from the Foyer",
+        "text": "New arrivals, small studios and 10% off your first order.",
+        "button_label": "Subscribe",
+        "color_scheme": "scheme-3"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "rooms",
+    "favourites",
+    "materials",
+    "story",
+    "reviews",
+    "faq",
+    "newsletter"
+  ]
+}

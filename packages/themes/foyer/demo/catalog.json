@@ -1,0 +1,674 @@
+{
+  "storeName": "Foyer",
+  "currency": "EUR",
+  "menu": [
+    {
+      "title": {
+        "en": "Shop all",
+        "fr": "Tout voir"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Textiles",
+        "fr": "Textiles"
+      },
+      "url": "/collections/textiles"
+    },
+    {
+      "title": {
+        "en": "Ceramics and candles",
+        "fr": "Céramiques et bougies"
+      },
+      "url": "/collections/ceramics-and-candles"
+    },
+    {
+      "title": {
+        "en": "Lighting and storage",
+        "fr": "Luminaires et rangements"
+      },
+      "url": "/collections/lighting-and-storage"
+    }
+  ],
+  "footerMenu": [
+    {
+      "title": {
+        "en": "Shop all",
+        "fr": "Tout voir"
+      },
+      "url": "/collections/all"
+    },
+    {
+      "title": {
+        "en": "Care guide",
+        "fr": "Guide d’entretien"
+      },
+      "url": "/pages/care-guide"
+    },
+    {
+      "title": {
+        "en": "Search",
+        "fr": "Recherche"
+      },
+      "url": "/search"
+    }
+  ],
+  "pages": [
+    {
+      "handle": "care-guide",
+      "title": {
+        "en": "Care guide",
+        "fr": "Guide d’entretien"
+      },
+      "template": "care-guide"
+    }
+  ],
+  "collections": [
+    {
+      "handle": "textiles",
+      "title": {
+        "en": "Textiles",
+        "fr": "Textiles"
+      },
+      "description": {
+        "en": "Cushions and throws in natural fibres.",
+        "fr": "Coussins et plaids en fibres naturelles."
+      },
+      "products": [
+        "boucle-cushion",
+        "braided-wool-throw"
+      ]
+    },
+    {
+      "handle": "ceramics-and-candles",
+      "title": {
+        "en": "Ceramics and candles",
+        "fr": "Céramiques et bougies"
+      },
+      "description": {
+        "en": "Matte stoneware to hold flowers and flames.",
+        "fr": "Du grès mat pour les fleurs et les flammes."
+      },
+      "products": [
+        "matte-ceramic-vase",
+        "stoneware-candle"
+      ]
+    },
+    {
+      "handle": "lighting-and-storage",
+      "title": {
+        "en": "Lighting and storage",
+        "fr": "Luminaires et rangements"
+      },
+      "description": {
+        "en": "Warm light and woven baskets.",
+        "fr": "Lumière chaude et paniers tressés."
+      },
+      "products": [
+        "linen-table-lamp",
+        "wicker-basket"
+      ]
+    }
+  ],
+  "products": [
+    {
+      "handle": "boucle-cushion",
+      "image": "produit-01.webp",
+      "vendor": "Foyer",
+      "type": {
+        "en": "Cushions",
+        "fr": "Coussins"
+      },
+      "tags": [
+        "textiles",
+        "cushion",
+        "new"
+      ],
+      "title": {
+        "en": "Boucle Cushion",
+        "fr": "Coussin en bouclette"
+      },
+      "description": {
+        "en": "A plump cushion in cream boucle with a removable cover and a feather-and-down inner. Soft to the touch, it holds its shape.",
+        "fr": "Un coussin généreux en bouclette crème, housse amovible et garnissage plumes et duvet. Doux au toucher, il garde sa forme."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            "45 x 45 cm",
+            "60 x 60 cm"
+          ]
+        },
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Cream",
+              "fr": "Crème"
+            },
+            {
+              "en": "Oat",
+              "fr": "Avoine"
+            }
+          ]
+        }
+      ],
+      "price": 39,
+      "variants": [
+        {
+          "stock": 22
+        },
+        {
+          "stock": 14
+        },
+        {
+          "stock": 9
+        },
+        {
+          "stock": 4
+        }
+      ]
+    },
+    {
+      "handle": "braided-wool-throw",
+      "image": "produit-02.webp",
+      "vendor": "Foyer",
+      "type": {
+        "en": "Throws",
+        "fr": "Plaids"
+      },
+      "tags": [
+        "textiles",
+        "wool"
+      ],
+      "title": {
+        "en": "Braided Wool Throw",
+        "fr": "Plaid en laine tressée"
+      },
+      "description": {
+        "en": "A chunky throw braided from merino wool, heavy and warm. It drapes over a sofa or the foot of a bed.",
+        "fr": "Un plaid épais tressé en laine mérinos, lourd et chaud. Il se drape sur un canapé ou au pied d’un lit."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Natural",
+              "fr": "Naturel"
+            },
+            {
+              "en": "Ink",
+              "fr": "Encre"
+            }
+          ]
+        }
+      ],
+      "price": 89,
+      "compareAt": 109,
+      "variants": [
+        {
+          "stock": 11
+        },
+        {
+          "stock": 6
+        }
+      ]
+    },
+    {
+      "handle": "matte-ceramic-vase",
+      "image": "produit-03.webp",
+      "vendor": "Foyer",
+      "type": {
+        "en": "Vases",
+        "fr": "Vases"
+      },
+      "tags": [
+        "ceramics",
+        "vase"
+      ],
+      "title": {
+        "en": "Matte Ceramic Vase",
+        "fr": "Vase en céramique mate"
+      },
+      "description": {
+        "en": "A hand-thrown vase with a soft matte glaze and a narrow neck, made for a few stems or dried flowers.",
+        "fr": "Un vase tourné à la main, émail mat et col étroit, fait pour quelques tiges ou des fleurs séchées."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            {
+              "en": "Small",
+              "fr": "Petit"
+            },
+            {
+              "en": "Large",
+              "fr": "Grand"
+            }
+          ]
+        },
+        {
+          "name": {
+            "en": "Colour",
+            "fr": "Couleur"
+          },
+          "values": [
+            {
+              "en": "Sand",
+              "fr": "Sable"
+            },
+            {
+              "en": "Clay",
+              "fr": "Argile"
+            }
+          ]
+        }
+      ],
+      "price": 54,
+      "variants": [
+        {
+          "stock": 15
+        },
+        {
+          "stock": 8
+        },
+        {
+          "stock": 10
+        },
+        {
+          "stock": 3
+        }
+      ]
+    },
+    {
+      "handle": "stoneware-candle",
+      "image": "produit-04.webp",
+      "vendor": "Foyer",
+      "type": {
+        "en": "Candles",
+        "fr": "Bougies"
+      },
+      "tags": [
+        "candles",
+        "gift"
+      ],
+      "title": {
+        "en": "Stoneware Candle",
+        "fr": "Bougie en pot de grès"
+      },
+      "description": {
+        "en": "A soy wax candle poured by hand into a reusable stoneware jar. Around 45 hours of slow, even burning.",
+        "fr": "Une bougie en cire de soja coulée à la main dans un pot en grès réutilisable. Environ 45 heures de combustion lente et régulière."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Scent",
+            "fr": "Parfum"
+          },
+          "values": [
+            {
+              "en": "Fig",
+              "fr": "Figue"
+            },
+            {
+              "en": "Cedar",
+              "fr": "Cèdre"
+            },
+            {
+              "en": "Fresh linen",
+              "fr": "Linge frais"
+            }
+          ]
+        }
+      ],
+      "price": 28,
+      "compareAt": 34,
+      "variants": [
+        {
+          "stock": 25
+        },
+        {
+          "stock": 18
+        },
+        {
+          "stock": 7
+        }
+      ]
+    },
+    {
+      "handle": "linen-table-lamp",
+      "image": "produit-05.webp",
+      "vendor": "Foyer",
+      "type": {
+        "en": "Lighting",
+        "fr": "Luminaires"
+      },
+      "tags": [
+        "lighting",
+        "linen"
+      ],
+      "title": {
+        "en": "Linen Table Lamp",
+        "fr": "Lampe à poser en lin"
+      },
+      "description": {
+        "en": "A ceramic base with a pleated linen shade that gives off a soft, warm glow. Comes with a fabric cord.",
+        "fr": "Un pied en céramique et un abat-jour en lin plissé qui diffuse une lumière douce et chaude. Livrée avec un cordon en tissu."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Shade",
+            "fr": "Abat-jour"
+          },
+          "values": [
+            {
+              "en": "Natural linen",
+              "fr": "Lin naturel"
+            },
+            {
+              "en": "Ivory",
+              "fr": "Ivoire"
+            }
+          ]
+        }
+      ],
+      "price": 119,
+      "variants": [
+        {
+          "stock": 9
+        },
+        {
+          "stock": 5
+        }
+      ]
+    },
+    {
+      "handle": "wicker-basket",
+      "image": "produit-06.webp",
+      "vendor": "Foyer",
+      "type": {
+        "en": "Storage",
+        "fr": "Rangements"
+      },
+      "tags": [
+        "storage",
+        "wicker"
+      ],
+      "title": {
+        "en": "Wicker Basket",
+        "fr": "Panier en osier"
+      },
+      "description": {
+        "en": "A woven willow basket with two handles. Good for logs, blankets or a trailing plant.",
+        "fr": "Un panier en saule tressé à deux anses. Pour des bûches, des plaids ou une plante retombante."
+      },
+      "options": [
+        {
+          "name": {
+            "en": "Size",
+            "fr": "Taille"
+          },
+          "values": [
+            {
+              "en": "Small",
+              "fr": "Petit"
+            },
+            {
+              "en": "Medium",
+              "fr": "Moyen"
+            },
+            {
+              "en": "Large",
+              "fr": "Grand"
+            }
+          ]
+        }
+      ],
+      "price": 46,
+      "variants": [
+        {
+          "stock": 20
+        },
+        {
+          "stock": 12
+        },
+        {
+          "stock": 5
+        }
+      ]
+    }
+  ],
+  "homepage": {
+    "en": {
+      "hero": {
+        "eyebrow": "Home and decor",
+        "heading": "Soft things for slow rooms",
+        "text": "Linen, wool, stoneware and wicker, chosen to make a home feel lived in. Warm colours, honest materials, nothing shouting.",
+        "button_label": "Shop the collection",
+        "button_2_label": "Shop by room"
+      },
+      "hero.chip-1": {
+        "text": "Natural materials"
+      },
+      "hero.chip-2": {
+        "text": "Careful packing"
+      },
+      "hero.chip-3": {
+        "text": "Made to last"
+      },
+      "rooms": {
+        "eyebrow": "Room by room",
+        "heading": "Find your corner"
+      },
+      "rooms.room-1": {
+        "title": "Living room"
+      },
+      "rooms.room-2": {
+        "title": "Bedroom"
+      },
+      "rooms.room-3": {
+        "title": "Table and shelf"
+      },
+      "rooms.room-4": {
+        "title": "Small gifts"
+      },
+      "favourites": {
+        "eyebrow": "Our favourites",
+        "heading": "Things to live with",
+        "text": "Six pieces our customers keep coming back for."
+      },
+      "materials": {
+        "eyebrow": "Good to know",
+        "heading": "Materials we trust",
+        "text": "Everything we sell is made from materials that look better with age."
+      },
+      "materials.material-1": {
+        "title": "Washed linen",
+        "text": "Softened by stone washing, it gets better with every wash."
+      },
+      "materials.material-2": {
+        "title": "Warm light",
+        "text": "Linen shades that turn a lamp into a glow."
+      },
+      "materials.material-3": {
+        "title": "Matte stoneware",
+        "text": "Hand-glazed, food safe and different every time."
+      },
+      "materials.material-4": {
+        "title": "Natural wicker",
+        "text": "Woven by hand from sustainably grown willow."
+      },
+      "story": {
+        "eyebrow": "Our story",
+        "heading": "A home is built slowly",
+        "text": "<p>Foyer started with a single cushion and a stubborn idea: that the things in your home should be pleasant to touch. We work with small studios and weavers, and we only sell what we would keep ourselves.</p>",
+        "button_label": "Read our story"
+      },
+      "reviews": {
+        "heading": "Said about the shop"
+      },
+      "reviews.testimonial-1": {
+        "quote": "The throw is even softer than it looks. It lives on our sofa now and nobody is allowed to move it.",
+        "detail": "Braided wool throw"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Beautifully packed and the vase is a gorgeous matte clay. It looks wonderful with dried flowers.",
+        "detail": "Matte ceramic vase"
+      },
+      "reviews.testimonial-3": {
+        "quote": "The lamp gives the softest light for the bedroom. Exactly the warmth I wanted.",
+        "detail": "Linen table lamp"
+      },
+      "faq": {
+        "heading": "Before you order"
+      },
+      "faq.row-1": {
+        "question": "How are fragile items packed?",
+        "answer": "<p>Ceramics and candles travel in recycled paper and a double-walled box. If anything arrives damaged, send us a photo and we replace it.</p>"
+      },
+      "faq.row-2": {
+        "question": "How do I care for linen and wool?",
+        "answer": "<p>Wash linen at 30 degrees and air dry. Wool throws prefer a gentle cycle or a dry clean once a year.</p>"
+      },
+      "faq.row-3": {
+        "question": "Can I return something that does not suit my home?",
+        "answer": "<p>Yes, within 30 days in its original packaging. We refund the full price once it is back with us.</p>"
+      },
+      "newsletter": {
+        "heading": "Letters from the Foyer",
+        "text": "New arrivals, small studios and 10% off your first order.",
+        "button_label": "Subscribe"
+      }
+    },
+    "fr": {
+      "hero": {
+        "eyebrow": "Maison et décoration",
+        "heading": "Des douceurs pour les pièces calmes",
+        "text": "Lin, laine, grès et osier, choisis pour qu’une maison se sente habitée. Des couleurs chaudes, des matières franches, rien de criard.",
+        "button_label": "Voir la collection",
+        "button_2_label": "Acheter par pièce"
+      },
+      "hero.chip-1": {
+        "text": "Matières naturelles"
+      },
+      "hero.chip-2": {
+        "text": "Emballage soigné"
+      },
+      "hero.chip-3": {
+        "text": "Faits pour durer"
+      },
+      "rooms": {
+        "eyebrow": "Pièce par pièce",
+        "heading": "Trouvez votre coin"
+      },
+      "rooms.room-1": {
+        "title": "Salon"
+      },
+      "rooms.room-2": {
+        "title": "Chambre"
+      },
+      "rooms.room-3": {
+        "title": "Table et étagère"
+      },
+      "rooms.room-4": {
+        "title": "Petits cadeaux"
+      },
+      "favourites": {
+        "eyebrow": "Nos préférés",
+        "heading": "Des choses avec qui vivre",
+        "text": "Six pièces que nos clients reviennent chercher."
+      },
+      "materials": {
+        "eyebrow": "Bon à savoir",
+        "heading": "Des matières de confiance",
+        "text": "Tout ce que nous vendons est fait de matières qui embellissent avec le temps."
+      },
+      "materials.material-1": {
+        "title": "Lin lavé",
+        "text": "Adouci par lavage à la pierre, il s’améliore à chaque lavage."
+      },
+      "materials.material-2": {
+        "title": "Lumière chaude",
+        "text": "Des abat-jour en lin qui transforment une lampe en halo."
+      },
+      "materials.material-3": {
+        "title": "Grès mat",
+        "text": "Émaillé à la main, alimentaire et différent à chaque fois."
+      },
+      "materials.material-4": {
+        "title": "Osier naturel",
+        "text": "Tressé à la main avec du saule cultivé durablement."
+      },
+      "story": {
+        "eyebrow": "Notre histoire",
+        "heading": "Une maison se construit lentement",
+        "text": "<p>Foyer est né d’un seul coussin et d’une idée têtue : les objets d’une maison doivent être agréables au toucher. Nous travaillons avec de petits ateliers et des tisserands, et ne vendons que ce que nous garderions nous-mêmes.</p>",
+        "button_label": "Lire notre histoire"
+      },
+      "reviews": {
+        "heading": "Dit de la boutique"
+      },
+      "reviews.testimonial-1": {
+        "quote": "Le plaid est encore plus doux qu’il n’en a l’air. Il vit sur notre canapé et personne n’a le droit de le déplacer.",
+        "detail": "Plaid en laine tressée"
+      },
+      "reviews.testimonial-2": {
+        "quote": "Superbement emballé, et le vase est d’une magnifique terre mate. Il est superbe avec des fleurs séchées.",
+        "detail": "Vase en céramique mate"
+      },
+      "reviews.testimonial-3": {
+        "quote": "La lampe donne la lumière la plus douce pour la chambre. Exactement la chaleur que je voulais.",
+        "detail": "Lampe à poser en lin"
+      },
+      "faq": {
+        "heading": "Avant de commander"
+      },
+      "faq.row-1": {
+        "question": "Comment sont emballés les objets fragiles ?",
+        "answer": "<p>Les céramiques et bougies voyagent dans du papier recyclé et un carton à double paroi. Si quelque chose arrive abîmé, envoyez-nous une photo et nous le remplaçons.</p>"
+      },
+      "faq.row-2": {
+        "question": "Comment entretenir le lin et la laine ?",
+        "answer": "<p>Lavez le lin à 30 degrés et laissez sécher à l’air. Les plaids en laine préfèrent un cycle délicat ou un nettoyage à sec une fois par an.</p>"
+      },
+      "faq.row-3": {
+        "question": "Puis-je retourner un objet qui ne convient pas chez moi ?",
+        "answer": "<p>Oui, sous 30 jours dans son emballage d’origine. Nous remboursons le prix complet dès son retour.</p>"
+      },
+      "newsletter": {
+        "heading": "Lettres du Foyer",
+        "text": "Nouveautés, petits ateliers et 10 % sur votre première commande.",
+        "button_label": "S’abonner"
+      }
+    },
+    "images": {
+      "hero": {
+        "image": "ambiance.webp"
+      },
+      "rooms.room-1": {
+        "image": "hero.webp"
+      },
+      "rooms.room-2": {
+        "image": "ambiance.webp"
+      }
+    }
+  }
+}

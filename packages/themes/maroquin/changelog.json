@@ -1,0 +1,31 @@
+{
+  "about": "What changed in each version of Maroquin, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release of Maroquin, a refined theme for bags, shoes and leather accessories.",
+          "Header with the logo on the left, a mega menu that opens columns of links, a search panel and a slide-in bag.",
+          "Framed product cards with a second photo on hover, colour swatches and a quick add button.",
+          "Product page with a vertical rail of thumbnails, options, subscriptions and a low stock message.",
+          "Collection page with a sidebar of filters, sorting and pagination.",
+          "New sections: craft steps, gift guide, materials and care, and a countdown timer.",
+          "Breadcrumbs, back to top button and an optional age check.",
+          "Section names, settings and storefront texts are translated to English and French."
+        ],
+        "fr": [
+          "Première version de Maroquin, un thème raffiné pour les sacs, les chaussures et les accessoires en cuir.",
+          "En-tête avec le logo à gauche, méga-menu qui ouvre des colonnes de liens, panneau de recherche et panier latéral.",
+          "Cartes produit encadrées avec seconde photo au survol, pastilles de couleur et bouton d’ajout rapide.",
+          "Page produit avec un rail vertical de miniatures, options, abonnements et message de stock faible.",
+          "Page collection avec barre latérale de filtres, tri et pagination.",
+          "Nouvelles sections : étapes de fabrication, guide cadeaux, matières et entretien, et compte à rebours.",
+          "Fil d’Ariane, bouton retour en haut et vérification d’âge facultative.",
+          "Les noms des sections, les réglages et les textes de la boutique sont traduits en anglais et en français."
+        ]
+      }
+    }
+  ]
+}

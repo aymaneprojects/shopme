@@ -1,0 +1,100 @@
+{%- assign s = section.settings -%}
+<div class="k-section k-gifts {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="page-width">
+    <div class="k-section__head k-section__head--center">
+      {%- if s.eyebrow != blank -%}<p class="k-eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="k-section__title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.text != blank -%}<p class="k-section__text">{{ s.text | escape }}</p>{%- endif -%}
+    </div>
+    <ul class="k-gifts__list k-gifts__list--{{ section.blocks.size }}" role="list">
+      {%- for block in section.blocks -%}
+        <li {{ block.shopify_attributes }}>
+          <a class="k-gift {% render 'scheme-class', scheme: block.settings.color_scheme %}" href="{{ block.settings.link | default: routes.all_products_collection_url }}">
+            <span class="k-gift__label">{{ block.settings.label | escape }}</span>
+            <span class="k-gift__text">{{ block.settings.text | escape }}</span>
+            <span class="k-gift__arrow">{% render 'icon', name: 'arrow-right', size: 18 %}</span>
+          </a>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.gift_guide.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.gift_guide.settings.eyebrow",
+      "default": "Gift guide"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.gift_guide.settings.heading",
+      "default": "Find the right gift"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.gift_guide.settings.text"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:sections.gift_guide.settings.color_scheme"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "budget",
+      "name": "t:sections.gift_guide.blocks.budget.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:sections.gift_guide.blocks.budget.settings.label",
+          "default": "Under 100"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.gift_guide.blocks.budget.settings.text",
+          "default": "Small leather goods and belts."
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:sections.gift_guide.blocks.budget.settings.link"
+        },
+        {
+          "type": "color_scheme",
+          "id": "color_scheme",
+          "label": "t:sections.gift_guide.blocks.budget.settings.color_scheme",
+          "default": "scheme-1"
+        }
+      ]
+    }
+  ],
+  "max_blocks": 4,
+  "presets": [
+    {
+      "name": "t:sections.gift_guide.presets.gift_guide",
+      "blocks": [
+        {
+          "type": "budget"
+        },
+        {
+          "type": "budget"
+        },
+        {
+          "type": "budget"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}
