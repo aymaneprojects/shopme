@@ -8,6 +8,7 @@ generator composes the theme folder and commits it under `packages/themes/<handl
 node scripts/theme-kit/build.mjs [handle...]      write the theme folders (all the kit themes when none is named)
 node scripts/theme-kit/build.mjs --check          fail when a committed folder differs from what the kit generates
 node scripts/theme-kit/demo-images.mjs [handle]   convert the demo photos to WebP (see "Demo catalogue")
+node scripts/theme-kit/browser-check.mjs          check the kit JavaScript (age check, infinite scroll, counter...) in a browser
 ```
 
 ## Layout of the kit
