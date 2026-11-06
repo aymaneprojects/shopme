@@ -20,6 +20,7 @@ Take one reproducible issue or small visual improvement per pass. Check open pul
 PRs #1–#4 remain open drafts as of this pass; their completed work is tracked here but has not been merged into main. Main advanced independently to `584ce9d`. The mobile save-bar pass starts from that main revision and does not include or overwrite those draft branches.
 PRs #1–#5 are review drafts, separate from main. Main has advanced independently; the tag-entry pass starts from `dd6c7ee` and preserves the contributor’s PostgreSQL and settings-placeholder changes.
 Main now contains the reviewed integrations of PRs #1–#5 in `ebb270c`. The reviewer retained the existing palette, logo and top-level back arrows; preserve those decisions. PR #6 separately fixes comma-separated product tag pastes.
+Main contains the reviewed integrations of PRs #1–#5 in `ebb270c`. Preserve the reviewer’s retained palette, logo and top-level back arrows. Separate follow-ups: PR #6 covers product-tag paste; PR #7 covers long modal titles/actions. Inspect their current state before overlapping work.
 
 - #1: shared table keyboard activation, independent cell controls, disabled bulk menus and dialog labels. Admin tests/type checks/build passed.
 - #2: desktop content placement, mobile sidebar behavior, language selector, button edges and stale password-reset feedback. 253 admin tests passed; Chromium checks covered layout, collapse, mobile navigation, Escape/focus restoration and language selection.
@@ -31,6 +32,7 @@ Main now contains the reviewed integrations of PRs #1–#5 in `ebb270c`. The rev
 
 - #6: pasting multiple comma-separated product tags and committing with Enter, blur or a trailing comma created one combined literal tag. The input now splits, trims and deduplicates tags in a single update while preserving existing tags and single-tag entry. Three new paste regressions failed against baseline before the fix; all six targeted tests, the admin type check, production build and diff check passed. Review: https://github.com/aymaneprojects/shopme/pull/6.
 - Mobile dialog layout: a long French primary action plus the selection count made a 288 px dialog scroll to 460 px horizontally; the close button also shrank. Header/footer now keep their space, long titles/actions wrap and only the body scrolls. Chromium passed at 320×568, 375×667 and 1280×800, including action bounds, scrolling, confirmation and Escape. All 13 focused overlay/table tests, admin build and diff check passed. Native callbacks/focus behavior are unchanged. Review: https://github.com/aymaneprojects/shopme/pull/7.
+- Theme segmented controls: radio groups used for section alignment/layout could be clicked but had no arrow-key navigation, and every option was a Tab stop. The control now has one Tab stop, wraps selection/focus with arrow keys and supports Home/End. Four regression tests failed before the fix; all 13 focused tests (including existing theme fields) now pass. Pointer behavior and empty-option handling are preserved. Admin type check, production build and diff check passed. Review: https://github.com/aymaneprojects/shopme/pull/8.
 
 ## Bounded continuation
 
