@@ -1,0 +1,112 @@
+{%- doc -%}
+  Emits the font faces and the CSS custom properties derived from the theme settings: colors, color schemes, fonts, text presets,
+  buttons, badges, drawers, inputs, modals, price, swatches and animations.
+{%- enddoc -%}
+{%- liquid
+  assign primary = settings.color_primary | default: '#1E40AF'
+  assign primary_dark = primary | color_darken: 10
+  assign primary_light = primary | color_modify: 'alpha', 0.1
+  assign on_primary = '#ffffff'
+  assign brightness = primary | color_brightness
+  if brightness > 160
+    assign on_primary = '#0f172a'
+  endif
+  assign fonts_used = settings.type_body_font | append: ' ' | append: settings.type_heading_font | append: ' ' | append: settings.type_subheading_font | append: ' ' | append: settings.type_accent_font
+  assign text_color = settings.color_text | default: '#0f172a'
+  assign preset_ids = 'paragraph,h1,h2,h3,h4,h5,h6' | split: ','
+-%}
+<style data-theme-fonts>
+  {%- if fonts_used contains 'inter' %}
+  @font-face { font-family: 'Nocturne Inter'; src: url({{ 'font-inter.woff2' | asset_url }}) format('woff2'); font-weight: 100 900; font-display: swap; }
+  {%- endif %}
+  {%- if fonts_used contains 'dm-sans' %}
+  @font-face { font-family: 'Nocturne DM Sans'; src: url({{ 'font-dm-sans.woff2' | asset_url }}) format('woff2'); font-weight: 100 1000; font-display: swap; }
+  {%- endif %}
+  {%- if fonts_used contains 'manrope' %}
+  @font-face { font-family: 'Nocturne Manrope'; src: url({{ 'font-manrope.woff2' | asset_url }}) format('woff2'); font-weight: 200 800; font-display: swap; }
+  {%- endif %}
+  {%- if fonts_used contains 'space-grotesk' %}
+  @font-face { font-family: 'Nocturne Space Grotesk'; src: url({{ 'font-space-grotesk.woff2' | asset_url }}) format('woff2'); font-weight: 300 700; font-display: swap; }
+  {%- endif %}
+  {%- if fonts_used contains 'lora' %}
+  @font-face { font-family: 'Nocturne Lora'; src: url({{ 'font-lora.woff2' | asset_url }}) format('woff2'); font-weight: 400 700; font-display: swap; }
+  {%- endif %}
+  {%- if fonts_used contains 'playfair-display' %}
+  @font-face { font-family: 'Nocturne Playfair Display'; src: url({{ 'font-playfair-display.woff2' | asset_url }}) format('woff2'); font-weight: 400 900; font-display: swap; }
+  {%- endif %}
+</style>
+<style data-theme-variables>
+  :root {
+    --color-primary: {{ primary }};
+    --color-primary-dark: {{ primary_dark }};
+    --color-primary-soft: {{ primary_light }};
+    --color-on-primary: {{ on_primary }};
+    --color-background: {{ settings.color_background | default: '#ffffff' }};
+    --color-surface: {{ settings.color_surface | default: '#f1f5f9' }};
+    --color-text: {{ text_color }};
+    --color-muted: {{ text_color | color_modify: 'alpha', 0.65 }};
+    --color-border: {{ text_color | color_modify: 'alpha', 0.14 }};
+    --color-sale: {{ settings.color_sale | default: '#b91c1c' }};
+    --font-body: {% render 'font-stack', font: settings.type_body_font %};
+    --font-subheading: {% render 'font-stack', font: settings.type_subheading_font %};
+    --font-heading: {% render 'font-stack', font: settings.type_heading_font %};
+    --font-accent: {% render 'font-stack', font: settings.type_accent_font %};
+    --font-size-base: {{ settings.type_base_size | default: 16 }}px;
+    --page-width: {{ settings.page_width | default: 1280 }}px;
+    --radius: {{ settings.corner_radius | default: 8 }}px;
+    --logo-width: {{ settings.logo_width | default: 120 }}px;
+    {%- if settings.section_spacing != blank %}
+    --section-pad: {{ settings.section_spacing }}px;
+    {%- endif %}
+    {%- for id in preset_ids %}
+      {%- assign k_font = 'preset_' | append: id | append: '_font' -%}
+      {%- assign k_size = 'preset_' | append: id | append: '_size' -%}
+      {%- assign k_weight = 'preset_' | append: id | append: '_weight' -%}
+      {%- assign k_lh = 'preset_' | append: id | append: '_line_height' -%}
+      {%- assign k_case = 'preset_' | append: id | append: '_case' -%}
+      {%- if settings[k_size] != blank %}
+    --preset-{{ id }}-font: var(--font-{{ settings[k_font] | default: 'body' }});
+    --preset-{{ id }}-size: calc(var(--font-size-base) * {{ settings[k_size] | divided_by: 100.0 }});
+    --preset-{{ id }}-weight: {{ settings[k_weight] | default: 400 }};
+    --preset-{{ id }}-line-height: {{ settings[k_lh] | default: 130 | divided_by: 100.0 }};
+    --preset-{{ id }}-case: {{ settings[k_case] | default: 'none' }};
+      {%- endif %}
+    {%- endfor %}
+    --card-ratio: {% case settings.card_image_ratio %}{% when 'portrait' %}4 / 5{% when 'landscape' %}4 / 3{% else %}1 / 1{% endcase %};
+    --button-radius: {{ settings.button_radius | default: settings.corner_radius | default: 8 }}px;
+    --button-border: {{ settings.button_border_width | default: 2 }}px;
+    --button-height: {{ settings.button_height | default: 46 }}px;
+    --button-transform: {% if settings.button_uppercase %}uppercase{% else %}none{% endif %};
+    --button-font: var(--font-{{ settings.button_font | default: 'body' }});
+    --badge-sold-out: {{ settings.badge_sold_out_color | default: '#475569' }};
+    --drawer-width: {{ settings.drawer_width | default: 340 }}px;
+    --drawer-overlay: {{ settings.drawer_overlay | default: 40 | divided_by: 100.0 }};
+    --input-radius: {{ settings.input_radius | default: settings.corner_radius | default: 8 }}px;
+    --input-border: {{ settings.input_border_width | default: 1 }}px;
+    --input-height: {{ settings.input_height | default: 42 }}px;
+    --modal-radius: {{ settings.modal_radius | default: 8 }}px;
+    --modal-shadow: {% case settings.modal_shadow %}{% when 'none' %}none{% when 'strong' %}0 16px 48px rgba(15, 23, 42, .32){% else %}0 8px 32px rgba(15, 23, 42, .18){% endcase %};
+    --price-weight: {{ settings.price_weight | default: 400 }};
+    --price-font: var(--font-{{ settings.price_font | default: 'body' }});
+    --swatch-size: {{ settings.swatch_size | default: 36 }}px;
+    --swatch-radius: {% case settings.swatch_shape %}{% when 'square' %}0{% when 'rounded' %}8px{% else %}999px{% endcase %};
+    --anim-duration: {{ settings.anim_duration | default: 300 }}ms;
+    --icon-stroke: {{ settings.icon_stroke_width | default: 1.8 }};
+    --icon-size: {{ settings.icon_size | default: 22 }}px;
+  }
+  {%- for scheme in settings.color_schemes %}
+    {%- assign sid = scheme[0] -%}
+    {%- assign sv = scheme[1].settings %}
+  .color-{{ sid }} {
+    --color-background: {{ sv.background | default: '#ffffff' }};
+    --color-text: {{ sv.text | default: '#0f172a' }};
+    --color-surface: {{ sv.surface | default: sv.background }};
+    --color-border: {{ sv.border | default: '#d9dee7' }};
+    --color-primary: {{ sv.button | default: '#1E40AF' }};
+    --color-primary-dark: {{ sv.button | default: '#1E40AF' | color_darken: 10 }};
+    --color-primary-soft: {{ sv.button | default: '#1E40AF' | color_modify: 'alpha', 0.12 }};
+    --color-on-primary: {{ sv.button_label | default: '#ffffff' }};
+    --color-muted: {{ sv.text | default: '#0f172a' | color_modify: 'alpha', 0.7 }};
+  }
+  {%- endfor %}
+</style>

@@ -1,0 +1,174 @@
+<div class="section-pad testimonials-section {% render 'scheme-class', scheme: section.settings.color_scheme %}{% if section.settings.texture != blank and section.settings.texture != 'none' %} texture texture--{{ section.settings.texture }}{% endif %}">
+  <div class="page-width">
+    <div class="section-head">
+      <div>
+        {%- if section.settings.eyebrow != blank -%}<p class="eyebrow">{{ section.settings.eyebrow | escape }}</p>{%- endif -%}
+        {%- if section.settings.heading != blank -%}<h2 class="section-title">{{ section.settings.heading | escape }}</h2>{%- endif -%}
+      </div>
+      {%- if section.settings.layout == 'carousel' -%}{%- render 'carousel-arrows' -%}{%- endif -%}
+    </div>
+    <ul class="testimonials testimonials--{{ section.settings.layout }}"{% if section.settings.layout == 'carousel' %} data-carousel{% endif %} role="list">
+      {%- for block in section.blocks -%}
+        <li class="testimonial" {{ block.shopify_attributes }}>
+          {%- if block.settings.rating > 0 -%}
+            <p class="testimonial__stars" role="img" aria-label="{{ block.settings.rating }} / 5">{%- for i in (1..5) -%}<span class="{% if i <= block.settings.rating %}is-on{% endif %}" aria-hidden="true">&#9733;</span>{%- endfor -%}</p>
+          {%- endif -%}
+          <blockquote class="testimonial__quote">{{ block.settings.quote | escape }}</blockquote>
+          <div class="testimonial__author">
+            {%- if block.settings.avatar -%}{{ block.settings.avatar | image_url: width: 120 | image_tag: class: 'testimonial__avatar', loading: 'lazy', alt: block.settings.author }}{%- endif -%}
+            <p><strong>{{ block.settings.author | escape }}</strong>{%- if block.settings.role != blank -%}<span class="testimonial__role">{{ block.settings.role | escape }}</span>{%- endif -%}</p>
+          </div>
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.testimonials.name",
+  "tag": "section",
+  "max_blocks": 12,
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.testimonials.settings.eyebrow",
+      "default": "Kind words"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.testimonials.settings.heading",
+      "default": "Loved at breakfast tables"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "t:sections.testimonials.settings.layout",
+      "options": [
+        {
+          "value": "grid",
+          "label": "t:sections.testimonials.options.layout.grid"
+        },
+        {
+          "value": "carousel",
+          "label": "t:sections.testimonials.options.layout.carousel"
+        }
+      ],
+      "default": "grid",
+      "variant": "segmented"
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.testimonials.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.testimonials.options.texture.none"
+        },
+        {
+          "value": "paper",
+          "label": "t:sections.testimonials.options.texture.paper"
+        },
+        {
+          "value": "linen",
+          "label": "t:sections.testimonials.options.texture.linen"
+        },
+        {
+          "value": "dots",
+          "label": "t:sections.testimonials.options.texture.dots"
+        },
+        {
+          "value": "wash",
+          "label": "t:sections.testimonials.options.texture.wash"
+        },
+        {
+          "value": "grain",
+          "label": "t:sections.testimonials.options.texture.grain"
+        }
+      ],
+      "default": "linen"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": "scheme-4"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "testimonial",
+      "name": "t:sections.testimonials.blocks.testimonial.name",
+      "settings": [
+        {
+          "type": "textarea",
+          "id": "quote",
+          "label": "t:sections.testimonials.blocks.testimonial.settings.quote",
+          "default": "The best filter coffee I have had at home, and the box smells wonderful."
+        },
+        {
+          "type": "text",
+          "id": "author",
+          "label": "t:sections.testimonials.blocks.testimonial.settings.author",
+          "default": "Marion L."
+        },
+        {
+          "type": "text",
+          "id": "role",
+          "label": "t:sections.testimonials.blocks.testimonial.settings.role",
+          "default": "Subscriber since 2023"
+        },
+        {
+          "type": "range",
+          "id": "rating",
+          "label": "t:sections.testimonials.blocks.testimonial.settings.rating",
+          "min": 0,
+          "max": 5,
+          "step": 1,
+          "default": 5
+        },
+        {
+          "type": "image_picker",
+          "id": "avatar",
+          "label": "t:sections.testimonials.blocks.testimonial.settings.avatar"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.testimonials.presets.testimonials",
+      "category": "text",
+      "blocks": [
+        {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The best filter coffee I have had at home, and the box smells wonderful.",
+            "author": "Marion L.",
+            "role": "Subscriber since 2023"
+          }
+        },
+        {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Their jasmine tea opens up like a flower in the glass. My guests ask where it is from.",
+            "author": "Karim B.",
+            "role": "Lyon"
+          }
+        },
+        {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Fast delivery, kind notes from the roaster and fair prices. We are fans.",
+            "author": "Sophie & Tom",
+            "role": "Bordeaux"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

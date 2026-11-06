@@ -1,0 +1,36 @@
+<details class="accordion__item"{% if block.settings.open %} open{% endif %} {{ block.shopify_attributes }}>
+  <summary class="accordion__summary"><span>{{ block.settings.heading | escape }}</span>{% render 'icon', name: 'chevron-down' %}</summary>
+  <div class="accordion__body rte">{{ block.settings.text }}</div>
+</details>
+
+{% schema %}
+{
+  "name": "t:blocks.accordion.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:blocks.accordion.settings.heading",
+      "default": "Details"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:blocks.accordion.settings.text",
+      "default": "<p>Add details here.</p>"
+    },
+    {
+      "type": "checkbox",
+      "id": "open",
+      "label": "t:blocks.accordion.settings.open",
+      "default": false
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:blocks.accordion.presets.collapsible_row"
+    }
+  ]
+}
+{% endschema %}

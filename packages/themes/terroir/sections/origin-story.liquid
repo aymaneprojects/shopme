@@ -1,0 +1,173 @@
+{%- assign s = section.settings -%}
+<div class="section-pad origin {% render 'scheme-class', scheme: s.color_scheme %}{% if s.texture != blank and s.texture != 'none' %} texture texture--{{ s.texture }}{% endif %}">
+  <div class="page-width origin__inner">
+    <div class="origin__body">
+      {%- if s.eyebrow != blank -%}<p class="eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="section-title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.region != blank -%}<p class="origin__region">{% render 'icon', name: 'leaf' %}<span>{{ s.region | escape }}</span></p>{%- endif -%}
+      {%- if s.text != blank -%}<div class="rte">{{ s.text }}</div>{%- endif -%}
+      {%- if section.blocks.size > 0 -%}
+        <dl class="origin__facts">
+          {%- for block in section.blocks -%}
+            <div {{ block.shopify_attributes }}><dt>{{ block.settings.label | escape }}</dt><dd>{{ block.settings.value | escape }}</dd></div>
+          {%- endfor -%}
+        </dl>
+      {%- endif -%}
+      {%- if s.button_label != blank -%}<a class="link-arrow" href="{{ s.button_link | default: routes.all_products_collection_url }}">{{ s.button_label | escape }} {% render 'icon', name: 'arrow-right' %}</a>{%- endif -%}
+    </div>
+    <div class="origin__visual">
+      <div class="origin__contours" aria-hidden="true"></div>
+      <div class="origin__photo">
+        {%- if s.image -%}
+          {%- render 'media', media_type: 'image', image: s.image, sizes: '(min-width: 990px) 40vw, 100vw' -%}
+        {%- else -%}
+          {{ 'lifestyle-1' | placeholder_svg_tag: 'origin__placeholder' }}
+        {%- endif -%}
+      </div>
+      {%- if s.altitude != blank -%}<p class="origin__altitude"><strong>{{ s.altitude | escape }}</strong><span>{{ 'origin.altitude' | t }}</span></p>{%- endif -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.origin_story.name",
+  "tag": "section",
+  "max_blocks": 6,
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.origin_story.settings.eyebrow",
+      "default": "Single origin"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.origin_story.settings.heading",
+      "default": "Grown high, picked by hand"
+    },
+    {
+      "type": "text",
+      "id": "region",
+      "label": "t:sections.origin_story.settings.region",
+      "default": "Huila, Colombia"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:sections.origin_story.settings.text",
+      "default": "<p>On steep slopes above the clouds, the Rojas family has grown coffee for three generations. Each cherry is picked at its peak and dried slowly on raised beds.</p>"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.origin_story.settings.image"
+    },
+    {
+      "type": "text",
+      "id": "altitude",
+      "label": "t:sections.origin_story.settings.altitude",
+      "default": "1 850 m"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.origin_story.settings.button_label",
+      "default": "Taste this origin"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:sections.origin_story.settings.button_link"
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.origin_story.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.origin_story.options.texture.none"
+        },
+        {
+          "value": "paper",
+          "label": "t:sections.origin_story.options.texture.paper"
+        },
+        {
+          "value": "linen",
+          "label": "t:sections.origin_story.options.texture.linen"
+        },
+        {
+          "value": "dots",
+          "label": "t:sections.origin_story.options.texture.dots"
+        },
+        {
+          "value": "wash",
+          "label": "t:sections.origin_story.options.texture.wash"
+        },
+        {
+          "value": "grain",
+          "label": "t:sections.origin_story.options.texture.grain"
+        }
+      ],
+      "default": "wash"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": "scheme-4"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "fact",
+      "name": "t:sections.origin_story.blocks.fact.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:sections.origin_story.blocks.fact.settings.label",
+          "default": "Harvest"
+        },
+        {
+          "type": "text",
+          "id": "value",
+          "label": "t:sections.origin_story.blocks.fact.settings.value",
+          "default": "June to August"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.origin_story.presets.origin_story",
+      "category": "text",
+      "blocks": [
+        {
+          "type": "fact",
+          "settings": {
+            "label": "Harvest",
+            "value": "June to August"
+          }
+        },
+        {
+          "type": "fact",
+          "settings": {
+            "label": "Process",
+            "value": "Washed"
+          }
+        },
+        {
+          "type": "fact",
+          "settings": {
+            "label": "Variety",
+            "value": "Caturra"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,169 @@
+{%- assign menu = section.settings.menu -%}
+<footer class="site-footer texture texture--paper {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width">
+    {%- if section.settings.show_newsletter -%}
+      <div class="footer-signup">
+        <div>
+          <h2 class="footer-signup__title">{{ section.settings.newsletter_heading | escape }}</h2>
+          {%- if section.settings.newsletter_text != blank -%}<p class="footer-signup__text">{{ section.settings.newsletter_text | escape }}</p>{%- endif -%}
+        </div>
+        {%- form 'customer', id: 'newsletter-form', class: 'newsletter' -%}
+          {%- if form.posted_successfully? -%}
+            <p class="form-success" role="status">{{ 'newsletter.success' | t }}</p>
+          {%- else -%}
+            {%- if form.errors -%}<div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>{%- endif -%}
+            <input type="hidden" name="contact[tags]" value="newsletter">
+            <label class="visually-hidden" for="newsletter-email">{{ 'newsletter.label' | t }}</label>
+            <div class="newsletter__row">
+              <input id="newsletter-email" class="input" type="email" name="contact[email]" value="{{ form.email | escape }}" placeholder="{{ 'newsletter.label' | t }}" autocomplete="email" required>
+              <button class="button" type="submit">{{ 'newsletter.submit' | t }}</button>
+            </div>
+          {%- endif -%}
+        {%- endform -%}
+      </div>
+    {%- endif -%}
+    <div class="site-footer__grid">
+      <div class="site-footer__col site-footer__about">
+        <p class="site-footer__name">{{ shop.name | escape }}</p>
+        {%- if section.settings.show_description and shop.description != blank -%}<p class="site-footer__text">{{ shop.description | escape }}</p>{%- endif -%}
+        {%- if section.settings.about != blank -%}<p class="site-footer__text">{{ section.settings.about | escape }}</p>{%- endif -%}
+      </div>
+      {%- if menu != blank and menu.links.size > 0 -%}
+        <nav class="site-footer__col" aria-label="{{ 'footer.menu' | t }}">
+          <h2 class="site-footer__heading">{{ 'footer.explore' | t }}</h2>
+          <ul class="site-footer__links">
+            {%- for link in menu.links -%}<li><a href="{{ link.url }}">{{ link.title | escape }}</a></li>{%- endfor -%}
+          </ul>
+        </nav>
+      {%- endif -%}
+      <div class="site-footer__col">
+        <h2 class="site-footer__heading">{{ 'footer.visit' | t }}</h2>
+        {%- if section.settings.address != blank -%}<p class="site-footer__text">{{ section.settings.address | escape | newline_to_br }}</p>{%- endif -%}
+        {%- if section.settings.hours != blank -%}<p class="site-footer__text">{{ section.settings.hours | escape | newline_to_br }}</p>{%- endif -%}
+        {%- if section.settings.email != blank -%}<p class="site-footer__text"><a href="mailto:{{ section.settings.email | escape }}">{{ section.settings.email | escape }}</a></p>{%- endif -%}
+      </div>
+    </div>
+    <ul class="site-footer__pledges" role="list">
+      {%- for block in section.blocks -%}
+        <li {{ block.shopify_attributes }}>{% render 'icon', name: block.settings.icon %}<span>{{ block.settings.text | escape }}</span></li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "t:sections.footer.name",
+  "tag": "div",
+  "class": "footer-section",
+  "max_blocks": 4,
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "t:sections.footer.settings.menu",
+      "default": "footer"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "t:sections.footer.settings.show_description",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "about",
+      "label": "t:sections.footer.settings.about",
+      "default": "Roasters, bakers and tea lovers since 2014."
+    },
+    {
+      "type": "header",
+      "content": "t:sections.footer.headers.visit_us"
+    },
+    {
+      "type": "textarea",
+      "id": "address",
+      "label": "t:sections.footer.settings.address",
+      "default": ""
+    },
+    {
+      "type": "textarea",
+      "id": "hours",
+      "label": "t:sections.footer.settings.hours",
+      "default": ""
+    },
+    {
+      "type": "text",
+      "id": "email",
+      "label": "t:sections.footer.settings.email",
+      "default": ""
+    },
+    {
+      "type": "header",
+      "content": "t:sections.footer.headers.newsletter"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_newsletter",
+      "label": "t:sections.footer.settings.show_newsletter",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "newsletter_heading",
+      "label": "t:sections.footer.settings.newsletter_heading",
+      "default": "Join the table"
+    },
+    {
+      "type": "text",
+      "id": "newsletter_text",
+      "label": "t:sections.footer.settings.newsletter_text",
+      "default": "Recipes, harvest news and a little discount."
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": "scheme-3"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "pledge",
+      "name": "t:sections.footer.blocks.pledge.name",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:sections.footer.blocks.pledge.settings.icon",
+          "options": [
+            {
+              "value": "leaf",
+              "label": "t:sections.footer.blocks.pledge.options.icon.leaf"
+            },
+            {
+              "value": "truck",
+              "label": "t:sections.footer.blocks.pledge.options.icon.truck"
+            },
+            {
+              "value": "gift",
+              "label": "t:sections.footer.blocks.pledge.options.icon.gift"
+            },
+            {
+              "value": "shield",
+              "label": "t:sections.footer.blocks.pledge.options.icon.shield"
+            }
+          ],
+          "default": "leaf"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.footer.blocks.pledge.settings.text",
+          "default": "Organic and local"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

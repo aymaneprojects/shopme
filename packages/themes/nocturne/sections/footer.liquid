@@ -1,0 +1,121 @@
+{%- assign menu = section.settings.menu -%}
+<footer class="site-footer {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width">
+    <div class="site-footer__crest">
+      <p class="site-footer__name">{{ shop.name | escape }}</p>
+      {%- if section.settings.tagline != blank -%}<p class="site-footer__tagline">{{ section.settings.tagline | escape }}</p>{%- endif -%}
+    </div>
+    <div class="site-footer__grid">
+      <div class="site-footer__col">
+        <h2 class="site-footer__heading">{{ 'footer.boutique' | t }}</h2>
+        {%- if section.settings.show_description and shop.description != blank -%}
+          <p class="site-footer__text">{{ shop.description | escape }}</p>
+        {%- endif -%}
+        {%- if section.settings.address != blank -%}<p class="site-footer__text site-footer__address">{{ section.settings.address | escape | newline_to_br }}</p>{%- endif -%}
+        {%- if section.settings.email != blank -%}<p class="site-footer__text"><a href="mailto:{{ section.settings.email | escape }}">{{ section.settings.email | escape }}</a></p>{%- endif -%}
+        {%- if section.settings.phone != blank -%}<p class="site-footer__text"><a href="tel:{{ section.settings.phone | replace: ' ', '' | escape }}">{{ section.settings.phone | escape }}</a></p>{%- endif -%}
+      </div>
+      {%- if menu != blank and menu.links.size > 0 -%}
+        <nav class="site-footer__col" aria-label="{{ 'footer.menu' | t }}">
+          <h2 class="site-footer__heading">{{ 'footer.explore' | t }}</h2>
+          <ul class="site-footer__links">
+            {%- for link in menu.links -%}
+              <li><a href="{{ link.url }}">{{ link.title | escape }}</a></li>
+            {%- endfor -%}
+          </ul>
+        </nav>
+      {%- endif -%}
+      {%- if section.settings.show_newsletter -%}
+        <div class="site-footer__col site-footer__newsletter">
+          <h2 class="site-footer__heading">{{ 'newsletter.title' | t }}</h2>
+          {%- if section.settings.newsletter_text != blank -%}<p class="site-footer__text">{{ section.settings.newsletter_text | escape }}</p>{%- endif -%}
+          {%- form 'customer', id: 'newsletter-form', class: 'newsletter' -%}
+            {%- if form.posted_successfully? -%}
+              <p class="form-success" role="status">{{ 'newsletter.success' | t }}</p>
+            {%- else -%}
+              {%- if form.errors -%}<div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>{%- endif -%}
+              <input type="hidden" name="contact[tags]" value="newsletter">
+              <label class="visually-hidden" for="newsletter-email">{{ 'newsletter.label' | t }}</label>
+              <div class="newsletter__row">
+                <input id="newsletter-email" class="input" type="email" name="contact[email]" value="{{ form.email | escape }}" placeholder="{{ 'newsletter.label' | t }}" autocomplete="email" required>
+                <button class="button" type="submit">{{ 'newsletter.submit' | t }}</button>
+              </div>
+            {%- endif -%}
+          {%- endform -%}
+        </div>
+      {%- endif -%}
+    </div>
+  </div>
+</footer>
+
+{% schema %}
+{
+  "name": "t:sections.footer.name",
+  "tag": "div",
+  "class": "footer-section",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "t:sections.footer.settings.menu",
+      "default": "footer"
+    },
+    {
+      "type": "text",
+      "id": "tagline",
+      "label": "t:sections.footer.settings.tagline",
+      "default": "Since 1887, in no hurry"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_description",
+      "label": "t:sections.footer.settings.show_description",
+      "default": true
+    },
+    {
+      "type": "header",
+      "content": "t:sections.footer.headers.boutique_details"
+    },
+    {
+      "type": "textarea",
+      "id": "address",
+      "label": "t:sections.footer.settings.address",
+      "default": ""
+    },
+    {
+      "type": "text",
+      "id": "email",
+      "label": "t:sections.footer.settings.email",
+      "default": ""
+    },
+    {
+      "type": "text",
+      "id": "phone",
+      "label": "t:sections.footer.settings.phone",
+      "default": ""
+    },
+    {
+      "type": "header",
+      "content": "t:sections.footer.headers.newsletter"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_newsletter",
+      "label": "t:sections.footer.settings.show_newsletter",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "newsletter_text",
+      "label": "t:sections.footer.settings.newsletter_text",
+      "default": "Previews and invitations, never more than twice a month."
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": "scheme-5"
+    }
+  ]
+}
+{% endschema %}

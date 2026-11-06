@@ -1,0 +1,213 @@
+{%- assign s = section.settings -%}
+<div class="section-pad recipe {% render 'scheme-class', scheme: s.color_scheme %}{% if s.texture != blank and s.texture != 'none' %} texture texture--{{ s.texture }}{% endif %}">
+  <div class="page-width recipe__inner">
+    <div class="recipe__media">
+      {%- if s.image -%}
+        {%- render 'media', media_type: 'image', image: s.image, sizes: '(min-width: 990px) 45vw, 100vw' -%}
+      {%- else -%}
+        {{ 'lifestyle-2' | placeholder_svg_tag: 'recipe__placeholder' }}
+      {%- endif -%}
+      <ul class="recipe__meta" role="list">
+        {%- if s.prep_time != blank -%}<li><span>{{ 'recipe.prep' | t }}</span><strong>{{ s.prep_time | escape }}</strong></li>{%- endif -%}
+        {%- if s.cook_time != blank -%}<li><span>{{ 'recipe.cook' | t }}</span><strong>{{ s.cook_time | escape }}</strong></li>{%- endif -%}
+        {%- if s.serves != blank -%}<li><span>{{ 'recipe.serves' | t }}</span><strong>{{ s.serves | escape }}</strong></li>{%- endif -%}
+      </ul>
+    </div>
+    <div class="recipe__body">
+      {%- if s.eyebrow != blank -%}<p class="eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="section-title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.text != blank -%}<div class="rte recipe__intro">{{ s.text }}</div>{%- endif -%}
+      <div class="recipe__columns">
+        <div class="recipe__card">
+          <h3 class="recipe__subtitle">{{ 'recipe.ingredients' | t }}</h3>
+          <ul class="recipe__ingredients" role="list">
+            {%- for block in section.blocks -%}{%- if block.type == 'ingredient' -%}<li {{ block.shopify_attributes }}>{{ block.settings.text | escape }}</li>{%- endif -%}{%- endfor -%}
+          </ul>
+        </div>
+        <div>
+          <h3 class="recipe__subtitle">{{ 'recipe.method' | t }}</h3>
+          <ol class="recipe__steps" role="list">
+            {%- for block in section.blocks -%}{%- if block.type == 'step' -%}<li {{ block.shopify_attributes }}>{{ block.settings.text | escape }}</li>{%- endif -%}{%- endfor -%}
+          </ol>
+        </div>
+      </div>
+      {%- if s.button_label != blank -%}<a class="button button--outline" href="{{ s.button_link | default: routes.all_products_collection_url }}">{{ s.button_label | escape }}</a>{%- endif -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.recipe_feature.name",
+  "tag": "section",
+  "max_blocks": 20,
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.recipe_feature.settings.eyebrow",
+      "default": "From our kitchen"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.recipe_feature.settings.heading",
+      "default": "Peach and honey pour-over cake"
+    },
+    {
+      "type": "richtext",
+      "id": "text",
+      "label": "t:sections.recipe_feature.settings.text",
+      "default": "<p>A soft, not-too-sweet cake that tastes like a slow Sunday and goes beautifully with a bright light roast.</p>"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.recipe_feature.settings.image"
+    },
+    {
+      "type": "text",
+      "id": "prep_time",
+      "label": "t:sections.recipe_feature.settings.prep_time",
+      "default": "20 min"
+    },
+    {
+      "type": "text",
+      "id": "cook_time",
+      "label": "t:sections.recipe_feature.settings.cook_time",
+      "default": "35 min"
+    },
+    {
+      "type": "text",
+      "id": "serves",
+      "label": "t:sections.recipe_feature.settings.serves",
+      "default": "6 people"
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.recipe_feature.settings.button_label",
+      "default": "Shop the ingredients"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:sections.recipe_feature.settings.button_link"
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.recipe_feature.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.recipe_feature.options.texture.none"
+        },
+        {
+          "value": "paper",
+          "label": "t:sections.recipe_feature.options.texture.paper"
+        },
+        {
+          "value": "linen",
+          "label": "t:sections.recipe_feature.options.texture.linen"
+        },
+        {
+          "value": "dots",
+          "label": "t:sections.recipe_feature.options.texture.dots"
+        },
+        {
+          "value": "wash",
+          "label": "t:sections.recipe_feature.options.texture.wash"
+        },
+        {
+          "value": "grain",
+          "label": "t:sections.recipe_feature.options.texture.grain"
+        }
+      ],
+      "default": "linen"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": "scheme-1"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "ingredient",
+      "name": "t:sections.recipe_feature.blocks.ingredient.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.recipe_feature.blocks.ingredient.settings.text",
+          "default": "200 g flour"
+        }
+      ]
+    },
+    {
+      "type": "step",
+      "name": "t:sections.recipe_feature.blocks.step.name",
+      "settings": [
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "t:sections.recipe_feature.blocks.step.settings.text",
+          "default": "Mix the dry ingredients."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.recipe_feature.presets.recipe",
+      "category": "text",
+      "blocks": [
+        {
+          "type": "ingredient",
+          "settings": {
+            "text": "200 g flour"
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "text": "3 ripe peaches, sliced"
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "text": "3 tbsp honey"
+          }
+        },
+        {
+          "type": "ingredient",
+          "settings": {
+            "text": "2 eggs and 80 g butter"
+          }
+        },
+        {
+          "type": "step",
+          "settings": {
+            "text": "Whisk the eggs with the honey, then fold in the melted butter and the flour."
+          }
+        },
+        {
+          "type": "step",
+          "settings": {
+            "text": "Pour into a lined tin and arrange the peach slices on top."
+          }
+        },
+        {
+          "type": "step",
+          "settings": {
+            "text": "Bake for 35 minutes at 180 degrees. Serve warm with a filter coffee."
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,46 @@
+<div class="section-pad page-content {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width{% if section.settings.width != 'page' %} page-width--narrow{% endif %}">
+    {%- if section.settings.show_title -%}
+      <header class="page-head"><h1 class="page-title">{{ page.title | escape }}</h1></header>
+    {%- endif -%}
+    <div class="rte">{{ page.content }}</div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_page.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_title",
+      "label": "t:sections.main_page.settings.show_title",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "width",
+      "label": "t:sections.main_page.settings.width",
+      "options": [
+        {
+          "value": "narrow",
+          "label": "t:sections.main_page.options.width.narrow"
+        },
+        {
+          "value": "page",
+          "label": "t:sections.main_page.options.width.page"
+        }
+      ],
+      "default": "narrow",
+      "variant": "segmented"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ]
+}
+{% endschema %}

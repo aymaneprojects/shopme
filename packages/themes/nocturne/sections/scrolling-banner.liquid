@@ -1,0 +1,110 @@
+{%- assign items = section.blocks -%}
+{%- if items.size > 0 -%}
+  <div class="marquee {% render 'scheme-class', scheme: section.settings.color_scheme %} marquee--{{ section.settings.direction }}" style="--marquee-speed: {{ section.settings.speed }}s;" role="region" aria-label="{{ items.first.settings.text | escape }}">
+    <div class="marquee__track">
+      {%- for i in (1..2) -%}
+        <ul class="marquee__group" role="list"{% if i == 2 %} aria-hidden="true"{% endif %}>
+          {%- for block in items -%}
+            <li class="marquee__item" {% if i == 1 %}{{ block.shopify_attributes }}{% endif %}>
+              {%- if block.settings.link != blank -%}<a href="{{ block.settings.link }}"{% if i == 2 %} tabindex="-1"{% endif %}>{{ block.settings.text | escape }}</a>{%- else -%}{{ block.settings.text | escape }}{%- endif -%}
+            </li>
+          {%- endfor -%}
+        </ul>
+      {%- endfor -%}
+    </div>
+  </div>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:sections.scrolling_banner.name",
+  "tag": "section",
+  "max_blocks": 10,
+  "settings": [
+    {
+      "type": "select",
+      "id": "direction",
+      "label": "t:sections.scrolling_banner.settings.direction",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:sections.scrolling_banner.options.direction.left"
+        },
+        {
+          "value": "right",
+          "label": "t:sections.scrolling_banner.options.direction.right"
+        }
+      ],
+      "default": "left",
+      "variant": "segmented"
+    },
+    {
+      "type": "range",
+      "id": "speed",
+      "label": "t:sections.scrolling_banner.settings.speed",
+      "min": 10,
+      "max": 120,
+      "step": 5,
+      "unit": "s",
+      "default": 40
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": "scheme-1"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "text",
+      "name": "t:sections.scrolling_banner.blocks.text.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.scrolling_banner.blocks.text.settings.text",
+          "default": "Hand-finished in our atelier"
+        },
+        {
+          "type": "url",
+          "id": "link",
+          "label": "t:sections.scrolling_banner.blocks.text.settings.link"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.scrolling_banner.presets.scrolling_banner",
+      "category": "banner",
+      "blocks": [
+        {
+          "type": "text",
+          "settings": {
+            "text": "Hand-finished in our atelier"
+          }
+        },
+        {
+          "type": "text",
+          "settings": {
+            "text": "Numbered pieces"
+          }
+        },
+        {
+          "type": "text",
+          "settings": {
+            "text": "Ten-year guarantee"
+          }
+        },
+        {
+          "type": "text",
+          "settings": {
+            "text": "Complimentary engraving"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

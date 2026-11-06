@@ -1,0 +1,44 @@
+{%- doc -%}
+  Badges of a product: sold out, sale, and one per product tag listed in the "Badge tags" theme setting (such as organic or local).
+  The label of a tag comes from `badges.<tag>` in the locale files (dashes become underscores), else the tag itself.
+  @param {product} product - the product
+  @param {number} [limit] - the most badges to show (default 3)
+  @param {boolean} [stock] - include the sold out and sale badges (default true)
+{%- enddoc -%}
+{%- liquid
+  assign max = limit | default: 3
+  assign shown = 0
+  assign wanted = settings.badge_tags | downcase | replace: ' ', '' | split: ','
+-%}
+{%- capture list -%}
+  {%- unless product.available -%}
+    {%- if settings.badge_show_sold_out != false and stock != false -%}
+      <li class="badge badge--sold-out">{{ 'products.sold_out' | t }}</li>
+      {%- assign shown = shown | plus: 1 -%}
+    {%- endif -%}
+  {%- elsif product.compare_at_price > product.price and settings.badge_show_sale != false and stock != false -%}
+    <li class="badge badge--sale">
+      {%- if settings.badge_sale_percent and product.price_varies == false -%}
+        {%- assign saved = product.compare_at_price | minus: product.price | times: 100 | divided_by: product.compare_at_price | floor -%}
+        -{{ saved }}%
+      {%- else -%}
+        {{ 'products.sale' | t }}
+      {%- endif -%}
+    </li>
+    {%- assign shown = shown | plus: 1 -%}
+  {%- endunless -%}
+  {%- if settings.badges_enabled != false -%}
+    {%- for tag in product.tags -%}
+      {%- assign tag_handle = tag | handle -%}
+      {%- if wanted contains tag_handle and shown < max -%}
+        {%- assign badge_key = 'badges.' | append: tag_handle | replace: '-', '_' -%}
+        {%- assign badge_label = badge_key | t -%}
+        {%- if badge_label contains 'translation missing' -%}{%- assign badge_label = tag -%}{%- endif -%}
+        <li class="badge badge--tag badge--{{ tag_handle }}">{% if settings.badges_icon %}{% render 'icon', name: 'leaf' %}{% endif %}<span>{{ badge_label | escape }}</span></li>
+        {%- assign shown = shown | plus: 1 -%}
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endcapture -%}
+{%- assign trimmed = list | strip -%}
+{%- if trimmed != blank -%}<ul class="badges badges--{{ settings.badge_shape | default: 'square' }}" role="list">{{ trimmed }}</ul>{%- endif -%}

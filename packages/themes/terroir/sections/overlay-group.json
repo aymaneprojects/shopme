@@ -1,0 +1,22 @@
+{
+  "name": "t:sections.groups.overlays",
+  "type": "overlay",
+  "sections": {
+    "cart-drawer": {
+      "type": "cart-drawer",
+      "settings": {
+        "free_shipping_threshold": 50
+      }
+    },
+    "popup": {
+      "type": "popup",
+      "settings": {
+        "enabled": false
+      }
+    }
+  },
+  "order": [
+    "cart-drawer",
+    "popup"
+  ]
+}

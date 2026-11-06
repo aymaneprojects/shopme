@@ -1,0 +1,25 @@
+{
+  "name": "t:sections.groups.header",
+  "type": "header",
+  "sections": {
+    "announcement": {
+      "type": "announcement-bar",
+      "settings": {
+        "show": true,
+        "text": "Complimentary shipping and engraving on every order",
+        "color_scheme": "scheme-4"
+      }
+    },
+    "header": {
+      "type": "header",
+      "settings": {
+        "menu": "main-menu",
+        "sticky": true
+      }
+    }
+  },
+  "order": [
+    "announcement",
+    "header"
+  ]
+}

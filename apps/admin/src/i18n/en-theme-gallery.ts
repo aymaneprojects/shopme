@@ -46,5 +46,6 @@ export const enThemeGallery = {
   'themes.tag.local': 'Local',
   'themes.tag.organic': 'Organic',
   'themes.tag.wine': 'Wine',
+  'themes.tag.local-producers': 'Local producers',
   'themes.tag.test': 'Test',
 } as const;

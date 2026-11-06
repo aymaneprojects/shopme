@@ -1,0 +1,396 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "settings": {
+        "eyebrow": "Roasted this week",
+        "heading": "Real food from people we know",
+        "subheading": "Coffee, tea and pantry treats from small producers, delivered fresh to your door.",
+        "button_label": "Shop the pantry",
+        "button_link": "/collections/all",
+        "button2_label": "Our story",
+        "button2_link": "/pages/about-us",
+        "stamp": "Roasted weekly",
+        "layout": "split",
+        "texture": "paper",
+        "color_scheme": "scheme-4"
+      },
+      "blocks": {
+        "fact-1": {
+          "type": "fact",
+          "settings": {
+            "value": "20",
+            "label": "small producers"
+          }
+        },
+        "fact-2": {
+          "type": "fact",
+          "settings": {
+            "value": "48 h",
+            "label": "from roaster to door"
+          }
+        },
+        "fact-3": {
+          "type": "fact",
+          "settings": {
+            "value": "100%",
+            "label": "compostable packaging"
+          }
+        }
+      },
+      "block_order": [
+        "fact-1",
+        "fact-2",
+        "fact-3"
+      ]
+    },
+    "marquee": {
+      "type": "scrolling-banner",
+      "settings": {
+        "direction": "left",
+        "speed": 40,
+        "color_scheme": "scheme-2"
+      },
+      "blocks": {
+        "text-1": {
+          "type": "text",
+          "settings": {
+            "text": "Roasted weekly"
+          }
+        },
+        "text-2": {
+          "type": "text",
+          "settings": {
+            "text": "Small producers"
+          }
+        },
+        "text-3": {
+          "type": "text",
+          "settings": {
+            "text": "Organic and local"
+          }
+        },
+        "text-4": {
+          "type": "text",
+          "settings": {
+            "text": "Plastic-free packaging"
+          }
+        }
+      },
+      "block_order": [
+        "text-1",
+        "text-2",
+        "text-3",
+        "text-4"
+      ]
+    },
+    "favourites": {
+      "type": "featured-collection",
+      "settings": {
+        "eyebrow": "Fresh this week",
+        "heading": "Our favourites",
+        "text": "Roasted, blended and baked in small batches.",
+        "collection": "all",
+        "products_to_show": 4,
+        "columns": "4",
+        "texture": "none",
+        "color_scheme": ""
+      }
+    },
+    "collections": {
+      "type": "collection-list",
+      "settings": {
+        "eyebrow": "Browse the pantry",
+        "heading": "Shop by collection",
+        "columns": "3",
+        "show_count": true,
+        "texture": "dots",
+        "color_scheme": "scheme-4"
+      }
+    },
+    "origin": {
+      "type": "origin-story",
+      "settings": {
+        "texture": "wash",
+        "color_scheme": ""
+      },
+      "blocks": {
+        "fact-1": {
+          "type": "fact",
+          "settings": {
+            "label": "Harvest",
+            "value": "June to August"
+          }
+        },
+        "fact-2": {
+          "type": "fact",
+          "settings": {
+            "label": "Process",
+            "value": "Washed"
+          }
+        },
+        "fact-3": {
+          "type": "fact",
+          "settings": {
+            "label": "Variety",
+            "value": "Caturra"
+          }
+        }
+      },
+      "block_order": [
+        "fact-1",
+        "fact-2",
+        "fact-3"
+      ]
+    },
+    "producers": {
+      "type": "producer-spotlight",
+      "settings": {
+        "texture": "dots",
+        "color_scheme": "scheme-4"
+      },
+      "blocks": {
+        "producer-1": {
+          "type": "producer",
+          "settings": {
+            "name": "The Rojas family",
+            "place": "Huila, Colombia",
+            "quote": "We pick only what is ripe, and we are in no hurry."
+          }
+        },
+        "producer-2": {
+          "type": "producer",
+          "settings": {
+            "name": "Mei and Lan",
+            "place": "Fujian, China",
+            "quote": "Jasmine blossoms are scented by hand, one night at a time."
+          }
+        },
+        "producer-3": {
+          "type": "producer",
+          "settings": {
+            "name": "Atelier Moulin",
+            "place": "Dordogne, France",
+            "quote": "Our honey comes from hives you can see from the kitchen."
+          }
+        }
+      },
+      "block_order": [
+        "producer-1",
+        "producer-2",
+        "producer-3"
+      ]
+    },
+    "recipe": {
+      "type": "recipe-feature",
+      "settings": {
+        "texture": "linen",
+        "color_scheme": ""
+      },
+      "blocks": {
+        "ingredient-1": {
+          "type": "ingredient",
+          "settings": {
+            "text": "200 g flour"
+          }
+        },
+        "ingredient-2": {
+          "type": "ingredient",
+          "settings": {
+            "text": "3 ripe peaches, sliced"
+          }
+        },
+        "ingredient-3": {
+          "type": "ingredient",
+          "settings": {
+            "text": "3 tbsp honey"
+          }
+        },
+        "ingredient-4": {
+          "type": "ingredient",
+          "settings": {
+            "text": "2 eggs and 80 g butter"
+          }
+        },
+        "step-5": {
+          "type": "step",
+          "settings": {
+            "text": "Whisk the eggs with the honey, then fold in the melted butter and the flour."
+          }
+        },
+        "step-6": {
+          "type": "step",
+          "settings": {
+            "text": "Pour into a lined tin and arrange the peach slices on top."
+          }
+        },
+        "step-7": {
+          "type": "step",
+          "settings": {
+            "text": "Bake for 35 minutes at 180 degrees. Serve warm with a filter coffee."
+          }
+        }
+      },
+      "block_order": [
+        "ingredient-1",
+        "ingredient-2",
+        "ingredient-3",
+        "ingredient-4",
+        "step-5",
+        "step-6",
+        "step-7"
+      ]
+    },
+    "notes": {
+      "type": "flavor-notes",
+      "settings": {
+        "texture": "paper",
+        "color_scheme": "scheme-2"
+      },
+      "blocks": {
+        "note-1": {
+          "type": "note",
+          "settings": {
+            "label": "Acidity",
+            "hint": "bright",
+            "level": 4
+          }
+        },
+        "note-2": {
+          "type": "note",
+          "settings": {
+            "label": "Sweetness",
+            "hint": "honeyed",
+            "level": 4
+          }
+        },
+        "note-3": {
+          "type": "note",
+          "settings": {
+            "label": "Body",
+            "hint": "silky",
+            "level": 3
+          }
+        },
+        "note-4": {
+          "type": "note",
+          "settings": {
+            "label": "Roast",
+            "hint": "light",
+            "level": 2
+          }
+        }
+      },
+      "block_order": [
+        "note-1",
+        "note-2",
+        "note-3",
+        "note-4"
+      ]
+    },
+    "columns": {
+      "type": "multicolumn",
+      "settings": {
+        "columns": "3",
+        "align": "left",
+        "texture": "none",
+        "color_scheme": ""
+      },
+      "blocks": {
+        "column-1": {
+          "type": "column",
+          "settings": {
+            "title": "Small batch",
+            "text": "<p>Roasted and baked every week so that everything arrives fresh.</p>"
+          }
+        },
+        "column-2": {
+          "type": "column",
+          "settings": {
+            "title": "Fairly bought",
+            "text": "<p>We pay above fair-trade prices, directly to producers.</p>"
+          }
+        },
+        "column-3": {
+          "type": "column",
+          "settings": {
+            "title": "Packed with care",
+            "text": "<p>Compostable and recycled packaging, always.</p>"
+          }
+        }
+      },
+      "block_order": [
+        "column-1",
+        "column-2",
+        "column-3"
+      ]
+    },
+    "quotes": {
+      "type": "testimonials",
+      "settings": {
+        "layout": "grid",
+        "texture": "linen",
+        "color_scheme": "scheme-4",
+        "eyebrow": "Kind words",
+        "heading": "Loved at breakfast tables"
+      },
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The best filter coffee I have had at home, and the box smells wonderful.",
+            "author": "Marion L.",
+            "role": "Subscriber since 2023",
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Their jasmine tea opens up like a flower in the glass. My guests ask where it is from.",
+            "author": "Karim B.",
+            "role": "Lyon",
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "Fast delivery, kind notes from the roaster and fair prices. We are fans.",
+            "author": "Sophie & Tom",
+            "role": "Bordeaux",
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ]
+    },
+    "news": {
+      "type": "newsletter",
+      "settings": {
+        "color_scheme": "scheme-2",
+        "texture": "paper",
+        "eyebrow": "The weekly crumb",
+        "heading": "Recipes and new arrivals, in your inbox",
+        "text": "<p>One friendly email a week: what is fresh, what is in season and one recipe to try.</p>"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "marquee",
+    "favourites",
+    "collections",
+    "origin",
+    "producers",
+    "recipe",
+    "notes",
+    "columns",
+    "quotes",
+    "news"
+  ]
+}

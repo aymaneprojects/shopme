@@ -1,0 +1,204 @@
+{%- liquid
+  assign s = section.settings
+  assign media_type = 'image'
+  if s.video_url != blank
+    assign media_type = 'video'
+  endif
+-%}
+<div class="hero hero--{{ s.layout }} {% render 'scheme-class', scheme: s.color_scheme %}{% if s.texture != blank and s.texture != 'none' %} texture texture--{{ s.texture }}{% endif %}">
+  <div class="page-width hero__inner">
+    <div class="hero__body">
+      {%- if s.eyebrow != blank -%}<p class="eyebrow hero__eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h1 class="hero__heading">{{ s.heading | escape }}</h1>{%- endif -%}
+      {%- if s.subheading != blank -%}<p class="hero__text">{{ s.subheading | escape }}</p>{%- endif -%}
+      {%- if s.button_label != blank or s.button2_label != blank -%}
+        <div class="hero__actions">
+          {%- if s.button_label != blank -%}<a class="button" href="{{ s.button_link | default: routes.all_products_collection_url }}">{{ s.button_label | escape }}</a>{%- endif -%}
+          {%- if s.button2_label != blank -%}<a class="button button--outline" href="{{ s.button2_link | default: routes.all_products_collection_url }}">{{ s.button2_label | escape }}</a>{%- endif -%}
+        </div>
+      {%- endif -%}
+      {%- if section.blocks.size > 0 -%}
+        <ul class="hero__facts" role="list">
+          {%- for block in section.blocks -%}
+            <li {{ block.shopify_attributes }}><strong>{{ block.settings.value | escape }}</strong><span>{{ block.settings.label | escape }}</span></li>
+          {%- endfor -%}
+        </ul>
+      {%- endif -%}
+    </div>
+    <div class="hero__visual">
+      <div class="hero__arch">
+        {%- if media_type == 'video' or s.image -%}
+          {%- render 'media', media_type: media_type, image: s.image, mobile_image: s.mobile_image, use_mobile: true, video_url: s.video_url, eager: true, sizes: '(min-width: 990px) 45vw, 100vw' -%}
+        {%- else -%}
+          <div class="hero__art" aria-hidden="true"><span class="hero__sun"></span></div>
+        {%- endif -%}
+      </div>
+      {%- if s.stamp != blank -%}<p class="hero__stamp"><span>{{ s.stamp | escape }}</span></p>{%- endif -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.hero.name",
+  "tag": "section",
+  "max_blocks": 3,
+  "settings": [
+    {
+      "type": "header",
+      "content": "t:sections.hero.headers.content"
+    },
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.hero.settings.eyebrow",
+      "default": "Roasted this week"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.hero.settings.heading",
+      "default": "Real food from people we know"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "t:sections.hero.settings.subheading",
+      "default": "Coffee, tea and pantry treats from small producers, delivered fresh to your door."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "t:sections.hero.settings.button_label",
+      "default": "Shop the pantry"
+    },
+    {
+      "type": "url",
+      "id": "button_link",
+      "label": "t:sections.hero.settings.button_link"
+    },
+    {
+      "type": "text",
+      "id": "button2_label",
+      "label": "t:sections.hero.settings.button2_label",
+      "default": "Our story"
+    },
+    {
+      "type": "url",
+      "id": "button2_link",
+      "label": "t:sections.hero.settings.button2_link"
+    },
+    {
+      "type": "text",
+      "id": "stamp",
+      "label": "t:sections.hero.settings.stamp",
+      "default": "Roasted weekly"
+    },
+    {
+      "type": "header",
+      "content": "t:sections.hero.headers.media"
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:sections.hero.settings.image"
+    },
+    {
+      "type": "image_picker",
+      "id": "mobile_image",
+      "label": "t:sections.hero.settings.mobile_image"
+    },
+    {
+      "type": "text",
+      "id": "video_url",
+      "label": "t:sections.hero.settings.video_url",
+      "default": ""
+    },
+    {
+      "type": "header",
+      "content": "t:sections.hero.headers.layout"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "t:sections.hero.settings.layout",
+      "options": [
+        {
+          "value": "split",
+          "label": "t:sections.hero.options.layout.split"
+        },
+        {
+          "value": "stacked",
+          "label": "t:sections.hero.options.layout.stacked"
+        }
+      ],
+      "default": "split",
+      "variant": "segmented"
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.hero.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.hero.options.texture.none"
+        },
+        {
+          "value": "paper",
+          "label": "t:sections.hero.options.texture.paper"
+        },
+        {
+          "value": "linen",
+          "label": "t:sections.hero.options.texture.linen"
+        },
+        {
+          "value": "dots",
+          "label": "t:sections.hero.options.texture.dots"
+        },
+        {
+          "value": "wash",
+          "label": "t:sections.hero.options.texture.wash"
+        },
+        {
+          "value": "grain",
+          "label": "t:sections.hero.options.texture.grain"
+        }
+      ],
+      "default": "paper"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": "scheme-4"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "fact",
+      "name": "t:sections.hero.blocks.fact.name",
+      "settings": [
+        {
+          "type": "text",
+          "id": "value",
+          "label": "t:sections.hero.blocks.fact.settings.value",
+          "default": "20"
+        },
+        {
+          "type": "text",
+          "id": "label",
+          "label": "t:sections.hero.blocks.fact.settings.label",
+          "default": "small producers"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.hero.presets.hero",
+      "category": "banner"
+    }
+  ]
+}
+{% endschema %}

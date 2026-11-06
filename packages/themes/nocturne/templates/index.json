@@ -1,0 +1,320 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "settings": {
+        "eyebrow": "Fine jewelry and watchmaking",
+        "heading": "The art of time, set in eternity",
+        "subheading": "Pieces made by hand in our atelier, numbered, certified and made to be passed on.",
+        "button_label": "Discover the collection",
+        "button_link": "/collections/all",
+        "button2_label": "Our story",
+        "button2_link": "/pages/about-us",
+        "height": "tall",
+        "show_dial": true,
+        "show_frame": true
+      }
+    },
+    "marquee": {
+      "type": "scrolling-banner",
+      "settings": {
+        "direction": "left",
+        "speed": 45,
+        "color_scheme": "scheme-1"
+      },
+      "blocks": {
+        "text-1": {
+          "type": "text",
+          "settings": {
+            "text": "Hand-finished in our atelier"
+          }
+        },
+        "text-2": {
+          "type": "text",
+          "settings": {
+            "text": "Numbered pieces"
+          }
+        },
+        "text-3": {
+          "type": "text",
+          "settings": {
+            "text": "Ten-year guarantee"
+          }
+        },
+        "text-4": {
+          "type": "text",
+          "settings": {
+            "text": "Complimentary engraving"
+          }
+        }
+      },
+      "block_order": [
+        "text-1",
+        "text-2",
+        "text-3",
+        "text-4"
+      ]
+    },
+    "collection": {
+      "type": "featured-collection",
+      "settings": {
+        "eyebrow": "Selected pieces",
+        "heading": "The Collection",
+        "collection": "all",
+        "products_to_show": 4,
+        "columns": "4",
+        "color_scheme": "scheme-1"
+      }
+    },
+    "lookbook": {
+      "type": "lookbook",
+      "settings": {
+        "color_scheme": "scheme-3"
+      },
+      "blocks": {
+        "panel-1": {
+          "type": "panel",
+          "settings": {
+            "collection": "coffee",
+            "label": "Fine jewelry",
+            "caption": "A signature piece for every occasion."
+          }
+        },
+        "panel-2": {
+          "type": "panel",
+          "settings": {
+            "collection": "tea",
+            "label": "Timepieces",
+            "caption": "Precision you can feel."
+          }
+        },
+        "panel-3": {
+          "type": "panel",
+          "settings": {
+            "collection": "equipment",
+            "label": "Objects of desire",
+            "caption": "Rare pieces for the home."
+          }
+        }
+      },
+      "block_order": [
+        "panel-1",
+        "panel-2",
+        "panel-3"
+      ]
+    },
+    "spec": {
+      "type": "spec-sheet",
+      "settings": {
+        "color_scheme": "scheme-1",
+        "texture": "noir"
+      },
+      "blocks": {
+        "spec-1": {
+          "type": "spec",
+          "settings": {
+            "label": "Movement",
+            "value": "Automatic, 28,800 vph"
+          }
+        },
+        "spec-2": {
+          "type": "spec",
+          "settings": {
+            "label": "Case",
+            "value": "18 k rose gold, 39 mm"
+          }
+        },
+        "spec-3": {
+          "type": "spec",
+          "settings": {
+            "label": "Water resistance",
+            "value": "50 metres"
+          }
+        },
+        "spec-4": {
+          "type": "spec",
+          "settings": {
+            "label": "Power reserve",
+            "value": "72 hours"
+          }
+        }
+      },
+      "block_order": [
+        "spec-1",
+        "spec-2",
+        "spec-3",
+        "spec-4"
+      ]
+    },
+    "story": {
+      "type": "image-with-text",
+      "settings": {
+        "layout": "right",
+        "image_ratio": "portrait",
+        "color_scheme": "scheme-3",
+        "texture": "none",
+        "eyebrow": "The atelier",
+        "heading": "Made by hand, finished by eye",
+        "text": "<p>Our craftsmen spend up to three hundred hours on a single piece. Nothing leaves until it is flawless.</p>",
+        "button_label": "Read our story",
+        "button_link": "/pages/about-us"
+      }
+    },
+    "timeline": {
+      "type": "heritage-timeline",
+      "settings": {
+        "color_scheme": "scheme-1",
+        "texture": "guilloche"
+      },
+      "blocks": {
+        "milestone-1": {
+          "type": "milestone",
+          "settings": {
+            "year": "1887",
+            "title": "The first workbench",
+            "text": "A single bench and a promise: nothing leaves unfinished."
+          }
+        },
+        "milestone-2": {
+          "type": "milestone",
+          "settings": {
+            "year": "1924",
+            "title": "The Calibre No. 1",
+            "text": "Our first in-house movement, still running today."
+          }
+        },
+        "milestone-3": {
+          "type": "milestone",
+          "settings": {
+            "year": "1968",
+            "title": "The jewelry atelier",
+            "text": "Gem-setting joins watchmaking under one roof."
+          }
+        },
+        "milestone-4": {
+          "type": "milestone",
+          "settings": {
+            "year": "2024",
+            "title": "Carbon-neutral workshop",
+            "text": "Recycled gold, traceable stones, repairs for life."
+          }
+        }
+      },
+      "block_order": [
+        "milestone-1",
+        "milestone-2",
+        "milestone-3",
+        "milestone-4"
+      ]
+    },
+    "services": {
+      "type": "concierge-services",
+      "settings": {
+        "color_scheme": "scheme-3"
+      },
+      "blocks": {
+        "service-1": {
+          "type": "service",
+          "settings": {
+            "icon": "diamond",
+            "title": "Certified and numbered",
+            "text": "Every piece comes with its signed certificate."
+          }
+        },
+        "service-2": {
+          "type": "service",
+          "settings": {
+            "icon": "gift",
+            "title": "Complimentary engraving",
+            "text": "A personal message, engraved by hand."
+          }
+        },
+        "service-3": {
+          "type": "service",
+          "settings": {
+            "icon": "truck",
+            "title": "Insured delivery",
+            "text": "Tracked, insured and signed for, worldwide."
+          }
+        },
+        "service-4": {
+          "type": "service",
+          "settings": {
+            "icon": "shield",
+            "title": "Ten-year guarantee",
+            "text": "A free annual service for a decade."
+          }
+        }
+      },
+      "block_order": [
+        "service-1",
+        "service-2",
+        "service-3",
+        "service-4"
+      ]
+    },
+    "testimonials": {
+      "type": "testimonials",
+      "settings": {
+        "layout": "grid",
+        "color_scheme": "scheme-2"
+      },
+      "blocks": {
+        "testimonial-1": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "A quiet masterpiece: nothing is shouted, everything is felt.",
+            "author": "Helena V.",
+            "role": "Collector, Geneva",
+            "rating": 5
+          }
+        },
+        "testimonial-2": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "The finishing rivals houses three times its size.",
+            "author": "The Watch Review",
+            "role": "Independent magazine",
+            "rating": 5
+          }
+        },
+        "testimonial-3": {
+          "type": "testimonial",
+          "settings": {
+            "quote": "My engagement ring arrived like a small ceremony.",
+            "author": "Julien M.",
+            "role": "Client since 2019",
+            "rating": 5
+          }
+        }
+      },
+      "block_order": [
+        "testimonial-1",
+        "testimonial-2",
+        "testimonial-3"
+      ]
+    },
+    "news": {
+      "type": "newsletter",
+      "settings": {
+        "color_scheme": "scheme-1",
+        "texture": "noir",
+        "eyebrow": "The Private Circle",
+        "heading": "Be the first to see what comes next",
+        "text": "<p>Previews of new pieces, invitations to private viewings and the occasional story from the atelier.</p>"
+      }
+    }
+  },
+  "order": [
+    "hero",
+    "marquee",
+    "collection",
+    "lookbook",
+    "spec",
+    "story",
+    "timeline",
+    "services",
+    "testimonials",
+    "news"
+  ]
+}

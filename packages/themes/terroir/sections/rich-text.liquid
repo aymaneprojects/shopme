@@ -1,0 +1,119 @@
+<div class="section-pad rich-text rich-text--{{ section.settings.align }} {% render 'scheme-class', scheme: section.settings.color_scheme %}{% if section.settings.texture != blank and section.settings.texture != 'none' %} texture texture--{{ section.settings.texture }}{% endif %}">
+  <div class="page-width">
+    <div class="rich-text__inner rich-text__inner--{{ section.settings.direction }}">
+      {%- content_for 'blocks' -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.rich_text.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "align",
+      "label": "t:sections.rich_text.settings.align",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:shared.left"
+        },
+        {
+          "value": "center",
+          "label": "t:shared.center"
+        }
+      ],
+      "default": "center",
+      "variant": "segmented"
+    },
+    {
+      "type": "select",
+      "id": "direction",
+      "label": "t:sections.rich_text.settings.direction",
+      "options": [
+        {
+          "value": "vertical",
+          "label": "t:shared.vertical"
+        },
+        {
+          "value": "horizontal",
+          "label": "t:shared.horizontal"
+        }
+      ],
+      "default": "vertical",
+      "variant": "segmented"
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.rich_text.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.rich_text.options.texture.none"
+        },
+        {
+          "value": "paper",
+          "label": "t:sections.rich_text.options.texture.paper"
+        },
+        {
+          "value": "linen",
+          "label": "t:sections.rich_text.options.texture.linen"
+        },
+        {
+          "value": "dots",
+          "label": "t:sections.rich_text.options.texture.dots"
+        },
+        {
+          "value": "wash",
+          "label": "t:sections.rich_text.options.texture.wash"
+        },
+        {
+          "value": "grain",
+          "label": "t:sections.rich_text.options.texture.grain"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@theme"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.rich_text.presets.rich_text",
+      "category": "text",
+      "blocks": [
+        {
+          "type": "heading",
+          "settings": {
+            "text": "Good food starts with good people"
+          }
+        },
+        {
+          "type": "text",
+          "settings": {
+            "text": "<p>We buy straight from the farms and kitchens we know by name, and we pay them fairly.</p>"
+          }
+        },
+        {
+          "type": "button",
+          "settings": {
+            "label": "Meet our producers"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="{{ request.locale.iso_code }}" dir="ltr" class="theme-terroir">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="{{ settings.color_background }}">
+    {%- if settings.favicon -%}
+      <link rel="icon" type="image/png" href="{{ settings.favicon | image_url: width: 32, height: 32 }}">
+      <link rel="apple-touch-icon" href="{{ settings.favicon | image_url: width: 180, height: 180 }}">
+    {%- endif -%}
+    <title>{{ page_title }}</title>
+    {%- if page_description != blank %}
+      <meta name="description" content="{{ page_description | escape }}">
+    {%- endif %}
+    <link rel="canonical" href="{{ canonical_url }}">
+    {%- if localization.available_languages.size > 1 -%}
+      {%- for language in localization.available_languages -%}
+        <link rel="alternate" hreflang="{{ language.iso_code }}" href="{{ language.url }}">
+      {%- endfor -%}
+      {%- for language in localization.available_languages -%}{%- if language.primary -%}<link rel="alternate" hreflang="x-default" href="{{ language.url }}">{%- endif -%}{%- endfor -%}
+    {%- else -%}
+      {%- for language in localization.available_languages -%}
+        <link rel="alternate" hreflang="{{ language.iso_code | replace: '_', '-' }}" href="{{ canonical_url }}">
+      {%- endfor -%}
+      <link rel="alternate" hreflang="x-default" href="{{ canonical_url }}">
+    {%- endif -%}
+    <meta property="og:site_name" content="{{ shop.name | escape }}">
+    <meta property="og:title" content="{{ page_title | escape }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    {%- render 'css-variables' -%}
+    {{ 'terroir.css' | asset_url | stylesheet_tag }}
+    {{ content_for_header }}
+    <script src="{{ 'terroir.js' | asset_url }}" defer></script>
+  </head>
+  <body class="template-{{ template.name }}{% if settings.anim_reveal and request.design_mode == false %} has-reveal{% endif %}{% if settings.anim_card_zoom == false %} no-card-zoom{% endif %}" data-button-hover="{{ settings.button_hover | default: 'darken' }}">
+    <a class="skip-link" href="#main">{{ 'accessibility.skip_to_content' | t }}</a>
+    {% sections 'header-group' %}
+    <main id="main" tabindex="-1">
+      {{ content_for_layout }}
+    </main>
+    {% sections 'footer-group' %}
+    {% sections 'footer-utilities-group' %}
+    {% sections 'overlay-group' %}
+    {%- render 'cookie-banner' -%}
+    <script>
+      window.themeConfig = {
+        moneyFormat: {{ shop.money_format | json }},
+        currency: {{ shop.currency | json }},
+        reveal: {{ settings.anim_reveal | default: false | json }},
+        cartType: {{ settings.cart_type | default: 'drawer' | json }},
+        search: { predictive: {{ settings.search_predictive | default: true | json }} },
+        routes: { cart: {{ routes.cart_url | json }}, cartAdd: {{ routes.cart_add_url | append: '.js' | json }}, cartChange: {{ routes.cart_change_url | append: '.js' | json }}, cartJson: {{ routes.cart_url | append: '.js' | json }}, search: {{ routes.search_url | json }} },
+        strings: {
+          added: {{ 'products.added_to_cart' | t | json }}, viewCart: {{ 'products.view_cart' | t | json }}, error: {{ 'general.error' | t | json }},
+          soldOut: {{ 'products.sold_out' | t | json }}, addToCart: {{ 'products.add_to_cart' | t | json }}, unavailable: {{ 'products.unavailable' | t | json }}, inStock: {{ 'products.in_stock' | t | json }},
+          cartCount: {{ 'accessibility.cart_count' | t: count: '[count]' | json }},
+          perDelivery: {{ 'products.purchase_options.per_delivery' | t: price: '[price]' | json }}, savePercent: {{ 'products.purchase_options.save_percent' | t: percent: '[percent]' | json }}
+        }
+      };
+    </script>
+  </body>
+</html>

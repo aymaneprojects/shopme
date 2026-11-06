@@ -1,0 +1,61 @@
+<div class="section-pad page-content contact-page {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width">
+    <div class="contact-page__grid">
+      <div class="contact-page__intro">
+        <h1 class="page-title">{{ page.title | escape }}</h1>
+        <div class="rte">{{ page.content }}</div>
+      </div>
+      <div class="contact-page__form">
+        <h2 class="contact__title">{{ 'contact.title' | t }}</h2>
+        {%- form 'contact', id: 'contact_form', class: 'customer__form' -%}
+          {%- if form.posted_successfully? -%}
+            <p class="form-success" role="status">{{ 'contact.success' | t }}</p>
+          {%- endif -%}
+          {%- if form.errors -%}
+            <div class="form-errors" role="alert">{{ form.errors | default_errors }}</div>
+          {%- endif -%}
+          <div class="field">
+            <label for="ContactName">{{ 'contact.name' | t }}</label>
+            <input id="ContactName" type="text" name="contact[name]" value="{{ form.name | escape }}" autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="ContactEmail">{{ 'contact.email' | t }}</label>
+            <input id="ContactEmail" type="email" name="contact[email]" value="{{ form.email | escape }}" autocomplete="email" autocapitalize="off" required>
+          </div>
+          {%- if section.settings.show_phone -%}
+            <div class="field">
+              <label for="ContactPhone">{{ 'contact.phone' | t }}</label>
+              <input id="ContactPhone" type="tel" name="contact[phone]" value="{{ form.phone | escape }}" autocomplete="tel">
+            </div>
+          {%- endif -%}
+          <div class="field">
+            <label for="ContactBody">{{ 'contact.message' | t }}</label>
+            <textarea id="ContactBody" name="contact[body]" rows="6" required>{{ form.body | escape }}</textarea>
+          </div>
+          <div class="customer__actions"><button class="button" type="submit">{{ 'contact.submit' | t }}</button></div>
+        {%- endform -%}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_contact.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_phone",
+      "label": "t:sections.main_contact.settings.show_phone",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ]
+}
+{% endschema %}

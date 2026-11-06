@@ -1,0 +1,1354 @@
+{
+  "settings_schema": {
+    "brand": {
+      "name": "Logo and favicon",
+      "settings": {
+        "logo": "Logo image",
+        "logo_width": "Logo width",
+        "favicon": "Favicon"
+      },
+      "info": {
+        "favicon": "Square image, at least 32 by 32 px. Shown in browser tabs."
+      }
+    },
+    "colors": {
+      "name": "Colors",
+      "settings": {
+        "color_primary": "Primary color",
+        "color_background": "Background",
+        "color_surface": "Surface",
+        "color_text": "Text",
+        "color_sale": "Sale price"
+      }
+    },
+    "color_schemes": {
+      "name": "Color schemes",
+      "paragraphs": {
+        "intro": "Named palettes you can assign to sections and blocks. Sections without a scheme use the theme colors above."
+      },
+      "definition": {
+        "settings": {
+          "name": "Name",
+          "background": "Background",
+          "text": "Text",
+          "surface": "Surface",
+          "border": "Border",
+          "button": "Button",
+          "button_label": "Button label"
+        }
+      }
+    },
+    "typography": {
+      "name": "Typography",
+      "settings": {
+        "type_body_font": "Body font",
+        "type_subheading_font": "Subheading font",
+        "type_heading_font": "Heading font",
+        "type_accent_font": "Accent font",
+        "type_base_size": "Base font size"
+      },
+      "options": {
+        "type_body_font": {
+          "system-sans": "System sans-serif",
+          "system-serif": "System serif",
+          "system-mono": "System monospace",
+          "inter": "Inter",
+          "dm-sans": "DM Sans",
+          "manrope": "Manrope",
+          "space-grotesk": "Space Grotesk",
+          "lora": "Lora",
+          "playfair-display": "Playfair Display"
+        },
+        "type_subheading_font": {
+          "system-sans": "System sans-serif",
+          "system-serif": "System serif",
+          "system-mono": "System monospace",
+          "inter": "Inter",
+          "dm-sans": "DM Sans",
+          "manrope": "Manrope",
+          "space-grotesk": "Space Grotesk",
+          "lora": "Lora",
+          "playfair-display": "Playfair Display"
+        },
+        "type_heading_font": {
+          "system-sans": "System sans-serif",
+          "system-serif": "System serif",
+          "system-mono": "System monospace",
+          "inter": "Inter",
+          "dm-sans": "DM Sans",
+          "manrope": "Manrope",
+          "space-grotesk": "Space Grotesk",
+          "lora": "Lora",
+          "playfair-display": "Playfair Display"
+        },
+        "type_accent_font": {
+          "system-sans": "System sans-serif",
+          "system-serif": "System serif",
+          "system-mono": "System monospace",
+          "inter": "Inter",
+          "dm-sans": "DM Sans",
+          "manrope": "Manrope",
+          "space-grotesk": "Space Grotesk",
+          "lora": "Lora",
+          "playfair-display": "Playfair Display"
+        }
+      },
+      "info": {
+        "type_accent_font": "Used by the accent text role, for prices and highlights."
+      }
+    },
+    "text_presets": {
+      "name": "Text presets",
+      "paragraphs": {
+        "intro": "Each preset sets the font role, size, weight, line height and case of a kind of text. Blocks pick a preset by name."
+      },
+      "paragraph": {
+        "header": "Paragraph",
+        "settings": {
+          "preset_paragraph_font": "Font role",
+          "preset_paragraph_size": "Size",
+          "preset_paragraph_weight": "Weight",
+          "preset_paragraph_line_height": "Line height",
+          "preset_paragraph_case": "Case"
+        },
+        "options": {
+          "preset_paragraph_font": {
+            "body": "Body",
+            "subheading": "Subheading",
+            "heading": "Heading",
+            "accent": "Accent"
+          },
+          "preset_paragraph_case": {
+            "none": "Normal",
+            "uppercase": "Uppercase"
+          }
+        }
+      },
+      "h1": {
+        "header": "Heading 1",
+        "settings": {
+          "preset_h1_font": "Font role",
+          "preset_h1_size": "Size",
+          "preset_h1_weight": "Weight",
+          "preset_h1_line_height": "Line height",
+          "preset_h1_case": "Case"
+        },
+        "options": {
+          "preset_h1_font": {
+            "body": "Body",
+            "subheading": "Subheading",
+            "heading": "Heading",
+            "accent": "Accent"
+          },
+          "preset_h1_case": {
+            "none": "Normal",
+            "uppercase": "Uppercase"
+          }
+        }
+      },
+      "h2": {
+        "header": "Heading 2",
+        "settings": {
+          "preset_h2_font": "Font role",
+          "preset_h2_size": "Size",
+          "preset_h2_weight": "Weight",
+          "preset_h2_line_height": "Line height",
+          "preset_h2_case": "Case"
+        },
+        "options": {
+          "preset_h2_font": {
+            "body": "Body",
+            "subheading": "Subheading",
+            "heading": "Heading",
+            "accent": "Accent"
+          },
+          "preset_h2_case": {
+            "none": "Normal",
+            "uppercase": "Uppercase"
+          }
+        }
+      },
+      "h3": {
+        "header": "Heading 3",
+        "settings": {
+          "preset_h3_font": "Font role",
+          "preset_h3_size": "Size",
+          "preset_h3_weight": "Weight",
+          "preset_h3_line_height": "Line height",
+          "preset_h3_case": "Case"
+        },
+        "options": {
+          "preset_h3_font": {
+            "body": "Body",
+            "subheading": "Subheading",
+            "heading": "Heading",
+            "accent": "Accent"
+          },
+          "preset_h3_case": {
+            "none": "Normal",
+            "uppercase": "Uppercase"
+          }
+        }
+      },
+      "h4": {
+        "header": "Heading 4",
+        "settings": {
+          "preset_h4_font": "Font role",
+          "preset_h4_size": "Size",
+          "preset_h4_weight": "Weight",
+          "preset_h4_line_height": "Line height",
+          "preset_h4_case": "Case"
+        },
+        "options": {
+          "preset_h4_font": {
+            "body": "Body",
+            "subheading": "Subheading",
+            "heading": "Heading",
+            "accent": "Accent"
+          },
+          "preset_h4_case": {
+            "none": "Normal",
+            "uppercase": "Uppercase"
+          }
+        }
+      },
+      "h5": {
+        "header": "Heading 5",
+        "settings": {
+          "preset_h5_font": "Font role",
+          "preset_h5_size": "Size",
+          "preset_h5_weight": "Weight",
+          "preset_h5_line_height": "Line height",
+          "preset_h5_case": "Case"
+        },
+        "options": {
+          "preset_h5_font": {
+            "body": "Body",
+            "subheading": "Subheading",
+            "heading": "Heading",
+            "accent": "Accent"
+          },
+          "preset_h5_case": {
+            "none": "Normal",
+            "uppercase": "Uppercase"
+          }
+        }
+      },
+      "h6": {
+        "header": "Heading 6",
+        "settings": {
+          "preset_h6_font": "Font role",
+          "preset_h6_size": "Size",
+          "preset_h6_weight": "Weight",
+          "preset_h6_line_height": "Line height",
+          "preset_h6_case": "Case"
+        },
+        "options": {
+          "preset_h6_font": {
+            "body": "Body",
+            "subheading": "Subheading",
+            "heading": "Heading",
+            "accent": "Accent"
+          },
+          "preset_h6_case": {
+            "none": "Normal",
+            "uppercase": "Uppercase"
+          }
+        }
+      }
+    },
+    "layout": {
+      "name": "Layout",
+      "settings": {
+        "page_width": "Page width",
+        "corner_radius": "Corner radius",
+        "section_spacing": "Section spacing"
+      }
+    },
+    "cards": {
+      "name": "Product cards",
+      "settings": {
+        "show_vendor": "Show vendor",
+        "card_image_ratio": "Image ratio",
+        "card_text_align": "Text alignment",
+        "card_hover_image": "Show the second photo on hover"
+      },
+      "options": {
+        "card_image_ratio": {
+          "square": "Square",
+          "portrait": "Portrait (4:5)",
+          "landscape": "Landscape (4:3)"
+        },
+        "card_text_align": {
+          "left": "Left",
+          "center": "Center"
+        }
+      }
+    },
+    "buttons": {
+      "name": "Buttons",
+      "settings": {
+        "button_radius": "Corner radius",
+        "button_border_width": "Border thickness",
+        "button_height": "Height",
+        "button_uppercase": "Uppercase labels",
+        "button_font": "Font role",
+        "button_hover": "Hover effect"
+      },
+      "options": {
+        "button_font": {
+          "body": "Body",
+          "subheading": "Subheading",
+          "heading": "Heading",
+          "accent": "Accent"
+        },
+        "button_hover": {
+          "darken": "Darken",
+          "lift": "Lift",
+          "none": "None"
+        }
+      }
+    },
+    "badges": {
+      "name": "Badges",
+      "settings": {
+        "badge_show_sale": "Show sale badge",
+        "badge_sale_percent": "Show the discount percentage",
+        "badge_show_sold_out": "Show sold out badge",
+        "badge_position": "Position",
+        "badge_shape": "Shape",
+        "badge_sold_out_color": "Sold out color",
+        "badges_enabled": "Show a badge for product tags",
+        "badge_tags": "Tags that get a badge",
+        "badges_icon": "Show an icon in tag badges"
+      },
+      "options": {
+        "badge_position": {
+          "top-left": "Top left",
+          "top-right": "Top right",
+          "bottom-left": "Bottom left",
+          "bottom-right": "Bottom right"
+        },
+        "badge_shape": {
+          "pill": "Pill",
+          "rounded": "Rounded",
+          "square": "Square"
+        }
+      },
+      "info": {
+        "badge_tags": "Comma-separated tags. The label is translated when the theme knows the tag."
+      }
+    },
+    "cart": {
+      "name": "Cart",
+      "settings": {
+        "cart_show_note": "Show the order note",
+        "cart_show_thumbnails": "Show product images",
+        "cart_show_vendor": "Show the vendor of each line",
+        "cart_show_continue": "Show the continue shopping link",
+        "cart_sticky_summary": "Keep the summary in view on large screens",
+        "cart_type": "When an item is added"
+      },
+      "options": {
+        "cart_type": {
+          "drawer": "Open the cart drawer",
+          "page": "Stay on the page"
+        }
+      }
+    },
+    "drawers": {
+      "name": "Drawers",
+      "paragraphs": {
+        "intro": "The mobile menu opens as a drawer."
+      },
+      "settings": {
+        "drawer_side": "Opens from",
+        "drawer_width": "Width",
+        "drawer_overlay": "Overlay darkness"
+      },
+      "options": {
+        "drawer_side": {
+          "left": "Left",
+          "right": "Right"
+        }
+      }
+    },
+    "icons": {
+      "name": "Icons",
+      "settings": {
+        "icon_stroke_width": "Stroke width",
+        "icon_size": "Size"
+      }
+    },
+    "inputs": {
+      "name": "Inputs",
+      "settings": {
+        "input_radius": "Corner radius",
+        "input_border_width": "Border thickness",
+        "input_height": "Height"
+      }
+    },
+    "popovers": {
+      "name": "Popovers and modals",
+      "settings": {
+        "modal_radius": "Corner radius",
+        "modal_shadow": "Shadow"
+      },
+      "options": {
+        "modal_shadow": {
+          "none": "None",
+          "soft": "Soft",
+          "strong": "Strong"
+        }
+      }
+    },
+    "price": {
+      "name": "Price",
+      "settings": {
+        "price_show_compare_at": "Show the compare-at price",
+        "price_show_from": "Prefix varying prices with \"From\"",
+        "price_weight": "Weight",
+        "price_font": "Font role"
+      },
+      "options": {
+        "price_weight": {
+          "400": "Regular",
+          "500": "Medium",
+          "600": "Semibold",
+          "700": "Bold"
+        },
+        "price_font": {
+          "body": "Body",
+          "accent": "Accent",
+          "heading": "Heading"
+        }
+      }
+    },
+    "search": {
+      "name": "Search",
+      "settings": {
+        "search_predictive": "Enable predictive search",
+        "search_show_image": "Show product images in suggestions",
+        "search_show_price": "Show prices in suggestions",
+        "search_suggestions_limit": "Suggestions per type"
+      },
+      "info": {
+        "search_predictive": "Suggestions appear while typing. When off, the search icon opens the search page."
+      }
+    },
+    "swatches": {
+      "name": "Swatches",
+      "settings": {
+        "swatches_enabled": "Show color options as swatches",
+        "swatch_shape": "Shape",
+        "swatch_size": "Size"
+      },
+      "info": {
+        "swatches_enabled": "Applies to options named Color, Colour or Couleur. The option value is read as a CSS color name, such as navy or #1E40AF."
+      },
+      "options": {
+        "swatch_shape": {
+          "circle": "Circle",
+          "rounded": "Rounded",
+          "square": "Square"
+        }
+      }
+    },
+    "animations": {
+      "name": "Animations",
+      "settings": {
+        "anim_reveal": "Reveal sections on scroll",
+        "anim_card_zoom": "Zoom product images on hover",
+        "anim_duration": "Duration"
+      }
+    }
+  },
+  "shared": {
+    "layout": "Layout",
+    "width": "Width",
+    "width_fit": "Fit content",
+    "width_fill": "Fill",
+    "max_width": "Maximum width",
+    "max_width_info": "0 means no maximum.",
+    "typography": "Typography",
+    "text_preset": "Text preset",
+    "appearance": "Appearance",
+    "color_scheme": "Color scheme",
+    "text_color": "Text color",
+    "show_background": "Show a background",
+    "background_color": "Background color",
+    "spacing": "Spacing",
+    "padding_top": "Top",
+    "padding_bottom": "Bottom",
+    "padding_left": "Left",
+    "padding_right": "Right",
+    "preset": {
+      "paragraph": "Paragraph",
+      "h1": "Heading 1",
+      "h2": "Heading 2",
+      "h3": "Heading 3",
+      "h4": "Heading 4",
+      "h5": "Heading 5",
+      "h6": "Heading 6"
+    },
+    "left": "Left",
+    "center": "Center",
+    "right": "Right",
+    "link": "Link",
+    "open_new_tab": "Open link in a new tab",
+    "heading": "Heading",
+    "text": "Text",
+    "image": "Image",
+    "button_label": "Button label",
+    "button_link": "Button link",
+    "color_scheme_default": "Theme colors",
+    "mobile": "Mobile",
+    "stack_on_mobile": "Stack media above text on mobile",
+    "mobile_media": "Use different media on mobile",
+    "mobile_image": "Mobile image",
+    "media": "Media",
+    "media_type": "Media type",
+    "media_image": "Image",
+    "media_video": "Video",
+    "video_url": "Video URL",
+    "video_info": "A YouTube or Vimeo link, or the address of an MP4 or WebM file from your store files.",
+    "direction": "Layout direction",
+    "vertical": "Vertical",
+    "horizontal": "Horizontal",
+    "vertical_align": "Vertical alignment",
+    "top": "Top",
+    "middle": "Middle",
+    "bottom": "Bottom"
+  },
+  "blocks": {
+    "heading": {
+      "settings": {
+        "text": "Text"
+      },
+      "presets": {
+        "heading": "Heading"
+      },
+      "name": "Heading"
+    },
+    "text": {
+      "settings": {
+        "text": "Text"
+      },
+      "presets": {
+        "text": "Text"
+      },
+      "name": "Text"
+    },
+    "button": {
+      "settings": {
+        "label": "Label",
+        "link": "Link",
+        "open_new_tab": "Open link in a new tab",
+        "style": "Style"
+      },
+      "options": {
+        "style": {
+          "solid": "Solid",
+          "outline": "Outline"
+        }
+      },
+      "presets": {
+        "button": "Button"
+      },
+      "name": "Button"
+    },
+    "accordion": {
+      "name": "Collapsible row",
+      "settings": {
+        "heading": "Heading",
+        "text": "Text",
+        "open": "Open by default"
+      },
+      "presets": {
+        "collapsible_row": "Collapsible row"
+      }
+    }
+  },
+  "sections": {
+    "customer": {
+      "headers": {
+        "content": "Content",
+        "layout": "Layout"
+      },
+      "settings": {
+        "heading": "Heading",
+        "text": "Introduction text",
+        "align": "Alignment",
+        "width": "Width",
+        "show_recover_link": "Show the forgotten password link",
+        "show_register_link": "Show the link to create an account",
+        "show_login_link": "Show the link to log in",
+        "show_name_fields": "Ask for first and last name",
+        "show_marketing": "Show the marketing email opt-in",
+        "show_store_credit": "Show the store credit balance",
+        "show_default_address": "Show the default address",
+        "orders_per_page": "Orders per page",
+        "details_position": "Account details",
+        "show_sku": "Show the SKU column",
+        "show_addresses": "Show the shipping and billing addresses",
+        "show_shipments": "Show shipments and tracking",
+        "columns": "Addresses per row"
+      },
+      "info": {
+        "heading": "Leave empty to use the default title in the customer's language.",
+        "order_heading": "The order number is added after it. Leave empty for the default title.",
+        "text_default": "Leave empty to use the default text.",
+        "show_store_credit": "Only shown when store credit is turned on and the customer has a balance."
+      },
+      "options": {
+        "width": {
+          "narrow": "Narrow",
+          "page": "Page width"
+        },
+        "details_position": {
+          "side": "Beside the orders",
+          "below": "Below the orders"
+        }
+      }
+    },
+    "main_account": {
+      "name": "Customer account"
+    },
+    "main_order": {
+      "name": "Customer order"
+    },
+    "main_login": {
+      "name": "Customer login"
+    },
+    "main_register": {
+      "name": "Create account"
+    },
+    "main_addresses": {
+      "name": "Customer addresses"
+    },
+    "main_activate_account": {
+      "name": "Activate account"
+    },
+    "main_reset_password": {
+      "name": "Reset password"
+    },
+    "groups": {
+      "header": "Header",
+      "footer": "Footer",
+      "footer_utilities": "Footer utilities",
+      "overlays": "Overlays"
+    },
+    "announcement_bar": {
+      "name": "Announcement bar",
+      "settings": {
+        "show": "Show the bar",
+        "text": "Text",
+        "link": "Link"
+      },
+      "presets": {
+        "announcement_bar": "Announcement bar"
+      }
+    },
+    "blog_posts": {
+      "name": "Blog posts",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "blog": "Blog",
+        "posts_to_show": "Articles to show",
+        "layout": "Layout",
+        "show_image": "Show the image",
+        "show_date": "Show the date",
+        "show_author": "Show the author",
+        "show_excerpt": "Show an excerpt"
+      },
+      "options": {
+        "layout": {
+          "grid": "Grid",
+          "carousel": "Carousel"
+        }
+      },
+      "presets": {
+        "blog_posts": "Blog posts"
+      }
+    },
+    "cart_drawer": {
+      "name": "Cart drawer",
+      "settings": {
+        "free_shipping_threshold": "Free shipping threshold"
+      },
+      "info": {
+        "free_shipping_threshold": "In the store currency. 0 hides the progress bar."
+      }
+    },
+    "collapsible_content": {
+      "name": "Collapsible content",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "open_first": "Open the first row",
+        "texture": "Texture"
+      },
+      "options": {
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "blocks": {
+        "row": {
+          "name": "Row",
+          "settings": {
+            "heading": "Heading",
+            "text": "Text"
+          }
+        }
+      },
+      "presets": {
+        "collapsible_content": "Collapsible content"
+      }
+    },
+    "collection_list": {
+      "name": "Collection list",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "collections": "Collections",
+        "max_collections": "Collections shown when none is chosen",
+        "columns": "Columns",
+        "layout": "Layout",
+        "show_count": "Show product counts",
+        "texture": "Texture"
+      },
+      "info": {
+        "collections": "Leave empty to show your collections in order."
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        },
+        "layout": {
+          "grid": "Grid",
+          "carousel": "Carousel"
+        },
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "presets": {
+        "collection_list": "Collection list"
+      }
+    },
+    "concierge_services": {
+      "name": "Concierge services",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "texture": "Texture"
+      },
+      "options": {
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "blocks": {
+        "service": {
+          "name": "Service",
+          "settings": {
+            "icon": "Icon",
+            "title": "Title",
+            "text": "Text"
+          },
+          "options": {
+            "icon": {
+              "diamond": "Diamond",
+              "gift": "Gift",
+              "truck": "Delivery",
+              "shield": "Shield",
+              "leaf": "Leaf",
+              "none": "None"
+            }
+          }
+        }
+      },
+      "presets": {
+        "concierge_services": "Concierge services"
+      }
+    },
+    "contact_form": {
+      "name": "Contact form",
+      "settings": {
+        "heading": "Heading",
+        "text": "Text",
+        "show_phone": "Ask for a phone number",
+        "button_label": "Button label"
+      },
+      "info": {
+        "button_label": "Leave empty to use the default label."
+      },
+      "presets": {
+        "contact_form": "Contact form"
+      }
+    },
+    "custom_liquid": {
+      "name": "Custom Liquid",
+      "settings": {
+        "custom_liquid": "Liquid code",
+        "padding_top": "Top padding",
+        "padding_bottom": "Bottom padding"
+      },
+      "presets": {
+        "custom_liquid": "Custom Liquid"
+      }
+    },
+    "featured_collection": {
+      "name": "Featured collection",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "text": "Introduction",
+        "collection": "Collection",
+        "products_to_show": "Products to show",
+        "columns": "Columns",
+        "layout": "Layout",
+        "show_view_all": "Show the \"View all\" button",
+        "texture": "Texture"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4",
+          "5": "5"
+        },
+        "layout": {
+          "grid": "Grid",
+          "carousel": "Carousel"
+        },
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "presets": {
+        "featured_collection": "Featured collection"
+      }
+    },
+    "footer_utilities": {
+      "name": "Footer utilities",
+      "settings": {
+        "show_copyright": "Show the copyright",
+        "show_powered_by": "Show \"Powered by ShopMe\"",
+        "show_language_selector": "Show the language selector",
+        "show_country_selector": "Show the country and currency selector"
+      }
+    },
+    "footer": {
+      "name": "Footer",
+      "settings": {
+        "menu": "Menu",
+        "tagline": "Motto",
+        "show_description": "Show the shop description",
+        "address": "Address",
+        "email": "Email",
+        "phone": "Phone",
+        "show_newsletter": "Show the newsletter form",
+        "newsletter_text": "Text above the form"
+      },
+      "headers": {
+        "boutique_details": "Boutique details",
+        "newsletter": "Newsletter"
+      }
+    },
+    "header": {
+      "name": "Header",
+      "settings": {
+        "menu": "Menu",
+        "sticky": "Keep the header in view while scrolling",
+        "tagline": "Line under the name"
+      },
+      "info": {
+        "tagline": "Shown under the shop name when no logo is set."
+      }
+    },
+    "heritage_timeline": {
+      "name": "Heritage timeline",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "text": "Introduction",
+        "texture": "Texture"
+      },
+      "options": {
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "blocks": {
+        "milestone": {
+          "name": "Milestone",
+          "settings": {
+            "year": "Year",
+            "title": "Title",
+            "text": "Text"
+          }
+        }
+      },
+      "presets": {
+        "heritage_timeline": "Heritage timeline"
+      }
+    },
+    "hero": {
+      "name": "Hero",
+      "headers": {
+        "content": "Content",
+        "media": "Media",
+        "layout": "Layout"
+      },
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "subheading": "Subheading",
+        "button_label": "First button label",
+        "button_link": "First button link",
+        "button2_label": "Second button label",
+        "button2_link": "Second button link",
+        "section_link": "Link on the whole banner",
+        "image": "Image",
+        "mobile_image": "Mobile image",
+        "video_url": "Video URL (replaces the image)",
+        "overlay": "Image darkening",
+        "height": "Height",
+        "text_align": "Text alignment",
+        "show_dial": "Show the dial rings",
+        "show_frame": "Show the golden frame"
+      },
+      "options": {
+        "height": {
+          "medium": "Medium",
+          "tall": "Tall",
+          "full": "Full screen"
+        }
+      },
+      "presets": {
+        "hero": "Hero"
+      }
+    },
+    "image_with_text": {
+      "name": "Image with text",
+      "settings": {
+        "image": "Image",
+        "video_url": "Video URL (replaces the image)",
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "text": "Text",
+        "button_label": "Button label",
+        "button_link": "Button link",
+        "layout": "Image position",
+        "image_ratio": "Image shape",
+        "texture": "Texture"
+      },
+      "options": {
+        "image_ratio": {
+          "landscape": "Landscape",
+          "portrait": "Portrait",
+          "square": "Square"
+        },
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "presets": {
+        "image_with_text": "Image with text"
+      }
+    },
+    "lookbook": {
+      "name": "Lookbook",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "texture": "Texture"
+      },
+      "options": {
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "blocks": {
+        "panel": {
+          "name": "Panel",
+          "settings": {
+            "collection": "Collection",
+            "label": "Title (replaces the collection name)",
+            "caption": "Caption",
+            "image": "Image (replaces the collection image)",
+            "link": "Link (replaces the collection link)"
+          }
+        }
+      },
+      "presets": {
+        "lookbook": "Lookbook"
+      }
+    },
+    "main_404": {
+      "name": "Page not found"
+    },
+    "main_article": {
+      "name": "Article",
+      "settings": {
+        "show_author": "Show the author",
+        "show_navigation": "Show previous and next links"
+      }
+    },
+    "main_blog": {
+      "name": "Blog",
+      "settings": {
+        "articles_per_page": "Articles per page",
+        "show_image": "Show the image",
+        "show_author": "Show the author"
+      }
+    },
+    "main_cart": {
+      "name": "Cart",
+      "settings": {
+        "sticky_summary": "Keep the summary in view while scrolling"
+      }
+    },
+    "main_collection": {
+      "name": "Collection",
+      "headers": {
+        "header": "Header",
+        "products": "Products",
+        "filtering_and_sorting": "Filtering and sorting"
+      },
+      "settings": {
+        "show_image": "Show the collection image as a banner",
+        "show_description": "Show the description",
+        "products_per_page": "Products per page",
+        "columns": "Columns on desktop",
+        "mobile_columns": "Columns on mobile",
+        "enable_filters": "Show filters",
+        "filter_layout": "Filter layout",
+        "show_sort": "Show the sort menu"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4",
+          "5": "5"
+        },
+        "mobile_columns": {
+          "1": "1",
+          "2": "2"
+        },
+        "filter_layout": {
+          "sidebar": "Sidebar",
+          "top": "Bar above the products",
+          "drawer": "Slide-in panel"
+        }
+      }
+    },
+    "main_contact": {
+      "name": "Contact page",
+      "settings": {
+        "show_phone": "Ask for a phone number"
+      }
+    },
+    "main_list_collections": {
+      "name": "Collections list",
+      "settings": {
+        "columns": "Columns",
+        "show_count": "Show product counts"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      }
+    },
+    "main_page": {
+      "name": "Page",
+      "settings": {
+        "show_title": "Show the page title",
+        "width": "Width"
+      },
+      "options": {
+        "width": {
+          "narrow": "Narrow",
+          "page": "Page"
+        }
+      }
+    },
+    "main_password": {
+      "name": "Password page"
+    },
+    "main_product": {
+      "name": "Product",
+      "settings": {
+        "show_short_description": "Show a short introduction",
+        "show_availability": "Show the availability",
+        "show_sku": "Show the reference (SKU)",
+        "sticky_info": "Keep the details in view while scrolling"
+      }
+    },
+    "main_search": {
+      "name": "Search results",
+      "settings": {
+        "products_per_page": "Results per page",
+        "columns": "Columns"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      }
+    },
+    "multicolumn": {
+      "name": "Multicolumn",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "columns": "Columns",
+        "align": "Alignment",
+        "texture": "Texture"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        },
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "blocks": {
+        "column": {
+          "name": "Column",
+          "settings": {
+            "image": "Image",
+            "title": "Title",
+            "text": "Text",
+            "link_label": "Link label",
+            "link": "Link"
+          }
+        }
+      },
+      "presets": {
+        "multicolumn": "Multicolumn"
+      }
+    },
+    "newsletter": {
+      "name": "Newsletter",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "text": "Text",
+        "button_label": "Button label",
+        "align": "Alignment",
+        "texture": "Texture"
+      },
+      "info": {
+        "button_label": "Leave empty to use the default label."
+      },
+      "options": {
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "presets": {
+        "newsletter": "Newsletter"
+      }
+    },
+    "popup": {
+      "name": "Popup",
+      "settings": {
+        "enabled": "Show the popup",
+        "heading": "Heading",
+        "text": "Text",
+        "image": "Image",
+        "button_label": "Button label",
+        "button_link": "Button link",
+        "delay": "Delay before it opens",
+        "days": "Days before it shows again"
+      }
+    },
+    "product_recommendations": {
+      "name": "Product recommendations",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "products_to_show": "Products to show"
+      }
+    },
+    "rich_text": {
+      "name": "Rich text",
+      "settings": {
+        "align": "Alignment",
+        "direction": "Layout direction",
+        "texture": "Texture"
+      },
+      "options": {
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "presets": {
+        "rich_text": "Rich text"
+      }
+    },
+    "scrolling_banner": {
+      "name": "Scrolling banner",
+      "settings": {
+        "direction": "Direction",
+        "speed": "Duration of one loop"
+      },
+      "options": {
+        "direction": {
+          "left": "Left",
+          "right": "Right"
+        }
+      },
+      "blocks": {
+        "text": {
+          "name": "Text",
+          "settings": {
+            "text": "Text",
+            "link": "Link"
+          }
+        }
+      },
+      "presets": {
+        "scrolling_banner": "Scrolling banner"
+      }
+    },
+    "spec_sheet": {
+      "name": "Spec sheet",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "text": "Text",
+        "product": "Product",
+        "button_label": "Button label",
+        "layout": "Image position",
+        "texture": "Texture"
+      },
+      "info": {
+        "product": "Leave empty to show the first product of the store."
+      },
+      "options": {
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "blocks": {
+        "spec": {
+          "name": "Specification",
+          "settings": {
+            "label": "Label",
+            "value": "Value"
+          }
+        }
+      },
+      "presets": {
+        "spec_sheet": "Spec sheet"
+      }
+    },
+    "testimonials": {
+      "name": "Testimonials",
+      "settings": {
+        "eyebrow": "Eyebrow text",
+        "heading": "Heading",
+        "layout": "Layout",
+        "texture": "Texture"
+      },
+      "options": {
+        "layout": {
+          "grid": "Grid",
+          "carousel": "Carousel"
+        },
+        "texture": {
+          "none": "None",
+          "lines": "Fine gilt lines",
+          "noir": "Golden glow",
+          "guilloche": "Guilloché rings"
+        }
+      },
+      "blocks": {
+        "testimonial": {
+          "name": "Testimonial",
+          "settings": {
+            "quote": "Quote",
+            "author": "Author",
+            "role": "Role or place",
+            "rating": "Rating",
+            "avatar": "Photo"
+          }
+        }
+      },
+      "presets": {
+        "testimonials": "Testimonials"
+      }
+    },
+    "video": {
+      "name": "Video",
+      "settings": {
+        "heading": "Heading",
+        "video_url": "Video URL",
+        "cover": "Cover image",
+        "autoplay": "Start playing automatically (muted)",
+        "width": "Width"
+      },
+      "info": {
+        "video_url": "A YouTube or Vimeo link, or the address of an MP4 or WebM file."
+      },
+      "options": {
+        "width": {
+          "page": "Page",
+          "narrow": "Narrow"
+        }
+      },
+      "presets": {
+        "video": "Video"
+      }
+    }
+  }
+}

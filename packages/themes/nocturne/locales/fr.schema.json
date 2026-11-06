@@ -1,0 +1,1354 @@
+{
+  "settings_schema": {
+    "brand": {
+      "name": "Logo et favicon",
+      "settings": {
+        "logo": "Image du logo",
+        "logo_width": "Largeur du logo",
+        "favicon": "Favicon"
+      },
+      "info": {
+        "favicon": "Image carrée, au moins 32 x 32 px. Affichée dans les onglets du navigateur."
+      }
+    },
+    "colors": {
+      "name": "Couleurs",
+      "settings": {
+        "color_primary": "Couleur principale",
+        "color_background": "Arrière-plan",
+        "color_surface": "Surface",
+        "color_text": "Texte",
+        "color_sale": "Prix promotionnel"
+      }
+    },
+    "color_schemes": {
+      "name": "Palettes de couleurs",
+      "paragraphs": {
+        "intro": "Palettes nommées à affecter aux sections et aux blocs. Les sections sans palette utilisent les couleurs du thème ci-dessus."
+      },
+      "definition": {
+        "settings": {
+          "name": "Nom",
+          "background": "Arrière-plan",
+          "text": "Texte",
+          "surface": "Surface",
+          "border": "Bordure",
+          "button": "Bouton",
+          "button_label": "Texte du bouton"
+        }
+      }
+    },
+    "typography": {
+      "name": "Typographie",
+      "settings": {
+        "type_body_font": "Police du texte",
+        "type_subheading_font": "Police des sous-titres",
+        "type_heading_font": "Police des titres",
+        "type_accent_font": "Police d'accent",
+        "type_base_size": "Taille de police de base"
+      },
+      "options": {
+        "type_body_font": {
+          "system-sans": "Sans empattement système",
+          "system-serif": "Avec empattement système",
+          "system-mono": "Monospace système",
+          "inter": "Inter",
+          "dm-sans": "DM Sans",
+          "manrope": "Manrope",
+          "space-grotesk": "Space Grotesk",
+          "lora": "Lora",
+          "playfair-display": "Playfair Display"
+        },
+        "type_subheading_font": {
+          "system-sans": "Sans empattement système",
+          "system-serif": "Avec empattement système",
+          "system-mono": "Monospace système",
+          "inter": "Inter",
+          "dm-sans": "DM Sans",
+          "manrope": "Manrope",
+          "space-grotesk": "Space Grotesk",
+          "lora": "Lora",
+          "playfair-display": "Playfair Display"
+        },
+        "type_heading_font": {
+          "system-sans": "Sans empattement système",
+          "system-serif": "Avec empattement système",
+          "system-mono": "Monospace système",
+          "inter": "Inter",
+          "dm-sans": "DM Sans",
+          "manrope": "Manrope",
+          "space-grotesk": "Space Grotesk",
+          "lora": "Lora",
+          "playfair-display": "Playfair Display"
+        },
+        "type_accent_font": {
+          "system-sans": "Sans empattement système",
+          "system-serif": "Avec empattement système",
+          "system-mono": "Monospace système",
+          "inter": "Inter",
+          "dm-sans": "DM Sans",
+          "manrope": "Manrope",
+          "space-grotesk": "Space Grotesk",
+          "lora": "Lora",
+          "playfair-display": "Playfair Display"
+        }
+      },
+      "info": {
+        "type_accent_font": "Utilisée par le rôle de texte d'accent, pour les prix et les mises en avant."
+      }
+    },
+    "text_presets": {
+      "name": "Styles de texte",
+      "paragraphs": {
+        "intro": "Chaque style définit le rôle de police, la taille, la graisse, l'interligne et la casse d'un type de texte. Les blocs choisissent un style par son nom."
+      },
+      "paragraph": {
+        "header": "Paragraphe",
+        "settings": {
+          "preset_paragraph_font": "Rôle de police",
+          "preset_paragraph_size": "Taille",
+          "preset_paragraph_weight": "Graisse",
+          "preset_paragraph_line_height": "Interligne",
+          "preset_paragraph_case": "Casse"
+        },
+        "options": {
+          "preset_paragraph_font": {
+            "body": "Texte",
+            "subheading": "Sous-titre",
+            "heading": "Titre",
+            "accent": "Accent"
+          },
+          "preset_paragraph_case": {
+            "none": "Normale",
+            "uppercase": "Majuscules"
+          }
+        }
+      },
+      "h1": {
+        "header": "Titre 1",
+        "settings": {
+          "preset_h1_font": "Rôle de police",
+          "preset_h1_size": "Taille",
+          "preset_h1_weight": "Graisse",
+          "preset_h1_line_height": "Interligne",
+          "preset_h1_case": "Casse"
+        },
+        "options": {
+          "preset_h1_font": {
+            "body": "Texte",
+            "subheading": "Sous-titre",
+            "heading": "Titre",
+            "accent": "Accent"
+          },
+          "preset_h1_case": {
+            "none": "Normale",
+            "uppercase": "Majuscules"
+          }
+        }
+      },
+      "h2": {
+        "header": "Titre 2",
+        "settings": {
+          "preset_h2_font": "Rôle de police",
+          "preset_h2_size": "Taille",
+          "preset_h2_weight": "Graisse",
+          "preset_h2_line_height": "Interligne",
+          "preset_h2_case": "Casse"
+        },
+        "options": {
+          "preset_h2_font": {
+            "body": "Texte",
+            "subheading": "Sous-titre",
+            "heading": "Titre",
+            "accent": "Accent"
+          },
+          "preset_h2_case": {
+            "none": "Normale",
+            "uppercase": "Majuscules"
+          }
+        }
+      },
+      "h3": {
+        "header": "Titre 3",
+        "settings": {
+          "preset_h3_font": "Rôle de police",
+          "preset_h3_size": "Taille",
+          "preset_h3_weight": "Graisse",
+          "preset_h3_line_height": "Interligne",
+          "preset_h3_case": "Casse"
+        },
+        "options": {
+          "preset_h3_font": {
+            "body": "Texte",
+            "subheading": "Sous-titre",
+            "heading": "Titre",
+            "accent": "Accent"
+          },
+          "preset_h3_case": {
+            "none": "Normale",
+            "uppercase": "Majuscules"
+          }
+        }
+      },
+      "h4": {
+        "header": "Titre 4",
+        "settings": {
+          "preset_h4_font": "Rôle de police",
+          "preset_h4_size": "Taille",
+          "preset_h4_weight": "Graisse",
+          "preset_h4_line_height": "Interligne",
+          "preset_h4_case": "Casse"
+        },
+        "options": {
+          "preset_h4_font": {
+            "body": "Texte",
+            "subheading": "Sous-titre",
+            "heading": "Titre",
+            "accent": "Accent"
+          },
+          "preset_h4_case": {
+            "none": "Normale",
+            "uppercase": "Majuscules"
+          }
+        }
+      },
+      "h5": {
+        "header": "Titre 5",
+        "settings": {
+          "preset_h5_font": "Rôle de police",
+          "preset_h5_size": "Taille",
+          "preset_h5_weight": "Graisse",
+          "preset_h5_line_height": "Interligne",
+          "preset_h5_case": "Casse"
+        },
+        "options": {
+          "preset_h5_font": {
+            "body": "Texte",
+            "subheading": "Sous-titre",
+            "heading": "Titre",
+            "accent": "Accent"
+          },
+          "preset_h5_case": {
+            "none": "Normale",
+            "uppercase": "Majuscules"
+          }
+        }
+      },
+      "h6": {
+        "header": "Titre 6",
+        "settings": {
+          "preset_h6_font": "Rôle de police",
+          "preset_h6_size": "Taille",
+          "preset_h6_weight": "Graisse",
+          "preset_h6_line_height": "Interligne",
+          "preset_h6_case": "Casse"
+        },
+        "options": {
+          "preset_h6_font": {
+            "body": "Texte",
+            "subheading": "Sous-titre",
+            "heading": "Titre",
+            "accent": "Accent"
+          },
+          "preset_h6_case": {
+            "none": "Normale",
+            "uppercase": "Majuscules"
+          }
+        }
+      }
+    },
+    "layout": {
+      "name": "Mise en page",
+      "settings": {
+        "page_width": "Largeur de page",
+        "corner_radius": "Rayon des coins",
+        "section_spacing": "Espacement des sections"
+      }
+    },
+    "cards": {
+      "name": "Cartes produit",
+      "settings": {
+        "show_vendor": "Afficher le fournisseur",
+        "card_image_ratio": "Format de l'image",
+        "card_text_align": "Alignement du texte",
+        "card_hover_image": "Afficher la seconde photo au survol"
+      },
+      "options": {
+        "card_image_ratio": {
+          "square": "Carré",
+          "portrait": "Portrait (4:5)",
+          "landscape": "Paysage (4:3)"
+        },
+        "card_text_align": {
+          "left": "Gauche",
+          "center": "Centre"
+        }
+      }
+    },
+    "buttons": {
+      "name": "Boutons",
+      "settings": {
+        "button_radius": "Rayon des coins",
+        "button_border_width": "Épaisseur de la bordure",
+        "button_height": "Hauteur",
+        "button_uppercase": "Libellés en majuscules",
+        "button_font": "Rôle de police",
+        "button_hover": "Effet au survol"
+      },
+      "options": {
+        "button_font": {
+          "body": "Texte",
+          "subheading": "Sous-titre",
+          "heading": "Titre",
+          "accent": "Accent"
+        },
+        "button_hover": {
+          "darken": "Assombrir",
+          "lift": "Soulever",
+          "none": "Aucun"
+        }
+      }
+    },
+    "badges": {
+      "name": "Badges",
+      "settings": {
+        "badge_show_sale": "Afficher le badge promotion",
+        "badge_sale_percent": "Afficher le pourcentage de remise",
+        "badge_show_sold_out": "Afficher le badge épuisé",
+        "badge_position": "Position",
+        "badge_shape": "Forme",
+        "badge_sold_out_color": "Couleur épuisé",
+        "badges_enabled": "Afficher un badge pour les étiquettes de produit",
+        "badge_tags": "Étiquettes qui reçoivent un badge",
+        "badges_icon": "Afficher une icône dans les badges d’étiquette"
+      },
+      "options": {
+        "badge_position": {
+          "top-left": "Haut gauche",
+          "top-right": "Haut droite",
+          "bottom-left": "Bas gauche",
+          "bottom-right": "Bas droite"
+        },
+        "badge_shape": {
+          "pill": "Pilule",
+          "rounded": "Arrondie",
+          "square": "Carrée"
+        }
+      },
+      "info": {
+        "badge_tags": "Étiquettes séparées par des virgules. Le libellé est traduit quand le thème connaît l’étiquette."
+      }
+    },
+    "cart": {
+      "name": "Panier",
+      "settings": {
+        "cart_show_note": "Afficher la note de commande",
+        "cart_show_thumbnails": "Afficher les images produit",
+        "cart_show_vendor": "Afficher le fournisseur de chaque ligne",
+        "cart_show_continue": "Afficher le lien pour continuer les achats",
+        "cart_sticky_summary": "Garder le récapitulatif visible sur grand écran",
+        "cart_type": "Quand un article est ajouté"
+      },
+      "options": {
+        "cart_type": {
+          "drawer": "Ouvrir le panier latéral",
+          "page": "Rester sur la page"
+        }
+      }
+    },
+    "drawers": {
+      "name": "Panneaux latéraux",
+      "paragraphs": {
+        "intro": "Le menu mobile s’ouvre dans un panneau latéral."
+      },
+      "settings": {
+        "drawer_side": "S'ouvre depuis",
+        "drawer_width": "Largeur",
+        "drawer_overlay": "Opacité de l'arrière-plan"
+      },
+      "options": {
+        "drawer_side": {
+          "left": "Gauche",
+          "right": "Droite"
+        }
+      }
+    },
+    "icons": {
+      "name": "Icônes",
+      "settings": {
+        "icon_stroke_width": "Épaisseur du trait",
+        "icon_size": "Taille"
+      }
+    },
+    "inputs": {
+      "name": "Champs de saisie",
+      "settings": {
+        "input_radius": "Rayon des coins",
+        "input_border_width": "Épaisseur de la bordure",
+        "input_height": "Hauteur"
+      }
+    },
+    "popovers": {
+      "name": "Menus contextuels et fenêtres",
+      "settings": {
+        "modal_radius": "Rayon des coins",
+        "modal_shadow": "Ombre"
+      },
+      "options": {
+        "modal_shadow": {
+          "none": "Aucune",
+          "soft": "Douce",
+          "strong": "Forte"
+        }
+      }
+    },
+    "price": {
+      "name": "Prix",
+      "settings": {
+        "price_show_compare_at": "Afficher le prix avant remise",
+        "price_show_from": "Préfixer les prix variables par « À partir de »",
+        "price_weight": "Graisse",
+        "price_font": "Rôle de police"
+      },
+      "options": {
+        "price_weight": {
+          "400": "Normale",
+          "500": "Moyenne",
+          "600": "Semi-grasse",
+          "700": "Grasse"
+        },
+        "price_font": {
+          "body": "Texte",
+          "accent": "Accent",
+          "heading": "Titre"
+        }
+      }
+    },
+    "search": {
+      "name": "Recherche",
+      "settings": {
+        "search_predictive": "Activer la recherche prédictive",
+        "search_show_image": "Afficher les images produit dans les suggestions",
+        "search_show_price": "Afficher les prix dans les suggestions",
+        "search_suggestions_limit": "Suggestions par type"
+      },
+      "info": {
+        "search_predictive": "Les suggestions apparaissent pendant la saisie. Désactivée, l'icône de recherche ouvre la page de recherche."
+      }
+    },
+    "swatches": {
+      "name": "Pastilles de couleur",
+      "settings": {
+        "swatches_enabled": "Afficher les options de couleur en pastilles",
+        "swatch_shape": "Forme",
+        "swatch_size": "Taille"
+      },
+      "info": {
+        "swatches_enabled": "S'applique aux options nommées Color, Colour ou Couleur. La valeur est lue comme un nom de couleur CSS, par exemple navy ou #1E40AF."
+      },
+      "options": {
+        "swatch_shape": {
+          "circle": "Cercle",
+          "rounded": "Arrondie",
+          "square": "Carrée"
+        }
+      }
+    },
+    "animations": {
+      "name": "Animations",
+      "settings": {
+        "anim_reveal": "Faire apparaître les sections au défilement",
+        "anim_card_zoom": "Zoomer l'image produit au survol",
+        "anim_duration": "Durée"
+      }
+    }
+  },
+  "shared": {
+    "layout": "Disposition",
+    "width": "Largeur",
+    "width_fit": "Ajusté au contenu",
+    "width_fill": "Pleine largeur",
+    "max_width": "Largeur maximale",
+    "max_width_info": "0 signifie aucune limite.",
+    "typography": "Typographie",
+    "text_preset": "Style de texte",
+    "appearance": "Apparence",
+    "color_scheme": "Palette de couleurs",
+    "text_color": "Couleur du texte",
+    "show_background": "Afficher un arrière-plan",
+    "background_color": "Couleur d'arrière-plan",
+    "spacing": "Espacement",
+    "padding_top": "Haut",
+    "padding_bottom": "Bas",
+    "padding_left": "Gauche",
+    "padding_right": "Droite",
+    "preset": {
+      "paragraph": "Paragraphe",
+      "h1": "Titre 1",
+      "h2": "Titre 2",
+      "h3": "Titre 3",
+      "h4": "Titre 4",
+      "h5": "Titre 5",
+      "h6": "Titre 6"
+    },
+    "left": "Gauche",
+    "center": "Centre",
+    "right": "Droite",
+    "link": "Lien",
+    "open_new_tab": "Ouvrir le lien dans un nouvel onglet",
+    "heading": "Titre",
+    "text": "Texte",
+    "image": "Image",
+    "button_label": "Libellé du bouton",
+    "button_link": "Lien du bouton",
+    "color_scheme_default": "Couleurs du thème",
+    "mobile": "Mobile",
+    "stack_on_mobile": "Empiler le média au-dessus du texte sur mobile",
+    "mobile_media": "Utiliser un autre média sur mobile",
+    "mobile_image": "Image mobile",
+    "media": "Média",
+    "media_type": "Type de média",
+    "media_image": "Image",
+    "media_video": "Vidéo",
+    "video_url": "URL de la vidéo",
+    "video_info": "Un lien YouTube ou Vimeo, ou l'adresse d'un fichier MP4 ou WebM de vos fichiers.",
+    "direction": "Sens de la mise en page",
+    "vertical": "Vertical",
+    "horizontal": "Horizontal",
+    "vertical_align": "Alignement vertical",
+    "top": "Haut",
+    "middle": "Milieu",
+    "bottom": "Bas"
+  },
+  "blocks": {
+    "heading": {
+      "settings": {
+        "text": "Texte"
+      },
+      "presets": {
+        "heading": "Titre"
+      },
+      "name": "Titre"
+    },
+    "text": {
+      "settings": {
+        "text": "Texte"
+      },
+      "presets": {
+        "text": "Texte"
+      },
+      "name": "Texte"
+    },
+    "button": {
+      "settings": {
+        "label": "Libellé",
+        "link": "Lien",
+        "open_new_tab": "Ouvrir le lien dans un nouvel onglet",
+        "style": "Style"
+      },
+      "options": {
+        "style": {
+          "solid": "Plein",
+          "outline": "Contour"
+        }
+      },
+      "presets": {
+        "button": "Bouton"
+      },
+      "name": "Bouton"
+    },
+    "accordion": {
+      "name": "Ligne repliable",
+      "settings": {
+        "heading": "Titre",
+        "text": "Texte",
+        "open": "Ouverte par défaut"
+      },
+      "presets": {
+        "collapsible_row": "Ligne repliable"
+      }
+    }
+  },
+  "sections": {
+    "customer": {
+      "headers": {
+        "content": "Contenu",
+        "layout": "Mise en page"
+      },
+      "settings": {
+        "heading": "Titre",
+        "text": "Texte d’introduction",
+        "align": "Alignement",
+        "width": "Largeur",
+        "show_recover_link": "Afficher le lien « Mot de passe oublié »",
+        "show_register_link": "Afficher le lien pour créer un compte",
+        "show_login_link": "Afficher le lien pour se connecter",
+        "show_name_fields": "Demander le prénom et le nom",
+        "show_marketing": "Proposer l’inscription aux e-mails marketing",
+        "show_store_credit": "Afficher le solde du crédit en magasin",
+        "show_default_address": "Afficher l’adresse par défaut",
+        "orders_per_page": "Commandes par page",
+        "details_position": "Informations du compte",
+        "show_sku": "Afficher la colonne SKU",
+        "show_addresses": "Afficher les adresses de livraison et de facturation",
+        "show_shipments": "Afficher les expéditions et le suivi",
+        "columns": "Adresses par ligne"
+      },
+      "info": {
+        "heading": "Laissez vide pour utiliser le titre par défaut dans la langue du client.",
+        "order_heading": "Le numéro de commande est ajouté à la suite. Laissez vide pour le titre par défaut.",
+        "text_default": "Laissez vide pour utiliser le texte par défaut.",
+        "show_store_credit": "Affiché uniquement si le crédit en magasin est activé et que le client a un solde."
+      },
+      "options": {
+        "width": {
+          "narrow": "Étroite",
+          "page": "Largeur de page"
+        },
+        "details_position": {
+          "side": "À côté des commandes",
+          "below": "Sous les commandes"
+        }
+      }
+    },
+    "main_account": {
+      "name": "Compte client"
+    },
+    "main_order": {
+      "name": "Commande client"
+    },
+    "main_login": {
+      "name": "Connexion client"
+    },
+    "main_register": {
+      "name": "Création de compte"
+    },
+    "main_addresses": {
+      "name": "Adresses du client"
+    },
+    "main_activate_account": {
+      "name": "Activation du compte"
+    },
+    "main_reset_password": {
+      "name": "Réinitialisation du mot de passe"
+    },
+    "groups": {
+      "header": "En-tête",
+      "footer": "Pied de page",
+      "footer_utilities": "Utilitaires du pied de page",
+      "overlays": "Superpositions"
+    },
+    "announcement_bar": {
+      "name": "Barre d’annonce",
+      "settings": {
+        "show": "Afficher la barre",
+        "text": "Texte",
+        "link": "Lien"
+      },
+      "presets": {
+        "announcement_bar": "Barre d’annonce"
+      }
+    },
+    "blog_posts": {
+      "name": "Articles de blog",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "blog": "Blog",
+        "posts_to_show": "Articles à afficher",
+        "layout": "Disposition",
+        "show_image": "Afficher l’image",
+        "show_date": "Afficher la date",
+        "show_author": "Afficher l’auteur",
+        "show_excerpt": "Afficher un extrait"
+      },
+      "options": {
+        "layout": {
+          "grid": "Grille",
+          "carousel": "Carrousel"
+        }
+      },
+      "presets": {
+        "blog_posts": "Articles de blog"
+      }
+    },
+    "cart_drawer": {
+      "name": "Panier latéral",
+      "settings": {
+        "free_shipping_threshold": "Seuil de livraison offerte"
+      },
+      "info": {
+        "free_shipping_threshold": "Dans la devise de la boutique. 0 masque la barre de progression."
+      }
+    },
+    "collapsible_content": {
+      "name": "Contenu repliable",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "open_first": "Ouvrir la première ligne",
+        "texture": "Texture"
+      },
+      "options": {
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "blocks": {
+        "row": {
+          "name": "Ligne",
+          "settings": {
+            "heading": "Titre",
+            "text": "Texte"
+          }
+        }
+      },
+      "presets": {
+        "collapsible_content": "Contenu repliable"
+      }
+    },
+    "collection_list": {
+      "name": "Liste de collections",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "collections": "Collections",
+        "max_collections": "Collections affichées si aucune n’est choisie",
+        "columns": "Colonnes",
+        "layout": "Disposition",
+        "show_count": "Afficher le nombre de produits",
+        "texture": "Texture"
+      },
+      "info": {
+        "collections": "Laissez vide pour afficher vos collections dans l’ordre."
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        },
+        "layout": {
+          "grid": "Grille",
+          "carousel": "Carrousel"
+        },
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "presets": {
+        "collection_list": "Liste de collections"
+      }
+    },
+    "concierge_services": {
+      "name": "Services de conciergerie",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "texture": "Texture"
+      },
+      "options": {
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "blocks": {
+        "service": {
+          "name": "Service",
+          "settings": {
+            "icon": "Icône",
+            "title": "Titre",
+            "text": "Texte"
+          },
+          "options": {
+            "icon": {
+              "diamond": "Diamant",
+              "gift": "Cadeau",
+              "truck": "Livraison",
+              "shield": "Bouclier",
+              "leaf": "Feuille",
+              "none": "Aucune"
+            }
+          }
+        }
+      },
+      "presets": {
+        "concierge_services": "Services de conciergerie"
+      }
+    },
+    "contact_form": {
+      "name": "Formulaire de contact",
+      "settings": {
+        "heading": "Titre",
+        "text": "Texte",
+        "show_phone": "Demander un numéro de téléphone",
+        "button_label": "Libellé du bouton"
+      },
+      "info": {
+        "button_label": "Laissez vide pour utiliser le libellé par défaut."
+      },
+      "presets": {
+        "contact_form": "Formulaire de contact"
+      }
+    },
+    "custom_liquid": {
+      "name": "Liquid personnalisé",
+      "settings": {
+        "custom_liquid": "Code Liquid",
+        "padding_top": "Marge haute",
+        "padding_bottom": "Marge basse"
+      },
+      "presets": {
+        "custom_liquid": "Liquid personnalisé"
+      }
+    },
+    "featured_collection": {
+      "name": "Collection mise en avant",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "text": "Introduction",
+        "collection": "Collection",
+        "products_to_show": "Produits à afficher",
+        "columns": "Colonnes",
+        "layout": "Disposition",
+        "show_view_all": "Afficher le bouton « Voir tout »",
+        "texture": "Texture"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4",
+          "5": "5"
+        },
+        "layout": {
+          "grid": "Grille",
+          "carousel": "Carrousel"
+        },
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "presets": {
+        "featured_collection": "Collection mise en avant"
+      }
+    },
+    "footer_utilities": {
+      "name": "Bas de page",
+      "settings": {
+        "show_copyright": "Afficher le copyright",
+        "show_powered_by": "Afficher « Propulsé par ShopMe »",
+        "show_language_selector": "Afficher le sélecteur de langue",
+        "show_country_selector": "Afficher le sélecteur de pays et de devise"
+      }
+    },
+    "footer": {
+      "name": "Pied de page",
+      "settings": {
+        "menu": "Menu",
+        "tagline": "Devise",
+        "show_description": "Afficher la description de la boutique",
+        "address": "Adresse",
+        "email": "E-mail",
+        "phone": "Téléphone",
+        "show_newsletter": "Afficher le formulaire de newsletter",
+        "newsletter_text": "Texte au-dessus du formulaire"
+      },
+      "headers": {
+        "boutique_details": "Coordonnées de la boutique",
+        "newsletter": "Newsletter"
+      }
+    },
+    "header": {
+      "name": "En-tête",
+      "settings": {
+        "menu": "Menu",
+        "sticky": "Garder l’en-tête visible au défilement",
+        "tagline": "Ligne sous le nom"
+      },
+      "info": {
+        "tagline": "Affichée sous le nom de la boutique."
+      }
+    },
+    "heritage_timeline": {
+      "name": "Chronologie de la maison",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "text": "Introduction",
+        "texture": "Texture"
+      },
+      "options": {
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "blocks": {
+        "milestone": {
+          "name": "Étape",
+          "settings": {
+            "year": "Année",
+            "title": "Titre",
+            "text": "Texte"
+          }
+        }
+      },
+      "presets": {
+        "heritage_timeline": "Chronologie de la maison"
+      }
+    },
+    "hero": {
+      "name": "Bannière principale",
+      "headers": {
+        "content": "Contenu",
+        "media": "Média",
+        "layout": "Disposition"
+      },
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "subheading": "Sous-titre",
+        "button_label": "Libellé du premier bouton",
+        "button_link": "Lien du premier bouton",
+        "button2_label": "Libellé du second bouton",
+        "button2_link": "Lien du second bouton",
+        "section_link": "Lien sur toute la bannière",
+        "image": "Image",
+        "mobile_image": "Image mobile",
+        "video_url": "Adresse de la vidéo (remplace l’image)",
+        "overlay": "Assombrissement de l’image",
+        "height": "Hauteur",
+        "text_align": "Alignement du texte",
+        "show_dial": "Afficher les anneaux de cadran",
+        "show_frame": "Afficher le cadre doré"
+      },
+      "options": {
+        "height": {
+          "medium": "Moyenne",
+          "tall": "Haute",
+          "full": "Plein écran"
+        }
+      },
+      "presets": {
+        "hero": "Bannière principale"
+      }
+    },
+    "image_with_text": {
+      "name": "Image avec texte",
+      "settings": {
+        "image": "Image",
+        "video_url": "Adresse de la vidéo (remplace l’image)",
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "text": "Texte",
+        "button_label": "Libellé du bouton",
+        "button_link": "Lien du bouton",
+        "layout": "Position de l’image",
+        "image_ratio": "Format de l’image",
+        "texture": "Texture"
+      },
+      "options": {
+        "image_ratio": {
+          "landscape": "Paysage",
+          "portrait": "Portrait",
+          "square": "Carré"
+        },
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "presets": {
+        "image_with_text": "Image avec texte"
+      }
+    },
+    "lookbook": {
+      "name": "Lookbook",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "texture": "Texture"
+      },
+      "options": {
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "blocks": {
+        "panel": {
+          "name": "Panneau",
+          "settings": {
+            "collection": "Collection",
+            "label": "Titre (remplace le nom de la collection)",
+            "caption": "Légende",
+            "image": "Image (remplace celle de la collection)",
+            "link": "Lien (remplace celui de la collection)"
+          }
+        }
+      },
+      "presets": {
+        "lookbook": "Lookbook"
+      }
+    },
+    "main_404": {
+      "name": "Page introuvable"
+    },
+    "main_article": {
+      "name": "Article",
+      "settings": {
+        "show_author": "Afficher l’auteur",
+        "show_navigation": "Afficher les liens précédent et suivant"
+      }
+    },
+    "main_blog": {
+      "name": "Blog",
+      "settings": {
+        "articles_per_page": "Articles par page",
+        "show_image": "Afficher l’image",
+        "show_author": "Afficher l’auteur"
+      }
+    },
+    "main_cart": {
+      "name": "Panier",
+      "settings": {
+        "sticky_summary": "Garder le récapitulatif visible au défilement"
+      }
+    },
+    "main_collection": {
+      "name": "Collection",
+      "headers": {
+        "header": "En-tête",
+        "products": "Produits",
+        "filtering_and_sorting": "Filtres et tri"
+      },
+      "settings": {
+        "show_image": "Afficher l’image de la collection en bannière",
+        "show_description": "Afficher la description",
+        "products_per_page": "Produits par page",
+        "columns": "Colonnes sur ordinateur",
+        "mobile_columns": "Colonnes sur mobile",
+        "enable_filters": "Afficher les filtres",
+        "filter_layout": "Disposition des filtres",
+        "show_sort": "Afficher le menu de tri"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4",
+          "5": "5"
+        },
+        "mobile_columns": {
+          "1": "1",
+          "2": "2"
+        },
+        "filter_layout": {
+          "sidebar": "Colonne latérale",
+          "top": "Barre au-dessus des produits",
+          "drawer": "Panneau latéral coulissant"
+        }
+      }
+    },
+    "main_contact": {
+      "name": "Page de contact",
+      "settings": {
+        "show_phone": "Demander un numéro de téléphone"
+      }
+    },
+    "main_list_collections": {
+      "name": "Liste des collections",
+      "settings": {
+        "columns": "Colonnes",
+        "show_count": "Afficher le nombre de produits"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      }
+    },
+    "main_page": {
+      "name": "Page",
+      "settings": {
+        "show_title": "Afficher le titre de la page",
+        "width": "Largeur"
+      },
+      "options": {
+        "width": {
+          "narrow": "Étroite",
+          "page": "Page"
+        }
+      }
+    },
+    "main_password": {
+      "name": "Page de mot de passe"
+    },
+    "main_product": {
+      "name": "Produit",
+      "settings": {
+        "show_short_description": "Afficher une courte introduction",
+        "show_availability": "Afficher la disponibilité",
+        "show_sku": "Afficher la référence (SKU)",
+        "sticky_info": "Garder les détails visibles au défilement"
+      }
+    },
+    "main_search": {
+      "name": "Résultats de recherche",
+      "settings": {
+        "products_per_page": "Résultats par page",
+        "columns": "Colonnes"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        }
+      }
+    },
+    "multicolumn": {
+      "name": "Colonnes",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "columns": "Colonnes",
+        "align": "Alignement",
+        "texture": "Texture"
+      },
+      "options": {
+        "columns": {
+          "2": "2",
+          "3": "3",
+          "4": "4"
+        },
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "blocks": {
+        "column": {
+          "name": "Colonne",
+          "settings": {
+            "image": "Image",
+            "title": "Titre",
+            "text": "Texte",
+            "link_label": "Libellé du lien",
+            "link": "Lien"
+          }
+        }
+      },
+      "presets": {
+        "multicolumn": "Colonnes"
+      }
+    },
+    "newsletter": {
+      "name": "Newsletter",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "text": "Texte",
+        "button_label": "Libellé du bouton",
+        "align": "Alignement",
+        "texture": "Texture"
+      },
+      "info": {
+        "button_label": "Laissez vide pour utiliser le libellé par défaut."
+      },
+      "options": {
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "presets": {
+        "newsletter": "Newsletter"
+      }
+    },
+    "popup": {
+      "name": "Fenêtre contextuelle",
+      "settings": {
+        "enabled": "Afficher la fenêtre",
+        "heading": "Titre",
+        "text": "Texte",
+        "image": "Image",
+        "button_label": "Libellé du bouton",
+        "button_link": "Lien du bouton",
+        "delay": "Délai avant l’ouverture",
+        "days": "Jours avant de la réafficher"
+      }
+    },
+    "product_recommendations": {
+      "name": "Recommandations de produits",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "products_to_show": "Produits à afficher"
+      }
+    },
+    "rich_text": {
+      "name": "Texte enrichi",
+      "settings": {
+        "align": "Alignement",
+        "direction": "Disposition",
+        "texture": "Texture"
+      },
+      "options": {
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "presets": {
+        "rich_text": "Texte enrichi"
+      }
+    },
+    "scrolling_banner": {
+      "name": "Bandeau défilant",
+      "settings": {
+        "direction": "Sens",
+        "speed": "Durée d’une boucle"
+      },
+      "options": {
+        "direction": {
+          "left": "Vers la gauche",
+          "right": "Vers la droite"
+        }
+      },
+      "blocks": {
+        "text": {
+          "name": "Texte",
+          "settings": {
+            "text": "Texte",
+            "link": "Lien"
+          }
+        }
+      },
+      "presets": {
+        "scrolling_banner": "Bandeau défilant"
+      }
+    },
+    "spec_sheet": {
+      "name": "Fiche technique",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "text": "Texte",
+        "product": "Produit",
+        "button_label": "Libellé du bouton",
+        "layout": "Position de l’image",
+        "texture": "Texture"
+      },
+      "info": {
+        "product": "Laissez vide pour afficher le premier produit de la boutique."
+      },
+      "options": {
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "blocks": {
+        "spec": {
+          "name": "Caractéristique",
+          "settings": {
+            "label": "Libellé",
+            "value": "Valeur"
+          }
+        }
+      },
+      "presets": {
+        "spec_sheet": "Fiche technique"
+      }
+    },
+    "testimonials": {
+      "name": "Témoignages",
+      "settings": {
+        "eyebrow": "Texte d’accroche",
+        "heading": "Titre",
+        "layout": "Disposition",
+        "texture": "Texture"
+      },
+      "options": {
+        "layout": {
+          "grid": "Grille",
+          "carousel": "Carrousel"
+        },
+        "texture": {
+          "none": "Aucune",
+          "lines": "Fins filets dorés",
+          "noir": "Halo doré",
+          "guilloche": "Anneaux guillochés"
+        }
+      },
+      "blocks": {
+        "testimonial": {
+          "name": "Témoignage",
+          "settings": {
+            "quote": "Citation",
+            "author": "Auteur",
+            "role": "Fonction ou lieu",
+            "rating": "Note",
+            "avatar": "Photo"
+          }
+        }
+      },
+      "presets": {
+        "testimonials": "Témoignages"
+      }
+    },
+    "video": {
+      "name": "Vidéo",
+      "settings": {
+        "heading": "Titre",
+        "video_url": "Adresse de la vidéo",
+        "cover": "Image de couverture",
+        "autoplay": "Lancer la lecture automatiquement (sans son)",
+        "width": "Largeur"
+      },
+      "info": {
+        "video_url": "Un lien YouTube ou Vimeo, ou l’adresse d’un fichier MP4 ou WebM."
+      },
+      "options": {
+        "width": {
+          "page": "Page",
+          "narrow": "Étroite"
+        }
+      },
+      "presets": {
+        "video": "Vidéo"
+      }
+    }
+  }
+}

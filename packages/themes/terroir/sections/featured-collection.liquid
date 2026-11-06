@@ -1,0 +1,156 @@
+{%- assign s = section.settings -%}
+{%- assign source = s.collection | default: collections.all -%}
+<div class="section-pad featured-collection {% render 'scheme-class', scheme: s.color_scheme %}{% if s.texture != blank and s.texture != 'none' %} texture texture--{{ s.texture }}{% endif %}">
+  <div class="page-width">
+    <div class="section-head section-head--center">
+      {%- if s.eyebrow != blank -%}<p class="eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+      {%- if s.heading != blank -%}<h2 class="section-title">{{ s.heading | escape }}</h2>{%- endif -%}
+      {%- if s.text != blank -%}<p class="section-lead">{{ s.text | escape }}</p>{%- endif -%}
+    </div>
+    {%- if source.products.size > 0 -%}
+      {%- if s.layout == 'carousel' -%}<div class="featured-collection__arrows">{% render 'carousel-arrows' %}</div>{%- endif -%}
+      <ul class="grid grid--cols-{{ s.columns }} grid--mobile-2{% if s.layout == 'carousel' %} grid--carousel{% endif %}"{% if s.layout == 'carousel' %} data-carousel{% endif %} role="list">
+        {%- for product in source.products limit: s.products_to_show -%}
+          <li>{% render 'product-card', card_product: product, index: forloop.index %}</li>
+        {%- endfor -%}
+      </ul>
+      {%- if s.show_view_all -%}
+        <p class="featured-collection__more"><a class="button button--outline" href="{{ source.url }}">{{ 'general.view_all' | t }}</a></p>
+      {%- endif -%}
+    {%- else -%}
+      <p class="empty">{{ 'general.no_products' | t }}</p>
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.featured_collection.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.featured_collection.settings.eyebrow",
+      "default": "Fresh this week"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.featured_collection.settings.heading",
+      "default": "Our favourites"
+    },
+    {
+      "type": "text",
+      "id": "text",
+      "label": "t:sections.featured_collection.settings.text",
+      "default": "Roasted, blended and baked in small batches."
+    },
+    {
+      "type": "collection",
+      "id": "collection",
+      "label": "t:sections.featured_collection.settings.collection"
+    },
+    {
+      "type": "range",
+      "id": "products_to_show",
+      "label": "t:sections.featured_collection.settings.products_to_show",
+      "min": 2,
+      "max": 12,
+      "step": 1,
+      "default": 4
+    },
+    {
+      "type": "select",
+      "id": "columns",
+      "label": "t:sections.featured_collection.settings.columns",
+      "options": [
+        {
+          "value": "2",
+          "label": "t:sections.featured_collection.options.columns.2"
+        },
+        {
+          "value": "3",
+          "label": "t:sections.featured_collection.options.columns.3"
+        },
+        {
+          "value": "4",
+          "label": "t:sections.featured_collection.options.columns.4"
+        },
+        {
+          "value": "5",
+          "label": "t:sections.featured_collection.options.columns.5"
+        }
+      ],
+      "default": "4"
+    },
+    {
+      "type": "select",
+      "id": "layout",
+      "label": "t:sections.featured_collection.settings.layout",
+      "options": [
+        {
+          "value": "grid",
+          "label": "t:sections.featured_collection.options.layout.grid"
+        },
+        {
+          "value": "carousel",
+          "label": "t:sections.featured_collection.options.layout.carousel"
+        }
+      ],
+      "default": "grid",
+      "variant": "segmented"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_view_all",
+      "label": "t:sections.featured_collection.settings.show_view_all",
+      "default": true
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.featured_collection.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.featured_collection.options.texture.none"
+        },
+        {
+          "value": "paper",
+          "label": "t:sections.featured_collection.options.texture.paper"
+        },
+        {
+          "value": "linen",
+          "label": "t:sections.featured_collection.options.texture.linen"
+        },
+        {
+          "value": "dots",
+          "label": "t:sections.featured_collection.options.texture.dots"
+        },
+        {
+          "value": "wash",
+          "label": "t:sections.featured_collection.options.texture.wash"
+        },
+        {
+          "value": "grain",
+          "label": "t:sections.featured_collection.options.texture.grain"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.featured_collection.presets.featured_collection",
+      "category": "collection"
+    }
+  ]
+}
+{% endschema %}

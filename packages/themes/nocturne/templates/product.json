@@ -1,0 +1,38 @@
+{
+  "sections": {
+    "main": {
+      "type": "main-product",
+      "settings": {},
+      "blocks": {
+        "accordion-1": {
+          "type": "accordion",
+          "settings": {
+            "heading": "Craftsmanship and care",
+            "text": "<p>Finished by hand in our atelier. Keep in the pouch provided, away from moisture, and bring it to us once a year for a complimentary service.</p>",
+            "open": false
+          }
+        },
+        "accordion-2": {
+          "type": "accordion",
+          "settings": {
+            "heading": "Delivery and returns",
+            "text": "<p>Insured delivery in two to four days. Free returns within thirty days, in their original packaging.</p>",
+            "open": false
+          }
+        }
+      },
+      "block_order": [
+        "accordion-1",
+        "accordion-2"
+      ]
+    },
+    "recommendations": {
+      "type": "product-recommendations",
+      "settings": {}
+    }
+  },
+  "order": [
+    "main",
+    "recommendations"
+  ]
+}

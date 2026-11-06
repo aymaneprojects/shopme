@@ -1,0 +1,164 @@
+{%- assign s = section.settings -%}
+<div class="section-pad services {% render 'scheme-class', scheme: s.color_scheme %}{% if s.texture != blank and s.texture != 'none' %} texture texture--{{ s.texture }}{% endif %}">
+  <div class="page-width">
+    {%- if s.heading != blank or s.eyebrow != blank -%}
+      <div class="section-head section-head--center">
+        {%- if s.eyebrow != blank -%}<p class="eyebrow">{{ s.eyebrow | escape }}</p>{%- endif -%}
+        {%- if s.heading != blank -%}<h2 class="section-title">{{ s.heading | escape }}</h2>{%- endif -%}
+      </div>
+    {%- endif -%}
+    <ul class="services__list services__list--{{ section.blocks.size }}" role="list">
+      {%- for block in section.blocks -%}
+        <li class="services__item" {{ block.shopify_attributes }}>
+          {%- if block.settings.icon != 'none' -%}<span class="services__icon">{% render 'icon', name: block.settings.icon %}</span>{%- endif -%}
+          <h3 class="services__title">{{ block.settings.title | escape }}</h3>
+          {%- if block.settings.text != blank -%}<p class="services__text">{{ block.settings.text | escape }}</p>{%- endif -%}
+        </li>
+      {%- endfor -%}
+    </ul>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.concierge_services.name",
+  "tag": "section",
+  "max_blocks": 4,
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "t:sections.concierge_services.settings.eyebrow",
+      "default": "At your service"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:sections.concierge_services.settings.heading",
+      "default": ""
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.concierge_services.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.concierge_services.options.texture.none"
+        },
+        {
+          "value": "lines",
+          "label": "t:sections.concierge_services.options.texture.lines"
+        },
+        {
+          "value": "noir",
+          "label": "t:sections.concierge_services.options.texture.noir"
+        },
+        {
+          "value": "guilloche",
+          "label": "t:sections.concierge_services.options.texture.guilloche"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": "scheme-1"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "service",
+      "name": "t:sections.concierge_services.blocks.service.name",
+      "settings": [
+        {
+          "type": "select",
+          "id": "icon",
+          "label": "t:sections.concierge_services.blocks.service.settings.icon",
+          "options": [
+            {
+              "value": "diamond",
+              "label": "t:sections.concierge_services.blocks.service.options.icon.diamond"
+            },
+            {
+              "value": "gift",
+              "label": "t:sections.concierge_services.blocks.service.options.icon.gift"
+            },
+            {
+              "value": "truck",
+              "label": "t:sections.concierge_services.blocks.service.options.icon.truck"
+            },
+            {
+              "value": "shield",
+              "label": "t:sections.concierge_services.blocks.service.options.icon.shield"
+            },
+            {
+              "value": "leaf",
+              "label": "t:sections.concierge_services.blocks.service.options.icon.leaf"
+            },
+            {
+              "value": "none",
+              "label": "t:sections.concierge_services.blocks.service.options.icon.none"
+            }
+          ],
+          "default": "diamond"
+        },
+        {
+          "type": "text",
+          "id": "title",
+          "label": "t:sections.concierge_services.blocks.service.settings.title",
+          "default": "Complimentary engraving"
+        },
+        {
+          "type": "text",
+          "id": "text",
+          "label": "t:sections.concierge_services.blocks.service.settings.text",
+          "default": ""
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.concierge_services.presets.concierge_services",
+      "category": "text",
+      "blocks": [
+        {
+          "type": "service",
+          "settings": {
+            "icon": "diamond",
+            "title": "Certified and numbered",
+            "text": "Every piece comes with its signed certificate."
+          }
+        },
+        {
+          "type": "service",
+          "settings": {
+            "icon": "gift",
+            "title": "Complimentary engraving",
+            "text": "A personal message, engraved by hand."
+          }
+        },
+        {
+          "type": "service",
+          "settings": {
+            "icon": "truck",
+            "title": "Insured delivery",
+            "text": "Tracked, insured and signed for, worldwide."
+          }
+        },
+        {
+          "type": "service",
+          "settings": {
+            "icon": "shield",
+            "title": "Ten-year guarantee",
+            "text": "A free annual service for a decade."
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

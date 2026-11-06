@@ -1,0 +1,63 @@
+{%- assign date_format = 'general.date_format' | t -%}
+<article class="section-pad article {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width page-width--narrow">
+    <p class="article__back"><a class="link-arrow" href="{{ blog.url }}">{{ 'blog.back' | t: blog: blog.title }}</a></p>
+    <header class="article__head">
+      <p class="article__meta">
+        <time datetime="{{ article.published_at | date: '%Y-%m-%d' }}">{{ article.published_at | date: date_format }}</time>
+        {%- if section.settings.show_author and article.author != blank %} &middot; {{ 'blog.by' | t: author: article.author }}{% endif -%}
+      </p>
+      <h1 class="page-title">{{ article.title | escape }}</h1>
+    </header>
+    {%- if article.image -%}
+      <div class="article__image">
+        {%- assign focal = '' -%}
+        {%- if article.image.presentation.focal_point != blank -%}{%- assign focal = 'object-position: ' | append: article.image.presentation.focal_point -%}{%- endif -%}
+        {{ article.image | image_url: width: 1400 | image_tag: alt: article.image.alt, loading: 'eager', widths: '700, 1000, 1400', sizes: '(min-width: 990px) 800px, 100vw', style: focal }}
+      </div>
+    {%- endif -%}
+    <div class="rte article__content">{{ article.content }}</div>
+
+    {%- if article.tags.size > 0 -%}
+      <p class="article__tags">
+        {%- for tag in article.tags -%}
+          <a class="chip" href="{{ blog.url }}/tagged/{{ tag | handle }}">{{ tag | escape }}</a>
+        {%- endfor -%}
+      </p>
+    {%- endif -%}
+
+    {%- if section.settings.show_navigation and blog.previous_article or blog.next_article -%}
+      <nav class="article__nav" aria-label="{{ blog.title | escape }}">
+        {%- if blog.previous_article -%}<a href="{{ blog.previous_article.url }}" rel="prev"><span class="article__nav-label">&larr; {{ 'blog.previous' | t }}</span>{{ blog.previous_article.title | escape }}</a>{%- endif -%}
+        {%- if blog.next_article -%}<a class="article__nav-next" href="{{ blog.next_article.url }}" rel="next"><span class="article__nav-label">{{ 'blog.next' | t }} &rarr;</span>{{ blog.next_article.title | escape }}</a>{%- endif -%}
+      </nav>
+    {%- endif -%}
+  </div>
+</article>
+
+{% schema %}
+{
+  "name": "t:sections.main_article.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_author",
+      "label": "t:sections.main_article.settings.show_author",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_navigation",
+      "label": "t:sections.main_article.settings.show_navigation",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ]
+}
+{% endschema %}

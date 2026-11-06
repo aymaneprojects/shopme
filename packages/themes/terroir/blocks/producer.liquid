@@ -1,0 +1,68 @@
+<aside class="producer-card" {{ block.shopify_attributes }}>
+  {%- if block.settings.image -%}
+    <div class="producer-card__photo">
+      {%- assign focal = '' -%}
+      {%- if block.settings.image.presentation.focal_point != blank -%}{%- assign focal = 'object-position: ' | append: block.settings.image.presentation.focal_point -%}{%- endif -%}
+      {{ block.settings.image | image_url: width: 240, height: 240, crop: 'center' | image_tag: loading: 'lazy', alt: block.settings.name, style: focal }}
+    </div>
+  {%- else -%}
+    <div class="producer-card__photo producer-card__photo--empty" aria-hidden="true">{% render 'icon', name: 'leaf' %}</div>
+  {%- endif -%}
+  <div class="producer-card__body">
+    <p class="eyebrow producer-card__eyebrow">{{ 'blocks_terroir.producer.label' | t }}</p>
+    <h3 class="producer-card__name">{{ block.settings.name | escape }}</h3>
+    {%- if block.settings.place != blank or block.settings.since != blank -%}
+      <p class="producer-card__place">{{ block.settings.place | escape }}{% if block.settings.place != blank and block.settings.since != blank %} &middot; {% endif %}{% if block.settings.since != blank %}{{ 'blocks_terroir.producer.since' | t: year: block.settings.since }}{% endif %}</p>
+    {%- endif -%}
+    {%- if block.settings.text != blank -%}<p class="producer-card__text">{{ block.settings.text | escape }}</p>{%- endif -%}
+    {%- if block.settings.link != blank -%}<a class="link-arrow" href="{{ block.settings.link }}">{{ 'blocks_terroir.producer.visit' | t }}</a>{%- endif -%}
+  </div>
+</aside>
+
+{% schema %}
+{
+  "name": "t:blocks.producer.name",
+  "tag": null,
+  "settings": [
+    {
+      "type": "text",
+      "id": "name",
+      "label": "t:blocks.producer.settings.name",
+      "default": "The Rojas family"
+    },
+    {
+      "type": "text",
+      "id": "place",
+      "label": "t:blocks.producer.settings.place",
+      "default": "Huila, Colombia"
+    },
+    {
+      "type": "text",
+      "id": "since",
+      "label": "t:blocks.producer.settings.since",
+      "default": "1962"
+    },
+    {
+      "type": "textarea",
+      "id": "text",
+      "label": "t:blocks.producer.settings.text",
+      "default": "Three generations growing coffee on steep, shaded slopes."
+    },
+    {
+      "type": "image_picker",
+      "id": "image",
+      "label": "t:blocks.producer.settings.image"
+    },
+    {
+      "type": "url",
+      "id": "link",
+      "label": "t:blocks.producer.settings.link"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:blocks.producer.presets.producer"
+    }
+  ]
+}
+{% endschema %}

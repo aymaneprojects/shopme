@@ -1,0 +1,25 @@
+{
+  "about": "What changed in each version of Nocturne, shown to merchants in Online Store > Themes when an update is available. Newest first; one short line per change, in English (en) and French (fr).",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "date": "2026-11-06",
+      "notes": {
+        "en": [
+          "First release: a dark, refined theme for jewelry, watches and luxury goods.",
+          "Centered brand header with a slim navigation and drop-down menus, a cart drawer with a free-shipping bar, predictive search and language and currency selectors.",
+          "Sections made for the trade: hero with dial rings, lookbook, spec sheet, heritage timeline and concierge services.",
+          "Product page with a vertical gallery that follows the focal point, option pickers that show unavailable variants, purchase options for subscriptions and recommendations.",
+          "Collections with filters (availability, price, type, vendor), sorting and pagination; every customer page can be customized in the editor."
+        ],
+        "fr": [
+          "Première version : un thème sombre et raffiné pour la joaillerie, l’horlogerie et les produits de luxe.",
+          "En-tête à marque centrée avec navigation épurée et menus déroulants, panier latéral avec barre de livraison offerte, recherche prédictive et sélecteurs de langue et de devise.",
+          "Sections pensées pour le métier : bannière à anneaux de cadran, lookbook, fiche technique, chronologie de la maison et services de conciergerie.",
+          "Page produit avec galerie verticale qui suit le point focal, sélecteurs d’options qui signalent les variantes indisponibles, options d’achat pour les abonnements et recommandations.",
+          "Collections avec filtres (disponibilité, prix, type, créateur), tri et pagination ; toutes les pages client se personnalisent dans l’éditeur."
+        ]
+      }
+    }
+  ]
+}

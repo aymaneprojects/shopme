@@ -1,0 +1,26 @@
+<div class="section-pad not-found {% render 'scheme-class', scheme: section.settings.color_scheme %}">
+  <div class="page-width page-width--narrow">
+    <p class="not-found__code" aria-hidden="true">404</p>
+    <h1 class="page-title">{{ 'general.page_not_found' | t }}</h1>
+    <p>{{ 'general.page_not_found_text' | t }}</p>
+    <div class="not-found__actions">
+      <a class="button" href="{{ routes.root_url }}">{{ 'general.back_to_store' | t }}</a>
+      <a class="button button--outline" href="{{ routes.all_products_collection_url }}">{{ 'general.continue_shopping' | t }}</a>
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_404.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ]
+}
+{% endschema %}

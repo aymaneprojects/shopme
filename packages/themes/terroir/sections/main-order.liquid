@@ -1,0 +1,136 @@
+{%- assign s = section.settings -%}
+{%- assign date_format = 'general.date_format' | t -%}
+{%- assign placed = order.created_at | date: date_format -%}
+{%- assign cancelled_on = order.cancelled_at | date: date_format -%}
+{%- if s.show_sku -%}{%- assign label_cols = 4 -%}{%- else -%}{%- assign label_cols = 3 -%}{%- endif -%}
+<div class="page-width section-pad customer {% render 'scheme-class', scheme: s.color_scheme %}">
+  <div class="section-head">
+    <h1 class="page-title">{%- if s.heading != blank -%}{{ s.heading | escape }} {{ order.name }}{%- else -%}{{ 'customer.order_page.title' | t: name: order.name }}{%- endif -%}</h1>
+    <a class="link-arrow" href="{{ routes.account_url }}">{{ 'customer.order_page.back' | t }}</a>
+  </div>
+  <p>{{ 'customer.order_page.placed_on' | t: date: placed }}</p>
+  {%- if order_notice != blank -%}
+    {%- assign notice_key = 'customer.order_page.notice_' | append: order_notice -%}
+    <p class="customer__notice" role="status">{{ notice_key | t }}</p>
+  {%- endif -%}
+  {%- if order.cancelled -%}
+    <p class="form-errors" role="status">{{ 'customer.order_page.cancelled' | t: date: cancelled_on }}{% if order.cancel_reason_label %} ({{ order.cancel_reason_label }}){% endif %}</p>
+  {%- endif -%}
+  <p>{{ 'customer.account_page.payment_status' | t }}: <strong>{{ order.financial_status_label }}</strong> &middot; {{ 'customer.account_page.fulfillment_status' | t }}: <strong>{{ order.fulfillment_status_label }}</strong></p>
+
+  <table class="customer__table">
+    <thead>
+      <tr>
+        <th scope="col">{{ 'customer.order_page.product' | t }}</th>
+        {%- if s.show_sku -%}<th scope="col">{{ 'customer.order_page.sku' | t }}</th>{%- endif -%}
+        <th scope="col" class="customer__num">{{ 'customer.order_page.price' | t }}</th>
+        <th scope="col" class="customer__num">{{ 'customer.order_page.quantity' | t }}</th>
+        <th scope="col" class="customer__num">{{ 'customer.order_page.total' | t }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {%- for line in order.line_items -%}
+        <tr>
+          <th scope="row">
+            {%- if line.url -%}<a href="{{ line.url }}">{{ line.product_title | escape }}</a>{%- else -%}{{ line.product_title | escape }}{%- endif -%}
+            {%- if line.variant_title != blank -%}<br><span class="customer__muted">{{ line.variant_title | escape }}</span>{%- endif -%}
+            {%- if line.selling_plan_allocation -%}<br><span class="customer__muted">{{ line.selling_plan_allocation.selling_plan.name | escape }}</span>{%- endif -%}
+          </th>
+          {%- if s.show_sku -%}<td>{{ line.sku | escape }}</td>{%- endif -%}
+          <td class="customer__num">{{ line.final_price | money }}</td>
+          <td class="customer__num">{{ line.quantity }}</td>
+          <td class="customer__num">{{ line.final_line_price | money }}</td>
+        </tr>
+      {%- endfor -%}
+    </tbody>
+    <tfoot>
+      <tr><th scope="row" colspan="{{ label_cols }}">{{ 'customer.order_page.subtotal' | t }}</th><td class="customer__num">{{ order.subtotal_price | money }}</td></tr>
+      {%- if order.total_discounts > 0 -%}
+        <tr><th scope="row" colspan="{{ label_cols }}">{{ 'customer.order_page.discount' | t }}</th><td class="customer__num">-{{ order.total_discounts | money }}</td></tr>
+      {%- endif -%}
+      {%- for method in order.shipping_methods -%}
+        <tr><th scope="row" colspan="{{ label_cols }}">{{ 'customer.order_page.shipping' | t }} ({{ method.title | escape }})</th><td class="customer__num">{{ method.price | money }}</td></tr>
+      {%- endfor -%}
+      {%- if order.tax_price > 0 -%}
+        <tr><th scope="row" colspan="{{ label_cols }}">{{ 'customer.order_page.taxes' | t }}</th><td class="customer__num">{{ order.tax_price | money }}</td></tr>
+      {%- endif -%}
+      <tr><th scope="row" colspan="{{ label_cols }}">{{ 'customer.order_page.order_total' | t }}</th><td class="customer__num"><strong>{{ order.total_price | money_with_currency }}</strong></td></tr>
+    </tfoot>
+  </table>
+
+  {%- if order.actions.reorder or order.actions.cancel or order.actions.return -%}
+    <section class="customer__order-actions" aria-labelledby="order-actions-title">
+      <h2 id="order-actions-title">{{ 'customer.order_page.actions' | t }}</h2>
+      {%- if order.actions.reorder -%}
+        <form method="post" action="{{ order.actions.reorder_url }}"><button class="button button--outline button--small" type="submit">{{ 'customer.order_page.reorder' | t }}</button></form>
+      {%- endif -%}
+      {%- if order.actions.cancel -%}
+        {%- assign until = order.actions.cancel_until | date: date_format -%}
+        <form method="post" action="{{ order.actions.cancel_url }}">
+          <p class="customer__muted">{{ 'customer.order_page.cancel_until' | t: date: until }}</p>
+          <button class="button button--outline button--small" type="submit" data-confirm="{{ 'customer.order_page.cancel_confirm' | t | escape }}">{{ 'customer.order_page.cancel' | t }}</button>
+        </form>
+      {%- endif -%}
+      {%- if order.actions.return -%}
+        <form method="post" action="{{ order.actions.return_url }}">
+          <h3>{{ 'customer.order_page.return_title' | t }}</h3>
+          <p class="customer__muted">{{ 'customer.order_page.return_text' | t }}</p>
+          {%- for line in order.actions.return_lines -%}
+            <label class="customer__return-line">
+              <input type="number" name="return[{{ line.id }}]" min="0" max="{{ line.max }}" value="0" inputmode="numeric">
+              <span>{{ line.title | escape }}{% if line.variant_title != blank %} ({{ line.variant_title | escape }}){% endif %} <span class="customer__muted">{{ 'customer.order_page.return_max' | t: max: line.max }}</span></span>
+            </label>
+          {%- endfor -%}
+          <label class="field"><span>{{ 'customer.order_page.return_note' | t }}</span><input type="text" name="note" maxlength="500"></label>
+          <button class="button button--small" type="submit">{{ 'customer.order_page.return_submit' | t }}</button>
+        </form>
+      {%- endif -%}
+    </section>
+  {%- endif -%}
+
+  {%- if s.show_addresses -%}
+  <div class="customer__layout">
+    {%- if order.shipping_address -%}
+      <section>
+        <h2>{{ 'customer.order_page.shipping_address' | t }}</h2>
+        <p>{{ order.shipping_address.name | escape }}<br>{{ order.shipping_address.street | escape }}<br>{{ order.shipping_address.zip | escape }} {{ order.shipping_address.city | escape }}<br>{{ order.shipping_address.country | escape }}</p>
+      </section>
+    {%- endif -%}
+    {%- if order.billing_address -%}
+      <section>
+        <h2>{{ 'customer.order_page.billing_address' | t }}</h2>
+        <p>{{ order.billing_address.name | escape }}<br>{{ order.billing_address.street | escape }}<br>{{ order.billing_address.zip | escape }} {{ order.billing_address.city | escape }}<br>{{ order.billing_address.country | escape }}</p>
+      </section>
+    {%- endif -%}
+  </div>
+  {%- endif -%}
+
+  {%- if s.show_shipments and order.fulfillments.size > 0 -%}
+    <h2>{{ 'customer.order_page.shipments' | t }}</h2>
+    <ul class="customer__list">
+      {%- for f in order.fulfillments -%}
+        <li>{{ f.name | escape }}{% if f.tracking_company != blank %} &middot; {{ f.tracking_company | escape }}{% endif %}
+          {%- if f.tracking_number != blank %} &middot; {{ 'customer.order_page.tracking' | t }}:
+            {%- if f.tracking_url != blank %} <a href="{{ f.tracking_url }}" rel="noopener">{{ f.tracking_number | escape }}</a>{% else %} {{ f.tracking_number | escape }}{% endif -%}
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+    </ul>
+  {%- endif -%}
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_order.name",
+  "tag": "section",
+  "settings": [
+    { "type": "header", "content": "t:sections.customer.headers.content" },
+    { "type": "text", "id": "heading", "label": "t:sections.customer.settings.heading", "info": "t:sections.customer.info.order_heading" },
+    { "type": "checkbox", "id": "show_sku", "label": "t:sections.customer.settings.show_sku", "default": true },
+    { "type": "checkbox", "id": "show_addresses", "label": "t:sections.customer.settings.show_addresses", "default": true },
+    { "type": "checkbox", "id": "show_shipments", "label": "t:sections.customer.settings.show_shipments", "default": true },
+    { "type": "header", "content": "t:sections.customer.headers.layout" },
+    { "type": "color_scheme", "id": "color_scheme", "label": "t:shared.color_scheme", "default": "" }
+  ]
+}
+{% endschema %}

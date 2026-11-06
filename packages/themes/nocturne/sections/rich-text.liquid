@@ -1,0 +1,111 @@
+<div class="section-pad rich-text rich-text--{{ section.settings.align }} {% render 'scheme-class', scheme: section.settings.color_scheme %}{% if section.settings.texture != blank and section.settings.texture != 'none' %} texture texture--{{ section.settings.texture }}{% endif %}">
+  <div class="page-width">
+    <div class="rich-text__inner rich-text__inner--{{ section.settings.direction }}">
+      {%- content_for 'blocks' -%}
+    </div>
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.rich_text.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "select",
+      "id": "align",
+      "label": "t:sections.rich_text.settings.align",
+      "options": [
+        {
+          "value": "left",
+          "label": "t:shared.left"
+        },
+        {
+          "value": "center",
+          "label": "t:shared.center"
+        }
+      ],
+      "default": "center",
+      "variant": "segmented"
+    },
+    {
+      "type": "select",
+      "id": "direction",
+      "label": "t:sections.rich_text.settings.direction",
+      "options": [
+        {
+          "value": "vertical",
+          "label": "t:shared.vertical"
+        },
+        {
+          "value": "horizontal",
+          "label": "t:shared.horizontal"
+        }
+      ],
+      "default": "vertical",
+      "variant": "segmented"
+    },
+    {
+      "type": "select",
+      "id": "texture",
+      "label": "t:sections.rich_text.settings.texture",
+      "options": [
+        {
+          "value": "none",
+          "label": "t:sections.rich_text.options.texture.none"
+        },
+        {
+          "value": "lines",
+          "label": "t:sections.rich_text.options.texture.lines"
+        },
+        {
+          "value": "noir",
+          "label": "t:sections.rich_text.options.texture.noir"
+        },
+        {
+          "value": "guilloche",
+          "label": "t:sections.rich_text.options.texture.guilloche"
+        }
+      ],
+      "default": "none"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ],
+  "blocks": [
+    {
+      "type": "@theme"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.rich_text.presets.rich_text",
+      "category": "text",
+      "blocks": [
+        {
+          "type": "heading",
+          "settings": {
+            "text": "A house of patience"
+          }
+        },
+        {
+          "type": "text",
+          "settings": {
+            "text": "<p>Every piece leaves our atelier only when our master craftsmen are certain it will outlive us.</p>"
+          }
+        },
+        {
+          "type": "button",
+          "settings": {
+            "label": "Our craft"
+          }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

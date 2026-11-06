@@ -1,0 +1,28 @@
+{
+  "name": "t:sections.groups.header",
+  "type": "header",
+  "sections": {
+    "announcement": {
+      "type": "announcement-bar",
+      "settings": {
+        "show": true,
+        "text": "Free delivery from 50 euros, roasted and packed this week",
+        "color_scheme": "scheme-2"
+      }
+    },
+    "header": {
+      "type": "header",
+      "settings": {
+        "menu": "main-menu",
+        "sticky": true,
+        "show_utility": true,
+        "utility_text": "Small producers, big flavour",
+        "mega_text": "Everything is roasted and packed within the week."
+      }
+    }
+  },
+  "order": [
+    "announcement",
+    "header"
+  ]
+}

@@ -1,0 +1,68 @@
+<div class="section-pad cart {% render 'scheme-class', scheme: section.settings.color_scheme %}" data-cart-section data-cart-scope data-section-id="{{ section.id }}">
+  <div class="page-width">
+    <header class="page-head page-head--split">
+      <div>
+        <p class="eyebrow">{{ 'cart.eyebrow' | t }}</p>
+        <h1 class="page-title">{{ 'cart.title' | t }}</h1>
+      </div>
+      {%- if cart.item_count > 0 -%}<p class="cart__count">{{ 'cart.item_count' | t: count: cart.item_count }}</p>{%- endif -%}
+    </header>
+    {%- if cart.item_count == 0 -%}
+      <div class="cart__empty empty-state">
+        <p class="empty">{{ 'cart.empty' | t }}</p>
+        <a class="button" href="{{ routes.all_products_collection_url }}">{{ 'general.continue_shopping' | t }}</a>
+      </div>
+    {%- else -%}
+      {%- form 'cart', cart, id: 'cart-form', class: 'cart__form' -%}
+        <ul class="cart__items" role="list">
+          {%- for item in cart.items -%}
+            {% render 'cart-item', item: item, index: forloop.index, variant: 'page' %}
+          {%- endfor -%}
+        </ul>
+        <div class="cart__summary{% if section.settings.sticky_summary %} cart__summary--sticky{% endif %}">
+          {%- if settings.cart_show_note != false -%}
+            <label class="cart__note">
+              <span>{{ 'cart.note' | t }}</span>
+              <textarea name="note" rows="3">{{ cart.note }}</textarea>
+            </label>
+          {%- endif -%}
+          {%- if cart.cart_level_discount_applications.size > 0 -%}
+            <ul class="cart__discounts" role="list">
+              {%- for application in cart.cart_level_discount_applications -%}
+                <li><span>{{ 'cart.discount' | t }}: {{ application.title | escape }}</span> <span>-{{ application.total_allocated_amount | money }}</span></li>
+              {%- endfor -%}
+            </ul>
+          {%- endif -%}
+          <p class="cart__subtotal"><span>{{ 'cart.subtotal' | t }}</span> <strong>{{ cart.total_price | money_with_currency }}</strong></p>
+          <p class="cart__hint">{{ 'cart.taxes_shipping' | t }}</p>
+          <noscript><button type="submit" class="button button--outline button--block" name="update">{{ 'cart.update' | t }}</button></noscript>
+          <a class="button button--block" href="/checkout">{{ 'cart.checkout' | t }}</a>
+          {%- if settings.cart_show_continue != false -%}
+            <a class="link-arrow cart__continue" href="{{ routes.all_products_collection_url }}">{{ 'general.continue_shopping' | t }}</a>
+          {%- endif -%}
+        </div>
+      {%- endform -%}
+    {%- endif -%}
+  </div>
+</div>
+
+{% schema %}
+{
+  "name": "t:sections.main_cart.name",
+  "tag": "section",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "sticky_summary",
+      "label": "t:sections.main_cart.settings.sticky_summary",
+      "default": true
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "t:shared.color_scheme",
+      "default": ""
+    }
+  ]
+}
+{% endschema %}
