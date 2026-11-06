@@ -26,15 +26,15 @@ export function Modal({ open, onClose, title, children, footer, footerStart, clo
     >
       {open && (
         <div className="flex max-h-[85vh] flex-col">
-          <header className={cx('flex items-center justify-between px-4 py-3', !plain && 'border-b border-line')}>
-            <h2 id={titleId} className="text-[13px] font-semibold">{title}</h2>
-            <Button variant="plain" size="sm" icon aria-label={closeLabel} onClick={onClose} className="btn-neutral"><X className="size-4" /></Button>
+          <header className={cx('flex shrink-0 items-center justify-between gap-3 px-4 py-3', !plain && 'border-b border-line')}>
+            <h2 id={titleId} className="min-w-0 break-words text-[13px] font-semibold">{title}</h2>
+            <Button variant="plain" size="sm" icon aria-label={closeLabel} onClick={onClose} className="btn-neutral shrink-0"><X className="size-4" /></Button>
           </header>
-          <div className={cx('overflow-y-auto p-4', plain && 'pt-1')}>{children}</div>
+          <div className={cx('min-h-0 overflow-y-auto p-4', plain && 'pt-1')}>{children}</div>
           {(footer || footerStart) && (
-            <footer className={cx('flex items-center gap-2 px-4 py-3', !plain && 'border-t border-line', footerStart ? 'justify-between' : 'justify-end')}>
-              {footerStart && <span className="text-[13px]">{footerStart}</span>}
-              {footer && <span className="flex gap-2">{footer}</span>}
+            <footer className={cx('flex shrink-0 flex-wrap items-center gap-2 px-4 py-3', !plain && 'border-t border-line', footerStart ? 'justify-between' : 'justify-end')}>
+              {footerStart && <span className="min-w-0 max-w-full break-words text-[13px]">{footerStart}</span>}
+              {footer && <span className="flex min-w-0 max-w-full flex-wrap justify-end gap-2 [&_.btn]:h-auto [&_.btn]:min-h-[var(--h-btn)] [&_.btn]:max-w-full [&_.btn]:whitespace-normal [&_.btn]:py-1 [&_.btn-label]:min-w-0 [&_.btn-label]:break-words">{footer}</span>}
             </footer>
           )}
         </div>
