@@ -26,7 +26,7 @@ export function NoteCard({ title, value, onSave, placeholder, dialogTitle, side 
       footer={<><Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button><Button variant="primary" loading={busy} disabled={draft.trim() === value.trim()} onClick={() => void save()}>{t('save.save')}</Button></>}>
       <div className="flex flex-col gap-2">
         {error && <p role="alert" className="text-xs text-critical">{error}</p>}
-        <Textarea aria-label={title} autoFocus rows={5} value={draft} placeholder={placeholder} onChange={(e) => setDraft(e.target.value)} />
+        <Textarea aria-label={title} disabled={busy} autoFocus rows={5} value={draft} placeholder={placeholder} onChange={(e) => setDraft(e.target.value)} />
       </div>
     </Modal>
   );
