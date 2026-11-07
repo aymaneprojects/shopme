@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Merges a branch (or commit) into the current branch and resolves the conflicts that come back every time:
-//   - list-style files (CHANGELOG.md, docs/dev/*.md, .env.example, i18n en.ts/fr.ts, server module index): both sides kept;
+//   - list-style files (CHANGELOG.md, docs/dev/*.md, .env.example, admin i18n files, server module index): both sides kept;
 //   - apps/admin/src/graphql/index.ts: imports, the `operations` spread object and `export *` lines unioned;
 //   - Drizzle migrations: our journal and snapshots kept, the branch's single new migration regenerated at the next
 //     number (its INSERT/UPDATE/DELETE/SELECT backfills appended) and journal timestamps kept increasing.
@@ -47,7 +47,7 @@ const unionOps = (o, t) => {
 
 for (const f of conflicted) {
   if (f.startsWith(`${DRIZZLE}/meta/`)) { git('checkout', '--ours', '--', f); git('add', f); continue; }
-  if (/(^|\/)(CHANGELOG\.md|\.env\.example)$/.test(f) || /^docs\/dev\/.*\.md$/.test(f) || /apps\/admin\/src\/i18n\/(en|fr)\.ts$/.test(f) || /graphql\/modules\/index\.ts$/.test(f)) {
+  if (/(^|\/)(CHANGELOG\.md|\.env\.example)$/.test(f) || /^docs\/dev\/.*\.md$/.test(f) || /apps\/admin\/src\/i18n\/[\w-]+\.ts$/.test(f) || /graphql\/modules\/index\.ts$/.test(f)) {
     resolve(f, unionList); git('add', f); continue;
   }
   if (f === 'apps/admin/src/graphql/index.ts') { resolve(f, unionOps); git('add', f); continue; }
