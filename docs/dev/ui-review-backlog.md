@@ -36,7 +36,7 @@ Main contains the reviewed integrations of PRs #1–#5 in `ebb270c`. Preserve th
 
 - Product type/vendor suggestions: keyboard highlight was neither exposed through aria-activedescendant nor scrolled into view in long lists. The active option now has an identified reference and scrolls with nearest alignment while input focus stays in place. All three regressions failed before the fix and pass afterward. Chromium verified the fifteenth of thirty suggestions remains visible and Enter selects it; admin type check, production build and diff check passed. Review: https://github.com/aymaneprojects/shopme/pull/10.
 
-- Theme-editor menus: an open section-action menu stayed at its desktop coordinates after the viewport shrank (left=1052 px in a 375 px window), and a tall menu had no height bound. Menus now recalculate placement on resize and scroll within viewport bounds. The resize regression failed before the fix and passes afterward; Chromium at 375×260 confirmed the full menu stays visible and the last action is clickable after scrolling.
+- Theme-editor menus: an open section-action menu stayed at its desktop coordinates after the viewport shrank (left=1052 px in a 375 px window), and a tall menu had no height bound. Menus now recalculate placement on resize and scroll within viewport bounds. The resize regression failed before the fix and passes afterward; Chromium at 375×260 confirmed the full menu stays visible and the last action is clickable after scrolling. Admin type check, production build and diff check passed. Review: https://github.com/aymaneprojects/shopme/pull/11.
 
 ## Bounded continuation
 
