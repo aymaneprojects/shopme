@@ -262,7 +262,7 @@ function OrderView({ order: o }: { order: OrderData }) {
           {extras && <FulfilmentFields key={`${extras.shopmeFulfillBy}|${extras.poNumber}`} orderId={o.id} extras={extras} disabled={!!o.cancelledAt} />}
           {extras && <RiskSection risk={extras.shopmeRisk} />}
           <div className="border-b border-line py-3.5"><MetafieldsEditor ownerId={o.id} ownerType="ORDER" /></div>
-          <SideSection title={t('field.tags')}><TagInput value={o.tags} onChange={(v) => tags.mutate(v)} removeLabel={t('common.remove')} /></SideSection>
+          <SideSection title={t('field.tags')}><TagInput aria-label={t('field.tags')} value={o.tags} onChange={(v) => tags.mutate(v)} removeLabel={t('common.remove')} /></SideSection>
         </>} />
       {buying && <BuyLabelDialog orderId={o.id} orderName={o.name} fulfillmentId={buying.fulfillmentId} shipTo={o.shippingAddress} onClose={() => setBuying(null)} onDone={() => void refresh()} />}
       {voiding && <VoidLabelDialog label={voiding} onClose={() => setVoiding(null)} onDone={() => void refresh()} />}

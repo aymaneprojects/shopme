@@ -214,7 +214,7 @@ export function PurchaseOrderForm({ initial }: { initial: PoDraft }) {
 
           <section>
             <h2 className="mb-2 text-[13px] font-semibold">{t('field.tags')}</h2>
-            <Card><TagInput value={f.tags} onChange={(tags) => set({ tags })} placeholder={t('po.tagPlaceholder')} removeLabel={t('common.remove')} /></Card>
+            <Card><TagInput aria-label={t('field.tags')} value={f.tags} onChange={(tags) => set({ tags })} placeholder={t('po.tagPlaceholder')} removeLabel={t('common.remove')} /></Card>
           </section>
         </div>
       </div>
