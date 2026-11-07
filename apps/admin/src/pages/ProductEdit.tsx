@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, Copy, Crop, Gift, PaintBucket, Paintbrush, Pencil, Scaling, Tag, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
-import { UserErrors, gql, mutate } from '../api';
+import { UserErrors, apiUrl, gql, mutate } from '../api';
 import { MetafieldsEditor, ProductMetafields } from '../components/MetafieldsEditor';
 import { CatalogsSection, ChannelsSection, usePublications } from '../components/Channels';
 import { Combobox } from '../components/Combobox';
@@ -141,7 +141,7 @@ function ProductFormView({ id, initial: initialProp, locations, previewUrl }: { 
           <div className="flex flex-wrap items-start gap-3" role="group" aria-label={t('product.media')}>
             {form.media.length > 0 && <MediaGallery compact onOpen={setViewing} openLabel={t('viewer.open')} items={form.media} onChange={(media) => set({ media })} canRemove={(i) => !isPersistedMedia(i)} labels={gallery} />}
             <div className={form.media.length ? undefined : 'w-full'}>
-              <ImageUploader look={form.media.length ? 'tile' : 'band'} label={form.media.length ? t('media.upload') : t('pv.uploadBand')} onUploaded={(files) => set({ media: [...form.media, ...files.map((f): GalleryItem => ({ key: `new-${f.id}`, url: f.url, alt: f.filename }))] })} onError={(m) => toast(m, 'critical')} />
+              <ImageUploader endpoint={apiUrl('/files')} look={form.media.length ? 'tile' : 'band'} label={form.media.length ? t('media.upload') : t('pv.uploadBand')} onUploaded={(files) => set({ media: [...form.media, ...files.map((f): GalleryItem => ({ key: `new-${f.id}`, url: f.url, alt: f.filename }))] })} onError={(m) => toast(m, 'critical')} />
             </div>
           </div>
 

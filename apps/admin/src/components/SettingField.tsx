@@ -2,7 +2,7 @@ import { Button, Checkbox, ImageUploader, Input, Select, Textarea, uploadFile, u
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, ImagePlus, Upload, X } from 'lucide-react';
 import { useContext, useRef, useState } from 'react';
-import { gql } from '../api';
+import { apiUrl, gql } from '../api';
 import { MO_PICK_ENTRIES } from '../graphql';
 import { RichText } from './RichText';
 import { ColorSchemesField } from './theme-fields/ColorSchemesField';
@@ -128,7 +128,7 @@ export function SettingField({ def, label, info, value, optionLabel, onChange, d
       return (
         <div className="flex flex-col gap-2"><span className="text-[13px] font-medium">{label}</span>
           {str && <img src={fileSrc(str)} alt="" className="max-h-24 w-fit rounded-md border border-line object-contain" />}
-          <ImageUploader multiple={false} compact label={t('media.upload')} onUploaded={(f) => onChange(f[0]!.url)} onError={(m) => toast(m, 'critical')} />
+          <ImageUploader endpoint={apiUrl('/files')} multiple={false} compact label={t('media.upload')} onUploaded={(f) => onChange(f[0]!.url)} onError={(m) => toast(m, 'critical')} />
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => setFree(true)}><ImagePlus className="size-3.5" />{t('bs.free.browse')}</Button>
             {str && <Button size="sm" onClick={() => onChange('')}>{t('common.remove')}</Button>}

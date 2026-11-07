@@ -17,7 +17,7 @@ export async function uploadFile(file: File, endpoint = '/admin/api/files'): Pro
 }
 
 /** Drop zone / button that uploads the chosen images and reports the stored files. */
-export function ImageUploader({ onUploaded, onError, label, multiple = true, compact, look }: { onUploaded: (files: UploadedFile[]) => void; onError?: (message: string) => void; label: string; multiple?: boolean; compact?: boolean; /** `tile`: filled square with a plus (next to existing images); `band`: wide filled strip with a plus and the label (empty product media). */ look?: 'tile' | 'band' }) {
+export function ImageUploader({ onUploaded, onError, label, multiple = true, compact, look, endpoint }: { onUploaded: (files: UploadedFile[]) => void; onError?: (message: string) => void; label: string; multiple?: boolean; compact?: boolean; /** Upload URL; defaults to `/admin/api/files`. */ endpoint?: string; /** `tile`: filled square with a plus (next to existing images); `band`: wide filled strip with a plus and the label (empty product media). */ look?: 'tile' | 'band' }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
@@ -25,7 +25,7 @@ export function ImageUploader({ onUploaded, onError, label, multiple = true, com
     if (!list?.length) return;
     setBusy(true);
     try {
-      const files = await Promise.all(Array.from(list).filter((f) => f.type.startsWith('image/')).map((f) => uploadFile(f)));
+      const files = await Promise.all(Array.from(list).filter((f) => f.type.startsWith('image/')).map((f) => uploadFile(f, endpoint)));
       if (files.length) onUploaded(files);
     } catch (e) {
       onError?.(e instanceof Error ? e.message : String(e));
