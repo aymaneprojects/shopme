@@ -11,10 +11,15 @@ export function EditorMenu({ items, at, onClose, footer, align = 'left', label }
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number }>({ left: at.x, top: at.y });
   useLayoutEffect(() => {
-    const r = ref.current?.getBoundingClientRect();
-    if (!r) return;
-    const left = align === 'right' ? at.x - r.width : at.x;
-    setPos({ left: Math.max(4, Math.min(left, window.innerWidth - r.width - 4)), top: Math.max(4, Math.min(at.y, window.innerHeight - r.height - 4)) });
+    const place = () => {
+      const r = ref.current?.getBoundingClientRect();
+      if (!r) return;
+      const left = align === 'right' ? at.x - r.width : at.x;
+      setPos({ left: Math.max(4, Math.min(left, window.innerWidth - r.width - 4)), top: Math.max(4, Math.min(at.y, window.innerHeight - r.height - 4)) });
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
   }, [at.x, at.y, align]);
   useEffect(() => {
     ref.current?.querySelector<HTMLElement>('[role=menuitem]:not(:disabled)')?.focus({ preventScroll: true });
@@ -32,7 +37,7 @@ export function EditorMenu({ items, at, onClose, footer, align = 'left', label }
     return () => { document.removeEventListener('mousedown', down, true); document.removeEventListener('keydown', key); window.removeEventListener('blur', onClose); };
   }, [onClose]);
   return (
-    <div ref={ref} role="menu" aria-label={label} className="fixed z-[80] min-w-56 rounded-xl border border-line bg-canvas py-1.5 text-[13px] shadow-pop" style={pos}>
+    <div ref={ref} role="menu" aria-label={label} className="fixed z-[80] max-h-[calc(100dvh-0.5rem)] min-w-56 max-w-[calc(100vw-0.5rem)] overflow-auto rounded-xl border border-line bg-canvas py-1.5 text-[13px] shadow-pop" style={pos}>
       {items.map((i) => (
         <div key={i.key}>
           {i.separator && <div role="separator" className="mx-0 my-1.5 border-t border-line" />}
