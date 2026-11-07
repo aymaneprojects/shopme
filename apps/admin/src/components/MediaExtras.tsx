@@ -16,16 +16,19 @@ export function MediaExtras({ value, onChange, onError }: { value: ExtraMedia[];
   const pick = async (list: FileList | null) => {
     if (!list?.length) return;
     setBusy(true);
+    const added: ExtraMedia[] = [];
     try {
-      const added: ExtraMedia[] = [];
       for (const f of Array.from(list)) {
         const type = mediaTypeOf(f);
         if (!type) { onError(t('bp.media.unsupported', { name: f.name })); continue; }
         const up = await uploadFile(f);
         added.push({ key: `new-${up.id}`, url: up.url, name: up.filename, type, persisted: false });
       }
+    } catch (e) { onError(e instanceof Error ? e.message : String(e)); } finally {
       if (added.length) onChange([...value, ...added]);
-    } catch (e) { onError(e instanceof Error ? e.message : String(e)); } finally { setBusy(false); if (input.current) input.current.value = ''; }
+      setBusy(false);
+      if (input.current) input.current.value = '';
+    }
   };
   return (
     <div className="flex flex-col gap-2">
