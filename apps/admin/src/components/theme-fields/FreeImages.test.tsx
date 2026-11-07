@@ -3,13 +3,14 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../i18n';
+import { setStoreHandle } from '../../api';
 import { FreeImagesDialog } from './FreeImages';
 
 beforeAll(() => {
   HTMLDialogElement.prototype.showModal = function (this: HTMLDialogElement) { this.setAttribute('open', ''); };
   HTMLDialogElement.prototype.close = function (this: HTMLDialogElement) { this.removeAttribute('open'); };
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { setStoreHandle(null); vi.unstubAllGlobals(); });
 
 const image = () => new Response('image bytes', { headers: { 'content-type': 'image/jpeg' } });
 const uploaded = () => Response.json({ file: { url: '/files/background.jpg' } });
@@ -41,7 +42,8 @@ describe('free theme images', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('uploads a valid image and preserves its filename and media type', async () => {
+  it.each([null, 'second-store'])('uploads to the active store (%s) and preserves file metadata', async (handle) => {
+    setStoreHandle(handle);
     const user = userEvent.setup();
     const fetcher = vi.fn().mockResolvedValueOnce(image()).mockResolvedValueOnce(uploaded());
     vi.stubGlobal('fetch', fetcher);
@@ -50,7 +52,7 @@ describe('free theme images', () => {
     await waitFor(() => expect(onPick).toHaveBeenCalledWith('/files/background.jpg'));
     expect(fetcher).toHaveBeenCalledTimes(2);
     const [endpoint, init] = fetcher.mock.calls[1]!;
-    expect(endpoint).toBe('/admin/api/files');
+    expect(endpoint).toBe(handle ? '/admin/store/second-store/api/files' : '/admin/api/files');
     const file = (init.body as FormData).get('file') as File;
     expect(file.name).toBe('abstract-01.jpg');
     expect(file.type).toBe('image/jpeg');

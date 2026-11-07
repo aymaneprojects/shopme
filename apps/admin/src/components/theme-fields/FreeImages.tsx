@@ -1,5 +1,6 @@
 import { Button, Modal, Spinner, uploadFile, useToast } from '@shopme/ui';
 import { useState } from 'react';
+import { apiUrl } from '../../api';
 import { useI18n } from '../../i18n';
 
 /** Free images that ship with the admin: abstract backgrounds drawn for ShopMe (CC0), copied into the store files when picked. */
@@ -18,7 +19,7 @@ export function FreeImagesDialog({ open, onClose, onPick }: { open: boolean; onC
       if (!response.ok) throw new Error(t('bs.free.loadError'));
       const blob = await response.blob();
       if (!blob.type.startsWith('image/')) throw new Error(t('bs.free.loadError'));
-      const file = await uploadFile(new File([blob], name, { type: blob.type }));
+      const file = await uploadFile(new File([blob], name, { type: blob.type }), apiUrl('/files'));
       onPick(file.url); onClose();
     } catch (e) { toast(e instanceof Error ? e.message : String(e), 'critical'); } finally { setBusy(null); }
   };
