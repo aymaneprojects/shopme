@@ -14,8 +14,11 @@ export function FreeImagesDialog({ open, onClose, onPick }: { open: boolean; onC
   const pick = async (name: string) => {
     setBusy(name);
     try {
-      const blob = await (await fetch(freeImageUrl(name))).blob();
-      const file = await uploadFile(new File([blob], name, { type: blob.type || 'image/jpeg' }));
+      const response = await fetch(freeImageUrl(name));
+      if (!response.ok) throw new Error(t('bs.free.loadError'));
+      const blob = await response.blob();
+      if (!blob.type.startsWith('image/')) throw new Error(t('bs.free.loadError'));
+      const file = await uploadFile(new File([blob], name, { type: blob.type }));
       onPick(file.url); onClose();
     } catch (e) { toast(e instanceof Error ? e.message : String(e), 'critical'); } finally { setBusy(null); }
   };

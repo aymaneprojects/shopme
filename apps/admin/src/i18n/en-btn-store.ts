@@ -10,6 +10,7 @@ export const enBtnStore = {
   // setting fields
   'bs.color.reset': 'Clear color', 'bs.link.open': 'Open link in a new tab', 'bs.pick.none': 'None', 'bs.video.upload': 'Upload a video',
   'bs.free.browse': 'Free images', 'bs.free.title': 'Free images', 'bs.free.intro': 'Abstract backgrounds that ship with ShopMe, free to use. The one you pick is copied to your files.', 'bs.free.use': 'Use image {n}',
+  'bs.free.loadError': 'This image could not be loaded. Please try again.',
   'bs.schemes.add': 'Add a color scheme', 'bs.schemes.duplicate': 'Duplicate this scheme', 'bs.schemes.delete': 'Delete this scheme', 'bs.schemes.lastOne': 'A theme keeps at least one scheme', 'bs.schemes.inherit': 'Theme colors',
   // dynamic sources
   'bs.src.connect': 'Connect dynamic source', 'bs.src.connected': 'Shows data of the page', 'bs.src.clear': 'Disconnect dynamic source',
