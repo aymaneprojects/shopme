@@ -1,4 +1,4 @@
-import { Select } from '@shopme/ui';
+import { Button, Select } from '@shopme/ui';
 import { useQuery } from '@tanstack/react-query';
 import { gql } from '../../api';
 import { THEME_SETTING_RESOURCES } from '../../graphql';
@@ -16,10 +16,13 @@ export function ResourceSelect({ kind, label, info, value, onChange }: { kind: K
   const rows = q.data?.[FIELD[kind]].nodes ?? [];
   const known = rows.some((r) => r.handle === value);
   return (
-    <Select label={label} help={info} value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="">{t('bs.pick.none')}</option>
-      {rows.map((r) => <option key={r.handle} value={r.handle}>{r.title}</option>)}
-      {value && !known && <option value={value}>{value}</option>}
-    </Select>
+    <div className="flex flex-col gap-1.5">
+      <Select label={label} help={info} error={q.isError ? t('bs.pick.loadError') : undefined} value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{t('bs.pick.none')}</option>
+        {rows.map((r) => <option key={r.handle} value={r.handle}>{r.title}</option>)}
+        {value && !known && <option value={value}>{value}</option>}
+      </Select>
+      {q.isError && <Button size="sm" variant="plain" className="self-start" aria-label={t('bs.pick.retry', { label })} loading={q.isFetching} onClick={() => { void q.refetch(); }}>{t('bs.pick.retryAction')}</Button>}
+    </div>
   );
 }

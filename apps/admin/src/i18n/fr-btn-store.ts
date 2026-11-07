@@ -10,6 +10,7 @@ export const frBtnStore: Record<keyof typeof enBtnStore, string> = {
   'bs.preview.first': 'Premier de la boutique', 'bs.preview.default': 'Réglage de la boutique', 'bs.preview.unpublished': 'non publiée', 'bs.preview.reset': 'Réinitialiser les données d’aperçu',
   // setting fields
   'bs.color.reset': 'Effacer la couleur', 'bs.link.open': 'Ouvrir le lien dans un nouvel onglet', 'bs.pick.none': 'Aucun', 'bs.video.upload': 'Téléverser une vidéo',
+  'bs.pick.loadError': 'Impossible de charger les éléments disponibles. Réessayez.', 'bs.pick.retry': 'Réessayer : {label}', 'bs.pick.retryAction': 'Réessayer',
   'bs.free.browse': 'Images libres de droits', 'bs.free.title': 'Images libres de droits', 'bs.free.intro': 'Des arrière-plans abstraits fournis avec ShopMe, libres d’utilisation. Celui que vous choisissez est copié dans vos fichiers.', 'bs.free.use': 'Utiliser l’image {n}',
   'bs.free.loadError': 'Impossible de charger cette image. Veuillez réessayer.',
   'bs.schemes.add': 'Ajouter une palette de couleurs', 'bs.schemes.duplicate': 'Dupliquer cette palette', 'bs.schemes.delete': 'Supprimer cette palette', 'bs.schemes.lastOne': 'Un thème garde au moins une palette', 'bs.schemes.inherit': 'Couleurs du thème',
