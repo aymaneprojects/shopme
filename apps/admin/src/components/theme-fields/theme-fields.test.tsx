@@ -40,6 +40,28 @@ describe('ColorSchemesField', () => {
     expect(screen.getByRole('option', { name: 'Soft' }).style.background).toBe('rgb(171, 205, 239)');
   });
 
+  it('uses one palette Tab stop and keeps Add reachable', async () => {
+    const user = userEvent.setup();
+    wrap(<Schemes start={start} />);
+    await user.tab();
+    expect(screen.getByRole('option', { name: 'Soft' })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'Add a color scheme' })).toHaveFocus();
+  });
+
+  it('selects palettes with wrapping arrows and Home/End', async () => {
+    const user = userEvent.setup();
+    wrap(<Schemes start={start} />);
+    screen.getByRole('option', { name: 'Soft' }).focus();
+    for (const [key, name] of [['ArrowRight', 'Dark'], ['ArrowDown', 'Soft'], ['ArrowLeft', 'Dark'], ['ArrowUp', 'Soft'], ['End', 'Dark'], ['Home', 'Soft']]) {
+      await user.keyboard(`{${key}}`);
+      const option = screen.getByRole('option', { name });
+      expect(option).toHaveFocus();
+      expect(option).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getAllByRole('option').filter((el) => el.tabIndex === 0)).toEqual([option]);
+    }
+  });
+
   it('keeps the last scheme', async () => {
     wrap(<Schemes start={{ 'scheme-1': start['scheme-1']! }} />);
     expect(screen.getByRole('button', { name: 'Delete this scheme' })).toBeDisabled();

@@ -25,11 +25,23 @@ export function ColorSchemesField({ def, value, label, optionLabel, onChange }: 
     <div className="flex flex-col gap-2">
       <span className="text-[13px] font-medium">{label}</span>
       <ul className="flex flex-wrap gap-2" role="listbox" aria-label={label}>
-        {options.map((o) => {
+        {options.map((o, index) => {
           const sv = value[o.id]!.settings;
           return (
             <li key={o.id}>
-              <button type="button" role="option" aria-selected={o.id === current} aria-label={o.name} title={o.name} onClick={() => setPicked(o.id)}
+              <button type="button" role="option" aria-selected={o.id === current} tabIndex={o.id === current ? 0 : -1} aria-label={o.name} title={o.name} onClick={() => setPicked(o.id)}
+                onKeyDown={(e) => {
+                  if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+                  let next: number;
+                  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (index + 1) % options.length;
+                  else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (index - 1 + options.length) % options.length;
+                  else if (e.key === 'Home') next = 0;
+                  else if (e.key === 'End') next = options.length - 1;
+                  else return;
+                  e.preventDefault();
+                  setPicked(options[next]!.id);
+                  e.currentTarget.closest('ul')?.querySelectorAll<HTMLButtonElement>('[role="option"]')[next]?.focus();
+                }}
                 className={cx('grid h-12 w-16 place-items-center rounded-lg border text-[13px] font-semibold', o.id === current ? 'border-primary ring-2 ring-primary' : 'border-line hover:border-fg')}
                 style={{ background: sv.background, color: sv.text }}>
                 <span className="flex items-center gap-1">Aa<span className="size-2.5 rounded-full" style={{ background: sv.button }} aria-hidden /></span>
