@@ -79,7 +79,7 @@ export function Timeline({ kind, id, refreshKey, confirmationNumber, transaction
         <div className="flex items-start gap-3 p-3">
           <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-xs font-semibold text-on-primary">{initials}</span>
           <textarea className="min-h-9 min-w-0 flex-1 resize-none self-center border-0 bg-transparent p-0 text-[13px] outline-none placeholder:text-muted" rows={1} aria-label={t('timeline.commentLabel')} placeholder={t('timeline.placeholder')} value={text} maxLength={5000}
-            onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && text.trim() && !post.isPending) post.mutate(); }} />
+            onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && text.trim() && !post.isPending && !uploading) { e.preventDefault(); post.mutate(); } }} />
         </div>
         <div className="flex items-center gap-1 bg-surface px-3 py-2">
           <input ref={picker} type="file" multiple hidden aria-hidden tabIndex={-1} onChange={(e) => void attach(e.target.files)} />
