@@ -131,7 +131,7 @@ function CustomerFormView({ id, initial }: { id: string | null; initial: Custome
         </div>
         <div className="flex flex-col gap-4">
           <NoteCard title={t('order.notes')} value={form.note} onSave={(note) => set({ note })} />
-          <Card title={t('field.tags')}><TagInput value={form.tags} onChange={(tags) => set({ tags })} removeLabel={t('common.remove')} /></Card>
+          <Card title={t('field.tags')}><TagInput aria-label={t('field.tags')} value={form.tags} onChange={(tags) => set({ tags })} removeLabel={t('common.remove')} /></Card>
           <Card title={t('customer.tax')}><Checkbox label={t('customer.taxExempt')} checked={form.taxExempt} onChange={(e) => set({ taxExempt: e.target.checked })} /></Card>
         </div>
       </div>

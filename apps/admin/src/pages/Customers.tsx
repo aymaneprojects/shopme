@@ -316,7 +316,7 @@ function CustomerView({ c }: { c: CustomerData }) {
           )}
           <Section title={t('qaf.customer.tax')}><p className="text-muted">{c.taxExempt ? t('qaf.customer.taxExempt') : t('qaf.customer.collectTax')}</p></Section>
           <StoreCreditCard customerId={c.id} onEdit={() => setCreditOpen(true)} />
-          <Section title={t('field.tags')}><TagInput value={c.tags} onChange={(v) => tags.mutate(v)} placeholder={t('pv.addTags')} removeLabel={t('common.remove')} /></Section>
+          <Section title={t('field.tags')}><TagInput aria-label={t('field.tags')} value={c.tags} onChange={(v) => tags.mutate(v)} placeholder={t('pv.addTags')} removeLabel={t('common.remove')} /></Section>
           <Section title={t('order.notes')} action={editBtn(t('order.notes'), () => setNoteOpen(true))}>
             <p className={c.note ? 'whitespace-pre-wrap' : 'text-muted'}>{c.note || t('fid.customers.noNote')}</p>
           </Section>

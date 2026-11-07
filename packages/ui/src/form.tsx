@@ -73,7 +73,7 @@ export function Switch({ checked, onChange, label, description, placement = 'sta
 }
 
 /** Tag/chip input: Enter or comma adds, Backspace on empty removes the last. */
-export function TagInput({ value, onChange, placeholder, label, suggestions = [], removeLabel = 'Remove' }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string; removeLabel?: string; label?: ReactNode; suggestions?: string[] }) {
+export function TagInput({ value, onChange, placeholder, label, suggestions = [], removeLabel = 'Remove', 'aria-label': inputLabel }: { value: string[]; onChange: (v: string[]) => void; placeholder?: string; removeLabel?: string; label?: ReactNode; suggestions?: string[]; 'aria-label'?: string }) {
   const [draft, setDraft] = useState('');
   const listId = useId();
   const add = (raw: string) => {
@@ -86,7 +86,7 @@ export function TagInput({ value, onChange, placeholder, label, suggestions = []
       {(p) => (
         <div className="flex flex-col gap-2">
           <input
-            {...p} className={control} value={draft} placeholder={placeholder} list={listId}
+            {...p} aria-label={inputLabel} className={control} value={draft} placeholder={placeholder} list={listId}
             onChange={(e) => (e.target.value.endsWith(',') ? add(e.target.value.slice(0, -1)) : setDraft(e.target.value))}
             onKeyDown={(e) => {
               if (e.key === 'Enter') { e.preventDefault(); add(draft); }
