@@ -9,7 +9,7 @@ import { SeoListing } from '../../components/SeoListing';
 import { TemplateCard, VisibilityCard, toLocalInput, visibilityInput } from '../../components/PublishCards';
 import { VisibilityList } from '../../components/VisibilityList';
 import { StoreActions } from './Themes';
-import { UserErrors, gql, mutate } from '../../api';
+import { UserErrors, apiUrl, gql, mutate } from '../../api';
 import { PageHeader } from '../../components/PageHeader';
 import { SaveBar, guard } from '../../components/SaveBar';
 import { useFormat } from '../../components/shared';
@@ -124,7 +124,7 @@ function PostForm({ id, initial, blogs }: { id: string | null; initial: ArticleF
           <Card title={t('blogs.image')}>
             <div className="flex flex-col gap-3">
               {form.imageUrl && <img src={form.imageUrl} alt={form.imageAlt} className="max-h-48 w-fit rounded-md border border-line object-contain" />}
-              <ImageUploader multiple={false} compact label={t('blogs.addImage')} onUploaded={(f) => set({ imageUrl: f[0]!.url })} onError={(m) => toast(m, 'critical')} />
+              <ImageUploader endpoint={apiUrl('/files')} multiple={false} compact label={t('blogs.addImage')} onUploaded={(f) => set({ imageUrl: f[0]!.url })} onError={(m) => toast(m, 'critical')} />
               {form.imageUrl && <><Input label={t('blogs.imageAlt')} value={form.imageAlt} onChange={(e) => set({ imageAlt: e.target.value })} /><Button size="sm" className="w-fit" onClick={() => set({ imageUrl: '', imageAlt: '' })}>{t('common.remove')}</Button></>}
             </div>
           </Card>

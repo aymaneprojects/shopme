@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, ExternalLink, KeyRound, MoreHorizontal, Users } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { UserErrors, gql, mutate } from '../../api';
+import { UserErrors, apiUrl, gql, mutate } from '../../api';
 import { SaveBar } from '../../components/SaveBar';
 import { STORE_ACCESS_UPDATE, STORE_PREFERENCES } from '../../graphql';
 import { useI18n } from '../../i18n';
@@ -77,7 +77,7 @@ function PreferencesForm({ initial, shopName }: { initial: Form; shopName: strin
                 <img src={f.socialImage} alt="" className="h-24 w-auto rounded-md border border-line object-contain" />
                 <Button size="sm" onClick={() => set({ socialImage: '' })}>{t('common.remove')}</Button>
               </div>
-            ) : <ImageUploader multiple={false} compact label={t('bc.prefs.addShareImage')} onUploaded={(files) => set({ socialImage: files[0]!.url })} onError={(m) => toast(m, 'critical')} />}
+            ) : <ImageUploader endpoint={apiUrl('/files')} multiple={false} compact label={t('bc.prefs.addShareImage')} onUploaded={(files) => set({ socialImage: files[0]!.url })} onError={(m) => toast(m, 'critical')} />}
             <p className="text-xs text-muted">{t('bc.prefs.shareImageHelp')}</p>
           </div>
           <Input label={t('bc.prefs.homeTitle')} maxLength={70} placeholder={shopName} help={t('prefs.charsUsed', { n: f.homepageTitle.length, max: 70 })} value={f.homepageTitle} onChange={(e) => set({ homepageTitle: e.target.value })} />

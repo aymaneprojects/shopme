@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Eye, LayoutTemplate, MoreHorizontal, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { UserErrors, gql, mutate } from '../api';
+import { UserErrors, apiUrl, gql, mutate } from '../api';
 import { ChannelsSection, channelChanges, channelStates, usePublications } from '../components/Channels';
 import type { ChannelState } from '../components/Channels';
 import { ConditionsBuilder } from '../components/ConditionsBuilder';
@@ -157,7 +157,7 @@ function CollectionFormView({ id, initial: initialProp }: { id: string | null; i
                       <img src={form.imageUrl} alt="" className="size-24 rounded-lg border border-line object-cover" />
                       <button type="button" onClick={() => set({ imageUrl: '' })} className="text-xs text-muted hover:text-fg">{t('common.remove')}</button>
                     </>
-                  ) : <ImageUploader multiple={false} look="tile" label={t('media.upload')} onUploaded={(f) => set({ imageUrl: f[0]!.url })} onError={(m) => toast(m, 'critical')} />}
+                  ) : <ImageUploader endpoint={apiUrl('/files')} multiple={false} look="tile" label={t('media.upload')} onUploaded={(f) => set({ imageUrl: f[0]!.url })} onError={(m) => toast(m, 'critical')} />}
                 </div>
                 <div className="min-w-0 flex-1">
                   <Input label={t('field.title')} required value={form.title} error={titleError} onChange={(e) => set({ title: e.target.value })} />
