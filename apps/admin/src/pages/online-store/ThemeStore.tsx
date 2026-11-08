@@ -218,15 +218,15 @@ export function ThemeStoreDetailPage() {
   return (
     <Screen>
       <header className="sticky top-0 z-10 border-b border-line bg-canvas px-4 sm:px-6">
-        <div className="mx-auto flex h-14 w-full max-w-[1100px] items-center gap-4">
-          <Link to={BASE} aria-label={t('themes.store.back')} title={t('themes.store.back')} className="grid size-8 place-items-center rounded-md hover:bg-hover"><ArrowLeft className="size-4" /></Link>
-          <span className="text-[15px] font-semibold">{theme.name}</span>
+        <div className="mx-auto flex min-h-14 w-full max-w-[1100px] flex-wrap items-center gap-x-4 gap-y-2 py-3 sm:h-14 sm:flex-nowrap sm:py-0">
+          <Link to={BASE} aria-label={t('themes.store.back')} title={t('themes.store.back')} className="grid size-8 shrink-0 place-items-center rounded-md hover:bg-hover"><ArrowLeft className="size-4" /></Link>
+          <span className="min-w-0 flex-1 truncate text-[15px] font-semibold sm:flex-none">{theme.name}</span>
           <nav aria-label={t('themes.store.sections')} className="hidden gap-4 text-[13px] sm:flex">
             <a href="#overview" className="hover:underline">{t('themes.store.tab.overview')}</a>
             <a href="#features" className="hover:underline">{t('themes.store.tab.features')}</a>
             <a href="#changelog" className="hover:underline">{t('themes.store.tab.changelog')}</a>
           </nav>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
             <Link to={`${BASE}/${theme.handle}/preview`} className="btn btn-secondary btn-sm">{t('themes.store.viewDemo')}</Link>
             <AddButton theme={theme} inLibrary={added} size="sm" />
           </div>
