@@ -24,18 +24,18 @@ function StoreBar({ dark, query, onQuery, center }: { dark?: boolean; query?: st
   const nav = useNavigate();
   const [searching, setSearching] = useState(false);
   return (
-    <header className={cx('sticky top-0 z-10 flex h-14 items-center gap-3 border-b px-4 sm:px-6', dark ? 'border-white/10 bg-ink text-ink-text' : 'border-line bg-canvas')}>
-      <div className="mx-auto flex w-full max-w-[1100px] items-center gap-3">
-        <button type="button" aria-label={t('themes.store.back')} title={t('themes.store.back')} onClick={() => nav('/online-store')} className="grid size-8 place-items-center rounded-md hover:bg-hover"><ArrowLeft className="size-4" /></button>
-        <Link to={BASE} className="text-[14px] font-semibold">{t('themes.store.name')}</Link>
+    <header className={cx('sticky top-0 z-10 flex min-h-14 items-center gap-3 border-b px-4 py-2 sm:h-14 sm:px-6 sm:py-0', dark ? 'border-white/10 bg-ink text-ink-text' : 'border-line bg-canvas')}>
+      <div className="mx-auto flex w-full max-w-[1100px] flex-wrap items-center gap-3 sm:flex-nowrap">
+        <button type="button" aria-label={t('themes.store.back')} title={t('themes.store.back')} onClick={() => nav('/online-store')} className="grid size-8 shrink-0 place-items-center rounded-md hover:bg-hover"><ArrowLeft className="size-4" /></button>
+        <Link to={BASE} className="w-[calc(100%-2.75rem)] min-w-0 truncate text-[14px] font-semibold sm:w-auto">{t('themes.store.name')}</Link>
         <div className="flex flex-1 justify-center">{center}</div>
-        <span className={dark ? '[&_.btn]:!text-ink-text' : undefined}><Dropdown align="right" size="sm" variant="plain" chevron label={t('themes.store.browse')} trigger={t('themes.store.browse')} items={[
+        <span className={cx('shrink-0', dark ? '[&_.btn]:!text-ink-text' : undefined)}><Dropdown align="right" size="sm" variant="plain" chevron label={t('themes.store.browse')} trigger={t('themes.store.browse')} items={[
           { key: 'all', label: t('themes.store.allThemes'), onSelect: () => nav(BASE) },
           { key: 'free', label: t('themes.store.freeThemes'), onSelect: () => nav(`${BASE}/free`) },
         ]} /></span>
         {onQuery && (searching
-          ? <input autoFocus type="search" aria-label={t('themes.store.search')} placeholder={t('themes.store.search')} value={query ?? ''} onChange={(e) => onQuery(e.target.value)} onBlur={() => !query && setSearching(false)} className="field-control h-8 w-44 text-[13px] text-fg" />
-          : <button type="button" aria-label={t('themes.store.search')} title={t('themes.store.search')} onClick={() => setSearching(true)} className="grid size-8 place-items-center rounded-md hover:bg-hover"><Search className="size-4" /></button>)}
+          ? <input autoFocus type="search" aria-label={t('themes.store.search')} placeholder={t('themes.store.search')} value={query ?? ''} onChange={(e) => onQuery(e.target.value)} onBlur={() => !query && setSearching(false)} className="field-control h-8 w-full text-[13px] sm:w-44 text-fg" />
+          : <button type="button" aria-label={t('themes.store.search')} title={t('themes.store.search')} onClick={() => setSearching(true)} className="grid size-8 shrink-0 place-items-center rounded-md hover:bg-hover"><Search className="size-4" /></button>)}
       </div>
     </header>
   );
