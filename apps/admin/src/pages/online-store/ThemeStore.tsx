@@ -299,10 +299,10 @@ export function ThemeStorePreviewPage() {
           ? <div className="mx-auto max-w-[1100px] overflow-hidden rounded-t-xl bg-canvas"><ThemeThumb theme={theme} kind="desktop" className="w-full" /></div>
           : <div className="mx-auto w-[340px] overflow-hidden rounded-[28px] border-[6px] border-white/20 bg-canvas"><ThemeThumb theme={theme} kind="mobile" className="w-full" /></div>}
       </main>
-      <div role="region" aria-label={theme.name} className="fixed inset-x-0 bottom-5 z-20 mx-auto flex w-[min(92vw,1100px)] items-center gap-3 rounded-full bg-canvas px-5 py-2.5 text-fg shadow-lg">
-        <span className="text-[16px] font-semibold">{theme.name}</span>
-        <span className="text-[12px] text-muted">{t('themes.store.free')}</span>
-        <div className="ml-auto flex items-center gap-2">
+      <div role="region" aria-label={theme.name} className="fixed inset-x-0 bottom-5 z-20 mx-auto flex w-[min(92vw,1100px)] flex-wrap items-center gap-3 rounded-2xl sm:flex-nowrap sm:rounded-full bg-canvas px-5 py-2.5 text-fg shadow-lg">
+        <span className="min-w-0 flex-1 truncate text-[16px] font-semibold sm:flex-none">{theme.name}</span>
+        <span className="shrink-0 text-[12px] text-muted">{t('themes.store.free')}</span>
+        <div className="ml-auto flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
           <Button size="sm" onClick={() => nav(`${BASE}/${theme.handle}`)}>{t('themes.store.details')}</Button>
           <AddButton theme={theme} inLibrary={inLibrary.has(theme.handle)} size="sm" />
         </div>
