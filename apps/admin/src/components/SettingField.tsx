@@ -87,7 +87,7 @@ export function SettingField({ def, label, info, value, optionLabel, onChange, d
     case 'textarea':
       return (
         <div className="flex flex-col gap-1">
-          {dynamic && <LabelRow label={label}><DynamicSourceButton value={str} onChange={onChange} /></LabelRow>}
+          {dynamic && <LabelRow label={label}><DynamicSourceButton fieldLabel={label} value={str} onChange={onChange} /></LabelRow>}
           <Textarea label={dynamic ? undefined : label} aria-label={label} help={info} value={str} onChange={(e) => onChange(e.target.value)} />
         </div>
       );
@@ -137,7 +137,7 @@ export function SettingField({ def, label, info, value, optionLabel, onChange, d
         </div>
       );
     case 'richtext':
-      return <div className="flex flex-col gap-1"><LabelRow label={label}>{dynamic && <DynamicSourceButton value={str} rich onChange={onChange} />}</LabelRow><RichText value={str} onChange={onChange} /></div>;
+      return <div className="flex flex-col gap-1"><LabelRow label={label}>{dynamic && <DynamicSourceButton fieldLabel={label} value={str} rich onChange={onChange} />}</LabelRow><RichText value={str} onChange={onChange} /></div>;
     case 'metaobject': case 'metaobject_list': return <MetaobjectSetting def={def} label={label} info={info} value={value} onChange={onChange} />;
     case 'html': case 'liquid': return <Textarea label={label} help={info} className="font-mono" value={str} onChange={(e) => onChange(e.target.value)} />;
     case 'url':
@@ -152,7 +152,7 @@ export function SettingField({ def, label, info, value, optionLabel, onChange, d
       return dynamic && (def.type === 'text' || def.type === 'inline_richtext')
         ? (
           <div className="flex flex-col gap-1">
-            <LabelRow label={label}><DynamicSourceButton value={str} onChange={onChange} /></LabelRow>
+            <LabelRow label={label}><DynamicSourceButton fieldLabel={label} value={str} onChange={onChange} /></LabelRow>
             <Input aria-label={label} help={info} type="text" value={str} onChange={(e) => onChange(e.target.value)} />
           </div>
         )
