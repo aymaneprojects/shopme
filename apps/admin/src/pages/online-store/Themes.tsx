@@ -198,7 +198,7 @@ export function ThemesPage() {
     else { setName(a === 'duplicate' ? t('themes.copyOf', { name: th.name }) : th.name); setDialog({ kind: a, theme: th }); }
   };
   const submit = () => {
-    if (!dialog || !name.trim()) return;
+    if (!dialog || !name.trim() || rename.isPending || duplicate.isPending) return;
     (dialog.kind === 'rename' ? rename : duplicate).mutate({ id: dialog.theme.id, name: name.trim() });
   };
   return (
