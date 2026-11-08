@@ -140,7 +140,7 @@ export function DiscoverCard({ theme, busy, onAdd }: { theme: BundledThemeCard; 
   const t = useT();
   return (
     <li className="flex flex-col gap-2.5">
-      <Link to={`/online-store/themes/store/${theme.handle}`} aria-label={t('themes.free.previewOf', { name: theme.name })} className="block aspect-[4/3] overflow-hidden rounded-xl border border-line bg-surface shadow-card">
+      <Link to={`/online-store/themes/store/${theme.handle}`} aria-label={t('themes.free.previewOf', { name: theme.name })} className="block aspect-square overflow-hidden rounded-xl border border-line bg-surface shadow-card">
         <ThemeThumb theme={theme} className="h-full" />
       </Link>
       <div className="flex items-start gap-2">
