@@ -20,8 +20,13 @@ export function PreviewDataMenu({ choices, value, onChange, className }: { choic
   const [pos, setPos] = useState({ left: 0, top: 0 });
   useLayoutEffect(() => {
     if (!open) return;
-    const r = btn.current?.getBoundingClientRect(); const w = box.current?.offsetWidth ?? 300;
-    if (r) setPos({ left: Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8)), top: r.bottom + 6 });
+    const place = () => {
+      const r = btn.current?.getBoundingClientRect(); const w = box.current?.offsetWidth ?? 300;
+      if (r) setPos({ left: Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8)), top: r.bottom + 6 });
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
   }, [open]);
   useEffect(() => {
     if (!open) return;
