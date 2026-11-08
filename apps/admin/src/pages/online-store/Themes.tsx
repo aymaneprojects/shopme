@@ -239,7 +239,7 @@ export function ThemesPage() {
 
       <Modal open={dialog?.kind === 'rename' || dialog?.kind === 'duplicate'} onClose={() => setDialog(null)} closeLabel={t('common.close')} title={t(dialog?.kind === 'duplicate' ? 'themes.duplicate' : 'themes.rename')}
         footer={<><Button onClick={() => setDialog(null)}>{t('common.cancel')}</Button><Button variant="primary" loading={rename.isPending || duplicate.isPending} onClick={submit}>{t('save.save')}</Button></>}>
-        <Input label={t('themes.name')} value={name} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} />
+        <Input label={t('themes.name')} value={name} autoFocus onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && submit()} />
       </Modal>
       {dialog?.kind === 'update' && dialog.theme.shopmeBundledTheme && (
         <ThemeUpdateDialog open themeId={dialog.theme.id} status={dialog.theme.shopmeBundledTheme} busy={update.isPending} onClose={() => setDialog(null)} onConfirm={() => update.mutate(dialog.theme.id)} />
