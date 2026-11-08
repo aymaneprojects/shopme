@@ -297,7 +297,7 @@ export function ThemeStorePreviewPage() {
       <main className="mx-auto px-4 pb-32 pt-6">
         {kind === 'desktop'
           ? <div className="mx-auto max-w-[1100px] overflow-hidden rounded-t-xl bg-canvas"><ThemeThumb theme={theme} kind="desktop" className="w-full" /></div>
-          : <div className="mx-auto w-[340px] overflow-hidden rounded-[28px] border-[6px] border-white/20 bg-canvas"><ThemeThumb theme={theme} kind="mobile" className="w-full" /></div>}
+          : <div className="mx-auto w-[340px] max-w-full overflow-hidden rounded-[28px] border-[6px] border-white/20 bg-canvas"><ThemeThumb theme={theme} kind="mobile" className="w-full" /></div>}
       </main>
       <div role="region" aria-label={theme.name} className="fixed inset-x-0 bottom-5 z-20 mx-auto flex w-[min(92vw,1100px)] items-center gap-3 rounded-full bg-canvas px-5 py-2.5 text-fg shadow-lg">
         <span className="text-[16px] font-semibold">{theme.name}</span>
