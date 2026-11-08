@@ -1,7 +1,8 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { I18nProvider } from '../../i18n';
 import type { SchemeSet, SettingDef } from '../../lib/settings-schema';
 import { SettingField } from '../SettingField';
@@ -103,6 +104,24 @@ describe('SettingField additions', () => {
     wrap(<SettingField def={d} label="Text color" value="#ff0000" optionLabel={id} onChange={(v) => { got = v; }} />);
     await user.click(screen.getByRole('button', { name: 'Clear color' }));
     expect(got).toBe('');
+  });
+});
+
+describe('field-specific dynamic sources', () => {
+  it.each(['text', 'textarea', 'richtext'] as const)('distinguishes %s fields and updates only the chosen field', async (type) => {
+    const user = userEvent.setup();
+    const heading = vi.fn();
+    const description = vi.fn();
+    wrap(<QueryClientProvider client={new QueryClient()}><SourcesContext.Provider value="product">
+      <SettingField def={{ type, id: 'heading' }} label="Heading" value="" optionLabel={id} dynamic onChange={heading} />
+      <SettingField def={{ type, id: 'description' }} label="Description" value="" optionLabel={id} dynamic onChange={description} />
+    </SourcesContext.Provider></QueryClientProvider>);
+    expect(screen.getByRole('button', { name: 'Connect dynamic source: Description' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Connect dynamic source: Heading' }));
+    expect(screen.getByRole('menu', { name: 'Connect dynamic source: Heading' })).toBeInTheDocument();
+    await user.click(screen.getByRole('menuitem', { name: 'Product title' }));
+    expect(heading).toHaveBeenCalledOnce();
+    expect(description).not.toHaveBeenCalled();
   });
 });
 
