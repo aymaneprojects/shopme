@@ -80,7 +80,7 @@ function GeneralForm({ shop, general, orders }: { shop: ShopData; general: Gener
     <>
       <SaveBar dirty={dirty} saving={save.isPending} onSave={() => save.mutate()} onDiscard={() => { setF(initial); setError(null); }} />
       {error && <div className="mb-4"><Banner>{error}</Banner></div>}
-      <div className="flex flex-col gap-4">
+      <fieldset disabled={save.isPending} className="flex min-w-0 flex-col gap-4">
         <div className="flex items-center gap-3 rounded-lg bg-canvas p-4 shadow-card">
           <span aria-hidden className="flex size-12 items-center justify-center rounded-lg bg-primary text-lg font-semibold text-white">{(f.name.trim()[0] ?? '?').toUpperCase()}</span>
           <div className="min-w-0 flex-1"><p className="truncate text-base font-semibold">{f.name || shop.name}</p><p className="truncate text-[13px] text-muted">{host}</p></div>
@@ -172,7 +172,7 @@ function GeneralForm({ shop, general, orders }: { shop: ShopData; general: Gener
         </Card></Section>
 
         <DeleteStore name={shop.name} />
-      </div>
+      </fieldset>
     </>
   );
 }
