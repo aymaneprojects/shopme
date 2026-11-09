@@ -88,13 +88,13 @@ function DomainRowItem({ e, multi }: { e: Entry; multi: boolean }) {
   const { t } = useI18n();
   const dns = useDns(e.host, !e.permanent);
   return (
-    <li className="grid grid-cols-[1fr_12rem] items-center gap-3 px-4 py-2.5 text-[13px] hover:bg-hover">
+    <li className="grid grid-cols-1 items-center gap-2 px-4 py-2.5 sm:grid-cols-[1fr_12rem] sm:gap-3 text-[13px] hover:bg-hover">
       <span className="flex min-w-0 items-center gap-2">
         <Globe className="size-4 shrink-0 text-muted" aria-hidden />
         {e.permanent ? <span className="truncate">{e.host}</span> : <Link to={`/settings/domains/${encodeURIComponent(e.host)}`} className="truncate hover:underline">{e.host}</Link>}
         {e.primary && <span className="shrink-0 rounded-md border border-line px-1.5 py-0.5 text-xs text-muted">{t('settings.primaryBadge')}</span>}
       </span>
-      <span><StatusBadge status={statusOf(e, dns.data, multi)} /></span>
+      <span className="pl-6 sm:pl-0"><StatusBadge status={statusOf(e, dns.data, multi)} /></span>
     </li>
   );
 }
@@ -117,7 +117,7 @@ export function DomainsSettings() {
     <>
       <SettingsActions><button type="button" className="btn btn-secondary !rounded-full" onClick={() => { setError(null); setAdding(true); }}>{t('settings.connectDomain')}</button></SettingsActions>
       <div className="overflow-hidden rounded-xl bg-canvas p-2 shadow-card">
-        <div className="grid grid-cols-[1fr_12rem] gap-3 rounded-lg bg-surface px-3 py-2 text-[13px] text-muted"><span>{t('settings.domain')}</span><span>{t('field.status')}</span></div>
+        <div className="grid grid-cols-1 gap-3 rounded-lg sm:grid-cols-[1fr_12rem] bg-surface px-3 py-2 text-[13px] text-muted"><span>{t('settings.domain')}</span><span className="hidden sm:block">{t('field.status')}</span></div>
         <ul>{m.entries.map((e) => <DomainRowItem key={e.host} e={e} multi={m.multi} />)}</ul>
       </div>
       <Modal open={adding} onClose={() => setAdding(false)} closeLabel={t('common.close')} title={t('settings.connectDomain')}
