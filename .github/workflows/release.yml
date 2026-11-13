@@ -1,12 +1,17 @@
 name: Release
 
-# Installers and the prebuilt server bundle are built only for a published version: a `v*` tag builds them and attaches
-# them to a GitHub Release, together with shopme-install.sh. Manual runs build the same files and keep them as workflow
-# artifacts only.
+# Installers and the prebuilt server bundle are built for a published version: a `v*` tag, or a manual run given a
+# version, builds them and attaches them to a GitHub Release, together with shopme-install.sh. A manual run without a
+# version builds the same files and keeps them as workflow artifacts only.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish as a GitHub Release, e.g. 0.1.1 (leave empty to only build the files)'
+        required: false
+        default: ''
 
 concurrency:
   group: release-${{ github.ref }}
@@ -15,10 +20,15 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  # vX.Y.Z when this run publishes a release (a pushed tag, or a manual run given a version), empty otherwise.
+  RELEASE_TAG: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || (github.event_name == 'workflow_dispatch' && inputs.version != '' && (startsWith(inputs.version, 'v') && inputs.version || format('v{0}', inputs.version))) || '' }}
+
 jobs:
   build:
     name: Build (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -42,10 +52,10 @@ jobs:
         shell: pwsh
         run: Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE", "$env:LOCALAPPDATA\electron-builder", "$env:TEMP"
 
-      - name: Set version from tag
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Set version from the release tag
+        if: env.RELEASE_TAG != ''
         shell: bash
-        run: echo "VERSION_ARG=-c.extraMetadata.version=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+        run: echo "VERSION_ARG=-c.extraMetadata.version=${RELEASE_TAG#v}" >> "$GITHUB_ENV"
 
       # Unsigned unless the signing secrets exist. Empty secrets must be unset: electron-builder rejects an empty CSC_LINK.
       - name: Build desktop app
@@ -93,6 +103,7 @@ jobs:
   bundle:
     name: Server bundle (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -111,7 +122,7 @@ jobs:
       - name: Build the bundle
         shell: bash
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then VERSION="${GITHUB_REF_NAME#v}"; else VERSION="$(node -p "require('./package.json').version")"; fi
+          if [ -n "$RELEASE_TAG" ]; then VERSION="${RELEASE_TAG#v}"; else VERSION="$(node -p "require('./package.json').version")"; fi
           node scripts/make-server-bundle.mjs --version "$VERSION" --arch "${{ matrix.arch }}" --out bundle-out
           ls -la bundle-out
       - uses: actions/upload-artifact@v4
@@ -120,14 +131,20 @@ jobs:
           path: bundle-out/*
           if-no-files-found: error
 
+  # Publishes as soon as both server bundles are built. A desktop installer that could not be built (for example a macOS
+  # job that GitHub never gave a runner) is left out instead of blocking the release.
   release:
     name: Publish GitHub Release
     needs: [build, bundle]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: ${{ !cancelled() && needs.bundle.result == 'success' && (startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.version != '')) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - name: Check the version
+        shell: bash
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$ ]] || { echo "::error::Invalid version '${RELEASE_TAG#v}' (expected x.y.z)."; exit 1; }
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
@@ -135,8 +152,12 @@ jobs:
           merge-multiple: true
       - name: Add the installer script
         run: cp shopme-install.sh release-files/shopme-install.sh
+      - name: List the files
+        run: ls -la release-files
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
           files: release-files/*
           generate_release_notes: true
         env:

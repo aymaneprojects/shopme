@@ -50,11 +50,12 @@ function dry(args: string[], env: Record<string, string> = {}) {
 
 describe('shellcheck', () => {
   const sc = spawnSync('shellcheck', ['--version'], { encoding: 'utf8' });
+  // shellcheck takes about 20 s on the 2000-line script on a busy CI runner, far over vitest's 5 s default.
   it.skipIf(sc.status !== 0)('is clean', () => {
     const r = spawnSync('shellcheck', ['-x', script], { encoding: 'utf8' });
     expect(r.stdout).toBe('');
     expect(r.status).toBe(0);
-  });
+  }, 180_000);
   it('is valid bash and has a bash shebang', () => {
     expect(spawnSync('bash', ['-n', script]).status).toBe(0);
     expect(readFileSync(script, 'utf8').startsWith('#!/usr/bin/env bash')).toBe(true);
