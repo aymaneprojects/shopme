@@ -36,8 +36,8 @@ export const frMultistore: Record<keyof typeof enMultistore, string> = {
   'stripeKeys.none': 'Aucun compte Stripe n’est encore configuré. Ajoutez les clés du compte Stripe de la boutique pour accepter les cartes.',
   'stripeKeys.webhook': 'Point de terminaison du webhook :', 'stripeKeys.copy': 'Copier le point de terminaison du webhook', 'stripeKeys.copied': 'Point de terminaison copié',
   'stripeKeys.modalTitle': 'Clés Stripe de cette boutique', 'stripeKeys.modalHelp': 'Les clés se trouvent dans le tableau de bord Stripe, rubrique Développeurs. Utilisez des clés de test ou des clés de production pour les deux. Les secrets sont chiffrés et ne sont plus jamais affichés.',
-  'stripeKeys.publishable': 'Clé publiable', 'stripeKeys.secret': 'Clé secrète', 'stripeKeys.signing': 'Secret de signature du webhook',
-  'stripeKeys.signingHelp': 'Créez dans Stripe un webhook qui envoie les événements payment_intent à {url}, puis collez son secret de signature.',
+  'stripeKeys.publishable': 'Clé publiable', 'stripeKeys.secret': 'Clé secrète', 'stripeKeys.signing': 'Secret de signature du webhook (facultatif)',
+  'stripeKeys.signingHelp': 'Laissez vide : le webhook est créé automatiquement dans Stripe. Ou collez le secret de signature d’un webhook qui envoie les événements à {url}.',
   'stripeKeys.save': 'Enregistrer les clés', 'stripeKeys.saved': 'Clés Stripe enregistrées', 'stripeKeys.removed': 'Clés Stripe retirées', 'stripeKeys.removeTitle': 'Retirer les clés Stripe de la boutique ?',
   'stripeKeys.removeFallback': 'La boutique utilisera de nouveau le compte Stripe de l’installation.', 'stripeKeys.removeNone': 'Les paiements par carte s’arrêtent jusqu’à l’ajout de nouvelles clés.',
 

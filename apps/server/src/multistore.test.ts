@@ -10,6 +10,7 @@ import {
   type GraphQLField, type GraphQLInputType,
 } from 'graphql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createStripeAdmin } from '@shopme/payments';
 import { authenticateAccount, beginTwoFactorSetup, confirmTwoFactor, totpCode, createAccount, createStaffUser, exportStore, inviteStaff, recordDeliveries, registerCustomer, saveUpload, schema as s, type DbHandle } from '@shopme/core';
 import { schema as gqlSchema } from './admin/graphql/schema';
 import { setDnsLookups, setTxtResolver } from './admin/stores-routes';
@@ -448,6 +449,8 @@ describe('exports, backups, webhooks and jobs stay per store', () => {
 
   it('verifies Stripe events with the store\'s own secret and only touches that store', async () => {
     const keys = (n: string) => ({ publishableKey: `pk_test_${n}`, secretKey: `sk_test_${n}`, webhookSecret: `whsec_${n}` });
+    // Saving keys checks the secret key with Stripe: answer from a fake account instead of the network.
+    t.app.checkoutPayments.admin = (k) => createStripeAdmin(k, { paymentIntents: { create: async () => ({ id: 'x', client_secret: null }) }, accounts: { retrieve: async () => ({ id: 'acct_test' }) }, webhooks: {} as never });
     expect((await req({ method: 'PUT', url: `/admin/store/${A}/api/store/payments/stripe`, cookie: alice, payload: keys('alpha123') })).statusCode).toBe(200);
     const st = await req({ method: 'PUT', url: `/admin/store/${B}/api/store/payments/stripe`, cookie: bob, payload: keys('beta456') });
     expect(st.json()).toMatchObject({ configured: true, secretKeyLast4: 'a456', webhookUrl: `http://localhost:3000/webhooks/stripe/${B}` });
