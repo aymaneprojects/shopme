@@ -35,8 +35,8 @@ export const enMultistore = {
   'stripeKeys.none': 'No Stripe account is set up yet. Add the keys of the store\'s Stripe account to accept cards.',
   'stripeKeys.webhook': 'Webhook endpoint:', 'stripeKeys.copy': 'Copy the webhook endpoint', 'stripeKeys.copied': 'Endpoint copied',
   'stripeKeys.modalTitle': 'Stripe keys of this store', 'stripeKeys.modalHelp': 'Find the keys in the Stripe Dashboard under Developers. Use test keys or live keys for both. The secrets are stored encrypted and never shown again.',
-  'stripeKeys.publishable': 'Publishable key', 'stripeKeys.secret': 'Secret key', 'stripeKeys.signing': 'Webhook signing secret',
-  'stripeKeys.signingHelp': 'Create a webhook in Stripe that sends payment_intent events to {url}, then paste its signing secret.',
+  'stripeKeys.publishable': 'Publishable key', 'stripeKeys.secret': 'Secret key', 'stripeKeys.signing': 'Webhook signing secret (optional)',
+  'stripeKeys.signingHelp': 'Leave empty: the webhook is created in Stripe automatically. Or paste the signing secret of a webhook that sends events to {url}.',
   'stripeKeys.save': 'Save keys', 'stripeKeys.saved': 'Stripe keys saved', 'stripeKeys.removed': 'Stripe keys removed', 'stripeKeys.removeTitle': 'Remove the store\'s Stripe keys?',
   'stripeKeys.removeFallback': 'The store will use the installation\'s Stripe account again.', 'stripeKeys.removeNone': 'Card payments stop until new keys are added.',
 

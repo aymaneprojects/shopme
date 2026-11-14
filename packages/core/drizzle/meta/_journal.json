@@ -232,6 +232,13 @@
       "when": 1793982115150,
       "tag": "0032_loud_luckman",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794652976679,
+      "tag": "0033_conscious_psylocke",
+      "breakpoints": true
     }
   ]
 }

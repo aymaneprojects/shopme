@@ -70,6 +70,9 @@ export const ORDER_CANCEL = /* GraphQL */ `
     }
   }
 `;
+export const TRANSACTION_VOID = /* GraphQL */ `
+  mutation TransactionVoid($parentTransactionId: ID!) { transactionVoid(parentTransactionId: $parentTransactionId) { transaction { id kind status } userErrors { field message code } } }
+`;
 export const ORDER_MARK_AS_PAID = /* GraphQL */ `
   mutation OrderMarkAsPaid($input: OrderMarkAsPaidInput!) { orderMarkAsPaid(input: $input) { order { id } userErrors { field message } } }
 `;

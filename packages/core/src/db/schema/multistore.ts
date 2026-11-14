@@ -72,6 +72,8 @@ export const shopSecrets = pgTable('shop_secrets', {
   stripePublishableKey: text('stripe_publishable_key'),
   stripeSecretKey: text('stripe_secret_key'),
   stripeWebhookSecret: text('stripe_webhook_secret'),
+  /** Stripe webhook endpoint ShopMe created for the store (null when the merchant pasted the signing secret), deleted when the keys are replaced or removed. */
+  stripeWebhookEndpointId: text('stripe_webhook_endpoint_id'),
   ...timestamps(),
 });
 

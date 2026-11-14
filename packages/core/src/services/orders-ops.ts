@@ -7,6 +7,7 @@ import { errR, okR, txResult, type Result } from './catalog/common';
 import { addEvent } from './events';
 import { isCountryCode } from './markets/reference';
 import { captureTransaction } from './orders/capture';
+import { collectVia, type GatewayResolver } from './orders/gateways';
 import { cancelFulfillment, createFulfillment, holdOrder, releaseOrderHold } from './orders/fulfillments';
 import { getOrder, getOrderDetail, type Order, type OrderAddress, type OrderDetail } from './orders/orders';
 
@@ -220,13 +221,13 @@ export function capturableOf(txs: OrderDetail['transactions']): Array<{ id: numb
 }
 
 /** Collect everything still authorised on one order. */
-export async function captureOrderPayments(db: Db, shopId: number, orderId: number, staffId?: number | null): Promise<Result<Order>> {
+export async function captureOrderPayments(db: Db, shopId: number, orderId: number, staffId?: number | null, gateways?: GatewayResolver): Promise<Result<Order>> {
   const order = await getOrder(db, shopId, orderId);
   if (!order) return errR(['id'], 'Order does not exist', 'NOT_FOUND');
   const todo = capturableOf((await getOrderDetail(db, shopId, orderId)).transactions);
   if (!todo.length) return errR(['id'], `${order.name} has no payment to capture`, 'INVALID');
   for (const a of todo) {
-    const r = await captureTransaction(db, shopId, { orderId, parentTransactionId: a.id, amount: a.remaining, finalCapture: true, staffId });
+    const r = await captureTransaction(db, shopId, { orderId, parentTransactionId: a.id, amount: a.remaining, finalCapture: true, staffId, collect: collectVia(gateways) });
     if (!r.ok) return r;
   }
   return okR((await getOrder(db, shopId, orderId))!);

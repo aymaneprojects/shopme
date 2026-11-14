@@ -6,6 +6,7 @@ import {
 } from '@shopme/core';
 import { capturableOf, lineMoney, orderMoney, presentmentShare } from '@shopme/core';
 import { formatMoney, parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
+import { gatewaysFor } from '../../../payments-gateways';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
 import { ConnectionArgs, defineConnection, paginate, paginateArray, type PageArgs } from '../types/connection';
@@ -566,7 +567,7 @@ builder.mutationFields((t) => ({
       requireScope(ctx, 'write_orders');
       const id = oid(a.orderId);
       if (!id) return { job: null, orderCancelUserErrors: [{ field: ['orderId'], message: 'Order does not exist', code: 'NOT_FOUND' }] };
-      const r = await cancelOrder(ctx.db, ctx.shopId, id, { reason: a.reason, restock: a.restock, refund: !!(a.refund || a.refundMethod?.originalPaymentMethodsRefund), staffNote: a.staffNote, staffId: staffId(ctx), notifyCustomer: !!a.notifyCustomer });
+      const r = await cancelOrder(ctx.db, ctx.shopId, id, { reason: a.reason, restock: a.restock, refund: !!(a.refund || a.refundMethod?.originalPaymentMethodsRefund), staffNote: a.staffNote, staffId: staffId(ctx), notifyCustomer: !!a.notifyCustomer, gateways: await gatewaysFor(ctx.request.server, ctx.shopId) });
       return r.ok ? { job: { id: toGid('Job', randomUUID()), done: true }, orderCancelUserErrors: [] } : { job: null, orderCancelUserErrors: r.errors };
     },
   }),
@@ -645,7 +646,7 @@ builder.mutationFields((t) => ({
       if (credit) { try { creditAmount = parseMoney(credit.amount.amount, order.currency); } catch { return { order: null, refund: null, userErrors: [{ field: ['input', 'refundMethods'], message: 'Store credit amount is invalid' }] }; } }
       const r = await refundOrder(ctx.db, ctx.shopId, orderId, {
         storeCredit: credit ? { amount: creditAmount, expiresAt: credit.expiresAt ?? null } : null,
-        note: input.note, lines: lines.map((l) => ({ ...l, orderLineId: l.orderLineId! })), allowOverRefunding: !!input.allowOverRefunding, processedAt: input.processedAt, staffId: staffId(ctx), notifyCustomer: !!input.notify,
+        note: input.note, lines: lines.map((l) => ({ ...l, orderLineId: l.orderLineId! })), allowOverRefunding: !!input.allowOverRefunding, processedAt: input.processedAt, staffId: staffId(ctx), notifyCustomer: !!input.notify, gateways: await gatewaysFor(ctx.request.server, ctx.shopId),
         shipping: input.shipping ? { full: input.shipping.fullRefund, amount: input.shipping.amount != null ? parseMoney(input.shipping.amount, order.currency) : null } : null,
         transactions: input.transactions?.map((x) => ({ amount: parseMoney(x.amount, order.currency), gateway: x.gateway, parentId: x.parentId ? parseId(String(x.parentId), 'OrderTransaction') : null })),
       });

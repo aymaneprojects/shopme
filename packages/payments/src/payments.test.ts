@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import { describe, expect, it } from 'vitest';
-import { createStripeGateway, fillRedirectUrl, manualProviders, parsePaymentSettings, signPaymentWebhook, verifyPaymentWebhook } from './index';
+import { createStripeAdmin, createStripeGateway, fillRedirectUrl, STRIPE_WEBHOOK_EVENTS, manualProviders, parsePaymentSettings, signPaymentWebhook, verifyPaymentWebhook } from './index';
 
 describe('payment settings', () => {
   it('enables manual methods by default', () => {
@@ -89,5 +89,50 @@ describe('stripe subscriptions', () => {
     expect(await gw.chargeOffSession({ amount: 900, currency: 'EUR', customer: 'cus_1', paymentMethod: 'pm_1', idempotencyKey: 'k', reference: 'r' })).toEqual({ ok: false, code: 'insufficient_funds', message: 'Your card was declined.', id: 'pi_x' });
     const action = createStripeGateway(cfg, { paymentIntents: { create: async () => ({ id: 'pi_y', client_secret: 's', status: 'requires_action' }) }, webhooks: noHooks })!;
     expect(await action.chargeOffSession({ amount: 1, currency: 'EUR', customer: 'c', paymentMethod: 'p', idempotencyKey: 'k', reference: 'r' })).toMatchObject({ ok: false, code: 'authentication_required', id: 'pi_y' });
+  });
+});
+
+describe('stripe refunds, voids and account setup', () => {
+  const cfg = { secretKey: 'sk_test_x', publishableKey: 'pk_test_x', webhookSecret: 'whsec_test' };
+  const webhooks = new Stripe('sk_test_x').webhooks as never;
+
+  it('refund returns the Stripe refund id, cancel releases the authorisation, listRefunds reads them', async () => {
+    const calls: unknown[][] = [];
+    const gw = createStripeGateway(cfg, {
+      paymentIntents: { create: async () => ({ id: 'pi', client_secret: 's' }), cancel: async (id, p, o) => { calls.push(['cancel', id, p, o]); return {}; } },
+      refunds: { create: async (p, o) => { calls.push(['refund', p, o]); return { id: 're_1' }; }, list: async (p) => { calls.push(['list', p]); return { data: [{ id: 're_1', amount: 500, status: 'succeeded' }] }; } },
+      webhooks,
+    })!;
+    expect(await gw.refund('pi_1', 500, 'k1')).toEqual({ id: 're_1' });
+    await gw.cancel('pi_1', 'k2');
+    expect(await gw.listRefunds('pi_1')).toEqual([{ id: 're_1', amount: 500, status: 'succeeded' }]);
+    expect(calls).toEqual([['refund', { payment_intent: 'pi_1', amount: 500 }, { idempotencyKey: 'k1' }], ['cancel', 'pi_1', {}, { idempotencyKey: 'k2' }], ['list', { payment_intent: 'pi_1', limit: 100 }]]);
+  });
+
+  it('refund of a client that reports no id gives null', async () => {
+    const gw = createStripeGateway(cfg, { paymentIntents: { create: async () => ({ id: 'pi', client_secret: 's' }) }, refunds: { create: async () => undefined }, webhooks })!;
+    expect(await gw.refund('pi_1', 1, 'k')).toEqual({ id: null });
+  });
+
+  it('admin validates the key, creates the endpoint with the handled events and registers domains', async () => {
+    const calls: unknown[][] = [];
+    const admin = createStripeAdmin('sk_test_x', {
+      paymentIntents: { create: async () => ({ id: 'pi', client_secret: 's' }) }, webhooks,
+      accounts: { retrieve: async () => ({ id: 'acct_1' }) },
+      webhookEndpoints: { create: async (p) => { calls.push(['create', p]); return { id: 'we_1', secret: 'whsec_new' }; }, del: async (id) => { calls.push(['del', id]); } },
+      paymentMethodDomains: { create: async (p) => { calls.push(['domain', p]); } },
+    });
+    expect(await admin.verifyAccount()).toEqual({ id: 'acct_1' });
+    expect(await admin.createWebhookEndpoint('https://shop.example.com/webhooks/stripe')).toEqual({ id: 'we_1', secret: 'whsec_new' });
+    await admin.deleteWebhookEndpoint('we_1');
+    await admin.registerDomain('shop.example.com');
+    expect(calls[0]).toEqual(['create', { url: 'https://shop.example.com/webhooks/stripe', enabled_events: [...STRIPE_WEBHOOK_EVENTS], description: 'ShopMe' }]);
+    expect(STRIPE_WEBHOOK_EVENTS).toContain('charge.refunded');
+    expect(calls.slice(1)).toEqual([['del', 'we_1'], ['domain', { domain_name: 'shop.example.com' }]]);
+  });
+
+  it('admin surfaces Stripe rejections', async () => {
+    const admin = createStripeAdmin('sk_test_bad', { paymentIntents: { create: async () => ({ id: 'pi', client_secret: 's' }) }, webhooks, accounts: { retrieve: async () => { throw new Error('Invalid API Key'); } } });
+    await expect(admin.verifyAccount()).rejects.toThrow('Invalid API Key');
   });
 });

@@ -1,11 +1,12 @@
 import {
-  captureTransaction, changeDraftTags, createDraftFromOrder, deleteDraftOrder, duplicateDraftOrder, getAbandonedCheckout, getCustomer, getDraftTag, getSavedSearch, listDraftTags, matchingDraftIds, recoveryUrl, schema,
+  captureTransaction, collectVia, voidTransaction, changeDraftTags, createDraftFromOrder, deleteDraftOrder, duplicateDraftOrder, getAbandonedCheckout, getCustomer, getDraftTag, getSavedSearch, listDraftTags, matchingDraftIds, recoveryUrl, schema,
 } from '@shopme/core';
 import { and, count, eq, gt } from 'drizzle-orm';
 import { parseId, parseMoney, type UserError } from '@shopme/shopify-compat';
+import { gatewaysFor } from '../../../payments-gateways';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
-import { definePayload } from '../types/errors';
+import { DisplayableError, definePayload } from '../types/errors';
 import { Node, registerNode } from '../types/node';
 import { Job } from '../types/catalog';
 import { Customer_, registerTaggable } from '../types/sales';
@@ -143,15 +144,42 @@ builder.mutationFields((t) => ({
       let amount: number | null = null;
       try { amount = parseMoney(String(input.amount), order[0].currency); } catch { /* invalid */ }
       if (amount == null) return { transaction: null, userErrors: [{ field: ['input', 'amount'], message: 'Amount is invalid' }] };
-      // The store's gateway is looked up before the capture runs (the capture holds a database transaction).
-      const stripe = await (ctx.request.server as unknown as { checkoutPayments?: { forShop(shopId: number): Promise<{ capture(id: string, amount: number, key: string): Promise<void> } | null> } }).checkoutPayments?.forShop(ctx.shopId);
-      const r = await captureTransaction(ctx.db, ctx.shopId, { orderId, parentTransactionId: parentId, amount, currency: input.currency, finalCapture: input.finalCapture, staffId: staffId(ctx),
-        collect: async (parent, amt) => {
-          if (parent.gateway === 'stripe' && parent.paymentId && stripe) await stripe.capture(parent.paymentId, amt, `capture-${parent.id}-${amt}`);
-        } });
+      // The store's gateways are looked up before the capture runs (the capture holds a database transaction).
+      const gateways = await gatewaysFor(ctx.request.server, ctx.shopId);
+      const r = await captureTransaction(ctx.db, ctx.shopId, { orderId, parentTransactionId: parentId, amount, currency: input.currency, finalCapture: input.finalCapture, staffId: staffId(ctx), collect: collectVia(gateways) });
       if (!r.ok) return { transaction: null, userErrors: r.errors };
       const full = await ctx.db.select().from(schema.orders).where(eq(schema.orders.id, orderId)).limit(1);
       return { transaction: { ...r.value, order: full[0]! }, userErrors: [] };
+    },
+  }),
+}));
+
+/* ------------------------------ transactionVoid ------------------------------ */
+
+const VoidErrorCode = builder.enumType('TransactionVoidUserErrorCode', { values: ['TRANSACTION_NOT_FOUND', 'AUTH_NOT_SUCCESSFUL', 'AUTH_NOT_VOIDABLE', 'GENERIC_ERROR'] as const });
+const VoidUserError = builder.objectRef<UserError>('TransactionVoidUserError').implement({
+  interfaces: [DisplayableError],
+  fields: (t) => ({ code: t.field({ type: VoidErrorCode, nullable: true, resolve: (e) => (e.code as 'GENERIC_ERROR') ?? null }) }),
+});
+const VoidPayload = builder.objectRef<{ transaction: { id: number } | null; userErrors: UserError[] }>('TransactionVoidPayload').implement({
+  fields: (t) => ({
+    transaction: t.field({ type: OrderTransaction, nullable: true, resolve: (p) => p.transaction as never }),
+    userErrors: t.field({ type: [VoidUserError], resolve: (p) => p.userErrors }),
+  }),
+});
+
+builder.mutationFields((t) => ({
+  transactionVoid: t.field({
+    type: VoidPayload, args: { parentTransactionId: t.arg.id({ required: true }) },
+    description: 'Voids an uncaptured authorization: the hold is released at the payment provider and the order becomes voided.',
+    resolve: async (_r, a, ctx) => {
+      requireScope(ctx, 'write_orders');
+      const parentId = parseId(String(a.parentTransactionId), 'OrderTransaction');
+      if (!parentId) return { transaction: null, userErrors: [{ field: ['parentTransactionId'], message: 'Transaction does not exist', code: 'TRANSACTION_NOT_FOUND' }] };
+      const r = await voidTransaction(ctx.db, ctx.shopId, { parentTransactionId: parentId, gateways: await gatewaysFor(ctx.request.server, ctx.shopId), staffId: staffId(ctx) });
+      if (!r.ok) return { transaction: null, userErrors: r.errors };
+      const [order] = await ctx.db.select().from(schema.orders).where(eq(schema.orders.id, r.value.orderId)).limit(1);
+      return { transaction: { ...r.value, order: order! }, userErrors: [] };
     },
   }),
 }));

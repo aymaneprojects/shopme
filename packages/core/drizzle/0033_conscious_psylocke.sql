@@ -1,0 +1,1 @@
+ALTER TABLE "shop_secrets" ADD COLUMN "stripe_webhook_endpoint_id" text;

@@ -50,7 +50,7 @@ export function StripeKeys({ canEdit }: { canEdit: boolean }) {
         <Button size="sm" variant="plain" icon aria-label={t('stripeKeys.copy')} onClick={copy}><Copy className="size-3.5" /></Button>
       </div>
       <Modal open={open} onClose={() => setOpen(false)} closeLabel={t('common.close')} title={t('stripeKeys.modalTitle')}
-        footer={<><Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button><Button variant="primary" loading={save.isPending} disabled={!f.publishableKey.trim() || !f.secretKey.trim() || !f.webhookSecret.trim()} onClick={() => save.mutate()}>{t('stripeKeys.save')}</Button></>}>
+        footer={<><Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button><Button variant="primary" loading={save.isPending} disabled={!f.publishableKey.trim() || !f.secretKey.trim()} onClick={() => save.mutate()}>{t('stripeKeys.save')}</Button></>}>
         <div className="flex flex-col gap-3">
           {error && <Banner>{error}</Banner>}
           <p className="text-[13px] text-muted">{t('stripeKeys.modalHelp')}</p>

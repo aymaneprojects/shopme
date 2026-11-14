@@ -5,6 +5,7 @@ import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
 import * as schema from '../db/schema';
 import { platformAccounts, platformSettings, sessions, shopDomains, shopLocales, shops, shopSecrets, staffUsers } from '../db/schema';
 import type { Db, Executor } from '../db/client';
+import type { StripeAdmin } from '@shopme/payments';
 import { errR, okR, type Result } from './catalog/common';
 import { decryptSecret, encryptSecret } from './two-factor';
 import { handleOf, type Shop } from './shops';
@@ -161,7 +162,7 @@ export async function storeHosts(db: Executor): Promise<{ host: string; shopId: 
 // ---- per-store payment credentials ------------------------------------------------------------------------------------------
 
 export interface StripeKeys { publishableKey?: string; secretKey?: string; webhookSecret?: string }
-export interface StripeStatus { configured: boolean; publishableKey: string | null; secretKeyLast4: string | null; webhookSecretSet: boolean; testMode: boolean }
+export interface StripeStatus { configured: boolean; publishableKey: string | null; secretKeyLast4: string | null; webhookSecretSet: boolean; testMode: boolean; /** The webhook endpoint was created in Stripe by ShopMe. */ webhookAutoCreated: boolean }
 
 /** The store's own Stripe keys (decrypted), or null when it uses the installation default. */
 export async function getShopStripeKeys(db: Executor, shopId: number, key: string): Promise<StripeKeys | null> {
@@ -174,13 +175,48 @@ export async function getShopStripeKeys(db: Executor, shopId: number, key: strin
 
 export async function shopStripeStatus(db: Executor, shopId: number, key: string): Promise<StripeStatus> {
   const k = await getShopStripeKeys(db, shopId, key);
-  return { configured: !!k, publishableKey: k?.publishableKey ?? null, secretKeyLast4: k?.secretKey ? k.secretKey.slice(-4) : null, webhookSecretSet: !!k?.webhookSecret, testMode: !k || !!k.secretKey?.startsWith('sk_test_') };
+  const [r] = await db.select({ endpoint: shopSecrets.stripeWebhookEndpointId }).from(shopSecrets).where(eq(shopSecrets.shopId, shopId));
+  return { configured: !!k, publishableKey: k?.publishableKey ?? null, secretKeyLast4: k?.secretKey ? k.secretKey.slice(-4) : null, webhookSecretSet: !!k?.webhookSecret, testMode: !k || !!k.secretKey?.startsWith('sk_test_'), webhookAutoCreated: !!k && !!r?.endpoint };
 }
 
-/** Save the store's Stripe keys (all three), or clear them with `null` (the store falls back to the installation keys). */
-export async function setShopStripeKeys(db: Executor, shopId: number, keys: StripeKeys | null, key: string): Promise<Result<StripeStatus>> {
+/** What saving keys needs from Stripe and from the server: validating the key, registering the webhook endpoint and the wallet domains. */
+export interface StripeSetup {
+  /** Stripe account client for a secret key. Without it keys are only format-checked and the webhook secret must be given. */
+  admin?: (secretKey: string) => StripeAdmin;
+  /** Public URL of the store's webhook endpoint. */
+  webhookUrl?: string;
+  /** Hosts of the store (primary domain, platform host, verified domains) to register for wallets. */
+  domains?: string[];
+}
+
+/** Stripe cannot deliver events to a private address; auto-registration is only attempted for a public https URL. */
+export function isPublicHttpsUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    const h = u.hostname.toLowerCase();
+    const local = h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h.endsWith('.internal') || h.startsWith('[') || /^(127|10|0)\./.test(h) || /^192\.168\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h);
+    return u.protocol === 'https:' && !local && h.includes('.');
+  } catch { return false; }
+}
+
+const msgOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+/**
+ * Save the store's Stripe keys, or clear them with `null` (the store falls back to the installation keys). The secret key is checked with a
+ * real call to Stripe. Without a webhook signing secret the endpoint is created through the Stripe API (public https URL only) and its
+ * secret stored encrypted next to its id; an endpoint ShopMe created earlier is deleted when the keys are replaced or removed. Registering
+ * the store's domains for wallets is best effort and never blocks.
+ */
+export async function setShopStripeKeys(db: Executor, shopId: number, keys: StripeKeys | null, key: string, setup: StripeSetup = {}): Promise<Result<StripeStatus>> {
+  const [old] = await db.select().from(shopSecrets).where(eq(shopSecrets.shopId, shopId));
+  const dropOldEndpoint = async () => {
+    const oldSecret = old?.stripeSecretKey ? decryptSecret(old.stripeSecretKey, key) : null;
+    if (old?.stripeWebhookEndpointId && oldSecret && setup.admin) { try { await setup.admin(oldSecret).deleteWebhookEndpoint(old.stripeWebhookEndpointId); } catch { /* already gone or key revoked */ } }
+  };
   if (keys === null) {
-    await db.update(shopSecrets).set({ stripePublishableKey: null, stripeSecretKey: null, stripeWebhookSecret: null, updatedAt: new Date() }).where(eq(shopSecrets.shopId, shopId));
+    await dropOldEndpoint();
+    await db.update(shopSecrets).set({ stripePublishableKey: null, stripeSecretKey: null, stripeWebhookSecret: null, stripeWebhookEndpointId: null, updatedAt: new Date() }).where(eq(shopSecrets.shopId, shopId));
     return okR(await shopStripeStatus(db, shopId, key));
   }
   const pk = keys.publishableKey?.trim() ?? '';
@@ -188,9 +224,27 @@ export async function setShopStripeKeys(db: Executor, shopId: number, keys: Stri
   const wh = keys.webhookSecret?.trim() ?? '';
   if (!/^pk_(test|live)_[A-Za-z0-9]+$/.test(pk)) return errR(['publishableKey'], 'The publishable key starts with pk_test_ or pk_live_', 'INVALID');
   if (!/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/.test(sk)) return errR(['secretKey'], 'The secret key starts with sk_test_, sk_live_ or rk_', 'INVALID');
-  if (!/^whsec_[A-Za-z0-9]+$/.test(wh)) return errR(['webhookSecret'], 'The webhook signing secret starts with whsec_', 'INVALID');
+  if (wh && !/^whsec_[A-Za-z0-9]+$/.test(wh)) return errR(['webhookSecret'], 'The webhook signing secret starts with whsec_', 'INVALID');
   if (pk.includes('_test_') !== sk.includes('_test_')) return errR(['secretKey'], 'Use test keys or live keys for both', 'MISMATCH');
-  const values = { stripePublishableKey: pk, stripeSecretKey: encryptSecret(sk, key), stripeWebhookSecret: encryptSecret(wh, key), updatedAt: new Date() };
+  const admin = setup.admin?.(sk);
+  if (admin) {
+    try { await admin.verifyAccount(); } catch (e) { return errR(['secretKey'], `Stripe did not accept this secret key: ${msgOf(e)}`, 'INVALID'); }
+  }
+  let secret = wh;
+  let endpointId: string | null = null;
+  if (!wh) {
+    const manual = 'Create a webhook endpoint in the Stripe Dashboard and paste its signing secret (whsec_...)';
+    if (!admin || !isPublicHttpsUrl(setup.webhookUrl)) return errR(['webhookSecret'], `The webhook endpoint cannot be created automatically: this server is not reachable from Stripe over https (${setup.webhookUrl ?? 'unknown URL'}). ${manual}.`, 'WEBHOOK_SECRET_REQUIRED');
+    try { const e = await admin.createWebhookEndpoint(setup.webhookUrl!); secret = e.secret; endpointId = e.id; }
+    catch (e) { return errR(['webhookSecret'], `Stripe could not create the webhook endpoint (${msgOf(e)}). ${manual}.`, 'WEBHOOK_SECRET_REQUIRED'); }
+  }
+  // Wallets (Apple Pay, Google Pay) need the domain registered with Stripe; best effort.
+  if (admin) for (const d of new Set(setup.domains ?? [])) {
+    if (!isPublicHttpsUrl(`https://${d}`)) continue;
+    try { await admin.registerDomain(d); } catch { /* already registered or not verifiable yet: never blocks saving */ }
+  }
+  await dropOldEndpoint();
+  const values = { stripePublishableKey: pk, stripeSecretKey: encryptSecret(sk, key), stripeWebhookSecret: encryptSecret(secret, key), stripeWebhookEndpointId: endpointId, updatedAt: new Date() };
   await db.insert(shopSecrets).values({ shopId, ...values }).onConflictDoUpdate({ target: shopSecrets.shopId, set: values });
   return okR(await shopStripeStatus(db, shopId, key));
 }

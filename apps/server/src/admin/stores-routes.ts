@@ -289,14 +289,16 @@ export function registerStoresRoutes(app: FastifyInstance) {
     if (shopId == null) return;
     const b = (req.body ?? {}) as { publishableKey?: unknown; secretKey?: unknown; webhookSecret?: unknown };
     const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
-    const r = await setShopStripeKeys(db, shopId, { publishableKey: str(b.publishableKey), secretKey: str(b.secretKey), webhookSecret: str(b.webhookSecret) }, config.sessionSecret);
+    // Hosts the store is served from, to register for wallets (Apple Pay, Google Pay).
+    const domains = [...new Set([stores.publicOrigin(shopId), multi ? stores.platformOrigin(shopId) : config.appUrl, ...(await listShopDomains(db, shopId)).filter((d) => d.verifiedAt).map((d) => `https://${d.host}`)].map((o) => new URL(o).hostname))];
+    const r = await setShopStripeKeys(db, shopId, { publishableKey: str(b.publishableKey), secretKey: str(b.secretKey), webhookSecret: str(b.webhookSecret) }, config.sessionSecret, { admin: (k) => app.checkoutPayments.admin(k), webhookUrl: webhookUrl(shopId), domains });
     if (!r.ok) return reply.code(422).send({ error: r.errors[0]!.message, issues: r.errors });
     return stripeView(shopId);
   });
   app.delete('/admin/api/store/payments/stripe', async (req, reply) => {
     const shopId = await settingsMember(req, reply, true);
     if (shopId == null) return;
-    await setShopStripeKeys(db, shopId, null, config.sessionSecret);
+    await setShopStripeKeys(db, shopId, null, config.sessionSecret, { admin: (k) => app.checkoutPayments.admin(k) });
     return stripeView(shopId);
   });
 }

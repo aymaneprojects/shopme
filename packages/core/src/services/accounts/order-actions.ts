@@ -5,6 +5,7 @@ import { errR, okR, type Result } from '../catalog/common';
 import { addEvent } from '../events';
 import { cancelOrder } from '../orders/refunds';
 import { paidAmounts, type Order, type OrderDetail } from '../orders/orders';
+import type { GatewayResolver } from '../orders/gateways';
 import { createReturn, returnableQuantities, type ReturnWithLines } from '../returns';
 import { customerAccountsSettingsOf } from './settings';
 import type { Shop } from '../shops';
@@ -37,13 +38,13 @@ export async function orderActionsFor(db: Executor, shop: Pick<Shop, 'settings' 
 }
 
 /** The customer cancels their own order. Stock goes back and anything paid is refunded (recorded; the money movement is the payment provider's). */
-export async function customerCancelOrder(db: Db, shop: Shop, customerId: number, orderId: number, detail: OrderDetail, now = new Date()): Promise<Result<Order>> {
+export async function customerCancelOrder(db: Db, shop: Shop, customerId: number, orderId: number, detail: OrderDetail, now = new Date(), gateways?: GatewayResolver): Promise<Result<Order>> {
   const [order] = await db.select().from(orders).where(and(eq(orders.shopId, shop.id), eq(orders.id, orderId), eq(orders.customerId, customerId))).limit(1);
   if (!order) return errR(['orderId'], 'Order does not exist', 'NOT_FOUND');
   const a = await orderActionsFor(db, shop, order, detail, now);
   if (!a.cancel) return errR(['orderId'], 'This order can no longer be cancelled', 'INVALID');
   const { received, refunded } = paidAmounts(detail.transactions);
-  const r = await cancelOrder(db, shop.id, orderId, { reason: 'CUSTOMER', restock: true, refund: received - refunded > 0, staffNote: 'Cancelled by the customer from their account' });
+  const r = await cancelOrder(db, shop.id, orderId, { reason: 'CUSTOMER', restock: true, refund: received - refunded > 0, staffNote: 'Cancelled by the customer from their account', gateways });
   if (r.ok) await addEvent(db, shop.id, { subjectType: 'customer', subjectId: customerId, verb: 'customer.order_cancelled', message: `Cancelled order ${order.name} from their account`, data: { orderId } });
   return r;
 }

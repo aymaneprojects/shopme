@@ -34,7 +34,7 @@ function stripeCharge(gw: StripeGateway | null): OffSessionCharge | null {
 export async function billContract(app: FastifyInstance, shop: Shop, contractId: number, opts: Omit<BillOptions, 'charge' | 'refund'> = {}): Promise<BillingOutcome> {
   const ctx = app.ctx;
   const gw = await stripeOf(app, shop.id);
-  const out = await billSubscriptionContract(ctx.db, shop, contractId, { ...opts, charge: stripeCharge(gw), refund: gw ? (id, amount, key) => gw.refund(id, amount, key) : null });
+  const out = await billSubscriptionContract(ctx.db, shop, contractId, { ...opts, charge: stripeCharge(gw), refund: gw ? async (id, amount, key) => { await gw.refund(id, amount, key); } : null });
   if (out.status === 'ordered') {
     for (const job of ['order.confirmation-email', 'order.staff-email', 'order.fulfillment-request']) ctx.queue.enqueue(job, { shopId: shop.id, orderId: out.orderId });
   } else if (out.status === 'failed') {

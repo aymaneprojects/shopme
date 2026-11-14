@@ -6,6 +6,9 @@ import { addEvent } from '../events';
 import { configOf } from '../settings/config';
 import { revertOrderStoreCredit } from '../store-credit';
 import type { Db } from '../../db/client';
+import { getOrderDetail } from '../orders/orders';
+import { refundOrder } from '../orders/refunds';
+import { voidableOf, voidTransaction } from '../orders/void';
 
 /**
  * Payment methods offered at checkout: enabled manual methods, merchant-defined manual methods and redirect gateways, the test gateway
@@ -93,4 +96,45 @@ export async function recordPaymentFailure(db: Executor, shopId: number, orderId
   // Store credit the order already spent goes back to the buyer (the payment for the rest did not go through).
   const back = await revertOrderStoreCredit(db as unknown as Db, shopId, orderId);
   if (back > 0) await addEvent(db, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.store_credit_restored', message: 'Store credit was restored after the payment failed', data: { amount: back } });
+}
+
+
+/**
+ * Mirror refunds made at the provider (Stripe dashboard) that ShopMe has not recorded: one refund without lines and a REFUND transaction per
+ * provider refund id. Refunds ShopMe created itself carry their provider id in `paymentId` and are skipped, so duplicate deliveries and our
+ * own refunds are no-ops. Provider amounts are in the charge currency; the transaction is recorded in shop money. Returns how many were added.
+ */
+export async function mirrorProviderRefunds(db: Db, shopId: number, orderId: number, gateway: string, list: { id: string; amount: number; status?: string | null }[]): Promise<number> {
+  const live = list.filter((r) => r.amount > 0 && (r.status == null || r.status === 'succeeded' || r.status === 'pending'));
+  if (!live.length) return 0;
+  return db.transaction(async (tx) => {
+    // Serialised with ShopMe's own refunds (they lock the order too): a refund made here is recorded before this looks for its id.
+    await tx.select({ id: s.orders.id }).from(s.orders).where(and(eq(s.orders.id, orderId), eq(s.orders.shopId, shopId))).for('update');
+    const txs = (await getOrderDetail(tx, shopId, orderId)).transactions;
+    const known = new Set(txs.filter((t) => t.kind === 'REFUND' && t.paymentId).map((t) => t.paymentId));
+    const fresh = live.filter((r) => !known.has(r.id));
+    const parent = txs.find((t) => ['SALE', 'CAPTURE'].includes(t.kind) && t.status === 'SUCCESS' && t.gateway === gateway);
+    if (!fresh.length || !parent) return 0;
+    const shopMoney = (amount: number) => (parent.presentmentAmount && parent.presentmentAmount > 0 ? Math.round((amount * parent.amount) / parent.presentmentAmount) : amount);
+    const r = await refundOrder(tx as unknown as Db, shopId, orderId, {
+      note: 'Refunded from the payment provider', allowOverRefunding: true,
+      transactions: fresh.map((f) => ({ amount: shopMoney(f.amount), gateway, parentId: parent.id, paymentId: f.id })),
+    });
+    return r.ok ? fresh.length : 0;
+  });
+}
+
+/** The provider cancelled the payment: an authorised order is voided without calling the provider again (no-op once voided or captured). */
+export async function recordPaymentCanceled(db: Db, shopId: number, orderId: number): Promise<boolean> {
+  const auth = voidableOf((await getOrderDetail(db, shopId, orderId)).transactions)[0];
+  if (!auth) return false;
+  return (await voidTransaction(db, shopId, { parentTransactionId: auth.id })).ok;
+}
+
+/** A buyer disputed the payment: a note on the order timeline, once per dispute id. */
+export async function recordDispute(db: Executor, shopId: number, orderId: number, d: { id: string; amount?: number | null; currency?: string | null; reason?: string | null }): Promise<boolean> {
+  const seen = await db.select({ data: s.events.data }).from(s.events).where(and(eq(s.events.shopId, shopId), eq(s.events.subjectType, 'order'), eq(s.events.subjectId, orderId), eq(s.events.verb, 'order.dispute_created')));
+  if (seen.some((e) => e.data?.disputeId === d.id)) return false;
+  await addEvent(db, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.dispute_created', message: `Payment disputed${d.reason ? ` (${d.reason.replace(/_/g, ' ')})` : ''}: respond in the Stripe dashboard`, data: { disputeId: d.id, amount: d.amount ?? null, currency: d.currency ?? null, reason: d.reason ?? null } });
+  return true;
 }
