@@ -1,10 +1,10 @@
-import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
-  attachContractPaymentMethod, contractsForOrder, getShopStripeKeys, shopOfPayment, availablePaymentMethods, configOf, findOrderIdByName, markOrderAuthorized, cleanAddress, findOrderIdByPayment, getDefaultAddress, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
+  attachContractPaymentMethod, contractsForOrder, getShopStripeKeys, shopOfPayment, availablePaymentMethods, configOf, findOrderIdByName, gatewaySecretOf, markOrderAuthorized, mirrorProviderRefunds, recordPaymentCanceled, recordDispute, cleanAddress, findOrderIdByPayment, getDefaultAddress, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
   accountsModeOf, sendFulfillmentRequests, sendSms, checkoutSettingsOf, customerAccountsSettingsOf, orderVars, renderSubscriptionConfirmation, privacySettingsOf, type Customer, type Mail, recordOrderEmail, sendNotification, sendStaffNewOrder, shippableCountries, splitContact, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutSettings, type CheckoutError, type CheckoutView, type Shop,
 } from '@shopme/core';
-import { createStripeGateway, fillRedirectUrl, readSetting, verifyPaymentWebhook, type StripeGateway } from '@shopme/payments';
+import { createStripeAdmin, createStripeGateway, fillRedirectUrl, STRIPE_WEBHOOK_EVENTS, readSetting, verifyPaymentWebhook, type StripeAdmin, type StripeGateway } from '@shopme/payments';
 import { parseMoney } from '@shopme/shopify-compat';
 import type { AppContext } from '../context';
 import type { SubscriptionNotifyJob } from '../subscriptions';
@@ -19,9 +19,22 @@ import { checkoutPage, discountMessage, inCurrency, notFoundPage, pageCtx, shipp
  * `stripe`: the installation's gateway (STRIPE_* env); mutable on purpose: tests replace it with a gateway backed by a fake client.
  * `forShop`: the gateway of one store: its own keys (Settings > Payments) when saved, else the installation's.
  */
-export interface CheckoutPayments { stripe: StripeGateway | null; forShop(shopId: number): Promise<StripeGateway | null> }
+export interface CheckoutPayments {
+  stripe: StripeGateway | null; forShop(shopId: number): Promise<StripeGateway | null>;
+  /** Account-level Stripe client for a secret key (saving keys: validation, webhook endpoint, wallet domains); mutable so tests inject a fake. */
+  admin: (secretKey: string) => StripeAdmin;
+}
 declare module 'fastify' { interface FastifyInstance { checkoutPayments: CheckoutPayments } }
 
+/**
+ * Idempotency key of the PaymentIntent of a checkout: the same submit (double click, retry) maps to the same intent, a changed cart (other
+ * amount or currency) or other intent parameters get a new one. Stripe refuses one key with different parameters, hence the fingerprint.
+ */
+export function paymentIntentKey(token: string, p: { amount: number; currency: string; captureMethod?: string; email?: string | null; customer?: string }): string {
+  const fingerprint = createHash('sha256').update(JSON.stringify([p.amount, p.currency.toUpperCase(), p.captureMethod ?? 'automatic', p.email ?? '', p.customer ?? ''])).digest('hex').slice(0, 20);
+  return `pi-${token}-${fingerprint}`;
+}
+const STRIPE_EVENTS: string[] = [...STRIPE_WEBHOOK_EVENTS];
 type Body = Record<string, any>;
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 
@@ -80,6 +93,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
   const ownGateways = new Map<number, { sig: string; gw: StripeGateway | null }>();
   const payments: CheckoutPayments = {
     stripe: createStripeGateway(config.stripe),
+    admin: (secretKey) => createStripeAdmin(secretKey),
     async forShop(shopId) {
       const keys = await getShopStripeKeys(db, shopId, config.sessionSecret);
       if (!keys) return payments.stripe;
@@ -189,17 +203,28 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       let event;
       try { event = gateway.verifyWebhook(req.body as string, sig); } catch { return reply.code(400).send({ error: 'Invalid signature' }); }
       const pi = event.data.object;
-      if ((event.type === 'payment_intent.succeeded' || event.type === 'payment_intent.payment_failed' || event.type === 'payment_intent.amount_capturable_updated') && typeof pi.id === 'string') {
+      const isIntent = event.type.startsWith('payment_intent.');
+      // Charge and dispute events name their PaymentIntent; payment_intent events are the PaymentIntent.
+      const paymentId = isIntent ? pi.id : pi.payment_intent;
+      if (STRIPE_EVENTS.includes(event.type) && typeof paymentId === 'string') {
         // Shared installation keys and no store in the request (multi-store): the payment's own store.
-        if (!shop && config.multiStore && gateway === app.checkoutPayments.stripe) shop = await shopOfPayment(db, pi.id);
+        if (!shop && config.multiStore && gateway === app.checkoutPayments.stripe) shop = await shopOfPayment(db, paymentId);
         if (!shop) return { received: true };
-        const orderId = await findOrderIdByPayment(db, shop.id, pi.id);
+        const orderId = await findOrderIdByPayment(db, shop.id, paymentId);
         if (orderId) {
-          if (event.type !== 'payment_intent.payment_failed') await rememberCard(shop.id, orderId, pi);
-          if (event.type === 'payment_intent.amount_capturable_updated') { if (await markOrderAuthorized(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id })) { enqueueEmails(shop.id, orderId); await enqueueSubscriptionEmails(shop.id, orderId); } }
-          else if (event.type === 'payment_intent.succeeded') { if (await markOrderPaid(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id })) { enqueueEmails(shop.id, orderId); await enqueueSubscriptionEmails(shop.id, orderId); } }
-          else await recordPaymentFailure(db, shop.id, orderId, { gateway: 'stripe', paymentId: pi.id, message: pi.last_payment_error?.message });
-        } else ctx.log.warn({ paymentIntent: pi.id }, 'stripe webhook for an unknown payment');
+          if (isIntent && event.type !== 'payment_intent.payment_failed' && event.type !== 'payment_intent.canceled') await rememberCard(shop.id, orderId, pi);
+          if (event.type === 'payment_intent.amount_capturable_updated') { if (await markOrderAuthorized(db, shop.id, orderId, { gateway: 'stripe', paymentId })) { enqueueEmails(shop.id, orderId); await enqueueSubscriptionEmails(shop.id, orderId); } }
+          else if (event.type === 'payment_intent.succeeded') { if (await markOrderPaid(db, shop.id, orderId, { gateway: 'stripe', paymentId })) { enqueueEmails(shop.id, orderId); await enqueueSubscriptionEmails(shop.id, orderId); } }
+          else if (event.type === 'payment_intent.canceled') await recordPaymentCanceled(db, shop.id, orderId);
+          else if (event.type === 'charge.refunded') {
+            // Newer API versions leave the refund list out of the charge (and the embedded list is cut at 10): ask Stripe then. A failure answers 500 so Stripe retries.
+            const embedded = pi.refunds;
+            const list = Array.isArray(embedded?.data) && !embedded.has_more ? embedded.data : await gateway.listRefunds(paymentId);
+            await mirrorProviderRefunds(db, shop.id, orderId, 'stripe', list);
+          }
+          else if (event.type === 'charge.dispute.created') await recordDispute(db, shop.id, orderId, { id: pi.id, amount: pi.amount, currency: pi.currency, reason: pi.reason });
+          else await recordPaymentFailure(db, shop.id, orderId, { gateway: 'stripe', paymentId, message: pi.last_payment_error?.message });
+        } else ctx.log.warn({ paymentIntent: paymentId }, 'stripe webhook for an unknown payment');
       }
       return { received: true };
     };
@@ -215,7 +240,8 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       const { gatewayId } = req.params as { gatewayId: string };
       const gw = shop ? configOf(shop, 'PAYMENTS').redirectGateways.find((g) => g.id === gatewayId) : undefined;
       const sig = req.headers['x-shopme-signature'];
-      if (!shop || !gw || !gw.secret || typeof sig !== 'string' || !verifyPaymentWebhook(gw.secret, req.body as string, sig)) return reply.code(400).send({ error: 'Invalid signature' });
+      const secret = gw ? gatewaySecretOf(gw.secret, config.sessionSecret) : '';
+      if (!shop || !gw || !secret || typeof sig !== 'string' || !verifyPaymentWebhook(secret, req.body as string, sig)) return reply.code(400).send({ error: 'Invalid signature' });
       let body: { reference?: unknown; status?: unknown };
       try { body = JSON.parse(req.body as string); } catch { return reply.code(400).send({ error: 'Invalid JSON' }); }
       const orderId = typeof body.reference === 'string' ? await findOrderIdByName(db, shop.id, body.reference, `redirect:${gw.id}`) : null;
@@ -376,7 +402,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
           // Subscriptions: the card is saved on a Stripe customer for the renewals (Stripe keeps the card; we keep its ids).
           const subscribing = view.lines.some((l) => l.sellingPlan);
           const customer = subscribing ? await stripe.createCustomer({ email: view.email, name: [view.address?.firstName, view.address?.lastName].filter(Boolean).join(' ') || null, reference: token, idempotencyKey: `customer-${token}` }) : undefined;
-          const pi = await stripe.createPaymentIntent({ amount: view.amountDue, currency: view.currency, reference: token, email: view.email, description: `${shop.name} checkout`, idempotencyKey: randomUUID(), captureMethod, ...(customer && { setupFutureUsage: 'off_session' as const, customer }) });
+          const pi = await stripe.createPaymentIntent({ amount: view.amountDue, currency: view.currency, reference: token, email: view.email, description: `${shop.name} checkout`, idempotencyKey: paymentIntentKey(token, { amount: view.amountDue, currency: view.currency, captureMethod, email: view.email, customer }), captureMethod, ...(customer && { setupFutureUsage: 'off_session' as const, customer }) });
           clientSecret = pi.clientSecret;
           return pi.id;
         },
