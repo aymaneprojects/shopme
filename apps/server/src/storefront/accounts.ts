@@ -3,6 +3,7 @@ import {
   changeContractStatus, getCustomerSubscriptionContract, type ContractAction, accountsModeOf, addCustomerAddress, addItems, authenticateCustomer, customerAccountsSettingsOf, customerCancelOrder, customerRequestReturn, getOrCreateCart, orderActionsFor, renderLoginCode, requestLoginCode, returnableQuantities, verifyLoginCode, createCustomerSession, deleteCustomerAddress, destroySession, getCustomerOrder, isCustomerTokenValid, registerCustomer, renderAccountActivation, renderPasswordReset,
   requestPasswordReset, setPasswordWithToken, updateCustomerAddress, type Customer, type CustomerAddressInput, type Mail, type Shop,
 } from '@shopme/core';
+import { gatewaysFor } from '../payments-gateways';
 import type { AppContext } from '../context';
 import { countryOptions, PROVINCES } from '../checkout/geo';
 import { FailureLimiter } from '../plugins/rate-limit';
@@ -260,7 +261,7 @@ export function registerAccountRoutes(app: FastifyInstance, ctx: AppContext, con
     if (!customer) return back(reply, '/account/login');
     const found = await ownOrder(req, shop, customer);
     if (!found) return notFound(req, reply, shop);
-    const r = await customerCancelOrder(db, shop, customer.id, found.order.id, found.detail);
+    const r = await customerCancelOrder(db, shop, customer.id, found.order.id, found.detail, undefined, await gatewaysFor(app, shop.id));
     return back(reply, `/account/orders/${found.order.id}?notice=${r.ok ? 'cancel_ok' : 'cancel_failed'}`);
   });
   post('/account/orders/:id/return', async (req, reply, shop, body) => {

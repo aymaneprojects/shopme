@@ -6,6 +6,8 @@ import { errR, okR, txResult, type Result } from '../catalog/common';
 import { addEvent } from '../events';
 import { creditStoreCredit, type StoreCreditEvent } from '../store-credit';
 import { getOrder, getOrderDetail, paidAmounts, restockVariant, type Order, type Refund } from './orders';
+import type { GatewayResolver } from './gateways';
+import { voidableOf, voidTransaction } from './void';
 
 export interface RefundLineInput { orderLineId: number; quantity: number; restockType?: 'RETURN' | 'CANCEL' | 'LEGACY_RESTOCK' | 'NO_RESTOCK' | null; locationId?: number | null }
 export interface RefundInput {
@@ -18,7 +20,7 @@ export interface RefundInput {
   /** Explicit refund total in minor units (cancel-with-refund). Otherwise lines + shipping, or the sum of `transactions`. */
   amount?: number;
   /** Refund transactions to record (amounts in minor units). Defaults to one transaction for the refund total. */
-  transactions?: { amount: number; gateway?: string | null; parentId?: number | null }[] | null;
+  transactions?: { amount: number; gateway?: string | null; parentId?: number | null; /** Provider refund id already created elsewhere (a refund made in the provider's dashboard). */ paymentId?: string | null }[] | null;
   allowOverRefunding?: boolean;
   /** Refund part of the amount as store credit for the order's customer (the "Store credit" refund destination). */
   storeCredit?: { amount: number; expiresAt?: Date | null } | null;
@@ -28,16 +30,21 @@ export interface RefundInput {
   notifyCustomer?: boolean;
   processedAt?: Date | null;
   staffId?: number | null;
+  /** Payment providers that move the money (Stripe refunds); without an adapter for a gateway the refund is only recorded. */
+  gateways?: GatewayResolver;
 }
 
 /**
  * Create a refund: line items (with optional restock), shipping, and the REFUND transaction records.
- * ShopMe records the money movement; paying it back through a provider is the payment adapter's job.
+ * Refunds on a gateway that has an adapter (see `GatewayResolver`) are made at the provider first; a provider failure is a user error and
+ * nothing is recorded. Gift card, store credit and manual refunds are only recorded.
  */
 export async function refundOrder(db: Db, shopId: number, orderId: number, input: RefundInput): Promise<Result<{ order: Order; refund: Refund }>> {
   const order = await getOrder(db, shopId, orderId);
   if (!order) return errR(['orderId'], 'Order does not exist');
   return txResult(db, async (tx) => {
+    // Serialise with the Stripe webhook that mirrors refunds: it waits for this refund to be recorded, then finds its provider id.
+    await tx.select({ id: orders.id }).from(orders).where(eq(orders.id, orderId)).for('update');
     const d = await getOrderDetail(tx, shopId, orderId);
     const byId = new Map(d.lines.map((l) => [l.id, l]));
     let computed = 0;
@@ -78,18 +85,32 @@ export async function refundOrder(db: Db, shopId: number, orderId: number, input
       ?? d.transactions.find((t) => ['SALE', 'CAPTURE'].includes(t.kind) && t.status === 'SUCCESS');
     const toCredit = toCreditPre;
     const rest = total - toCredit;
-    const txInputs: { amount: number; gateway?: string | null; parentId?: number | null }[] = [
+    const txInputs: { amount: number; gateway?: string | null; parentId?: number | null; paymentId?: string | null }[] = [
       ...(input.transactions?.length ? input.transactions : rest > 0 ? allocateRefund(d.transactions, rest, sale) : []),
       ...(toCredit > 0 ? [{ amount: toCredit, gateway: 'store_credit', parentId: null }] : []),
     ];
+    // Provider refunds first (the database transaction rolls back when one is refused). The key only depends on the parent payment, what was
+    // already refunded on it and the amount, so retrying a refund that failed half way never pays the buyer twice.
+    const providerIds: (string | null)[] = [];
+    for (const t of txInputs) {
+      const parent = d.transactions.find((x) => x.id === (t.parentId ?? (nonCash(t.gateway) ? -1 : sale?.id ?? -1)));
+      const adapter = parent?.gateway && parent.paymentId && ['SALE', 'CAPTURE'].includes(parent.kind) && parent.status === 'SUCCESS' && !nonCash(parent.gateway) && t.amount > 0 ? input.gateways?.(parent.gateway) : null;
+      if (!parent || !adapter?.refund || t.paymentId) { providerIds.push(null); continue; }
+      const done = d.transactions.filter((x) => x.parentId === parent.id && x.kind === 'REFUND' && x.status === 'SUCCESS').reduce((n, x) => n + x.amount, 0);
+      const charge = order.presentmentMoney && order.total > 0
+        ? { amount: presentmentOfRefund(order, parent, t.amount), currency: order.presentmentCurrency ?? order.currency }
+        : { amount: t.amount, currency: order.currency };
+      try { providerIds.push((await adapter.refund(parent, charge, `refund-${parent.id}-${done}-${t.amount}`)).id); }
+      catch (e) { return errR(['transactions'], `The payment provider refused the refund: ${(e as Error).message}`, 'INVALID'); }
+    }
     const txRows = txInputs.length
-      ? await tx.insert(transactions).values(txInputs.map((t) => {
+      ? await tx.insert(transactions).values(txInputs.map((t, idx) => {
         const parent = d.transactions.find((x) => x.id === (t.parentId ?? -1));
         const gateway = t.gateway ?? parent?.gateway ?? sale?.gateway ?? 'manual';
         return {
           shopId, orderId, kind: 'REFUND', status: 'SUCCESS', gateway, amount: t.amount, currency: order.currency, test: order.test,
           ...(order.presentmentMoney && order.total > 0 ? { presentmentAmount: presentmentOfRefund(order, parent, t.amount), presentmentCurrency: order.presentmentCurrency } : {}),
-          parentId: t.parentId ?? (nonCash(gateway) ? null : sale?.id ?? null), giftCardId: gateway === 'gift_card' ? parent?.giftCardId ?? null : null, processedAt: now, createdAt: now,
+          parentId: t.parentId ?? (nonCash(gateway) ? null : sale?.id ?? null), paymentId: t.paymentId ?? providerIds[idx] ?? null, giftCardId: gateway === 'gift_card' ? parent?.giftCardId ?? null : null, processedAt: now, createdAt: now,
         };
       })).returning()
       : [];
@@ -175,7 +196,7 @@ async function legacyGiftCardId(tx: Parameters<typeof getOrderDetail>[0], shopId
 export const CANCEL_REASONS = ['CUSTOMER', 'DECLINED', 'FRAUD', 'INVENTORY', 'STAFF', 'OTHER'] as const;
 
 export async function cancelOrder(
-  db: Db, shopId: number, id: number, o: { reason: string; restock: boolean; refund?: boolean; staffNote?: string | null; staffId?: number | null; notifyCustomer?: boolean },
+  db: Db, shopId: number, id: number, o: { reason: string; restock: boolean; refund?: boolean; staffNote?: string | null; staffId?: number | null; notifyCustomer?: boolean; gateways?: GatewayResolver },
 ): Promise<Result<Order>> {
   const cur = await getOrder(db, shopId, id);
   if (!cur) return errR(['orderId'], 'Order does not exist', 'NOT_FOUND');
@@ -185,9 +206,14 @@ export async function cancelOrder(
     if (o.refund) {
       const { received, refunded } = paidAmounts(d.transactions);
       if (received - refunded > 0) {
-        const r = await refundOrder(tx as unknown as Db, shopId, id, { note: o.staffNote ?? 'Order cancelled', amount: received - refunded, staffId: o.staffId, storeCreditEvent: 'ORDER_CANCELLATION' });
+        const r = await refundOrder(tx as unknown as Db, shopId, id, { note: o.staffNote ?? 'Order cancelled', amount: received - refunded, staffId: o.staffId, storeCreditEvent: 'ORDER_CANCELLATION', gateways: o.gateways });
         if (!r.ok) return r;
       }
+    }
+    // Money that was only authorised is released, not refunded.
+    for (const a of voidableOf(d.transactions)) {
+      const v = await voidTransaction(tx as unknown as Db, shopId, { parentTransactionId: a.id, gateways: o.gateways, staffId: o.staffId });
+      if (!v.ok) return errR(['orderId'], v.errors[0]?.message ?? 'The authorization could not be released', 'INVALID');
     }
     if (o.restock) for (const l of d.lines) { const open = l.currentQuantity - l.fulfilledQuantity; await restockVariant(tx, shopId, l.variantId, open, null, `shopme://orders/${cur.name}`, open); }
     const fresh = (await getOrder(tx, shopId, id))!;

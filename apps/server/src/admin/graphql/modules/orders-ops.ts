@@ -5,6 +5,7 @@ import {
 } from '@shopme/core';
 import { eq } from 'drizzle-orm';
 import { formatDecimal, parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
+import { gatewaysFor } from '../../../payments-gateways';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
 import { definePayload } from '../types/errors';
@@ -120,7 +121,7 @@ builder.mutationFields((t) => ({
   shopmeOrdersCapture: t.field({
     type: BulkPayload('ShopmeOrdersCapturePayload'), args: { ids: t.arg.idList({ required: true }) },
     description: 'Captures the authorised payments of several orders.',
-    resolve: (_r, a, ctx) => { requireScope(ctx, 'write_orders'); return eachOrder(ctx, a.ids, (id) => captureOrderPayments(ctx.db, ctx.shopId, id, staffId(ctx))); },
+    resolve: async (_r, a, ctx) => { requireScope(ctx, 'write_orders'); const gateways = await gatewaysFor(ctx.request.server, ctx.shopId); return eachOrder(ctx, a.ids, (id) => captureOrderPayments(ctx.db, ctx.shopId, id, staffId(ctx), gateways)); },
   }),
 }));
 
