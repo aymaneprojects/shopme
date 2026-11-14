@@ -5,7 +5,7 @@
  */
 import {
   applyCustomsDefaults, shippingByMarket, generatePolicies, applyTaxPreset, carrierProviders, configOf, createRole, deleteRole, getShop, getStaff, importStaff, listLocalDeliveries, listRoles, markLocalDelivery, sendNotification,
-  setLocaleDomain, smsTemplateError, sendSms, TAX_PRESETS, taxRegions, updateConfig, updateRole, writeBackup, schema, type ConfigKey, CONFIG_KEYS, isVerifiedShopDomain, deleteStoreData } from '@shopme/core';
+  setLocaleDomain, smsTemplateError, sendSms, TAX_PRESETS, taxRegions, updateConfig, openGatewaySecrets, updateRole, writeBackup, schema, type ConfigKey, CONFIG_KEYS, isVerifiedShopDomain, deleteStoreData } from '@shopme/core';
 import { eq } from 'drizzle-orm';
 import { parseId, toGid } from '@shopme/shopify-compat';
 import { builder } from '../builder';
@@ -24,7 +24,8 @@ builder.queryFields((t) => ({
       requireScope(ctx, 'read_shop');
       const key = a.key.toUpperCase() as ConfigKey;
       if (!CONFIG_KEYS.includes(key)) throw new Error('Unknown configuration block');
-      return configOf((await getShop(ctx.db, ctx.shopId))!, key);
+      const cfg = configOf((await getShop(ctx.db, ctx.shopId))!, key);
+      return key === 'PAYMENTS' ? openGatewaySecrets(cfg, ctx.app.config.sessionSecret) : cfg;
     },
   }),
   shopmeStaffRoles: t.field({ type: 'JSON', resolve: async (_r, _a, ctx) => { requireScope(ctx, 'read_users'); return (await listRoles(ctx.db, ctx.shopId)).map((r) => ({ ...r, id: toGid('ShopmeStaffRole', r.id) })); } }),
@@ -45,7 +46,7 @@ builder.mutationFields((t) => ({
         const sms = ((a.value as { sms?: { templates?: Record<string, { body?: string }> } } | null)?.sms?.templates) ?? {};
         for (const [k, v] of Object.entries(sms)) { const e = smsTemplateError(v?.body ?? ''); if (e) return { value: null, userErrors: [{ field: ['value', 'sms', 'templates', k, 'body'], message: e }] }; }
       }
-      const r = await updateConfig(ctx.db, shop, a.key, a.value, actor(ctx)?.id);
+      const r = await updateConfig(ctx.db, shop, a.key, a.value, actor(ctx)?.id, ctx.app.config.sessionSecret);
       return r.ok ? { value: r.value, userErrors: [] } : { value: null, userErrors: r.errors };
     },
   }),

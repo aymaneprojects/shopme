@@ -5,6 +5,7 @@ import type { Executor } from '../../db/client';
 import { errR, okR, type Result } from '../catalog/common';
 import { addEvent } from '../events';
 import type { Shop } from '../shops';
+import { decryptSecret, encryptSecret } from '../two-factor';
 
 /**
  * Store configuration blocks of Settings (general, orders, payments, shipping, taxes, notifications, checkout, gift cards, returns,
@@ -40,7 +41,8 @@ const orders = z.object({
 
 const CAPTURE = ['automatic', 'manual'] as const;
 const customMethod = z.object({ id: id, name: text(80).min(1, 'Name is required'), instructions: text(2000).default(''), enabled: z.boolean().default(true) });
-const redirectGateway = z.object({ id: id, name: text(80).min(1, 'Name is required'), redirectUrl: url, secret: text(200).default(''), enabled: z.boolean().default(true) });
+export const GATEWAY_SECRET_MAX = 200;
+const redirectGateway = z.object({ id: id, name: text(80).min(1, 'Name is required'), redirectUrl: url, /** Stored encrypted (see `sealGatewaySecrets`); the plain secret is at most GATEWAY_SECRET_MAX characters. */ secret: text(700).default(''), enabled: z.boolean().default(true) });
 const PAY_ACTIONS = ['hide', 'rename', 'move_first'] as const;
 const paymentRule = z.object({
   id: id, name: text(80).min(1, 'Name is required'), enabled: z.boolean().default(true), action: z.enum(PAY_ACTIONS),
@@ -156,6 +158,18 @@ export type DocumentsConfig = ConfigOf<'DOCUMENTS'>;
 
 export const isConfigKey = (k: string): k is ConfigKey => k in CONFIG_SCHEMAS;
 
+/** The plain value of a stored redirect gateway secret: decrypted, or as is for a legacy value saved before secrets were encrypted. */
+export const gatewaySecretOf = (stored: string, key: string): string => (stored ? decryptSecret(stored, key) ?? stored : '');
+
+const mapGatewaySecrets = <T>(cfg: T, fn: (secret: string) => string): T => {
+  const c = cfg as unknown as { redirectGateways?: { secret: string }[] };
+  return Array.isArray(c.redirectGateways) ? { ...c, redirectGateways: c.redirectGateways.map((g) => ({ ...g, secret: fn(g.secret) })) } as unknown as T : cfg;
+};
+/** PAYMENTS block as stored -> with the redirect gateway secrets in the clear (for the code that uses or shows them). */
+export const openGatewaySecrets = <T>(cfg: T, key: string): T => mapGatewaySecrets(cfg, (s) => gatewaySecretOf(s, key));
+/** PAYMENTS block to store: redirect gateway secrets encrypted with the same helpers as the Stripe keys (idempotent). */
+export const sealGatewaySecrets = <T>(cfg: T, key: string): T => mapGatewaySecrets(cfg, (s) => (s && decryptSecret(s, key) === null ? encryptSecret(s, key) : s));
+
 /** A configuration block with defaults filled in. A stored value that no longer validates falls back to the defaults. */
 export function configOf<K extends ConfigKey>(shop: Pick<Shop, 'settings'>, key: K): ConfigOf<K> {
   const stored = ((shop.settings.config ?? {}) as Record<string, unknown>)[key.toLowerCase()];
@@ -166,17 +180,27 @@ export function configOf<K extends ConfigKey>(shop: Pick<Shop, 'settings'>, key:
 const problem = (e: z.ZodError) => { const i = e.issues[0]!; return { field: i.path.map(String), message: i.message }; };
 
 /** Replace a block. The whole block is validated; the first problem comes back with its path. */
-export async function updateConfig(db: Executor, shop: Shop, key: string, value: unknown, staffId?: number | null): Promise<Result<unknown>> {
+export async function updateConfig(db: Executor, shop: Shop, key: string, value: unknown, staffId?: number | null, secretKey?: string): Promise<Result<unknown>> {
   const k = key.toUpperCase();
   if (!isConfigKey(k)) return errR(['key'], 'Unknown configuration block', 'INVALID');
   const r = CONFIG_SCHEMAS[k].safeParse(value ?? {});
   if (!r.success) { const p = problem(r.error); return errR(['value', ...p.field], p.message, 'INVALID'); }
   const dup = findDuplicateIds(r.data as Record<string, unknown>);
   if (dup) return errR(['value', dup], 'Identifiers must be unique', 'TAKEN');
-  const config = { ...((shop.settings.config ?? {}) as Record<string, unknown>), [k.toLowerCase()]: r.data };
+  // Redirect gateway secrets are written encrypted (when the caller has the key) and handed back in the clear.
+  let stored: unknown = r.data;
+  let result: unknown = r.data;
+  if (k === 'PAYMENTS' && secretKey) {
+    const open = openGatewaySecrets(r.data as PaymentsConfig, secretKey);
+    const long = open.redirectGateways.findIndex((g) => g.secret.length > GATEWAY_SECRET_MAX);
+    if (long >= 0) return errR(['value', 'redirectGateways', String(long), 'secret'], `Must be at most ${GATEWAY_SECRET_MAX} characters`, 'INVALID');
+    stored = sealGatewaySecrets(open, secretKey);
+    result = open;
+  }
+  const config = { ...((shop.settings.config ?? {}) as Record<string, unknown>), [k.toLowerCase()]: stored };
   await db.update(shops).set({ settings: { ...shop.settings, config }, updatedAt: new Date() }).where(eq(shops.id, shop.id));
   await addEvent(db, shop.id, { subjectType: 'shop', subjectId: shop.id, verb: 'shop.updated', message: `Settings were updated (${k.toLowerCase().replace('_', ' ')})`, authorStaffUserId: staffId });
-  return okR(r.data);
+  return okR(result);
 }
 
 function findDuplicateIds(v: Record<string, unknown>): string | null {
