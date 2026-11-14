@@ -11,6 +11,8 @@ export interface ShopAddress { company?: string | null; address1?: string | null
 export interface PaymentSettings {
   manual: { bankTransfer: { enabled: boolean; instructions: string }; cod: { enabled: boolean } };
   stripe: { enabled: boolean };
+  paypal: { enabled: boolean };
+  mollie: { enabled: boolean };
 }
 
 export const shopAddressOf = (s: Shop): ShopAddress => ({ countryCode: s.country, ...((s.settings.address as ShopAddress | undefined) ?? {}) });
@@ -25,10 +27,12 @@ export const storefrontOf = (s: Shop) => ({
 });
 
 export function paymentSettingsOf(s: Shop): PaymentSettings {
-  const p = (s.settings.payments ?? {}) as { manual?: { bankTransfer?: { enabled?: boolean; instructions?: string }; cod?: { enabled?: boolean } }; stripe?: { enabled?: boolean } };
+  const p = (s.settings.payments ?? {}) as { manual?: { bankTransfer?: { enabled?: boolean; instructions?: string }; cod?: { enabled?: boolean } }; stripe?: { enabled?: boolean }; paypal?: { enabled?: boolean }; mollie?: { enabled?: boolean } };
   return {
     manual: { bankTransfer: { enabled: !!p.manual?.bankTransfer?.enabled, instructions: p.manual?.bankTransfer?.instructions ?? '' }, cod: { enabled: !!p.manual?.cod?.enabled } },
     stripe: { enabled: !!p.stripe?.enabled },
+    paypal: { enabled: !!p.paypal?.enabled },
+    mollie: { enabled: !!p.mollie?.enabled },
   };
 }
 
@@ -102,9 +106,11 @@ export async function updateShopSettings(db: Db, shopId: number, input: ShopSett
   return okR(row!);
 }
 
-export interface PaymentSettingsInput { bankTransfer?: { enabled?: boolean | null; instructions?: string | null } | null; cod?: { enabled?: boolean | null } | null; stripe?: { enabled?: boolean | null } | null }
+export interface PaymentSettingsInput { bankTransfer?: { enabled?: boolean | null; instructions?: string | null } | null; cod?: { enabled?: boolean | null } | null; stripe?: { enabled?: boolean | null } | null; paypal?: { enabled?: boolean | null } | null; mollie?: { enabled?: boolean | null } | null }
+/** What is configured for the store: enabling PayPal or Mollie is refused without saved credentials. */
+export interface PaymentConfigured { stripe: boolean; paypal?: boolean; mollie?: boolean }
 
-export async function updatePaymentSettings(db: Db, shopId: number, input: PaymentSettingsInput, stripeConfigured: boolean): Promise<Result<PaymentSettings>> {
+export async function updatePaymentSettings(db: Db, shopId: number, input: PaymentSettingsInput, configured: boolean | PaymentConfigured): Promise<Result<PaymentSettings>> {
   const [cur] = await db.select().from(shops).where(eq(shops.id, shopId));
   if (!cur) return errR(null, 'Shop not found');
   const p = paymentSettingsOf(cur);
@@ -112,7 +118,12 @@ export async function updatePaymentSettings(db: Db, shopId: number, input: Payme
   if (input.bankTransfer?.instructions != null) p.manual.bankTransfer.instructions = input.bankTransfer.instructions;
   if (input.cod?.enabled != null) p.manual.cod.enabled = input.cod.enabled;
   if (input.stripe?.enabled != null) p.stripe.enabled = input.stripe.enabled;
-  if (p.stripe.enabled && !stripeConfigured) return errR(['stripe', 'enabled'], 'Stripe is not configured: set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY on the server');
+  if (input.paypal?.enabled != null) p.paypal.enabled = input.paypal.enabled;
+  if (input.mollie?.enabled != null) p.mollie.enabled = input.mollie.enabled;
+  const cfgd: PaymentConfigured = typeof configured === 'boolean' ? { stripe: configured } : configured;
+  if (input.paypal?.enabled && !cfgd.paypal) return errR(['paypal', 'enabled'], 'PayPal is not configured: save the PayPal credentials of the store first');
+  if (input.mollie?.enabled && !cfgd.mollie) return errR(['mollie', 'enabled'], 'Mollie is not configured: save the Mollie API key of the store first');
+  if (p.stripe.enabled && !cfgd.stripe) return errR(['stripe', 'enabled'], 'Stripe is not configured: set STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY on the server');
   if (p.manual.bankTransfer.enabled && !p.manual.bankTransfer.instructions.trim()) return errR(['bankTransfer', 'instructions'], 'Payment instructions are required for bank transfer');
   await db.update(shops).set({ settings: { ...cur.settings, payments: p }, updatedAt: new Date() }).where(eq(shops.id, shopId));
   return okR(p);

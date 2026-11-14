@@ -25,6 +25,8 @@ Stock is re-checked at submit and committed (available -> committed) inside the 
 | `payments.manual.bankTransfer` `{ enabled, instructions }` | enabled, empty instructions (shown on the thank-you page and in the email) |
 | `payments.manual.cod` `{ enabled }` | enabled |
 | `payments.stripe` `{ enabled }` | enabled, but only offered when all three env vars below are set |
+| `payments.paypal` `{ enabled }` | disabled; offered only when enabled and the store saved PayPal credentials |
+| `payments.mollie` `{ enabled }` | disabled; offered only when enabled and the store saved a Mollie API key |
 
 Env: `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` (the installation's Stripe account, used by every store without keys of its own).
 
@@ -79,7 +81,7 @@ gateway (manual, gift card, store credit, ...) money movements are only recorded
   `orderCancel` on an authorized order releases the authorization the same way and keeps the order when the provider refuses.
 - **Capture** (`orderCapture`, bulk capture): collects at Stripe before recording the capture.
 
-A new provider (PayPal, Mollie) is one more adapter returned by `gatewaysFor` for its gateway name.
+PayPal and Mollie are two more adapters returned by `gatewaysFor` (see below); another provider is one more adapter for its gateway name.
 
 Manual methods create the order as PENDING; the confirmation and staff emails are queued immediately. Orders totalling 0 are PAID.
 
@@ -97,11 +99,83 @@ Settings blocks live in `shops.settings.config.<key>` and are read and written t
   `{order} {reference} {amount} {currency} {email} {return_url}`. The provider confirms with `POST /webhooks/payments/<id>` and the JSON body
   `{"reference": "<order name>", "status": "paid" | "failed"}`, signed as hex HMAC-SHA256 of the raw body in `X-ShopMe-Signature` with the gateway secret.
 - `PAYMENTS.customizations`: rules that hide, rename or move a method to the top for a country list and an order-total range.
-- PayPal and Mollie are not built in: both need provider-specific signed callbacks. A redirect gateway in front of their payment links works when
-  the provider (or a small relay) can sign the confirmation.
 
 Carrier-calculated shipping rates ask a provider registered in `packages/core/src/services/shipping/carriers.ts`. `demo_flat` computes
 `base + perKg * started kilograms`; `http` POSTs `{service, grams, subtotal, destination}` to a carrier account of `SHIPPING.carrierAccounts`
 (bearer secret) and reads `{"price": <minor units>}` (`null`: no offer). The rate price is the fallback when the carrier does not answer.
 The same endpoint can also sell shipping labels, and a built-in `test` carrier quotes sample prices and makes fake labels: see
 [Carrier accounts: rates and shipping labels](carrier-labels.md) for the full request and response JSON.
+
+## PayPal and Mollie
+
+Both are per store only (no environment fallback) and work as "create the order, send the buyer to the provider, confirm by webhook". Adapters:
+`packages/payments/src/paypal.ts` and `mollie.ts` (see `packages/payments/README.md`); wiring: `apps/server/src/checkout/index.ts` (options, `complete`),
+`apps/server/src/checkout/hosted-providers.ts` (return pages and webhooks), `apps/server/src/payments-gateways.ts` (refund / capture / void).
+
+### Credentials (Settings > Payments, server endpoints)
+
+Encrypted in `shop_secrets` like the Stripe keys (`paypal_*`, `mollie_api_key`). `GET` returns the status only (never a secret), `PUT` validates for real and answers
+422 with the provider's reason (nothing is stored), `DELETE` removes the credentials and switches the method off. Same auth and multi-store handling as Stripe.
+
+| Endpoint | Body of `PUT` | Status fields |
+| --- | --- | --- |
+| `/admin/api/store/payments/paypal` | `{ clientId, clientSecret, environment: "sandbox" \| "live", webhookId? }` | `configured, environment, testMode, clientIdLast4, clientSecretLast4, webhookId, webhookAutoCreated, webhookUrl` |
+| `/admin/api/store/payments/mollie` | `{ apiKey }` (`test_...` or `live_...`) | `configured, mode, testMode, apiKeyLast4, webhookUrl` |
+
+- PayPal is validated by obtaining an access token, Mollie by listing the methods of the account.
+- PayPal without a `webhookId`: ShopMe creates the webhook (`POST /v1/notifications/webhooks`) for `<APP_URL>/webhooks/paypal` (`/webhooks/paypal/<handle>` in multi-store mode)
+  with the events below, stores its id (`paypal_webhook_managed`) and deletes it when the credentials are replaced by another app or removed (saving the same app again reuses it).
+  On a non-https or local/private `APP_URL` nothing is created and the request fails with 422 (`WEBHOOK_ID_REQUIRED`): create the webhook in the PayPal dashboard and send its id.
+- Mollie webhooks have no setup: the URL is sent with each payment (omitted on a non-public `APP_URL`, where the return page reads the payment instead).
+
+Enable switches: `shopmePaymentSettings { paypal { enabled configured environment } mollie { enabled configured mode } }` and
+`shopmePaymentSettingsUpdate(input: { paypal: { enabled }, mollie: { enabled } })`; enabling without saved credentials is a user error.
+`PAYMENTS.captureMethod` applies to PayPal (`manual` = intent AUTHORIZE, else CAPTURE). Mollie is always automatic capture: manual capture is a card-only
+feature and the Mollie option lets the buyer pick any method on Mollie's page.
+
+### Checkout
+
+The payment step offers "PayPal" and a Mollie option labelled with the enabled method names (`listMethods`, cached 5 minutes per store, "Mollie" when unavailable).
+On complete the provider order / payment is created first (idempotency key `paypal|mollie-<checkout token>-<fingerprint of amount, currency, capture mode, email>`, `hostedPaymentKey`),
+then the order is created PENDING with the provider id as `paymentId` of the SALE transaction, and the buyer is redirected (303, or `redirectUrl` in the JSON answer).
+
+- `GET /checkouts/:token/paypal/return`: captures (or authorizes) server side, then the thank-you page. Safe when the webhook was first or the page is reloaded.
+  A declined capture records a failure and shows a retry page (order stays PENDING).
+- `GET /checkouts/:token/paypal/cancel`: a page with a clear message and a "Pay with PayPal" link (`/paypal/retry`, back to the still open PayPal order). The order stays PENDING.
+- `GET /checkouts/:token/mollie/return`: reads the payment, applies it, then the thank-you page ("payment is being processed" while open; a canceled/expired payment shows a not completed message).
+
+### Webhooks (idempotent, resolved to the store by `/<handle>` in the path or the request host)
+
+`POST /webhooks/paypal[/:handle]`, verified with the adapter (`verify-webhook-signature` against the store's webhook id; otherwise 400):
+
+| Event | Effect |
+| --- | --- |
+| `CHECKOUT.ORDER.APPROVED` | capture / authorize if the order is still PENDING |
+| `PAYMENT.CAPTURE.COMPLETED` | order PAID (SALE `paymentId` becomes the capture id) |
+| `PAYMENT.AUTHORIZATION.CREATED` | order AUTHORIZED (AUTHORIZATION `paymentId` is the authorization id) |
+| `PAYMENT.CAPTURE.DENIED` / `DECLINED` | failed transaction + timeline entry, once per capture id |
+| `PAYMENT.AUTHORIZATION.VOIDED` | an AUTHORIZED order is VOIDED |
+| `PAYMENT.CAPTURE.REFUNDED` | refunds made in PayPal are mirrored (one refund without lines per PayPal refund id) |
+
+`POST /webhooks/mollie[/:handle]` (form body `id=tr_...`, unsigned): the payment is re-fetched with the store's key (`resolveWebhook`) and only that state is used. `paid` marks the order PAID,
+`authorized` AUTHORIZED, `failed`/`expired` records one failure, `canceled` voids an authorized order else records a failure. `amountRefunded` above the REFUND transactions ShopMe holds
+(`mirrorRefundedTotal`) is mirrored as one refund with the id `<payment id>:<total refunded>`, so a repeated delivery adds nothing. A payment that is not of the store's account answers 200 and does nothing.
+A payment whose metadata names another store is ignored.
+
+Not mirrored: a capture of a PayPal authorization made in the PayPal dashboard, and Mollie refunds that fail later.
+
+### Ids stored per transaction
+
+| Provider | Transaction | `paymentId` |
+| --- | --- | --- |
+| PayPal | SALE pending | PayPal order id; after payment the capture id (used for refunds) |
+| PayPal | AUTHORIZATION | authorization id (capture, void); a CAPTURE made from the admin stores the new capture id (refunds) |
+| PayPal | REFUND | PayPal refund id |
+| Mollie | SALE / AUTHORIZATION / CAPTURE / VOID | payment id `tr_...` |
+| Mollie | REFUND | refund id `re_...` (`<payment id>:<total>` for a mirrored dashboard refund) |
+
+`GatewayAdapter.capture` may return `{ id }`, stored as the `paymentId` of the CAPTURE transaction (PayPal needs the capture id to refund).
+
+### Tests
+
+`apps/server/src/hosted-payments.test.ts` injects a fake `fetch` (`app.checkoutPayments.providerFetch`) behind both adapters; `multistore.test.ts` covers isolation between stores.

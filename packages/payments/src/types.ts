@@ -22,4 +22,7 @@ export interface PaymentSettings {
   bankTransfer: { enabled: boolean; instructions: string };
   cod: { enabled: boolean };
   stripe: { enabled: boolean };
+  /** Off until the merchant switches them on (and only offered when the store has saved credentials). */
+  paypal: { enabled: boolean };
+  mollie: { enabled: boolean };
 }

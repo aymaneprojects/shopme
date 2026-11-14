@@ -149,9 +149,9 @@ export function checkoutPage(c0: PageCtx, d: PageData): string {
   const chosen = d.chosenMethod && d.methods.some((m) => m.id === d.chosenMethod) ? d.chosenMethod : d.methods[0]?.id;
   const brands = configOf(c.shop, 'PAYMENTS').cardBrands;
   const payOptions = d.methods.map((m) => {
-    const builtIn = m.id === 'bank_transfer' || m.id === 'cod' || m.id === 'stripe';
+    const builtIn = m.id === 'bank_transfer' || m.id === 'cod' || m.id === 'stripe' || m.id === 'paypal' || m.id === 'mollie';
     const hint = m.id === 'bank_transfer' ? t('bank_transfer_hint') : m.id === 'cod' ? t('cod_hint') : m.id === 'stripe' ? t('stripe_hint')
-      : m.kind === 'test' ? t('test_hint') : m.kind === 'redirect' ? t('redirect_hint') : m.instructions ?? '';
+      : m.kind === 'test' ? t('test_hint') : m.kind === 'redirect' || m.id === 'paypal' || m.id === 'mollie' ? t('redirect_hint') : m.instructions ?? '';
     const panel = m.id === 'stripe' ? '<div id="stripe-element" style="margin-top:12px"></div>' : '';
     const badges = m.id === 'stripe' && brands.length ? `<p class="note" style="margin:8px 0 0">${esc(t('weAccept'))} ${brands.map((b) => `<span class="tag">${esc(BRAND_NAMES[b] ?? b)}</span>`).join(' ')}</p>` : '';
     const label = m.name ?? (builtIn ? t(m.id as 'cod') : t('test'));
@@ -230,7 +230,7 @@ export function checkoutPage(c0: PageCtx, d: PageData): string {
 
 // --- thank you ------------------------------------------------------------------------------------------------------------
 
-export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: string): string {
+export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: string, notice?: { text: string; retryUrl?: string; retryLabel?: string }): string {
   const { t } = c;
   const gateway = o.transactions[0]?.gateway ?? 'free';
   const paid = o.order.financialStatus === 'PAID' || o.order.financialStatus === 'AUTHORIZED';
@@ -254,7 +254,7 @@ export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: stri
     + `<div class="grand"><dt>${esc(t('total'))}</dt><dd>${esc(money(om.total))}</dd></div>`
     + (giftPaid ? `<div><dt>${esc(t('giftCard'))}</dt><dd>-${esc(money(giftPaid))}</dd></div>` : '')
     + (creditPaid ? `<div><dt>${esc(t('storeCredit'))}</dt><dd>-${esc(money(creditPaid))}</dd></div>` : '') + `</dl>`;
-  const online = gateway === 'stripe';
+  const online = gateway === 'stripe' || gateway === 'paypal' || gateway === 'mollie';
   const notes = [
     online && !paid ? `<p>${esc(t('paymentProcessing'))}</p>` : '',
     gateway === 'bank_transfer' && !paid ? `<h3>${esc(t('bankDetails'))}</h3>${bankInstructions ? `<pre style="white-space:pre-wrap;font:inherit">${esc(bankInstructions)}</pre>` : `<p>${esc(t('bankDetailsMissing'))}</p>`}` : '',
@@ -268,7 +268,7 @@ export function thankYouPage(c: PageCtx, o: OrderSummary, bankInstructions: stri
 <div class="co-main">
 <div class="ty-head" data-co="confirmation">${check}<div><p class="ty-note">${esc(t('confirmationNo', { name: o2.name }))}</p>
 <h1>${esc(t('thankYou', { name: a?.firstName ?? '' }).replace(/\s+([,!])/, '$1'))}</h1></div></div>
-<section class="card" data-co="status"><h2>${esc(t(paid ? 'confirmedHeading' : 'confirmedHeadingPending'))}</h2><p>${esc(t('emailSent', { email: o2.email ?? '' }))}</p>${notes}${custom?.instructions && !paid ? `<pre style="white-space:pre-wrap;font:inherit">${esc(custom.instructions)}</pre>` : ''}</section>
+<section class="card" data-co="status"><h2>${esc(t(paid ? 'confirmedHeading' : 'confirmedHeadingPending'))}</h2>${notice ? `<p role="alert" class="note"><strong>${esc(notice.text)}</strong></p>${notice.retryUrl ? `<p><a class="btn" href="${attr(notice.retryUrl)}">${esc(notice.retryLabel ?? '')}</a></p>` : ''}` : ''}<p>${esc(t('emailSent', { email: o2.email ?? '' }))}</p>${notes}${custom?.instructions && !paid ? `<pre style="white-space:pre-wrap;font:inherit">${esc(custom.instructions)}</pre>` : ''}</section>
 <section class="card" data-co="details"><h2>${esc(t('orderDetails'))}</h2><div class="ty-grid">
 <div><h3>${esc(t('contactInfo'))}</h3><p>${esc(o2.email ?? '')}</p></div>
 <div><h3>${esc(t('paymentMethod'))}</h3><p>${esc(methodLabel)} <span class="badge${paid ? ' ok' : ''}">${esc(t(paid ? 'paid' : 'pending'))}</span></p></div>

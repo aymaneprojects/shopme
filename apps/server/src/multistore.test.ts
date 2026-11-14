@@ -474,6 +474,57 @@ describe('exports, backups, webhooks and jobs stay per store', () => {
     expect((await db.select().from(s.orders).where(eq(s.orders.id, orderB)))[0]!.financialStatus).toBe('PAID');
   });
 
+  it('verifies PayPal and Mollie events per store: a store\'s webhook cannot touch another store\'s order', async () => {
+    // A tiny fake of both providers behind the injected fetch: PayPal accepts a signature only when it names the webhook id it was verified against;
+    // each Mollie key only sees its own payments.
+    const mollieOwner: Record<string, string> = { tr_betapay1: 'betakeybetakeybetakeybeta', tr_alphapay1: 'alphakeyalphakeyalphakey' };
+    const res = (status: number, json?: unknown) => ({ ok: status < 400, status, headers: { get: () => null }, text: async () => (json === undefined ? '' : JSON.stringify(json)) });
+    t.app.checkoutPayments.providerFetch = async (url, init) => {
+      const u = new URL(url);
+      if (u.pathname === '/v1/oauth2/token') return res(200, { access_token: 'tok', expires_in: 3000 });
+      if (u.pathname === '/v1/notifications/verify-webhook-signature') { const b = JSON.parse(init.body!); return res(200, { verification_status: b.transmission_sig === `sig-${b.webhook_id}` ? 'SUCCESS' : 'FAILURE' }); }
+      if (u.pathname === '/v2/methods') return res(200, { _embedded: { methods: [] } });
+      const pay = /^\/v2\/payments\/(tr_\w+)$/.exec(u.pathname);
+      if (pay) {
+        const key = init.headers.Authorization!.replace('Bearer test_', '');
+        if (mollieOwner[pay[1]!] !== `${key}`) return res(404, { title: 'Not Found', detail: 'No payment exists' });
+        return res(200, { id: pay[1], status: 'paid', amount: { currency: 'USD', value: '12.00' }, amountRefunded: { currency: 'USD', value: '0.00' }, metadata: { shopId: String(shopB) } });
+      }
+      return res(404, {});
+    };
+    const putPayPal = (handle: string, cookie: string, webhookId: string) => req({ method: 'PUT', url: `/admin/store/${handle}/api/store/payments/paypal`, cookie, payload: { clientId: `client-${handle}`, clientSecret: 'secret-secret', environment: 'sandbox', webhookId } });
+    expect((await putPayPal(A, alice, 'WH-ALPHA')).statusCode).toBe(200);
+    const st = await putPayPal(B, bob, 'WH-BETA');
+    expect(st.json()).toMatchObject({ configured: true, webhookId: 'WH-BETA', webhookUrl: `http://localhost:3000/webhooks/paypal/${B}` });
+    expect(st.body).not.toContain('secret-secret');
+    expect((await req({ method: 'PUT', url: `/admin/store/${A}/api/store/payments/mollie`, cookie: alice, payload: { apiKey: 'test_alphakeyalphakeyalphakey' } })).statusCode).toBe(200);
+    expect((await req({ method: 'PUT', url: `/admin/store/${B}/api/store/payments/mollie`, cookie: bob, payload: { apiKey: 'test_betakeybetakeybetakeybeta' } })).json()).toMatchObject({ configured: true, webhookUrl: `http://localhost:3000/webhooks/mollie/${B}` });
+    // Alice does not see Bob's credentials.
+    expect((await req({ url: `/admin/store/${A}/api/store/payments/paypal`, cookie: alice })).json()).toMatchObject({ webhookId: 'WH-ALPHA', clientIdLast4: 'tore' });
+
+    const orderB = Number(ids.bOrder!.split('/').pop());
+    await db.insert(s.transactions).values({ shopId: shopB, orderId: orderB, kind: 'SALE', status: 'PENDING', gateway: 'paypal', amount: 1200, currency: 'USD', paymentId: 'PPO_BETA_1' } as never);
+    await db.update(s.orders).set({ financialStatus: 'PENDING' }).where(eq(s.orders.id, orderB));
+    const before = await fingerprint(shopB);
+    const event = JSON.stringify({ id: 'WH-EVT-1', event_type: 'PAYMENT.CAPTURE.COMPLETED', resource: { id: 'CAP_BETA_1', supplementary_data: { related_ids: { order_id: 'PPO_BETA_1' } } } });
+    const paypal = (handle: string, sig: string) => t.app.inject({ method: 'POST', url: `/webhooks/paypal/${handle}`, headers: { host: ADMIN, 'content-type': 'application/json', 'paypal-auth-algo': 'a', 'paypal-cert-url': 'https://api.paypal.com/c', 'paypal-transmission-id': 'i', 'paypal-transmission-sig': sig, 'paypal-transmission-time': 't' }, payload: event });
+    // Beta's signature on Alpha's endpoint: rejected. Alpha's own signature with Beta's order: accepted, but Alpha has no such payment.
+    expect((await paypal(A, 'sig-WH-BETA')).statusCode).toBe(400);
+    expect((await paypal(A, 'sig-WH-ALPHA')).statusCode).toBe(200);
+    expect((await fingerprint(shopB)).hash).toBe(before.hash);
+    // Same for Mollie: Beta's payment id posted to Alpha's endpoint is not a payment of Alpha's account.
+    const mollie = (handle: string, id: string) => t.app.inject({ method: 'POST', url: `/webhooks/mollie/${handle}`, headers: { host: ADMIN, 'content-type': 'application/x-www-form-urlencoded' }, payload: `id=${id}` });
+    expect((await mollie(A, 'tr_betapay1')).statusCode).toBe(200);
+    expect((await fingerprint(shopB)).hash).toBe(before.hash);
+    // Beta's own endpoints mark Beta's order paid.
+    expect((await paypal(B, 'sig-WH-BETA')).statusCode).toBe(200);
+    expect((await db.select().from(s.orders).where(eq(s.orders.id, orderB)))[0]!.financialStatus).toBe('PAID');
+    await db.update(s.orders).set({ financialStatus: 'PENDING' }).where(eq(s.orders.id, orderB));
+    await db.insert(s.transactions).values({ shopId: shopB, orderId: orderB, kind: 'SALE', status: 'PENDING', gateway: 'mollie', amount: 1200, currency: 'USD', paymentId: 'tr_betapay1' } as never);
+    expect((await mollie(B, 'tr_betapay1')).statusCode).toBe(200);
+    expect((await db.select().from(s.orders).where(eq(s.orders.id, orderB)))[0]!.financialStatus).toBe('PAID');
+  });
+
   it('fans out outbound webhooks to the store\'s own subscriptions only', async () => {
     const deliveries = await recordDeliveries(db, shopA, { verb: 'products/create', subjectId: Number(ids.aProduct!.split('/').pop()), data: null });
     expect(deliveries.length).toBe(1);

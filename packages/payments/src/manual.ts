@@ -18,11 +18,15 @@ export function parsePaymentSettings(settings: Record<string, unknown>): Payment
   const bt = readSetting(settings, 'payments.manual.bankTransfer');
   const cod = readSetting(settings, 'payments.manual.cod');
   const st = readSetting(settings, 'payments.stripe');
+  const pp = readSetting(settings, 'payments.paypal');
+  const mo = readSetting(settings, 'payments.mollie');
   const enabled = (v: unknown) => !(isObj(v) && v.enabled === false);
   return {
     bankTransfer: { enabled: enabled(bt), instructions: isObj(bt) && typeof bt.instructions === 'string' ? bt.instructions : '' },
     cod: { enabled: enabled(cod) },
     stripe: { enabled: enabled(st) },
+    paypal: { enabled: isObj(pp) && pp.enabled === true },
+    mollie: { enabled: isObj(mo) && mo.enabled === true },
   };
 }
 

@@ -32,6 +32,9 @@ const EN = {
   confirmationNo: 'Confirmation {name}', confirmedHeading: 'Your order is now confirmed', confirmedHeadingPending: 'We received your order', orderDetails: 'Order details', contactInfo: 'Contact information', billingTo: 'Billing address',
   shippingMode: 'Shipping method', needHelp: 'Need help?', contactUs: 'Contact us', returnToStore: 'Continue shopping', termsAndPolicies: 'Terms and policies', sampleProduct: 'Sample product', sampleDefault: 'Default title',
   subscriptionStarted: 'Your subscription has started. Manage it at any time from your account.',
+  paypal: 'PayPal', mollie: 'Mollie', payCancelled: 'Your payment was not completed. Order {name} is waiting for payment and nothing has been charged.',
+  payDeclined: 'PayPal could not complete the payment. Nothing has been charged; you can try again or contact the store.',
+  payNotCompleted: 'The payment was not completed. Order {name} is waiting for payment and nothing has been charged. Contact the store to pay another way.', payRetryPayPal: 'Pay with PayPal',
   fields: { firstName: 'First name', lastName: 'Last name', address1: 'Address', city: 'City', zip: 'Postal code', countryCode: 'Country' },
 };
 type Dict = typeof EN;
@@ -69,6 +72,9 @@ const FR: Dict = {
   confirmationNo: 'Confirmation n° {name}', confirmedHeading: 'Votre commande est maintenant confirmée', confirmedHeadingPending: 'Nous avons bien reçu votre commande', orderDetails: 'Détails de la commande', contactInfo: 'Coordonnées', billingTo: 'Adresse de facturation',
   shippingMode: "Mode d'expédition", needHelp: "Besoin d'aide ?", contactUs: 'Nous contacter', returnToStore: 'Retour à la boutique', termsAndPolicies: 'Conditions générales et politiques', sampleProduct: 'Produit exemple', sampleDefault: 'Titre par défaut',
   subscriptionStarted: 'Votre abonnement a démarré. Gérez-le à tout moment depuis votre compte.',
+  paypal: 'PayPal', mollie: 'Mollie', payCancelled: "Votre paiement n'a pas été finalisé. La commande {name} attend son paiement et rien n'a été débité.",
+  payDeclined: "PayPal n'a pas pu finaliser le paiement. Rien n'a été débité ; vous pouvez réessayer ou contacter la boutique.",
+  payNotCompleted: "Le paiement n'a pas été finalisé. La commande {name} attend son paiement et rien n'a été débité. Contactez la boutique pour payer autrement.", payRetryPayPal: 'Payer avec PayPal',
   fields: { firstName: 'Prénom', lastName: 'Nom', address1: 'Adresse', city: 'Ville', zip: 'Code postal', countryCode: 'Pays' },
 };
 

@@ -6,7 +6,7 @@ import type { OrderTransaction } from './orders';
  */
 export interface GatewayAdapter {
   /** Collect (part of) an authorisation; `amount` in minor units of the transaction currency. */
-  capture?(parent: OrderTransaction, amount: number, idempotencyKey: string): Promise<void>;
+  capture?(parent: OrderTransaction, amount: number, idempotencyKey: string): Promise<void | { id: string | null }>;
   /** Pay back part of a SALE/CAPTURE. `charge` is the amount in minor units of the currency the buyer was charged in. Returns the provider's refund id. */
   refund?(parent: OrderTransaction, charge: { amount: number; currency: string }, idempotencyKey: string): Promise<{ id: string | null }>;
   /** Release an uncaptured authorisation. */
@@ -20,6 +20,7 @@ export type GatewayResolver = (gateway: string) => GatewayAdapter | null;
 export function collectVia(gateways: GatewayResolver | undefined) {
   return gateways ? async (parent: OrderTransaction, amount: number) => {
     const a = parent.gateway && parent.paymentId ? gateways(parent.gateway) : null;
-    if (a?.capture) await a.capture(parent, amount, `capture-${parent.id}-${amount}`);
+    if (a?.capture) { const r = await a.capture(parent, amount, `capture-${parent.id}-${amount}`); return r ? { paymentId: r.id } : undefined; }
+    return undefined;
   } : undefined;
 }

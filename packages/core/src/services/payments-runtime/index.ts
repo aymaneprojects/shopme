@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { manualProviders, parsePaymentSettings, type PaymentProvider } from '@shopme/payments';
 import type { Executor } from '../../db/client';
 import * as s from '../../db/schema';
@@ -15,11 +15,17 @@ import { voidableOf, voidTransaction } from '../orders/void';
  * when switched on, plus Stripe when configured (env) and not switched off. Payment customisation rules then hide, rename or move methods
  * for the destination country and order total (`context`).
  */
-export function availablePaymentMethods(settings: Record<string, unknown>, opts: { stripeConfigured: boolean; context?: { country: string | null; total: number } }): PaymentProvider[] {
+export function availablePaymentMethods(settings: Record<string, unknown>, opts: { stripeConfigured: boolean; /** PayPal credentials saved for the store. */ paypalConfigured?: boolean; /** Mollie API key saved for the store. */ mollieConfigured?: boolean; /** Label of the Mollie option (the names of its enabled methods). */ mollieName?: string; context?: { country: string | null; total: number } }): PaymentProvider[] {
   const parsed = parsePaymentSettings(settings);
   const cfg = configOf({ settings }, 'PAYMENTS');
   let methods = manualProviders(parsed);
   if (opts.stripeConfigured && parsed.stripe.enabled) methods.unshift({ id: 'stripe', kind: 'online' });
+  // PayPal and Mollie come after the card and before the merchant's other methods; both create the order, then send the buyer to the provider.
+  const at = methods.findIndex((m) => m.id !== 'stripe');
+  const hosted: PaymentProvider[] = [];
+  if (opts.paypalConfigured && parsed.paypal.enabled) hosted.push({ id: 'paypal', kind: 'online', name: 'PayPal' });
+  if (opts.mollieConfigured && parsed.mollie.enabled) hosted.push({ id: 'mollie', kind: 'online', name: opts.mollieName || 'Mollie' });
+  if (hosted.length) methods.splice(at < 0 ? methods.length : at, 0, ...hosted);
   for (const m of cfg.customMethods) if (m.enabled) methods.push({ id: `manual:${m.id}`, kind: 'manual', name: m.name, instructions: m.instructions });
   for (const g of cfg.redirectGateways) if (g.enabled && g.redirectUrl) methods.push({ id: `redirect:${g.id}`, kind: 'redirect', name: g.name });
   if (cfg.testGateway) methods.push({ id: 'test', kind: 'test' });
@@ -61,6 +67,15 @@ export async function attachPaymentReference(db: Executor, shopId: number, order
     .where(and(eq(s.transactions.shopId, shopId), eq(s.transactions.orderId, orderId), eq(s.transactions.kind, 'SALE'), eq(s.transactions.status, 'PENDING')));
 }
 
+/** First order of the store carrying one of these provider references (PayPal order / capture / authorization ids). */
+export async function findOrderIdByPaymentIds(db: Executor, shopId: number, paymentIds: string[], gateway?: string): Promise<number | null> {
+  const ids = paymentIds.filter(Boolean);
+  if (!ids.length) return null;
+  const rows = await db.select({ orderId: s.transactions.orderId, paymentId: s.transactions.paymentId, gateway: s.transactions.gateway }).from(s.transactions).where(and(eq(s.transactions.shopId, shopId), inArray(s.transactions.paymentId, ids)));
+  for (const id of ids) { const hit = rows.find((r) => r.paymentId === id && (!gateway || r.gateway === gateway)); if (hit) return hit.orderId; }
+  return null;
+}
+
 export async function findOrderIdByPayment(db: Executor, shopId: number, paymentId: string): Promise<number | null> {
   const [t] = await db.select({ orderId: s.transactions.orderId }).from(s.transactions).where(and(eq(s.transactions.shopId, shopId), eq(s.transactions.paymentId, paymentId))).limit(1);
   return t?.orderId ?? null;
@@ -88,7 +103,11 @@ export async function markOrderPaid(db: Executor, shopId: number, orderId: numbe
 }
 
 /** Record a failed online payment attempt; the order stays PENDING so the buyer can be contacted or the order cancelled. */
-export async function recordPaymentFailure(db: Executor, shopId: number, orderId: number, info: { gateway: string; paymentId?: string | null; message?: string | null }): Promise<void> {
+export async function recordPaymentFailure(db: Executor, shopId: number, orderId: number, info: { gateway: string; paymentId?: string | null; message?: string | null; /** Skip when a failure with this payment id is already recorded (duplicate webhook deliveries). */ dedupe?: boolean }): Promise<void> {
+  if (info.dedupe && info.paymentId) {
+    const [dup] = await db.select({ id: s.transactions.id }).from(s.transactions).where(and(eq(s.transactions.shopId, shopId), eq(s.transactions.orderId, orderId), eq(s.transactions.kind, 'SALE'), eq(s.transactions.status, 'FAILURE'), eq(s.transactions.paymentId, info.paymentId))).limit(1);
+    if (dup) return;
+  }
   const [o] = await db.select({ total: s.orders.total, currency: s.orders.currency, pm: s.orders.presentmentMoney, pmCurrency: s.orders.presentmentCurrency }).from(s.orders).where(and(eq(s.orders.id, orderId), eq(s.orders.shopId, shopId))).limit(1);
   if (!o) return;
   await db.insert(s.transactions).values({ shopId, orderId, kind: 'SALE', status: 'FAILURE', gateway: info.gateway, amount: o.total, currency: o.currency, ...(o.pm ? { presentmentAmount: o.pm.total, presentmentCurrency: o.pmCurrency } : {}), paymentId: info.paymentId ?? null, errorCode: info.message?.slice(0, 200) ?? null });
@@ -137,4 +156,29 @@ export async function recordDispute(db: Executor, shopId: number, orderId: numbe
   if (seen.some((e) => e.data?.disputeId === d.id)) return false;
   await addEvent(db, shopId, { subjectType: 'order', subjectId: orderId, verb: 'order.dispute_created', message: `Payment disputed${d.reason ? ` (${d.reason.replace(/_/g, ' ')})` : ''}: respond in the Stripe dashboard`, data: { disputeId: d.id, amount: d.amount ?? null, currency: d.currency ?? null, reason: d.reason ?? null } });
   return true;
+}
+
+/**
+ * Mollie reports only the total refunded on a payment. When that is more than the REFUND transactions ShopMe holds for the order on the
+ * gateway (a refund made in the Mollie dashboard), the difference is recorded as one refund without lines whose provider id is
+ * `<paymentId>:<total refunded>`: a duplicate delivery finds nothing left to add. Amounts are in the currency the buyer was charged in.
+ * Serialised with ShopMe's own refunds (order row lock). Returns the amount mirrored (charge currency, minor units).
+ */
+export async function mirrorRefundedTotal(db: Db, shopId: number, orderId: number, gateway: string, paymentId: string, totalRefunded: number): Promise<number> {
+  if (!(totalRefunded > 0)) return 0;
+  return db.transaction(async (tx) => {
+    await tx.select({ id: s.orders.id }).from(s.orders).where(and(eq(s.orders.id, orderId), eq(s.orders.shopId, shopId))).for('update');
+    const txs = (await getOrderDetail(tx, shopId, orderId)).transactions;
+    const parent = txs.find((t) => ['SALE', 'CAPTURE'].includes(t.kind) && t.status === 'SUCCESS' && t.gateway === gateway && t.paymentId === paymentId);
+    if (!parent) return 0;
+    const known = txs.filter((t) => t.kind === 'REFUND' && t.status === 'SUCCESS' && t.gateway === gateway).reduce((n, t) => n + (t.presentmentAmount && t.presentmentAmount > 0 ? t.presentmentAmount : t.amount), 0);
+    const diff = totalRefunded - known;
+    if (diff <= (parent.presentmentAmount ? 1 : 0)) return 0; // rounding noise of currency conversion
+    const shopMoney = parent.presentmentAmount && parent.presentmentAmount > 0 ? Math.round((diff * parent.amount) / parent.presentmentAmount) : diff;
+    const r = await refundOrder(tx as unknown as Db, shopId, orderId, {
+      note: 'Refunded from the payment provider', allowOverRefunding: true,
+      transactions: [{ amount: shopMoney, gateway, parentId: parent.id, paymentId: `${paymentId}:${totalRefunded}` }],
+    });
+    return r.ok ? diff : 0;
+  });
 }
