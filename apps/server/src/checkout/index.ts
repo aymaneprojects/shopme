@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
-  attachContractPaymentMethod, contractsForOrder, getShopStripeKeys, shopOfPayment, availablePaymentMethods, configOf, findOrderIdByName, gatewaySecretOf, markOrderAuthorized, mirrorProviderRefunds, recordPaymentCanceled, recordDispute, cleanAddress, findOrderIdByPayment, getDefaultAddress, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
+  attachContractPaymentMethod, contractsForOrder, getShopStripeKeys, getShopPayPalCredentials, getShopMollieKey, isPublicHttpsUrl, shopOfPayment, availablePaymentMethods, configOf, findOrderIdByName, gatewaySecretOf, markOrderAuthorized, mirrorProviderRefunds, recordPaymentCanceled, recordDispute, cleanAddress, findOrderIdByPayment, getDefaultAddress, getCartByToken, getOrderByCheckoutToken, getOrderSummary, getShop, loadCheckout, markOrderPaid, recordPaymentFailure,
   accountsModeOf, sendFulfillmentRequests, sendSms, checkoutSettingsOf, customerAccountsSettingsOf, orderVars, renderSubscriptionConfirmation, privacySettingsOf, type Customer, type Mail, recordOrderEmail, sendNotification, sendStaffNewOrder, shippableCountries, splitContact, submitCheckout, updateCheckout, type CheckoutAddressInput, type CheckoutSettings, type CheckoutError, type CheckoutView, type Shop,
 } from '@shopme/core';
-import { createStripeAdmin, createStripeGateway, fillRedirectUrl, STRIPE_WEBHOOK_EVENTS, readSetting, verifyPaymentWebhook, type StripeAdmin, type StripeGateway } from '@shopme/payments';
+import { createMollieAdapter, createPayPalAdapter, createStripeAdmin, createStripeGateway, fillRedirectUrl, type FetchLike, type MollieAdapter, type PayPalAdapter, STRIPE_WEBHOOK_EVENTS, readSetting, verifyPaymentWebhook, type StripeAdmin, type StripeGateway } from '@shopme/payments';
 import { parseMoney } from '@shopme/shopify-compat';
 import type { AppContext } from '../context';
 import type { SubscriptionNotifyJob } from '../subscriptions';
@@ -13,6 +13,7 @@ import { requestOrigin } from '../stores';
 import { pageDescriptor, privacyEnvFor, privacyHead } from '../storefront/privacy';
 import { CSS, JS, PREVIEW_JS } from './assets';
 import { countryName, PROVINCES } from './geo';
+import { registerHostedProviders } from './hosted-providers';
 import { checkoutPage, discountMessage, inCurrency, notFoundPage, pageCtx, shippingFragment, summaryFragment, thankYouPage, type PageCtx } from './views';
 
 /**
@@ -23,6 +24,19 @@ export interface CheckoutPayments {
   stripe: StripeGateway | null; forShop(shopId: number): Promise<StripeGateway | null>;
   /** Account-level Stripe client for a secret key (saving keys: validation, webhook endpoint, wallet domains); mutable so tests inject a fake. */
   admin: (secretKey: string) => StripeAdmin;
+  /** PayPal client of a store (its saved credentials), null when it has none. */
+  paypalForShop(shopId: number): Promise<PayPalAdapter | null>;
+  /** Mollie client of a store (its saved API key), null when it has none. */
+  mollieForShop(shopId: number): Promise<MollieAdapter | null>;
+  /** PayPal client for credentials being saved (the webhook id may still be empty); mutable so tests inject a fake. */
+  paypalAdmin: (c: { clientId: string; clientSecret: string; environment: 'sandbox' | 'live' }) => PayPalAdapter;
+  mollieAdmin: (apiKey: string) => MollieAdapter;
+  /** `fetch` the PayPal and Mollie adapters use; tests replace it with a fake so nothing reaches the providers. */
+  providerFetch?: FetchLike;
+  /** The enabled Mollie methods of a store as a label ("iDEAL, Bancontact"), cached for a few minutes; "Mollie" when unknown. */
+  mollieLabel(shopId: number): Promise<string>;
+  /** Forget the cached Mollie labels (tests). */
+  clearMollieLabels(): void;
 }
 declare module 'fastify' { interface FastifyInstance { checkoutPayments: CheckoutPayments } }
 
@@ -33,6 +47,11 @@ declare module 'fastify' { interface FastifyInstance { checkoutPayments: Checkou
 export function paymentIntentKey(token: string, p: { amount: number; currency: string; captureMethod?: string; email?: string | null; customer?: string }): string {
   const fingerprint = createHash('sha256').update(JSON.stringify([p.amount, p.currency.toUpperCase(), p.captureMethod ?? 'automatic', p.email ?? '', p.customer ?? ''])).digest('hex').slice(0, 20);
   return `pi-${token}-${fingerprint}`;
+}
+/** Idempotency key of the PayPal order / Mollie payment of a checkout: the same submit maps to the same provider object, other amounts or capture modes get a new one. */
+export function hostedPaymentKey(provider: 'paypal' | 'mollie', token: string, p: { amount: number; currency: string; captureMethod?: string; email?: string | null }): string {
+  const fingerprint = createHash('sha256').update(JSON.stringify([p.amount, p.currency.toUpperCase(), p.captureMethod ?? 'automatic', p.email ?? ''])).digest('hex').slice(0, 20);
+  return `${provider}-${token}-${fingerprint}`;
 }
 const STRIPE_EVENTS: string[] = [...STRIPE_WEBHOOK_EVENTS];
 type Body = Record<string, any>;
@@ -91,7 +110,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
   const ctx: AppContext = app.ctx;
   const { db, config } = ctx;
   const ownGateways = new Map<number, { sig: string; gw: StripeGateway | null }>();
-  const payments: CheckoutPayments = {
+  const payments = <CheckoutPayments>{
     stripe: createStripeGateway(config.stripe),
     admin: (secretKey) => createStripeAdmin(secretKey),
     async forShop(shopId) {
@@ -105,6 +124,32 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       return gw;
     },
   };
+  const mollieLabels = new Map<number, { label: string; until: number; sig: string }>();
+  payments.paypalAdmin = (c) => createPayPalAdapter({ ...c, webhookId: '' }, { fetch: payments.providerFetch, allowMissingWebhook: true });
+  payments.mollieAdmin = (apiKey) => createMollieAdapter({ apiKey }, { fetch: payments.providerFetch });
+  payments.paypalForShop = async (shopId) => {
+    const c = await getShopPayPalCredentials(db, shopId, config.sessionSecret);
+    return c ? createPayPalAdapter(c, { fetch: payments.providerFetch }) : null;
+  };
+  payments.mollieForShop = async (shopId) => {
+    const apiKey = await getShopMollieKey(db, shopId, config.sessionSecret);
+    return apiKey ? createMollieAdapter({ apiKey }, { fetch: payments.providerFetch }) : null;
+  };
+  payments.mollieLabel = async (shopId) => {
+    const adapter = await payments.mollieForShop(shopId);
+    if (!adapter) return 'Mollie';
+    const sig = String(await getShopMollieKey(db, shopId, config.sessionSecret)).slice(-8);
+    const hit = mollieLabels.get(shopId);
+    if (hit && hit.sig === sig && hit.until > Date.now()) return hit.label;
+    let label = 'Mollie', ttl = 60_000;
+    try {
+      const names = (await adapter.listMethods()).filter((m) => m.status === 'activated' && m.description).map((m) => m.description);
+      if (names.length) { label = names.slice(0, 8).join(', ') + (names.length > 8 ? '...' : ''); ttl = 5 * 60_000; }
+    } catch (e) { ctx.log.warn({ err: e }, 'mollie methods could not be listed'); }
+    mollieLabels.set(shopId, { label, until: Date.now() + ttl, sig });
+    return label;
+  };
+  payments.clearMollieLabels = () => mollieLabels.clear();
   app.decorate('checkoutPayments', payments);
 
   // --- emails (background jobs, retried by the queue) ---
@@ -164,9 +209,22 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
 
   const loginRequired = async (req: FastifyRequest, shop: Shop) => accountsModeOf(shop) === 'REQUIRED' && !(await customerOf(ctx, req, shop));
 
-  async function pageData(shop: Shop, view: CheckoutView, extra: { errors?: string[]; values?: Body; chosenMethod?: string; marketing?: boolean } = {}) {
+  /** Methods offered to the buyer: PayPal and Mollie only when enabled and configured for this store. */
+  async function offeredMethods(shop: Shop, view: { address?: { countryCode?: string | null } | null; amountDue: number }) {
     const stripe = await app.checkoutPayments.forShop(shop.id);
-    const methods = availablePaymentMethods(shop.settings, { stripeConfigured: !!stripe, context: { country: view.address?.countryCode ?? null, total: view.amountDue } });
+    const parsedPayments = availablePaymentMethods(shop.settings, { stripeConfigured: !!stripe, paypalConfigured: true, mollieConfigured: true });
+    const wantsPayPal = parsedPayments.some((m) => m.id === 'paypal'), wantsMollie = parsedPayments.some((m) => m.id === 'mollie');
+    const paypal = wantsPayPal ? await app.checkoutPayments.paypalForShop(shop.id) : null;
+    const mollie = wantsMollie ? await app.checkoutPayments.mollieForShop(shop.id) : null;
+    const methods = availablePaymentMethods(shop.settings, {
+      stripeConfigured: !!stripe, paypalConfigured: !!paypal, mollieConfigured: !!mollie, mollieName: mollie ? await app.checkoutPayments.mollieLabel(shop.id) : undefined,
+      context: { country: view.address?.countryCode ?? null, total: view.amountDue },
+    });
+    return { stripe, paypal, mollie, methods };
+  }
+
+  async function pageData(shop: Shop, view: CheckoutView, extra: { errors?: string[]; values?: Body; chosenMethod?: string; marketing?: boolean } = {}) {
+    const { stripe, methods } = await offeredMethods(shop, view);
     return {
       view, methods, errors: extra.errors ?? [], values: extra.values, chosenMethod: extra.chosenMethod, marketing: extra.marketing ?? view.settings.marketing === 'checked',
       countries: view.requiresShipping ? await shippableCountries(db, shop.id) : null,
@@ -253,6 +311,8 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
     });
   });
 
+  await registerHostedProviders(app, { enqueueEmails, enqueueSubscriptionEmails, html, pageContext, bankInstructions });
+
   await app.register(async (scope) => {
     scope.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, (_req, body, done) => done(null, Object.fromEntries(new URLSearchParams(body as string))));
 
@@ -323,7 +383,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       return reply.header('cache-control', 'no-store').send({
         shipping: view.requiresShipping ? shippingFragment(c, view) : undefined, summary: summaryFragment(c, view), total: inCurrency(c, view.currency).money(view.amountDue),
         amount: view.amountDue, free: view.amountDue === 0, payments: true, discountError, giftError,
-        methods: availablePaymentMethods(shop.settings, { stripeConfigured: !!(await app.checkoutPayments.forShop(shop.id)), context: { country: view.address?.countryCode ?? null, total: view.amountDue } }).map((m) => m.id),
+        methods: (await offeredMethods(shop, view)).methods.map((m) => m.id),
       });
     });
 
@@ -371,7 +431,6 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
       const b = (req.body ?? {}) as Body;
       const json = String(req.headers['content-type'] ?? '').includes('json');
       const c = pageCtx(shop);
-      const stripe = await app.checkoutPayments.forShop(shop.id);
       if (await loginRequired(req, shop)) return json ? reply.code(401).send({ ok: false, errors: [c.t('err_login')] }) : reply.redirect(`/account/login?return_url=${encodeURIComponent(`/checkouts/${token}`)}`, 303);
       const buyer = await customerOf(ctx, req, shop);
       const settings = checkoutSettingsOf(shop);
@@ -389,15 +448,42 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
 
       let clientSecret = '';
       const pre = await loadCheckout(db, shop, token, new Date(), { customerId: buyer?.id });
-      const methods = availablePaymentMethods(shop.settings, { stripeConfigured: !!stripe, context: { country: pre?.address?.countryCode ?? null, total: pre?.amountDue ?? 0 } });
+      const { stripe, paypal, mollie, methods } = await offeredMethods(shop, { address: pre?.address, amountDue: pre?.amountDue ?? 0 });
       const kinds = Object.fromEntries(methods.map((m) => [m.id, m.kind]));
       const captureMethod = configOf(shop, 'PAYMENTS').captureMethod;
       let paymentError = false;
+      let hostedUrl = ''; // approval / checkout page of PayPal or Mollie
       const res = await submitCheckout(db, shop, token, {
         customerId: buyer?.id ?? null, doubleOptIn: privacySettingsOf(shop).doubleOptIn, visitSessionId: req.cookies.shopme_vid ?? null,
         paymentMethod: str(b.paymentMethod), allowedMethods: methods.map((m) => m.id), methodKinds: kinds, acceptsMarketing: settings.marketing !== 'hidden' && !!b.acceptsMarketing, note: settings.orderNotes ? str(b.note).trim().slice(0, 5000) || null : undefined,
         shippingRateId: Number.isFinite(rate) && rate !== 0 ? rate : null,
         startOnlinePayment: async (view) => {
+          const origin = requestOrigin(ctx, req);
+          const method = str(b.paymentMethod);
+          if (method === 'paypal') {
+            if (!paypal) throw new Error('PayPal is not configured');
+            const o = await paypal.createOrder({
+              amount: view.amountDue, currency: view.currency, intent: captureMethod === 'manual' ? 'AUTHORIZE' : 'CAPTURE', orderId: token, description: `${shop.name} checkout`,
+              returnUrl: `${origin}/checkouts/${token}/paypal/return`, cancelUrl: `${origin}/checkouts/${token}/paypal/cancel`,
+              idempotencyKey: hostedPaymentKey('paypal', token, { amount: view.amountDue, currency: view.currency, captureMethod, email: view.email }),
+            });
+            if (!o.approvalUrl) throw new Error('PayPal returned no approval link');
+            hostedUrl = o.approvalUrl;
+            return o.id;
+          }
+          if (method === 'mollie') {
+            if (!mollie) throw new Error('Mollie is not configured');
+            const hook = `${config.appUrl}/webhooks/mollie${config.multiStore ? `/${ctx.stores.info(shop.id)?.handle ?? ''}` : ''}`;
+            const p = await mollie.createPayment({
+              amount: view.amountDue, currency: view.currency, description: `${shop.name} checkout`, redirectUrl: `${origin}/checkouts/${token}/mollie/return`,
+              // Mollie refuses a webhook it cannot reach: without a public https URL the return page reads the payment itself.
+              ...(isPublicHttpsUrl(hook) ? { webhookUrl: hook } : {}), orderId: token, shopId: String(shop.id), captureMode: 'automatic',
+              idempotencyKey: hostedPaymentKey('mollie', token, { amount: view.amountDue, currency: view.currency, email: view.email }),
+            });
+            if (!p.checkoutUrl) throw new Error('Mollie returned no checkout URL');
+            hostedUrl = p.checkoutUrl;
+            return p.paymentId;
+          }
           if (!stripe) throw new Error('Stripe is not configured');
           // Subscriptions: the card is saved on a Stripe customer for the renewals (Stripe keeps the card; we keep its ids).
           const subscribing = view.lines.some((l) => l.sellingPlan);
@@ -406,7 +492,7 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
           clientSecret = pi.clientSecret;
           return pi.id;
         },
-      }).catch((e) => { if (str(b.paymentMethod) === 'stripe') { ctx.log.error({ err: e }, 'stripe payment intent failed'); paymentError = true; return null; } throw e; });
+      }).catch((e) => { if (['stripe', 'paypal', 'mollie'].includes(str(b.paymentMethod))) { ctx.log.error({ err: e, method: str(b.paymentMethod) }, 'online payment could not be started'); paymentError = true; return null; } throw e; });
       if (paymentError || !res) return fail([c.t('err_payment')]);
       if (!res.ok) {
         if (res.errors.some((e) => e.code === 'completed')) return reply.redirect(`/checkouts/${token}/thank-you`, 303);
@@ -422,6 +508,10 @@ export async function registerCheckout(app: FastifyInstance): Promise<void> {
         const payUrl = fillRedirectUrl(gw.redirectUrl, { order: res.name, reference: res.name, amount: (res.total / 100).toFixed(2), currency: res.currency, email: res.email, return_url: returnUrl });
         if (json) return { ok: true, clientSecret, returnUrl, redirectUrl: payUrl };
         return reply.redirect(payUrl, 303);
+      }
+      if (hostedUrl) {
+        if (json) return { ok: true, clientSecret, returnUrl, redirectUrl: hostedUrl };
+        return reply.redirect(hostedUrl, 303);
       }
       if (json) return { ok: true, clientSecret, returnUrl };
       return reply.redirect(`/checkouts/${token}/thank-you`, 303);
