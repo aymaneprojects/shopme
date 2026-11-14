@@ -16,7 +16,8 @@ export function stripeAdapter(gw: StripeGateway): GatewayAdapter {
  * Other gateways have no adapter, so what happens on them is only recorded. PayPal and Mollie plug in here.
  */
 export async function gatewaysFor(app: FastifyInstance, shopId: number): Promise<GatewayResolver> {
-  const stripe = await app.checkoutPayments?.forShop(shopId);
+  // Decorated by the checkout plugin; typed loosely so code compiled without that plugin's module augmentation (admin typecheck) still builds.
+  const stripe = await (app as unknown as { checkoutPayments?: { forShop(id: number): Promise<StripeGateway | null> } }).checkoutPayments?.forShop(shopId);
   const adapters: Record<string, GatewayAdapter | undefined> = { stripe: stripe ? stripeAdapter(stripe) : undefined };
   return (gateway) => adapters[gateway] ?? null;
 }
