@@ -418,7 +418,7 @@ Legend: Y present, P partial, N absent. Score: Y = 1, P = 0.5, N = 0; 30 capabil
 | 12 | Abandoned checkouts | N | Carts persist, but there is no checkout capture list, no recovery email, no admin screen |
 | 13 | Draft orders / manual orders | N | No `draftOrder*` or `orderCreate`; phone and invoice orders impossible |
 | 14 | Order handling | P | Fulfill with tracking, refund (with restock), cancel, archive, mark paid, comments, tags. Missing: order editing, returns/exchanges, partial fulfillment by location, capture/void, packing slips, invoices |
-| 15 | Payments | P | Stripe (PaymentIntents, signed webhooks), bank transfer, COD. No PayPal, no wallets, no BNPL, no 3DS configuration screen, no payout view |
+| 15 | Payments | P | Stripe (PaymentIntents, signed webhooks), PayPal and Mollie (per store, redirect + webhooks), bank transfer, COD. No wallets, no BNPL, no 3DS configuration screen, no payout view |
 | 16 | Shipping | P | Zones and rates (flat, weight, price tiers). No carrier-calculated rates, no labels, no local delivery/pickup, no packages |
 | 17 | Taxes | P | Manual per-zone rates, includes-tax toggle. No automatic VAT, OSS, per-product tax overrides, tax invoices |
 | 18 | Discounts | P | Code discounts (percentage, fixed, free shipping) with limits and dates. No automatic discounts, no buy-X-get-Y, no order-level discount, no bulk code generation |
