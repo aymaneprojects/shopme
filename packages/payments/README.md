@@ -2,7 +2,7 @@
 
 Payment provider adapters used by the checkout and the admin. Provider calls live here so that tests can inject a fake client; card data never reaches the server.
 
-- `stripe.ts`: the provider wired into checkout today. `createStripeGateway(config, client?)` creates PaymentIntents (Payment Element), verifies webhook signatures, captures, refunds,
+- `stripe.ts`: the card provider of checkout. `createStripeGateway(config, client?)` creates PaymentIntents (Payment Element), verifies webhook signatures, captures, refunds,
   cancels (voids) PaymentIntents and lists refunds, off-session renewals for subscriptions included. `createStripeAdmin(secretKey, client?)` is used when a store saves
   its keys: validates the secret key, creates the webhook endpoint (`STRIPE_WEBHOOK_EVENTS`) and registers wallet domains. Both take the Stripe client as an optional
   argument (`StripeClientLike`), which is how tests avoid the network.
@@ -12,7 +12,7 @@ Payment provider adapters used by the checkout and the admin. Provider calls liv
 Refund, void and capture are plugged into `packages/core` through a small per-gateway adapter interface
 (`GatewayAdapter` in `packages/core/src/services/orders/gateways.ts`), see `docs/dev/payments.md`.
 
-## PayPal and Mollie adapters (not yet wired into checkout)
+## PayPal and Mollie adapters (wired per store, see `docs/dev/payments.md`)
 
 `paypal.ts` (Orders v2) and `mollie.ts` (API v2), with `provider-common.ts` for what they share (`PaymentProviderError`, `NormalizedPaymentStatus`,
 amount formatting, timeout-aware HTTP).
@@ -34,5 +34,6 @@ const { paymentId, checkoutUrl } = await mollie.createPayment({ amount: 1050, cu
 
 Notes:
 - PayPal HUF, JPY and TWD are sent as whole numbers. HUF and TWD have two minor digits in our amounts, so an amount that is not a whole unit throws `amount_not_representable` instead of being rounded.
+- PayPal webhooks: `createWebhook(url)` subscribes to `PAYPAL_WEBHOOK_EVENTS`, `deleteWebhook(id)`, `verifyCredentials()`; `allowMissingWebhook` lets an admin client exist before the webhook does.
 - Idempotency: PayPal uses `PayPal-Request-Id`, Mollie uses `Idempotency-Key` (POST requests, cached for one hour).
 - Tests: `pnpm --filter @shopme/payments test` (mocked fetch, no network).

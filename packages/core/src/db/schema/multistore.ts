@@ -74,6 +74,15 @@ export const shopSecrets = pgTable('shop_secrets', {
   stripeWebhookSecret: text('stripe_webhook_secret'),
   /** Stripe webhook endpoint ShopMe created for the store (null when the merchant pasted the signing secret), deleted when the keys are replaced or removed. */
   stripeWebhookEndpointId: text('stripe_webhook_endpoint_id'),
+  /** PayPal REST app of the store: client id, encrypted client secret, 'sandbox' | 'live', the webhook id events are verified against. */
+  paypalClientId: text('paypal_client_id'),
+  paypalClientSecret: text('paypal_client_secret'),
+  paypalEnvironment: text('paypal_environment'),
+  paypalWebhookId: text('paypal_webhook_id'),
+  /** True when ShopMe created the PayPal webhook through the API (so it deletes it when the credentials are replaced or removed). */
+  paypalWebhookManaged: boolean('paypal_webhook_managed').notNull().default(false),
+  /** Encrypted Mollie API key (test_... or live_...). */
+  mollieApiKey: text('mollie_api_key'),
   ...timestamps(),
 });
 

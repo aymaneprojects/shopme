@@ -5,7 +5,7 @@ import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
 import * as schema from '../db/schema';
 import { platformAccounts, platformSettings, sessions, shopDomains, shopLocales, shops, shopSecrets, staffUsers } from '../db/schema';
 import type { Db, Executor } from '../db/client';
-import type { StripeAdmin } from '@shopme/payments';
+import type { MollieAdapter, PayPalAdapter, StripeAdmin } from '@shopme/payments';
 import { errR, okR, type Result } from './catalog/common';
 import { decryptSecret, encryptSecret } from './two-factor';
 import { handleOf, type Shop } from './shops';
@@ -247,6 +247,111 @@ export async function setShopStripeKeys(db: Executor, shopId: number, keys: Stri
   const values = { stripePublishableKey: pk, stripeSecretKey: encryptSecret(sk, key), stripeWebhookSecret: encryptSecret(secret, key), stripeWebhookEndpointId: endpointId, updatedAt: new Date() };
   await db.insert(shopSecrets).values({ shopId, ...values }).onConflictDoUpdate({ target: shopSecrets.shopId, set: values });
   return okR(await shopStripeStatus(db, shopId, key));
+}
+
+// ---- PayPal and Mollie credentials ------------------------------------------------------------------------------------------
+
+export type PayPalEnv = 'sandbox' | 'live';
+export interface PayPalCredentials { clientId: string; clientSecret: string; webhookId: string; environment: PayPalEnv }
+export interface PayPalStatus { configured: boolean; environment: PayPalEnv | null; testMode: boolean; clientIdLast4: string | null; clientSecretLast4: string | null; webhookId: string | null; /** ShopMe created the webhook through the PayPal API. */ webhookAutoCreated: boolean }
+export interface MollieStatus { configured: boolean; mode: 'test' | 'live' | null; testMode: boolean; apiKeyLast4: string | null }
+
+/** The store's PayPal credentials (decrypted), or null when not configured. */
+export async function getShopPayPalCredentials(db: Executor, shopId: number, key: string): Promise<PayPalCredentials | null> {
+  const [r] = await db.select().from(shopSecrets).where(eq(shopSecrets.shopId, shopId));
+  if (!r?.paypalClientId || !r.paypalClientSecret || !r.paypalWebhookId || (r.paypalEnvironment !== 'sandbox' && r.paypalEnvironment !== 'live')) return null;
+  const clientSecret = decryptSecret(r.paypalClientSecret, key);
+  return clientSecret ? { clientId: r.paypalClientId, clientSecret, webhookId: r.paypalWebhookId, environment: r.paypalEnvironment } : null;
+}
+
+export async function shopPayPalStatus(db: Executor, shopId: number, key: string): Promise<PayPalStatus> {
+  const c = await getShopPayPalCredentials(db, shopId, key);
+  const [r] = await db.select({ managed: shopSecrets.paypalWebhookManaged }).from(shopSecrets).where(eq(shopSecrets.shopId, shopId));
+  return { configured: !!c, environment: c?.environment ?? null, testMode: !c || c.environment === 'sandbox', clientIdLast4: c ? c.clientId.slice(-4) : null, clientSecretLast4: c ? c.clientSecret.slice(-4) : null, webhookId: c?.webhookId ?? null, webhookAutoCreated: !!c && !!r?.managed };
+}
+
+export interface PayPalSetup {
+  /** PayPal client for credentials (webhook id optional). Without it credentials are only format-checked and a webhook id must be given. */
+  admin?: (c: { clientId: string; clientSecret: string; environment: PayPalEnv }) => PayPalAdapter;
+  /** Public URL of the store's PayPal webhook endpoint. */
+  webhookUrl?: string;
+}
+
+/**
+ * Save the store's PayPal credentials, or clear them with `null`. The credentials are checked by asking PayPal for an access token. Without a
+ * webhook id the webhook is created through the PayPal API (public https URL only); a webhook ShopMe created is deleted when the credentials
+ * are replaced or removed (and reused when the same app is saved again without a webhook id).
+ */
+export async function setShopPayPalCredentials(db: Executor, shopId: number, input: { clientId?: string; clientSecret?: string; webhookId?: string; environment?: string } | null, key: string, setup: PayPalSetup = {}): Promise<Result<PayPalStatus>> {
+  const [old] = await db.select().from(shopSecrets).where(eq(shopSecrets.shopId, shopId));
+  const oldSecret = old?.paypalClientSecret ? decryptSecret(old.paypalClientSecret, key) : null;
+  const oldEnv = old?.paypalEnvironment === 'sandbox' || old?.paypalEnvironment === 'live' ? old.paypalEnvironment : null;
+  const dropOldWebhook = async () => {
+    if (old?.paypalWebhookManaged && old.paypalWebhookId && old.paypalClientId && oldSecret && oldEnv && setup.admin) {
+      try { await setup.admin({ clientId: old.paypalClientId, clientSecret: oldSecret, environment: oldEnv }).deleteWebhook(old.paypalWebhookId); } catch { /* already gone or credentials revoked */ }
+    }
+  };
+  const cleared = { paypalClientId: null, paypalClientSecret: null, paypalEnvironment: null, paypalWebhookId: null, paypalWebhookManaged: false, updatedAt: new Date() };
+  if (input === null) {
+    await dropOldWebhook();
+    await db.update(shopSecrets).set(cleared).where(eq(shopSecrets.shopId, shopId));
+    return okR(await shopPayPalStatus(db, shopId, key));
+  }
+  const clientId = input.clientId?.trim() ?? '';
+  const clientSecret = input.clientSecret?.trim() ?? '';
+  const webhookId = input.webhookId?.trim() ?? '';
+  const environment = input.environment;
+  if (!clientId) return errR(['clientId'], 'The PayPal client ID is required', 'INVALID');
+  if (!clientSecret) return errR(['clientSecret'], 'The PayPal client secret is required', 'INVALID');
+  if (environment !== 'sandbox' && environment !== 'live') return errR(['environment'], "The environment must be 'sandbox' or 'live'", 'INVALID');
+  if (webhookId && !/^[A-Za-z0-9_-]{4,64}$/.test(webhookId)) return errR(['webhookId'], 'The webhook ID looks invalid (copy it from the PayPal developer dashboard)', 'INVALID');
+  const admin = setup.admin?.({ clientId, clientSecret, environment });
+  if (admin) {
+    try { await admin.verifyCredentials(); } catch (e) { return errR(['clientSecret'], `PayPal did not accept these credentials: ${msgOf(e)}`, 'INVALID'); }
+  }
+  let id = webhookId;
+  let managed = false;
+  const sameApp = !!old && old.paypalClientId === clientId && oldEnv === environment && oldSecret === clientSecret;
+  if (!id && sameApp && old.paypalWebhookManaged && old.paypalWebhookId) { id = old.paypalWebhookId; managed = true; }
+  if (!id) {
+    const manual = 'Create a webhook in the PayPal developer dashboard (Apps & Credentials, your app, Webhooks) and enter its ID';
+    if (!admin || !isPublicHttpsUrl(setup.webhookUrl)) return errR(['webhookId'], `The webhook cannot be created automatically: this server is not reachable from PayPal over https (${setup.webhookUrl ?? 'unknown URL'}). ${manual}.`, 'WEBHOOK_ID_REQUIRED');
+    try { id = (await admin.createWebhook(setup.webhookUrl!)).id; managed = true; }
+    catch (e) { return errR(['webhookId'], `PayPal could not create the webhook (${msgOf(e)}). ${manual}.`, 'WEBHOOK_ID_REQUIRED'); }
+  } else if (webhookId && sameApp && old.paypalWebhookManaged && old.paypalWebhookId === webhookId) managed = true;
+  if (!(sameApp && old?.paypalWebhookId === id)) await dropOldWebhook();
+  const values = { paypalClientId: clientId, paypalClientSecret: encryptSecret(clientSecret, key), paypalEnvironment: environment, paypalWebhookId: id, paypalWebhookManaged: managed, updatedAt: new Date() };
+  await db.insert(shopSecrets).values({ shopId, ...values }).onConflictDoUpdate({ target: shopSecrets.shopId, set: values });
+  return okR(await shopPayPalStatus(db, shopId, key));
+}
+
+/** The store's Mollie API key (decrypted), or null. */
+export async function getShopMollieKey(db: Executor, shopId: number, key: string): Promise<string | null> {
+  const [r] = await db.select({ k: shopSecrets.mollieApiKey }).from(shopSecrets).where(eq(shopSecrets.shopId, shopId));
+  return r?.k ? decryptSecret(r.k, key) : null;
+}
+
+export async function shopMollieStatus(db: Executor, shopId: number, key: string): Promise<MollieStatus> {
+  const k = await getShopMollieKey(db, shopId, key);
+  const mode = k?.startsWith('live_') ? 'live' : k?.startsWith('test_') ? 'test' : null;
+  return { configured: !!k, mode, testMode: mode !== 'live', apiKeyLast4: k ? k.slice(-4) : null };
+}
+
+/** Save the store's Mollie API key (validated by listing the account's payment methods), or clear it with `null`. */
+export async function setShopMollieKey(db: Executor, shopId: number, apiKey: string | null, key: string, setup: { mollie?: (apiKey: string) => MollieAdapter } = {}): Promise<Result<MollieStatus>> {
+  if (apiKey === null) {
+    await db.update(shopSecrets).set({ mollieApiKey: null, updatedAt: new Date() }).where(eq(shopSecrets.shopId, shopId));
+    return okR(await shopMollieStatus(db, shopId, key));
+  }
+  const k = apiKey.trim();
+  if (!/^(test|live)_[A-Za-z0-9]{20,}$/.test(k)) return errR(['apiKey'], "The Mollie API key starts with 'test_' or 'live_'", 'INVALID');
+  const adapter = setup.mollie?.(k);
+  if (adapter) {
+    try { await adapter.listMethods(); } catch (e) { return errR(['apiKey'], `Mollie did not accept this API key: ${msgOf(e)}`, 'INVALID'); }
+  }
+  const values = { mollieApiKey: encryptSecret(k, key), updatedAt: new Date() };
+  await db.insert(shopSecrets).values({ shopId, ...values }).onConflictDoUpdate({ target: shopSecrets.shopId, set: values });
+  return okR(await shopMollieStatus(db, shopId, key));
 }
 
 // ---- deletion ---------------------------------------------------------------------------------------------------------------

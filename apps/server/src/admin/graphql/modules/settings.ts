@@ -6,7 +6,7 @@
 import {
   createShippingRate, createShippingZone, createTaxRate, deleteShippingRate, deleteShippingZone, deleteTaxRate, getShippingRate, getShippingZone, getTaxRate, listShippingZones, listStaff,
   listTaxRates, paymentSettingsOf, shopAddressOf, storefrontOf, updatePaymentSettings, updateShippingRate, updateShippingZone, updateShopSettings, updateTaxRate,
-  type ShippingRate, type ShippingRateInput, type ShippingZone, type TaxRate, getShopStripeKeys, isVerifiedShopDomain } from '@shopme/core';
+  type ShippingRate, type ShippingRateInput, type ShippingZone, type TaxRate, getShopStripeKeys, shopPayPalStatus, shopMollieStatus, isVerifiedShopDomain } from '@shopme/core';
 import { parseId, parseMoney, toGid, type UserError } from '@shopme/shopify-compat';
 import { builder } from '../builder';
 import { requireScope, type GraphQLContext } from '../context';
@@ -74,12 +74,28 @@ const ManualCod = builder.objectRef<{ enabled: boolean }>('ShopmeCodSettings').i
 const StripeSettings = builder.objectRef<{ enabled: boolean; configured: boolean }>('ShopmeStripeSettings').implement({
   fields: (t) => ({ enabled: t.exposeBoolean('enabled'), stripeConfigured: t.boolean({ description: 'True when the server has Stripe keys in its environment. Keys are never exposed.', resolve: (s) => s.configured }) }),
 });
-interface PaymentsShape { bankTransfer: { enabled: boolean; instructions: string }; cod: { enabled: boolean }; stripe: { enabled: boolean; configured: boolean } }
+const PayPalSettings = builder.objectRef<{ enabled: boolean; configured: boolean; environment: string | null }>('ShopmePayPalSettings').implement({
+  fields: (t) => ({
+    enabled: t.exposeBoolean('enabled'),
+    configured: t.boolean({ description: 'True when the store saved its PayPal credentials (PUT /admin/api/store/payments/paypal). Secrets are never exposed.', resolve: (s) => s.configured }),
+    environment: t.string({ nullable: true, description: '`sandbox` or `live` once configured.', resolve: (s) => s.environment }),
+  }),
+});
+const MollieSettings = builder.objectRef<{ enabled: boolean; configured: boolean; mode: string | null }>('ShopmeMollieSettings').implement({
+  fields: (t) => ({
+    enabled: t.exposeBoolean('enabled'),
+    configured: t.boolean({ description: 'True when the store saved its Mollie API key (PUT /admin/api/store/payments/mollie). The key is never exposed.', resolve: (s) => s.configured }),
+    mode: t.string({ nullable: true, description: '`test` or `live` once configured.', resolve: (s) => s.mode }),
+  }),
+});
+interface PaymentsShape { bankTransfer: { enabled: boolean; instructions: string }; cod: { enabled: boolean }; stripe: { enabled: boolean; configured: boolean }; paypal: { enabled: boolean; configured: boolean; environment: string | null }; mollie: { enabled: boolean; configured: boolean; mode: string | null } }
 const Payments = builder.objectRef<PaymentsShape>('ShopmePaymentSettings').implement({
   fields: (t) => ({
     bankTransfer: t.field({ type: ManualBank, resolve: (p) => p.bankTransfer }),
     cod: t.field({ type: ManualCod, resolve: (p) => p.cod }),
     stripe: t.field({ type: StripeSettings, resolve: (p) => p.stripe }),
+    paypal: t.field({ type: PayPalSettings, resolve: (p) => p.paypal }),
+    mollie: t.field({ type: MollieSettings, resolve: (p) => p.mollie }),
   }),
 });
 const PaymentsInput = builder.inputType('ShopmePaymentSettingsInput', {
@@ -87,13 +103,16 @@ const PaymentsInput = builder.inputType('ShopmePaymentSettingsInput', {
     bankTransfer: t.field({ type: builder.inputType('ShopmeBankTransferInput', { fields: (u) => ({ enabled: u.boolean(), instructions: u.string() }) }) }),
     cod: t.field({ type: builder.inputType('ShopmeCodInput', { fields: (u) => ({ enabled: u.boolean() }) }) }),
     stripe: t.field({ type: builder.inputType('ShopmeStripeInput', { fields: (u) => ({ enabled: u.boolean() }) }) }),
+    paypal: t.field({ type: builder.inputType('ShopmePayPalInput', { fields: (u) => ({ enabled: u.boolean() }) }) }),
+    mollie: t.field({ type: builder.inputType('ShopmeMollieInput', { fields: (u) => ({ enabled: u.boolean() }) }) }),
   }),
 });
 const PaymentsPayload = definePayload<{ paymentSettings: PaymentsShape | null }>('ShopmePaymentSettingsUpdatePayload', (t) => ({ paymentSettings: t.field({ type: Payments, nullable: true, resolve: (p) => p.paymentSettings }) }));
 const stripeConfigured = async (ctx: GraphQLContext) => !!(ctx.app.config.stripe.secretKey && ctx.app.config.stripe.publishableKey) || !!(await getShopStripeKeys(ctx.db, ctx.shopId, ctx.app.config.sessionSecret));
 const paymentsOf = async (ctx: GraphQLContext): Promise<PaymentsShape> => {
   const p = paymentSettingsOf(await shopOf(ctx));
-  return { bankTransfer: p.manual.bankTransfer, cod: p.manual.cod, stripe: { enabled: p.stripe.enabled, configured: await stripeConfigured(ctx) } };
+  const [pp, mo] = await Promise.all([shopPayPalStatus(ctx.db, ctx.shopId, ctx.app.config.sessionSecret), shopMollieStatus(ctx.db, ctx.shopId, ctx.app.config.sessionSecret)]);
+  return { bankTransfer: p.manual.bankTransfer, cod: p.manual.cod, stripe: { enabled: p.stripe.enabled, configured: await stripeConfigured(ctx) }, paypal: { enabled: p.paypal.enabled, configured: pp.configured, environment: pp.environment }, mollie: { enabled: p.mollie.enabled, configured: mo.configured, mode: mo.mode } };
 };
 
 /* ------------------------------ shipping zones ------------------------------ */
@@ -223,7 +242,8 @@ builder.mutationFields((t) => ({
     type: PaymentsPayload, args: { input: t.arg({ type: PaymentsInput, required: true }) },
     resolve: async (_r, { input }, ctx) => {
       requireScope(ctx, 'write_shop');
-      const r = await updatePaymentSettings(ctx.db, ctx.shopId, input, await stripeConfigured(ctx));
+      const secret = ctx.app.config.sessionSecret;
+      const r = await updatePaymentSettings(ctx.db, ctx.shopId, input, { stripe: await stripeConfigured(ctx), paypal: (await shopPayPalStatus(ctx.db, ctx.shopId, secret)).configured, mollie: (await shopMollieStatus(ctx.db, ctx.shopId, secret)).configured });
       return r.ok ? { paymentSettings: await paymentsOf(ctx), userErrors: [] } : { paymentSettings: null, userErrors: r.errors.map((e) => ({ ...e, field: ['input', ...(e.field ?? [])] })) };
     },
   }),

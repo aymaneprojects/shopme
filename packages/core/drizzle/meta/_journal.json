@@ -239,6 +239,13 @@
       "when": 1794652976679,
       "tag": "0033_conscious_psylocke",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794654676779,
+      "tag": "0034_abnormal_naoko",
+      "breakpoints": true
     }
   ]
 }

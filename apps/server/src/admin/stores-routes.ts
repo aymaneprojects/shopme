@@ -2,10 +2,11 @@ import { resolve4, resolveCname, resolveTxt as resolveTxtDefault } from 'node:dn
 import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import {
   addShopDomain, availableHandle, canCreateStores, createStore, deleteStoreData, getPlatformConfig, getShop, handleOf, handleProblem, listAccountStores, listAllStores, listShopDomains, removeShopDomain,
-  RESERVED_HANDLES, setPrimaryShopDomain, setSessionShop, setShopStripeKeys, setStoreStatus, shopStripeStatus, SetupError, SHOP_FOLDER, slugifyHandle, updatePlatformConfig, verificationRecord, verifyShopDomain, type Account, type TxtResolver,
+  RESERVED_HANDLES, schema, setPrimaryShopDomain, setSessionShop, setShopStripeKeys, setShopPayPalCredentials, setShopMollieKey, shopPayPalStatus, shopMollieStatus, setStoreStatus, shopStripeStatus, SetupError, SHOP_FOLDER, slugifyHandle, updatePlatformConfig, verificationRecord, verifyShopDomain, type Account, type TxtResolver,
 } from '@shopme/core';
 import { accountOf, authenticate, sessionToken } from '../plugins/auth';
 import { applyStartingTheme, startingThemeExists } from './starting-theme';
@@ -300,5 +301,60 @@ export function registerStoresRoutes(app: FastifyInstance) {
     if (shopId == null) return;
     await setShopStripeKeys(db, shopId, null, config.sessionSecret, { admin: (k) => app.checkoutPayments.admin(k) });
     return stripeView(shopId);
+  });
+
+  /** Removing the credentials also switches the method off, so it cannot come back on its own with new ones. */
+  const disableProvider = async (shopId: number, provider: 'paypal' | 'mollie') => {
+    const [shop] = await db.select().from(schema.shops).where(eq(schema.shops.id, shopId));
+    const payments = (shop?.settings.payments ?? {}) as Record<string, unknown>;
+    if (shop && (payments[provider] as { enabled?: boolean } | undefined)?.enabled) await db.update(schema.shops).set({ settings: { ...shop.settings, payments: { ...payments, [provider]: { enabled: false } } }, updatedAt: new Date() }).where(eq(schema.shops.id, shopId));
+  };
+
+  // ---- the store's own PayPal and Mollie credentials (both modes; no installation fallback) ----
+  const providerWebhookUrl = (provider: 'paypal' | 'mollie', shopId: number) => `${config.appUrl}/webhooks/${provider}${multi ? `/${stores.info(shopId)?.handle ?? ''}` : ''}`;
+  const paypalView = async (shopId: number) => ({ ...(await shopPayPalStatus(db, shopId, config.sessionSecret)), webhookUrl: providerWebhookUrl('paypal', shopId) });
+  const mollieView = async (shopId: number) => ({ ...(await shopMollieStatus(db, shopId, config.sessionSecret)), webhookUrl: providerWebhookUrl('mollie', shopId) });
+  app.get('/admin/api/store/payments/paypal', async (req, reply) => {
+    const shopId = await settingsMember(req, reply, false);
+    if (shopId == null) return;
+    return paypalView(shopId);
+  });
+  app.put('/admin/api/store/payments/paypal', async (req, reply) => {
+    const shopId = await settingsMember(req, reply, true);
+    if (shopId == null) return;
+    const b = (req.body ?? {}) as { clientId?: unknown; clientSecret?: unknown; webhookId?: unknown; environment?: unknown };
+    const str = (v: unknown) => (typeof v === 'string' ? v : undefined);
+    const r = await setShopPayPalCredentials(db, shopId, { clientId: str(b.clientId), clientSecret: str(b.clientSecret), webhookId: str(b.webhookId), environment: str(b.environment) }, config.sessionSecret, { admin: (c) => app.checkoutPayments.paypalAdmin(c), webhookUrl: providerWebhookUrl('paypal', shopId) });
+    if (!r.ok) return reply.code(422).send({ error: r.errors[0]!.message, issues: r.errors });
+    return paypalView(shopId);
+  });
+  app.delete('/admin/api/store/payments/paypal', async (req, reply) => {
+    const shopId = await settingsMember(req, reply, true);
+    if (shopId == null) return;
+    await setShopPayPalCredentials(db, shopId, null, config.sessionSecret, { admin: (c) => app.checkoutPayments.paypalAdmin(c) });
+    await disableProvider(shopId, 'paypal');
+    return paypalView(shopId);
+  });
+  app.get('/admin/api/store/payments/mollie', async (req, reply) => {
+    const shopId = await settingsMember(req, reply, false);
+    if (shopId == null) return;
+    return mollieView(shopId);
+  });
+  app.put('/admin/api/store/payments/mollie', async (req, reply) => {
+    const shopId = await settingsMember(req, reply, true);
+    if (shopId == null) return;
+    const apiKey = (req.body as { apiKey?: unknown } | undefined)?.apiKey;
+    const r = await setShopMollieKey(db, shopId, typeof apiKey === 'string' ? apiKey : '', config.sessionSecret, { mollie: (k) => app.checkoutPayments.mollieAdmin(k) });
+    if (!r.ok) return reply.code(422).send({ error: r.errors[0]!.message, issues: r.errors });
+    app.checkoutPayments.clearMollieLabels();
+    return mollieView(shopId);
+  });
+  app.delete('/admin/api/store/payments/mollie', async (req, reply) => {
+    const shopId = await settingsMember(req, reply, true);
+    if (shopId == null) return;
+    await setShopMollieKey(db, shopId, null, config.sessionSecret);
+    await disableProvider(shopId, 'mollie');
+    app.checkoutPayments.clearMollieLabels();
+    return mollieView(shopId);
   });
 }

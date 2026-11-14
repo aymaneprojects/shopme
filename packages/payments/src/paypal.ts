@@ -9,14 +9,14 @@ export type PayPalEnvironment = 'sandbox' | 'live';
 export interface PayPalSettings { clientId: string; clientSecret: string; webhookId: string; environment: PayPalEnvironment }
 
 /** Validate raw settings (admin form / env). Throws PaymentProviderError with code `invalid_settings`. */
-export function parsePayPalSettings(raw: unknown): PayPalSettings {
+export function parsePayPalSettings(raw: unknown, opt: { allowMissingWebhook?: boolean } = {}): PayPalSettings {
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const str = (k: string) => (typeof o[k] === 'string' ? (o[k] as string).trim() : '');
   const bad = (m: string) => new PaymentProviderError('paypal', m, 'invalid_settings');
   const clientId = str('clientId'), clientSecret = str('clientSecret'), webhookId = str('webhookId');
   if (!clientId) throw bad('PayPal clientId is required');
   if (!clientSecret) throw bad('PayPal clientSecret is required');
-  if (!webhookId) throw bad('PayPal webhookId is required');
+  if (!webhookId && !opt.allowMissingWebhook) throw bad('PayPal webhookId is required');
   if (o.environment !== 'sandbox' && o.environment !== 'live') throw bad("PayPal environment must be 'sandbox' or 'live'");
   return { clientId, clientSecret, webhookId, environment: o.environment };
 }
@@ -75,7 +75,15 @@ export interface PayPalPaymentResult { id: string; providerStatus: string; statu
 
 export interface PayPalWebhookEvent { id: string; event_type: string; resource: Record<string, any>; [k: string]: unknown }
 
-export interface PayPalAdapterOptions { fetch?: FetchLike; timeoutMs?: number; now?: () => number }
+export interface PayPalAdapterOptions { fetch?: FetchLike; timeoutMs?: number; now?: () => number;
+  /** Admin use (saving credentials): accept an empty webhookId so the webhook can be created with `createWebhook`. `verifyWebhook` then always answers null. */
+  allowMissingWebhook?: boolean }
+
+/** Events ShopMe handles; a webhook created through the API subscribes to exactly these. */
+export const PAYPAL_WEBHOOK_EVENTS = [
+  'CHECKOUT.ORDER.APPROVED', 'PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.DENIED', 'PAYMENT.CAPTURE.DECLINED', 'PAYMENT.CAPTURE.REFUNDED',
+  'PAYMENT.AUTHORIZATION.CREATED', 'PAYMENT.AUTHORIZATION.VOIDED',
+] as const;
 
 /** Map a PayPal order/capture/authorization/refund status to the normalised one. */
 export function mapPayPalStatus(kind: 'order' | 'capture' | 'authorization' | 'refund', status: string): NormalizedPaymentStatus {
@@ -104,6 +112,12 @@ export function mapPayPalStatus(kind: 'order' | 'capture' | 'authorization' | 'r
 }
 
 export interface PayPalAdapter {
+  /** Obtain an access token with the credentials (throws PaymentProviderError when PayPal rejects them). */
+  verifyCredentials(): Promise<void>;
+  /** POST /v1/notifications/webhooks for `url` with `PAYPAL_WEBHOOK_EVENTS`; returns the webhook id. */
+  createWebhook(url: string): Promise<{ id: string }>;
+  /** DELETE /v1/notifications/webhooks/{id}. */
+  deleteWebhook(id: string): Promise<void>;
   createOrder(input: PayPalCreateOrderInput): Promise<PayPalOrderRef>;
   getOrder(orderId: string): Promise<PayPalOrderResult>;
   captureOrder(orderId: string, idempotencyKey?: string): Promise<PayPalOrderResult>;
@@ -122,7 +136,7 @@ const tokenCache = new Map<string, { token: string; expiresAt: number }>();
 export function clearPayPalTokenCache(): void { tokenCache.clear(); }
 
 export function createPayPalAdapter(rawSettings: unknown, opts: PayPalAdapterOptions = {}): PayPalAdapter {
-  const cfg = parsePayPalSettings(rawSettings);
+  const cfg = parsePayPalSettings(rawSettings, { allowMissingWebhook: opts.allowMissingWebhook });
   const base = PAYPAL_BASE_URL[cfg.environment];
   const doFetch: FetchLike = opts.fetch ?? ((url, init) => fetch(url, init));
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -186,6 +200,13 @@ export function createPayPalAdapter(rawSettings: unknown, opts: PayPalAdapterOpt
   const toPayment = (kind: 'capture' | 'refund', r: any): PayPalPaymentResult => ({ id: r.id, providerStatus: r.status, status: mapPayPalStatus(kind, r.status), ...fromMoney(r.amount) });
 
   return {
+    async verifyCredentials() { await accessToken(true); },
+    async createWebhook(url) {
+      const j = await call('POST', '/v1/notifications/webhooks', { url, event_types: PAYPAL_WEBHOOK_EVENTS.map((name) => ({ name })) });
+      if (!j?.id) throw new PaymentProviderError('paypal', 'PayPal returned no webhook id', 'invalid_response');
+      return { id: j.id };
+    },
+    async deleteWebhook(id) { await call('DELETE', `/v1/notifications/webhooks/${enc(id)}`); },
     async createOrder(i) {
       const purchaseUnit = {
         reference_id: i.orderId, custom_id: i.orderId, amount: money(i.amount, i.currency),
@@ -217,7 +238,7 @@ export function createPayPalAdapter(rawSettings: unknown, opts: PayPalAdapterOpt
         auth_algo: h('paypal-auth-algo'), cert_url: h('paypal-cert-url'), transmission_id: h('paypal-transmission-id'),
         transmission_sig: h('paypal-transmission-sig'), transmission_time: h('paypal-transmission-time'),
       };
-      if (Object.values(fields).some((v) => !v)) return null;
+      if (!cfg.webhookId || Object.values(fields).some((v) => !v)) return null;
       let event: PayPalWebhookEvent;
       try { event = JSON.parse(rawBody); } catch { return null; }
       if (!event || typeof event !== 'object') return null;

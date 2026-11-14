@@ -90,6 +90,19 @@ describe('status mapping', () => {
 describe('PayPal adapter', () => {
   beforeEach(() => clearPayPalTokenCache());
 
+  it('creates and deletes a webhook, and checks credentials, without a webhook id', async () => {
+    const { fetch, calls } = fakeFetch((c) => (c.url.endsWith('/token') ? tokenReply() : c.method === 'DELETE' ? { status: 204 } : { status: 201, json: { id: 'WH-new' } }));
+    const pp = createPayPalAdapter({ ...ppSettings, webhookId: '' }, { fetch, allowMissingWebhook: true });
+    await pp.verifyCredentials();
+    expect(await pp.createWebhook('https://shop.example.com/webhooks/paypal')).toEqual({ id: 'WH-new' });
+    const post = calls.find((c) => c.url.endsWith('/v1/notifications/webhooks'))!;
+    expect(JSON.parse(post.body!)).toMatchObject({ url: 'https://shop.example.com/webhooks/paypal', event_types: expect.arrayContaining([{ name: 'PAYMENT.CAPTURE.REFUNDED' }]) });
+    await pp.deleteWebhook('WH-new');
+    expect(calls.at(-1)).toMatchObject({ method: 'DELETE', url: expect.stringContaining('/v1/notifications/webhooks/WH-new') });
+    expect(await pp.verifyWebhook({}, '{}')).toBeNull();
+    expect(() => createPayPalAdapter({ ...ppSettings, webhookId: '' }, { fetch })).toThrow(/webhookId is required/);
+  });
+
   it('requests a token with Basic auth, caches it per client id, and refreshes after expiry', async () => {
     let t = 1_000_000;
     const { fetch, calls } = fakeFetch((c) => (c.url.endsWith('/v1/oauth2/token') ? tokenReply(120, `tok${calls.filter((x) => x.url.endsWith('/token')).length}`) : { json: { id: 'O1', status: 'CREATED', purchase_units: [] } }));

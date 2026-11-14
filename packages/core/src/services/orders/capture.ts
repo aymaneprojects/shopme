@@ -11,7 +11,7 @@ import { getOrder, getOrderDetail, paidAmounts, type OrderTransaction } from './
  */
 export async function captureTransaction(db: Db, shopId: number, i: { orderId: number; parentTransactionId: number; amount: number; currency?: string | null; finalCapture?: boolean | null; staffId?: number | null;
   /** Called once the capture is valid and before it is recorded: collects the money at the payment provider (throw to refuse). */
-  collect?: (parent: OrderTransaction, amount: number) => Promise<void> }): Promise<Result<OrderTransaction>> {
+  collect?: (parent: OrderTransaction, amount: number) => Promise<void | { paymentId?: string | null }> }): Promise<Result<OrderTransaction>> {
   const order = await getOrder(db, shopId, i.orderId);
   if (!order) return errR(['input', 'id'], 'Order does not exist', 'NOT_FOUND');
   return txResult(db, async (tx) => {
@@ -26,14 +26,15 @@ export async function captureTransaction(db: Db, shopId: number, i: { orderId: n
     const remaining = parent.amount - children.filter((t) => t.kind === 'CAPTURE').reduce((n, t) => n + t.amount, 0);
     if (!(i.amount > 0)) return errR(['input', 'amount'], 'Amount must be greater than 0', 'GREATER_THAN');
     if (i.amount > remaining) return errR(['input', 'amount'], 'Amount is greater than the remaining authorized amount', 'INVALID');
+    let collected: void | { paymentId?: string | null } = undefined;
     if (i.collect) {
-      try { await i.collect(parent, i.amount); } catch (e) { return errR(['input', 'parentTransactionId'], `The payment provider refused the capture: ${(e as Error).message}`, 'INVALID'); }
+      try { collected = await i.collect(parent, i.amount); } catch (e) { return errR(['input', 'parentTransactionId'], `The payment provider refused the capture: ${(e as Error).message}`, 'INVALID'); }
     }
     const now = new Date();
     const closes = !!i.finalCapture || i.amount === remaining;
     const [capture] = await tx.insert(transactions).values({
       shopId, orderId: i.orderId, parentId: parent.id, kind: 'CAPTURE', status: 'SUCCESS', gateway: parent.gateway, amount: i.amount, currency: parent.currency, test: parent.test,
-      paymentId: parent.paymentId, processedAt: now, errorCode: closes ? 'FINAL' : null,
+      paymentId: collected?.paymentId ?? parent.paymentId, processedAt: now, errorCode: closes ? 'FINAL' : null,
     }).returning();
     const received = paidAmounts([...txs, capture!]).received;
     const status = received >= order.total ? 'PAID' : 'PARTIALLY_PAID';
