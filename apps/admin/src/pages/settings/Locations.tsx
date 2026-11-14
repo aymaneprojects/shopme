@@ -89,7 +89,7 @@ export function LocationsSettings() {
                   <option value="all">{t('loc.scope.all')}</option><option value="active">{t('loc.status.active')}</option><option value="inactive">{t('loc.inactive')}</option>
                 </select>
                 <Search className="size-4 shrink-0 text-muted" aria-hidden />
-                <input type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('loc.search')} aria-label={t('loc.search')} className="h-7 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" />
+                <input type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder={t('loc.search')} aria-label={t('loc.search')} className="h-7 min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted" />
                 <Dropdown align="right" variant="plain" size="sm" icon label={t('bs.columns')} trigger={<Columns3 className="size-4" />} items={(['address', 'phone', 'online', 'status'] as const).map((c) => ({ key: c, label: `${has(c) ? '✓ ' : '    '}${t(`bs.col.${c}` as never)}`, onSelect: () => toggleCol(c) }))} />
               </div>
               <div className="flex items-center gap-3 border-b border-line bg-surface px-4 py-1.5 text-[13px] text-muted"><span className="flex-1">{t('loc.col.location')}</span>{has('phone') && <span className="w-32">{t('bs.col.phone')}</span>}{has('online') && <span className="w-28">{t('bs.col.online')}</span>}{has('status') && <span>{t('field.status')}</span>}<span className="w-[4.5rem]" /></div>
